@@ -21,6 +21,7 @@
     "error": "错误",
     "success": "成功",
     "cancel": "取消",
-    "confirm": "确认"
+    "confirm": "确认",
+    "selectLanguage": "选择语言"
   }
 }

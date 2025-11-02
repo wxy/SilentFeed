@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-11-02T10:28:34.942Z",
+  "lastUpdate": "2025-11-02T10:29:22.578Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -223,6 +223,20 @@
         "value": "Confirm",
         "hash": "70d9be9b",
         "lastModified": "2025-11-02T10:28:34.439Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.selectLanguage": {
+      "zh-CN": {
+        "value": "选择语言",
+        "hash": "ff712438",
+        "lastModified": "2025-11-02T10:29:22.071Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Select Language",
+        "hash": "83dad810",
+        "lastModified": "2025-11-02T10:29:22.072Z",
         "status": "ai-translated"
       }
     }

@@ -21,6 +21,7 @@
     "error": "Error",
     "success": "Success",
     "cancel": "Cancel",
-    "confirm": "Confirm"
+    "confirm": "Confirm",
+    "selectLanguage": "Select Language"
   }
 }
