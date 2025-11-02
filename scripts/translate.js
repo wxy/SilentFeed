@@ -18,12 +18,23 @@ const crypto = require("crypto")
 
 // 配置
 const CONFIG = {
-  apiKey: process.env.DEEPSEEK_API_KEY || "sk-868afe862afb468d912ea4bda7a71d10",
+  apiKey: process.env.DEEPSEEK_API_KEY,
   apiUrl: "https://api.deepseek.com/v1/chat/completions",
   model: "deepseek-chat",
   localesDir: path.join(__dirname, "../public/locales"),
   sourceLocale: "zh-CN",
   targetLocales: ["en"]
+}
+
+// 检查 API Key
+if (!CONFIG.apiKey) {
+  console.error("\n❌ 错误: 未找到 DEEPSEEK_API_KEY 环境变量")
+  console.error("\n请设置环境变量:")
+  console.error("  export DEEPSEEK_API_KEY='your-api-key'")
+  console.error("\n或创建 .env 文件:")
+  console.error("  DEEPSEEK_API_KEY=your-api-key")
+  console.error("\n详见文档: docs/I18N.md")
+  process.exit(1)
 }
 
 /**
