@@ -12,6 +12,9 @@
  * 使用：npm run i18n:translate
  */
 
+// 加载环境变量
+require('dotenv').config()
+
 const fs = require("fs")
 const path = require("path")
 const crypto = require("crypto")
