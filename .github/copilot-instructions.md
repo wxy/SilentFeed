@@ -107,11 +107,53 @@ src/
 
 - **克制设计**: 最小化干扰,信息密度低
 - **主题适配**: 自动支持 light/dark 模式
+- **国际化**: 用户可见文本必须使用 _() 函数包裹
 - **性能优先**: 
   - 虚拟滚动处理长列表
   - 懒加载图片和内容
   - 节流/防抖用户交互
 - **无障碍**: 支持键盘导航,语义化 HTML
+
+## Internationalization (i18n)
+
+### 基本规则
+
+- **用户可见文本**: 必须使用 `_()` 函数包裹并添加到翻译文件
+- **开发日志**: 保持中文,不需要国际化
+- **错误消息**: 如果暴露给用户,需要国际化
+
+### 使用示例
+
+```tsx
+import { useI18n } from "@/i18n/helpers"
+
+function MyComponent() {
+  const { _ } = useI18n()
+  
+  // ✅ 正确 - 用户可见文本
+  return <div>{_("popup.welcome")}</div>
+  
+  // ❌ 错误 - 硬编码文本
+  // return <div>欢迎使用</div>
+}
+```
+
+```typescript
+// ✅ 正确 - 开发日志保持中文
+console.log("开始初始化数据库...")
+
+// ✅ 正确 - 用户错误消息国际化
+throw new Error(_("errors.networkError"))
+```
+
+### 工作流程
+
+1. **开发时**: 使用 `_()` 包裹用户可见文本
+2. **添加中文**: 编辑 `public/locales/zh-CN/translation.json`
+3. **自动翻译**: 运行 `npm run i18n:translate`
+4. **审查质量**: 检查生成的英文翻译,必要时手动调整
+
+详见 [国际化指南](../docs/I18N.md)
 
 ## Version Control Workflow
 
