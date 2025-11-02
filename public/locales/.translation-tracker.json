@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-11-02T10:29:22.578Z",
+  "lastUpdate": "2025-11-02T11:03:02.889Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -237,6 +237,202 @@
         "value": "Select Language",
         "hash": "83dad810",
         "lastModified": "2025-11-02T10:29:22.072Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.title": {
+      "zh-CN": {
+        "value": "设置",
+        "hash": "e366ccf1",
+        "lastModified": "2025-11-02T11:02:36.802Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Settings",
+        "hash": "f4f70727",
+        "lastModified": "2025-11-02T11:02:36.804Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.title": {
+      "zh-CN": {
+        "value": "常规设置",
+        "hash": "d4095c0e",
+        "lastModified": "2025-11-02T11:02:38.611Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "General Settings",
+        "hash": "52f4393e",
+        "lastModified": "2025-11-02T11:02:38.611Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.language": {
+      "zh-CN": {
+        "value": "语言",
+        "hash": "295bb704",
+        "lastModified": "2025-11-02T11:02:40.475Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Language",
+        "hash": "4994a8ff",
+        "lastModified": "2025-11-02T11:02:40.475Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.languageAuto": {
+      "zh-CN": {
+        "value": "跟随浏览器",
+        "hash": "a32210a5",
+        "lastModified": "2025-11-02T11:02:42.398Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Follow browser",
+        "hash": "8f2cd299",
+        "lastModified": "2025-11-02T11:02:42.398Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.languageZh": {
+      "zh-CN": {
+        "value": "简体中文",
+        "hash": "d688a3a4",
+        "lastModified": "2025-11-02T11:02:44.216Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Simplified Chinese",
+        "hash": "1e81fc32",
+        "lastModified": "2025-11-02T11:02:44.216Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.languageEn": {
+      "zh-CN": {
+        "value": "English",
+        "hash": "78463a38",
+        "lastModified": "2025-11-02T11:02:46.495Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "English",
+        "hash": "78463a38",
+        "lastModified": "2025-11-02T11:02:46.495Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.theme": {
+      "zh-CN": {
+        "value": "主题",
+        "hash": "9970ad07",
+        "lastModified": "2025-11-02T11:02:48.193Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Theme",
+        "hash": "d7217571",
+        "lastModified": "2025-11-02T11:02:48.193Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.themeAuto": {
+      "zh-CN": {
+        "value": "自动适配系统",
+        "hash": "8dfef034",
+        "lastModified": "2025-11-02T11:02:49.976Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Auto-Adaptive System",
+        "hash": "c7f940f7",
+        "lastModified": "2025-11-02T11:02:49.976Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rss.title": {
+      "zh-CN": {
+        "value": "RSS 源管理",
+        "hash": "f46ef4d1",
+        "lastModified": "2025-11-02T11:02:51.900Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "RSS Feed Management",
+        "hash": "299606bb",
+        "lastModified": "2025-11-02T11:02:51.900Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rss.disabled": {
+      "zh-CN": {
+        "value": "将在完成 1000 页面后启用",
+        "hash": "b6ee2f08",
+        "lastModified": "2025-11-02T11:02:54.070Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Will be enabled after completing 1000 pages",
+        "hash": "6dcecd85",
+        "lastModified": "2025-11-02T11:02:54.070Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.ai.title": {
+      "zh-CN": {
+        "value": "AI 配置",
+        "hash": "5258ce61",
+        "lastModified": "2025-11-02T11:02:56.119Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "AI Configuration",
+        "hash": "f7703f3c",
+        "lastModified": "2025-11-02T11:02:56.119Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.ai.disabled": {
+      "zh-CN": {
+        "value": "将在完成 1000 页面后启用",
+        "hash": "b6ee2f08",
+        "lastModified": "2025-11-02T11:02:58.066Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Will be enabled after completing 1000 pages",
+        "hash": "6dcecd85",
+        "lastModified": "2025-11-02T11:02:58.066Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.privacy.title": {
+      "zh-CN": {
+        "value": "数据与隐私",
+        "hash": "021f3947",
+        "lastModified": "2025-11-02T11:03:00.522Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Data and Privacy",
+        "hash": "75f496e9",
+        "lastModified": "2025-11-02T11:03:00.522Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.privacy.disabled": {
+      "zh-CN": {
+        "value": "将在完成 1000 页面后启用",
+        "hash": "b6ee2f08",
+        "lastModified": "2025-11-02T11:03:02.384Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Will be enabled after completing 1000 pages",
+        "hash": "6dcecd85",
+        "lastModified": "2025-11-02T11:03:02.385Z",
         "status": "ai-translated"
       }
     }

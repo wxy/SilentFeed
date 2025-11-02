@@ -23,5 +23,29 @@
     "cancel": "Cancel",
     "confirm": "Confirm",
     "selectLanguage": "Select Language"
+  },
+  "options": {
+    "title": "Settings",
+    "general": {
+      "title": "General Settings",
+      "language": "Language",
+      "languageAuto": "Follow browser",
+      "languageZh": "Simplified Chinese",
+      "languageEn": "English",
+      "theme": "Theme",
+      "themeAuto": "Auto-Adaptive System"
+    },
+    "rss": {
+      "title": "RSS Feed Management",
+      "disabled": "Will be enabled after completing 1000 pages"
+    },
+    "ai": {
+      "title": "AI Configuration",
+      "disabled": "Will be enabled after completing 1000 pages"
+    },
+    "privacy": {
+      "title": "Data and Privacy",
+      "disabled": "Will be enabled after completing 1000 pages"
+    }
   }
 }
