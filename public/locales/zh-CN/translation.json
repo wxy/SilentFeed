@@ -1,0 +1,26 @@
+{
+  "app": {
+    "name": "Feed AI Muter",
+    "shortName": "RSS 静音器"
+  },
+  "popup": {
+    "welcome": "欢迎使用智能 RSS 阅读器",
+    "learning": "正在学习你的兴趣...",
+    "progress": "{{current}}/{{total}} 页",
+    "stage": {
+      "explorer": "探索者阶段",
+      "learner": "学习者阶段",
+      "grower": "成长者阶段",
+      "master": "大师阶段"
+    },
+    "hint": "开始浏览，我会自动学习你的兴趣",
+    "settings": "设置"
+  },
+  "common": {
+    "loading": "加载中...",
+    "error": "错误",
+    "success": "成功",
+    "cancel": "取消",
+    "confirm": "确认"
+  }
+}

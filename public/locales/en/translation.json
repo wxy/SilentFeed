@@ -1,0 +1,26 @@
+{
+  "app": {
+    "name": "Feed AI Muter",
+    "shortName": ""
+  },
+  "popup": {
+    "welcome": "",
+    "learning": "",
+    "progress": "",
+    "stage": {
+      "explorer": "",
+      "learner": "",
+      "grower": "",
+      "master": ""
+    },
+    "hint": "",
+    "settings": ""
+  },
+  "common": {
+    "loading": "",
+    "error": "",
+    "success": "",
+    "cancel": "",
+    "confirm": ""
+  }
+}
