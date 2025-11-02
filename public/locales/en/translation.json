@@ -1,26 +1,26 @@
 {
   "app": {
     "name": "Feed AI Muter",
-    "shortName": ""
+    "shortName": "RSS Muter"
   },
   "popup": {
-    "welcome": "",
-    "learning": "",
-    "progress": "",
+    "welcome": "Welcome to the Smart RSS Reader",
+    "learning": "Learning your interests...",
+    "progress": "{{current}}/{{total}} pages",
     "stage": {
-      "explorer": "",
-      "learner": "",
-      "grower": "",
-      "master": ""
+      "explorer": "Explorer Stage",
+      "learner": "Learner Stage",
+      "grower": "Growth Stage",
+      "master": "Master Stage"
     },
-    "hint": "",
-    "settings": ""
+    "hint": "Start browsing, and I'll automatically learn your interests.",
+    "settings": "Settings"
   },
   "common": {
-    "loading": "",
-    "error": "",
-    "success": "",
-    "cancel": "",
-    "confirm": ""
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "confirm": "Confirm"
   }
 }
