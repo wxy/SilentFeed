@@ -11,14 +11,20 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "i18n:extract": "i18next-parser",
+    "i18n:translate": "node scripts/translate.js",
+    "i18n:sync": "npm run i18n:extract && npm run i18n:translate"
   },
   "dependencies": {
     "dexie": "^4.2.1",
+    "i18next": "^25.6.0",
+    "i18next-browser-languagedetector": "^8.2.0",
     "natural": "^8.1.0",
     "plasmo": "0.90.5",
     "react": "18.2.0",
     "react-dom": "18.2.0",
+    "react-i18next": "^16.2.3",
     "rss-parser": "^3.13.0",
     "stopword": "^3.1.4",
     "zustand": "^5.0.8"
@@ -37,8 +43,10 @@
     "@vitest/coverage-v8": "^4.0.6",
     "@vitest/ui": "^4.0.6",
     "autoprefixer": "^10.4.21",
+    "dotenv": "^17.2.3",
     "fake-indexeddb": "^6.2.4",
     "happy-dom": "^20.0.10",
+    "i18next-parser": "^9.3.0",
     "jsdom": "^27.1.0",
     "postcss": "^8.5.6",
     "prettier": "3.2.4",

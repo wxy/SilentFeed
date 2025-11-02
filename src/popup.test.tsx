@@ -3,29 +3,52 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import IndexPopup, { getGrowthStage } from "./popup"
 
+// Mock i18n
+vi.mock("@/i18n/helpers", () => ({
+  useI18n: () => ({
+    _: (key: string, options?: any) => {
+      // 简单的测试翻译函数，直接返回 key 的最后一部分
+      const translations: Record<string, string> = {
+        "app.name": "Feed AI Muter",
+        "app.shortName": "RSS 静音器",
+        "popup.welcome": "欢迎使用智能 RSS 阅读器",
+        "popup.learning": "正在学习你的兴趣...",
+        "popup.progress": `${options?.current || 0}/${options?.total || 1000} 页`,
+        "popup.stage.explorer": "探索者阶段",
+        "popup.stage.learner": "学习者阶段",
+        "popup.stage.grower": "成长者阶段",
+        "popup.stage.master": "大师阶段",
+        "popup.hint": "开始浏览，我会自动学习你的兴趣",
+        "popup.settings": "设置"
+      }
+      return translations[key] || key
+    }
+  })
+}))
+
 describe("getGrowthStage 函数", () => {
   it("当页面数 < 250 时应该返回探索者", () => {
-    expect(getGrowthStage(0)).toEqual({ icon: "🌱", name: "探索者" })
-    expect(getGrowthStage(100)).toEqual({ icon: "🌱", name: "探索者" })
-    expect(getGrowthStage(249)).toEqual({ icon: "🌱", name: "探索者" })
+    expect(getGrowthStage(0)).toEqual({ icon: "🌱", name: "explorer" })
+    expect(getGrowthStage(100)).toEqual({ icon: "🌱", name: "explorer" })
+    expect(getGrowthStage(249)).toEqual({ icon: "🌱", name: "explorer" })
   })
 
   it("当页面数 250-599 时应该返回学习者", () => {
-    expect(getGrowthStage(250)).toEqual({ icon: "🌿", name: "学习者" })
-    expect(getGrowthStage(400)).toEqual({ icon: "🌿", name: "学习者" })
-    expect(getGrowthStage(599)).toEqual({ icon: "🌿", name: "学习者" })
+    expect(getGrowthStage(250)).toEqual({ icon: "🌿", name: "learner" })
+    expect(getGrowthStage(400)).toEqual({ icon: "🌿", name: "learner" })
+    expect(getGrowthStage(599)).toEqual({ icon: "🌿", name: "learner" })
   })
 
   it("当页面数 600-999 时应该返回成长者", () => {
-    expect(getGrowthStage(600)).toEqual({ icon: "🌳", name: "成长者" })
-    expect(getGrowthStage(800)).toEqual({ icon: "🌳", name: "成长者" })
-    expect(getGrowthStage(999)).toEqual({ icon: "🌳", name: "成长者" })
+    expect(getGrowthStage(600)).toEqual({ icon: "🌳", name: "grower" })
+    expect(getGrowthStage(800)).toEqual({ icon: "🌳", name: "grower" })
+    expect(getGrowthStage(999)).toEqual({ icon: "🌳", name: "grower" })
   })
 
   it("当页面数 >= 1000 时应该返回大师", () => {
-    expect(getGrowthStage(1000)).toEqual({ icon: "🌲", name: "大师" })
-    expect(getGrowthStage(1500)).toEqual({ icon: "🌲", name: "大师" })
-    expect(getGrowthStage(2000)).toEqual({ icon: "🌲", name: "大师" })
+    expect(getGrowthStage(1000)).toEqual({ icon: "🌲", name: "master" })
+    expect(getGrowthStage(1500)).toEqual({ icon: "🌲", name: "master" })
+    expect(getGrowthStage(2000)).toEqual({ icon: "🌲", name: "master" })
   })
 })
 
