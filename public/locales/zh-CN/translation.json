@@ -16,6 +16,40 @@
     "hint": "开始浏览，我会自动学习你的兴趣",
     "settings": "设置"
   },
+  "options": {
+    "title": "设置",
+    "tabs": {
+      "general": "常规",
+      "rss": "RSS 源",
+      "ai": "AI",
+      "privacy": "隐私"
+    },
+    "general": {
+      "title": "常规设置",
+      "language": "语言",
+      "languageAuto": "跟随浏览器",
+      "languageZh": "简体中文",
+      "languageEn": "English",
+      "languageFr": "Français",
+      "languageJa": "日本語",
+      "languageDescription": "选择界面显示语言"
+    },
+    "rss": {
+      "title": "RSS 源管理",
+      "disabled": "将在完成 1000 页面后启用",
+      "description": "管理你的 RSS 订阅源"
+    },
+    "ai": {
+      "title": "AI 配置",
+      "disabled": "将在完成 1000 页面后启用",
+      "description": "配置 AI 推荐引擎"
+    },
+    "privacy": {
+      "title": "数据与隐私",
+      "disabled": "将在完成 1000 页面后启用",
+      "description": "管理你的数据和隐私设置"
+    }
+  },
   "common": {
     "loading": "加载中...",
     "error": "错误",
@@ -25,3 +59,4 @@
     "selectLanguage": "选择语言"
   }
 }
+
