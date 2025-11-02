@@ -12,6 +12,8 @@
  * - 支持页面切换暂停/恢复计时
  */
 
+import { logger } from '../../utils/logger'
+
 /**
  * 交互事件类型
  */
@@ -26,49 +28,53 @@ export class DwellTimeCalculator {
   private lastInteractionTime: number
   private totalActiveTime: number = 0
   private isCurrentlyActive: boolean = true
+  private isStopped: boolean = false // 是否已停止
   
   // 常量
   private static readonly INTERACTION_TIMEOUT = 30 // 30 秒无交互停止计时
   
   constructor() {
-    this.startTime = Date.now()
-    this.lastActiveTime = this.startTime
-    this.lastInteractionTime = this.startTime
+    const now = Date.now()
+    this.startTime = now
+    this.lastActiveTime = now
+    this.lastInteractionTime = now
     
-    console.log('🕐 [DwellTime] 计算器已初始化', {
-      startTime: new Date(this.startTime).toLocaleTimeString()
+    logger.debug('🕐 [DwellTime] 计算器已初始化', {
+      startTime: new Date(now).toLocaleTimeString()
     })
   }
   
   /**
-   * 页面激活状态改变
-   * @param isVisible 页面是否可见
+   * 页面可见性变化
    */
   onVisibilityChange(isVisible: boolean): void {
+    if (this.isStopped) return // 已停止，忽略事件
+    
     const now = Date.now()
     
     if (isVisible) {
-      // 页面激活：开始计时
+      // 页面激活
       this.isCurrentlyActive = true
       this.lastActiveTime = now
       
-      console.log('👁️ [DwellTime] 页面激活', {
+      logger.debug('👁️ [DwellTime] 页面激活', {
         time: new Date(now).toLocaleTimeString(),
-        累计激活时间: `${this.totalActiveTime.toFixed(1)}秒`
+        '累计激活时间': `${this.totalActiveTime.toFixed(1)}秒`
       })
     } else {
-      // 页面失活：累计激活时间
+      // 页面失活
       if (this.isCurrentlyActive) {
-        const activeSegment = (now - this.lastActiveTime) / 1000
-        this.totalActiveTime += activeSegment
-        this.isCurrentlyActive = false
+        const activeSegmentDuration = (now - this.lastActiveTime) / 1000
+        this.totalActiveTime += activeSegmentDuration
         
-        console.log('🙈 [DwellTime] 页面失活', {
+        logger.debug('🙈 [DwellTime] 页面失活', {
           time: new Date(now).toLocaleTimeString(),
-          本次激活时长: `${activeSegment.toFixed(1)}秒`,
-          累计激活时间: `${this.totalActiveTime.toFixed(1)}秒`
+          '本次激活时长': `${activeSegmentDuration.toFixed(1)}秒`,
+          '累计激活时间': `${this.totalActiveTime.toFixed(1)}秒`
         })
       }
+      
+      this.isCurrentlyActive = false
     }
   }
   
@@ -77,11 +83,13 @@ export class DwellTimeCalculator {
    * @param type 交互类型
    */
   onInteraction(type: InteractionType): void {
+    if (this.isStopped) return // 已停止，忽略事件
+    
     const now = Date.now()
     const timeSinceLastInteraction = (now - this.lastInteractionTime) / 1000
     this.lastInteractionTime = now
     
-    console.log(`👆 [DwellTime] 用户交互: ${type}`, {
+    logger.debug(`👆 [DwellTime] 用户交互: ${type}`, {
       time: new Date(now).toLocaleTimeString(),
       距上次交互: `${timeSinceLastInteraction.toFixed(1)}秒`,
       当前有效时间: `${this.getEffectiveDwellTime().toFixed(1)}秒`
@@ -103,6 +111,8 @@ export class DwellTimeCalculator {
    * @returns 有效停留时间（秒）
    */
   getEffectiveDwellTime(): number {
+    if (this.isStopped) return this.totalActiveTime // 已停止，返回最终时间
+    
     const now = Date.now()
     let effectiveTime = this.totalActiveTime
     
@@ -125,7 +135,7 @@ export class DwellTimeCalculator {
     
     // 添加调试日志（仅在超时或每 10 秒记录一次）
     if (isTimeout || Math.floor(timeSinceLastInteraction) % 10 === 0) {
-      console.log('⏱️ [DwellTime] 有效停留时间', {
+      logger.debug('⏱️ [DwellTime] 有效停留时间', {
         累计激活: `${this.totalActiveTime.toFixed(1)}秒`,
         当前片段: this.isCurrentlyActive ? `${((now - this.lastActiveTime) / 1000).toFixed(1)}秒` : '页面失活',
         有效时间: `${effectiveTime.toFixed(1)}秒`,
@@ -167,9 +177,25 @@ export class DwellTimeCalculator {
     this.lastInteractionTime = this.startTime
     this.totalActiveTime = 0
     this.isCurrentlyActive = true
+    this.isStopped = false
     
-    console.log('🔄 [DwellTime] 计算器已重置', {
-      time: new Date(this.startTime).toLocaleTimeString()
+    logger.debug('🔄 [DwellTime] 计算器已重置', {
+      time: new Date().toLocaleTimeString()
+    })
+  }
+  
+  /**
+   * 停止计算器（记录后不再需要）
+   */
+  stop(): void {
+    if (this.isStopped) return
+    
+    this.isStopped = true
+    const finalTime = this.getEffectiveDwellTime()
+    
+    logger.debug('🛑 [DwellTime] 计算器已停止', {
+      最终停留时间: `${finalTime.toFixed(1)}秒`,
+      time: new Date().toLocaleTimeString()
     })
   }
 }
