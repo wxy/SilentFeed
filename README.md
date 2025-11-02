@@ -108,6 +108,29 @@ src/
 - 组件使用 React Hooks
 - 样式使用 Tailwind CSS
 
+#### 测试
+
+```bash
+# 监听模式（开发时）
+npm test
+
+# 运行一次
+npm run test:run
+
+# 生成覆盖率报告
+npm run test:coverage
+
+# 可视化 UI
+npm run test:ui
+```
+
+**测试覆盖率要求**：
+- 行覆盖率 ≥ 70%
+- 函数覆盖率 ≥ 70%
+- 分支覆盖率 ≥ 60%
+
+详见 [测试指南](docs/TESTING.md) 和 [快速参考](docs/TESTING_QUICK_REFERENCE.md)
+
 #### 构建生产版本
 
 ```bash
