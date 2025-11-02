@@ -12,23 +12,29 @@ vi.mock("@/i18n", () => ({
 
 vi.mock("@/i18n/helpers", () => ({
   useI18n: () => ({
-    _: (key: string) => {
+    _: (key: string, params?: any) => {
       const translations: Record<string, string> = {
         "app.name": "Feed AI Muter",
         "app.shortName": "RSS 静音器",
         "options.title": "设置",
+        "options.tabs.general": "常规",
+        "options.tabs.rss": "RSS 源",
+        "options.tabs.ai": "AI",
+        "options.tabs.privacy": "隐私",
         "options.general.title": "常规设置",
         "options.general.language": "语言",
         "options.general.languageAuto": "跟随浏览器",
         "options.general.languageZh": "简体中文",
         "options.general.languageEn": "English",
-        "options.general.theme": "主题",
-        "options.general.themeAuto": "自动适配系统",
+        "options.general.languageDescription": "选择界面显示语言",
         "options.rss.title": "RSS 源管理",
+        "options.rss.description": "管理你的 RSS 订阅源",
         "options.rss.disabled": "将在完成 1000 页面后启用",
         "options.ai.title": "AI 配置",
+        "options.ai.description": "配置 AI 推荐引擎",
         "options.ai.disabled": "将在完成 1000 页面后启用",
         "options.privacy.title": "数据与隐私",
+        "options.privacy.description": "管理你的数据和隐私设置",
         "options.privacy.disabled": "将在完成 1000 页面后启用",
       }
       return translations[key] || key
@@ -38,124 +44,196 @@ vi.mock("@/i18n/helpers", () => ({
 
 describe("IndexOptions 组件", () => {
   beforeEach(() => {
-    // 清理 localStorage
     localStorage.clear()
   })
 
   describe("基本渲染", () => {
-    it("应该正确渲染标题和副标题", () => {
+    it("应该正确渲染标题", () => {
       render(<IndexOptions />)
-
       expect(screen.getByText("Feed AI Muter")).toBeInTheDocument()
       expect(screen.getByText("设置")).toBeInTheDocument()
     })
 
-    it("应该显示常规设置区域", () => {
+    it("应该显示四个标签按钮", () => {
       render(<IndexOptions />)
+      expect(screen.getByText("常规")).toBeInTheDocument()
+      expect(screen.getByText("RSS 源")).toBeInTheDocument()
+      expect(screen.getByText("AI")).toBeInTheDocument()
+      expect(screen.getByText("隐私")).toBeInTheDocument()
+    })
 
+    it("默认应该显示常规设置页面", () => {
+      render(<IndexOptions />)
       expect(screen.getByText("常规设置")).toBeInTheDocument()
-      expect(screen.getByText("语言")).toBeInTheDocument()
-      expect(screen.getByText("主题")).toBeInTheDocument()
+      expect(screen.getByText("选择界面显示语言")).toBeInTheDocument()
     })
 
-    it("应该显示三个语言选项按钮", () => {
+    it("应该显示语言下拉框", () => {
       render(<IndexOptions />)
-
-      expect(screen.getByText("跟随浏览器")).toBeInTheDocument()
-      expect(screen.getByText("简体中文")).toBeInTheDocument()
-      expect(screen.getByText("English")).toBeInTheDocument()
-    })
-
-    it("应该显示预留的配置区域", () => {
-      render(<IndexOptions />)
-
-      expect(screen.getByText("RSS 源管理")).toBeInTheDocument()
-      expect(screen.getByText("AI 配置")).toBeInTheDocument()
-      expect(screen.getByText("数据与隐私")).toBeInTheDocument()
-    })
-
-    it("预留区域应该显示禁用提示", () => {
-      render(<IndexOptions />)
-
-      const disabledMessages = screen.getAllByText("将在完成 1000 页面后启用")
-      expect(disabledMessages).toHaveLength(3)
+      const select = screen.getByLabelText("语言")
+      expect(select).toBeInTheDocument()
+      expect(select.tagName).toBe("SELECT")
     })
   })
 
-  describe("语言切换功能", () => {
-    it("默认应该选中跟随浏览器", () => {
+  describe("标签切换", () => {
+    it("点击 RSS 标签应该切换到 RSS 页面", async () => {
+      const user = userEvent.setup()
       render(<IndexOptions />)
 
-      const autoButton = screen.getByText("跟随浏览器")
-      expect(autoButton.className).toContain("bg-green-500")
+      const rssTab = screen.getByText("RSS 源")
+      await user.click(rssTab)
+
+      expect(screen.getByText("RSS 源管理")).toBeInTheDocument()
+      expect(screen.getByText("管理你的 RSS 订阅源")).toBeInTheDocument()
     })
 
-    it("点击中文按钮应该切换语言", async () => {
+    it("点击 AI 标签应该切换到 AI 页面", async () => {
+      const user = userEvent.setup()
+      render(<IndexOptions />)
+
+      const aiTab = screen.getByText("AI")
+      await user.click(aiTab)
+
+      expect(screen.getByText("AI 配置")).toBeInTheDocument()
+      expect(screen.getByText("配置 AI 推荐引擎")).toBeInTheDocument()
+    })
+
+    it("点击隐私标签应该切换到隐私页面", async () => {
+      const user = userEvent.setup()
+      render(<IndexOptions />)
+
+      const privacyTab = screen.getByText("隐私")
+      await user.click(privacyTab)
+
+      expect(screen.getByText("数据与隐私")).toBeInTheDocument()
+      expect(screen.getByText("管理你的数据和隐私设置")).toBeInTheDocument()
+    })
+
+    it("切换标签后常规设置应该消失", async () => {
+      const user = userEvent.setup()
+      render(<IndexOptions />)
+
+      expect(screen.getByText("常规设置")).toBeInTheDocument()
+
+      const rssTab = screen.getByText("RSS 源")
+      await user.click(rssTab)
+
+      expect(screen.queryByText("常规设置")).not.toBeInTheDocument()
+    })
+
+    it("激活的标签应该有不同的样式", async () => {
+      const user = userEvent.setup()
+      render(<IndexOptions />)
+
+      const generalTab = screen.getByText("常规")
+      const rssTab = screen.getByText("RSS 源")
+
+      // 初始时常规标签应该是激活状态
+      expect(generalTab.closest("button")?.className).toContain("bg-green-500")
+
+      // 点击 RSS 标签
+      await user.click(rssTab)
+
+      // RSS 标签应该变为激活状态
+      expect(rssTab.closest("button")?.className).toContain("bg-green-500")
+    })
+  })
+
+  describe("语言选择功能", () => {
+    it("默认应该选中跟随浏览器", () => {
+      render(<IndexOptions />)
+      const select = screen.getByLabelText("语言") as HTMLSelectElement
+      expect(select.value).toBe("auto")
+    })
+
+    it("应该显示三个语言选项", () => {
+      render(<IndexOptions />)
+      const options = screen.getAllByRole("option")
+      expect(options).toHaveLength(3)
+      expect(options[0]).toHaveTextContent("跟随浏览器")
+      expect(options[1]).toHaveTextContent("简体中文")
+      expect(options[2]).toHaveTextContent("English")
+    })
+
+    it("选择中文应该调用 changeLanguage", async () => {
       const user = userEvent.setup()
       const { default: i18n } = await import("@/i18n")
 
       render(<IndexOptions />)
+      const select = screen.getByLabelText("语言")
 
-      const zhButton = screen.getByText("简体中文")
-      await user.click(zhButton)
+      await user.selectOptions(select, "zh-CN")
 
       expect(i18n.changeLanguage).toHaveBeenCalledWith("zh-CN")
     })
 
-    it("点击英文按钮应该切换语言", async () => {
+    it("选择英文应该调用 changeLanguage", async () => {
       const user = userEvent.setup()
       const { default: i18n } = await import("@/i18n")
 
       render(<IndexOptions />)
+      const select = screen.getByLabelText("语言")
 
-      const enButton = screen.getByText("English")
-      await user.click(enButton)
+      await user.selectOptions(select, "en")
 
       expect(i18n.changeLanguage).toHaveBeenCalledWith("en")
     })
 
-    it("点击跟随浏览器应该清除本地存储", async () => {
+    it("选择跟随浏览器应该清除 localStorage", async () => {
       const user = userEvent.setup()
       localStorage.setItem("i18nextLng", "zh-CN")
 
       render(<IndexOptions />)
+      const select = screen.getByLabelText("语言")
 
-      const autoButton = screen.getByText("跟随浏览器")
-      await user.click(autoButton)
+      await user.selectOptions(select, "auto")
 
       expect(localStorage.getItem("i18nextLng")).toBeNull()
     })
 
-    it("localStorage 有语言设置时应该显示对应的选中状态", () => {
+    it("localStorage 有语言设置时应该显示对应值", () => {
       localStorage.setItem("i18nextLng", "zh-CN")
 
       render(<IndexOptions />)
+      const select = screen.getByLabelText("语言") as HTMLSelectElement
 
-      const zhButton = screen.getByText("简体中文")
-      expect(zhButton.className).toContain("bg-green-500")
+      expect(select.value).toBe("zh-CN")
     })
   })
 
-  describe("主题适配", () => {
-    it("应该显示自动适配系统主题", () => {
+  describe("预留区域", () => {
+    it("RSS 页面应该显示禁用提示", async () => {
+      const user = userEvent.setup()
       render(<IndexOptions />)
 
-      expect(screen.getByText("自动适配系统")).toBeInTheDocument()
+      await user.click(screen.getByText("RSS 源"))
+
+      expect(screen.getByText("将在完成 1000 页面后启用")).toBeInTheDocument()
     })
 
-    it("应该使用明暗主题样式类", () => {
-      const { container } = render(<IndexOptions />)
+    it("AI 页面应该显示禁用提示", async () => {
+      const user = userEvent.setup()
+      render(<IndexOptions />)
 
-      const mainDiv = container.firstChild as HTMLElement
-      expect(mainDiv.className).toContain("bg-gray-50")
-      expect(mainDiv.className).toContain("dark:bg-gray-900")
+      await user.click(screen.getByText("AI"))
+
+      expect(screen.getByText("将在完成 1000 页面后启用")).toBeInTheDocument()
+    })
+
+    it("隐私页面应该显示禁用提示", async () => {
+      const user = userEvent.setup()
+      render(<IndexOptions />)
+
+      await user.click(screen.getByText("隐私"))
+
+      expect(screen.getByText("将在完成 1000 页面后启用")).toBeInTheDocument()
     })
   })
 
   describe("页面布局", () => {
     it("应该有页脚信息", () => {
       render(<IndexOptions />)
-
       const footer = screen.getByText((content, element) => {
         return (
           element?.tagName === "P" &&
@@ -166,20 +244,18 @@ describe("IndexOptions 组件", () => {
       expect(footer).toBeInTheDocument()
     })
 
-    it("预留区域应该有半透明效果", () => {
+    it("应该有左侧导航栏", () => {
       const { container } = render(<IndexOptions />)
+      const nav = container.querySelector("nav")
+      expect(nav).toBeInTheDocument()
+      expect(nav?.className).toContain("w-48")
+    })
 
-      // 找到所有 section 元素
-      const sections = container.querySelectorAll("section")
-      
-      // 后三个是预留区域，应该有 opacity-50
-      const rssSection = sections[1]
-      const aiSection = sections[2]
-      const privacySection = sections[3]
-
-      expect(rssSection.className).toContain("opacity-50")
-      expect(aiSection.className).toContain("opacity-50")
-      expect(privacySection.className).toContain("opacity-50")
+    it("应该使用明暗主题样式类", () => {
+      const { container } = render(<IndexOptions />)
+      const mainDiv = container.firstChild as HTMLElement
+      expect(mainDiv.className).toContain("bg-gray-50")
+      expect(mainDiv.className).toContain("dark:bg-gray-900")
     })
   })
 })

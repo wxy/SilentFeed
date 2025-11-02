@@ -33,19 +33,31 @@
       "languageZh": "Simplified Chinese",
       "languageEn": "English",
       "theme": "Theme",
-      "themeAuto": "Auto-Adaptive System"
+      "themeAuto": "Auto-Adaptive System",
+      "languageFr": "French",
+      "languageJa": "Japanese",
+      "languageDescription": "Select interface display language"
     },
     "rss": {
       "title": "RSS Feed Management",
-      "disabled": "Will be enabled after completing 1000 pages"
+      "disabled": "Will be enabled after completing 1000 pages",
+      "description": "Manage your RSS feeds"
     },
     "ai": {
       "title": "AI Configuration",
-      "disabled": "Will be enabled after completing 1000 pages"
+      "disabled": "Will be enabled after completing 1000 pages",
+      "description": "Configure AI Recommendation Engine"
     },
     "privacy": {
       "title": "Data and Privacy",
-      "disabled": "Will be enabled after completing 1000 pages"
+      "disabled": "Will be enabled after completing 1000 pages",
+      "description": "Manage your data and privacy settings"
+    },
+    "tabs": {
+      "general": "Regular",
+      "rss": "RSS feed",
+      "ai": "AI",
+      "privacy": "Privacy"
     }
   }
 }

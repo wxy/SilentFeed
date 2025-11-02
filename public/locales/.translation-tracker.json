@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-11-02T11:03:02.889Z",
+  "lastUpdate": "2025-11-02T11:53:25.255Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -433,6 +433,146 @@
         "value": "Will be enabled after completing 1000 pages",
         "hash": "6dcecd85",
         "lastModified": "2025-11-02T11:03:02.385Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.tabs.general": {
+      "zh-CN": {
+        "value": "常规",
+        "hash": "22b777e6",
+        "lastModified": "2025-11-02T11:53:07.830Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Regular",
+        "hash": "d2203cb1",
+        "lastModified": "2025-11-02T11:53:07.832Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.tabs.rss": {
+      "zh-CN": {
+        "value": "RSS 源",
+        "hash": "e7cbeea2",
+        "lastModified": "2025-11-02T11:53:09.479Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "RSS feed",
+        "hash": "96801622",
+        "lastModified": "2025-11-02T11:53:09.479Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.tabs.ai": {
+      "zh-CN": {
+        "value": "AI",
+        "hash": "0a40e3c9",
+        "lastModified": "2025-11-02T11:53:11.133Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "AI",
+        "hash": "0a40e3c9",
+        "lastModified": "2025-11-02T11:53:11.134Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.tabs.privacy": {
+      "zh-CN": {
+        "value": "隐私",
+        "hash": "6d802636",
+        "lastModified": "2025-11-02T11:53:12.978Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Privacy",
+        "hash": "c5f29bb3",
+        "lastModified": "2025-11-02T11:53:12.978Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.languageFr": {
+      "zh-CN": {
+        "value": "Français",
+        "hash": "e0545693",
+        "lastModified": "2025-11-02T11:53:14.716Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "French",
+        "hash": "ad225f70",
+        "lastModified": "2025-11-02T11:53:14.716Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.languageJa": {
+      "zh-CN": {
+        "value": "日本語",
+        "hash": "00110af8",
+        "lastModified": "2025-11-02T11:53:16.254Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Japanese",
+        "hash": "f32ced6a",
+        "lastModified": "2025-11-02T11:53:16.255Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.languageDescription": {
+      "zh-CN": {
+        "value": "选择界面显示语言",
+        "hash": "b86e6e00",
+        "lastModified": "2025-11-02T11:53:19.129Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Select interface display language",
+        "hash": "a51ff238",
+        "lastModified": "2025-11-02T11:53:19.129Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rss.description": {
+      "zh-CN": {
+        "value": "管理你的 RSS 订阅源",
+        "hash": "48553f38",
+        "lastModified": "2025-11-02T11:53:21.364Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Manage your RSS feeds",
+        "hash": "12a56f4e",
+        "lastModified": "2025-11-02T11:53:21.364Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.ai.description": {
+      "zh-CN": {
+        "value": "配置 AI 推荐引擎",
+        "hash": "5e135f61",
+        "lastModified": "2025-11-02T11:53:23.162Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Configure AI Recommendation Engine",
+        "hash": "c59ab6f1",
+        "lastModified": "2025-11-02T11:53:23.163Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.privacy.description": {
+      "zh-CN": {
+        "value": "管理你的数据和隐私设置",
+        "hash": "8fbbc241",
+        "lastModified": "2025-11-02T11:53:24.753Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Manage your data and privacy settings",
+        "hash": "55b831cb",
+        "lastModified": "2025-11-02T11:53:24.753Z",
         "status": "ai-translated"
       }
     }
