@@ -34,6 +34,10 @@ export class DwellTimeCalculator {
     this.startTime = Date.now()
     this.lastActiveTime = this.startTime
     this.lastInteractionTime = this.startTime
+    
+    console.log('🕐 [DwellTime] 计算器已初始化', {
+      startTime: new Date(this.startTime).toLocaleTimeString()
+    })
   }
   
   /**
@@ -47,12 +51,23 @@ export class DwellTimeCalculator {
       // 页面激活：开始计时
       this.isCurrentlyActive = true
       this.lastActiveTime = now
+      
+      console.log('👁️ [DwellTime] 页面激活', {
+        time: new Date(now).toLocaleTimeString(),
+        累计激活时间: `${this.totalActiveTime.toFixed(1)}秒`
+      })
     } else {
       // 页面失活：累计激活时间
       if (this.isCurrentlyActive) {
         const activeSegment = (now - this.lastActiveTime) / 1000
         this.totalActiveTime += activeSegment
         this.isCurrentlyActive = false
+        
+        console.log('🙈 [DwellTime] 页面失活', {
+          time: new Date(now).toLocaleTimeString(),
+          本次激活时长: `${activeSegment.toFixed(1)}秒`,
+          累计激活时间: `${this.totalActiveTime.toFixed(1)}秒`
+        })
       }
     }
   }
@@ -63,7 +78,14 @@ export class DwellTimeCalculator {
    */
   onInteraction(type: InteractionType): void {
     const now = Date.now()
+    const timeSinceLastInteraction = (now - this.lastInteractionTime) / 1000
     this.lastInteractionTime = now
+    
+    console.log(`👆 [DwellTime] 用户交互: ${type}`, {
+      time: new Date(now).toLocaleTimeString(),
+      距上次交互: `${timeSinceLastInteraction.toFixed(1)}秒`,
+      当前有效时间: `${this.getEffectiveDwellTime().toFixed(1)}秒`
+    })
     
     // 注意：不更新 lastActiveTime
     // lastActiveTime 只在 onVisibilityChange(true) 时设置
@@ -101,6 +123,17 @@ export class DwellTimeCalculator {
       effectiveTime += Math.max(0, currentSegment)
     }
     
+    // 添加调试日志（仅在超时或每 10 秒记录一次）
+    if (isTimeout || Math.floor(timeSinceLastInteraction) % 10 === 0) {
+      console.log('⏱️ [DwellTime] 有效停留时间', {
+        累计激活: `${this.totalActiveTime.toFixed(1)}秒`,
+        当前片段: this.isCurrentlyActive ? `${((now - this.lastActiveTime) / 1000).toFixed(1)}秒` : '页面失活',
+        有效时间: `${effectiveTime.toFixed(1)}秒`,
+        距上次交互: `${timeSinceLastInteraction.toFixed(1)}秒`,
+        状态: isTimeout ? '⚠️ 超时（30秒无交互）' : '✅ 正常'
+      })
+    }
+    
     return effectiveTime
   }
   
@@ -134,5 +167,9 @@ export class DwellTimeCalculator {
     this.lastInteractionTime = this.startTime
     this.totalActiveTime = 0
     this.isCurrentlyActive = true
+    
+    console.log('🔄 [DwellTime] 计算器已重置', {
+      time: new Date(this.startTime).toLocaleTimeString()
+    })
   }
 }
