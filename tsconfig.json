@@ -12,8 +12,13 @@
     "paths": {
       "~*": [
         "./src/*"
+      ],
+      "@/*": [
+        "./src/*"
       ]
     },
-    "baseUrl": "."
+    "baseUrl": ".",
+    "strict": true,
+    "skipLibCheck": true
   }
 }

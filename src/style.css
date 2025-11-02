@@ -1,15 +1,74 @@
-.new-tab {
-  background-color: #f0f0f0;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-  color: #333;
-  display: block;
-  font-size: 12px;
-  line-height: 16px;
-  margin: 0 0 10px;
-  padding: 10px;
-  position: relative;
-  text-decoration: none;
-  width: 100%;
+/* 全局样式和 Tailwind CSS 导入 */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* CSS 变量 - 自动适配明暗主题 */
+@layer base {
+  :root {
+    /* 背景层级 */
+    --bg-base: 255 255 255;
+    --bg-surface: 250 250 250;
+    --bg-hover: 240 240 240;
+    
+    /* 文本层级 */
+    --text-primary: 26 26 26;
+    --text-secondary: 102 102 102;
+    --text-tertiary: 153 153 153;
+    
+    /* 边框 */
+    --border: 224 224 224;
+    --border-hover: 192 192 192;
+    
+    /* 主色调 */
+    --primary: 76 175 147;
+    --primary-hover: 46 139 111;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      /* 背景层级 */
+      --bg-base: 10 10 10;
+      --bg-surface: 26 26 26;
+      --bg-hover: 42 42 42;
+      
+      /* 文本层级 */
+      --text-primary: 224 224 224;
+      --text-secondary: 160 160 160;
+      --text-tertiary: 112 112 112;
+      
+      /* 边框 */
+      --border: 51 51 51;
+      --border-hover: 74 74 74;
+      
+      /* 主色调 */
+      --primary: 95 211 168;
+      --primary-hover: 61 171 133;
+    }
+  }
+
+  /* 基础元素样式 */
+  body {
+    @apply bg-bg-base text-text-primary;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* 自定义组件样式 */
+@layer components {
+  .btn-primary {
+    @apply bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-md transition-colors;
+  }
+
+  .btn-secondary {
+    @apply bg-bg-surface hover:bg-bg-hover text-text-primary px-4 py-2 rounded-md border border-[rgb(var(--border))] transition-colors;
+  }
+
+  .card {
+    @apply bg-bg-surface border border-[rgb(var(--border))] rounded-lg p-4 transition-all;
+  }
+
+  .card:hover {
+    @apply shadow-lg border-[rgb(var(--border-hover))];
+  }
 }
