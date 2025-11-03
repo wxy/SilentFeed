@@ -76,6 +76,10 @@ export interface ConfirmedVisit {
   interactionCount: number      // 交互次数
   visitTime: number             // 访问时间戳
   
+  // Phase 2.7: 来源追踪
+  source?: 'organic' | 'recommended' | 'search' // 访问来源
+  recommendationId?: string     // 如果来自推荐，记录推荐ID
+  
   status: 'qualified'
   
   // 数据生命周期

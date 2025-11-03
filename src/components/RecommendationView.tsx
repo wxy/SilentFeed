@@ -25,10 +25,33 @@ export function RecommendationView() {
   }, [loadRecommendations])
 
   const handleItemClick = async (rec: Recommendation) => {
-    // 打开链接
+    // Phase 2.7 Step 6: 点击追踪
+    // 1. 在新标签页打开链接时，通过 URL 参数传递来源信息
+    const trackingUrl = new URL(rec.url)
+    trackingUrl.searchParams.set('utm_source', 'feedaimuter')
+    trackingUrl.searchParams.set('utm_medium', 'recommendation')
+    trackingUrl.searchParams.set('recommendation_id', rec.id)
+    
+    // 2. 同时在 sessionStorage 存储来源信息（作为备份）
+    // 因为新标签页无法直接访问 popup 的 localStorage
+    // 我们使用 chrome.storage.session（如果可用）或 chrome.storage.local
+    try {
+      await chrome.storage.local.set({
+        [`tracking_${rec.url}`]: {
+          source: 'recommended',
+          recommendationId: rec.id,
+          timestamp: Date.now(),
+          expiresAt: Date.now() + 60000 // 1分钟后过期
+        }
+      })
+    } catch (error) {
+      console.warn('[RecommendationView] 保存追踪信息失败:', error)
+    }
+    
+    // 3. 打开链接（使用原始 URL，不带追踪参数，保持简洁）
     await chrome.tabs.create({ url: rec.url })
     
-    // 标记为已读（这里简单标记，后续 Step 6 会添加实际的阅读追踪）
+    // 4. 标记为已读（实际的阅读质量评估在 content script 中完成）
     await markAsRead(rec.id)
   }
 
