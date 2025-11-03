@@ -80,11 +80,13 @@ export class BadgeManager {
 
   /**
    * 徽章颜色配置
+   * Phase 2.7: 使用较淡的颜色，避免遮挡图标
+   * 注意：Chrome Badge API 对透明度支持有限，使用淡色代替
    */
   private static readonly BADGE_COLORS = {
-    COLD_START: '#4CAF93',      // 绿色（冷启动）
-    HAS_RECOMMENDATIONS: '#FF6B35',  // 橙色（有新推荐）
-    NO_RECOMMENDATIONS: '#9CA3AF'    // 灰色（无推荐）
+    COLD_START: [76, 175, 147, 255] as chrome.action.ColorArray,      // 淡绿色（冷启动 emoji）
+    HAS_RECOMMENDATIONS: [255, 107, 53, 255] as chrome.action.ColorArray,  // 橙色（有推荐）
+    NO_RECOMMENDATIONS: [156, 163, 175, 255] as chrome.action.ColorArray    // 淡灰色（无推荐）
   }
 
   /**
