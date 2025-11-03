@@ -145,17 +145,22 @@ export class BadgeManager {
   }
 
   /**
-   * 更新冷启动阶段徽章（成长树 emoji）
+   * 更新冷启动阶段徽章（显示进度数字）
+   * Phase 2.7: 改用数字显示进度，避免 emoji 在小图标上难以辨认
    * @param pageCount 页面计数
    */
   private static async updateColdStartBadge(pageCount: number): Promise<void> {
     const stage = this.getStage(pageCount)
     const config = this.getStageConfig(stage)
     
-    await chrome.action.setBadgeText({ text: config.emoji })
+    // 显示页面数（0-999，超过999显示999+）
+    const displayCount = Math.min(pageCount, 999)
+    const text = displayCount.toString()
+    
+    await chrome.action.setBadgeText({ text })
     await chrome.action.setBadgeBackgroundColor({ color: this.BADGE_COLORS.COLD_START })
     
-    console.log(`[BadgeManager] ✅ 徽章已更新（冷启动）: ${config.emoji} (${config.name}, ${pageCount}/${this.COLD_START_THRESHOLD} 页)`)
+    console.log(`[BadgeManager] ✅ 徽章已更新（冷启动）: ${text} (${config.name}, ${pageCount}/${this.COLD_START_THRESHOLD} 页)`)
   }
 
   /**

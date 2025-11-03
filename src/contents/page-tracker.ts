@@ -53,6 +53,33 @@ let calculator: DwellTimeCalculator
 let isRecorded = false // 防止重复记录
 let checkTimer: number | null = null // 定时检查的计时器
 let eventListeners: Array<{ element: EventTarget; event: string; handler: EventListener }> = [] // 追踪所有事件监听器
+let isContextValid = true // 扩展上下文是否有效（热重载检测）
+
+// ==================== 扩展上下文检测 ====================
+
+/**
+ * 检查扩展上下文是否有效
+ * 在开发模式下，热重载会导致 chrome.runtime 失效
+ */
+function checkExtensionContext(): boolean {
+  if (!isContextValid) {
+    return false
+  }
+  
+  try {
+    // 尝试访问 chrome.runtime.id，如果失效会抛出错误
+    if (!chrome.runtime?.id) {
+      isContextValid = false
+      return false
+    }
+    return true
+  } catch (error) {
+    isContextValid = false
+    logger.warn('⚠️ [PageTracker] 扩展上下文已失效（可能是热重载），停止追踪')
+    cleanup()
+    return false
+  }
+}
 
 // ==================== 页面信息提取 ====================
 
@@ -81,6 +108,12 @@ function getPageInfo(): PageVisitData {
  * 记录页面访问到数据库
  */
 async function recordPageVisit(): Promise<void> {
+  // 检查扩展上下文
+  if (!checkExtensionContext()) {
+    logger.warn('⚠️ [PageTracker] 扩展上下文失效，跳过记录')
+    return
+  }
+  
   if (isRecorded) {
     logger.debug('🚫 [PageTracker] 已记录过，跳过')
     return
@@ -93,27 +126,33 @@ async function recordPageVisit(): Promise<void> {
   let recommendationId: string | undefined
   
   try {
-    // 1. 尝试从 chrome.storage 读取追踪信息
-    const trackingKey = `tracking_${pageInfo.url}`
-    const result = await chrome.storage.local.get(trackingKey)
-    const trackingInfo = result[trackingKey]
-    
-    if (trackingInfo && trackingInfo.expiresAt > Date.now()) {
-      source = trackingInfo.source || 'organic'
-      recommendationId = trackingInfo.recommendationId
-      logger.debug('� [PageTracker] 检测到推荐来源', { source, recommendationId })
-      
-      // 使用后立即删除追踪信息
-      await chrome.storage.local.remove(trackingKey)
+    // 检查上下文
+    if (!checkExtensionContext()) {
+      logger.warn('⚠️ [PageTracker] 扩展上下文失效，跳过来源检测')
+      // 继续记录，但使用默认来源
     } else {
-      // 2. 检测是否来自搜索引擎（基于 referrer）
-      const referrer = document.referrer
-      if (referrer) {
-        const referrerUrl = new URL(referrer)
-        const searchEngines = ['google.com', 'bing.com', 'baidu.com', 'duckduckgo.com']
-        if (searchEngines.some(engine => referrerUrl.hostname.includes(engine))) {
-          source = 'search'
-          logger.debug('🔍 [PageTracker] 检测到搜索引擎来源', { referrer })
+      // 1. 尝试从 chrome.storage 读取追踪信息
+      const trackingKey = `tracking_${pageInfo.url}`
+      const result = await chrome.storage.local.get(trackingKey)
+      const trackingInfo = result[trackingKey]
+      
+      if (trackingInfo && trackingInfo.expiresAt > Date.now()) {
+        source = trackingInfo.source || 'organic'
+        recommendationId = trackingInfo.recommendationId
+        logger.debug('🔗 [PageTracker] 检测到推荐来源', { source, recommendationId })
+        
+        // 使用后立即删除追踪信息
+        await chrome.storage.local.remove(trackingKey)
+      } else {
+        // 2. 检测是否来自搜索引擎（基于 referrer）
+        const referrer = document.referrer
+        if (referrer) {
+          const referrerUrl = new URL(referrer)
+          const searchEngines = ['google.com', 'bing.com', 'baidu.com', 'duckduckgo.com']
+          if (searchEngines.some(engine => referrerUrl.hostname.includes(engine))) {
+            source = 'search'
+            logger.debug('🔍 [PageTracker] 检测到搜索引擎来源', { referrer })
+          }
         }
       }
     }
@@ -172,13 +211,15 @@ async function recordPageVisit(): Promise<void> {
     // 记录成功后立即清理
     cleanup()
     
-    // 通知 background 更新徽章
-    chrome.runtime.sendMessage({
-      type: 'PAGE_RECORDED',
-      data: pageInfo
-    }).catch(err => {
-      logger.warn('⚠️ [PageTracker] 发送消息到 background 失败', err)
-    })
+    // 通知 background 更新徽章（检查上下文）
+    if (checkExtensionContext()) {
+      chrome.runtime.sendMessage({
+        type: 'PAGE_RECORDED',
+        data: pageInfo
+      }).catch(err => {
+        logger.warn('⚠️ [PageTracker] 发送消息到 background 失败', err)
+      })
+    }
     
   } catch (error) {
     logger.error('❌ [PageTracker] 记录页面访问失败', error)
@@ -189,6 +230,11 @@ async function recordPageVisit(): Promise<void> {
  * 检查是否达到阈值
  */
 function checkThreshold(): void {
+  // 检查扩展上下文
+  if (!checkExtensionContext()) {
+    return
+  }
+  
   const dwellTime = calculator.getEffectiveDwellTime()
   const timeSinceInteraction = calculator.getTimeSinceLastInteraction()
   

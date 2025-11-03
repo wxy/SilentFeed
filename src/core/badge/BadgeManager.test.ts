@@ -89,31 +89,31 @@ describe('BadgeManager', () => {
   })
 
   describe('updateBadge - 冷启动阶段', () => {
-    it('应该为 0 页设置探索者徽章', async () => {
+    it('应该为 0 页设置数字徽章', async () => {
       await BadgeManager.updateBadge(0)
       
-      expect(mockSetBadgeText).toHaveBeenCalledWith({ text: '🌱' })
+      expect(mockSetBadgeText).toHaveBeenCalledWith({ text: '0' })
       expect(mockSetBadgeBackgroundColor).toHaveBeenCalledWith({ color: [76, 175, 147, 255] })
     })
 
-    it('应该为 300 页设置学习者徽章', async () => {
+    it('应该为 300 页设置数字徽章', async () => {
       await BadgeManager.updateBadge(300)
       
-      expect(mockSetBadgeText).toHaveBeenCalledWith({ text: '🌿' })
+      expect(mockSetBadgeText).toHaveBeenCalledWith({ text: '300' })
       expect(mockSetBadgeBackgroundColor).toHaveBeenCalledWith({ color: [76, 175, 147, 255] })
     })
 
-    it('应该为 700 页设置成长者徽章', async () => {
+    it('应该为 700 页设置数字徽章', async () => {
       await BadgeManager.updateBadge(700)
       
-      expect(mockSetBadgeText).toHaveBeenCalledWith({ text: '🌳' })
+      expect(mockSetBadgeText).toHaveBeenCalledWith({ text: '700' })
       expect(mockSetBadgeBackgroundColor).toHaveBeenCalledWith({ color: [76, 175, 147, 255] })
     })
 
-    it('应该为 999 页设置成长者徽章（冷启动最后一页）', async () => {
+    it('应该为 999 页设置数字徽章（冷启动最后一页）', async () => {
       await BadgeManager.updateBadge(999)
       
-      expect(mockSetBadgeText).toHaveBeenCalledWith({ text: '🌳' })
+      expect(mockSetBadgeText).toHaveBeenCalledWith({ text: '999' })
       expect(mockSetBadgeBackgroundColor).toHaveBeenCalledWith({ color: [76, 175, 147, 255] })
     })
   })
