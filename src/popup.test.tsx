@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import IndexPopup, { getGrowthStage } from "./popup"
+import IndexPopup from "./popup"
+import { BadgeManager } from "@/core/badge/BadgeManager"
 
 // Mock i18n
 vi.mock("@/i18n/helpers", () => ({
@@ -26,29 +27,29 @@ vi.mock("@/i18n/helpers", () => ({
   })
 }))
 
-describe("getGrowthStage 函数", () => {
+describe("BadgeManager.getStage 函数（用于确定成长阶段）", () => {
   it("当页面数 < 250 时应该返回探索者", () => {
-    expect(getGrowthStage(0)).toEqual({ icon: "🌱", name: "explorer" })
-    expect(getGrowthStage(100)).toEqual({ icon: "🌱", name: "explorer" })
-    expect(getGrowthStage(249)).toEqual({ icon: "🌱", name: "explorer" })
+    expect(BadgeManager.getStage(0)).toBe("explorer")
+    expect(BadgeManager.getStage(100)).toBe("explorer")
+    expect(BadgeManager.getStage(249)).toBe("explorer")
   })
 
-  it("当页面数 250-599 时应该返回学习者", () => {
-    expect(getGrowthStage(250)).toEqual({ icon: "🌿", name: "learner" })
-    expect(getGrowthStage(400)).toEqual({ icon: "🌿", name: "learner" })
-    expect(getGrowthStage(599)).toEqual({ icon: "🌿", name: "learner" })
+  it("当页面数 250-600 时应该返回学习者", () => {
+    expect(BadgeManager.getStage(250)).toBe("learner")
+    expect(BadgeManager.getStage(400)).toBe("learner")
+    expect(BadgeManager.getStage(599)).toBe("learner")  // 600 是 grower 的开始
   })
 
-  it("当页面数 600-999 时应该返回成长者", () => {
-    expect(getGrowthStage(600)).toEqual({ icon: "🌳", name: "grower" })
-    expect(getGrowthStage(800)).toEqual({ icon: "🌳", name: "grower" })
-    expect(getGrowthStage(999)).toEqual({ icon: "🌳", name: "grower" })
+  it("当页面数 600-1000 时应该返回成长者", () => {
+    expect(BadgeManager.getStage(600)).toBe("grower")
+    expect(BadgeManager.getStage(800)).toBe("grower")
+    expect(BadgeManager.getStage(1000)).toBe("grower")
   })
 
-  it("当页面数 >= 1000 时应该返回大师", () => {
-    expect(getGrowthStage(1000)).toEqual({ icon: "🌲", name: "master" })
-    expect(getGrowthStage(1500)).toEqual({ icon: "🌲", name: "master" })
-    expect(getGrowthStage(2000)).toEqual({ icon: "🌲", name: "master" })
+  it("当页面数 > 1000 时应该返回大师", () => {
+    expect(BadgeManager.getStage(1001)).toBe("master")
+    expect(BadgeManager.getStage(1500)).toBe("master")
+    expect(BadgeManager.getStage(2000)).toBe("master")
   })
 })
 

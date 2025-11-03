@@ -8,15 +8,18 @@ import { BadgeManager, ProgressStage } from './BadgeManager'
 describe('BadgeManager', () => {
   // Mock chrome.action API
   const mockSetBadgeText = vi.fn()
+  const mockSetBadgeBackgroundColor = vi.fn()
 
   beforeEach(() => {
     // 重置 mock
     mockSetBadgeText.mockClear()
+    mockSetBadgeBackgroundColor.mockClear()
 
     // 设置 chrome.action mock
     global.chrome = {
       action: {
-        setBadgeText: mockSetBadgeText
+        setBadgeText: mockSetBadgeText,
+        setBadgeBackgroundColor: mockSetBadgeBackgroundColor
       }
     } as any
   })
@@ -85,35 +88,81 @@ describe('BadgeManager', () => {
     })
   })
 
-  describe('updateBadge', () => {
+  describe('updateBadge - 冷启动阶段', () => {
     it('应该为 0 页设置探索者徽章', async () => {
       await BadgeManager.updateBadge(0)
       
-      expect(mockSetBadgeText).toHaveBeenCalledTimes(1)
       expect(mockSetBadgeText).toHaveBeenCalledWith({ text: '🌱' })
+      expect(mockSetBadgeBackgroundColor).toHaveBeenCalledWith({ color: '#4CAF93' })
     })
 
     it('应该为 300 页设置学习者徽章', async () => {
       await BadgeManager.updateBadge(300)
       
-      expect(mockSetBadgeText).toHaveBeenCalledTimes(1)
       expect(mockSetBadgeText).toHaveBeenCalledWith({ text: '🌿' })
+      expect(mockSetBadgeBackgroundColor).toHaveBeenCalledWith({ color: '#4CAF93' })
     })
 
     it('应该为 700 页设置成长者徽章', async () => {
       await BadgeManager.updateBadge(700)
       
-      expect(mockSetBadgeText).toHaveBeenCalledTimes(1)
       expect(mockSetBadgeText).toHaveBeenCalledWith({ text: '🌳' })
+      expect(mockSetBadgeBackgroundColor).toHaveBeenCalledWith({ color: '#4CAF93' })
     })
 
-    it('应该为 1500 页设置大师徽章', async () => {
+    it('应该为 999 页设置成长者徽章（冷启动最后一页）', async () => {
+      await BadgeManager.updateBadge(999)
+      
+      expect(mockSetBadgeText).toHaveBeenCalledWith({ text: '🌳' })
+      expect(mockSetBadgeBackgroundColor).toHaveBeenCalledWith({ color: '#4CAF93' })
+    })
+  })
+
+  describe('updateBadge - 推荐阶段', () => {
+    it('应该为 1000 页显示空徽章（无未读推荐）', async () => {
+      await BadgeManager.updateBadge(1000, 0)
+      
+      expect(mockSetBadgeText).toHaveBeenCalledWith({ text: '' })
+      expect(mockSetBadgeBackgroundColor).toHaveBeenCalledWith({ color: '#9CA3AF' })
+    })
+
+    it('应该为 1500 页显示未读数量（有推荐）', async () => {
+      await BadgeManager.updateBadge(1500, 3)
+      
+      expect(mockSetBadgeText).toHaveBeenCalledWith({ text: '3' })
+      expect(mockSetBadgeBackgroundColor).toHaveBeenCalledWith({ color: '#FF6B35' })
+    })
+
+    it('应该正确处理大量未读推荐', async () => {
+      await BadgeManager.updateBadge(2000, 99)
+      
+      expect(mockSetBadgeText).toHaveBeenCalledWith({ text: '99' })
+      expect(mockSetBadgeBackgroundColor).toHaveBeenCalledWith({ color: '#FF6B35' })
+    })
+
+    it('应该在推荐阶段默认显示空徽章（未传 unreadCount）', async () => {
       await BadgeManager.updateBadge(1500)
       
-      expect(mockSetBadgeText).toHaveBeenCalledTimes(1)
-      expect(mockSetBadgeText).toHaveBeenCalledWith({ text: '🌲' })
+      expect(mockSetBadgeText).toHaveBeenCalledWith({ text: '' })
+      expect(mockSetBadgeBackgroundColor).toHaveBeenCalledWith({ color: '#9CA3AF' })
+    })
+  })
+
+  describe('isColdStart', () => {
+    it('应该正确判断冷启动阶段', () => {
+      expect(BadgeManager.isColdStart(0)).toBe(true)
+      expect(BadgeManager.isColdStart(500)).toBe(true)
+      expect(BadgeManager.isColdStart(999)).toBe(true)
     })
 
+    it('应该正确判断推荐阶段', () => {
+      expect(BadgeManager.isColdStart(1000)).toBe(false)
+      expect(BadgeManager.isColdStart(1500)).toBe(false)
+      expect(BadgeManager.isColdStart(10000)).toBe(false)
+    })
+  })
+
+  describe('错误处理', () => {
     it('应该处理 API 错误', async () => {
       mockSetBadgeText.mockRejectedValue(new Error('API Error'))
       
