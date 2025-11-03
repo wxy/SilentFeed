@@ -30,7 +30,8 @@
       "general": "常规",
       "rss": "RSS 源",
       "ai": "AI",
-      "privacy": "隐私"
+      "recommendations": "推荐统计",
+      "data": "数据统计"
     },
     "general": {
       "title": "常规设置",
@@ -52,10 +53,41 @@
       "disabled": "将在完成 1000 页面后启用",
       "description": "配置 AI 推荐引擎"
     },
-    "privacy": {
-      "title": "数据与隐私",
-      "disabled": "将在完成 1000 页面后启用",
-      "description": "管理你的数据和隐私设置"
+    "stats": {
+      "noData": "暂无数据",
+      "recommendationOverview": "推荐效果概览",
+      "totalRecommendations": "推荐总数",
+      "readCount": "已读数",
+      "unreadCount": "未读数",
+      "readRate": "阅读率",
+      "feedbackStats": "用户反馈统计",
+      "read": "已读",
+      "readLater": "稍后读",
+      "dismissed": "不想读",
+      "hint": "阅读率越高，说明推荐越精准。AI 会根据你的反馈持续优化推荐算法。"
+    },
+    "dataStats": {
+      "noData": "暂无数据",
+      "overview": "数据概览",
+      "totalPages": "总页面数",
+      "confirmedVisits": "正式记录",
+      "recommendations": "推荐数",
+      "avgDwellTime": "平均停留",
+      "storage": "存储占用",
+      "totalSize": "总占用空间",
+      "pendingVisits": "临时记录",
+      "confirmedVisitsLabel": "正式记录",
+      "recommendationsLabel": "推荐记录",
+      "records": "条",
+      "visits": "次",
+      "topDomains": "常访问域名 (Top 10)",
+      "noDomains": "暂无数据",
+      "dataManagement": "数据管理",
+      "clearHistory": "清空浏览历史",
+      "resetProfile": "重置用户画像",
+      "clearAll": "清空所有数据",
+      "comingSoon": "即将推出",
+      "dataManagementHint": "数据管理功能将在后续版本中提供"
     }
   },
   "common": {

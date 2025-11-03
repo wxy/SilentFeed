@@ -3,9 +3,11 @@ import { useState } from "react"
 import "@/i18n"
 import { useI18n } from "@/i18n/helpers"
 import i18n from "@/i18n"
+import { RecommendationStats } from "@/components/settings/RecommendationStats"
+import { DataStats } from "@/components/settings/DataStats"
 import "./style.css"
 
-type TabKey = "general" | "rss" | "ai" | "privacy"
+type TabKey = "general" | "rss" | "ai" | "recommendations" | "data"
 
 /**
  * Feed AI Muter - 设置页面
@@ -38,7 +40,8 @@ function IndexOptions() {
     { key: "general", icon: "⚙️" },
     { key: "rss", icon: "📡" },
     { key: "ai", icon: "🤖" },
-    { key: "privacy", icon: "🔒" }
+    { key: "recommendations", icon: "📊" },
+    { key: "data", icon: "�" }
   ]
 
   return (
@@ -157,22 +160,11 @@ function IndexOptions() {
               </div>
             )}
 
-            {/* 数据与隐私 - 预留 */}
-            {activeTab === "privacy" && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 opacity-50">
-                <h2 className="text-lg font-semibold mb-2">
-                  {_("options.privacy.title")}
-                </h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                  {_("options.privacy.description")}
-                </p>
-                <div className="py-8 text-center">
-                  <p className="text-gray-500 dark:text-gray-400">
-                    {_("options.privacy.disabled")}
-                  </p>
-                </div>
-              </div>
-            )}
+            {/* 推荐统计 - Phase 2.7 */}
+            {activeTab === "recommendations" && <RecommendationStats />}
+
+            {/* 数据统计 - Phase 2.7 */}
+            {activeTab === "data" && <DataStats />}
           </div>
         </div>
       </div>

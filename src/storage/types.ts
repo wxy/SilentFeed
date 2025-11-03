@@ -172,6 +172,41 @@ export interface Recommendation {
 }
 
 /**
+ * 推荐统计数据（实时查询结果）
+ * Phase 2.7: 设置页面展示
+ */
+export interface RecommendationStats {
+  totalCount: number            // 推荐总数
+  unreadCount: number           // 未读数
+  readCount: number             // 已读数
+  readLaterCount: number        // 稍后读数
+  dismissedCount: number        // 不想读数
+  avgReadDuration: number       // 平均阅读时长（秒）
+  topSources: Array<{           // Top 推荐来源
+    source: string
+    count: number
+    readRate: number
+  }>
+}
+
+/**
+ * 存储统计数据（实时查询结果）
+ * Phase 2.7: 设置页面展示
+ */
+export interface StorageStats {
+  pageCount: number             // 页面总数
+  pendingCount: number          // 临时记录数
+  confirmedCount: number        // 正式记录数
+  recommendationCount: number   // 推荐记录数
+  totalSizeMB: number           // 估算总占用（MB）
+  topDomains: Array<{           // Top 10 域名
+    domain: string
+    count: number
+  }>
+  avgDwellTime: number          // 平均停留时间（秒）
+}
+
+/**
  * 统计数据缓存
  */
 export interface Statistics {

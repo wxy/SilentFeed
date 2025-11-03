@@ -301,24 +301,46 @@ export async function getRecommendationStats(days: number = 7) {
 /**
  * 获取存储统计数据
  */
-export async function getStorageStats() {
+/**
+ * 获取存储统计数据
+ * Phase 2.7: 设置页面展示
+ */
+export async function getStorageStats(): Promise<import('./types').StorageStats> {
   const pendingCount = await db.pendingVisits.count()
   const confirmedCount = await db.confirmedVisits.count()
   const recommendationCount = await db.recommendations.count()
   
-  const totalRecords = pendingCount + confirmedCount + recommendationCount
+  // 计算总页面数（= confirmed visits）
+  const pageCount = confirmedCount
   
   // 估算存储大小（每条记录约 5KB）
   const avgRecordSizeKB = 5
+  const totalRecords = pendingCount + confirmedCount + recommendationCount
   const totalSizeMB = (totalRecords * avgRecordSizeKB) / 1024
   
+  // 获取 Top 10 域名
+  const visits = await db.confirmedVisits.toArray()
+  const domainMap = new Map<string, number>()
+  visits.forEach(visit => {
+    domainMap.set(visit.domain, (domainMap.get(visit.domain) || 0) + 1)
+  })
+  const topDomains = Array.from(domainMap.entries())
+    .map(([domain, count]) => ({ domain, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10)
+  
+  // 计算平均停留时间
+  const totalDuration = visits.reduce((sum, v) => sum + v.duration, 0)
+  const avgDwellTime = visits.length > 0 ? totalDuration / visits.length : 0
+  
   return {
-    totalRecords,
-    totalSizeMB: totalRecords > 0 ? Math.max(0.01, Math.round(totalSizeMB * 100) / 100) : 0, // 至少 0.01 MB
-    pendingVisits: pendingCount,
-    confirmedVisits: confirmedCount,
-    recommendations: recommendationCount,
-    avgRecordSizeKB
+    pageCount,
+    pendingCount,
+    confirmedCount,
+    recommendationCount,
+    totalSizeMB: totalRecords > 0 ? Math.max(0.01, Math.round(totalSizeMB * 100) / 100) : 0,
+    topDomains,
+    avgDwellTime
   }
 }
 
