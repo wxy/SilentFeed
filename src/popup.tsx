@@ -23,10 +23,13 @@ function IndexPopup() {
     // 加载页面计数
     const loadPageCount = async () => {
       try {
+        console.log("[Popup] 开始加载页面计数...")
         const count = await getPageCount()
+        console.log("[Popup] 页面计数:", count)
         setPageCount(count)
       } catch (error) {
-        console.error("加载页面计数失败:", error)
+        console.warn("[Popup] 加载页面计数失败，使用默认值 0:", error)
+        // 首次加载时数据库可能未初始化，使用 0 作为默认值
         setPageCount(0)
       } finally {
         setIsLoading(false)

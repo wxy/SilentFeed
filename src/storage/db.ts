@@ -2,7 +2,12 @@
  * IndexedDB 数据库定义（使用 Dexie.js）
  * 
  * 数据库名称: FeedAIMuterDB
- * 版本: 1
+ * 当前版本: 2
+ * 
+ * ⚠️ 版本管理说明：
+ * - 开发过程中如果遇到版本冲突，请删除旧数据库
+ * - 生产环境版本号应该只增不减
+ * - 当前固定为版本 2
  */
 
 import Dexie from 'dexie'
@@ -77,62 +82,105 @@ export class FeedAIMuterDB extends Dexie {
 export const db = new FeedAIMuterDB()
 
 /**
- * 初始化数据库
+ * 检查并修复数据库版本冲突
  * 
- * 确保默认设置存在
+ * 如果浏览器中的版本高于代码版本，自动删除旧数据库
+ */
+async function checkAndFixDatabaseVersion(): Promise<void> {
+  try {
+    const dbs = await indexedDB.databases()
+    const existingDB = dbs.find(d => d.name === 'FeedAIMuterDB')
+    
+    if (existingDB && existingDB.version && existingDB.version > 2) {
+      console.warn(`[DB] 检测到版本冲突: 浏览器版本 ${existingDB.version}, 代码版本 2`)
+      console.log('[DB] 正在清理旧数据库...')
+      
+      // 先关闭 Dexie 连接（如果已打开）
+      if (db.isOpen()) {
+        db.close()
+        console.log('[DB] 已关闭现有数据库连接')
+      }
+      
+      // 删除旧数据库
+      await new Promise<void>((resolve, reject) => {
+        const deleteReq = indexedDB.deleteDatabase('FeedAIMuterDB')
+        deleteReq.onsuccess = () => {
+          console.log('[DB] ✅ 旧数据库已删除')
+          resolve()
+        }
+        deleteReq.onerror = () => reject(deleteReq.error)
+        deleteReq.onblocked = () => {
+          console.warn('[DB] ⚠️ 删除被阻止，请关闭所有使用数据库的页面')
+          // 即使被阻止也继续，让用户手动处理
+          resolve()
+        }
+      })
+      
+      // 等待一小段时间，确保删除完成
+      await new Promise(resolve => setTimeout(resolve, 200))
+      console.log('[DB] ✅ 准备创建新数据库（版本 2）')
+    }
+  } catch (error) {
+    console.error('[DB] 版本检查失败:', error)
+    // 继续执行，让 Dexie 处理
+  }
+}
+
+/**
+ * 初始化数据库
+ * - 在扩展安装时调用
+ * - 确保数据库已创建并设置默认配置
  */
 export async function initializeDatabase(): Promise<void> {
   try {
-    // 检查设置是否存在
-    const existingSettings = await db.settings.get('singleton')
+    // ⚠️ 关键：先检查版本冲突，再打开数据库
+    await checkAndFixDatabaseVersion()
     
-    if (!existingSettings) {
-      // 创建默认设置
-      const defaultSettings: UserSettings = {
+    // 打开数据库（如果未打开）
+    if (!db.isOpen()) {
+      console.log('[DB] 正在打开数据库...')
+      await db.open()
+      console.log('[DB] ✅ 数据库已打开（版本 2）')
+    }
+    
+    // ✅ 关键修复：使用 count() 检查是否已有设置，而不是 get()
+    // 这样可以避免在设置已存在时抛出错误
+    const settingsCount = await db.settings.count()
+    
+    if (settingsCount === 0) {
+      // 只有在没有设置时才创建
+      console.log('[DB] 未找到设置，创建默认设置...')
+      await db.settings.add({
         id: 'singleton',
-        
-        // 停留时间默认配置
         dwellTime: {
-          mode: 'auto',
+          mode: 'fixed',
           fixedThreshold: 30,
           minThreshold: 15,
           maxThreshold: 120,
           calculatedThreshold: 30
         },
-        
-        // 排除规则默认配置
         exclusionRules: {
           autoExcludeIntranet: true,
           autoExcludeSensitive: true,
           customDomains: []
         },
-        
-        // 数据保留策略默认配置
         dataRetention: {
           rawVisitsDays: 90,
           statisticsDays: 365
-        },
-        
-        // 初始化阶段
-        initPhase: {
-          completed: false,
-          pageCount: 0
-        },
-        
-        // 通知设置
-        notifications: {
-          enabled: true,
-          dailyLimit: 5
         }
-      }
-      
-      await db.settings.add(defaultSettings)
-      console.log('✅ 数据库初始化完成，默认设置已创建')
+      })
+      console.log('[DB] ✅ 已创建默认设置')
     } else {
-      console.log('✅ 数据库已存在，跳过初始化')
+      console.log('[DB] ✅ 设置已存在，跳过创建')
     }
+    
+    console.log('[DB] ✅ 数据库初始化完成')
   } catch (error) {
-    console.error('❌ 数据库初始化失败:', error)
+    // 输出详细的错误信息
+    console.error('[DB] ❌ 数据库初始化失败:')
+    console.error('  错误类型:', (error as any)?.constructor?.name || 'Unknown')
+    console.error('  错误消息:', (error as Error)?.message || String(error))
+    console.error('  完整错误:', error)
     throw error
   }
 }
@@ -158,10 +206,26 @@ export async function updateSettings(
 }
 
 /**
- * 获取页面计数（用于进度显示）
+ * 辅助函数：获取页面计数
+ * 
+ * 用于判断冷启动阶段
  */
 export async function getPageCount(): Promise<number> {
-  return await db.confirmedVisits.count()
+  try {
+    // 确保数据库已打开
+    if (!db.isOpen()) {
+      console.log('[DB] 数据库未打开，尝试打开...')
+      await db.open()
+    }
+    
+    const count = await db.confirmedVisits.count()
+    console.log('[DB] 页面计数:', count)
+    return count
+  } catch (error) {
+    console.warn('[DB] ⚠️ 获取页面计数失败，返回 0:', error)
+    // 数据库未初始化或出错时返回 0
+    return 0
+  }
 }
 
 /**
