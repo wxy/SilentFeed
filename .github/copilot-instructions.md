@@ -13,6 +13,27 @@ applyTo: "**"
 - **多方案建议**: 列出优缺点和适用场景
 - **示例代码**: 短小、可运行并带必要中文注释
 
+## 输出内容控制
+
+**⚠️ 重要**: 控制单次输出内容大小,避免生成失败
+
+- **文档生成**: 单个文件不超过 **500 行**
+  - 超过限制时分段生成（Part 1, Part 2...）
+  - 每段结尾明确标注"待续"
+  - 下一段开始处明确标注"接上文"
+  
+- **代码文件**: 单个文件不超过 **300 行**
+  - 大文件拆分为多个模块
+  - 使用合理的架构分层
+  
+- **代码块示例**: 不超过 **50 行**
+  - 聚焦核心逻辑
+  - 使用 `// ...` 省略非关键代码
+  
+- **文件创建**: 优先使用 `create_file` 工具
+  - 一次性创建完整内容
+  - 避免多次 `replace_string_in_file`
+
 ## Project Overview
 
 FeedAIMuter is an AI-powered RSS reader browser extension that intelligently recommends content based on user browsing behavior, muting the information noise.
