@@ -14,7 +14,15 @@
       "master": "大师阶段"
     },
     "hint": "开始浏览，我会自动学习你的兴趣",
-    "settings": "设置"
+    "settings": "设置",
+    "loading": "加载推荐中...",
+    "retry": "重试",
+    "recommendations": "为你推荐",
+    "recommendationCount": "共 {{count}} 条",
+    "dismissAll": "这些我都不想读",
+    "confirmDismiss": "确定要标记所有 {{count}} 条推荐为「不想读」吗？",
+    "noRecommendations": "暂无推荐",
+    "checkBackLater": "稍后回来查看新推荐"
   },
   "options": {
     "title": "设置",

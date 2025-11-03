@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-11-02T11:53:25.255Z",
+  "lastUpdate": "2025-11-03T09:04:05.061Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -573,6 +573,118 @@
         "value": "Manage your data and privacy settings",
         "hash": "55b831cb",
         "lastModified": "2025-11-02T11:53:24.753Z",
+        "status": "ai-translated"
+      }
+    },
+    "popup.loading": {
+      "zh-CN": {
+        "value": "加载推荐中...",
+        "hash": "0bc9681d",
+        "lastModified": "2025-11-03T09:03:51.721Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Loading recommendations...",
+        "hash": "fd4b334f",
+        "lastModified": "2025-11-03T09:03:51.722Z",
+        "status": "ai-translated"
+      }
+    },
+    "popup.retry": {
+      "zh-CN": {
+        "value": "重试",
+        "hash": "132c5cdc",
+        "lastModified": "2025-11-03T09:03:53.169Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Retry",
+        "hash": "6327b4e5",
+        "lastModified": "2025-11-03T09:03:53.169Z",
+        "status": "ai-translated"
+      }
+    },
+    "popup.recommendations": {
+      "zh-CN": {
+        "value": "为你推荐",
+        "hash": "35f414b9",
+        "lastModified": "2025-11-03T09:03:54.698Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Recommended for You",
+        "hash": "58ba98c8",
+        "lastModified": "2025-11-03T09:03:54.698Z",
+        "status": "ai-translated"
+      }
+    },
+    "popup.recommendationCount": {
+      "zh-CN": {
+        "value": "共 {{count}} 条",
+        "hash": "082c706a",
+        "lastModified": "2025-11-03T09:03:56.128Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Total {{count}} items",
+        "hash": "92faf5af",
+        "lastModified": "2025-11-03T09:03:56.128Z",
+        "status": "ai-translated"
+      }
+    },
+    "popup.dismissAll": {
+      "zh-CN": {
+        "value": "这些我都不想读",
+        "hash": "fcb385a7",
+        "lastModified": "2025-11-03T09:03:58.259Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "I don't want to read any of these.",
+        "hash": "c5df47e5",
+        "lastModified": "2025-11-03T09:03:58.259Z",
+        "status": "ai-translated"
+      }
+    },
+    "popup.confirmDismiss": {
+      "zh-CN": {
+        "value": "确定要标记所有 {{count}} 条推荐为「不想读」吗？",
+        "hash": "b54d1305",
+        "lastModified": "2025-11-03T09:04:00.622Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Are you sure you want to mark all {{count}} recommendations as \"Not interested\"?",
+        "hash": "c5b3adfd",
+        "lastModified": "2025-11-03T09:04:00.622Z",
+        "status": "ai-translated"
+      }
+    },
+    "popup.noRecommendations": {
+      "zh-CN": {
+        "value": "暂无推荐",
+        "hash": "4f1b47b6",
+        "lastModified": "2025-11-03T09:04:02.586Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "No recommendations yet",
+        "hash": "5c2103a5",
+        "lastModified": "2025-11-03T09:04:02.586Z",
+        "status": "ai-translated"
+      }
+    },
+    "popup.checkBackLater": {
+      "zh-CN": {
+        "value": "稍后回来查看新推荐",
+        "hash": "50e7a110",
+        "lastModified": "2025-11-03T09:04:04.557Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Come back later for new recommendations",
+        "hash": "faf97aaa",
+        "lastModified": "2025-11-03T09:04:04.557Z",
         "status": "ai-translated"
       }
     }
