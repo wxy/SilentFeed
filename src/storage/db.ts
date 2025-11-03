@@ -286,14 +286,12 @@ export async function getRecommendationStats(days: number = 7) {
     .slice(0, 5)
   
   return {
-    total,
-    read,
-    readRate: total > 0 ? (read / total) * 100 : 0,
+    totalCount: total,
+    readCount: read,
+    unreadCount: total - read,
+    readLaterCount: recentRecommendations.filter(r => r.feedback === 'later').length,
+    dismissedCount: dismissed,
     avgReadDuration,
-    dismissed,
-    effective,
-    neutral,
-    ineffective,
     topSources
   }
 }

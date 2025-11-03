@@ -387,13 +387,11 @@ describe('Phase 2.7 推荐功能', () => {
       
       const stats = await getRecommendationStats(7)
       
-      expect(stats.total).toBe(3)
-      expect(stats.read).toBe(2)
-      expect(stats.readRate).toBeCloseTo((2 / 3) * 100, 1)
-      expect(stats.dismissed).toBe(1)
-      expect(stats.effective).toBe(1)
-      expect(stats.neutral).toBe(1)
-      expect(stats.ineffective).toBe(1)
+      expect(stats.totalCount).toBe(3)
+      expect(stats.readCount).toBe(2)
+      expect(stats.unreadCount).toBe(1)
+      expect(stats.dismissedCount).toBe(1)
+      expect(stats.readLaterCount).toBe(0)
       expect(stats.avgReadDuration).toBe((150 + 60) / 2)
       
       expect(stats.topSources).toHaveLength(2)
@@ -431,15 +429,15 @@ describe('Phase 2.7 推荐功能', () => {
       ])
       
       const stats = await getRecommendationStats(7)
-      expect(stats.total).toBe(1)
+      expect(stats.totalCount).toBe(1)
     })
 
     it('应该处理空数据', async () => {
       const stats = await getRecommendationStats(7)
       
-      expect(stats.total).toBe(0)
-      expect(stats.read).toBe(0)
-      expect(stats.readRate).toBe(0)
+      expect(stats.totalCount).toBe(0)
+      expect(stats.readCount).toBe(0)
+      expect(stats.unreadCount).toBe(0)
       expect(stats.avgReadDuration).toBe(0)
       expect(stats.topSources).toHaveLength(0)
     })
