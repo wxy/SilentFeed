@@ -11,7 +11,8 @@ import type {
   PendingVisit,
   ConfirmedVisit,
   UserSettings,
-  Statistics
+  Statistics,
+  Recommendation
 } from './types'
 
 /**
@@ -29,11 +30,14 @@ export class FeedAIMuterDB extends Dexie {
   
   // 表 4: 统计缓存
   statistics!: Table<Statistics, string>
+  
+  // 表 5: 推荐记录（Phase 2.7）
+  recommendations!: Table<Recommendation, string>
 
   constructor() {
     super('FeedAIMuterDB')
     
-    // 定义表结构和索引
+    // 版本 1: 原有表
     this.version(1).stores({
       // 临时访问记录
       // 索引: id（主键）, url, startTime, expiresAt（用于清理）
@@ -50,6 +54,19 @@ export class FeedAIMuterDB extends Dexie {
       // 统计缓存
       // 索引: id（主键）, type, timestamp
       statistics: 'id, type, timestamp'
+    })
+    
+    // 版本 2: 新增推荐表（Phase 2.7）
+    this.version(2).stores({
+      pendingVisits: 'id, url, startTime, expiresAt',
+      confirmedVisits: 'id, domain, visitTime, *analysis.keywords, [visitTime+domain]',
+      settings: 'id',
+      statistics: 'id, type, timestamp',
+      
+      // 推荐记录
+      // 索引: id（主键）, recommendedAt, isRead, source
+      // 复合索引: [isRead+recommendedAt] 用于按阅读状态和时间查询
+      recommendations: 'id, recommendedAt, isRead, source, [isRead+recommendedAt]'
     })
   }
 }
@@ -145,4 +162,171 @@ export async function updateSettings(
  */
 export async function getPageCount(): Promise<number> {
   return await db.confirmedVisits.count()
+}
+
+/**
+ * Phase 2.7: 推荐统计辅助函数
+ */
+
+/**
+ * 获取推荐统计数据
+ * 
+ * @param days - 统计最近 N 天的数据（默认 7 天）
+ */
+export async function getRecommendationStats(days: number = 7) {
+  const cutoffTime = Date.now() - days * 24 * 60 * 60 * 1000
+  
+  // 查询最近 N 天的推荐记录
+  const recentRecommendations = await db.recommendations
+    .where('recommendedAt')
+    .above(cutoffTime)
+    .toArray()
+  
+  const total = recentRecommendations.length
+  const read = recentRecommendations.filter(r => r.isRead).length
+  const dismissed = recentRecommendations.filter(r => r.feedback === 'dismissed').length
+  
+  // 计算有效性
+  const effective = recentRecommendations.filter(
+    r => r.effectiveness === 'effective'
+  ).length
+  const neutral = recentRecommendations.filter(
+    r => r.effectiveness === 'neutral'
+  ).length
+  const ineffective = recentRecommendations.filter(
+    r => r.effectiveness === 'ineffective'
+  ).length
+  
+  // 计算平均阅读时长
+  const readItems = recentRecommendations.filter(r => r.isRead && r.readDuration)
+  const avgReadDuration = readItems.length > 0
+    ? readItems.reduce((sum, r) => sum + (r.readDuration || 0), 0) / readItems.length
+    : 0
+  
+  // 统计来源
+  const sourceMap = new Map<string, { count: number; read: number }>()
+  recentRecommendations.forEach(r => {
+    const stats = sourceMap.get(r.source) || { count: 0, read: 0 }
+    stats.count++
+    if (r.isRead) stats.read++
+    sourceMap.set(r.source, stats)
+  })
+  
+  const topSources = Array.from(sourceMap.entries())
+    .map(([source, stats]) => ({
+      source,
+      count: stats.count,
+      readRate: stats.count > 0 ? (stats.read / stats.count) * 100 : 0
+    }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5)
+  
+  return {
+    total,
+    read,
+    readRate: total > 0 ? (read / total) * 100 : 0,
+    avgReadDuration,
+    dismissed,
+    effective,
+    neutral,
+    ineffective,
+    topSources
+  }
+}
+
+/**
+ * 获取存储统计数据
+ */
+export async function getStorageStats() {
+  const pendingCount = await db.pendingVisits.count()
+  const confirmedCount = await db.confirmedVisits.count()
+  const recommendationCount = await db.recommendations.count()
+  
+  const totalRecords = pendingCount + confirmedCount + recommendationCount
+  
+  // 估算存储大小（每条记录约 5KB）
+  const avgRecordSizeKB = 5
+  const totalSizeMB = (totalRecords * avgRecordSizeKB) / 1024
+  
+  return {
+    totalRecords,
+    totalSizeMB: totalRecords > 0 ? Math.max(0.01, Math.round(totalSizeMB * 100) / 100) : 0, // 至少 0.01 MB
+    pendingVisits: pendingCount,
+    confirmedVisits: confirmedCount,
+    recommendations: recommendationCount,
+    avgRecordSizeKB
+  }
+}
+
+/**
+ * 标记推荐为已读
+ * 
+ * @param id - 推荐记录 ID
+ * @param readDuration - 阅读时长（秒）
+ * @param scrollDepth - 滚动深度（0-1）
+ */
+export async function markAsRead(
+  id: string,
+  readDuration?: number,
+  scrollDepth?: number
+): Promise<void> {
+  const recommendation = await db.recommendations.get(id)
+  if (!recommendation) {
+    throw new Error(`推荐记录不存在: ${id}`)
+  }
+  
+  // 更新阅读状态
+  const updates: Partial<Recommendation> = {
+    isRead: true,
+    clickedAt: Date.now(),
+    readDuration,
+    scrollDepth
+  }
+  
+  // 自动评估有效性
+  if (readDuration !== undefined && scrollDepth !== undefined) {
+    if (readDuration > 120 && scrollDepth > 0.7) {
+      // 深度阅读：>2min + >70% scroll
+      updates.effectiveness = 'effective'
+    } else {
+      // 浅度阅读
+      updates.effectiveness = 'neutral'
+    }
+  }
+  
+  await db.recommendations.update(id, updates)
+}
+
+/**
+ * 标记推荐为"不想读"
+ * 
+ * @param ids - 推荐记录 ID 数组
+ */
+export async function dismissRecommendations(ids: string[]): Promise<void> {
+  const now = Date.now()
+  
+  await db.transaction('rw', db.recommendations, async () => {
+    for (const id of ids) {
+      await db.recommendations.update(id, {
+        feedback: 'dismissed',
+        feedbackAt: now,
+        effectiveness: 'ineffective'
+      })
+    }
+  })
+}
+
+/**
+ * 获取未读推荐（按时间倒序）
+ * 
+ * @param limit - 数量限制（默认 50）
+ */
+export async function getUnreadRecommendations(limit: number = 50): Promise<Recommendation[]> {
+  // Dexie 不支持直接索引布尔值，使用 filter
+  return await db.recommendations
+    .orderBy('recommendedAt')
+    .reverse() // 倒序（最新在前）
+    .filter(r => !r.isRead)
+    .limit(limit)
+    .toArray()
 }

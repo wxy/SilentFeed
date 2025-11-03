@@ -138,6 +138,40 @@ export interface UserSettings {
 }
 
 /**
+ * 推荐记录（Recommendation）
+ * Phase 2.7: 实时反馈界面
+ */
+export interface Recommendation {
+  id: string                    // UUID
+  url: string                   // 推荐内容链接
+  title: string                 // 标题
+  summary: string               // 摘要
+  source: string                // 来源（RSS 源名称或域名）
+  sourceUrl: string             // 来源 URL
+  
+  // 推荐信息
+  recommendedAt: number         // 推荐时间戳
+  score: number                 // 推荐分数（0-1）
+  reason?: string               // 推荐理由（可选）
+  
+  // 阅读状态
+  isRead: boolean               // 是否已读
+  clickedAt?: number            // 点击时间
+  readDuration?: number         // 阅读时长（秒）
+  scrollDepth?: number          // 滚动深度（0-1）
+  
+  // 用户反馈
+  feedback?: 'later' | 'dismissed' // 稍后阅读 | 不想读
+  feedbackAt?: number           // 反馈时间
+  
+  // 效果评估（自动计算）
+  effectiveness?: 'effective' | 'neutral' | 'ineffective'
+  // effective: 点击且深度阅读（>2min, >70% scroll）
+  // neutral: 点击但浅度阅读
+  // ineffective: 不想读
+}
+
+/**
  * 统计数据缓存
  */
 export interface Statistics {
@@ -146,6 +180,7 @@ export interface Statistics {
   timestamp: number             // 统计时间戳
   
   data: {
+    // 原有的访问统计
     totalVisits: number         // 总访问数
     qualifiedVisits: number     // 有效访问数
     excludedVisits: number      // 已排除访问数
@@ -159,5 +194,32 @@ export interface Statistics {
       count: number
       percentage: number
     }>
+    
+    // Phase 2.7: 推荐统计
+    recommendations?: {
+      total: number             // 推荐总数
+      read: number              // 已读数
+      readRate: number          // 阅读率（%）
+      avgReadDuration: number   // 平均阅读时长
+      dismissed: number         // 不想读数量
+      effective: number         // 有效推荐数
+      neutral: number           // 中性推荐数
+      ineffective: number       // 无效推荐数
+      topSources: Array<{       // Top 推荐来源
+        source: string
+        count: number
+        readRate: number
+      }>
+    }
+    
+    // Phase 2.7: 存储统计
+    storage?: {
+      totalRecords: number      // 总记录数
+      totalSizeMB: number       // 存储占用（MB）
+      pendingVisits: number     // 临时访问记录数
+      confirmedVisits: number   // 正式访问记录数
+      recommendations: number   // 推荐记录数
+      avgRecordSizeKB: number   // 平均记录大小（KB）
+    }
   }
 }
