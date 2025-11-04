@@ -14,16 +14,16 @@ import {
 
 /**
  * 推荐统计数据
+ * 
+ * 注意：字段名与 getRecommendationStats() 返回值保持一致
  */
 interface RecommendationStats {
-  total: number
-  read: number
-  readRate: number
-  avgReadDuration: number
-  dismissed: number
-  effective: number
-  neutral: number
-  ineffective: number
+  totalCount: number        // 总推荐数
+  readCount: number         // 已读数
+  unreadCount: number       // 未读数
+  readLaterCount: number    // 稍后阅读数
+  dismissedCount: number    // 已忽略数
+  avgReadDuration: number   // 平均阅读时长（秒）
   topSources: Array<{
     source: string
     count: number
