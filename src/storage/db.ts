@@ -82,47 +82,24 @@ export class FeedAIMuterDB extends Dexie {
 export const db = new FeedAIMuterDB()
 
 /**
- * 检查并修复数据库版本冲突
+ * 检查数据库版本（仅用于调试日志）
  * 
- * 如果浏览器中的版本高于代码版本，自动删除旧数据库
+ * ⚠️ 不再自动删除旧数据库，让 Dexie 自动处理版本升级
  */
-async function checkAndFixDatabaseVersion(): Promise<void> {
+async function checkDatabaseVersion(): Promise<void> {
   try {
     const dbs = await indexedDB.databases()
     const existingDB = dbs.find(d => d.name === 'FeedAIMuterDB')
     
-    if (existingDB && existingDB.version && existingDB.version > 2) {
-      console.warn(`[DB] 检测到版本冲突: 浏览器版本 ${existingDB.version}, 代码版本 2`)
-      console.log('[DB] 正在清理旧数据库...')
+    if (existingDB && existingDB.version) {
+      console.log(`[DB] 现有数据库版本: ${existingDB.version}, 代码版本: 2`)
       
-      // 先关闭 Dexie 连接（如果已打开）
-      if (db.isOpen()) {
-        db.close()
-        console.log('[DB] 已关闭现有数据库连接')
+      if (existingDB.version > 2) {
+        console.warn('[DB] ⚠️ 浏览器中的数据库版本较高，Dexie 将自动处理')
       }
-      
-      // 删除旧数据库
-      await new Promise<void>((resolve, reject) => {
-        const deleteReq = indexedDB.deleteDatabase('FeedAIMuterDB')
-        deleteReq.onsuccess = () => {
-          console.log('[DB] ✅ 旧数据库已删除')
-          resolve()
-        }
-        deleteReq.onerror = () => reject(deleteReq.error)
-        deleteReq.onblocked = () => {
-          console.warn('[DB] ⚠️ 删除被阻止，请关闭所有使用数据库的页面')
-          // 即使被阻止也继续，让用户手动处理
-          resolve()
-        }
-      })
-      
-      // 等待一小段时间，确保删除完成
-      await new Promise(resolve => setTimeout(resolve, 200))
-      console.log('[DB] ✅ 准备创建新数据库（版本 2）')
     }
   } catch (error) {
-    console.error('[DB] 版本检查失败:', error)
-    // 继续执行，让 Dexie 处理
+    console.debug('[DB] 无法检查版本（可能是首次运行）:', error)
   }
 }
 
@@ -133,8 +110,8 @@ async function checkAndFixDatabaseVersion(): Promise<void> {
  */
 export async function initializeDatabase(): Promise<void> {
   try {
-    // ⚠️ 关键：先检查版本冲突，再打开数据库
-    await checkAndFixDatabaseVersion()
+    // 检查数据库版本（仅日志）
+    await checkDatabaseVersion()
     
     // 打开数据库（如果未打开）
     if (!db.isOpen()) {
