@@ -127,9 +127,9 @@ async function recordPageVisit(): Promise<void> {
   let recommendationId: string | undefined
   
   try {
-    // 检查上下文后再访问 chrome.storage
-    if (!checkExtensionContext()) {
-      logger.debug('⚠️ [PageTracker] 扩展上下文失效，跳过来源检测')
+    // 检查 chrome.storage 是否可用
+    if (!checkExtensionContext() || !chrome?.storage?.local) {
+      logger.debug('⚠️ [PageTracker] Chrome storage 不可用，跳过来源检测')
       // 继续记录，但使用默认来源
     } else {
       try {
@@ -149,20 +149,25 @@ async function recordPageVisit(): Promise<void> {
           // 2. 检测是否来自搜索引擎（基于 referrer）
           const referrer = document.referrer
           if (referrer) {
-            const referrerUrl = new URL(referrer)
-            const searchEngines = ['google.com', 'bing.com', 'baidu.com', 'duckduckgo.com']
-            if (searchEngines.some(engine => referrerUrl.hostname.includes(engine))) {
-              source = 'search'
-              logger.debug('🔍 [PageTracker] 检测到搜索引擎来源', { referrer })
+            try {
+              const referrerUrl = new URL(referrer)
+              const searchEngines = ['google.com', 'bing.com', 'baidu.com', 'duckduckgo.com']
+              if (searchEngines.some(engine => referrerUrl.hostname.includes(engine))) {
+                source = 'search'
+                logger.debug('🔍 [PageTracker] 检测到搜索引擎来源', { referrer })
+              }
+            } catch (urlError) {
+              // 无效的 referrer URL，忽略
+              logger.debug('⚠️ [PageTracker] 无效的 referrer URL')
             }
           }
         }
       } catch (storageError) {
-        logger.warn('⚠️ [PageTracker] Chrome storage 访问失败，使用默认来源', storageError)
+        logger.debug('⚠️ [PageTracker] Chrome storage 访问失败，使用默认来源', storageError)
       }
     }
   } catch (error) {
-    logger.warn('⚠️ [PageTracker] 检测来源失败，使用默认值', error)
+    logger.debug('⚠️ [PageTracker] 检测来源失败，使用默认值', error)
   }
   
   logger.info('�💾 [PageTracker] 准备记录页面访问', {
