@@ -5,16 +5,21 @@
  * - 监听页面激活/失活
  * - 监听用户交互（scroll, click, keypress, mousemove）
  * - 使用 DwellTimeCalculator 计算有效停留时间
- * - 达到 30 秒阈值后记录到 IndexedDB
+ * - 达到 30 秒阈值后通过消息传递给 Background 记录
  * - 提供调试日志用于浏览器测试
  * 
- * @version 1.0
- * @date 2025-11-02
+ * ⚠️ 架构说明：
+ * - Content Script 运行在网页上下文中
+ * - 不能直接访问扩展的 IndexedDB（会创建在网页的存储空间）
+ * - 必须通过 chrome.runtime.sendMessage 发送数据到 Background
+ * - Background 负责所有数据库操作
+ * 
+ * @version 2.0
+ * @date 2025-11-04
  */
 
 import type { PlasmoCSConfig } from "plasmo"
 import { DwellTimeCalculator, type InteractionType } from "~core/tracker/DwellTimeCalculator"
-import { db } from "~storage/db"
 import { logger } from "~utils/logger"
 
 // 配置：注入到所有 HTTP/HTTPS 页面
@@ -170,7 +175,7 @@ async function recordPageVisit(): Promise<void> {
     logger.debug('⚠️ [PageTracker] 检测来源失败，使用默认值', error)
   }
   
-  logger.info('�💾 [PageTracker] 准备记录页面访问', {
+  logger.info('💾 [PageTracker] 准备记录页面访问', {
     页面: pageInfo.title,
     URL: pageInfo.url,
     停留时间: `${pageInfo.dwellTime.toFixed(1)}秒`,
@@ -179,12 +184,18 @@ async function recordPageVisit(): Promise<void> {
   })
 
   try {
-    // 先创建临时记录（Phase 2.1 简化版，直接升级为正式记录）
-    // TODO Phase 2.3: 添加页面过滤逻辑
-    // TODO Phase 2.4: 添加内容提取和分析
+    // ⚠️ 架构变更：不再直接访问数据库
+    // Content Script 通过消息传递数据到 Background
+    // Background 负责所有数据库操作
     
-    // 保存到 confirmedVisits 表
-    await db.confirmedVisits.add({
+    // 检查扩展上下文
+    if (!checkExtensionContext()) {
+      logger.debug('⚠️ [PageTracker] 扩展上下文失效，无法记录')
+      return
+    }
+    
+    // 构建完整的访问记录数据
+    const visitData = {
       id: crypto.randomUUID(),
       url: pageInfo.url,
       title: pageInfo.title,
@@ -208,36 +219,36 @@ async function recordPageVisit(): Promise<void> {
         language: 'zh' // 语言检测（默认中文）
       },
       
-      status: 'qualified',
+      status: 'qualified' as const,
       
       // 数据生命周期
       contentRetainUntil: Date.now() + 90 * 24 * 60 * 60 * 1000, // 90 天后
       analysisRetainUntil: -1 // 永久保留
+    }
+    
+    // 发送消息到 Background 保存数据
+    const response = await chrome.runtime.sendMessage({
+      type: 'SAVE_PAGE_VISIT',
+      data: visitData
     })
-
-    isRecorded = true
-    logger.info('✅ [PageTracker] 页面访问已记录到数据库')
     
-    // 记录成功后立即清理
-    cleanup()
-    
-    // 通知 background 更新徽章（检查上下文）
-    if (checkExtensionContext()) {
-      chrome.runtime.sendMessage({
-        type: 'PAGE_RECORDED',
-        data: pageInfo
-      }).catch(err => {
-        // 开发环境的上下文错误是正常现象，降级为 debug
-        if (err.message?.includes('Extension context')) {
-          logger.debug('⚠️ [PageTracker] 扩展上下文失效，跳过消息发送')
-        } else {
-          logger.warn('⚠️ [PageTracker] 发送消息到 background 失败', err)
-        }
-      })
+    if (response?.success) {
+      isRecorded = true
+      logger.info('✅ [PageTracker] 页面访问已记录到数据库（通过 Background）')
+      
+      // 记录成功后立即清理
+      cleanup()
+    } else {
+      throw new Error(response?.error || '未知错误')
     }
     
   } catch (error) {
-    logger.error('❌ [PageTracker] 记录页面访问失败', error)
+    // 开发环境的上下文错误是正常现象
+    if (error instanceof Error && error.message?.includes('Extension context')) {
+      logger.debug('⚠️ [PageTracker] 扩展上下文失效（热重载导致）')
+    } else {
+      logger.error('❌ [PageTracker] 记录页面访问失败', error)
+    }
   }
 }
 

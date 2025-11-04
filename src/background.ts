@@ -1,5 +1,6 @@
 import { BadgeManager } from './core/badge/BadgeManager'
-import { initializeDatabase, getPageCount, getUnreadRecommendations } from './storage/db'
+import { initializeDatabase, getPageCount, getUnreadRecommendations, db } from './storage/db'
+import type { ConfirmedVisit } from './storage/types'
 
 console.log('FeedAIMuter Background Service Worker 已启动')
 
@@ -83,6 +84,7 @@ chrome.runtime.onInstalled.addListener(async () => {
  * 监听来自其他组件的消息
  * 
  * Phase 2.7: 监听推荐变化，更新徽章
+ * Phase 2.1: 接收 Content Script 的页面访问数据并保存到数据库
  */
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('[Background] 收到消息:', message.type)
@@ -91,8 +93,35 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   ;(async () => {
     try {
       switch (message.type) {
+        case 'SAVE_PAGE_VISIT':
+          // ⚠️ 新增：接收来自 Content Script 的页面访问数据
+          // Content Script 不能直接访问扩展的 IndexedDB
+          // 必须通过 Background 保存数据
+          try {
+            console.log('[Background] 保存页面访问数据...')
+            const visitData = message.data as Omit<ConfirmedVisit, 'id'> & { id: string }
+            
+            // 保存到数据库
+            await db.confirmedVisits.add(visitData)
+            
+            console.log('[Background] ✅ 页面访问已保存', {
+              url: visitData.url,
+              title: visitData.title,
+              duration: visitData.duration
+            })
+            
+            // 更新徽章
+            await updateBadgeWithRecommendations()
+            
+            sendResponse({ success: true })
+          } catch (dbError) {
+            console.error('[Background] ❌ 保存页面访问失败:', dbError)
+            sendResponse({ success: false, error: String(dbError) })
+          }
+          break
+        
         case 'PAGE_RECORDED':
-          // 页面记录后更新徽章（可能改变冷启动进度）
+          // 旧消息类型（兼容）：页面记录后更新徽章
           console.log('[Background] 页面已记录，更新徽章...')
           await updateBadgeWithRecommendations()
           sendResponse({ success: true })
