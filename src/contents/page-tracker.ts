@@ -75,7 +75,8 @@ function checkExtensionContext(): boolean {
     return true
   } catch (error) {
     isContextValid = false
-    logger.warn('⚠️ [PageTracker] 扩展上下文已失效（可能是热重载），停止追踪')
+    // 开发环境的上下文失效是正常现象（热重载），使用 debug 而非 warn
+    logger.debug('⚠️ [PageTracker] 扩展上下文已失效（可能是热重载），停止追踪')
     cleanup()
     return false
   }
@@ -110,7 +111,7 @@ function getPageInfo(): PageVisitData {
 async function recordPageVisit(): Promise<void> {
   // 检查扩展上下文
   if (!checkExtensionContext()) {
-    logger.warn('⚠️ [PageTracker] 扩展上下文失效，跳过记录')
+    logger.debug('⚠️ [PageTracker] 扩展上下文失效，跳过记录')
     return
   }
   
@@ -121,39 +122,43 @@ async function recordPageVisit(): Promise<void> {
 
   const pageInfo = getPageInfo()
   
-  // Phase 2.7 Step 6: 检测访问来源
+    // Phase 2.7 Step 6: 检测访问来源
   let source: 'organic' | 'recommended' | 'search' = 'organic'
   let recommendationId: string | undefined
   
   try {
-    // 检查上下文
+    // 检查上下文后再访问 chrome.storage
     if (!checkExtensionContext()) {
-      logger.warn('⚠️ [PageTracker] 扩展上下文失效，跳过来源检测')
+      logger.debug('⚠️ [PageTracker] 扩展上下文失效，跳过来源检测')
       // 继续记录，但使用默认来源
     } else {
-      // 1. 尝试从 chrome.storage 读取追踪信息
-      const trackingKey = `tracking_${pageInfo.url}`
-      const result = await chrome.storage.local.get(trackingKey)
-      const trackingInfo = result[trackingKey]
-      
-      if (trackingInfo && trackingInfo.expiresAt > Date.now()) {
-        source = trackingInfo.source || 'organic'
-        recommendationId = trackingInfo.recommendationId
-        logger.debug('🔗 [PageTracker] 检测到推荐来源', { source, recommendationId })
+      try {
+        // 1. 尝试从 chrome.storage 读取追踪信息
+        const trackingKey = `tracking_${pageInfo.url}`
+        const result = await chrome.storage.local.get(trackingKey)
+        const trackingInfo = result[trackingKey]
         
-        // 使用后立即删除追踪信息
-        await chrome.storage.local.remove(trackingKey)
-      } else {
-        // 2. 检测是否来自搜索引擎（基于 referrer）
-        const referrer = document.referrer
-        if (referrer) {
-          const referrerUrl = new URL(referrer)
-          const searchEngines = ['google.com', 'bing.com', 'baidu.com', 'duckduckgo.com']
-          if (searchEngines.some(engine => referrerUrl.hostname.includes(engine))) {
-            source = 'search'
-            logger.debug('🔍 [PageTracker] 检测到搜索引擎来源', { referrer })
+        if (trackingInfo && trackingInfo.expiresAt > Date.now()) {
+          source = trackingInfo.source || 'organic'
+          recommendationId = trackingInfo.recommendationId
+          logger.debug('🔗 [PageTracker] 检测到推荐来源', { source, recommendationId })
+          
+          // 使用后立即删除追踪信息
+          await chrome.storage.local.remove(trackingKey)
+        } else {
+          // 2. 检测是否来自搜索引擎（基于 referrer）
+          const referrer = document.referrer
+          if (referrer) {
+            const referrerUrl = new URL(referrer)
+            const searchEngines = ['google.com', 'bing.com', 'baidu.com', 'duckduckgo.com']
+            if (searchEngines.some(engine => referrerUrl.hostname.includes(engine))) {
+              source = 'search'
+              logger.debug('🔍 [PageTracker] 检测到搜索引擎来源', { referrer })
+            }
           }
         }
+      } catch (storageError) {
+        logger.warn('⚠️ [PageTracker] Chrome storage 访问失败，使用默认来源', storageError)
       }
     }
   } catch (error) {
@@ -217,7 +222,12 @@ async function recordPageVisit(): Promise<void> {
         type: 'PAGE_RECORDED',
         data: pageInfo
       }).catch(err => {
-        logger.warn('⚠️ [PageTracker] 发送消息到 background 失败', err)
+        // 开发环境的上下文错误是正常现象，降级为 debug
+        if (err.message?.includes('Extension context')) {
+          logger.debug('⚠️ [PageTracker] 扩展上下文失效，跳过消息发送')
+        } else {
+          logger.warn('⚠️ [PageTracker] 发送消息到 background 失败', err)
+        }
       })
     }
     
