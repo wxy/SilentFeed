@@ -20,7 +20,8 @@ vi.mock("@/i18n/helpers", () => ({
         "options.tabs.general": "常规",
         "options.tabs.rss": "RSS 源",
         "options.tabs.ai": "AI",
-        "options.tabs.privacy": "隐私",
+        "options.tabs.recommendations": "推荐效果",
+        "options.tabs.data": "数据管理",
         "options.general.title": "常规设置",
         "options.general.language": "语言",
         "options.general.languageAuto": "跟随浏览器",
@@ -33,12 +34,26 @@ vi.mock("@/i18n/helpers", () => ({
         "options.ai.title": "AI 配置",
         "options.ai.description": "配置 AI 推荐引擎",
         "options.ai.disabled": "将在完成 1000 页面后启用",
-        "options.privacy.title": "数据与隐私",
-        "options.privacy.description": "管理你的数据和隐私设置",
-        "options.privacy.disabled": "将在完成 1000 页面后启用",
+        "options.recommendations.title": "推荐效果统计",
+        "options.data.title": "数据管理",
       }
       return translations[key] || key
     },
+  }),
+}))
+
+// Mock recommendation store
+vi.mock("@/stores/recommendationStore", () => ({
+  useRecommendationStore: () => ({
+    stats: {
+      totalCount: 0,
+      readCount: 0,
+      unreadCount: 0,
+      readRate: 0,
+    },
+    isLoading: false,
+    error: null,
+    fetchStats: vi.fn(),
   }),
 }))
 
@@ -54,12 +69,13 @@ describe("IndexOptions 组件", () => {
       expect(screen.getByText("设置")).toBeInTheDocument()
     })
 
-    it("应该显示四个标签按钮", () => {
+    it("应该显示五个标签按钮", () => {
       render(<IndexOptions />)
       expect(screen.getByText("常规")).toBeInTheDocument()
       expect(screen.getByText("RSS 源")).toBeInTheDocument()
       expect(screen.getByText("AI")).toBeInTheDocument()
-      expect(screen.getByText("隐私")).toBeInTheDocument()
+      expect(screen.getByText("推荐效果")).toBeInTheDocument()
+      expect(screen.getByText("数据管理")).toBeInTheDocument()
     })
 
     it("默认应该显示常规设置页面", () => {
@@ -99,15 +115,14 @@ describe("IndexOptions 组件", () => {
       expect(screen.getByText("配置 AI 推荐引擎")).toBeInTheDocument()
     })
 
-    it("点击隐私标签应该切换到隐私页面", async () => {
+    it("点击数据标签应该切换到数据管理页面", async () => {
       const user = userEvent.setup()
       render(<IndexOptions />)
 
-      const privacyTab = screen.getByText("隐私")
-      await user.click(privacyTab)
+      const dataTab = screen.getByText("数据管理")
+      await user.click(dataTab)
 
-      expect(screen.getByText("数据与隐私")).toBeInTheDocument()
-      expect(screen.getByText("管理你的数据和隐私设置")).toBeInTheDocument()
+      expect(screen.getByText("数据管理")).toBeInTheDocument()
     })
 
     it("切换标签后常规设置应该消失", async () => {
@@ -217,15 +232,6 @@ describe("IndexOptions 组件", () => {
       render(<IndexOptions />)
 
       await user.click(screen.getByText("AI"))
-
-      expect(screen.getByText("将在完成 1000 页面后启用")).toBeInTheDocument()
-    })
-
-    it("隐私页面应该显示禁用提示", async () => {
-      const user = userEvent.setup()
-      render(<IndexOptions />)
-
-      await user.click(screen.getByText("隐私"))
 
       expect(screen.getByText("将在完成 1000 页面后启用")).toBeInTheDocument()
     })

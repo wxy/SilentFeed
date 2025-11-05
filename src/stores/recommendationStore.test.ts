@@ -142,9 +142,9 @@ describe('RecommendationStore', () => {
       
       const state = useRecommendationStore.getState()
       expect(state.stats).not.toBeNull()
-      expect(state.stats?.total).toBe(1)
-      expect(state.stats?.read).toBe(1)
-      expect(state.stats?.effective).toBe(1)
+      expect(state.stats?.totalCount).toBe(1)
+      expect(state.stats?.readCount).toBe(1)
+      expect(state.stats?.unreadCount).toBe(0)
     })
   })
 

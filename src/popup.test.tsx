@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { render, screen } from "@testing-library/react"
+import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import IndexPopup from "./popup"
 import { BadgeManager } from "@/core/badge/BadgeManager"
@@ -28,20 +28,20 @@ vi.mock("@/i18n/helpers", () => ({
 }))
 
 describe("BadgeManager.getStage 函数（用于确定成长阶段）", () => {
-  it("当页面数 < 250 时应该返回探索者", () => {
+  it("当页面数 0-250 时应该返回探索者", () => {
     expect(BadgeManager.getStage(0)).toBe("explorer")
     expect(BadgeManager.getStage(100)).toBe("explorer")
-    expect(BadgeManager.getStage(249)).toBe("explorer")
+    expect(BadgeManager.getStage(250)).toBe("explorer") // 250 是 explorer 的最大值
   })
 
-  it("当页面数 250-600 时应该返回学习者", () => {
-    expect(BadgeManager.getStage(250)).toBe("learner")
+  it("当页面数 251-600 时应该返回学习者", () => {
+    expect(BadgeManager.getStage(251)).toBe("learner") // 251 开始是 learner
     expect(BadgeManager.getStage(400)).toBe("learner")
-    expect(BadgeManager.getStage(599)).toBe("learner")  // 600 是 grower 的开始
+    expect(BadgeManager.getStage(600)).toBe("learner") // 600 是 learner 的最大值
   })
 
-  it("当页面数 600-1000 时应该返回成长者", () => {
-    expect(BadgeManager.getStage(600)).toBe("grower")
+  it("当页面数 601-1000 时应该返回成长者", () => {
+    expect(BadgeManager.getStage(601)).toBe("grower") // 601 开始是 grower
     expect(BadgeManager.getStage(800)).toBe("grower")
     expect(BadgeManager.getStage(1000)).toBe("grower")
   })
@@ -63,11 +63,18 @@ describe("IndexPopup 组件", () => {
     } as any
   })
 
-  it("应该正确渲染基本信息", () => {
+  it("应该正确渲染基本信息", async () => {
     render(<IndexPopup />)
 
+    // 等待加载完成
+    await waitFor(() => {
+      expect(screen.queryByText("⏳")).not.toBeInTheDocument()
+    })
+
     // 检查标题
-    expect(screen.getByText("Feed AI Muter")).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText("Feed AI Muter")).toBeInTheDocument()
+    })
     expect(screen.getByText("RSS 静音器")).toBeInTheDocument()
 
     // 检查欢迎信息
@@ -75,34 +82,48 @@ describe("IndexPopup 组件", () => {
     expect(screen.getByText("正在学习你的兴趣...")).toBeInTheDocument()
   })
 
-  it("应该显示初始化进度 0/1000", () => {
+  it("应该显示初始化进度 0/1000", async () => {
     render(<IndexPopup />)
 
-    expect(screen.getByText(/0\/1000 页/)).toBeInTheDocument()
+    // 等待加载完成
+    await waitFor(() => {
+      expect(screen.getByText(/0\/1000 页/)).toBeInTheDocument()
+    })
   })
 
-  it("应该显示探索者阶段（🌱）当页面数 < 250", () => {
+  it("应该显示探索者阶段（🌱）当页面数 < 250", async () => {
     render(<IndexPopup />)
 
-    // 检查阶段名称
-    expect(screen.getByText(/探索者阶段/)).toBeInTheDocument()
+    // 等待加载完成
+    await waitFor(() => {
+      // 检查阶段名称
+      expect(screen.getByText(/探索者阶段/)).toBeInTheDocument()
+    })
 
     // 检查图标（通过 emoji）
     const container = screen.getByText("🌱")
     expect(container).toBeInTheDocument()
   })
 
-  it("应该显示提示信息", () => {
+  it("应该显示提示信息", async () => {
     render(<IndexPopup />)
 
-    expect(
-      screen.getByText("开始浏览，我会自动学习你的兴趣")
-    ).toBeInTheDocument()
+    // 等待加载完成
+    await waitFor(() => {
+      expect(
+        screen.getByText("开始浏览，我会自动学习你的兴趣")
+      ).toBeInTheDocument()
+    })
   })
 
   it("点击设置按钮应该打开设置页面", async () => {
     const user = userEvent.setup()
     render(<IndexPopup />)
+
+    // 等待组件加载
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "设置" })).toBeInTheDocument()
+    })
 
     const settingsButton = screen.getByRole("button", { name: "设置" })
     await user.click(settingsButton)
@@ -110,14 +131,19 @@ describe("IndexPopup 组件", () => {
     expect(chrome.runtime.openOptionsPage).toHaveBeenCalled()
   })
 
-  it("进度条应该显示正确的宽度", () => {
+  it("进度条应该显示正确的宽度", async () => {
     render(<IndexPopup />)
+
+    // 等待加载完成
+    await waitFor(() => {
+      const progressBar = document.querySelector(".bg-green-500")
+      expect(progressBar).toBeInTheDocument()
+    })
 
     // 初始状态进度应该是 0%
     const progressBar = document.querySelector(
       ".bg-green-500"
     ) as HTMLElement
-    expect(progressBar).toBeInTheDocument()
     expect(progressBar.style.width).toBe("0%")
   })
 })

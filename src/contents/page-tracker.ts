@@ -262,14 +262,6 @@ function checkThreshold(): void {
   }
   
   const dwellTime = calculator.getEffectiveDwellTime()
-  const timeSinceInteraction = calculator.getTimeSinceLastInteraction()
-  
-  logger.debug('🔍 [PageTracker] 阈值检查', {
-    当前停留时间: `${dwellTime.toFixed(1)}秒`,
-    距上次交互: `${timeSinceInteraction.toFixed(1)}秒`,
-    阈值: `${THRESHOLD_SECONDS}秒`,
-    状态: dwellTime >= THRESHOLD_SECONDS ? '✅ 已达到' : `❌ 还需 ${(THRESHOLD_SECONDS - dwellTime).toFixed(1)}秒`
-  })
 
   if (dwellTime >= THRESHOLD_SECONDS && !isRecorded) {
     logger.info('🎯 [PageTracker] 达到阈值，开始记录')
@@ -283,7 +275,7 @@ function checkThreshold(): void {
  * 清理所有监听器和定时器
  */
 function cleanup(): void {
-  logger.debug('🧹 [PageTracker] 清理监听器和定时器')
+  logger.debug('🧹 [PageTracker] 清理资源')
   
   // 停止 DwellTimeCalculator
   calculator.stop()
@@ -292,7 +284,6 @@ function cleanup(): void {
   if (checkTimer) {
     clearInterval(checkTimer)
     checkTimer = null
-    logger.debug('⏸️ [PageTracker] 停止阈值检查')
   }
   
   // 移除所有事件监听器
@@ -300,8 +291,6 @@ function cleanup(): void {
     element.removeEventListener(event, handler)
   })
   eventListeners = []
-  
-  logger.debug('✅ [PageTracker] 清理完成')
 }
 
 // ==================== 事件监听 ====================
@@ -313,12 +302,6 @@ function setupVisibilityListener(): void {
   const handler = () => {
     const isVisible = !document.hidden
     calculator.onVisibilityChange(isVisible)
-    
-    if (isVisible) {
-      logger.debug('👁️ [PageTracker] 页面激活，恢复追踪')
-    } else {
-      logger.debug('🙈 [PageTracker] 页面失活，暂停追踪')
-    }
   }
   
   document.addEventListener('visibilitychange', handler)
@@ -334,28 +317,22 @@ function setupInteractionListeners(): void {
   interactionEvents.forEach(event => {
     const handler = () => {
       calculator.onInteraction(event)
-      logger.debug(`👆 [PageTracker] 用户交互: ${event}`)
     }
     
     window.addEventListener(event, handler, { passive: true })
     eventListeners.push({ element: window, event, handler })
   })
-  
-  logger.debug('✅ [PageTracker] 交互监听器已设置')
 }
 
-/**
- * 启动定时检查
- */
 /**
  * 开始定期检查停留时间
  */
 function startThresholdChecking(): void {
   checkTimer = window.setInterval(() => {
     checkThreshold()
-  }, 5000)
+  }, CHECK_INTERVAL_MS)
   
-  logger.debug('⏰ [PageTracker] 开始定期检查（每 5 秒）')
+  logger.debug('⏰ [PageTracker] 开始定期检查')
 }
 
 /**
@@ -365,15 +342,10 @@ function setupUnloadListener(): void {
   const handler = () => {
     const dwellTime = calculator.getEffectiveDwellTime()
     
-    logger.debug('👋 [PageTracker] 页面卸载', {
-      最终停留时间: `${dwellTime.toFixed(1)}秒`,
-      是否已记录: isRecorded ? '✅ 是' : '❌ 否'
-    })
-    
     // 如果达到阈值但还没记录，尝试记录（可能失败）
     if (dwellTime >= THRESHOLD_SECONDS && !isRecorded) {
       logger.debug('⚡ [PageTracker] 页面卸载前记录')
-      recordPageVisit() // 注意：可能因为页面关闭而失败
+      recordPageVisit()
     }
   }
   
@@ -389,9 +361,7 @@ function init(): void {
   
   logger.info('🚀 [PageTracker] 页面访问追踪已启动', {
     页面: document.title,
-    URL: window.location.href,
-    域名: window.location.hostname,
-    时间: new Date().toLocaleTimeString()
+    URL: window.location.href
   })
 
   // 设置监听器
@@ -401,9 +371,6 @@ function init(): void {
   
   // 启动定时检查
   startThresholdChecking()
-  
-  logger.debug('✅ [PageTracker] 所有监听器已设置')
-  logger.debug(`📋 [PageTracker] 阈值: ${THRESHOLD_SECONDS} 秒，检查间隔: ${CHECK_INTERVAL_MS / 1000} 秒`)
 }
 
 // 页面加载完成后初始化
