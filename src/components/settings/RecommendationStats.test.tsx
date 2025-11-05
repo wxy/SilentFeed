@@ -74,7 +74,11 @@ describe("RecommendationStats 组件", () => {
       unreadCount: 40,
       readLaterCount: 20,
       dismissedCount: 10,
-      last7DaysCounts: [5, 8, 12, 15, 18, 20, 22],
+      avgReadDuration: 120,
+      topSources: [
+        { source: "Tech Blog", count: 30, readRate: 0.8 },
+        { source: "News Site", count: 25, readRate: 0.6 },
+      ],
     }
 
     it("应该显示推荐效果概览", async () => {
@@ -165,7 +169,8 @@ describe("RecommendationStats 组件", () => {
         unreadCount: 0,
         readLaterCount: 0,
         dismissedCount: 0,
-        last7DaysCounts: [0, 0, 0, 0, 0, 0, 0],
+        avgReadDuration: 0,
+        topSources: [],
       }
 
       mockGetRecommendationStats.mockResolvedValue(emptyStats)
@@ -184,7 +189,8 @@ describe("RecommendationStats 组件", () => {
         unreadCount: 1,
         readLaterCount: 0,
         dismissedCount: 0,
-        last7DaysCounts: [0, 0, 0, 0, 0, 0, 3],
+        avgReadDuration: 90,
+        topSources: [],
       }
 
       mockGetRecommendationStats.mockResolvedValue(stats)
@@ -203,7 +209,8 @@ describe("RecommendationStats 组件", () => {
         unreadCount: 0,
         readLaterCount: 0,
         dismissedCount: 0,
-        last7DaysCounts: [7, 7, 7, 8, 7, 7, 7],
+        avgReadDuration: 150,
+        topSources: [],
       }
 
       mockGetRecommendationStats.mockResolvedValue(stats)
@@ -248,7 +255,8 @@ describe("RecommendationStats 组件", () => {
         unreadCount: 40,
         readLaterCount: 20,
         dismissedCount: 10,
-        last7DaysCounts: [5, 8, 12, 15, 18, 20, 22],
+        avgReadDuration: 120,
+        topSources: [],
       }
 
       mockGetRecommendationStats.mockResolvedValue(stats)
@@ -277,7 +285,8 @@ describe("RecommendationStats 组件", () => {
         unreadCount: 40,
         readLaterCount: 20,
         dismissedCount: 10,
-        last7DaysCounts: [5, 8, 12, 15, 18, 20, 22],
+        avgReadDuration: 120,
+        topSources: [],
       }
 
       mockGetRecommendationStats.mockResolvedValue(stats)
