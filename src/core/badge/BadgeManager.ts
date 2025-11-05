@@ -80,13 +80,16 @@ export class BadgeManager {
 
   /**
    * 徽章颜色配置
-   * Phase 2.7: 使用较淡的颜色，避免遮挡图标
-   * 注意：Chrome Badge API 对透明度支持有限，使用淡色代替
+   * 
+   * ⚠️ 重要：Chrome 的图标显示逻辑
+   * - 如果 Badge 背景色太浅（如浅灰色），Chrome 会将图标自动转为灰度
+   * - 如果 Badge 背景色足够深/鲜艳，图标会保持彩色
+   * - 解决方案：使用鲜艳的颜色，确保图标始终显示为彩色
    */
   private static readonly BADGE_COLORS = {
-    COLD_START: [76, 175, 147, 255] as chrome.action.ColorArray,      // 淡绿色（冷启动 emoji）
-    HAS_RECOMMENDATIONS: [255, 107, 53, 255] as chrome.action.ColorArray,  // 橙色（有推荐）
-    NO_RECOMMENDATIONS: [156, 163, 175, 255] as chrome.action.ColorArray    // 淡灰色（无推荐）
+    COLD_START: [34, 139, 34, 255] as chrome.action.ColorArray,         // 深绿色（冷启动）- 确保图标彩色
+    HAS_RECOMMENDATIONS: [255, 87, 34, 255] as chrome.action.ColorArray,  // 深橙色（有推荐）
+    NO_RECOMMENDATIONS: [100, 100, 100, 255] as chrome.action.ColorArray  // 深灰色（无推荐）- 足够深
   }
 
   /**
@@ -165,10 +168,13 @@ export class BadgeManager {
 
   /**
    * 更新推荐阶段徽章（数字）
+   * 
+   * ⚠️ 修复：即使未读数为 0，也显示 Badge，避免图标变灰
    * @param unreadCount 未读推荐数
    */
   private static async updateRecommendationBadge(unreadCount: number): Promise<void> {
-    const text = unreadCount > 0 ? String(unreadCount) : ''
+    // 始终显示 Badge 文本，确保图标保持彩色
+    const text = unreadCount > 0 ? String(unreadCount) : '0'
     const color = unreadCount > 0 
       ? this.BADGE_COLORS.HAS_RECOMMENDATIONS 
       : this.BADGE_COLORS.NO_RECOMMENDATIONS
@@ -176,7 +182,7 @@ export class BadgeManager {
     await chrome.action.setBadgeText({ text })
     await chrome.action.setBadgeBackgroundColor({ color })
     
-    console.log(`[BadgeManager] ✅ 徽章已更新（推荐）: ${text || '(空)'} (${unreadCount} 条未读)`)
+    console.log(`[BadgeManager] ✅ 徽章已更新（推荐）: ${text} (${unreadCount} 条未读)`)
   }
 
   /**

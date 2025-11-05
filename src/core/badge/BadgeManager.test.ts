@@ -93,58 +93,58 @@ describe('BadgeManager', () => {
       await BadgeManager.updateBadge(0)
       
       expect(mockSetBadgeText).toHaveBeenCalledWith({ text: '0' })
-      expect(mockSetBadgeBackgroundColor).toHaveBeenCalledWith({ color: [76, 175, 147, 255] })
+      expect(mockSetBadgeBackgroundColor).toHaveBeenCalledWith({ color: [34, 139, 34, 255] })
     })
 
     it('应该为 300 页设置数字徽章', async () => {
       await BadgeManager.updateBadge(300)
       
       expect(mockSetBadgeText).toHaveBeenCalledWith({ text: '300' })
-      expect(mockSetBadgeBackgroundColor).toHaveBeenCalledWith({ color: [76, 175, 147, 255] })
+      expect(mockSetBadgeBackgroundColor).toHaveBeenCalledWith({ color: [34, 139, 34, 255] })
     })
 
     it('应该为 700 页设置数字徽章', async () => {
       await BadgeManager.updateBadge(700)
       
       expect(mockSetBadgeText).toHaveBeenCalledWith({ text: '700' })
-      expect(mockSetBadgeBackgroundColor).toHaveBeenCalledWith({ color: [76, 175, 147, 255] })
+      expect(mockSetBadgeBackgroundColor).toHaveBeenCalledWith({ color: [34, 139, 34, 255] })
     })
 
     it('应该为 999 页设置数字徽章（冷启动最后一页）', async () => {
       await BadgeManager.updateBadge(999)
       
       expect(mockSetBadgeText).toHaveBeenCalledWith({ text: '999' })
-      expect(mockSetBadgeBackgroundColor).toHaveBeenCalledWith({ color: [76, 175, 147, 255] })
+      expect(mockSetBadgeBackgroundColor).toHaveBeenCalledWith({ color: [34, 139, 34, 255] })
     })
   })
 
   describe('updateBadge - 推荐阶段', () => {
-    it('应该为 1000 页显示空徽章（无未读推荐）', async () => {
+    it('应该为 1000 页显示 0 徽章（无未读推荐）', async () => {
       await BadgeManager.updateBadge(1000, 0)
       
-      expect(mockSetBadgeText).toHaveBeenCalledWith({ text: '' })
-      expect(mockSetBadgeBackgroundColor).toHaveBeenCalledWith({ color: [156, 163, 175, 255] })
+      expect(mockSetBadgeText).toHaveBeenCalledWith({ text: '0' })
+      expect(mockSetBadgeBackgroundColor).toHaveBeenCalledWith({ color: [100, 100, 100, 255] })
     })
 
     it('应该为 1500 页显示未读数量（有推荐）', async () => {
       await BadgeManager.updateBadge(1500, 3)
       
       expect(mockSetBadgeText).toHaveBeenCalledWith({ text: '3' })
-      expect(mockSetBadgeBackgroundColor).toHaveBeenCalledWith({ color: [255, 107, 53, 255] })
+      expect(mockSetBadgeBackgroundColor).toHaveBeenCalledWith({ color: [255, 87, 34, 255] })
     })
 
     it('应该正确处理大量未读推荐', async () => {
       await BadgeManager.updateBadge(2000, 99)
       
       expect(mockSetBadgeText).toHaveBeenCalledWith({ text: '99' })
-      expect(mockSetBadgeBackgroundColor).toHaveBeenCalledWith({ color: [255, 107, 53, 255] })
+      expect(mockSetBadgeBackgroundColor).toHaveBeenCalledWith({ color: [255, 87, 34, 255] })
     })
 
-    it('应该在推荐阶段默认显示空徽章（未传 unreadCount）', async () => {
+    it('应该在推荐阶段默认显示 0 徽章（未传 unreadCount）', async () => {
       await BadgeManager.updateBadge(1500)
       
-      expect(mockSetBadgeText).toHaveBeenCalledWith({ text: '' })
-      expect(mockSetBadgeBackgroundColor).toHaveBeenCalledWith({ color: [156, 163, 175, 255] })
+      expect(mockSetBadgeText).toHaveBeenCalledWith({ text: '0' })
+      expect(mockSetBadgeBackgroundColor).toHaveBeenCalledWith({ color: [100, 100, 100, 255] })
     })
   })
 
