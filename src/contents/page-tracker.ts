@@ -5,16 +5,21 @@
  * - 监听页面激活/失活
  * - 监听用户交互（scroll, click, keypress, mousemove）
  * - 使用 DwellTimeCalculator 计算有效停留时间
- * - 达到 30 秒阈值后记录到 IndexedDB
+ * - 达到 30 秒阈值后通过消息传递给 Background 记录
  * - 提供调试日志用于浏览器测试
  * 
- * @version 1.0
- * @date 2025-11-02
+ * ⚠️ 架构说明：
+ * - Content Script 运行在网页上下文中
+ * - 不能直接访问扩展的 IndexedDB（会创建在网页的存储空间）
+ * - 必须通过 chrome.runtime.sendMessage 发送数据到 Background
+ * - Background 负责所有数据库操作
+ * 
+ * @version 2.0
+ * @date 2025-11-04
  */
 
 import type { PlasmoCSConfig } from "plasmo"
 import { DwellTimeCalculator, type InteractionType } from "~core/tracker/DwellTimeCalculator"
-import { db } from "~storage/db"
 import { logger } from "~utils/logger"
 
 // 配置：注入到所有 HTTP/HTTPS 页面
@@ -53,6 +58,34 @@ let calculator: DwellTimeCalculator
 let isRecorded = false // 防止重复记录
 let checkTimer: number | null = null // 定时检查的计时器
 let eventListeners: Array<{ element: EventTarget; event: string; handler: EventListener }> = [] // 追踪所有事件监听器
+let isContextValid = true // 扩展上下文是否有效（热重载检测）
+
+// ==================== 扩展上下文检测 ====================
+
+/**
+ * 检查扩展上下文是否有效
+ * 在开发模式下，热重载会导致 chrome.runtime 失效
+ */
+function checkExtensionContext(): boolean {
+  if (!isContextValid) {
+    return false
+  }
+  
+  try {
+    // 尝试访问 chrome.runtime.id，如果失效会抛出错误
+    if (!chrome.runtime?.id) {
+      isContextValid = false
+      return false
+    }
+    return true
+  } catch (error) {
+    isContextValid = false
+    // 开发环境的上下文失效是正常现象（热重载），使用 debug 而非 warn
+    logger.debug('⚠️ [PageTracker] 扩展上下文已失效（可能是热重载），停止追踪')
+    cleanup()
+    return false
+  }
+}
 
 // ==================== 页面信息提取 ====================
 
@@ -81,6 +114,12 @@ function getPageInfo(): PageVisitData {
  * 记录页面访问到数据库
  */
 async function recordPageVisit(): Promise<void> {
+  // 检查扩展上下文
+  if (!checkExtensionContext()) {
+    logger.debug('⚠️ [PageTracker] 扩展上下文失效，跳过记录')
+    return
+  }
+  
   if (isRecorded) {
     logger.debug('🚫 [PageTracker] 已记录过，跳过')
     return
@@ -88,20 +127,75 @@ async function recordPageVisit(): Promise<void> {
 
   const pageInfo = getPageInfo()
   
+    // Phase 2.7 Step 6: 检测访问来源
+  let source: 'organic' | 'recommended' | 'search' = 'organic'
+  let recommendationId: string | undefined
+  
+  try {
+    // 检查 chrome.storage 是否可用
+    if (!checkExtensionContext() || !chrome?.storage?.local) {
+      logger.debug('⚠️ [PageTracker] Chrome storage 不可用，跳过来源检测')
+      // 继续记录，但使用默认来源
+    } else {
+      try {
+        // 1. 尝试从 chrome.storage 读取追踪信息
+        const trackingKey = `tracking_${pageInfo.url}`
+        const result = await chrome.storage.local.get(trackingKey)
+        const trackingInfo = result[trackingKey]
+        
+        if (trackingInfo && trackingInfo.expiresAt > Date.now()) {
+          source = trackingInfo.source || 'organic'
+          recommendationId = trackingInfo.recommendationId
+          logger.debug('🔗 [PageTracker] 检测到推荐来源', { source, recommendationId })
+          
+          // 使用后立即删除追踪信息
+          await chrome.storage.local.remove(trackingKey)
+        } else {
+          // 2. 检测是否来自搜索引擎（基于 referrer）
+          const referrer = document.referrer
+          if (referrer) {
+            try {
+              const referrerUrl = new URL(referrer)
+              const searchEngines = ['google.com', 'bing.com', 'baidu.com', 'duckduckgo.com']
+              if (searchEngines.some(engine => referrerUrl.hostname.includes(engine))) {
+                source = 'search'
+                logger.debug('🔍 [PageTracker] 检测到搜索引擎来源', { referrer })
+              }
+            } catch (urlError) {
+              // 无效的 referrer URL，忽略
+              logger.debug('⚠️ [PageTracker] 无效的 referrer URL')
+            }
+          }
+        }
+      } catch (storageError) {
+        logger.debug('⚠️ [PageTracker] Chrome storage 访问失败，使用默认来源', storageError)
+      }
+    }
+  } catch (error) {
+    logger.debug('⚠️ [PageTracker] 检测来源失败，使用默认值', error)
+  }
+  
   logger.info('💾 [PageTracker] 准备记录页面访问', {
     页面: pageInfo.title,
     URL: pageInfo.url,
     停留时间: `${pageInfo.dwellTime.toFixed(1)}秒`,
+    来源: source,
     时间戳: new Date(pageInfo.visitedAt).toLocaleTimeString()
   })
 
   try {
-    // 先创建临时记录（Phase 2.1 简化版，直接升级为正式记录）
-    // TODO Phase 2.3: 添加页面过滤逻辑
-    // TODO Phase 2.4: 添加内容提取和分析
+    // ⚠️ 架构变更：不再直接访问数据库
+    // Content Script 通过消息传递数据到 Background
+    // Background 负责所有数据库操作
     
-    // 保存到 confirmedVisits 表
-    await db.confirmedVisits.add({
+    // 检查扩展上下文
+    if (!checkExtensionContext()) {
+      logger.debug('⚠️ [PageTracker] 扩展上下文失效，无法记录')
+      return
+    }
+    
+    // 构建完整的访问记录数据
+    const visitData = {
       id: crypto.randomUUID(),
       url: pageInfo.url,
       title: pageInfo.title,
@@ -109,6 +203,10 @@ async function recordPageVisit(): Promise<void> {
       visitTime: pageInfo.visitedAt,
       duration: pageInfo.dwellTime,
       interactionCount: 0, // TODO: 实际记录交互次数
+      
+      // Phase 2.7 Step 6: 来源追踪
+      source,
+      recommendationId,
       
       // Phase 2.4 将添加完整的元数据和内容
       meta: null,
@@ -121,29 +219,36 @@ async function recordPageVisit(): Promise<void> {
         language: 'zh' // 语言检测（默认中文）
       },
       
-      status: 'qualified',
+      status: 'qualified' as const,
       
       // 数据生命周期
       contentRetainUntil: Date.now() + 90 * 24 * 60 * 60 * 1000, // 90 天后
       analysisRetainUntil: -1 // 永久保留
-    })
-
-    isRecorded = true
-    logger.info('✅ [PageTracker] 页面访问已记录到数据库')
+    }
     
-    // 记录成功后立即清理
-    cleanup()
-    
-    // 通知 background 更新徽章
-    chrome.runtime.sendMessage({
-      type: 'PAGE_RECORDED',
-      data: pageInfo
-    }).catch(err => {
-      logger.warn('⚠️ [PageTracker] 发送消息到 background 失败', err)
+    // 发送消息到 Background 保存数据
+    const response = await chrome.runtime.sendMessage({
+      type: 'SAVE_PAGE_VISIT',
+      data: visitData
     })
+    
+    if (response?.success) {
+      isRecorded = true
+      logger.info('✅ [PageTracker] 页面访问已记录到数据库（通过 Background）')
+      
+      // 记录成功后立即清理
+      cleanup()
+    } else {
+      throw new Error(response?.error || '未知错误')
+    }
     
   } catch (error) {
-    logger.error('❌ [PageTracker] 记录页面访问失败', error)
+    // 开发环境的上下文错误是正常现象
+    if (error instanceof Error && error.message?.includes('Extension context')) {
+      logger.debug('⚠️ [PageTracker] 扩展上下文失效（热重载导致）')
+    } else {
+      logger.error('❌ [PageTracker] 记录页面访问失败', error)
+    }
   }
 }
 
@@ -151,15 +256,12 @@ async function recordPageVisit(): Promise<void> {
  * 检查是否达到阈值
  */
 function checkThreshold(): void {
-  const dwellTime = calculator.getEffectiveDwellTime()
-  const timeSinceInteraction = calculator.getTimeSinceLastInteraction()
+  // 检查扩展上下文
+  if (!checkExtensionContext()) {
+    return
+  }
   
-  logger.debug('🔍 [PageTracker] 阈值检查', {
-    当前停留时间: `${dwellTime.toFixed(1)}秒`,
-    距上次交互: `${timeSinceInteraction.toFixed(1)}秒`,
-    阈值: `${THRESHOLD_SECONDS}秒`,
-    状态: dwellTime >= THRESHOLD_SECONDS ? '✅ 已达到' : `❌ 还需 ${(THRESHOLD_SECONDS - dwellTime).toFixed(1)}秒`
-  })
+  const dwellTime = calculator.getEffectiveDwellTime()
 
   if (dwellTime >= THRESHOLD_SECONDS && !isRecorded) {
     logger.info('🎯 [PageTracker] 达到阈值，开始记录')
@@ -173,7 +275,7 @@ function checkThreshold(): void {
  * 清理所有监听器和定时器
  */
 function cleanup(): void {
-  logger.debug('🧹 [PageTracker] 清理监听器和定时器')
+  logger.debug('🧹 [PageTracker] 清理资源')
   
   // 停止 DwellTimeCalculator
   calculator.stop()
@@ -182,7 +284,6 @@ function cleanup(): void {
   if (checkTimer) {
     clearInterval(checkTimer)
     checkTimer = null
-    logger.debug('⏸️ [PageTracker] 停止阈值检查')
   }
   
   // 移除所有事件监听器
@@ -190,8 +291,6 @@ function cleanup(): void {
     element.removeEventListener(event, handler)
   })
   eventListeners = []
-  
-  logger.debug('✅ [PageTracker] 清理完成')
 }
 
 // ==================== 事件监听 ====================
@@ -203,12 +302,6 @@ function setupVisibilityListener(): void {
   const handler = () => {
     const isVisible = !document.hidden
     calculator.onVisibilityChange(isVisible)
-    
-    if (isVisible) {
-      logger.debug('👁️ [PageTracker] 页面激活，恢复追踪')
-    } else {
-      logger.debug('🙈 [PageTracker] 页面失活，暂停追踪')
-    }
   }
   
   document.addEventListener('visibilitychange', handler)
@@ -224,28 +317,22 @@ function setupInteractionListeners(): void {
   interactionEvents.forEach(event => {
     const handler = () => {
       calculator.onInteraction(event)
-      logger.debug(`👆 [PageTracker] 用户交互: ${event}`)
     }
     
     window.addEventListener(event, handler, { passive: true })
     eventListeners.push({ element: window, event, handler })
   })
-  
-  logger.debug('✅ [PageTracker] 交互监听器已设置')
 }
 
-/**
- * 启动定时检查
- */
 /**
  * 开始定期检查停留时间
  */
 function startThresholdChecking(): void {
   checkTimer = window.setInterval(() => {
     checkThreshold()
-  }, 5000)
+  }, CHECK_INTERVAL_MS)
   
-  logger.debug('⏰ [PageTracker] 开始定期检查（每 5 秒）')
+  logger.debug('⏰ [PageTracker] 开始定期检查')
 }
 
 /**
@@ -255,15 +342,10 @@ function setupUnloadListener(): void {
   const handler = () => {
     const dwellTime = calculator.getEffectiveDwellTime()
     
-    logger.debug('👋 [PageTracker] 页面卸载', {
-      最终停留时间: `${dwellTime.toFixed(1)}秒`,
-      是否已记录: isRecorded ? '✅ 是' : '❌ 否'
-    })
-    
     // 如果达到阈值但还没记录，尝试记录（可能失败）
     if (dwellTime >= THRESHOLD_SECONDS && !isRecorded) {
       logger.debug('⚡ [PageTracker] 页面卸载前记录')
-      recordPageVisit() // 注意：可能因为页面关闭而失败
+      recordPageVisit()
     }
   }
   
@@ -279,9 +361,7 @@ function init(): void {
   
   logger.info('🚀 [PageTracker] 页面访问追踪已启动', {
     页面: document.title,
-    URL: window.location.href,
-    域名: window.location.hostname,
-    时间: new Date().toLocaleTimeString()
+    URL: window.location.href
   })
 
   // 设置监听器
@@ -291,9 +371,6 @@ function init(): void {
   
   // 启动定时检查
   startThresholdChecking()
-  
-  logger.debug('✅ [PageTracker] 所有监听器已设置')
-  logger.debug(`📋 [PageTracker] 阈值: ${THRESHOLD_SECONDS} 秒，检查间隔: ${CHECK_INTERVAL_MS / 1000} 秒`)
 }
 
 // 页面加载完成后初始化

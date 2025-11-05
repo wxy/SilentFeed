@@ -14,7 +14,15 @@
       "master": "Master Stage"
     },
     "hint": "Start browsing, and I'll automatically learn your interests.",
-    "settings": "Settings"
+    "settings": "Settings",
+    "loading": "Loading recommendations...",
+    "retry": "Retry",
+    "recommendations": "Recommended for You",
+    "recommendationCount": "Total {{count}} items",
+    "dismissAll": "I don't want to read any of these.",
+    "confirmDismiss": "Are you sure you want to mark all {{count}} recommendations as \"Not interested\"?",
+    "noRecommendations": "No recommendations yet",
+    "checkBackLater": "Come back later for new recommendations"
   },
   "common": {
     "loading": "Loading...",
@@ -57,7 +65,45 @@
       "general": "Regular",
       "rss": "RSS feed",
       "ai": "AI",
-      "privacy": "Privacy"
+      "privacy": "Privacy",
+      "recommendations": "Recommended Statistics",
+      "data": "Data Statistics"
+    },
+    "stats": {
+      "noData": "No data available",
+      "recommendationOverview": "Overview of Recommendation Effects",
+      "totalRecommendations": "Total Recommendations",
+      "readCount": "Read",
+      "unreadCount": "Unread count",
+      "readRate": "Read rate",
+      "feedbackStats": "User Feedback Statistics",
+      "read": "Read",
+      "readLater": "Read Later",
+      "dismissed": "Don't want to read",
+      "hint": "A higher read rate indicates more accurate recommendations. The AI will continuously optimize the recommendation algorithm based on your feedback."
+    },
+    "dataStats": {
+      "noData": "No data available",
+      "overview": "Data Overview",
+      "totalPages": "Total number of pages",
+      "confirmedVisits": "Official record",
+      "recommendations": "Number of recommendations",
+      "avgDwellTime": "Average dwell time",
+      "storage": "Storage usage",
+      "totalSize": "Total occupied space",
+      "pendingVisits": "Temporary Record",
+      "confirmedVisitsLabel": "Official record",
+      "recommendationsLabel": "Recommended Records",
+      "records": "strip",
+      "visits": "time",
+      "topDomains": "Frequently Visited Domains (Top 10)",
+      "noDomains": "No data available",
+      "dataManagement": "Data Management",
+      "clearHistory": "Clear browsing history",
+      "resetProfile": "Reset User Profile",
+      "clearAll": "Clear all data",
+      "comingSoon": "Coming soon",
+      "dataManagementHint": "Data management features will be available in subsequent versions."
     }
   }
 }
