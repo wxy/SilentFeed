@@ -37,6 +37,40 @@ export const TOPIC_NAMES: Record<Topic, string> = {
 }
 
 /**
+ * 主题动物emoji映射
+ */
+export const TOPIC_ANIMALS: Record<Topic, string> = {
+  [Topic.TECHNOLOGY]: '🤖',      // 机器人 - 代表技术创新
+  [Topic.SCIENCE]: '🐧',         // 企鹅 - 代表科学探索
+  [Topic.BUSINESS]: '🦁',        // 狮子 - 代表商业领导力
+  [Topic.DESIGN]: '🦋',          // 蝴蝶 - 代表设计美感
+  [Topic.ARTS]: '🦚',            // 孔雀 - 代表艺术华丽
+  [Topic.HEALTH]: '🐶',          // 狗狗 - 代表健康活力
+  [Topic.SPORTS]: '🐎',          // 马 - 代表运动速度
+  [Topic.ENTERTAINMENT]: '🐱',   // 猫咪 - 代表娱乐休闲
+  [Topic.NEWS]: '🐦',            // 鸟类 - 代表信息传播
+  [Topic.EDUCATION]: '🦉',       // 猫头鹰 - 代表智慧学习
+  [Topic.OTHER]: '🐼'            // 熊猫 - 代表其他内容
+}
+
+/**
+ * 主题动物性格描述
+ */
+export const TOPIC_PERSONALITIES: Record<Topic, string> = {
+  [Topic.TECHNOLOGY]: '科技极客，总是追求最新的技术趋势',
+  [Topic.SCIENCE]: '理性探索者，对世界充满好奇心',
+  [Topic.BUSINESS]: '商业领袖，具有敏锐的市场嗅觉',
+  [Topic.DESIGN]: '美感追求者，注重视觉和用户体验',
+  [Topic.ARTS]: '艺术鉴赏家，欣赏各种创意表达',
+  [Topic.HEALTH]: '健康生活倡导者，关注身心wellness',
+  [Topic.SPORTS]: '运动爱好者，享受竞技和健身乐趣',
+  [Topic.ENTERTAINMENT]: '娱乐达人，热爱轻松有趣的内容',
+  [Topic.NEWS]: '信息收集者，关注时事和社会动态',
+  [Topic.EDUCATION]: '终身学习者，持续自我提升',
+  [Topic.OTHER]: '兴趣广泛的探索者'
+}
+
+/**
  * 主题关键词映射（规则引擎）
  */
 export const TOPIC_KEYWORDS: Record<Topic, string[]> = {

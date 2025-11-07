@@ -11,7 +11,7 @@
 import { useState, useEffect } from "react"
 import { useI18n } from "@/i18n/helpers"
 import { getUserProfile } from "@/storage/db"
-import { TOPIC_NAMES, TOPIC_ICONS, Topic } from "@/core/profile/topics"
+import { TOPIC_NAMES, TOPIC_ANIMALS, TOPIC_PERSONALITIES, Topic } from "@/core/profile/topics"
 import { profileManager } from "@/core/profile/ProfileManager"
 import type { UserProfile } from "@/core/profile/types"
 
@@ -103,7 +103,8 @@ export function UserProfileDisplay() {
       topic: topic as Topic,
       score: score * 100, // 转换为百分比
       name: TOPIC_NAMES[topic as Topic],
-      icon: TOPIC_ICONS[topic as Topic],
+      animal: TOPIC_ANIMALS[topic as Topic],
+      personality: TOPIC_PERSONALITIES[topic as Topic],
     }))
 
   // 获取 Top 10 关键词
@@ -153,40 +154,62 @@ export function UserProfileDisplay() {
 
         {/* Top 3 主题分布 */}
         <div>
-          <h3 className="text-md font-medium mb-3 flex items-center gap-2">
-            <span>🎯</span>
-            <span>兴趣主题 Top 3</span>
+          <h3 className="text-md font-medium mb-4 flex items-center gap-2">
+            <span>�</span>
+            <span>你的兴趣画像</span>
           </h3>
           {topTopics.length === 0 ? (
             <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-center text-gray-500 dark:text-gray-400 text-sm">
               暂无主题分类数据
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {topTopics.map((item, index) => (
-                <div key={item.topic}>
-                  <div className="flex justify-between items-center mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">{item.icon}</span>
-                      <span className="font-medium text-gray-700 dark:text-gray-300">
-                        #{index + 1} {item.name}
-                      </span>
-                    </div>
-                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                      {item.score.toFixed(1)}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-                    <div
-                      className={`h-3 rounded-full transition-all duration-500 ${
+                <div key={item.topic} className="bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-700 rounded-xl p-4 border border-gray-200 dark:border-gray-600">
+                  <div className="flex items-center gap-4">
+                    {/* 动物头像 */}
+                    <div className="flex-shrink-0">
+                      <div className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl ${
                         index === 0 
-                          ? 'bg-gradient-to-r from-blue-500 to-purple-600'
+                          ? 'bg-gradient-to-br from-blue-100 to-purple-100 border-2 border-blue-200'
                           : index === 1
-                          ? 'bg-gradient-to-r from-green-500 to-blue-500' 
-                          : 'bg-gradient-to-r from-orange-500 to-red-500'
-                      }`}
-                      style={{ width: `${Math.max(item.score, 5)}%` }}
-                    />
+                          ? 'bg-gradient-to-br from-green-100 to-emerald-100 border-2 border-green-200' 
+                          : 'bg-gradient-to-br from-orange-100 to-amber-100 border-2 border-orange-200'
+                      }`}>
+                        {item.animal}
+                      </div>
+                    </div>
+                    
+                    {/* 主题信息 */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-center mb-2">
+                        <h4 className="font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                          #{index + 1} {item.name}
+                          <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                            {item.score.toFixed(1)}%
+                          </span>
+                        </h4>
+                      </div>
+                      
+                      {/* 性格描述 */}
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                        {item.personality}
+                      </p>
+                      
+                      {/* 进度条 */}
+                      <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                        <div
+                          className={`h-2 rounded-full transition-all duration-500 ${
+                            index === 0 
+                              ? 'bg-gradient-to-r from-blue-400 to-purple-500'
+                              : index === 1
+                              ? 'bg-gradient-to-r from-green-400 to-emerald-500' 
+                              : 'bg-gradient-to-r from-orange-400 to-amber-500'
+                          }`}
+                          style={{ width: `${Math.max(item.score, 5)}%` }}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -196,72 +219,66 @@ export function UserProfileDisplay() {
 
         {/* Top 关键词 */}
         <div>
-          <h3 className="text-md font-medium mb-3 flex items-center gap-2">
-            <span>🔤</span>
-            <span>热门关键词 Top 10</span>
+          <h3 className="text-md font-medium mb-4 flex items-center gap-2">
+            <span>�</span>
+            <span>兴趣关键词云</span>
           </h3>
           {topKeywords.length === 0 ? (
             <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-center text-gray-500 dark:text-gray-400 text-sm">
               暂无关键词数据
             </div>
           ) : (
-            <div className="flex flex-wrap gap-2">
-              {topKeywords.map((keyword, index) => (
-                <span
-                  key={`${keyword.word}-${index}`}
-                  className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                    index < 3
-                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                      : index < 6
-                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                      : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
-                  }`}
-                >
-                  {keyword.word}
-                  <span className="ml-1 text-xs opacity-70">
-                    {keyword.weight.toFixed(2)}
-                  </span>
-                </span>
-              ))}
+            <div className="bg-gradient-to-br from-indigo-50 via-white to-cyan-50 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-600">
+              <div className="flex flex-wrap gap-3 justify-center">
+                {topKeywords.map((keyword, index) => {
+                  // 根据权重计算字体大小和样式
+                  const getFontSize = () => {
+                    if (index < 2) return 'text-2xl'
+                    if (index < 5) return 'text-lg'
+                    if (index < 8) return 'text-base'
+                    return 'text-sm'
+                  }
+                  
+                  const getColors = () => {
+                    const colorSets = [
+                      'bg-gradient-to-r from-purple-500 to-pink-500 text-white',
+                      'bg-gradient-to-r from-blue-500 to-cyan-500 text-white',
+                      'bg-gradient-to-r from-green-500 to-emerald-500 text-white',
+                      'bg-gradient-to-r from-orange-500 to-amber-500 text-white',
+                      'bg-gradient-to-r from-red-500 to-rose-500 text-white',
+                      'bg-gradient-to-r from-indigo-500 to-purple-500 text-white',
+                      'bg-gradient-to-r from-cyan-500 to-teal-500 text-white',
+                      'bg-gradient-to-r from-yellow-500 to-orange-500 text-white',
+                      'bg-gradient-to-r from-pink-500 to-red-500 text-white',
+                      'bg-gradient-to-r from-teal-500 to-green-500 text-white'
+                    ]
+                    return colorSets[index % colorSets.length]
+                  }
+
+                  return (
+                    <span
+                      key={`${keyword.word}-${index}`}
+                      className={`
+                        inline-flex items-center px-4 py-2 rounded-full font-semibold transition-all duration-300 
+                        hover:scale-105 hover:shadow-lg cursor-default
+                        ${getFontSize()} ${getColors()}
+                      `}
+                      title={`权重: ${keyword.weight.toFixed(3)}`}
+                    >
+                      {keyword.word}
+                      <span className="ml-2 text-xs opacity-80">
+                        {keyword.weight.toFixed(2)}
+                      </span>
+                    </span>
+                  )
+                })}
+              </div>
+              
+              <div className="mt-4 text-center text-xs text-gray-500 dark:text-gray-400">
+                💡 关键词大小代表权重，hover查看详细权重值
+              </div>
             </div>
           )}
-        </div>
-
-        {/* 画像管理操作 */}
-        <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-          <h3 className="text-md font-medium mb-3 flex items-center gap-2">
-            <span>⚙️</span>
-            <span>画像管理</span>
-          </h3>
-          <div className="flex gap-3">
-            <button
-              onClick={handleRebuildProfile}
-              disabled={isRebuilding}
-              className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                isRebuilding
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500'
-                  : 'bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50'
-              }`}
-            >
-              {isRebuilding ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="inline-block w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></span>
-                  重建中...
-                </span>
-              ) : (
-                <>🔄 重建画像</>
-              )}
-            </button>
-            <button
-              disabled={!profile}
-              className="flex-1 px-4 py-2 bg-gray-100 text-gray-400 rounded-lg text-sm font-medium cursor-not-allowed dark:bg-gray-700 dark:text-gray-500"
-            >
-              🗑️ 清除画像 (即将支持)
-            </button>
-          </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-            💡 重建画像会重新分析所有浏览记录，更新您的兴趣偏好
-          </p>
         </div>
       </div>
     </div>

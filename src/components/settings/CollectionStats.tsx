@@ -17,6 +17,7 @@ import { dataMigrator } from "@/core/migrator/DataMigrator"
 import type { StorageStats } from "@/storage/types"
 import { UserProfileDisplay } from "./UserProfileDisplay"
 import { AnalysisDebugger } from "@/debug/AnalysisDebugger"
+import { profileManager } from "@/core/profile/ProfileManager"
 
 export function CollectionStats() {
   const { _ } = useI18n()
@@ -25,6 +26,7 @@ export function CollectionStats() {
   const [analysisStats, setAnalysisStats] = useState<any>(null)
   const [migrationStats, setMigrationStats] = useState<any>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [isRebuildingProfile, setIsRebuildingProfile] = useState(false)
 
   useEffect(() => {
     const loadStats = async () => {
@@ -113,6 +115,21 @@ export function CollectionStats() {
     } catch (error) {
       console.error("[CollectionStats] 清理无效记录失败:", error)
       alert("清理失败，请稍后重试")
+    }
+  }
+
+  const handleRebuildProfile = async () => {
+    if (isRebuildingProfile) return
+
+    setIsRebuildingProfile(true)
+    try {
+      await profileManager.rebuildProfile()
+      alert("用户画像重建成功！")
+    } catch (error) {
+      console.error("[CollectionStats] 重建用户画像失败:", error)
+      alert("重建失败，请稍后重试")
+    } finally {
+      setIsRebuildingProfile(false)
     }
   }
 
@@ -372,22 +389,37 @@ export function CollectionStats() {
 
         <div className="space-y-3">
           <button
-            disabled
-            className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 rounded-lg cursor-not-allowed opacity-50">
-            🧹 {_("options.collectionStats.clearHistory")} (
-            {_("options.collectionStats.comingSoon")})
+            onClick={handleRebuildProfile}
+            disabled={isRebuildingProfile}
+            className={`w-full px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              isRebuildingProfile
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500'
+                : 'bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50'
+            }`}
+          >
+            {isRebuildingProfile ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="inline-block w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></span>
+                重建画像中...
+              </span>
+            ) : (
+              <>🔄 重建用户画像</>
+            )}
           </button>
           <button
             disabled
             className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 rounded-lg cursor-not-allowed opacity-50">
-            🔄 {_("options.collectionStats.resetProfile")} (
-            {_("options.collectionStats.comingSoon")})
+            �️ 清除用户画像 (即将支持)
           </button>
           <button
             disabled
             className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 rounded-lg cursor-not-allowed opacity-50">
-            ⚠️ {_("options.collectionStats.clearAll")} (
-            {_("options.collectionStats.comingSoon")})
+            🧹 清除浏览历史 (即将支持)
+          </button>
+          <button
+            disabled
+            className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 rounded-lg cursor-not-allowed opacity-50">
+            ⚠️ 清除所有数据 (即将支持)
           </button>
         </div>
 
