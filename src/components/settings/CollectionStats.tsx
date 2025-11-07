@@ -14,6 +14,7 @@ import { useState, useEffect } from "react"
 import { useI18n } from "@/i18n/helpers"
 import { getStorageStats, getAnalysisStats, db } from "@/storage/db"
 import { dataMigrator } from "@/core/migrator/DataMigrator"
+import { ProfileUpdateScheduler } from "@/core/profile/ProfileUpdateScheduler"
 import type { StorageStats } from "@/storage/types"
 import { UserProfileDisplay } from "./UserProfileDisplay"
 import { AnalysisDebugger } from "@/debug/AnalysisDebugger"
@@ -123,7 +124,8 @@ export function CollectionStats() {
 
     setIsRebuildingProfile(true)
     try {
-      await profileManager.rebuildProfile()
+      // 使用调度器的强制更新，确保状态同步
+      await ProfileUpdateScheduler.forceUpdate()
       alert("用户画像重建成功！")
     } catch (error) {
       console.error("[CollectionStats] 重建用户画像失败:", error)
@@ -133,30 +135,17 @@ export function CollectionStats() {
     }
   }
 
-  const handleClearProfile = async () => {
-    if (!confirm('确定要清除用户画像吗？\n这将删除所有兴趣分析数据，但保留浏览历史。')) {
+  const handleClearDataAndRebuild = async () => {
+    if (!confirm('确定要清除浏览历史并重建用户画像吗？\n这将：\n- 删除所有浏览记录和分析结果\n- 删除当前用户画像\n- 重置为初始状态\n\n⚠️ 此操作不可恢复！')) {
       return
     }
 
     try {
-      await db.userProfile.clear()
-      alert("用户画像清除成功！\n浏览历史保持不变，画像可随时重建。")
-    } catch (error) {
-      console.error("[CollectionStats] 清除用户画像失败:", error)
-      alert("清除失败，请稍后重试")
-    }
-  }
-
-  const handleClearHistory = async () => {
-    if (!confirm('确定要清除浏览历史吗？\n这将删除所有浏览记录和分析结果，但保留用户画像。\n\n⚠️ 此操作不可恢复！')) {
-      return
-    }
-
-    try {
-      // 清除访问记录
+      // 清除访问记录和用户画像
       await Promise.all([
         db.pendingVisits.clear(),
-        db.confirmedVisits.clear()
+        db.confirmedVisits.clear(),
+        db.userProfile.clear()
       ])
       
       // 重新加载统计数据
@@ -169,9 +158,9 @@ export function CollectionStats() {
       setAnalysisStats(analysisData)
       setMigrationStats(migrationData)
       
-      alert("浏览历史清除成功！\n用户画像保持不变。")
+      alert("数据清除成功！\n现在可以重新开始浏览，系统将自动构建新的用户画像。")
     } catch (error) {
-      console.error("[CollectionStats] 清除浏览历史失败:", error)
+      console.error("[CollectionStats] 清除数据失败:", error)
       alert("清除失败，请稍后重试")
     }
   }
@@ -395,14 +384,9 @@ export function CollectionStats() {
             )}
           </button>
           <button
-            onClick={handleClearProfile}
-            className="w-full px-4 py-2 bg-yellow-100 text-yellow-800 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:hover:bg-yellow-900/50 rounded-lg text-sm font-medium transition-colors">
-            🗑️ 清除用户画像
-          </button>
-          <button
-            onClick={handleClearHistory}
+            onClick={handleClearDataAndRebuild}
             className="w-full px-4 py-2 bg-orange-100 text-orange-800 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:hover:bg-orange-900/50 rounded-lg text-sm font-medium transition-colors">
-            🧹 清除浏览历史
+            🗑️ 清除数据重新开始
           </button>
           <button
             onClick={handleClearAll}
@@ -416,11 +400,22 @@ export function CollectionStats() {
             💡 <strong>数据管理说明：</strong>
           </p>
           <ul className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
-            <li>• <strong>重建画像</strong>：重新分析所有浏览数据，更新兴趣偏好</li>
-            <li>• <strong>清除画像</strong>：删除兴趣分析，保留浏览历史</li>
-            <li>• <strong>清除历史</strong>：删除浏览记录，保留用户画像</li>
-            <li>• <strong>清除所有</strong>：恢复初始状态，谨慎操作</li>
+            <li>• <strong>重建画像</strong>：基于现有浏览数据重新分析兴趣偏好</li>
+            <li>• <strong>清除数据重新开始</strong>：删除浏览历史和画像，从零开始</li>
+            <li>• <strong>清除所有数据</strong>：包括推荐记录在内的完全清空</li>
           </ul>
+          
+          <div className="mt-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+            <p className="text-xs text-blue-600 dark:text-blue-400 mb-1">
+              🤖 <strong>自动更新策略：</strong>
+            </p>
+            <ul className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+              <li>• 首次构建：浏览10页后自动创建画像</li>
+              <li>• 增量更新：每5页新内容后智能更新</li>
+              <li>• 定期刷新：6小时周期性更新</li>
+              <li>• 手动重建：随时可以强制刷新画像</li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>

@@ -107,13 +107,21 @@ export class TextAnalyzer {
     const tokens: string[] = []
     
     if (language === 'zh') {
-      // 中文分词（简化版，按字分割）
-      for (let i = 0; i < cleanText.length; i++) {
-        const char = cleanText[i]
-        if (/[\u4e00-\u9fa5]/.test(char)) {
-          tokens.push(char)
-        }
-      }
+      // 中文分词（改进版：提取连续汉字组合）
+      const chineseMatches = cleanText.match(/[\u4e00-\u9fa5]{2,}/g) || []
+      tokens.push(...chineseMatches)
+      
+      // 同时提取英文单词（中文页面中的英文词汇）
+      const englishMatches = cleanText.match(/[a-zA-Z]{3,}/g) || []
+      tokens.push(...englishMatches)
+      
+      // 提取数字+汉字的组合（如"2024年", "5G"）
+      const numChineseMatches = cleanText.match(/[0-9]+[\u4e00-\u9fa5]+/g) || []
+      tokens.push(...numChineseMatches)
+      
+      // 提取连续的数字序列
+      const numberMatches = cleanText.match(/[0-9]{2,}/g) || []
+      tokens.push(...numberMatches)
     } else {
       // 英文分词
       const words = cleanText.match(/[a-zA-Z]+/g) || []
@@ -136,7 +144,16 @@ export class TextAnalyzer {
     }
 
     const stopWords = language === 'zh' ? STOP_WORDS.zh : STOP_WORDS.en
-    return tokens.filter(token => !stopWords.has(token))
+    
+    return tokens.filter(token => {
+      // 对中文，只过滤长度为1且在停用词列表中的词
+      if (language === 'zh') {
+        return token.length === 1 ? !stopWords.has(token) : true
+      } else {
+        // 对英文，正常过滤停用词
+        return !stopWords.has(token.toLowerCase())
+      }
+    })
   }
 
   /**

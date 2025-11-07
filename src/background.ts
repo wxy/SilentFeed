@@ -1,4 +1,5 @@
 import { BadgeManager } from './core/badge/BadgeManager'
+import { ProfileUpdateScheduler } from './core/profile/ProfileUpdateScheduler'
 import { initializeDatabase, getPageCount, getUnreadRecommendations, db } from './storage/db'
 import type { ConfirmedVisit } from './storage/types'
 
@@ -101,17 +102,33 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             console.log('[Background] 保存页面访问数据...')
             const visitData = message.data as Omit<ConfirmedVisit, 'id'> & { id: string }
             
+            // 添加调试信息
+            console.log('[Background] 访问数据详情:', {
+              url: visitData.url,
+              title: visitData.title,
+              分析结果: visitData.analysis,
+              关键词数量: visitData.analysis?.keywords?.length || 0,
+              主题: visitData.analysis?.topics,
+              语言: visitData.analysis?.language
+            })
+            
             // 保存到数据库
             await db.confirmedVisits.add(visitData)
             
             console.log('[Background] ✅ 页面访问已保存', {
               url: visitData.url,
               title: visitData.title,
-              duration: visitData.duration
+              duration: visitData.duration,
+              analysis: visitData.analysis ? '有分析数据' : '无分析数据'
             })
             
             // 更新徽章
             await updateBadgeWithRecommendations()
+            
+            // 🔄 新增：智能调度用户画像更新
+            ProfileUpdateScheduler.checkAndScheduleUpdate().catch(error => {
+              console.error('[Background] 画像更新调度失败:', error)
+            })
             
             sendResponse({ success: true })
           } catch (dbError) {

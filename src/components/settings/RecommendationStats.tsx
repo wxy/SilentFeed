@@ -66,7 +66,7 @@ export function RecommendationStats() {
       {/* 推荐效果概览 */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <span>📊</span>
+          <span>🎯</span>
           <span>{_("options.stats.recommendationOverview")}</span>
         </h2>
 

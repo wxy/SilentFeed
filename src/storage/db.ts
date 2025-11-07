@@ -17,7 +17,8 @@ import type {
   ConfirmedVisit,
   UserSettings,
   Statistics,
-  Recommendation
+  Recommendation,
+  InterestSnapshot
 } from './types'
 import type { UserProfile } from '../core/profile/types'
 
@@ -42,6 +43,9 @@ export class FeedAIMuterDB extends Dexie {
 
   // 表 6: 用户画像（Phase 3.3）
   userProfile!: Table<UserProfile, string>
+
+  // 表 7: 兴趣变化快照（Phase 3.4）
+  interestSnapshots!: Table<InterestSnapshot, string>
 
   constructor() {
     super('FeedAIMuterDB')
@@ -90,6 +94,21 @@ export class FeedAIMuterDB extends Dexie {
       // 索引: id（主键）, lastUpdated
       userProfile: 'id, lastUpdated'
     })
+
+    // 版本 4: 新增兴趣快照表（Phase 3.4）
+    this.version(4).stores({
+      pendingVisits: 'id, url, startTime, expiresAt',
+      confirmedVisits: 'id, domain, visitTime, *analysis.keywords, [visitTime+domain]',
+      settings: 'id',
+      statistics: 'id, type, timestamp',
+      recommendations: 'id, recommendedAt, isRead, source, [isRead+recommendedAt]',
+      userProfile: 'id, lastUpdated',
+      
+      // 兴趣快照表
+      // 索引: id（主键）, timestamp, primaryTopic, trigger
+      // 复合索引: [primaryTopic+timestamp] 用于按主导兴趣查询历史
+      interestSnapshots: 'id, timestamp, primaryTopic, trigger, [primaryTopic+timestamp]'
+    })
   }
 }
 
@@ -109,9 +128,9 @@ async function checkDatabaseVersion(): Promise<void> {
     const existingDB = dbs.find(d => d.name === 'FeedAIMuterDB')
     
     if (existingDB && existingDB.version) {
-      console.log(`[DB] 现有数据库版本: ${existingDB.version}, 代码版本: 3`)
+      console.log(`[DB] 现有数据库版本: ${existingDB.version}, 代码版本: 4`)
       
-      if (existingDB.version > 3) {
+      if (existingDB.version > 4) {
         console.warn('[DB] ⚠️ 浏览器中的数据库版本较高，Dexie 将自动处理')
       }
     }
@@ -134,7 +153,7 @@ export async function initializeDatabase(): Promise<void> {
     if (!db.isOpen()) {
       console.log('[DB] 正在打开数据库...')
       await db.open()
-      console.log('[DB] ✅ 数据库已打开（版本 2）')
+      console.log('[DB] ✅ 数据库已打开（版本 4）')
     }
     
     // ✅ 关键修复：使用 count() 检查是否已有设置，而不是 get()
@@ -443,6 +462,26 @@ export async function getAnalysisStats(): Promise<{
 }> {
   const confirmedVisits = await db.confirmedVisits.toArray()
   
+  // 添加调试信息
+  console.log('[AnalysisStats] 数据库调试信息:', {
+    总访问记录: confirmedVisits.length,
+    有analysis字段: confirmedVisits.filter(v => v.analysis).length,
+    有keywords字段: confirmedVisits.filter(v => v.analysis?.keywords).length,
+    keywords非空: confirmedVisits.filter(v => v.analysis?.keywords && v.analysis.keywords.length > 0).length
+  })
+  
+  // 详细检查每个记录
+  confirmedVisits.forEach((visit, index) => {
+    if (index < 5) { // 只显示前5个记录的详情
+      console.log(`[AnalysisStats] 记录 ${index + 1}:`, {
+        url: visit.url?.substring(0, 50) + '...',
+        hasAnalysis: !!visit.analysis,
+        keywords: visit.analysis?.keywords?.length || 0,
+        language: visit.analysis?.language || 'undefined'
+      })
+    }
+  })
+  
   // 使用统一的过滤条件（与 DataMigrator 一致）
   const analyzedVisits = confirmedVisits.filter(visit => {
     if (!visit.analysis) return false
@@ -452,6 +491,8 @@ export async function getAnalysisStats(): Promise<{
     if (!visit.analysis.language) return false
     return true
   })
+
+  console.log('[AnalysisStats] 过滤后有效记录:', analyzedVisits.length)
 
   // 计算关键词统计
   const keywordFrequency = new Map<string, number>()
@@ -500,4 +541,82 @@ export async function getAnalysisStats(): Promise<{
  */
 export async function deleteUserProfile(): Promise<void> {
   await db.userProfile.delete('singleton')
+}
+
+// ==================== 兴趣快照操作 (Phase 3.4) ====================
+
+/**
+ * 保存兴趣快照
+ * 
+ * @param snapshot - 兴趣快照
+ */
+export async function saveInterestSnapshot(snapshot: InterestSnapshot): Promise<void> {
+  await db.interestSnapshots.put(snapshot)
+}
+
+/**
+ * 获取兴趣快照历史
+ * 
+ * @param limit - 限制数量（默认50）
+ * @returns 按时间倒序的快照列表
+ */
+export async function getInterestHistory(limit: number = 50): Promise<InterestSnapshot[]> {
+  return await db.interestSnapshots
+    .orderBy('timestamp')
+    .reverse()
+    .limit(limit)
+    .toArray()
+}
+
+/**
+ * 获取主导兴趣变化历史
+ * 
+ * @param limit - 限制数量（默认20）
+ * @returns 只包含主导兴趣变化的快照
+ */
+export async function getPrimaryTopicChanges(limit: number = 20): Promise<InterestSnapshot[]> {
+  return await db.interestSnapshots
+    .where('trigger')
+    .equals('primary_change')
+    .reverse()
+    .limit(limit)
+    .toArray()
+}
+
+/**
+ * 获取指定主导兴趣的历史快照
+ * 
+ * @param primaryTopic - 主导兴趣类型
+ * @param limit - 限制数量（默认10）
+ */
+export async function getTopicHistory(primaryTopic: string, limit: number = 10): Promise<InterestSnapshot[]> {
+  return await db.interestSnapshots
+    .where('[primaryTopic+timestamp]')
+    .between([primaryTopic, 0], [primaryTopic, Date.now()])
+    .reverse()
+    .limit(limit)
+    .toArray()
+}
+
+/**
+ * 清理旧快照（保留最近N个月）
+ * 
+ * @param monthsToKeep - 保留月数（默认6个月）
+ */
+export async function cleanOldSnapshots(monthsToKeep: number = 6): Promise<number> {
+  const cutoffTime = Date.now() - monthsToKeep * 30 * 24 * 60 * 60 * 1000
+  
+  const oldSnapshots = await db.interestSnapshots
+    .where('timestamp')
+    .below(cutoffTime)
+    .toArray()
+  
+  if (oldSnapshots.length > 0) {
+    await db.interestSnapshots
+      .where('timestamp')
+      .below(cutoffTime)
+      .delete()
+  }
+  
+  return oldSnapshots.length
 }

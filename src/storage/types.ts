@@ -259,3 +259,40 @@ export interface Statistics {
     }
   }
 }
+
+/**
+ * 🔄 Phase 3.4: 兴趣变化快照
+ * 
+ * 记录用户兴趣演化历史，支持变化追踪和趋势分析
+ */
+export interface InterestSnapshot {
+  /** 快照 ID */
+  id: string
+  
+  /** 快照创建时间 */
+  timestamp: number
+  
+  /** 主导兴趣类型 */
+  primaryTopic: string
+  
+  /** 主导兴趣占比 (0-1) */
+  primaryScore: number
+  
+  /** 完整兴趣分布快照 */
+  topics: Record<string, number>
+  
+  /** Top 10 关键词快照 */
+  topKeywords: Array<{
+    word: string
+    weight: number
+  }>
+  
+  /** 基于的页面数量 */
+  basedOnPages: number
+  
+  /** 快照触发原因 */
+  trigger: 'manual' | 'primary_change' | 'periodic' | 'rebuild'
+  
+  /** 变化描述（如果是因为主导兴趣变化） */
+  changeNote?: string
+}

@@ -6,6 +6,7 @@
 
 import { db } from "@/storage/db"
 import { profileBuilder } from "@/core/profile/ProfileBuilder"
+import { InterestSnapshotManager } from "@/core/profile/InterestSnapshotManager"
 import type { UserProfile } from "@/core/profile/types"
 
 /**
@@ -51,6 +52,9 @@ export class ProfileManager {
       await db.userProfile.put(newProfile)
       console.log("[ProfileManager] 用户画像已保存到数据库")
 
+      // 5. 处理兴趣变化追踪
+      await InterestSnapshotManager.handleProfileUpdate(newProfile, 'rebuild')
+
       return newProfile
     } catch (error) {
       console.error("[ProfileManager] 重建用户画像失败:", error)
@@ -90,6 +94,9 @@ export class ProfileManager {
       // 保存更新后的画像
       await db.userProfile.put(updatedProfile)
       console.log("[ProfileManager] 用户画像增量更新完成")
+
+      // 处理兴趣变化追踪
+      await InterestSnapshotManager.handleProfileUpdate(updatedProfile, 'manual')
 
       return updatedProfile
     } catch (error) {
