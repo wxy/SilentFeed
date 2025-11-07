@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-11-03T11:22:46.139Z",
+  "lastUpdate": "2025-11-07T13:18:44.846Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -704,15 +704,15 @@
     },
     "options.tabs.data": {
       "zh-CN": {
-        "value": "数据统计",
-        "hash": "1b7cba28",
-        "lastModified": "2025-11-03T11:21:45.945Z",
+        "value": "采集统计",
+        "hash": "fc524960",
+        "lastModified": "2025-11-07T13:17:51.838Z",
         "status": "verified"
       },
       "en": {
-        "value": "Data Statistics",
-        "hash": "77e95fa4",
-        "lastModified": "2025-11-03T11:21:45.945Z",
+        "value": "Collection Statistics",
+        "hash": "43c1414c",
+        "lastModified": "2025-11-07T13:17:51.839Z",
         "status": "ai-translated"
       }
     },
@@ -1161,6 +1161,412 @@
         "value": "Data management features will be available in subsequent versions.",
         "hash": "a3613b24",
         "lastModified": "2025-11-03T11:22:45.637Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.noData": {
+      "zh-CN": {
+        "value": "暂无数据",
+        "hash": "21efd88b",
+        "lastModified": "2025-11-07T13:17:53.363Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "No data available",
+        "hash": "efba20a0",
+        "lastModified": "2025-11-07T13:17:53.363Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.overview": {
+      "zh-CN": {
+        "value": "采集概览",
+        "hash": "4860f2c7",
+        "lastModified": "2025-11-07T13:17:54.833Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Collection Overview",
+        "hash": "2e459b53",
+        "lastModified": "2025-11-07T13:17:54.833Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.totalPages": {
+      "zh-CN": {
+        "value": "累计采集",
+        "hash": "2601da84",
+        "lastModified": "2025-11-07T13:17:56.317Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Total Collection",
+        "hash": "10049ac8",
+        "lastModified": "2025-11-07T13:17:56.317Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.pagesCollected": {
+      "zh-CN": {
+        "value": "页面已采集",
+        "hash": "09650ef8",
+        "lastModified": "2025-11-07T13:17:58.149Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Page has been collected",
+        "hash": "df68e84f",
+        "lastModified": "2025-11-07T13:17:58.149Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.validRecords": {
+      "zh-CN": {
+        "value": "有效记录",
+        "hash": "123949c2",
+        "lastModified": "2025-11-07T13:17:59.695Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Effective records",
+        "hash": "a028ec91",
+        "lastModified": "2025-11-07T13:17:59.695Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.dwellTimeOver30s": {
+      "zh-CN": {
+        "value": "停留超过 30 秒",
+        "hash": "0a4189b7",
+        "lastModified": "2025-11-07T13:18:03.075Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Stay for more than 30 seconds",
+        "hash": "c16e4bc0",
+        "lastModified": "2025-11-07T13:18:03.075Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.avgDwellTime": {
+      "zh-CN": {
+        "value": "平均停留",
+        "hash": "97cb75c8",
+        "lastModified": "2025-11-07T13:18:04.710Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Average Dwell Time",
+        "hash": "2d413c9d",
+        "lastModified": "2025-11-07T13:18:04.710Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.perPage": {
+      "zh-CN": {
+        "value": "每页平均",
+        "hash": "43ff06ea",
+        "lastModified": "2025-11-07T13:18:06.557Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Average per page",
+        "hash": "78eacabf",
+        "lastModified": "2025-11-07T13:18:06.558Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.textAnalysis": {
+      "zh-CN": {
+        "value": "文本分析统计",
+        "hash": "fae0c1fd",
+        "lastModified": "2025-11-07T13:18:08.093Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Text Analysis Statistics",
+        "hash": "dac2a4c2",
+        "lastModified": "2025-11-07T13:18:08.093Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.comingSoonInPhase3": {
+      "zh-CN": {
+        "value": "Phase 3 完成后显示",
+        "hash": "852d7c13",
+        "lastModified": "2025-11-07T13:18:09.836Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Display after Phase 3 completion",
+        "hash": "4d94bb7c",
+        "lastModified": "2025-11-07T13:18:09.836Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.textAnalysisHint": {
+      "zh-CN": {
+        "value": "将展示关键词提取、主题分类等统计",
+        "hash": "6ffa1e8e",
+        "lastModified": "2025-11-07T13:18:12.087Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Will display statistics such as keyword extraction and topic classification.",
+        "hash": "02b401d8",
+        "lastModified": "2025-11-07T13:18:12.087Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.userProfile": {
+      "zh-CN": {
+        "value": "用户画像统计",
+        "hash": "7fdf0ab1",
+        "lastModified": "2025-11-07T13:18:13.607Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "User Profile Statistics",
+        "hash": "3c3acee3",
+        "lastModified": "2025-11-07T13:18:13.607Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.profileHint": {
+      "zh-CN": {
+        "value": "将展示兴趣主题、关键词权重等信息",
+        "hash": "6ff5819c",
+        "lastModified": "2025-11-07T13:18:14.211Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "将展示兴趣主题、关键词权重等信息",
+        "hash": "6ff5819c",
+        "lastModified": "2025-11-07T13:18:14.211Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.storage": {
+      "zh-CN": {
+        "value": "存储占用",
+        "hash": "b9d0f24c",
+        "lastModified": "2025-11-07T13:18:16.182Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Storage Usage",
+        "hash": "a049ac2b",
+        "lastModified": "2025-11-07T13:18:16.182Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.totalSize": {
+      "zh-CN": {
+        "value": "总占用空间",
+        "hash": "70d59564",
+        "lastModified": "2025-11-07T13:18:18.699Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Total occupied space",
+        "hash": "82f73637",
+        "lastModified": "2025-11-07T13:18:18.700Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.pendingVisits": {
+      "zh-CN": {
+        "value": "临时记录（待确认）",
+        "hash": "493dbf0b",
+        "lastModified": "2025-11-07T13:18:20.487Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Temporary Record (Pending Confirmation)",
+        "hash": "5a89e631",
+        "lastModified": "2025-11-07T13:18:20.487Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.confirmedVisits": {
+      "zh-CN": {
+        "value": "有效记录（已确认）",
+        "hash": "f7c57104",
+        "lastModified": "2025-11-07T13:18:22.020Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Valid Records (Confirmed)",
+        "hash": "7e2d2d07",
+        "lastModified": "2025-11-07T13:18:22.020Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.recommendations": {
+      "zh-CN": {
+        "value": "推荐记录",
+        "hash": "f3ce8bc2",
+        "lastModified": "2025-11-07T13:18:23.882Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Recommended Records",
+        "hash": "e96d3b8d",
+        "lastModified": "2025-11-07T13:18:23.882Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.records": {
+      "zh-CN": {
+        "value": "条",
+        "hash": "cc1bacb5",
+        "lastModified": "2025-11-07T13:18:25.399Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Strip",
+        "hash": "031b9e77",
+        "lastModified": "2025-11-07T13:18:25.399Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.storageHint": {
+      "zh-CN": {
+        "value": "推荐记录数据将在推荐功能启用后显示",
+        "hash": "54f22d75",
+        "lastModified": "2025-11-07T13:18:27.242Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Recommended record data will be displayed after the recommendation feature is enabled.",
+        "hash": "f55ca8f5",
+        "lastModified": "2025-11-07T13:18:27.242Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.topDomains": {
+      "zh-CN": {
+        "value": "常访问域名 (Top 10)",
+        "hash": "96c86c8a",
+        "lastModified": "2025-11-07T13:18:29.394Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Frequently Visited Domains (Top 10)",
+        "hash": "89350693",
+        "lastModified": "2025-11-07T13:18:29.394Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.noDomains": {
+      "zh-CN": {
+        "value": "暂无数据",
+        "hash": "21efd88b",
+        "lastModified": "2025-11-07T13:18:31.031Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "No data available",
+        "hash": "efba20a0",
+        "lastModified": "2025-11-07T13:18:31.031Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.visits": {
+      "zh-CN": {
+        "value": "次访问",
+        "hash": "28cdc97e",
+        "lastModified": "2025-11-07T13:18:32.511Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Second visit",
+        "hash": "d76c7571",
+        "lastModified": "2025-11-07T13:18:32.511Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.dataManagement": {
+      "zh-CN": {
+        "value": "数据管理",
+        "hash": "2d71d113",
+        "lastModified": "2025-11-07T13:18:35.023Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Data Management",
+        "hash": "568483e9",
+        "lastModified": "2025-11-07T13:18:35.023Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.clearHistory": {
+      "zh-CN": {
+        "value": "清空浏览历史",
+        "hash": "852afc30",
+        "lastModified": "2025-11-07T13:18:36.866Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Clear browsing history",
+        "hash": "0c9acce1",
+        "lastModified": "2025-11-07T13:18:36.866Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.resetProfile": {
+      "zh-CN": {
+        "value": "重置用户画像",
+        "hash": "3578a567",
+        "lastModified": "2025-11-07T13:18:39.223Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Reset User Profile",
+        "hash": "2e105032",
+        "lastModified": "2025-11-07T13:18:39.223Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.clearAll": {
+      "zh-CN": {
+        "value": "清空所有数据",
+        "hash": "baca2508",
+        "lastModified": "2025-11-07T13:18:40.999Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Clear all data",
+        "hash": "3c2e1c64",
+        "lastModified": "2025-11-07T13:18:40.999Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.comingSoon": {
+      "zh-CN": {
+        "value": "即将推出",
+        "hash": "0aece445",
+        "lastModified": "2025-11-07T13:18:42.501Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Coming soon",
+        "hash": "81151a16",
+        "lastModified": "2025-11-07T13:18:42.501Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.dataManagementHint": {
+      "zh-CN": {
+        "value": "数据管理功能将在后续版本中提供",
+        "hash": "9e068496",
+        "lastModified": "2025-11-07T13:18:44.341Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "The data management feature will be available in future versions.",
+        "hash": "c0ac25d3",
+        "lastModified": "2025-11-07T13:18:44.341Z",
         "status": "ai-translated"
       }
     }

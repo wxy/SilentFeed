@@ -4,7 +4,7 @@ import "@/i18n"
 import { useI18n } from "@/i18n/helpers"
 import i18n from "@/i18n"
 import { RecommendationStats } from "@/components/settings/RecommendationStats"
-import { DataStats } from "@/components/settings/DataStats"
+import { CollectionStats } from "@/components/settings/CollectionStats"
 import "./style.css"
 
 type TabKey = "general" | "rss" | "ai" | "recommendations" | "data"
@@ -163,8 +163,8 @@ function IndexOptions() {
             {/* 推荐统计 - Phase 2.7 */}
             {activeTab === "recommendations" && <RecommendationStats />}
 
-            {/* 数据统计 - Phase 2.7 */}
-            {activeTab === "data" && <DataStats />}
+            {/* 采集统计 - Phase 2.7+ */}
+            {activeTab === "data" && <CollectionStats />}
           </div>
         </div>
       </div>
