@@ -44,7 +44,7 @@ export const TOPIC_ANIMALS: Record<Topic, string> = {
   [Topic.SCIENCE]: '🐧',         // 企鹅 - 代表科学探索
   [Topic.BUSINESS]: '🦁',        // 狮子 - 代表商业领导力
   [Topic.DESIGN]: '🦋',          // 蝴蝶 - 代表设计美感
-  [Topic.ARTS]: '🦚',            // 孔雀 - 代表艺术华丽
+  [Topic.ARTS]: '🎨',            // 调色板 - 代表艺术创作
   [Topic.HEALTH]: '🐶',          // 狗狗 - 代表健康活力
   [Topic.SPORTS]: '🐎',          // 马 - 代表运动速度
   [Topic.ENTERTAINMENT]: '🐱',   // 猫咪 - 代表娱乐休闲

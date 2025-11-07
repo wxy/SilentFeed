@@ -12,7 +12,7 @@
 
 import { useState, useEffect } from "react"
 import { useI18n } from "@/i18n/helpers"
-import { getStorageStats, getAnalysisStats } from "@/storage/db"
+import { getStorageStats, getAnalysisStats, db } from "@/storage/db"
 import { dataMigrator } from "@/core/migrator/DataMigrator"
 import type { StorageStats } from "@/storage/types"
 import { UserProfileDisplay } from "./UserProfileDisplay"
@@ -133,6 +133,84 @@ export function CollectionStats() {
     }
   }
 
+  const handleClearProfile = async () => {
+    if (!confirm('确定要清除用户画像吗？\n这将删除所有兴趣分析数据，但保留浏览历史。')) {
+      return
+    }
+
+    try {
+      await db.userProfile.clear()
+      alert("用户画像清除成功！\n浏览历史保持不变，画像可随时重建。")
+    } catch (error) {
+      console.error("[CollectionStats] 清除用户画像失败:", error)
+      alert("清除失败，请稍后重试")
+    }
+  }
+
+  const handleClearHistory = async () => {
+    if (!confirm('确定要清除浏览历史吗？\n这将删除所有浏览记录和分析结果，但保留用户画像。\n\n⚠️ 此操作不可恢复！')) {
+      return
+    }
+
+    try {
+      // 清除访问记录
+      await Promise.all([
+        db.pendingVisits.clear(),
+        db.confirmedVisits.clear()
+      ])
+      
+      // 重新加载统计数据
+      const [storageData, analysisData, migrationData] = await Promise.all([
+        getStorageStats(),
+        getAnalysisStats(),
+        dataMigrator.getMigrationStats()
+      ])
+      setStats(storageData)
+      setAnalysisStats(analysisData)
+      setMigrationStats(migrationData)
+      
+      alert("浏览历史清除成功！\n用户画像保持不变。")
+    } catch (error) {
+      console.error("[CollectionStats] 清除浏览历史失败:", error)
+      alert("清除失败，请稍后重试")
+    }
+  }
+
+  const handleClearAll = async () => {
+    if (!confirm('确定要清除所有数据吗？\n这将删除：\n- 所有浏览历史\n- 所有分析结果\n- 用户画像\n- 推荐记录\n\n⚠️ 此操作不可恢复！请慎重考虑！')) {
+      return
+    }
+
+    if (!confirm('最后确认：真的要清除所有数据吗？\n清除后将回到初始状态，需要重新开始采集。')) {
+      return
+    }
+
+    try {
+      // 清除所有数据
+      await Promise.all([
+        db.pendingVisits.clear(),
+        db.confirmedVisits.clear(),
+        db.userProfile.clear(),
+        db.recommendations.clear()
+      ])
+      
+      // 重新加载统计数据
+      const [storageData, analysisData, migrationData] = await Promise.all([
+        getStorageStats(),
+        getAnalysisStats(),
+        dataMigrator.getMigrationStats()
+      ])
+      setStats(storageData)
+      setAnalysisStats(analysisData)
+      setMigrationStats(migrationData)
+      
+      alert("所有数据清除成功！\n扩展已恢复到初始状态。")
+    } catch (error) {
+      console.error("[CollectionStats] 清除所有数据失败:", error)
+      alert("清除失败，请稍后重试")
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
@@ -237,73 +315,9 @@ export function CollectionStats() {
             <p className="text-center text-gray-400 dark:text-gray-500 text-xs mt-1">
               继续浏览网页，系统将自动提取和分析内容
             </p>
-            {migrationStats && migrationStats.visitesWithoutAnalysis > 0 && (
-              <div className="mt-3 text-center">
-                <button
-                  onClick={handleAnalyzeHistoricalPages}
-                  disabled={isAnalyzing}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isAnalyzing
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300'
-                  }`}
-                >
-                  {isAnalyzing ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <span className="inline-block w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></span>
-                      分析中...
-                    </span>
-                  ) : (
-                    <>📊 分析历史页面 ({migrationStats.visitesWithoutAnalysis} 条)</>
-                  )}
-                </button>
-              </div>
-            )}
           </div>
         ) : (
           <div className="space-y-4">
-            {/* 分析完整性提示 */}
-            {migrationStats && migrationStats.analysisCompleteness < 100 && (
-              <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3 border border-orange-200 dark:border-orange-800">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-orange-800 dark:text-orange-300 text-sm font-medium">
-                      分析完整性: {migrationStats.analysisCompleteness}%
-                    </p>
-                    <p className="text-orange-600 dark:text-orange-400 text-xs mt-1">
-                      还有 {migrationStats.visitesWithoutAnalysis} 条历史记录未分析
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleAnalyzeHistoricalPages}
-                      disabled={isAnalyzing}
-                      className={`px-3 py-1 rounded text-xs font-medium ${
-                        isAnalyzing
-                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                          : 'bg-orange-200 text-orange-800 hover:bg-orange-300 dark:bg-orange-800 dark:text-orange-200'
-                      }`}
-                    >
-                      {isAnalyzing ? '分析中...' : '补充分析'}
-                    </button>
-                    <button
-                      onClick={handleDebugUnanalyzable}
-                      className="px-3 py-1 rounded text-xs font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-                      title="诊断无法分析的记录"
-                    >
-                      🔍 诊断
-                    </button>
-                    <button
-                      onClick={handleCleanInvalidRecords}
-                      className="px-3 py-1 rounded text-xs font-medium bg-red-200 text-red-800 hover:bg-red-300 dark:bg-red-800 dark:text-red-200 dark:hover:bg-red-700"
-                      title="清理无效记录"
-                    >
-                      🗑️ 清理
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* 提取关键词数 */}
               <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-4 border border-emerald-200 dark:border-emerald-800">
@@ -347,32 +361,6 @@ export function CollectionStats() {
                 </div>
               </div>
             )}
-
-            {/* 热门关键词 */}
-            {analysisStats.topKeywords.length > 0 && (
-              <div>
-                <h3 className="text-md font-medium mb-2">热门关键词 Top 10</h3>
-                <div className="flex flex-wrap gap-2">
-                  {analysisStats.topKeywords.map((keyword: any, index: number) => (
-                    <span
-                      key={keyword.word}
-                      className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                        index < 3
-                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                          : index < 6
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                          : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
-                      }`}
-                    >
-                      {keyword.word}
-                      <span className="ml-1 text-xs opacity-70">
-                        {keyword.frequency}
-                      </span>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         )}
       </div>
@@ -407,25 +395,33 @@ export function CollectionStats() {
             )}
           </button>
           <button
-            disabled
-            className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 rounded-lg cursor-not-allowed opacity-50">
-            �️ 清除用户画像 (即将支持)
+            onClick={handleClearProfile}
+            className="w-full px-4 py-2 bg-yellow-100 text-yellow-800 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:hover:bg-yellow-900/50 rounded-lg text-sm font-medium transition-colors">
+            🗑️ 清除用户画像
           </button>
           <button
-            disabled
-            className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 rounded-lg cursor-not-allowed opacity-50">
-            🧹 清除浏览历史 (即将支持)
+            onClick={handleClearHistory}
+            className="w-full px-4 py-2 bg-orange-100 text-orange-800 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:hover:bg-orange-900/50 rounded-lg text-sm font-medium transition-colors">
+            🧹 清除浏览历史
           </button>
           <button
-            disabled
-            className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 rounded-lg cursor-not-allowed opacity-50">
-            ⚠️ 清除所有数据 (即将支持)
+            onClick={handleClearAll}
+            className="w-full px-4 py-2 bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/50 rounded-lg text-sm font-medium transition-colors">
+            ⚠️ 清除所有数据
           </button>
         </div>
 
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
-          {_("options.collectionStats.dataManagementHint")}
-        </p>
+        <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+          <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+            💡 <strong>数据管理说明：</strong>
+          </p>
+          <ul className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+            <li>• <strong>重建画像</strong>：重新分析所有浏览数据，更新兴趣偏好</li>
+            <li>• <strong>清除画像</strong>：删除兴趣分析，保留浏览历史</li>
+            <li>• <strong>清除历史</strong>：删除浏览记录，保留用户画像</li>
+            <li>• <strong>清除所有</strong>：恢复初始状态，谨慎操作</li>
+          </ul>
+        </div>
       </div>
     </div>
   )
