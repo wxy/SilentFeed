@@ -4,5 +4,5 @@
  * 提供 TF-IDF 关键词提取、分词、停用词过滤等功能
  */
 
-export { TextAnalyzer } from "./TextAnalyzer"
+export { TextAnalyzer, textAnalyzer } from "./TextAnalyzer"
 export type { Keyword, Language, TextAnalysisOptions, TokenizeResult } from "./types"

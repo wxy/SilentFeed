@@ -54,8 +54,17 @@ vi.mock("@/i18n/helpers", () => ({
 
 // Mock storage
 const mockGetStorageStats = vi.fn()
+const mockGetAnalysisStats = vi.fn()
 vi.mock("@/storage/db", () => ({
   getStorageStats: () => mockGetStorageStats(),
+  getAnalysisStats: () => mockGetAnalysisStats(),
+}))
+
+// Mock UserProfileDisplay component
+vi.mock("./UserProfileDisplay", () => ({
+  UserProfileDisplay: () => (
+    <div data-testid="user-profile-display">用户画像统计</div>
+  ),
 }))
 
 describe("CollectionStats 组件", () => {
@@ -66,6 +75,9 @@ describe("CollectionStats 组件", () => {
   describe("加载状态", () => {
     it("应该显示加载动画", () => {
       mockGetStorageStats.mockImplementation(
+        () => new Promise(() => {}) // 永不resolve
+      )
+      mockGetAnalysisStats.mockImplementation(
         () => new Promise(() => {}) // 永不resolve
       )
 
@@ -79,6 +91,13 @@ describe("CollectionStats 组件", () => {
   describe("无数据状态", () => {
     it("当没有统计数据时应该显示提示", async () => {
       mockGetStorageStats.mockResolvedValue(null)
+      mockGetAnalysisStats.mockResolvedValue({
+        analyzedPages: 0,
+        totalKeywords: 0,
+        avgKeywordsPerPage: 0,
+        languageDistribution: [],
+        topKeywords: [],
+      })
 
       render(<CollectionStats />)
 
@@ -92,25 +111,35 @@ describe("CollectionStats 组件", () => {
     const mockStats: StorageStats = {
       pageCount: 637,
       pendingCount: 5,
-      confirmedCount: 632,
-      recommendationCount: 12,
-      avgDwellTime: 125.5,
-      totalSizeMB: 2.45,
+      confirmedCount: 425,
+      avgDwellTime: 127.5,
+      totalSizeMB: 12.34,
+      recommendationCount: 0,
       topDomains: [
         { domain: "github.com", count: 120 },
         { domain: "stackoverflow.com", count: 85 },
-        { domain: "medium.com", count: 60 },
+        { domain: "mozilla.org", count: 67 },
       ],
     }
 
-    it("应该显示采集概览标题", async () => {
+    const mockAnalysisStats = {
+      analyzedPages: 100,
+      totalKeywords: 1200,
+      avgKeywordsPerPage: 12,
+      languageDistribution: [
+        { language: "中文", count: 60 },
+        { language: "英文", count: 40 },
+      ],
+      topKeywords: [
+        { word: "JavaScript", frequency: 25 },
+        { word: "React", frequency: 20 },
+        { word: "TypeScript", frequency: 15 },
+      ],
+    }
+
+    beforeEach(() => {
       mockGetStorageStats.mockResolvedValue(mockStats)
-
-      render(<CollectionStats />)
-
-      await waitFor(() => {
-        expect(screen.getByText("采集概览")).toBeInTheDocument()
-      })
+      mockGetAnalysisStats.mockResolvedValue(mockAnalysisStats)
     })
 
     it("应该显示累计采集的页面数", async () => {

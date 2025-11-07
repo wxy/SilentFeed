@@ -42,7 +42,7 @@ export interface ContentSummary {
   firstParagraph: string        // 首段（500 字）
   extractedText: string         // 正文摘要（2000 字）
   wordCount: number             // 字数
-  language: 'zh' | 'en'         // 语言
+  language: 'zh' | 'en' | 'other' // 语言（扩展支持 other）
 }
 
 /**
@@ -51,7 +51,7 @@ export interface ContentSummary {
 export interface AnalysisResult {
   keywords: string[]            // Top 20 关键词（TF-IDF）
   topics: string[]              // 主题标签
-  language: 'zh' | 'en'         // 语言
+  language: 'zh' | 'en' | 'other' // 语言（扩展支持 other）
 }
 
 /**

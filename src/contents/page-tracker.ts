@@ -20,6 +20,8 @@
 
 import type { PlasmoCSConfig } from "plasmo"
 import { DwellTimeCalculator, type InteractionType } from "~core/tracker/DwellTimeCalculator"
+import { contentExtractor } from "~core/extractor"
+import { TextAnalyzer } from "~core/analyzer"
 import { logger } from "~utils/logger"
 
 // 配置：注入到所有 HTTP/HTTPS 页面
@@ -106,6 +108,118 @@ function getPageInfo(): PageVisitData {
     visitedAt,
     dwellTime
   }
+}
+
+// ==================== 内容提取与分析 ====================
+
+/**
+ * 提取页面元数据
+ */
+async function extractPageMetadata() {
+  try {
+    const extracted = contentExtractor.extract(document)
+    
+    return {
+      description: extracted.description || undefined,
+      keywords: extracted.metaKeywords.length > 0 ? extracted.metaKeywords : undefined,
+      author: document.querySelector('meta[name="author"]')?.getAttribute('content') || undefined,
+      publishedTime: document.querySelector('meta[property="article:published_time"]')?.getAttribute('content') || 
+                    document.querySelector('meta[name="publish-date"]')?.getAttribute('content') || undefined,
+      ogImage: document.querySelector('meta[property="og:image"]')?.getAttribute('content') || undefined,
+      canonical: document.querySelector('link[rel="canonical"]')?.getAttribute('href') || undefined,
+    }
+  } catch (error) {
+    logger.debug('⚠️ [PageTracker] 元数据提取失败', error)
+    return null
+  }
+}
+
+/**
+ * 提取内容摘要
+ */
+async function extractContentSummary() {
+  try {
+    const extracted = contentExtractor.extract(document)
+    
+    // 提取首段（前 500 字）
+    const firstParagraph = extracted.content.slice(0, 500)
+    
+    return {
+      firstParagraph,
+      extractedText: extracted.content,
+      wordCount: extracted.content.length,
+      language: extracted.language,
+    }
+  } catch (error) {
+    logger.debug('⚠️ [PageTracker] 内容摘要提取失败', error)
+    return null
+  }
+}
+
+/**
+ * 分析页面内容
+ */
+async function analyzePageContent() {
+  try {
+    const extracted = contentExtractor.extract(document)
+    const analyzer = new TextAnalyzer()
+    
+    // 合并标题和内容进行分析
+    const fullText = extracted.title + ' ' + extracted.description + ' ' + extracted.content
+    
+    // 提取关键词
+    const keywords = analyzer.extractKeywords(fullText, { topK: 20 }).map(kw => kw.word)
+    
+    // 简单的主题分类（基于关键词匹配）
+    const topics = classifyTopics(keywords)
+    
+    return {
+      keywords,
+      topics,
+      language: extracted.language,
+    }
+  } catch (error) {
+    logger.debug('⚠️ [PageTracker] 内容分析失败', error)
+    return {
+      keywords: [],
+      topics: [],
+      language: 'other' as const,
+    }
+  }
+}
+
+/**
+ * 简单的主题分类（基于关键词匹配）
+ * 将在 Phase 3.3 中完善
+ */
+function classifyTopics(keywords: string[]): string[] {
+  const topicKeywords = {
+    technology: ['programming', 'code', 'software', 'developer', 'algorithm', 
+                '编程', '代码', '软件', '开发', '算法', 'javascript', 'python', 'react', 'vue'],
+    design: ['design', 'ui', 'ux', 'interface', 'typography', 
+            '设计', '界面', '视觉', '交互', '排版'],
+    science: ['research', 'study', 'experiment', 'scientific', 'theory',
+             '研究', '实验', '科学', '理论', '数据'],
+    business: ['business', 'marketing', 'finance', 'management', 'strategy',
+              '商业', '营销', '金融', '管理', '战略'],
+  }
+  
+  const detectedTopics: string[] = []
+  
+  Object.entries(topicKeywords).forEach(([topic, words]) => {
+    const hasMatch = keywords.some(keyword => 
+      words.some(word => 
+        keyword.toLowerCase().includes(word.toLowerCase()) || 
+        word.toLowerCase().includes(keyword.toLowerCase())
+      )
+    )
+    
+    if (hasMatch) {
+      detectedTopics.push(topic)
+    }
+  })
+  
+  return detectedTopics.length > 0 ? detectedTopics : ['other']
 }
 
 // ==================== 数据记录 ====================
@@ -208,16 +322,10 @@ async function recordPageVisit(): Promise<void> {
       source,
       recommendationId,
       
-      // Phase 2.4 将添加完整的元数据和内容
-      meta: null,
-      contentSummary: null,
-      
-      // Phase 2.4 将添加完整的内容分析
-      analysis: {
-        keywords: [], // 关键词
-        topics: [], // 主题分类
-        language: 'zh' // 语言检测（默认中文）
-      },
+      // Phase 3.2: 提取页面内容和分析
+      meta: await extractPageMetadata(),
+      contentSummary: await extractContentSummary(),
+      analysis: await analyzePageContent(),
       
       status: 'qualified' as const,
       
