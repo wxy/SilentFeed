@@ -177,6 +177,58 @@ export class DataMigrator {
   }
 
   /**
+   * 清理无效的分析记录
+   * 删除关键词数组为空或无效的记录
+   */
+  async cleanInvalidRecords(): Promise<{
+    total: number
+    cleaned: number
+    remaining: number
+  }> {
+    console.log("[DataMigrator] 开始清理无效记录...")
+    
+    try {
+      const visits = await db.confirmedVisits.toArray()
+      
+      // 找到无效记录（关键词数组为空的记录）
+      const invalidVisits = visits.filter(visit => {
+        if (!visit.analysis) return false
+        if (!visit.analysis.keywords) return true
+        if (!Array.isArray(visit.analysis.keywords)) return true
+        if (visit.analysis.keywords.length === 0) return true
+        return false
+      })
+
+      console.log(`[DataMigrator] 找到 ${invalidVisits.length} 条无效记录`)
+
+      // 删除无效记录
+      if (invalidVisits.length > 0) {
+        const deleteIds = invalidVisits.map(visit => visit.id)
+        await db.confirmedVisits.bulkDelete(deleteIds)
+        
+        console.log(`[DataMigrator] 已删除 ${invalidVisits.length} 条无效记录:`)
+        invalidVisits.forEach(visit => {
+          console.log(`  - ${visit.title} (${visit.url})`)
+        })
+
+        // 重建用户画像
+        await this.rebuildUserProfile()
+      }
+
+      const remaining = visits.length - invalidVisits.length
+
+      return {
+        total: visits.length,
+        cleaned: invalidVisits.length,
+        remaining
+      }
+    } catch (error) {
+      console.error("[DataMigrator] 清理无效记录失败:", error)
+      throw error
+    }
+  }
+
+  /**
    * 获取迁移统计信息
    */
   async getMigrationStats(): Promise<{

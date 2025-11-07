@@ -6,7 +6,6 @@
  * - 文本分析结果（Phase 3 完成后）
  * - 用户画像数据（Phase 3 完成后）
  * - 存储占用
- * - Top 域名
  *
  * 注意：不包括推荐相关数据，推荐数据在 RecommendationStats 组件中
  */
@@ -17,6 +16,7 @@ import { getStorageStats, getAnalysisStats } from "@/storage/db"
 import { dataMigrator } from "@/core/migrator/DataMigrator"
 import type { StorageStats } from "@/storage/types"
 import { UserProfileDisplay } from "./UserProfileDisplay"
+import { AnalysisDebugger } from "@/debug/AnalysisDebugger"
 
 export function CollectionStats() {
   const { _ } = useI18n()
@@ -77,6 +77,45 @@ export function CollectionStats() {
     }
   }
 
+  const handleDebugUnanalyzable = async () => {
+    try {
+      console.log("[CollectionStats] 开始诊断无法分析的记录...")
+      const unanalyzable = await AnalysisDebugger.getUnanalyzableRecords()
+      const integrity = await AnalysisDebugger.checkDataIntegrity()
+      
+      alert(`诊断完成！\n无法分析记录: ${unanalyzable.length} 条\n详情已输出到控制台，请按F12查看`)
+    } catch (error) {
+      console.error("[CollectionStats] 诊断失败:", error)
+      alert("诊断失败，请稍后重试")
+    }
+  }
+
+  const handleCleanInvalidRecords = async () => {
+    if (!confirm('确定要清理无效记录吗？\n这将删除关键词数组为空的记录（如搜索页面、首页等）')) {
+      return
+    }
+
+    try {
+      console.log("[CollectionStats] 开始清理无效记录...")
+      const result = await dataMigrator.cleanInvalidRecords()
+      
+      // 重新加载统计数据
+      const [storageData, analysisData, migrationData] = await Promise.all([
+        getStorageStats(),
+        getAnalysisStats(),
+        dataMigrator.getMigrationStats()
+      ])
+      setStats(storageData)
+      setAnalysisStats(analysisData)
+      setMigrationStats(migrationData)
+      
+      alert(`无效记录清理完成！\n总记录: ${result.total} 条\n已清理: ${result.cleaned} 条\n剩余有效: ${result.remaining} 条${result.cleaned > 0 ? '\n✅ 用户画像已自动更新' : ''}`)
+    } catch (error) {
+      console.error("[CollectionStats] 清理无效记录失败:", error)
+      alert("清理失败，请稍后重试")
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
@@ -105,6 +144,16 @@ export function CollectionStats() {
     return `${minutes}分${secs}秒`
   }
 
+  const formatDate = (timestamp?: number): string => {
+    if (!timestamp) return '未知'
+    const date = new Date(timestamp)
+    return date.toLocaleDateString('zh-CN', {
+      year: 'numeric',
+      month: 'long', 
+      day: 'numeric'
+    })
+  }
+
   return (
     <div className="space-y-6">
       {/* 采集概览 */}
@@ -118,39 +167,39 @@ export function CollectionStats() {
           {/* 总页面数 */}
           <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
             <div className="text-sm text-blue-600 dark:text-blue-400 mb-1">
-              {_("options.collectionStats.totalPages")}
+              累计采集页面
             </div>
             <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">
               {stats.pageCount}
             </div>
             <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-              {_("options.collectionStats.pagesCollected")}
+              停留超过30秒的页面
             </div>
           </div>
 
-          {/* 有效记录 */}
+          {/* 存储占用 */}
           <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
             <div className="text-sm text-green-600 dark:text-green-400 mb-1">
-              {_("options.collectionStats.validRecords")}
+              存储占用
             </div>
             <div className="text-3xl font-bold text-green-900 dark:text-green-100">
-              {stats.confirmedCount}
+              {stats.totalSizeMB} MB
             </div>
             <div className="text-xs text-green-600 dark:text-green-400 mt-1">
-              {_("options.collectionStats.dwellTimeOver30s")}
+              预估存储空间使用
             </div>
           </div>
 
-          {/* 平均停留时间 */}
+          {/* 开始采集时间 */}
           <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
             <div className="text-sm text-purple-600 dark:text-purple-400 mb-1">
-              {_("options.collectionStats.avgDwellTime")}
+              开始采集时间
             </div>
-            <div className="text-3xl font-bold text-purple-900 dark:text-purple-100">
-              {formatDuration(stats.avgDwellTime)}
+            <div className="text-lg font-bold text-purple-900 dark:text-purple-100">
+              {formatDate(stats.firstCollectionTime)}
             </div>
             <div className="text-xs text-purple-600 dark:text-purple-400 mt-1">
-              {_("options.collectionStats.perPage")}
+              平均每日 {stats.avgDailyPages.toFixed(1)} 页
             </div>
           </div>
         </div>
@@ -208,38 +257,47 @@ export function CollectionStats() {
                       还有 {migrationStats.visitesWithoutAnalysis} 条历史记录未分析
                     </p>
                   </div>
-                  <button
-                    onClick={handleAnalyzeHistoricalPages}
-                    disabled={isAnalyzing}
-                    className={`px-3 py-1 rounded text-xs font-medium ${
-                      isAnalyzing
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-orange-200 text-orange-800 hover:bg-orange-300 dark:bg-orange-800 dark:text-orange-200'
-                    }`}
-                  >
-                    {isAnalyzing ? '分析中...' : '补充分析'}
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleAnalyzeHistoricalPages}
+                      disabled={isAnalyzing}
+                      className={`px-3 py-1 rounded text-xs font-medium ${
+                        isAnalyzing
+                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          : 'bg-orange-200 text-orange-800 hover:bg-orange-300 dark:bg-orange-800 dark:text-orange-200'
+                      }`}
+                    >
+                      {isAnalyzing ? '分析中...' : '补充分析'}
+                    </button>
+                    <button
+                      onClick={handleDebugUnanalyzable}
+                      className="px-3 py-1 rounded text-xs font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                      title="诊断无法分析的记录"
+                    >
+                      🔍 诊断
+                    </button>
+                    <button
+                      onClick={handleCleanInvalidRecords}
+                      className="px-3 py-1 rounded text-xs font-medium bg-red-200 text-red-800 hover:bg-red-300 dark:bg-red-800 dark:text-red-200 dark:hover:bg-red-700"
+                      title="清理无效记录"
+                    >
+                      🗑️ 清理
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* 已分析页面数 */}
-              <div className="bg-cyan-50 dark:bg-cyan-900/20 rounded-lg p-4 border border-cyan-200 dark:border-cyan-800">
-                <div className="text-sm text-cyan-600 dark:text-cyan-400 mb-1">
-                  已分析页面
-                </div>
-                <div className="text-3xl font-bold text-cyan-900 dark:text-cyan-100">
-                  {analysisStats.analyzedPages}
-                </div>
-              </div>
-
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* 提取关键词数 */}
               <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-4 border border-emerald-200 dark:border-emerald-800">
                 <div className="text-sm text-emerald-600 dark:text-emerald-400 mb-1">
-                  提取关键词
+                  总关键词数
                 </div>
                 <div className="text-3xl font-bold text-emerald-900 dark:text-emerald-100">
                   {analysisStats.totalKeywords}
+                </div>
+                <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+                  含重复词，原始提取
                 </div>
               </div>
 
@@ -304,99 +362,6 @@ export function CollectionStats() {
 
       {/* 用户画像统计 (Phase 3.4 完成) */}
       <UserProfileDisplay />
-
-      {/* 存储占用 */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <span>💾</span>
-          <span>{_("options.collectionStats.storage")}</span>
-        </h2>
-
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600 dark:text-gray-400">
-              {_("options.collectionStats.totalSize")}
-            </span>
-            <span className="text-lg font-semibold">
-              {stats.totalSizeMB.toFixed(2)} MB
-            </span>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-gray-600 dark:text-gray-400">
-                {_("options.collectionStats.pendingVisits")}
-              </span>
-              <span>
-                {stats.pendingCount} {_("options.collectionStats.records")}
-              </span>
-            </div>
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-gray-600 dark:text-gray-400">
-                {_("options.collectionStats.confirmedVisits")}
-              </span>
-              <span>
-                {stats.confirmedCount} {_("options.collectionStats.records")}
-              </span>
-            </div>
-            <div className="flex justify-between items-center text-sm text-gray-400 dark:text-gray-500">
-              <span>{_("options.collectionStats.recommendations")}</span>
-              <span>
-                {stats.recommendationCount} {_("options.collectionStats.records")}
-              </span>
-            </div>
-          </div>
-
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-            💡 {_("options.collectionStats.storageHint")}
-          </p>
-        </div>
-      </div>
-
-      {/* Top 10 域名 */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <span>🌐</span>
-          <span>{_("options.collectionStats.topDomains")}</span>
-        </h2>
-
-        {stats.topDomains.length === 0 ? (
-          <p className="text-gray-500 dark:text-gray-400 text-center py-4">
-            {_("options.collectionStats.noDomains")}
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {stats.topDomains.map((item, index) => {
-              const maxCount = stats.topDomains[0]?.count || 1
-              const percentage = (item.count / maxCount) * 100
-
-              return (
-                <div key={item.domain}>
-                  <div className="flex justify-between items-center mb-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-gray-500 dark:text-gray-400 w-6">
-                        #{index + 1}
-                      </span>
-                      <span className="text-sm text-gray-700 dark:text-gray-300 truncate max-w-[300px]">
-                        {item.domain}
-                      </span>
-                    </div>
-                    <span className="text-sm font-medium">
-                      {item.count} {_("options.collectionStats.visits")}
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div
-                      className="bg-gradient-to-r from-blue-500 to-cyan-500 h-2 rounded-full transition-all duration-500"
-                      style={{ width: `${percentage}%` }}
-                    />
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
 
       {/* 数据管理 */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">

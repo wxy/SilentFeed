@@ -137,29 +137,16 @@ export function UserProfileDisplay() {
 
       <div className="space-y-6">
         {/* 基本统计 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-4 border border-indigo-200 dark:border-indigo-800">
-            <div className="text-sm text-indigo-600 dark:text-indigo-400 mb-1">
-              分析页面数
-            </div>
-            <div className="text-2xl font-bold text-indigo-900 dark:text-indigo-100">
-              {profile.totalPages}
-            </div>
-          </div>
-          <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-4 border border-emerald-200 dark:border-emerald-800">
-            <div className="text-sm text-emerald-600 dark:text-emerald-400 mb-1">
-              提取关键词
-            </div>
-            <div className="text-2xl font-bold text-emerald-900 dark:text-emerald-100">
-              {profile.keywords.length}
-            </div>
-          </div>
+        <div className="grid grid-cols-1 gap-4">
           <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
             <div className="text-sm text-orange-600 dark:text-orange-400 mb-1">
-              常访域名
+              画像更新时间
             </div>
-            <div className="text-2xl font-bold text-orange-900 dark:text-orange-100">
-              {profile.domains.length}
+            <div className="text-lg font-bold text-orange-900 dark:text-orange-100">
+              {new Date(profile.lastUpdated).toLocaleString('zh-CN')}
+            </div>
+            <div className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+              基于 {profile.totalPages} 页面分析
             </div>
           </div>
         </div>

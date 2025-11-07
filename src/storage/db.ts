@@ -310,29 +310,30 @@ export async function getStorageStats(): Promise<import('./types').StorageStats>
   const totalRecords = pendingCount + confirmedCount + recommendationCount
   const totalSizeMB = (totalRecords * avgRecordSizeKB) / 1024
   
-  // 获取 Top 10 域名
-  const visits = await db.confirmedVisits.toArray()
-  const domainMap = new Map<string, number>()
-  visits.forEach(visit => {
-    domainMap.set(visit.domain, (domainMap.get(visit.domain) || 0) + 1)
-  })
-  const topDomains = Array.from(domainMap.entries())
-    .map(([domain, count]) => ({ domain, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 10)
+  // 计算最早采集时间和平均每日页面数
+  let firstCollectionTime: number | undefined = undefined
+  let avgDailyPages: number = 0
   
-  // 计算平均停留时间
-  const totalDuration = visits.reduce((sum, v) => sum + v.duration, 0)
-  const avgDwellTime = visits.length > 0 ? totalDuration / visits.length : 0
-  
+  if (confirmedCount > 0) {
+    const visits = await db.confirmedVisits.orderBy('visitTime').toArray()
+    if (visits.length > 0) {
+      firstCollectionTime = visits[0].visitTime
+      
+      // 计算采集天数和平均每日页面数
+      const now = Date.now()
+      const daysSinceStart = Math.max(1, Math.ceil((now - firstCollectionTime) / (24 * 60 * 60 * 1000)))
+      avgDailyPages = visits.length / daysSinceStart
+    }
+  }
+
   return {
     pageCount,
     pendingCount,
     confirmedCount,
     recommendationCount,
     totalSizeMB: totalRecords > 0 ? Math.max(0.01, Math.round(totalSizeMB * 100) / 100) : 0,
-    topDomains,
-    avgDwellTime
+    firstCollectionTime,
+    avgDailyPages
   }
 }
 

@@ -203,11 +203,8 @@ export interface StorageStats {
   confirmedCount: number        // 正式记录数
   recommendationCount: number   // 推荐记录数
   totalSizeMB: number           // 估算总占用（MB）
-  topDomains: Array<{           // Top 10 域名
-    domain: string
-    count: number
-  }>
-  avgDwellTime: number          // 平均停留时间（秒）
+  firstCollectionTime?: number  // 最早开始采集时间戳
+  avgDailyPages: number         // 平均每天采集页面数
 }
 
 /**
