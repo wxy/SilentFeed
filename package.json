@@ -63,7 +63,8 @@
       "https://*/*"
     ],
     "permissions": [
-      "tabs"
+      "tabs",
+      "storage"
     ]
   }
 }
