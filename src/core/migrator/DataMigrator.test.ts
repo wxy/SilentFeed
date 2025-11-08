@@ -48,10 +48,10 @@ describe("DataMigrator", () => {
   describe("getMigrationStats", () => {
     it("应该计算正确的迁移统计", async () => {
       const mockVisits = [
-        { analysis: { keywords: ['test'] } },
-        { analysis: { keywords: [] } },
-        { analysis: null },
-        { analysis: { keywords: ['valid'] } }
+        { analysis: { keywords: ['test'], language: 'en' } },        // 有效分析
+        { analysis: { keywords: [], language: 'en' } },              // 无效：keywords 为空
+        { analysis: null },                                          // 无效：analysis 为 null
+        { analysis: { keywords: ['valid'], language: 'zh' } }        // 有效分析
       ]
 
       const { db } = await import("@/storage/db")

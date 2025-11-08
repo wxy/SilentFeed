@@ -27,7 +27,8 @@ const STOP_WORDS = {
     "your", "good", "some", "could", "them", "see", "other", "than", "then",
     "now", "look", "only", "come", "its", "over", "think", "also", "back",
     "after", "use", "two", "how", "our", "work", "first", "well", "way",
-    "even", "new", "want", "because", "any", "these", "give", "day", "most", "us"
+    "even", "new", "want", "because", "any", "these", "give", "day", "most", "us",
+    "is", "are", "was", "were", "been", "being"  // 添加常见 be 动词变形
   ])
 }
 

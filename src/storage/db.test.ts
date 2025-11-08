@@ -459,13 +459,13 @@ describe('Phase 2.7 推荐功能', () => {
       
       const stats = await getStorageStats()
       
-      // 新的 StorageStats 类型字段
+      // 验证 StorageStats 字段
       expect(stats.pageCount).toBeGreaterThanOrEqual(0)
       expect(stats.recommendationCount).toBe(1)
       expect(stats.totalSizeMB).toBeGreaterThan(0)
-      expect(stats.topDomains).toBeDefined()
-      expect(Array.isArray(stats.topDomains)).toBe(true)
-      expect(stats.avgDwellTime).toBeGreaterThanOrEqual(0)
+      expect(stats.pendingCount).toBeGreaterThanOrEqual(0)
+      expect(stats.confirmedCount).toBeGreaterThanOrEqual(0)
+      expect(stats.avgDailyPages).toBeGreaterThanOrEqual(0)
     })
   })
 
