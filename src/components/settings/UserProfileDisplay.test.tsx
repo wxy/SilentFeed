@@ -31,8 +31,8 @@ vi.mock("@/core/profile/ProfileManager", () => ({
 // Mock InterestSnapshotManager
 vi.mock("@/core/profile/InterestSnapshotManager", () => ({
   InterestSnapshotManager: {
-    getChangeHistory: vi.fn().mockResolvedValue({
-      changes: [],
+    getEvolutionHistory: vi.fn().mockResolvedValue({
+      snapshots: [],
       totalSnapshots: 0
     }),
   },

@@ -21,17 +21,17 @@ export function UserProfileDisplay() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isRebuilding, setIsRebuilding] = useState(false)
-  const [interestHistory, setInterestHistory] = useState<any>(null)
+  const [evolutionHistory, setEvolutionHistory] = useState<any>(null)
 
   useEffect(() => {
     const loadProfile = async () => {
       try {
         const [data, history] = await Promise.all([
           getUserProfile(),
-          InterestSnapshotManager.getChangeHistory(5)
+          InterestSnapshotManager.getEvolutionHistory(10)  // 使用新的API
         ])
         setProfile(data)
-        setInterestHistory(history)
+        setEvolutionHistory(history)
       } catch (error) {
         console.error("[UserProfileDisplay] 加载用户画像失败:", error)
       } finally {
@@ -50,9 +50,9 @@ export function UserProfileDisplay() {
       const newProfile = await profileManager.rebuildProfile()
       
       // 重新加载数据（包括历史）
-      const history = await InterestSnapshotManager.getChangeHistory(5)
+      const history = await InterestSnapshotManager.getEvolutionHistory(10)
       setProfile(newProfile)
-      setInterestHistory(history)
+      setEvolutionHistory(history)
       
       // 简单的成功提示
       alert("用户画像重建成功！")
@@ -232,12 +232,12 @@ export function UserProfileDisplay() {
                     <div className="flex-shrink-0">
                       <div className={`rounded-full flex items-center justify-center ${
                         item.isPrimary 
-                          ? 'w-20 h-20 text-3xl bg-gradient-to-br from-purple-200 via-pink-200 to-purple-200 border-4 border-purple-400 shadow-xl animate-bounce'
+                          ? 'w-20 h-20 text-3xl bg-gradient-to-br from-purple-200 via-pink-200 to-purple-200 shadow-xl animate-bounce'
                           : index === 0 
-                          ? 'w-16 h-16 text-2xl bg-gradient-to-br from-blue-100 to-purple-100 border-2 border-blue-200'
+                          ? 'w-16 h-16 text-2xl bg-gradient-to-br from-blue-100 to-purple-100'
                           : index === 1
-                          ? 'w-16 h-16 text-2xl bg-gradient-to-br from-green-100 to-emerald-100 border-2 border-green-200' 
-                          : 'w-16 h-16 text-2xl bg-gradient-to-br from-orange-100 to-amber-100 border-2 border-orange-200'
+                          ? 'w-16 h-16 text-2xl bg-gradient-to-br from-green-100 to-emerald-100' 
+                          : 'w-16 h-16 text-2xl bg-gradient-to-br from-orange-100 to-amber-100'
                       }`}>
                         {item.animal}
                       </div>
@@ -378,89 +378,210 @@ export function UserProfileDisplay() {
           )}
         </div>
 
-        {/* 兴趣变化历史 */}
-        {interestHistory && interestHistory.changes && interestHistory.changes.length > 0 && (
-          <div>
-            <h3 className="text-md font-medium mb-4 flex items-center gap-2">
-              <span>📈</span>
-              <span>兴趣演化历程</span>
+{/* 兴趣演化历程部分 - 完整替换从 line 390 到 line 560 */}
+        {/* 兴趣演化历程 */}
+        <div>
+          <h3 className="text-md font-medium mb-4 flex items-center gap-2">
+            <span>📈</span>
+            <span>兴趣演化历程</span>
+            {evolutionHistory && evolutionHistory.totalSnapshots > 0 && (
               <span className="text-xs bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 px-2 py-1 rounded-full">
-                共 {interestHistory.totalSnapshots} 个记录点
+                共 {evolutionHistory.totalSnapshots} 个记录点
               </span>
-            </h3>
+            )}
+          </h3>
+          
+          {/* 水平卡片布局展示最近5个快照 */}
+          {evolutionHistory && evolutionHistory.snapshots && evolutionHistory.snapshots.length > 0 ? (
             <div className="bg-gradient-to-br from-gray-50 via-white to-blue-50 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-600">
+              {/* 整体容器，分为头像区域和文字区域 */}
               <div className="space-y-4">
-                {interestHistory.changes.map((change: any, index: number) => (
-                  <div 
-                    key={index} 
-                    className={`flex items-center gap-4 p-4 rounded-lg border transition-all duration-300 hover:shadow-md ${
-                      index === 0 
-                        ? 'bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-blue-200 dark:border-blue-700'
-                        : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
-                    }`}
-                  >
-                    {/* 时间轴点 */}
-                    <div className="flex-shrink-0">
-                      <div className={`w-4 h-4 rounded-full flex items-center justify-center ${
-                        index === 0 
-                          ? 'bg-gradient-to-r from-blue-500 to-purple-500'
-                          : 'bg-gray-300 dark:bg-gray-600'
-                      }`}>
-                        <div className="w-2 h-2 bg-white rounded-full"></div>
+                {/* 头像区域 - 固定高度，垂直居中 */}
+                <div className="relative h-24 flex items-center justify-between">
+                  {/* 贯穿的时间箭头 - 在最底层，垂直居中，延伸到两端 */}
+                  {evolutionHistory.snapshots.length > 1 && (
+                    <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 flex items-center z-0">
+                      <div className="w-full h-0.5 bg-gradient-to-r from-blue-400 via-blue-300 to-blue-400 dark:from-blue-500 dark:via-blue-400 dark:to-blue-500 relative">
+                        {/* 右侧箭头 */}
+                        <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-0 h-0 border-l-[10px] border-l-blue-400 dark:border-l-blue-500 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent"></div>
                       </div>
                     </div>
+                  )}
+                  
+                  {/* 头像容器 - 水平均匀分布 */}
+                  {evolutionHistory.snapshots.slice(0, 5).reverse().map((snapshot: any, index: number) => {
+                    const totalCount = Math.min(evolutionHistory.snapshots.length, 5)
+                    const isLatest = index === totalCount - 1
+                    const topicEmoji = TOPIC_ANIMALS[snapshot.topic as Topic] || '🔖'
+                    
+                    const getLevelEmoji = (level: string) => {
+                      switch (level) {
+                        case 'absolute': return '🔥'
+                        case 'relative': return '⭐'
+                        case 'leading': return '💫'
+                        default: return ''
+                      }
+                    }
+                    
+                    const getSizeStyle = (level: string) => {
+                      switch (level) {
+                        case 'absolute':
+                          return {
+                            containerSize: 'w-20 h-20',
+                            emojiSize: 'text-3xl',
+                            shadowSize: 'shadow-lg'
+                          }
+                        case 'relative':
+                          return {
+                            containerSize: 'w-16 h-16',
+                            emojiSize: 'text-2xl',
+                            shadowSize: 'shadow-md'
+                          }
+                        case 'leading':
+                          return {
+                            containerSize: 'w-14 h-14',
+                            emojiSize: 'text-xl',
+                            shadowSize: 'shadow'
+                          }
+                        default:
+                          return {
+                            containerSize: 'w-12 h-12',
+                            emojiSize: 'text-lg',
+                            shadowSize: 'shadow-sm'
+                          }
+                      }
+                    }
 
-                    {/* 变化内容 */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className={`text-sm font-semibold ${
-                          index === 0 ? 'text-blue-900 dark:text-blue-100' : 'text-gray-800 dark:text-gray-200'
+                    const style = getSizeStyle(snapshot.level)
+                    const levelEmoji = getLevelEmoji(snapshot.level)
+
+                    return (
+                      <div 
+                        key={snapshot.id} 
+                        className="flex-1 flex justify-center items-center relative z-10 group"
+                      >
+                        {/* 头像圆圈 - 添加 relative 以便徽章相对于它定位 */}
+                        <div 
+                          className={`${style.containerSize} rounded-full flex items-center justify-center ${style.shadowSize} transition-all duration-300 hover:scale-110 cursor-pointer relative ${
+                            isLatest 
+                              ? 'bg-gradient-to-br from-purple-200 via-pink-200 to-purple-200'
+                              : snapshot.isTopicChange
+                                ? 'bg-gradient-to-br from-blue-100 to-purple-100'
+                                : snapshot.isLevelChange
+                                  ? 'bg-gradient-to-br from-green-100 to-emerald-100'
+                                  : 'bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600'
+                          }`}
+                        >
+                          <span className={style.emojiSize}>{topicEmoji}</span>
+                          
+                          {/* 重建标记 - 相对于头像圆圈定位 */}
+                          {snapshot.trigger === 'rebuild' && (
+                            <div className="absolute -top-1 -right-1 text-xl bg-white dark:bg-gray-800 rounded-full p-1 shadow-lg ring-2 ring-purple-400 z-20">
+                              🔄
+                            </div>
+                          )}
+                          {/* 变化标记 - 相对于头像圆圈定位 */}
+                          {snapshot.trigger !== 'rebuild' && snapshot.isTopicChange && (
+                            <div className="absolute -top-1 -right-1 text-base">
+                              🔄
+                            </div>
+                          )}
+                          {snapshot.trigger !== 'rebuild' && snapshot.isLevelChange && !snapshot.isTopicChange && (
+                            <div className="absolute -top-1 -right-1 text-base">
+                              📊
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Hover 提示框 - 显示在头像下方 */}
+                        <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                          <div className="bg-gray-700 dark:bg-gray-300 text-white dark:text-gray-900 text-xs rounded-lg px-3 py-2 whitespace-nowrap shadow-2xl ring-1 ring-black/10">
+                            <div className="font-semibold mb-1">
+                              {snapshot.topicName}
+                              {snapshot.trigger === 'rebuild' && (
+                                <span className="ml-1 text-purple-300 dark:text-purple-600">🔄 重建</span>
+                              )}
+                            </div>
+                            <div>占比: {Math.round(snapshot.score * 100)}%</div>
+                            <div>页面: {snapshot.basedOnPages}</div>
+                            <div className="text-gray-300 dark:text-gray-600 mt-1">
+                              {snapshot.trigger === 'rebuild' 
+                                ? '用户主动重建画像'
+                                : snapshot.changeDetails || '保持稳定'}
+                            </div>
+                            {/* 向上的小三角 */}
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-px">
+                              <div className="border-4 border-transparent border-b-gray-700 dark:border-b-gray-300"></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+                
+                {/* 文字标签区域 - 独立于头像区域，水平对齐 */}
+                <div className="flex items-start justify-between">
+                  {evolutionHistory.snapshots.slice(0, 5).reverse().map((snapshot: any, index: number) => {
+                    const isLatest = index === Math.min(evolutionHistory.snapshots.length, 5) - 1
+                    
+                    const getLevelEmoji = (level: string) => {
+                      switch (level) {
+                        case 'absolute': return '🔥'
+                        case 'relative': return '⭐'
+                        case 'leading': return '💫'
+                        default: return ''
+                      }
+                    }
+                    
+                    const levelEmoji = getLevelEmoji(snapshot.level)
+
+                    return (
+                      <div key={`label-${snapshot.id}`} className="flex-1 text-center text-sm">
+                        {/* 第一行：主导程度emoji + 兴趣名称(页数) */}
+                        <div className={`font-semibold ${
+                          isLatest 
+                            ? 'text-purple-900 dark:text-purple-100' 
+                            : 'text-gray-800 dark:text-gray-200'
                         }`}>
-                          {change.description}
-                        </span>
-                        {index === 0 && (
-                          <span className="text-xs bg-gradient-to-r from-blue-500 to-purple-500 text-white px-2 py-1 rounded-full">
-                            最新
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-                        <span>
-                          🕐 {new Date(change.timestamp).toLocaleDateString('zh-CN', {
-                            year: 'numeric',
+                          {levelEmoji} {snapshot.topicName} ({snapshot.basedOnPages})
+                        </div>
+                        
+                        {/* 第二行：时间 */}
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {new Date(snapshot.timestamp).toLocaleString('zh-CN', {
                             month: 'short',
-                            day: 'numeric'
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
                           })}
-                        </span>
-                        <span>
-                          📊 基于 {change.basedOnPages} 页面
-                        </span>
-                        {change.from !== change.to && (
-                          <span className="font-medium text-blue-600 dark:text-blue-400">
-                            {change.from} → {change.to}
-                          </span>
-                        )}
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                ))}
+                    )
+                  })}
+                </div>
               </div>
 
-              {interestHistory.totalSnapshots > interestHistory.changes.length && (
-                <div className="mt-4 text-center">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    还有 {interestHistory.totalSnapshots - interestHistory.changes.length} 条更早的记录...
-                  </span>
+              {/* 底部提示 */}
+              {evolutionHistory.totalSnapshots > 5 && (
+                <div className="mt-4 text-center text-xs text-gray-500 dark:text-gray-400">
+                  还有 {evolutionHistory.totalSnapshots - 5} 条更早的记录
                 </div>
               )}
 
               <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 text-center text-xs text-gray-500 dark:text-gray-400">
-                💡 兴趣演化会随着浏览内容的变化自动记录，帮助了解个人兴趣发展轨迹
+                💡 从左到右按时间排列 | 圆圈大小代表主导程度 | 🔥绝对 ⭐相对 💫领先 | 🔄重建/兴趣变化 📊强度变化
               </div>
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 text-center text-gray-500 dark:text-gray-400 text-sm">
+              暂无兴趣变化记录
+              <div className="text-xs mt-2 text-gray-400 dark:text-gray-500">
+                随着你浏览更多页面，系统会自动记录兴趣演化历程
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

@@ -278,6 +278,9 @@ export interface InterestSnapshot {
   /** 主导兴趣占比 (0-1) */
   primaryScore: number
   
+  /** 主导程度级别 */
+  primaryLevel: 'absolute' | 'relative' | 'leading'
+  
   /** 完整兴趣分布快照 */
   topics: Record<string, number>
   

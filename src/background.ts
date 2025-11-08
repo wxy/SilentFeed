@@ -5,6 +5,15 @@ import type { ConfirmedVisit } from './storage/types'
 
 console.log('FeedAIMuter Background Service Worker 已启动')
 
+// 开发环境下加载调试工具
+if (process.env.NODE_ENV === 'development') {
+  import('./debug/generate-interest-changes').then(() => {
+    console.log('🔧 开发调试工具已加载')
+  }).catch(error => {
+    console.error('❌ 加载调试工具失败:', error)
+  })
+}
+
 /**
  * 更新徽章（支持两阶段）
  * 
