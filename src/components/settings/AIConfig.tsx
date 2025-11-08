@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from "react"
 import { useI18n } from "@/i18n/helpers"
+import {
+  getAIConfig,
+  saveAIConfig,
+  validateApiKey,
+  type AIProviderType,
+  type AIConfig as AIConfigData
+} from "@/storage/ai-config"
 
 /**
  * AI 配置组件
@@ -11,17 +18,8 @@ import { useI18n } from "@/i18n/helpers"
  * 4. 显示配置状态
  */
 
-export type AIProviderType = "openai" | "anthropic" | "deepseek" | null
-
-interface AIConfigData {
-  provider: AIProviderType
-  apiKey: string
-  enabled: boolean
-  monthlyBudget?: number
-}
-
 interface ProviderOption {
-  value: AIProviderType
+  value: AIProviderType | null
   label: string
   description: string
 }
@@ -53,10 +51,10 @@ export function AIConfig() {
   const { _ } = useI18n()
   
   // 状态
-  const [provider, setProvider] = useState<AIProviderType>(null)
+  const [provider, setProvider] = useState<AIProviderType | null>(null)
   const [apiKey, setApiKey] = useState("")
   const [enabled, setEnabled] = useState(false)
-  const [monthlyBudget, setMonthlyBudget] = useState<number>(5) // 默认 $5/月
+  const [monthlyBudget, setMonthlyBudget] = useState<number | null>(5) // 默认 $5/月，null = 不限制
   
   // UI 状态
   const [saving, setSaving] = useState(false)
@@ -72,25 +70,22 @@ export function AIConfig() {
   }, [])
   
   /**
-   * 从 chrome.storage.sync 加载配置
+   * 从存储加载配置
    */
   async function loadConfig() {
     try {
-      const result = await chrome.storage.sync.get("aiConfig")
-      if (result.aiConfig) {
-        const config = result.aiConfig as AIConfigData
-        setProvider(config.provider)
-        setApiKey(config.apiKey || "")
-        setEnabled(config.enabled)
-        setMonthlyBudget(config.monthlyBudget || 5)
-      }
+      const config = await getAIConfig()
+      setProvider(config.provider)
+      setApiKey(config.apiKey || "")
+      setEnabled(config.enabled)
+      setMonthlyBudget(config.monthlyBudget ?? 5)
     } catch (error) {
       console.error("[AIConfig] Failed to load config:", error)
     }
   }
   
   /**
-   * 保存配置到 chrome.storage.sync
+   * 保存配置
    */
   async function handleSave() {
     if (!provider || !apiKey.trim()) {
@@ -112,7 +107,7 @@ export function AIConfig() {
         monthlyBudget
       }
       
-      await chrome.storage.sync.set({ aiConfig: config })
+      await saveAIConfig(config)
       
       setTestResult({
         success: true,
@@ -169,43 +164,32 @@ export function AIConfig() {
     }
   }
   
-  /**
-   * 简单验证 API Key 格式
-   */
-  function validateApiKey(provider: AIProviderType, key: string): boolean {
-    if (!key || key.length < 10) return false
-    
-    switch (provider) {
-      case "openai":
-        return key.startsWith("sk-")
-      case "anthropic":
-        return key.startsWith("sk-ant-")
-      case "deepseek":
-        return key.length > 20
-      default:
-        return false
-    }
-  }
+  // validateApiKey 函数已从 ai-config.ts 导入，这里不需要重复定义
   
   /**
    * 禁用 AI
    */
   async function handleDisable() {
-    await chrome.storage.sync.set({
-      aiConfig: {
+    try {
+      await saveAIConfig({
         provider: null,
         apiKey: "",
         enabled: false
-      }
-    })
-    
-    setProvider(null)
-    setApiKey("")
-    setEnabled(false)
-    setTestResult({
-      success: true,
-      message: "已禁用 AI，将使用关键词分析"
-    })
+      })
+      
+      setProvider(null)
+      setApiKey("")
+      setEnabled(false)
+      setTestResult({
+        success: true,
+        message: "已禁用 AI，将使用关键词分析"
+      })
+    } catch (error) {
+      setTestResult({
+        success: false,
+        message: `禁用失败：${error instanceof Error ? error.message : String(error)}`
+      })
+    }
   }
   
   return (
@@ -231,7 +215,7 @@ export function AIConfig() {
         <select
           id="provider"
           value={provider || ""}
-          onChange={(e) => setProvider(e.target.value as AIProviderType || null)}
+          onChange={(e) => setProvider((e.target.value as AIProviderType) || null)}
           className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100">
           {PROVIDER_OPTIONS.map((option) => (
             <option key={option.value || "none"} value={option.value || ""}>
@@ -281,25 +265,49 @@ export function AIConfig() {
             月度预算（可选）
           </label>
           
-          <div className="flex items-center gap-2">
-            <span className="text-gray-600 dark:text-gray-400">$</span>
-            <input
-              id="budget"
-              type="number"
-              min="0"
-              step="1"
-              value={monthlyBudget}
-              onChange={(e) => setMonthlyBudget(Number(e.target.value))}
-              className="w-32 rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-            />
-            <span className="text-sm text-gray-600 dark:text-gray-400">
-              / 月
-            </span>
+          <div className="space-y-3">
+            {/* 不限制选项 */}
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={monthlyBudget === null}
+                onChange={(e) => setMonthlyBudget(e.target.checked ? null : 5)}
+                className="rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-700 dark:text-gray-300">
+                不限制预算
+              </span>
+            </label>
+            
+            {/* 预算金额输入 */}
+            {monthlyBudget !== null && (
+              <div className="flex items-center gap-2">
+                <span className="text-gray-600 dark:text-gray-400">$</span>
+                <input
+                  id="budget"
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={monthlyBudget}
+                  onChange={(e) => setMonthlyBudget(Number(e.target.value))}
+                  className="w-32 rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                />
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  / 月
+                </span>
+              </div>
+            )}
           </div>
           
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            超出预算后将自动降级到免费的关键词分析
-          </p>
+          {monthlyBudget === null ? (
+            <p className="text-xs text-orange-600 dark:text-orange-400">
+              ⚠️ 不限制预算可能产生意外费用，请谨慎使用
+            </p>
+          ) : (
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              超出预算后将自动降级到免费的关键词分析
+            </p>
+          )}
         </div>
       )}
       

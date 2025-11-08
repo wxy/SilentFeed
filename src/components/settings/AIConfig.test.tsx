@@ -1,24 +1,44 @@
 import { describe, it, expect, beforeEach, vi } from "vitest"
 import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import { AIConfig } from "./AIConfig"
+import * as aiConfigModule from "@/storage/ai-config"
 
-// Mock chrome.storage.sync
-const mockChromeStorage = {
-  sync: {
-    get: vi.fn(),
-    set: vi.fn()
-  }
-}
-
-global.chrome = {
-  storage: mockChromeStorage
-} as any
+// Mock ai-config 模块
+vi.mock("@/storage/ai-config", () => ({
+  getAIConfig: vi.fn(),
+  saveAIConfig: vi.fn(),
+  validateApiKey: vi.fn(),
+  AIProviderType: {} as any
+}))
 
 describe("AIConfig", () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockChromeStorage.sync.get.mockResolvedValue({})
-    mockChromeStorage.sync.set.mockResolvedValue(undefined)
+    
+    // 默认返回空配置
+    vi.mocked(aiConfigModule.getAIConfig).mockResolvedValue({
+      provider: null,
+      apiKey: "",
+      enabled: false,
+      monthlyBudget: 5
+    })
+    
+    vi.mocked(aiConfigModule.saveAIConfig).mockResolvedValue(undefined)
+    vi.mocked(aiConfigModule.validateApiKey).mockImplementation(
+      (provider, key) => {
+        if (!key || key.length < 10) return false
+        switch (provider) {
+          case "openai":
+            return key.startsWith("sk-")
+          case "anthropic":
+            return key.startsWith("sk-ant-")
+          case "deepseek":
+            return key.length > 20
+          default:
+            return false
+        }
+      }
+    )
   })
   
   describe("渲染", () => {
@@ -101,13 +121,11 @@ describe("AIConfig", () => {
       
       // 等待保存完成
       await waitFor(() => {
-        expect(mockChromeStorage.sync.set).toHaveBeenCalledWith({
-          aiConfig: {
-            provider: "openai",
-            apiKey: "sk-test-123456",
-            enabled: true,
-            monthlyBudget: 5
-          }
+        expect(aiConfigModule.saveAIConfig).toHaveBeenCalledWith({
+          provider: "openai",
+          apiKey: "sk-test-123456",
+          enabled: true,
+          monthlyBudget: 5
         })
       })
       
@@ -130,7 +148,7 @@ describe("AIConfig", () => {
       
       // 点击不应该有反应
       fireEvent.click(saveButton)
-      expect(mockChromeStorage.sync.set).not.toHaveBeenCalled()
+      expect(aiConfigModule.saveAIConfig).not.toHaveBeenCalled()
     })
   })
   
@@ -200,14 +218,12 @@ describe("AIConfig", () => {
   })
   
   describe("加载配置", () => {
-    it("应该从 chrome.storage.sync 加载已保存的配置", async () => {
-      mockChromeStorage.sync.get.mockResolvedValue({
-        aiConfig: {
-          provider: "openai",
-          apiKey: "sk-saved-key",
-          enabled: true,
-          monthlyBudget: 10
-        }
+    it("应该加载已保存的配置", async () => {
+      vi.mocked(aiConfigModule.getAIConfig).mockResolvedValue({
+        provider: "openai",
+        apiKey: "sk-saved-key",
+        enabled: true,
+        monthlyBudget: 10
       })
       
       render(<AIConfig />)
@@ -229,12 +245,10 @@ describe("AIConfig", () => {
   
   describe("禁用 AI", () => {
     it("应该清除配置并禁用 AI", async () => {
-      mockChromeStorage.sync.get.mockResolvedValue({
-        aiConfig: {
-          provider: "openai",
-          apiKey: "sk-saved-key",
-          enabled: true
-        }
+      vi.mocked(aiConfigModule.getAIConfig).mockResolvedValue({
+        provider: "openai",
+        apiKey: "sk-saved-key",
+        enabled: true
       })
       
       render(<AIConfig />)
@@ -251,12 +265,10 @@ describe("AIConfig", () => {
       
       // 应该清除配置
       await waitFor(() => {
-        expect(mockChromeStorage.sync.set).toHaveBeenCalledWith({
-          aiConfig: {
-            provider: null,
-            apiKey: "",
-            enabled: false
-          }
+        expect(aiConfigModule.saveAIConfig).toHaveBeenCalledWith({
+          provider: null,
+          apiKey: "",
+          enabled: false
         })
       })
       
