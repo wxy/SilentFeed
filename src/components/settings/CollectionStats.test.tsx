@@ -289,4 +289,317 @@ describe("CollectionStats 组件", () => {
       consoleErrorSpy.mockRestore()
     })
   })
+
+  describe("数据管理功能", () => {
+    const mockStats: StorageStats = {
+      pageCount: 100,
+      pendingCount: 0,
+      confirmedCount: 100,
+      recommendationCount: 0,
+      totalSizeMB: 1.0,
+      firstCollectionTime: Date.now(),
+      avgDailyPages: 10.0,
+    }
+
+    beforeEach(() => {
+      mockGetStorageStats.mockResolvedValue(mockStats)
+      mockGetAnalysisStats.mockResolvedValue({
+        analyzedPages: 50,
+        totalKeywords: 500,
+        avgKeywordsPerPage: 10,
+        languageDistribution: [],
+        topKeywords: [],
+      })
+    })
+
+    it("应该能重建用户画像", async () => {
+      const { ProfileUpdateScheduler } = await import(
+        "@/core/profile/ProfileUpdateScheduler"
+      )
+
+      render(<CollectionStats />)
+
+      await waitFor(() => {
+        expect(screen.getByText("🔄 重建用户画像")).toBeInTheDocument()
+      })
+
+      const rebuildButton = screen.getByText("🔄 重建用户画像")
+      rebuildButton.click()
+
+      await waitFor(() => {
+        expect(ProfileUpdateScheduler.forceUpdate).toHaveBeenCalled()
+      })
+    })
+
+    it("重建画像时应该禁用按钮并显示加载状态", async () => {
+      const { ProfileUpdateScheduler } = await import(
+        "@/core/profile/ProfileUpdateScheduler"
+      )
+      
+      vi.mocked(ProfileUpdateScheduler.forceUpdate).mockImplementation(
+        () => new Promise((resolve) => setTimeout(resolve, 100))
+      )
+
+      render(<CollectionStats />)
+
+      await waitFor(() => {
+        expect(screen.getByText("🔄 重建用户画像")).toBeInTheDocument()
+      })
+
+      const rebuildButton = screen.getByText("🔄 重建用户画像")
+      rebuildButton.click()
+
+      await waitFor(() => {
+        expect(screen.getByText("重建画像中...")).toBeInTheDocument()
+      })
+
+      await waitFor(
+        () => {
+          expect(screen.getByText("🔄 重建用户画像")).toBeInTheDocument()
+        },
+        { timeout: 200 }
+      )
+    })
+
+    it("重建画像失败时应该显示错误", async () => {
+      const { ProfileUpdateScheduler } = await import(
+        "@/core/profile/ProfileUpdateScheduler"
+      )
+
+      vi.mocked(ProfileUpdateScheduler.forceUpdate).mockRejectedValue(
+        new Error("Rebuild failed")
+      )
+
+      const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {})
+      const consoleErrorSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {})
+
+      render(<CollectionStats />)
+
+      await waitFor(() => {
+        expect(screen.getByText("🔄 重建用户画像")).toBeInTheDocument()
+      })
+
+      const rebuildButton = screen.getByText("🔄 重建用户画像")
+      rebuildButton.click()
+
+      await waitFor(() => {
+        expect(alertSpy).toHaveBeenCalledWith("重建失败，请稍后重试")
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          "[CollectionStats] 重建用户画像失败:",
+          expect.any(Error)
+        )
+      })
+
+      alertSpy.mockRestore()
+      consoleErrorSpy.mockRestore()
+    })
+
+    it("应该能清除数据并重建", async () => {
+      const { db } = await import("@/storage/db")
+
+      const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true)
+      const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {})
+
+      render(<CollectionStats />)
+
+      await waitFor(() => {
+        expect(screen.getByText("🗑️ 清除数据重新开始")).toBeInTheDocument()
+      })
+
+      const clearButton = screen.getByText("🗑️ 清除数据重新开始")
+      clearButton.click()
+
+      await waitFor(() => {
+        expect(confirmSpy).toHaveBeenCalled()
+        expect(db.pendingVisits.clear).toHaveBeenCalled()
+        expect(db.confirmedVisits.clear).toHaveBeenCalled()
+        expect(db.userProfile.clear).toHaveBeenCalled()
+        expect(alertSpy).toHaveBeenCalledWith(
+          expect.stringContaining("数据清除成功")
+        )
+      })
+
+      confirmSpy.mockRestore()
+      alertSpy.mockRestore()
+    })
+
+    it("清除数据时用户取消确认应该不执行", async () => {
+      const { db } = await import("@/storage/db")
+
+      const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false)
+
+      render(<CollectionStats />)
+
+      await waitFor(() => {
+        expect(screen.getByText("🗑️ 清除数据重新开始")).toBeInTheDocument()
+      })
+
+      const clearButton = screen.getByText("🗑️ 清除数据重新开始")
+      clearButton.click()
+
+      expect(confirmSpy).toHaveBeenCalled()
+      expect(db.pendingVisits.clear).not.toHaveBeenCalled()
+
+      confirmSpy.mockRestore()
+    })
+
+    it("清除数据失败时应该显示错误", async () => {
+      const { db } = await import("@/storage/db")
+
+      vi.mocked(db.pendingVisits.clear).mockRejectedValue(
+        new Error("Clear failed")
+      )
+
+      const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true)
+      const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {})
+      const consoleErrorSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {})
+
+      render(<CollectionStats />)
+
+      await waitFor(() => {
+        expect(screen.getByText("🗑️ 清除数据重新开始")).toBeInTheDocument()
+      })
+
+      const clearButton = screen.getByText("🗑️ 清除数据重新开始")
+      clearButton.click()
+
+      await waitFor(() => {
+        expect(alertSpy).toHaveBeenCalledWith("清除失败，请稍后重试")
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          "[CollectionStats] 清除数据失败:",
+          expect.any(Error)
+        )
+      })
+
+      confirmSpy.mockRestore()
+      alertSpy.mockRestore()
+      consoleErrorSpy.mockRestore()
+    })
+
+    it("应该能清除所有数据（包括推荐）", async () => {
+      const { db } = await import("@/storage/db")
+
+      // 重置所有 mock
+      vi.mocked(db.pendingVisits.clear).mockReset().mockResolvedValue(undefined)
+      vi.mocked(db.confirmedVisits.clear).mockReset().mockResolvedValue(undefined)
+      vi.mocked(db.userProfile.clear).mockReset().mockResolvedValue(undefined)
+      vi.mocked(db.recommendations.clear).mockReset().mockResolvedValue(undefined)
+
+      const confirmSpy = vi
+        .spyOn(window, "confirm")
+        .mockReturnValueOnce(true) // 第一次确认
+        .mockReturnValueOnce(true) // 第二次确认
+
+      const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {})
+
+      render(<CollectionStats />)
+
+      await waitFor(() => {
+        expect(screen.getByText("⚠️ 清除所有数据")).toBeInTheDocument()
+      })
+
+      const clearAllButton = screen.getByText("⚠️ 清除所有数据")
+      clearAllButton.click()
+
+      await waitFor(() => {
+        expect(confirmSpy).toHaveBeenCalledTimes(2)
+        expect(db.pendingVisits.clear).toHaveBeenCalled()
+        expect(db.confirmedVisits.clear).toHaveBeenCalled()
+        expect(db.userProfile.clear).toHaveBeenCalled()
+        expect(db.recommendations.clear).toHaveBeenCalled()
+        expect(alertSpy).toHaveBeenCalledWith(
+          expect.stringContaining("所有数据清除成功")
+        )
+      })
+
+      confirmSpy.mockRestore()
+      alertSpy.mockRestore()
+    })
+
+    it("清除所有数据时第一次取消应该不执行", async () => {
+      const { db } = await import("@/storage/db")
+
+      const confirmSpy = vi.spyOn(window, "confirm").mockReturnValueOnce(false)
+
+      render(<CollectionStats />)
+
+      await waitFor(() => {
+        expect(screen.getByText("⚠️ 清除所有数据")).toBeInTheDocument()
+      })
+
+      const clearAllButton = screen.getByText("⚠️ 清除所有数据")
+      clearAllButton.click()
+
+      expect(confirmSpy).toHaveBeenCalledTimes(1)
+      expect(db.pendingVisits.clear).not.toHaveBeenCalled()
+
+      confirmSpy.mockRestore()
+    })
+
+    it("清除所有数据时第二次取消应该不执行", async () => {
+      const { db } = await import("@/storage/db")
+
+      const confirmSpy = vi
+        .spyOn(window, "confirm")
+        .mockReturnValueOnce(true) // 第一次确认
+        .mockReturnValueOnce(false) // 第二次取消
+
+      render(<CollectionStats />)
+
+      await waitFor(() => {
+        expect(screen.getByText("⚠️ 清除所有数据")).toBeInTheDocument()
+      })
+
+      const clearAllButton = screen.getByText("⚠️ 清除所有数据")
+      clearAllButton.click()
+
+      expect(confirmSpy).toHaveBeenCalledTimes(2)
+      expect(db.pendingVisits.clear).not.toHaveBeenCalled()
+
+      confirmSpy.mockRestore()
+    })
+
+    it("清除所有数据失败时应该显示错误", async () => {
+      const { db } = await import("@/storage/db")
+
+      vi.mocked(db.pendingVisits.clear).mockRejectedValue(
+        new Error("Clear all failed")
+      )
+
+      const confirmSpy = vi
+        .spyOn(window, "confirm")
+        .mockReturnValueOnce(true)
+        .mockReturnValueOnce(true)
+
+      const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {})
+      const consoleErrorSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {})
+
+      render(<CollectionStats />)
+
+      await waitFor(() => {
+        expect(screen.getByText("⚠️ 清除所有数据")).toBeInTheDocument()
+      })
+
+      const clearAllButton = screen.getByText("⚠️ 清除所有数据")
+      clearAllButton.click()
+
+      await waitFor(() => {
+        expect(alertSpy).toHaveBeenCalledWith("清除失败，请稍后重试")
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          "[CollectionStats] 清除所有数据失败:",
+          expect.any(Error)
+        )
+      })
+
+      confirmSpy.mockRestore()
+      alertSpy.mockRestore()
+      consoleErrorSpy.mockRestore()
+    })
+  })
 })
