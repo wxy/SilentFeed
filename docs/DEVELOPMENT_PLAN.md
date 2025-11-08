@@ -528,7 +528,293 @@
 
 ---
 
-## 阶段 4: RSS 自动发现 (预计 2 小时)
+## 阶段 4: AI 能力集成 🤖 (当前阶段)
+
+**目标**：建立灵活的 AI 分析能力，支持远程 API 和降级策略
+
+**开发原则**：
+1. ✅ **UI 优先** - 先做配置界面，能看到变化
+2. ✅ **远程 API 优先** - OpenAI/Anthropic/DeepSeek
+3. ✅ **渐进测试** - 每个功能都能立即测试
+4. ✅ **不考虑迁移** - 丢弃旧数据，重新开始
+
+**预计时间**: 10-14 天
+
+---
+
+### Sprint 1: UI 基础（2-3天）✨ 可见变化
+
+#### 4.1 AI 配置界面（1天）
+**文件**: `src/components/settings/AIConfig.tsx`
+
+**功能**:
+- 设置页面新增 "AI 配置" 标签
+- 远程 API 配置表单（OpenAI/Anthropic/DeepSeek）
+- API Key 输入和保存（chrome.storage.sync 加密）
+- 测试连接按钮
+
+**UI 设计**:
+```
+设置 → AI 配置
+
+┌─────────────────────────────────────────────────┐
+│ 远程 AI 服务（可选，需要 API Key）              │
+├─────────────────────────────────────────────────┤
+│ 提供商: [未配置 ▼]                              │
+│         └─ OpenAI                               │
+│         └─ Anthropic (Claude)                   │
+│         └─ DeepSeek                             │
+│                                                 │
+│ [配置 API Key...]                               │
+│                                                 │
+│ ℹ️ 配置后将优先使用远程 AI（更准确，需付费）    │
+└─────────────────────────────────────────────────┘
+```
+
+**验收标准**:
+- [ ] 能看到 AI 配置界面
+- [ ] 能选择 AI 提供商
+- [ ] 能输入和保存 API Key
+- [ ] 测试连接按钮正常工作
+- [ ] 数据加密存储
+
+#### 4.2 AI 状态卡片（半天）
+**文件**: `src/components/settings/CollectionStats.tsx`
+
+**功能**:
+- 数据管理页面新增 "AI 状态" 卡片
+- 显示当前配置的 AI 提供商
+- 显示连接状态
+- 显示本月使用统计
+
+**验收标准**:
+- [ ] 能看到 AI 状态卡片
+- [ ] 显示当前提供商和连接状态
+- [ ] 显示使用统计
+
+#### 4.3 分析结果展示优化（半天）
+**文件**: `src/components/settings/UserProfileDisplay.tsx`
+
+**功能**:
+- 用户画像页面新增 "AI 分析质量" 指标
+- 显示 AI 分析 vs 关键词分析的占比
+- 显示平均置信度
+
+**验收标准**:
+- [ ] 能看到分析质量指标
+- [ ] 数据准确显示
+
+---
+
+### Sprint 2: AI 抽象层（1-2天）🏗 基础设施
+
+#### 4.4 数据类型定义（半天）
+**文件**: `src/core/ai/types.ts`
+
+**功能**:
+```typescript
+export interface UnifiedAnalysisResult {
+  // 通用字段
+  topicProbabilities: Record<Topic, number>
+  confidence: number
+  provider: string
+  
+  // AI 特有（可选）
+  entities?: Entity[]
+  sentiment?: Sentiment
+  
+  // 兼容字段
+  keywords: string[]
+  topics: string[]
+  language: string
+}
+
+export interface AIProvider {
+  name: string
+  isAvailable(): Promise<boolean>
+  analyzeContent(text: string): Promise<UnifiedAnalysisResult>
+}
+```
+
+**验收标准**:
+- [ ] 类型定义完整
+- [ ] 兼容现有 AnalysisResult
+
+#### 4.5 OpenAI Provider（1天）
+**文件**: `src/core/ai/providers/OpenAIProvider.ts`
+
+**功能**:
+- 实现第一个真实的 AI Provider
+- 使用 GPT-4o-mini（便宜快速）
+- Prompt 工程
+
+**验收标准**:
+- [ ] OpenAI API 调用成功
+- [ ] 返回统一格式数据
+- [ ] 错误处理完善
+- [ ] 有测试覆盖
+
+**测试**:
+```javascript
+const provider = new OpenAIProvider('sk-xxx')
+const result = await provider.analyzeContent('React 是...')
+console.log(result.topicProbabilities)
+```
+
+#### 4.6 降级方案（半天）
+**文件**: `src/core/ai/providers/FallbackKeywordProvider.ts`
+
+**功能**:
+- 包装现有 TextAnalyzer 为 AIProvider
+- 关键词 → 概率云转换
+
+**验收标准**:
+- [ ] 降级方案正常工作
+- [ ] 格式转换正确
+
+---
+
+### Sprint 3: 集成到页面分析（1天）🔗 打通流程
+
+#### 4.7 AICapabilityManager（半天）
+**文件**: `src/core/ai/AICapabilityManager.ts`
+
+**功能**:
+- 管理 AI Provider 列表
+- 自动选择可用的 Provider
+- 降级策略
+
+**优先级逻辑**:
+```typescript
+1. 用户配置的远程 API（如果有）
+2. 降级到关键词分析（始终可用）
+```
+
+**验收标准**:
+- [ ] Provider 管理正常
+- [ ] 降级策略正确
+- [ ] 有测试覆盖
+
+#### 4.8 集成到 page-tracker（半天）
+**文件**: `src/contents/page-tracker.ts`
+
+**功能**:
+- 替换现有的 TextAnalyzer 调用
+- 使用 AICapabilityManager
+
+**验收标准**:
+- [ ] 新页面使用 AI 分析
+- [ ] 降级方案正常工作
+- [ ] 数据库保存正确
+
+**测试流程**:
+1. 配置 OpenAI API Key
+2. 浏览新页面
+3. 检查 IndexedDB，看到 AI 分析结果
+4. 移除 API Key，看到降级到关键词分析
+
+---
+
+### Sprint 4: 更多远程 API（2天）🚀 扩展能力
+
+#### 4.9 Anthropic Provider（1天）
+**文件**: `src/core/ai/providers/AnthropicProvider.ts`
+
+**功能**:
+- 使用 Claude-3-Haiku（最便宜）
+- API 调用和解析
+
+**验收标准**:
+- [ ] Anthropic API 调用成功
+- [ ] 格式转换正确
+
+#### 4.10 DeepSeek Provider（1天）
+**文件**: `src/core/ai/providers/DeepSeekProvider.ts`
+
+**功能**:
+- 使用 deepseek-chat
+- API 调用和解析
+
+**验收标准**:
+- [ ] DeepSeek API 调用成功
+- [ ] 格式转换正确
+
+---
+
+### Sprint 5: 用户画像升级（2天）📊 数据优化
+
+#### 4.11 ProfileBuilder 升级（1天）
+**文件**: `src/core/profile/ProfileBuilder.ts`
+
+**功能**:
+- 使用 topicProbabilities 替代 keywords
+- 概率云加权聚合
+
+**验收标准**:
+- [ ] 新算法正常工作
+- [ ] 画像更准确
+- [ ] 兼容旧数据
+
+#### 4.12 UI 展示优化（1天）
+**文件**: `src/components/settings/UserProfileDisplay.tsx`
+
+**功能**:
+- 显示 AI 分析的实体
+- 显示情感倾向
+- 显示置信度
+
+**验收标准**:
+- [ ] 实体展示清晰
+- [ ] 数据准确
+
+---
+
+### Sprint 6: 成本控制（1天）💰 可选功能
+
+#### 4.13 成本追踪（半天）
+**文件**: `src/core/ai/CostTracker.ts`
+
+**功能**:
+- 记录 API 使用
+- 计算成本
+
+**验收标准**:
+- [ ] 成本记录准确
+- [ ] 数据库存储正常
+
+#### 4.14 成本统计 UI（半天）
+**文件**: `src/components/settings/AIConfig.tsx`
+
+**功能**:
+- 显示本月使用
+- 显示预算进度
+
+**验收标准**:
+- [ ] UI 显示正确
+- [ ] 数据实时更新
+
+---
+
+### 本阶段文档
+- [ ] `docs/PHASE_4_AI_INTEGRATION.md` - 详细设计文档
+- [ ] 更新 `docs/DEVELOPMENT_PLAN.md`
+- [ ] 更新 `docs/TDD.md`
+
+### 完成标准
+- [ ] 所有 UI 组件完成
+- [ ] OpenAI Provider 工作正常
+- [ ] Anthropic Provider 工作正常
+- [ ] DeepSeek Provider 工作正常
+- [ ] 降级方案正常
+- [ ] 用户画像升级完成
+- [ ] 成本追踪功能完成
+- [ ] 测试覆盖率 ≥ 80%
+- [ ] 浏览器实测通过
+- [ ] 文档已更新
+
+---
+
+## 阶段 5: RSS 自动发现 (原阶段 4)
 
 ### 目标
 自动检测网页的 RSS 源并提示订阅
@@ -728,16 +1014,14 @@
 
 实现功能超出原始计划，为后续 RSS 发现和 AI 推荐奠定坚实基础。
 
-### 准备进入 **阶段 4: RSS 自动发现**
+### 准备进入 **阶段 4: AI 能力集成** 🤖
 
-这个阶段将实现：
-- 📝 文本分析引擎（TF-IDF 关键词提取）
-- � 用户画像构建器（基于浏览行为）
-- 📊 画像可视化（Top 3 兴趣主题）
+**战略调整**：在 RSS 发现之前引入 AI 能力，提升内容分析质量
 
-完成后扩展将能够：
-- 自动分析用户兴趣
-- 构建动态用户画像
-- 为 RSS 推荐提供数据基础！🚀
+**核心理念**：
+- 🎯 AI 优先于关键词 - 更精准的语义理解
+- 🔄 渐进式开发 - UI 优先，远程 API 优先
+- � 成本可控 - 免费方案 + 可选付费
+- 🔒 隐私优先 - 用户完全控制
 
-**预计时间**: 3-4 小时
+**预计时间**: 10-14 天
