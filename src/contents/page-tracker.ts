@@ -20,6 +20,8 @@
 
 import type { PlasmoCSConfig } from "plasmo"
 import { DwellTimeCalculator, type InteractionType } from "~core/tracker/DwellTimeCalculator"
+import { contentExtractor } from "~core/extractor"
+import { TextAnalyzer } from "~core/analyzer"
 import { logger } from "~utils/logger"
 
 // 配置：注入到所有 HTTP/HTTPS 页面
@@ -106,6 +108,171 @@ function getPageInfo(): PageVisitData {
     visitedAt,
     dwellTime
   }
+}
+
+// ==================== 内容提取与分析 ====================
+
+/**
+ * 提取页面元数据
+ */
+async function extractPageMetadata() {
+  try {
+    const extracted = contentExtractor.extract(document)
+    
+    return {
+      description: extracted.description || undefined,
+      keywords: extracted.metaKeywords.length > 0 ? extracted.metaKeywords : undefined,
+      author: document.querySelector('meta[name="author"]')?.getAttribute('content') || undefined,
+      publishedTime: document.querySelector('meta[property="article:published_time"]')?.getAttribute('content') || 
+                    document.querySelector('meta[name="publish-date"]')?.getAttribute('content') || undefined,
+      ogImage: document.querySelector('meta[property="og:image"]')?.getAttribute('content') || undefined,
+      canonical: document.querySelector('link[rel="canonical"]')?.getAttribute('href') || undefined,
+    }
+  } catch (error) {
+    logger.debug('⚠️ [PageTracker] 元数据提取失败', error)
+    return null
+  }
+}
+
+/**
+ * 提取内容摘要
+ */
+async function extractContentSummary() {
+  try {
+    const extracted = contentExtractor.extract(document)
+    
+    // 提取首段（前 500 字）
+    const firstParagraph = extracted.content.slice(0, 500)
+    
+    return {
+      firstParagraph,
+      extractedText: extracted.content,
+      wordCount: extracted.content.length,
+      language: extracted.language,
+    }
+  } catch (error) {
+    logger.debug('⚠️ [PageTracker] 内容摘要提取失败', error)
+    return null
+  }
+}
+
+/**
+ * 分析页面内容
+ */
+async function analyzePageContent() {
+  try {
+    const extracted = contentExtractor.extract(document)
+    
+    // 检查是否有足够的内容进行分析
+    if (!extracted.content || extracted.content.trim().length < 10) {
+      logger.debug('⚠️ [PageTracker] 页面内容太少，跳过分析')
+      return {
+        keywords: [],
+        topics: [],
+        language: 'other' as const,
+      }
+    }
+    
+    const analyzer = new TextAnalyzer()
+    
+    // 合并标题、描述和内容进行分析，优化权重分配
+    let fullText = ''
+    if (extracted.title) {
+      fullText += extracted.title + ' '.repeat(3) // 标题权重高一些
+    }
+    if (extracted.description) {
+      fullText += extracted.description + ' '.repeat(2) // 描述中等权重
+    }
+    if (extracted.content) {
+      fullText += extracted.content // 正文内容
+    }
+    
+    logger.debug('🔍 [PageTracker] 待分析文本长度', {
+      标题: extracted.title?.length || 0,
+      描述: extracted.description?.length || 0,
+      正文: extracted.content?.length || 0,
+      总计: fullText.length
+    })
+    
+    // 提取关键词，增加数量
+    const keywords = analyzer.extractKeywords(fullText, { topK: 30, minWordLength: 2 })
+      .map(kw => kw.word) // 只取词汇，不要权重
+    
+    // 改进的主题分类
+    const topics = classifyTopics(keywords)
+    
+    return {
+      keywords: keywords.slice(0, 20), // 保留前20个
+      topics,
+      language: extracted.language,
+    }
+  } catch (error) {
+    logger.debug('⚠️ [PageTracker] 内容分析失败', error)
+    return {
+      keywords: [],
+      topics: [],
+      language: 'other' as const,
+    }
+  }
+}
+
+/**
+ * 改进的主题分类（基于关键词匹配）
+ */
+function classifyTopics(keywords: string[]): string[] {
+  const topicKeywords = {
+    technology: {
+      zh: ['技术', '编程', '代码', '软件', '开发', '算法', '程序', '系统', '网络', '数据库', 
+           'javascript', 'python', 'react', 'vue', '前端', '后端', '服务器', '框架', '工具', '调试'],
+      en: ['programming', 'code', 'software', 'developer', 'algorithm', 'tech', 'system',
+           'javascript', 'python', 'react', 'vue', 'frontend', 'backend', 'server', 'framework']
+    },
+    design: {
+      zh: ['设计', '界面', '视觉', '交互', '排版', '颜色', '字体', '图标', '用户体验', '产品设计'],
+      en: ['design', 'ui', 'ux', 'interface', 'typography', 'visual', 'graphic', 'layout', 'color']
+    },
+    science: {
+      zh: ['研究', '实验', '科学', '理论', '数据', '分析', '学术', '论文', '科技', '创新'],
+      en: ['research', 'study', 'experiment', 'scientific', 'theory', 'data', 'analysis', 'academic']
+    },
+    business: {
+      zh: ['商业', '营销', '金融', '管理', '战略', '市场', '销售', '投资', '创业', '公司'],
+      en: ['business', 'marketing', 'finance', 'management', 'strategy', 'market', 'sales', 'investment']
+    },
+    education: {
+      zh: ['教育', '学习', '课程', '培训', '知识', '技能', '教学', '学校', '大学', '考试'],
+      en: ['education', 'learning', 'course', 'training', 'knowledge', 'skill', 'teaching', 'school']
+    },
+    entertainment: {
+      zh: ['娱乐', '游戏', '电影', '音乐', '视频', '直播', '综艺', '明星', '动漫', '小说'],
+      en: ['entertainment', 'game', 'movie', 'music', 'video', 'streaming', 'anime', 'novel']
+    },
+    news: {
+      zh: ['新闻', '时事', '政治', '社会', '经济', '国际', '报道', '事件', '政府', '法律'],
+      en: ['news', 'politics', 'social', 'economy', 'international', 'government', 'law', 'event']
+    }
+  }
+  
+  const detectedTopics: string[] = []
+  
+  Object.entries(topicKeywords).forEach(([topic, wordLists]) => {
+    const allWords = [...wordLists.zh, ...wordLists.en]
+    
+    const hasMatch = keywords.some(keyword => 
+      allWords.some(word => {
+        // 改进匹配逻辑：考虑包含关系
+        const keywordLower = keyword.toLowerCase()
+        const wordLower = word.toLowerCase()
+        return keywordLower.includes(wordLower) || wordLower.includes(keywordLower)
+      })
+    )
+    
+    if (hasMatch) {
+      detectedTopics.push(topic)
+    }
+  })
+  
+  return detectedTopics.length > 0 ? detectedTopics : ['other']
 }
 
 // ==================== 数据记录 ====================
@@ -195,6 +362,17 @@ async function recordPageVisit(): Promise<void> {
     }
     
     // 构建完整的访问记录数据
+    const metadata = await extractPageMetadata()
+    const contentSummary = await extractContentSummary()
+    const analysisResult = await analyzePageContent()
+    
+    logger.debug('📊 [PageTracker] 页面分析结果', {
+      关键词数量: analysisResult.keywords.length,
+      前5关键词: analysisResult.keywords.slice(0, 5),
+      主题: analysisResult.topics,
+      语言: analysisResult.language
+    })
+    
     const visitData = {
       id: crypto.randomUUID(),
       url: pageInfo.url,
@@ -208,16 +386,10 @@ async function recordPageVisit(): Promise<void> {
       source,
       recommendationId,
       
-      // Phase 2.4 将添加完整的元数据和内容
-      meta: null,
-      contentSummary: null,
-      
-      // Phase 2.4 将添加完整的内容分析
-      analysis: {
-        keywords: [], // 关键词
-        topics: [], // 主题分类
-        language: 'zh' // 语言检测（默认中文）
-      },
+      // Phase 3.2: 提取页面内容和分析
+      meta: metadata,
+      contentSummary: contentSummary,
+      analysis: analysisResult,
       
       status: 'qualified' as const,
       

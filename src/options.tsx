@@ -1,21 +1,55 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 import "@/i18n"
 import { useI18n } from "@/i18n/helpers"
 import i18n from "@/i18n"
 import { RecommendationStats } from "@/components/settings/RecommendationStats"
-import { DataStats } from "@/components/settings/DataStats"
+import { CollectionStats } from "@/components/settings/CollectionStats"
 import "./style.css"
+
+// 开发环境下加载调试工具
+if (process.env.NODE_ENV === 'development') {
+  import('./debug/generate-interest-changes').then(() => {
+    console.log('🔧 开发调试工具已加载到 Options 页面')
+  }).catch(error => {
+    console.error('❌ 加载调试工具失败:', error)
+  })
+}
 
 type TabKey = "general" | "rss" | "ai" | "recommendations" | "data"
 
 /**
  * Feed AI Muter - 设置页面
- * 使用标签页布局，支持语言下拉选择
+ * 使用标签页布局，支持语言下拉选择，支持 URL 状态保持
  */
 function IndexOptions() {
   const { _ } = useI18n()
-  const [activeTab, setActiveTab] = useState<TabKey>("general")
+  
+  // 从 URL 参数获取初始标签，默认为 general
+  const getInitialTab = (): TabKey => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const tab = urlParams.get('tab') as TabKey
+    return ['general', 'rss', 'ai', 'recommendations', 'data'].includes(tab) ? tab : 'general'
+  }
+
+  const [activeTab, setActiveTab] = useState<TabKey>(getInitialTab)
+
+  // 当标签改变时更新 URL
+  useEffect(() => {
+    const url = new URL(window.location.href)
+    url.searchParams.set('tab', activeTab)
+    window.history.replaceState({}, '', url.toString())
+  }, [activeTab])
+
+  // 监听浏览器前进后退按钮
+  useEffect(() => {
+    const handlePopState = () => {
+      setActiveTab(getInitialTab())
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
 
   // 获取当前语言设置
   const currentLanguage = localStorage.getItem("i18nextLng") || "auto"
@@ -41,7 +75,7 @@ function IndexOptions() {
     { key: "rss", icon: "📡" },
     { key: "ai", icon: "🤖" },
     { key: "recommendations", icon: "📊" },
-    { key: "data", icon: "�" }
+    { key: "data", icon: "📊" }
   ]
 
   return (
@@ -163,8 +197,8 @@ function IndexOptions() {
             {/* 推荐统计 - Phase 2.7 */}
             {activeTab === "recommendations" && <RecommendationStats />}
 
-            {/* 数据统计 - Phase 2.7 */}
-            {activeTab === "data" && <DataStats />}
+            {/* 采集统计 - Phase 2.7+ */}
+            {activeTab === "data" && <CollectionStats />}
           </div>
         </div>
       </div>

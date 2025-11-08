@@ -2,12 +2,12 @@
  * IndexedDB 数据库定义（使用 Dexie.js）
  * 
  * 数据库名称: FeedAIMuterDB
- * 当前版本: 2
+ * 当前版本: 3
  * 
  * ⚠️ 版本管理说明：
  * - 开发过程中如果遇到版本冲突，请删除旧数据库
  * - 生产环境版本号应该只增不减
- * - 当前固定为版本 2
+ * - 当前固定为版本 3
  */
 
 import Dexie from 'dexie'
@@ -17,8 +17,10 @@ import type {
   ConfirmedVisit,
   UserSettings,
   Statistics,
-  Recommendation
+  Recommendation,
+  InterestSnapshot
 } from './types'
+import type { UserProfile } from '../core/profile/types'
 
 /**
  * 数据库类
@@ -38,6 +40,12 @@ export class FeedAIMuterDB extends Dexie {
   
   // 表 5: 推荐记录（Phase 2.7）
   recommendations!: Table<Recommendation, string>
+
+  // 表 6: 用户画像（Phase 3.3）
+  userProfile!: Table<UserProfile, string>
+
+  // 表 7: 兴趣变化快照（Phase 3.4）
+  interestSnapshots!: Table<InterestSnapshot, string>
 
   constructor() {
     super('FeedAIMuterDB')
@@ -73,6 +81,34 @@ export class FeedAIMuterDB extends Dexie {
       // 复合索引: [isRead+recommendedAt] 用于按阅读状态和时间查询
       recommendations: 'id, recommendedAt, isRead, source, [isRead+recommendedAt]'
     })
+
+    // 版本 3: 新增用户画像表（Phase 3.3）
+    this.version(3).stores({
+      pendingVisits: 'id, url, startTime, expiresAt',
+      confirmedVisits: 'id, domain, visitTime, *analysis.keywords, [visitTime+domain]',
+      settings: 'id',
+      statistics: 'id, type, timestamp',
+      recommendations: 'id, recommendedAt, isRead, source, [isRead+recommendedAt]',
+      
+      // 用户画像（单例）
+      // 索引: id（主键）, lastUpdated
+      userProfile: 'id, lastUpdated'
+    })
+
+    // 版本 4: 新增兴趣快照表（Phase 3.4）
+    this.version(4).stores({
+      pendingVisits: 'id, url, startTime, expiresAt',
+      confirmedVisits: 'id, domain, visitTime, *analysis.keywords, [visitTime+domain]',
+      settings: 'id',
+      statistics: 'id, type, timestamp',
+      recommendations: 'id, recommendedAt, isRead, source, [isRead+recommendedAt]',
+      userProfile: 'id, lastUpdated',
+      
+      // 兴趣快照表
+      // 索引: id（主键）, timestamp, primaryTopic, trigger
+      // 复合索引: [primaryTopic+timestamp] 用于按主导兴趣查询历史
+      interestSnapshots: 'id, timestamp, primaryTopic, trigger, [primaryTopic+timestamp]'
+    })
   }
 }
 
@@ -92,9 +128,9 @@ async function checkDatabaseVersion(): Promise<void> {
     const existingDB = dbs.find(d => d.name === 'FeedAIMuterDB')
     
     if (existingDB && existingDB.version) {
-      console.log(`[DB] 现有数据库版本: ${existingDB.version}, 代码版本: 2`)
+      console.log(`[DB] 现有数据库版本: ${existingDB.version}, 代码版本: 4`)
       
-      if (existingDB.version > 2) {
+      if (existingDB.version > 4) {
         console.warn('[DB] ⚠️ 浏览器中的数据库版本较高，Dexie 将自动处理')
       }
     }
@@ -117,7 +153,7 @@ export async function initializeDatabase(): Promise<void> {
     if (!db.isOpen()) {
       console.log('[DB] 正在打开数据库...')
       await db.open()
-      console.log('[DB] ✅ 数据库已打开（版本 2）')
+      console.log('[DB] ✅ 数据库已打开（版本 4）')
     }
     
     // ✅ 关键修复：使用 count() 检查是否已有设置，而不是 get()
@@ -293,29 +329,30 @@ export async function getStorageStats(): Promise<import('./types').StorageStats>
   const totalRecords = pendingCount + confirmedCount + recommendationCount
   const totalSizeMB = (totalRecords * avgRecordSizeKB) / 1024
   
-  // 获取 Top 10 域名
-  const visits = await db.confirmedVisits.toArray()
-  const domainMap = new Map<string, number>()
-  visits.forEach(visit => {
-    domainMap.set(visit.domain, (domainMap.get(visit.domain) || 0) + 1)
-  })
-  const topDomains = Array.from(domainMap.entries())
-    .map(([domain, count]) => ({ domain, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 10)
+  // 计算最早采集时间和平均每日页面数
+  let firstCollectionTime: number | undefined = undefined
+  let avgDailyPages: number = 0
   
-  // 计算平均停留时间
-  const totalDuration = visits.reduce((sum, v) => sum + v.duration, 0)
-  const avgDwellTime = visits.length > 0 ? totalDuration / visits.length : 0
-  
+  if (confirmedCount > 0) {
+    const visits = await db.confirmedVisits.orderBy('visitTime').toArray()
+    if (visits.length > 0) {
+      firstCollectionTime = visits[0].visitTime
+      
+      // 计算采集天数和平均每日页面数
+      const now = Date.now()
+      const daysSinceStart = Math.max(1, Math.ceil((now - firstCollectionTime) / (24 * 60 * 60 * 1000)))
+      avgDailyPages = visits.length / daysSinceStart
+    }
+  }
+
   return {
     pageCount,
     pendingCount,
     confirmedCount,
     recommendationCount,
     totalSizeMB: totalRecords > 0 ? Math.max(0.01, Math.round(totalSizeMB * 100) / 100) : 0,
-    topDomains,
-    avgDwellTime
+    firstCollectionTime,
+    avgDailyPages
   }
 }
 
@@ -390,4 +427,196 @@ export async function getUnreadRecommendations(limit: number = 50): Promise<Reco
     .filter(r => !r.isRead)
     .limit(limit)
     .toArray()
+}
+
+// ==================== 用户画像操作 (Phase 3.3) ====================
+
+/**
+ * 保存或更新用户画像
+ * 
+ * @param profile - 用户画像
+ */
+export async function saveUserProfile(profile: UserProfile): Promise<void> {
+  await db.userProfile.put(profile)
+}
+
+/**
+ * 获取用户画像
+ * 
+ * @returns 用户画像（如果不存在则返回 null）
+ */
+export async function getUserProfile(): Promise<UserProfile | null> {
+  const profile = await db.userProfile.get('singleton')
+  return profile || null
+}
+
+/**
+ * 获取文本分析统计
+ */
+export async function getAnalysisStats(): Promise<{
+  analyzedPages: number
+  totalKeywords: number
+  avgKeywordsPerPage: number
+  languageDistribution: Array<{ language: string; count: number }>
+  topKeywords: Array<{ word: string; frequency: number }>
+}> {
+  const confirmedVisits = await db.confirmedVisits.toArray()
+  
+  // 添加调试信息
+  console.log('[AnalysisStats] 数据库调试信息:', {
+    总访问记录: confirmedVisits.length,
+    有analysis字段: confirmedVisits.filter(v => v.analysis).length,
+    有keywords字段: confirmedVisits.filter(v => v.analysis?.keywords).length,
+    keywords非空: confirmedVisits.filter(v => v.analysis?.keywords && v.analysis.keywords.length > 0).length
+  })
+  
+  // 详细检查每个记录
+  confirmedVisits.forEach((visit, index) => {
+    if (index < 5) { // 只显示前5个记录的详情
+      console.log(`[AnalysisStats] 记录 ${index + 1}:`, {
+        url: visit.url?.substring(0, 50) + '...',
+        hasAnalysis: !!visit.analysis,
+        keywords: visit.analysis?.keywords?.length || 0,
+        language: visit.analysis?.language || 'undefined'
+      })
+    }
+  })
+  
+  // 使用统一的过滤条件（与 DataMigrator 一致）
+  const analyzedVisits = confirmedVisits.filter(visit => {
+    if (!visit.analysis) return false
+    if (!visit.analysis.keywords) return false
+    if (!Array.isArray(visit.analysis.keywords)) return false
+    if (visit.analysis.keywords.length === 0) return false
+    if (!visit.analysis.language) return false
+    return true
+  })
+
+  console.log('[AnalysisStats] 过滤后有效记录:', analyzedVisits.length)
+
+  // 计算关键词统计
+  const keywordFrequency = new Map<string, number>()
+  let totalKeywords = 0
+
+  analyzedVisits.forEach(visit => {
+    if (visit.analysis?.keywords) {
+      totalKeywords += visit.analysis.keywords.length
+      visit.analysis.keywords.forEach(keyword => {
+        keywordFrequency.set(keyword, (keywordFrequency.get(keyword) || 0) + 1)
+      })
+    }
+  })
+
+  // Top 10 关键词
+  const topKeywords = Array.from(keywordFrequency.entries())
+    .map(([word, frequency]) => ({ word, frequency }))
+    .sort((a, b) => b.frequency - a.frequency)
+    .slice(0, 10)
+
+  // 语言分布统计
+  const languageCount = new Map<string, number>()
+  analyzedVisits.forEach(visit => {
+    if (visit.analysis?.language) {
+      const lang = visit.analysis.language === 'zh' ? '中文' : 
+                   visit.analysis.language === 'en' ? '英文' : '其他'
+      languageCount.set(lang, (languageCount.get(lang) || 0) + 1)
+    }
+  })
+
+  const languageDistribution = Array.from(languageCount.entries())
+    .map(([language, count]) => ({ language, count }))
+    .sort((a, b) => b.count - a.count)
+
+  return {
+    analyzedPages: analyzedVisits.length,
+    totalKeywords,
+    avgKeywordsPerPage: analyzedVisits.length > 0 ? totalKeywords / analyzedVisits.length : 0,
+    languageDistribution,
+    topKeywords,
+  }
+}
+
+/**
+ * 删除用户画像
+ */
+export async function deleteUserProfile(): Promise<void> {
+  await db.userProfile.delete('singleton')
+}
+
+// ==================== 兴趣快照操作 (Phase 3.4) ====================
+
+/**
+ * 保存兴趣快照
+ * 
+ * @param snapshot - 兴趣快照
+ */
+export async function saveInterestSnapshot(snapshot: InterestSnapshot): Promise<void> {
+  await db.interestSnapshots.put(snapshot)
+}
+
+/**
+ * 获取兴趣快照历史
+ * 
+ * @param limit - 限制数量（默认50）
+ * @returns 按时间倒序的快照列表
+ */
+export async function getInterestHistory(limit: number = 50): Promise<InterestSnapshot[]> {
+  return await db.interestSnapshots
+    .orderBy('timestamp')
+    .reverse()
+    .limit(limit)
+    .toArray()
+}
+
+/**
+ * 获取主导兴趣变化历史
+ * 
+ * @param limit - 限制数量（默认20）
+ * @returns 只包含主导兴趣变化的快照
+ */
+export async function getPrimaryTopicChanges(limit: number = 20): Promise<InterestSnapshot[]> {
+  return await db.interestSnapshots
+    .where('trigger')
+    .equals('primary_change')
+    .reverse()
+    .limit(limit)
+    .toArray()
+}
+
+/**
+ * 获取指定主导兴趣的历史快照
+ * 
+ * @param primaryTopic - 主导兴趣类型
+ * @param limit - 限制数量（默认10）
+ */
+export async function getTopicHistory(primaryTopic: string, limit: number = 10): Promise<InterestSnapshot[]> {
+  return await db.interestSnapshots
+    .where('[primaryTopic+timestamp]')
+    .between([primaryTopic, 0], [primaryTopic, Date.now()])
+    .reverse()
+    .limit(limit)
+    .toArray()
+}
+
+/**
+ * 清理旧快照（保留最近N个月）
+ * 
+ * @param monthsToKeep - 保留月数（默认6个月）
+ */
+export async function cleanOldSnapshots(monthsToKeep: number = 6): Promise<number> {
+  const cutoffTime = Date.now() - monthsToKeep * 30 * 24 * 60 * 60 * 1000
+  
+  const oldSnapshots = await db.interestSnapshots
+    .where('timestamp')
+    .below(cutoffTime)
+    .toArray()
+  
+  if (oldSnapshots.length > 0) {
+    await db.interestSnapshots
+      .where('timestamp')
+      .below(cutoffTime)
+      .delete()
+  }
+  
+  return oldSnapshots.length
 }

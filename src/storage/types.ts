@@ -42,7 +42,7 @@ export interface ContentSummary {
   firstParagraph: string        // 首段（500 字）
   extractedText: string         // 正文摘要（2000 字）
   wordCount: number             // 字数
-  language: 'zh' | 'en'         // 语言
+  language: 'zh' | 'en' | 'other' // 语言（扩展支持 other）
 }
 
 /**
@@ -51,7 +51,7 @@ export interface ContentSummary {
 export interface AnalysisResult {
   keywords: string[]            // Top 20 关键词（TF-IDF）
   topics: string[]              // 主题标签
-  language: 'zh' | 'en'         // 语言
+  language: 'zh' | 'en' | 'other' // 语言（扩展支持 other）
 }
 
 /**
@@ -203,11 +203,8 @@ export interface StorageStats {
   confirmedCount: number        // 正式记录数
   recommendationCount: number   // 推荐记录数
   totalSizeMB: number           // 估算总占用（MB）
-  topDomains: Array<{           // Top 10 域名
-    domain: string
-    count: number
-  }>
-  avgDwellTime: number          // 平均停留时间（秒）
+  firstCollectionTime?: number  // 最早开始采集时间戳
+  avgDailyPages: number         // 平均每天采集页面数
 }
 
 /**
@@ -261,4 +258,44 @@ export interface Statistics {
       avgRecordSizeKB: number   // 平均记录大小（KB）
     }
   }
+}
+
+/**
+ * 🔄 Phase 3.4: 兴趣变化快照
+ * 
+ * 记录用户兴趣演化历史，支持变化追踪和趋势分析
+ */
+export interface InterestSnapshot {
+  /** 快照 ID */
+  id: string
+  
+  /** 快照创建时间 */
+  timestamp: number
+  
+  /** 主导兴趣类型 */
+  primaryTopic: string
+  
+  /** 主导兴趣占比 (0-1) */
+  primaryScore: number
+  
+  /** 主导程度级别 */
+  primaryLevel: 'absolute' | 'relative' | 'leading'
+  
+  /** 完整兴趣分布快照 */
+  topics: Record<string, number>
+  
+  /** Top 10 关键词快照 */
+  topKeywords: Array<{
+    word: string
+    weight: number
+  }>
+  
+  /** 基于的页面数量 */
+  basedOnPages: number
+  
+  /** 快照触发原因 */
+  trigger: 'manual' | 'primary_change' | 'periodic' | 'rebuild'
+  
+  /** 变化描述（如果是因为主导兴趣变化） */
+  changeNote?: string
 }

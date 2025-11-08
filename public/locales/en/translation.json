@@ -67,7 +67,7 @@
       "ai": "AI",
       "privacy": "Privacy",
       "recommendations": "Recommended Statistics",
-      "data": "Data Statistics"
+      "data": "Collection Statistics"
     },
     "stats": {
       "noData": "No data available",
@@ -104,6 +104,37 @@
       "clearAll": "Clear all data",
       "comingSoon": "Coming soon",
       "dataManagementHint": "Data management features will be available in subsequent versions."
+    },
+    "collectionStats": {
+      "noData": "No data available",
+      "overview": "Collection Overview",
+      "totalPages": "Total Collection",
+      "pagesCollected": "Page has been collected",
+      "validRecords": "Effective records",
+      "dwellTimeOver30s": "Stay for more than 30 seconds",
+      "avgDwellTime": "Average Dwell Time",
+      "perPage": "Average per page",
+      "textAnalysis": "Text Analysis Statistics",
+      "comingSoonInPhase3": "Display after Phase 3 completion",
+      "textAnalysisHint": "Will display statistics such as keyword extraction and topic classification.",
+      "userProfile": "User Profile Statistics",
+      "profileHint": "Will display interest topics, keyword weights, and other information",
+      "storage": "Storage Usage",
+      "totalSize": "Total occupied space",
+      "pendingVisits": "Temporary Record (Pending Confirmation)",
+      "confirmedVisits": "Valid Records (Confirmed)",
+      "recommendations": "Recommended Records",
+      "records": "Strip",
+      "storageHint": "Recommended record data will be displayed after the recommendation feature is enabled.",
+      "topDomains": "Frequently Visited Domains (Top 10)",
+      "noDomains": "No data available",
+      "visits": "Second visit",
+      "dataManagement": "Data Management",
+      "clearHistory": "Clear browsing history",
+      "resetProfile": "Reset User Profile",
+      "clearAll": "Clear all data",
+      "comingSoon": "Coming soon",
+      "dataManagementHint": "The data management feature will be available in future versions."
     }
   }
 }

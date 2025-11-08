@@ -60,6 +60,8 @@ vi.mock("@/stores/recommendationStore", () => ({
 describe("IndexOptions 组件", () => {
   beforeEach(() => {
     localStorage.clear()
+    // 重置 URL 参数，确保默认状态
+    window.history.replaceState({}, '', window.location.pathname)
   })
 
   describe("基本渲染", () => {
@@ -84,8 +86,14 @@ describe("IndexOptions 组件", () => {
       expect(screen.getByText("选择界面显示语言")).toBeInTheDocument()
     })
 
-    it("应该显示语言下拉框", () => {
+    it("应该显示语言下拉框", async () => {
+      const user = userEvent.setup()
       render(<IndexOptions />)
+      
+      // 确保在常规标签页
+      const generalTab = screen.getByText("常规")
+      await user.click(generalTab)
+      
       const select = screen.getByLabelText("语言")
       expect(select).toBeInTheDocument()
       expect(select.tagName).toBe("SELECT")
@@ -129,8 +137,13 @@ describe("IndexOptions 组件", () => {
       const user = userEvent.setup()
       render(<IndexOptions />)
 
+      // 先切换到常规标签，确保它是激活状态
+      const generalTab = screen.getByText("常规")
+      await user.click(generalTab)
+      
       expect(screen.getByText("常规设置")).toBeInTheDocument()
 
+      // 然后切换到 RSS 标签
       const rssTab = screen.getByText("RSS 源")
       await user.click(rssTab)
 
@@ -144,26 +157,42 @@ describe("IndexOptions 组件", () => {
       const generalTab = screen.getByText("常规")
       const rssTab = screen.getByText("RSS 源")
 
-      // 初始时常规标签应该是激活状态
+      // 先点击常规标签确保激活
+      await user.click(generalTab)
+      
+      // 常规标签应该是激活状态
       expect(generalTab.closest("button")?.className).toContain("bg-green-500")
 
       // 点击 RSS 标签
       await user.click(rssTab)
 
-      // RSS 标签应该变为激活状态
+      // RSS 标签应该变为激活状态，常规标签应该不再激活
       expect(rssTab.closest("button")?.className).toContain("bg-green-500")
+      expect(generalTab.closest("button")?.className).not.toContain("bg-green-500")
     })
   })
 
   describe("语言选择功能", () => {
-    it("默认应该选中跟随浏览器", () => {
+    it("默认应该选中跟随浏览器", async () => {
+      const user = userEvent.setup()
       render(<IndexOptions />)
+      
+      // 确保在常规标签页
+      const generalTab = screen.getByText("常规")
+      await user.click(generalTab)
+      
       const select = screen.getByLabelText("语言") as HTMLSelectElement
       expect(select.value).toBe("auto")
     })
 
-    it("应该显示三个语言选项", () => {
+    it("应该显示三个语言选项", async () => {
+      const user = userEvent.setup()
       render(<IndexOptions />)
+      
+      // 确保在常规标签页
+      const generalTab = screen.getByText("常规")
+      await user.click(generalTab)
+      
       const options = screen.getAllByRole("option")
       expect(options).toHaveLength(3)
       expect(options[0]).toHaveTextContent("跟随浏览器")
@@ -176,6 +205,11 @@ describe("IndexOptions 组件", () => {
       const { default: i18n } = await import("@/i18n")
 
       render(<IndexOptions />)
+      
+      // 确保在常规标签页
+      const generalTab = screen.getByText("常规")
+      await user.click(generalTab)
+      
       const select = screen.getByLabelText("语言")
 
       await user.selectOptions(select, "zh-CN")
@@ -188,6 +222,11 @@ describe("IndexOptions 组件", () => {
       const { default: i18n } = await import("@/i18n")
 
       render(<IndexOptions />)
+      
+      // 确保在常规标签页
+      const generalTab = screen.getByText("常规")
+      await user.click(generalTab)
+      
       const select = screen.getByLabelText("语言")
 
       await user.selectOptions(select, "en")
@@ -200,6 +239,11 @@ describe("IndexOptions 组件", () => {
       localStorage.setItem("i18nextLng", "zh-CN")
 
       render(<IndexOptions />)
+      
+      // 确保在常规标签页
+      const generalTab = screen.getByText("常规")
+      await user.click(generalTab)
+      
       const select = screen.getByLabelText("语言")
 
       await user.selectOptions(select, "auto")
@@ -207,10 +251,16 @@ describe("IndexOptions 组件", () => {
       expect(localStorage.getItem("i18nextLng")).toBeNull()
     })
 
-    it("localStorage 有语言设置时应该显示对应值", () => {
+    it("localStorage 有语言设置时应该显示对应值", async () => {
+      const user = userEvent.setup()
       localStorage.setItem("i18nextLng", "zh-CN")
 
       render(<IndexOptions />)
+      
+      // 确保在常规标签页
+      const generalTab = screen.getByText("常规")
+      await user.click(generalTab)
+      
       const select = screen.getByLabelText("语言") as HTMLSelectElement
 
       expect(select.value).toBe("zh-CN")
