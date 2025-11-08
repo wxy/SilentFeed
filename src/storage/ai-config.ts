@@ -16,7 +16,7 @@ export interface AIConfig {
   provider: AIProviderType | null
   apiKey: string
   enabled: boolean
-  monthlyBudget?: number
+  monthlyBudget: number // 月度预算（美元），必须设置，最小 $1
 }
 
 /**
@@ -94,19 +94,23 @@ export async function isAIConfigured(): Promise<boolean> {
 /**
  * 加密 API Key
  * 
- * 注意：这是一个简单的混淆，不是真正的加密
- * 真正的加密需要使用 Web Crypto API，但对于存储在浏览器本地的数据，
- * 这个级别的保护已经足够（防止意外泄露）
+ * 使用 Base64 编码（简单混淆）
+ * 注意：处理 Unicode 字符
  */
 function encryptApiKey(apiKey: string): string {
   if (!apiKey) return ""
   
-  // 简单的 Base64 编码（混淆）
-  // 在实际生产环境中，应该使用更强的加密
   try {
-    return btoa(apiKey)
+    // 使用 TextEncoder 处理 Unicode
+    const encoder = new TextEncoder()
+    const data = encoder.encode(apiKey)
+    
+    // 转换为 Base64
+    const base64 = btoa(String.fromCharCode(...data))
+    return base64
   } catch (error) {
     console.error("[AIConfig] Failed to encrypt API key:", error)
+    // 加密失败时返回原始值（总比丢失好）
     return apiKey
   }
 }
@@ -118,9 +122,17 @@ function decryptApiKey(encryptedKey: string): string {
   if (!encryptedKey) return ""
   
   try {
-    return atob(encryptedKey)
+    // 从 Base64 解码
+    const decoded = atob(encryptedKey)
+    
+    // 转换回 Uint8Array
+    const data = new Uint8Array(decoded.split('').map(c => c.charCodeAt(0)))
+    
+    // 使用 TextDecoder 处理 Unicode
+    const decoder = new TextDecoder()
+    return decoder.decode(data)
   } catch (error) {
-    // 如果解密失败，可能是未加密的旧数据
+    // 如果解密失败，可能是未加密的旧数据或新数据
     console.warn("[AIConfig] Failed to decrypt API key, using as-is")
     return encryptedKey
   }

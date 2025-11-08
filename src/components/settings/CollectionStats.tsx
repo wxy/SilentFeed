@@ -19,6 +19,7 @@ import type { StorageStats } from "@/storage/types"
 import { UserProfileDisplay } from "./UserProfileDisplay"
 import { AnalysisDebugger } from "@/debug/AnalysisDebugger"
 import { profileManager } from "@/core/profile/ProfileManager"
+import { getAIConfig, getProviderDisplayName } from "@/storage/ai-config"
 
 export function CollectionStats() {
   const { _ } = useI18n()
@@ -28,18 +29,35 @@ export function CollectionStats() {
   const [migrationStats, setMigrationStats] = useState<any>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [isRebuildingProfile, setIsRebuildingProfile] = useState(false)
+  const [aiConfigStatus, setAiConfigStatus] = useState<{
+    enabled: boolean
+    provider: string
+    configured: boolean
+  }>({
+    enabled: false,
+    provider: "未配置",
+    configured: false
+  })
 
   useEffect(() => {
     const loadStats = async () => {
       try {
-        const [storageData, analysisData, migrationData] = await Promise.all([
+        const [storageData, analysisData, migrationData, aiConfig] = await Promise.all([
           getStorageStats(),
           getAnalysisStats(),
-          dataMigrator.getMigrationStats()
+          dataMigrator.getMigrationStats(),
+          getAIConfig()
         ])
         setStats(storageData)
         setAnalysisStats(analysisData)
         setMigrationStats(migrationData)
+        
+        // 设置 AI 配置状态
+        setAiConfigStatus({
+          enabled: aiConfig.enabled,
+          provider: getProviderDisplayName(aiConfig.provider),
+          configured: aiConfig.enabled && aiConfig.provider !== null && aiConfig.apiKey !== ""
+        })
       } catch (error) {
         console.error("[CollectionStats] 加载统计失败:", error)
       } finally {
@@ -287,6 +305,125 @@ export function CollectionStats() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* AI 配置状态 (Phase 4.1) */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <span>🤖</span>
+          <span>AI 分析状态</span>
+        </h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* 当前提供商 */}
+          <div className={`rounded-lg p-4 border ${
+            aiConfigStatus.configured
+              ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
+              : "bg-gray-50 dark:bg-gray-700/20 border-gray-200 dark:border-gray-600"
+          }`}>
+            <div className={`text-sm mb-1 ${
+              aiConfigStatus.configured
+                ? "text-green-600 dark:text-green-400"
+                : "text-gray-600 dark:text-gray-400"
+            }`}>
+              当前提供商
+            </div>
+            <div className={`text-2xl font-bold ${
+              aiConfigStatus.configured
+                ? "text-green-900 dark:text-green-100"
+                : "text-gray-900 dark:text-gray-100"
+            }`}>
+              {aiConfigStatus.provider}
+            </div>
+            <div className={`text-xs mt-1 flex items-center gap-1 ${
+              aiConfigStatus.configured
+                ? "text-green-600 dark:text-green-400"
+                : "text-gray-500 dark:text-gray-400"
+            }`}>
+              {aiConfigStatus.configured ? (
+                <>
+                  <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                  <span>已连接</span>
+                </>
+              ) : (
+                <>
+                  <span className="inline-block w-2 h-2 bg-gray-400 rounded-full"></span>
+                  <span>未配置</span>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* 分析方式 */}
+          <div className={`rounded-lg p-4 border ${
+            aiConfigStatus.configured
+              ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
+              : "bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800"
+          }`}>
+            <div className={`text-sm mb-1 ${
+              aiConfigStatus.configured
+                ? "text-blue-600 dark:text-blue-400"
+                : "text-orange-600 dark:text-orange-400"
+            }`}>
+              分析方式
+            </div>
+            <div className={`text-2xl font-bold ${
+              aiConfigStatus.configured
+                ? "text-blue-900 dark:text-blue-100"
+                : "text-orange-900 dark:text-orange-100"
+            }`}>
+              {aiConfigStatus.configured ? "AI 分析" : "关键词分析"}
+            </div>
+            <div className={`text-xs mt-1 ${
+              aiConfigStatus.configured
+                ? "text-blue-600 dark:text-blue-400"
+                : "text-orange-600 dark:text-orange-400"
+            }`}>
+              {aiConfigStatus.configured 
+                ? "使用 AI 语义理解" 
+                : "使用传统关键词提取"}
+            </div>
+          </div>
+        </div>
+
+        {/* 提示信息 */}
+        {!aiConfigStatus.configured && (
+          <div className="mt-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <span className="text-xl">💡</span>
+              <div className="flex-1">
+                <h3 className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">
+                  想要更准确的内容分析？
+                </h3>
+                <p className="text-xs text-blue-700 dark:text-blue-300 mb-2">
+                  配置 AI 提供商（OpenAI、Anthropic、DeepSeek），获得更精准的语义理解和主题分类。
+                </p>
+                <a
+                  href="/options.html?tab=ai"
+                  className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                  <span>前往配置</span>
+                  <span>→</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {aiConfigStatus.configured && (
+          <div className="mt-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <span className="text-xl">✅</span>
+              <div className="flex-1">
+                <h3 className="text-sm font-medium text-green-900 dark:text-green-100 mb-1">
+                  AI 分析已启用
+                </h3>
+                <p className="text-xs text-green-700 dark:text-green-300">
+                  系统将使用 {aiConfigStatus.provider} 进行内容分析，获得更准确的主题识别和语义理解。
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 文本分析统计 (Phase 3.4 完成) */}

@@ -54,7 +54,7 @@ export function AIConfig() {
   const [provider, setProvider] = useState<AIProviderType | null>(null)
   const [apiKey, setApiKey] = useState("")
   const [enabled, setEnabled] = useState(false)
-  const [monthlyBudget, setMonthlyBudget] = useState<number | null>(5) // 默认 $5/月，null = 不限制
+  const [monthlyBudget, setMonthlyBudget] = useState<number>(5) // 默认 $5/月
   
   // UI 状态
   const [saving, setSaving] = useState(false)
@@ -262,52 +262,32 @@ export function AIConfig() {
           <label
             htmlFor="budget"
             className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            月度预算（可选）
+            月度预算限制
           </label>
           
-          <div className="space-y-3">
-            {/* 不限制选项 */}
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={monthlyBudget === null}
-                onChange={(e) => setMonthlyBudget(e.target.checked ? null : 5)}
-                className="rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
-              />
-              <span className="text-sm text-gray-700 dark:text-gray-300">
-                不限制预算
-              </span>
-            </label>
-            
-            {/* 预算金额输入 */}
-            {monthlyBudget !== null && (
-              <div className="flex items-center gap-2">
-                <span className="text-gray-600 dark:text-gray-400">$</span>
-                <input
-                  id="budget"
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={monthlyBudget}
-                  onChange={(e) => setMonthlyBudget(Number(e.target.value))}
-                  className="w-32 rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-                />
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  / 月
-                </span>
-              </div>
-            )}
+          <div className="flex items-center gap-2">
+            <span className="text-gray-600 dark:text-gray-400">$</span>
+            <input
+              id="budget"
+              type="number"
+              min="1"
+              max="100"
+              step="1"
+              value={monthlyBudget}
+              onChange={(e) => setMonthlyBudget(Math.max(1, Number(e.target.value)))}
+              className="w-32 rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+            />
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              / 月
+            </span>
           </div>
           
-          {monthlyBudget === null ? (
-            <p className="text-xs text-orange-600 dark:text-orange-400">
-              ⚠️ 不限制预算可能产生意外费用，请谨慎使用
-            </p>
-          ) : (
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              超出预算后将自动降级到免费的关键词分析
-            </p>
-          )}
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            💡 超出预算后将自动降级到免费的关键词分析
+          </p>
+          <p className="text-xs text-orange-600 dark:text-orange-400">
+            ⚠️ 建议设置合理预算以避免意外费用（推荐 $5-10）
+          </p>
         </div>
       )}
       
