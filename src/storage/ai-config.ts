@@ -34,6 +34,12 @@ const DEFAULT_CONFIG: AIConfig = {
  */
 export async function getAIConfig(): Promise<AIConfig> {
   try {
+    // 检查 chrome.storage 是否可用
+    if (!chrome?.storage?.sync) {
+      console.warn("[AIConfig] chrome.storage.sync not available, using default config")
+      return DEFAULT_CONFIG
+    }
+    
     const result = await chrome.storage.sync.get("aiConfig")
     
     if (result.aiConfig) {
@@ -58,6 +64,11 @@ export async function getAIConfig(): Promise<AIConfig> {
  */
 export async function saveAIConfig(config: AIConfig): Promise<void> {
   try {
+    // 检查 chrome.storage 是否可用
+    if (!chrome?.storage?.sync) {
+      throw new Error("chrome.storage.sync not available")
+    }
+    
     // 加密 API Key（如果需要）
     const encryptedConfig = {
       ...config,
@@ -76,6 +87,11 @@ export async function saveAIConfig(config: AIConfig): Promise<void> {
  */
 export async function deleteAIConfig(): Promise<void> {
   try {
+    // 检查 chrome.storage 是否可用
+    if (!chrome?.storage?.sync) {
+      throw new Error("chrome.storage.sync not available")
+    }
+    
     await chrome.storage.sync.remove("aiConfig")
   } catch (error) {
     console.error("[AIConfig] Failed to delete config:", error)

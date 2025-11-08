@@ -244,11 +244,12 @@ describe("AIConfig", () => {
   })
   
   describe("禁用 AI", () => {
-    it("应该清除配置并禁用 AI", async () => {
+    it("应该加载已保存的配置", async () => {
       vi.mocked(aiConfigModule.getAIConfig).mockResolvedValue({
         provider: "openai",
         apiKey: "sk-saved-key",
-        enabled: true
+        enabled: true,
+        monthlyBudget: 10
       })
       
       render(<AIConfig />)
@@ -268,7 +269,8 @@ describe("AIConfig", () => {
         expect(aiConfigModule.saveAIConfig).toHaveBeenCalledWith({
           provider: null,
           apiKey: "",
-          enabled: false
+          enabled: false,
+          monthlyBudget: 5 // 保留默认预算
         })
       })
       

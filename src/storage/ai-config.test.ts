@@ -104,7 +104,8 @@ describe("ai-config", () => {
       const config: AIConfig = {
         provider: "openai",
         apiKey: "sk-test-123",
-        enabled: true
+        enabled: true,
+        monthlyBudget: 10
       }
       
       await expect(saveAIConfig(config)).rejects.toThrow()

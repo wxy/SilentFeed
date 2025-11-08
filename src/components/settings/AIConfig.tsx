@@ -174,7 +174,8 @@ export function AIConfig() {
       await saveAIConfig({
         provider: null,
         apiKey: "",
-        enabled: false
+        enabled: false,
+        monthlyBudget: 5 // 保留默认预算
       })
       
       setProvider(null)
