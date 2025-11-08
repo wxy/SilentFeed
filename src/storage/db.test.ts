@@ -4,7 +4,8 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { db, initializeDatabase, getSettings, updateSettings, getPageCount, getRecommendationStats, getStorageStats, markAsRead, dismissRecommendations, getUnreadRecommendations } from './db'
-import type { UserSettings, ConfirmedVisit, Recommendation } from './types'
+import type { UserSettings, ConfirmedVisit, Recommendation, InterestSnapshot } from './types'
+import type { UserProfile } from '@/core/profile/types'
 
 describe('数据库初始化', () => {
   beforeEach(async () => {
@@ -662,6 +663,353 @@ describe('Phase 2.7 推荐功能', () => {
     it('应该处理空数据', async () => {
       const unread = await getUnreadRecommendations()
       expect(unread).toHaveLength(0)
+    })
+  })
+})
+
+// ==================== 用户画像功能测试 ====================
+
+describe('用户画像管理', () => {
+  beforeEach(async () => {
+    await db.delete()
+    await db.open()
+    await initializeDatabase()
+  })
+
+  afterEach(async () => {
+    await db.close()
+  })
+
+  describe('saveUserProfile', () => {
+    it('应该保存用户画像', async () => {
+      const { saveUserProfile, getUserProfile } = await import('./db')
+      const { Topic } = await import('@/core/profile/topics')
+      
+      const profile: UserProfile = {
+        id: 'singleton' as const,
+        totalPages: 100,
+        topics: {
+          [Topic.TECHNOLOGY]: 0.6,
+          [Topic.DESIGN]: 0.4,
+          [Topic.SCIENCE]: 0.0,
+          [Topic.BUSINESS]: 0.0,
+          [Topic.ARTS]: 0.0,
+          [Topic.HEALTH]: 0.0,
+          [Topic.SPORTS]: 0.0,
+          [Topic.ENTERTAINMENT]: 0.0,
+          [Topic.NEWS]: 0.0,
+          [Topic.EDUCATION]: 0.0,
+          [Topic.OTHER]: 0.0,
+        },
+        keywords: [
+          { word: 'react', weight: 0.9 },
+          { word: 'vue', weight: 0.8 },
+        ],
+        domains: [
+          { domain: 'github.com', count: 50, avgDwellTime: 120 },
+        ],
+        lastUpdated: Date.now(),
+        version: 1,
+      }
+
+      await saveUserProfile(profile)
+      
+      const saved = await getUserProfile()
+      expect(saved).toBeDefined()
+      expect(saved?.totalPages).toBe(100)
+      expect(saved?.keywords).toHaveLength(2)
+    })
+  })
+
+  describe('getUserProfile', () => {
+    it('应该在没有画像时返回null', async () => {
+      const { getUserProfile } = await import('./db')
+      
+      const profile = await getUserProfile()
+      expect(profile).toBeNull()
+    })
+  })
+
+  describe('deleteUserProfile', () => {
+    it('应该删除用户画像', async () => {
+      const { saveUserProfile, getUserProfile, deleteUserProfile } = await import('./db')
+      const { Topic } = await import('@/core/profile/topics')
+      
+      const profile: UserProfile = {
+        id: 'singleton' as const,
+        totalPages: 10,
+        topics: {
+          [Topic.TECHNOLOGY]: 1.0,
+          [Topic.DESIGN]: 0.0,
+          [Topic.SCIENCE]: 0.0,
+          [Topic.BUSINESS]: 0.0,
+          [Topic.ARTS]: 0.0,
+          [Topic.HEALTH]: 0.0,
+          [Topic.SPORTS]: 0.0,
+          [Topic.ENTERTAINMENT]: 0.0,
+          [Topic.NEWS]: 0.0,
+          [Topic.EDUCATION]: 0.0,
+          [Topic.OTHER]: 0.0,
+        },
+        keywords: [],
+        domains: [],
+        lastUpdated: Date.now(),
+        version: 1,
+      }
+
+      await saveUserProfile(profile)
+      expect(await getUserProfile()).not.toBeNull()
+      
+      await deleteUserProfile()
+      expect(await getUserProfile()).toBeNull()
+    })
+  })
+
+  describe('getAnalysisStats', () => {
+    it('应该返回分析统计信息', async () => {
+      const { getAnalysisStats } = await import('./db')
+      
+      // 添加测试数据
+      const visit: ConfirmedVisit = {
+        id: 'test-1',
+        url: 'https://example.com',
+        title: 'Test',
+        domain: 'example.com',
+        meta: null,
+        contentSummary: null,
+        analysis: {
+          keywords: ['react', 'vue', 'angular'],
+          topics: ['technology'],
+          language: 'en',
+        },
+        duration: 120,
+        interactionCount: 5,
+        visitTime: Date.now(),
+        status: 'qualified',
+        contentRetainUntil: Date.now() + 90 * 24 * 60 * 60 * 1000,
+        analysisRetainUntil: -1,
+      }
+
+      await db.confirmedVisits.add(visit)
+      
+      const stats = await getAnalysisStats()
+      
+      expect(stats.analyzedPages).toBe(1)
+      expect(stats.totalKeywords).toBe(3)
+      expect(stats.avgKeywordsPerPage).toBe(3)
+      expect(stats.languageDistribution).toHaveLength(1)
+      expect(stats.topKeywords).toHaveLength(3)
+    })
+
+    it('应该处理空数据', async () => {
+      const { getAnalysisStats } = await import('./db')
+      
+      const stats = await getAnalysisStats()
+      
+      expect(stats.analyzedPages).toBe(0)
+      expect(stats.totalKeywords).toBe(0)
+      expect(stats.avgKeywordsPerPage).toBe(0)
+    })
+  })
+})
+
+// ==================== 兴趣快照功能测试 ====================
+
+describe('兴趣快照管理', () => {
+  beforeEach(async () => {
+    await db.delete()
+    await db.open()
+    await initializeDatabase()
+  })
+
+  afterEach(async () => {
+    await db.close()
+  })
+
+  describe('saveInterestSnapshot & getInterestHistory', () => {
+    it('应该保存并获取兴趣快照', async () => {
+      const { saveInterestSnapshot, getInterestHistory } = await import('./db')
+      const { Topic } = await import('@/core/profile/topics')
+      
+      const snapshot = {
+        id: 'snapshot-1',
+        timestamp: Date.now(),
+        primaryTopic: Topic.TECHNOLOGY,
+        primaryScore: 0.8,
+        topics: {
+          [Topic.TECHNOLOGY]: 0.8,
+          [Topic.DESIGN]: 0.2,
+        },
+        topKeywords: [
+          { word: 'react', weight: 0.9 },
+        ],
+        basedOnPages: 100,
+        trigger: 'manual' as const,
+        changeNote: '首次建立画像',
+      }
+
+      await saveInterestSnapshot(snapshot)
+      
+      const history = await getInterestHistory(10)
+      expect(history).toHaveLength(1)
+      expect(history[0].primaryTopic).toBe(Topic.TECHNOLOGY)
+    })
+
+    it('应该按时间倒序返回快照', async () => {
+      const { saveInterestSnapshot, getInterestHistory } = await import('./db')
+      const { Topic } = await import('@/core/profile/topics')
+      
+      const now = Date.now()
+      
+      await saveInterestSnapshot({
+        id: 'snapshot-1',
+        timestamp: now - 2000,
+        primaryTopic: Topic.TECHNOLOGY,
+        primaryScore: 0.8,
+        topics: {},
+        topKeywords: [],
+        basedOnPages: 50,
+        trigger: 'manual' as const,
+      })
+
+      await saveInterestSnapshot({
+        id: 'snapshot-2',
+        timestamp: now,
+        primaryTopic: Topic.DESIGN,
+        primaryScore: 0.9,
+        topics: {},
+        topKeywords: [],
+        basedOnPages: 100,
+        trigger: 'primary_change' as const,
+      })
+
+      const history = await getInterestHistory(10)
+      expect(history).toHaveLength(2)
+      expect(history[0].id).toBe('snapshot-2') // 最新的在前
+      expect(history[1].id).toBe('snapshot-1')
+    })
+  })
+
+  describe('getPrimaryTopicChanges', () => {
+    it('应该只返回主导兴趣变化的快照', async () => {
+      const { saveInterestSnapshot, getPrimaryTopicChanges } = await import('./db')
+      const { Topic } = await import('@/core/profile/topics')
+      
+      await saveInterestSnapshot({
+        id: 'snapshot-1',
+        timestamp: Date.now() - 3000,
+        primaryTopic: Topic.TECHNOLOGY,
+        primaryScore: 0.8,
+        topics: {},
+        topKeywords: [],
+        basedOnPages: 50,
+        trigger: 'manual' as const,
+      })
+
+      await saveInterestSnapshot({
+        id: 'snapshot-2',
+        timestamp: Date.now() - 2000,
+        primaryTopic: Topic.DESIGN,
+        primaryScore: 0.9,
+        topics: {},
+        topKeywords: [],
+        basedOnPages: 100,
+        trigger: 'primary_change' as const,
+      })
+
+      await saveInterestSnapshot({
+        id: 'snapshot-3',
+        timestamp: Date.now(),
+        primaryTopic: Topic.DESIGN,
+        primaryScore: 0.85,
+        topics: {},
+        topKeywords: [],
+        basedOnPages: 150,
+        trigger: 'manual' as const,
+      })
+
+      const changes = await getPrimaryTopicChanges(10)
+      
+      // 只应该返回 primary_change 触发的快照
+      expect(changes).toHaveLength(1)
+      expect(changes[0].trigger).toBe('primary_change')
+    })
+  })
+
+  describe('getTopicHistory', () => {
+    it('应该返回特定主题的快照历史', async () => {
+      const { saveInterestSnapshot, getTopicHistory } = await import('./db')
+      const { Topic } = await import('@/core/profile/topics')
+      
+      await saveInterestSnapshot({
+        id: 'snapshot-1',
+        timestamp: Date.now() - 2000,
+        primaryTopic: Topic.TECHNOLOGY,
+        primaryScore: 0.8,
+        topics: {},
+        topKeywords: [],
+        basedOnPages: 50,
+        trigger: 'manual' as const,
+      })
+
+      await saveInterestSnapshot({
+        id: 'snapshot-2',
+        timestamp: Date.now(),
+        primaryTopic: Topic.DESIGN,
+        primaryScore: 0.9,
+        topics: {},
+        topKeywords: [],
+        basedOnPages: 100,
+        trigger: 'manual' as const,
+      })
+
+      const techHistory = await getTopicHistory(Topic.TECHNOLOGY, 10)
+      expect(techHistory).toHaveLength(1)
+      expect(techHistory[0].primaryTopic).toBe(Topic.TECHNOLOGY)
+    })
+  })
+
+  describe('cleanOldSnapshots', () => {
+    it('应该删除超过指定月数的快照', async () => {
+      const { saveInterestSnapshot, getInterestHistory, cleanOldSnapshots } = await import('./db')
+      const { Topic } = await import('@/core/profile/topics')
+      
+      const now = Date.now()
+      const sevenMonthsAgo = now - 7 * 30 * 24 * 60 * 60 * 1000
+      
+      // 添加旧快照
+      await saveInterestSnapshot({
+        id: 'old-snapshot',
+        timestamp: sevenMonthsAgo,
+        primaryTopic: Topic.TECHNOLOGY,
+        primaryScore: 0.8,
+        topics: {},
+        topKeywords: [],
+        basedOnPages: 50,
+        trigger: 'manual' as const,
+      })
+
+      // 添加新快照
+      await saveInterestSnapshot({
+        id: 'new-snapshot',
+        timestamp: now,
+        primaryTopic: Topic.DESIGN,
+        primaryScore: 0.9,
+        topics: {},
+        topKeywords: [],
+        basedOnPages: 100,
+        trigger: 'manual' as const,
+      })
+
+      const beforeClean = await getInterestHistory(100)
+      expect(beforeClean).toHaveLength(2)
+      
+      const deleted = await cleanOldSnapshots(6)
+      expect(deleted).toBe(1)
+      
+      const afterClean = await getInterestHistory(100)
+      expect(afterClean).toHaveLength(1)
+      expect(afterClean[0].id).toBe('new-snapshot')
     })
   })
 })
