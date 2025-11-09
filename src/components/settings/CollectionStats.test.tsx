@@ -11,14 +11,49 @@ import type { StorageStats } from "@/storage/types"
 // Mock i18n
 vi.mock("@/i18n/helpers", () => ({
   useI18n: () => ({
-    _: (key: string) => {
+    _: (key: string, params?: Record<string, any>) => {
       const translations: Record<string, string> = {
         "options.collectionStats.noData": "暂无数据",
         "options.collectionStats.overview": "采集概览",
         "options.collectionStats.textAnalysis": "文本分析统计",
         "options.collectionStats.dataManagement": "数据管理",
+        "options.collectionStats.rebuildProfile": "重建用户画像",
+        "options.collectionStats.rebuildingProfile": "重建画像中...",
+        "options.collectionStats.clearDataRestart": "清除数据重新开始",
+        "options.collectionStats.clearAll": "清除所有数据",
+        // Overview section
+        "options.collectionStats.totalPagesLabel": "累计采集页面",
+        "options.collectionStats.dwellTimeHint": "停留超过30秒的页面",
+        "options.collectionStats.storageLabel": "存储占用",
+        "options.collectionStats.storageSizeMB": "{{size}} MB",
+        "options.collectionStats.storageHint": "预估存储空间使用",
+        "options.collectionStats.firstCollectionLabel": "开始采集时间",
+        "options.collectionStats.avgDailyPages": "平均每日 {{count}} 页",
+        // Text analysis
+        "options.collectionStats.textAnalysisNoData": "暂无文本分析数据",
+        "options.collectionStats.textAnalysisHint": "继续浏览网页，系统将自动提取和分析内容",
+        "options.collectionStats.totalKeywordsLabel": "总关键词数",
+        "options.collectionStats.avgKeywordsLabel": "平均每页关键词",
+        "options.collectionStats.languageDistributionTitle": "语言分布",
+        "options.collectionStats.languagePages": "{{count}} 页面",
+        // Alert messages
+        "options.collectionStats.alerts.analyzeFailed": "分析失败，请稍后重试",
+        "options.collectionStats.alerts.rebuildSuccess": "用户画像重建成功！",
+        "options.collectionStats.alerts.rebuildFailed": "重建失败，请稍后重试",
+        "options.collectionStats.alerts.clearDataSuccess": "数据清除成功！\n现在可以重新开始浏览，系统将自动构建新的用户画像。",
+        "options.collectionStats.alerts.clearDataFailed": "清除失败，请稍后重试",
+        "options.collectionStats.alerts.clearAllSuccess": "所有数据清除成功！\n扩展已恢复到初始状态。",
+        "options.collectionStats.alerts.clearAllFailed": "清除失败，请稍后重试",
       }
-      return translations[key] || key
+      
+      // 如果有参数，进行简单的模板替换
+      let result = translations[key] || key
+      if (params) {
+        Object.keys(params).forEach(paramKey => {
+          result = result.replace(`{{${paramKey}}}`, String(params[paramKey]))
+        })
+      }
+      return result
     },
   }),
 }))
@@ -249,9 +284,9 @@ describe("CollectionStats 组件", () => {
 
       await waitFor(() => {
         expect(screen.getByText("数据管理")).toBeInTheDocument()
-        expect(screen.getByText("🔄 重建用户画像")).toBeInTheDocument()
-        expect(screen.getByText("🗑️ 清除数据重新开始")).toBeInTheDocument()
-        expect(screen.getByText("⚠️ 清除所有数据")).toBeInTheDocument()
+        expect(screen.getByText(/重建用户画像/)).toBeInTheDocument()
+        expect(screen.getByText(/清除数据重新开始/)).toBeInTheDocument()
+        expect(screen.getByText(/清除所有数据/)).toBeInTheDocument()
       })
     })
   })
@@ -339,10 +374,10 @@ describe("CollectionStats 组件", () => {
       render(<CollectionStats />)
 
       await waitFor(() => {
-        expect(screen.getByText("🔄 重建用户画像")).toBeInTheDocument()
+        expect(screen.getByText(/重建用户画像/)).toBeInTheDocument()
       })
 
-      const rebuildButton = screen.getByText("🔄 重建用户画像")
+      const rebuildButton = screen.getByText(/重建用户画像/)
       rebuildButton.click()
 
       await waitFor(() => {
@@ -362,10 +397,10 @@ describe("CollectionStats 组件", () => {
       render(<CollectionStats />)
 
       await waitFor(() => {
-        expect(screen.getByText("🔄 重建用户画像")).toBeInTheDocument()
+        expect(screen.getByText(/重建用户画像/)).toBeInTheDocument()
       })
 
-      const rebuildButton = screen.getByText("🔄 重建用户画像")
+      const rebuildButton = screen.getByText(/重建用户画像/)
       rebuildButton.click()
 
       await waitFor(() => {
@@ -374,7 +409,7 @@ describe("CollectionStats 组件", () => {
 
       await waitFor(
         () => {
-          expect(screen.getByText("🔄 重建用户画像")).toBeInTheDocument()
+          expect(screen.getByText(/重建用户画像/)).toBeInTheDocument()
         },
         { timeout: 200 }
       )
@@ -397,10 +432,10 @@ describe("CollectionStats 组件", () => {
       render(<CollectionStats />)
 
       await waitFor(() => {
-        expect(screen.getByText("🔄 重建用户画像")).toBeInTheDocument()
+        expect(screen.getByText(/重建用户画像/)).toBeInTheDocument()
       })
 
-      const rebuildButton = screen.getByText("🔄 重建用户画像")
+      const rebuildButton = screen.getByText(/重建用户画像/)
       rebuildButton.click()
 
       await waitFor(() => {
@@ -424,10 +459,10 @@ describe("CollectionStats 组件", () => {
       render(<CollectionStats />)
 
       await waitFor(() => {
-        expect(screen.getByText("🗑️ 清除数据重新开始")).toBeInTheDocument()
+        expect(screen.getByText(/清除数据重新开始/)).toBeInTheDocument()
       })
 
-      const clearButton = screen.getByText("🗑️ 清除数据重新开始")
+      const clearButton = screen.getByText(/清除数据重新开始/)
       clearButton.click()
 
       await waitFor(() => {
@@ -452,10 +487,10 @@ describe("CollectionStats 组件", () => {
       render(<CollectionStats />)
 
       await waitFor(() => {
-        expect(screen.getByText("🗑️ 清除数据重新开始")).toBeInTheDocument()
+        expect(screen.getByText(/清除数据重新开始/)).toBeInTheDocument()
       })
 
-      const clearButton = screen.getByText("🗑️ 清除数据重新开始")
+      const clearButton = screen.getByText(/清除数据重新开始/)
       clearButton.click()
 
       expect(confirmSpy).toHaveBeenCalled()
@@ -480,10 +515,10 @@ describe("CollectionStats 组件", () => {
       render(<CollectionStats />)
 
       await waitFor(() => {
-        expect(screen.getByText("🗑️ 清除数据重新开始")).toBeInTheDocument()
+        expect(screen.getByText(/清除数据重新开始/)).toBeInTheDocument()
       })
 
-      const clearButton = screen.getByText("🗑️ 清除数据重新开始")
+      const clearButton = screen.getByText(/清除数据重新开始/)
       clearButton.click()
 
       await waitFor(() => {
@@ -518,10 +553,10 @@ describe("CollectionStats 组件", () => {
       render(<CollectionStats />)
 
       await waitFor(() => {
-        expect(screen.getByText("⚠️ 清除所有数据")).toBeInTheDocument()
+        expect(screen.getByText(/清除所有数据/)).toBeInTheDocument()
       })
 
-      const clearAllButton = screen.getByText("⚠️ 清除所有数据")
+      const clearAllButton = screen.getByText(/清除所有数据/)
       clearAllButton.click()
 
       await waitFor(() => {
@@ -547,10 +582,10 @@ describe("CollectionStats 组件", () => {
       render(<CollectionStats />)
 
       await waitFor(() => {
-        expect(screen.getByText("⚠️ 清除所有数据")).toBeInTheDocument()
+        expect(screen.getByText(/清除所有数据/)).toBeInTheDocument()
       })
 
-      const clearAllButton = screen.getByText("⚠️ 清除所有数据")
+      const clearAllButton = screen.getByText(/清除所有数据/)
       clearAllButton.click()
 
       expect(confirmSpy).toHaveBeenCalledTimes(1)
@@ -570,10 +605,10 @@ describe("CollectionStats 组件", () => {
       render(<CollectionStats />)
 
       await waitFor(() => {
-        expect(screen.getByText("⚠️ 清除所有数据")).toBeInTheDocument()
+        expect(screen.getByText(/清除所有数据/)).toBeInTheDocument()
       })
 
-      const clearAllButton = screen.getByText("⚠️ 清除所有数据")
+      const clearAllButton = screen.getByText(/清除所有数据/)
       clearAllButton.click()
 
       expect(confirmSpy).toHaveBeenCalledTimes(2)
@@ -602,10 +637,10 @@ describe("CollectionStats 组件", () => {
       render(<CollectionStats />)
 
       await waitFor(() => {
-        expect(screen.getByText("⚠️ 清除所有数据")).toBeInTheDocument()
+        expect(screen.getByText(/清除所有数据/)).toBeInTheDocument()
       })
 
-      const clearAllButton = screen.getByText("⚠️ 清除所有数据")
+      const clearAllButton = screen.getByText(/清除所有数据/)
       clearAllButton.click()
 
       await waitFor(() => {
