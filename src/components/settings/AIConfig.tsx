@@ -34,17 +34,22 @@ const PROVIDER_OPTIONS: ProviderOption[] = [
   {
     value: "openai",
     label: "OpenAI (GPT-4o-mini)",
-    description: "快速、准确、成本适中（$0.15/1M tokens）"
+    description: "快速、准确、成本适中（$0.15/M 输入, $0.6/M 输出）"
   },
   {
     value: "anthropic",
     label: "Anthropic (Claude-3-Haiku)",
-    description: "高质量、稍贵（$0.25/1M tokens）"
+    description: "高质量、稍贵（$0.25/M 输入, $1.25/M 输出）"
   },
   {
     value: "deepseek",
-    label: "DeepSeek",
-    description: "国内友好、最便宜（$0.14/1M tokens）"
+    label: "DeepSeek Chat",
+    description: "国内友好、最便宜（¥1/M 输入, ¥2/M 输出，缓存命中 ¥0.1/M）"
+  },
+  {
+    value: "deepseek-reasoner",
+    label: "DeepSeek Reasoner",
+    description: "推理增强模型（¥1/M 输入, ¥2/M 输出，缓存命中 ¥0.1/M）"
   }
 ]
 
@@ -377,16 +382,63 @@ export function AIConfig() {
       {provider && (
         <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
           <h3 className="font-medium text-gray-900 dark:text-gray-100">
-            💰 成本参考
+            💰 成本参考（每百万 tokens）
           </h3>
-          <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
-            假设每天浏览 50 个页面，每个页面平均 1000 tokens：
+          
+          {provider === "deepseek" || provider === "deepseek-reasoner" ? (
+            <div className="mt-3 space-y-2">
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                {provider === "deepseek" ? "DeepSeek Chat" : "DeepSeek Reasoner"}（人民币计价）
+              </p>
+              <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                <li>• 输入（缓存未命中）: ¥1.00/M tokens</li>
+                <li>• 输入（缓存命中）: ¥0.10/M tokens</li>
+                <li>• 输出: ¥2.00/M tokens</li>
+              </ul>
+              <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
+                假设每天浏览 50 个页面，每个页面平均 1000 tokens，10% 缓存命中率：
+              </p>
+              <p className="text-sm text-blue-600 dark:text-blue-400">
+                约 ¥0.14 / 月 （≈ $0.02 / 月）
+              </p>
+            </div>
+          ) : provider === "openai" ? (
+            <div className="mt-3 space-y-2">
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                OpenAI GPT-4o-mini（美元计价）
+              </p>
+              <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                <li>• 输入: $0.15/M tokens</li>
+                <li>• 输出: $0.60/M tokens</li>
+              </ul>
+              <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
+                假设每天浏览 50 个页面，每个页面平均 1000 tokens：
+              </p>
+              <p className="text-sm text-blue-600 dark:text-blue-400">
+                约 $0.11 / 月
+              </p>
+            </div>
+          ) : provider === "anthropic" ? (
+            <div className="mt-3 space-y-2">
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Anthropic Claude 3 Haiku（美元计价）
+              </p>
+              <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                <li>• 输入: $0.25/M tokens</li>
+                <li>• 输出: $1.25/M tokens</li>
+              </ul>
+              <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
+                假设每天浏览 50 个页面，每个页面平均 1000 tokens：
+              </p>
+              <p className="text-sm text-blue-600 dark:text-blue-400">
+                约 $0.23 / 月
+              </p>
+            </div>
+          ) : null}
+          
+          <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+            💡 实际成本会根据页面内容长度、访问频率等因素有所不同
           </p>
-          <ul className="mt-2 space-y-1 text-sm text-gray-600 dark:text-gray-400">
-            <li>• OpenAI: 约 $0.50 / 月</li>
-            <li>• Anthropic: 约 $0.75 / 月</li>
-            <li>• DeepSeek: 约 $0.20 / 月</li>
-          </ul>
         </div>
       )}
     </div>

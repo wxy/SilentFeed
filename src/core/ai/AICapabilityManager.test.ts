@@ -157,15 +157,15 @@ describe("AICapabilityManager", () => {
           model: "deepseek-chat",
           timestamp: Date.now(),
           tokensUsed: { prompt: 100, completion: 50, total: 150 },
-          cost: 0.000021
+          cost: 0.000191 // 新的 DeepSeek 价格（10% 缓存命中率）
         }
       }
       
       manager["recordUsage"](result)
       
-      // 实际日志格式: "[AI管理器] 成本: $0.000021 (150 tokens)"
+      // 实际日志格式: "[AI管理器] 成本: ¥0.000191 (150 tokens)"
       expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining("[AI管理器] 成本: $0.000021")
+        expect.stringContaining("[AI管理器] 成本: ¥0.000191")
       )
     })
   })

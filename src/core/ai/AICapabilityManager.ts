@@ -11,7 +11,6 @@
 
 import type { AIProvider, UnifiedAnalysisResult, AnalyzeOptions } from "./types"
 import { DeepSeekProvider } from "./providers/DeepSeekProvider"
-import { DeepSeekReasonerProvider } from "./providers/DeepSeekReasonerProvider"
 import { FallbackKeywordProvider } from "./providers/FallbackKeywordProvider"
 import { getAIConfig, type AIProviderType } from "@/storage/ai-config"
 
@@ -31,7 +30,7 @@ export class AICapabilityManager {
       const config = await getAIConfig()
       
       if (!config.enabled || !config.provider) {
-        console.log("[AI管理器] AI 未配置，使用关键词分析")
+        console.log("[AICapabilityManager] AI not configured, using keyword analysis")
         this.primaryProvider = null
         return
       }
@@ -42,10 +41,10 @@ export class AICapabilityManager {
       // 检查可用性
       const available = await this.primaryProvider.isAvailable()
       if (!available) {
-        console.warn("[AI管理器] 主 Provider 不可用，将使用关键词分析")
+        console.warn("[AICapabilityManager] Primary provider not available, will use fallback")
       }
     } catch (error) {
-      console.error("[AI管理器] 初始化失败:", error)
+      console.error("[AICapabilityManager] Initialization failed:", error)
       this.primaryProvider = null
     }
   }
@@ -64,7 +63,7 @@ export class AICapabilityManager {
       try {
         const available = await this.primaryProvider.isAvailable()
         if (available) {
-          console.log(`[AI管理器] 使用主 Provider: ${this.primaryProvider.name}`)
+          console.log(`[AICapabilityManager] Using primary provider: ${this.primaryProvider.name}`)
           const result = await this.primaryProvider.analyzeContent(content, options)
           
           // 记录使用情况
@@ -72,15 +71,15 @@ export class AICapabilityManager {
           
           return result
         } else {
-          console.warn("[AI管理器] 主 Provider 不可用，使用关键词分析")
+          console.warn("[AICapabilityManager] Primary provider not available, using fallback")
         }
       } catch (error) {
-        console.error("[AI管理器] 主 Provider 失败，使用关键词分析:", error)
+        console.error("[AICapabilityManager] Primary provider failed, using fallback:", error)
       }
     }
     
     // 2. 降级到关键词分析
-    console.log("[AI管理器] 使用备用方案: 关键词分析")
+    console.log("[AICapabilityManager] Using fallback provider: Keyword Analysis")
     return await this.fallbackProvider.analyzeContent(content, options)
   }
   
@@ -117,9 +116,6 @@ export class AICapabilityManager {
       case "deepseek":
         return new DeepSeekProvider({ apiKey })
       
-      case "deepseek-reasoner":
-        return new DeepSeekReasonerProvider({ apiKey })
-      
       case "openai":
         // TODO: 实现 OpenAIProvider (Sprint 6)
         throw new Error("OpenAI provider not implemented yet")
@@ -143,12 +139,12 @@ export class AICapabilityManager {
       // TODO: Sprint 5 - 持久化成本追踪
       if (metadata.cost) {
         console.log(
-          `[AI管理器] 成本: $${metadata.cost.toFixed(6)} ` +
+          `[AI管理器] 成本: ¥${metadata.cost.toFixed(6)} ` +
           `(${metadata.tokensUsed?.total} tokens)`
         )
       }
     } catch (error) {
-      console.error("[AI管理器] 记录使用情况失败:", error)
+      console.error("[AICapabilityManager] Failed to record usage:", error)
     }
   }
 }

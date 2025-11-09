@@ -115,7 +115,8 @@ describe("DeepSeekReasonerProvider", () => {
       expect(result.topicProbabilities["开源"]).toBeCloseTo(0.2, 5)
       expect(result.topicProbabilities["教程"]).toBeCloseTo(0.1, 5)
       
-      expect(result.metadata.provider).toBe("deepseek-reasoner")
+      // Provider 应该是 "deepseek"（模型是 "deepseek-reasoner"）
+      expect(result.metadata.provider).toBe("deepseek")
       expect(result.metadata.model).toBe("deepseek-reasoner")
       expect(result.metadata.tokensUsed?.total).toBe(150)
       expect(result.metadata.cost).toBeGreaterThan(0)
@@ -171,11 +172,11 @@ describe("DeepSeekReasonerProvider", () => {
       
       const result = await provider.analyzeContent("测试")
       
-      // DeepSeek Reasoner: ¥1/M input + ¥2/M output
-      // 100 input tokens = 0.0001 CNY
-      // 50 output tokens = 0.0001 CNY
-      // Total = 0.0002 CNY
-      expect(result.metadata.cost).toBeCloseTo(0.0002, 6)
+      // DeepSeek Reasoner 新价格（10% 缓存命中率）:
+      // 输入: 100 tokens * (0.1 * 0.1 + 0.9 * 1.0) / 1M = ¥0.000091
+      // 输出: 50 tokens * 2.0 / 1M = ¥0.000100
+      // 总计: ¥0.000191
+      expect(result.metadata.cost).toBeCloseTo(0.000191, 6)
     })
     
     it("应该使用 deepseek-reasoner 模型", async () => {

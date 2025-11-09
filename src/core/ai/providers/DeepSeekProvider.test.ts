@@ -195,9 +195,11 @@ describe("DeepSeekProvider", () => {
       
       const result = await provider.analyzeContent("测试")
       
-      // DeepSeek: $0.14 per 1M tokens
-      // 150 tokens = 0.000021 USD
-      expect(result.metadata.cost).toBeCloseTo(0.000021, 6)
+      // DeepSeek 新价格（10% 缓存命中率）:
+      // 输入: 100 tokens * (0.1 * 0.1 + 0.9 * 1.0) / 1M = ¥0.000091
+      // 输出: 50 tokens * 2.0 / 1M = ¥0.000100
+      // 总计: ¥0.000191
+      expect(result.metadata.cost).toBeCloseTo(0.000191, 6)
     })
   })
 })

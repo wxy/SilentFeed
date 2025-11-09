@@ -5,8 +5,10 @@
  * 
  * 特点：
  * - 国内访问友好
- * - 最便宜：$0.14/1M tokens
+ * - 价格低：¥1/M 输入（缓存未命中）、¥0.1/M 输入（缓存命中）、¥2/M 输出
  * - OpenAI 兼容接口
+ * 
+ * 注：本实现假设 10% 缓存命中率进行成本估算
  */
 
 import type {
@@ -26,8 +28,10 @@ export class DeepSeekProvider implements AIProvider {
   private endpoint = "https://api.deepseek.com/v1/chat/completions"
   private model = "deepseek-chat"
   
-  // 定价（每 1M tokens）
-  private readonly PRICE_PER_MILLION_TOKENS = 0.14
+  // 定价（每 1M tokens，人民币）
+  private readonly PRICE_INPUT_CACHED = 0.1 // ¥0.1/M (缓存命中)
+  private readonly PRICE_INPUT_UNCACHED = 1.0 // ¥1/M (缓存未命中)
+  private readonly PRICE_OUTPUT = 2.0 // ¥2/M
   
   constructor(config: AIProviderConfig) {
     this.config = config
@@ -86,7 +90,10 @@ export class DeepSeekProvider implements AIProvider {
       const analysis = this.parseResponse(response)
       
       // 5. 计算成本
-      const cost = this.calculateCost(response.usage.total_tokens)
+      const cost = this.calculateCost(
+        response.usage.prompt_tokens,
+        response.usage.completion_tokens
+      )
       
       // 6. 返回统一格式
       return {
@@ -300,9 +307,15 @@ ${content}
   }
   
   /**
-   * 计算成本
+   * 计算成本（考虑缓存，假设 10% 缓存命中率）
    */
-  private calculateCost(totalTokens: number): number {
-    return (totalTokens / 1_000_000) * this.PRICE_PER_MILLION_TOKENS
+  private calculateCost(promptTokens: number, completionTokens: number): number {
+    const cacheHitRate = 0.1 // 假设 10% 缓存命中率
+    
+    const inputCostCached = (promptTokens * cacheHitRate / 1_000_000) * this.PRICE_INPUT_CACHED
+    const inputCostUncached = (promptTokens * (1 - cacheHitRate) / 1_000_000) * this.PRICE_INPUT_UNCACHED
+    const outputCost = (completionTokens / 1_000_000) * this.PRICE_OUTPUT
+    
+    return inputCostCached + inputCostUncached + outputCost
   }
 }

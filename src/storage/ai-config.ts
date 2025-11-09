@@ -7,7 +7,7 @@
  * 3. 提供类型安全的接口
  */
 
-export type AIProviderType = "openai" | "anthropic" | "deepseek" | "deepseek-reasoner"
+export type AIProviderType = "openai" | "anthropic" | "deepseek"
 
 /**
  * AI 配置数据结构
@@ -173,7 +173,6 @@ export function validateApiKey(
       return apiKey.startsWith("sk-ant-")
     
     case "deepseek":
-    case "deepseek-reasoner":
       // DeepSeek API Key 没有固定前缀，只检查长度
       return apiKey.length > 20
     
@@ -193,8 +192,6 @@ export function getProviderDisplayName(provider: AIProviderType | null): string 
       return "Anthropic (Claude-3-Haiku)"
     case "deepseek":
       return "DeepSeek"
-    case "deepseek-reasoner":
-      return "DeepSeek Reasoner"
     default:
       return "未配置"
   }
@@ -210,7 +207,6 @@ export function getProviderEndpoint(provider: AIProviderType): string {
     case "anthropic":
       return "https://api.anthropic.com/v1/messages"
     case "deepseek":
-    case "deepseek-reasoner":
       return "https://api.deepseek.com/v1/chat/completions"
     default:
       throw new Error(`Unknown provider: ${provider}`)
@@ -228,8 +224,6 @@ export function getProviderModel(provider: AIProviderType): string {
       return "claude-3-haiku-20240307"
     case "deepseek":
       return "deepseek-chat"
-    case "deepseek-reasoner":
-      return "deepseek-reasoner"
     default:
       throw new Error(`Unknown provider: ${provider}`)
   }

@@ -63,11 +63,12 @@ describe("AIConfig", () => {
       const select = screen.getByLabelText("AI 提供商")
       expect(select).toBeInTheDocument()
       
-      // 检查选项
+      // 检查选项（现在有两个 DeepSeek 选项）
       expect(screen.getByRole("option", { name: /未配置/ })).toBeInTheDocument()
       expect(screen.getByRole("option", { name: /OpenAI/ })).toBeInTheDocument()
       expect(screen.getByRole("option", { name: /Anthropic/ })).toBeInTheDocument()
-      expect(screen.getByRole("option", { name: /DeepSeek/ })).toBeInTheDocument()
+      expect(screen.getByRole("option", { name: /DeepSeek Chat/ })).toBeInTheDocument()
+      expect(screen.getByRole("option", { name: /DeepSeek Reasoner/ })).toBeInTheDocument()
     })
   })
   
@@ -327,7 +328,8 @@ describe("AIConfig", () => {
       fireEvent.change(select, { target: { value: "openai" } })
       
       expect(screen.getByText(/成本参考/)).toBeInTheDocument()
-      expect(screen.getByText(/OpenAI: 约/)).toBeInTheDocument()
+      // 新的文案格式
+      expect(screen.getByText(/OpenAI GPT-4o-mini/)).toBeInTheDocument()
     })
   })
 })

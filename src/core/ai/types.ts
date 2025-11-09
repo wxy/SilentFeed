@@ -39,7 +39,7 @@ export interface UnifiedAnalysisResult {
    */
   metadata: {
     /** 提供商名称 */
-    provider: "openai" | "anthropic" | "deepseek" | "deepseek-reasoner" | "keyword"
+    provider: "openai" | "anthropic" | "deepseek" | "keyword"
     
     /** 使用的模型 */
     model: string
