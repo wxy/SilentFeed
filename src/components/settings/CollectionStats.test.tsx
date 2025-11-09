@@ -27,6 +27,7 @@ vi.mock("@/i18n/helpers", () => ({
 vi.mock("@/storage/db", () => ({
   getStorageStats: vi.fn(),
   getAnalysisStats: vi.fn(),
+  getAIAnalysisStats: vi.fn(),
   db: {
     pendingVisits: { clear: vi.fn() },
     confirmedVisits: { clear: vi.fn() },
@@ -68,11 +69,12 @@ vi.mock("@/debug/AnalysisDebugger", () => ({
 }))
 
 // Import mocked modules
-import { getStorageStats, getAnalysisStats } from "@/storage/db"
+import { getStorageStats, getAnalysisStats, getAIAnalysisStats } from "@/storage/db"
 import { dataMigrator } from "@/core/migrator/DataMigrator"
 
 const mockGetStorageStats = vi.mocked(getStorageStats)
 const mockGetAnalysisStats = vi.mocked(getAnalysisStats)
+const mockGetAIAnalysisStats = vi.mocked(getAIAnalysisStats)
 const mockDataMigrator = vi.mocked(dataMigrator)
 
 describe("CollectionStats 组件", () => {
@@ -84,6 +86,20 @@ describe("CollectionStats 组件", () => {
       visitesWithoutAnalysis: 0,
       analysisCompleteness: 0,
     })
+    
+    // Mock AI 分析统计
+    mockGetAIAnalysisStats.mockResolvedValue({
+      totalPages: 0,
+      aiAnalyzedPages: 0,
+      keywordAnalyzedPages: 0,
+      aiPercentage: 0,
+      providerDistribution: [],
+      totalCostUSD: 0,
+      totalCostCNY: 0,
+      totalTokens: 0,
+      avgCostPerPage: 0,
+      primaryCurrency: null
+    })
   })
 
   describe("加载状态", () => {
@@ -92,6 +108,9 @@ describe("CollectionStats 组件", () => {
         () => new Promise(() => {}) // 永不resolve
       )
       mockGetAnalysisStats.mockImplementation(
+        () => new Promise(() => {}) // 永不resolve
+      )
+      mockGetAIAnalysisStats.mockImplementation(
         () => new Promise(() => {}) // 永不resolve
       )
 

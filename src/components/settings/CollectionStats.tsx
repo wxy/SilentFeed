@@ -376,13 +376,25 @@ export function CollectionStats() {
               累计费用
             </div>
             <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">
-              {aiQualityStats && aiQualityStats.totalCost > 0 
-                ? `$${aiQualityStats.totalCost.toFixed(4)}`
-                : '$0'}
+              {aiQualityStats ? (
+                <div className="space-y-0.5">
+                  {aiQualityStats.totalCostUSD > 0 && (
+                    <div>${aiQualityStats.totalCostUSD.toFixed(4)}</div>
+                  )}
+                  {aiQualityStats.totalCostCNY > 0 && (
+                    <div className={aiQualityStats.totalCostUSD > 0 ? 'text-lg' : ''}>
+                      ¥{aiQualityStats.totalCostCNY.toFixed(4)}
+                    </div>
+                  )}
+                  {aiQualityStats.totalCostUSD === 0 && aiQualityStats.totalCostCNY === 0 && (
+                    <div>$0</div>
+                  )}
+                </div>
+              ) : '$0'}
             </div>
             <div className="text-xs text-purple-600 dark:text-purple-400 mt-1">
-              {aiQualityStats && aiQualityStats.aiAnalyzedPages > 0
-                ? `均 $${aiQualityStats.avgCostPerPage.toFixed(6)}/页`
+              {aiQualityStats && aiQualityStats.aiAnalyzedPages > 0 && aiQualityStats.primaryCurrency
+                ? `均 ${aiQualityStats.primaryCurrency === 'CNY' ? '¥' : '$'}${aiQualityStats.avgCostPerPage.toFixed(6)}/页`
                 : '暂无消费'}
             </div>
           </div>

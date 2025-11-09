@@ -554,9 +554,11 @@ export async function getAIAnalysisStats(): Promise<{
   keywordAnalyzedPages: number
   aiPercentage: number
   providerDistribution: Array<{ provider: string; count: number; percentage: number }>
-  totalCost: number
+  totalCostUSD: number
+  totalCostCNY: number
   totalTokens: number
   avgCostPerPage: number
+  primaryCurrency: 'USD' | 'CNY' | null
 }> {
   const confirmedVisits = await db.confirmedVisits.toArray()
   
@@ -590,17 +592,33 @@ export async function getAIAnalysisStats(): Promise<{
     }))
     .sort((a, b) => b.count - a.count)
 
-  // 成本统计
-  let totalCost = 0
+  // 成本统计（分货币）
+  let totalCostUSD = 0
+  let totalCostCNY = 0
   let totalTokens = 0
+  let currencyCount = { USD: 0, CNY: 0 }
+  
   aiPages.forEach(visit => {
-    if (visit.analysis.aiAnalysis?.cost) {
-      totalCost += visit.analysis.aiAnalysis.cost
+    const aiAnalysis = visit.analysis.aiAnalysis
+    if (aiAnalysis?.cost) {
+      const currency = aiAnalysis.currency || 'USD' // 默认美元
+      if (currency === 'CNY') {
+        totalCostCNY += aiAnalysis.cost
+        currencyCount.CNY++
+      } else {
+        totalCostUSD += aiAnalysis.cost
+        currencyCount.USD++
+      }
     }
-    if (visit.analysis.aiAnalysis?.tokensUsed) {
-      totalTokens += visit.analysis.aiAnalysis.tokensUsed.total
+    if (aiAnalysis?.tokensUsed) {
+      totalTokens += aiAnalysis.tokensUsed.total
     }
   })
+
+  // 确定主要货币（用于显示平均成本）
+  const primaryCurrency = currencyCount.CNY > currencyCount.USD ? 'CNY' : 
+                         currencyCount.USD > 0 ? 'USD' : null
+  const primaryCost = primaryCurrency === 'CNY' ? totalCostCNY : totalCostUSD
 
   return {
     totalPages: analyzedVisits.length,
@@ -608,9 +626,11 @@ export async function getAIAnalysisStats(): Promise<{
     keywordAnalyzedPages: keywordPages.length,
     aiPercentage: analyzedVisits.length > 0 ? (aiPages.length / analyzedVisits.length) * 100 : 0,
     providerDistribution,
-    totalCost,
+    totalCostUSD,
+    totalCostCNY,
     totalTokens,
-    avgCostPerPage: aiPages.length > 0 ? totalCost / aiPages.length : 0
+    avgCostPerPage: aiPages.length > 0 ? primaryCost / aiPages.length : 0,
+    primaryCurrency
   }
 }
 

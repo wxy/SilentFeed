@@ -243,6 +243,7 @@ async function analyzePageContent() {
         model: aiResult.metadata.model,
         timestamp: aiResult.metadata.timestamp,
         cost: aiResult.metadata.cost,
+        currency: aiResult.metadata.provider === 'deepseek' ? 'CNY' : 'USD', // DeepSeek 使用人民币
         tokensUsed: aiResult.metadata.tokensUsed
       }
       
