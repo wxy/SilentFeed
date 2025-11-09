@@ -7,6 +7,7 @@ import {
   type AIProviderType,
   type AIConfig as AIConfigData
 } from "@/storage/ai-config"
+import { aiManager } from "@/core/ai/AICapabilityManager"
 
 /**
  * AI 配置组件
@@ -139,21 +140,37 @@ export function AIConfig() {
     setTestResult(null)
     
     try {
-      // TODO: 实际测试 API 连接
-      // 现在只是简单验证格式
+      // 1. 先验证格式
       const isValid = validateApiKey(provider, apiKey)
-      
-      if (isValid) {
-        setTestResult({
-          success: true,
-          message: "API Key 格式正确（实际连接测试将在 Sprint 2 实现）"
-        })
-      } else {
+      if (!isValid) {
         setTestResult({
           success: false,
           message: "API Key 格式不正确"
         })
+        setTesting(false)
+        return
       }
+      
+      // 2. 保存配置（以便 aiManager 可以读取）
+      await saveAIConfig({
+        provider,
+        apiKey: apiKey.trim(),
+        enabled: true,
+        monthlyBudget
+      })
+      
+      // 3. 重新初始化 aiManager
+      await aiManager.initialize()
+      
+      // 4. 测试真实连接
+      const result = await aiManager.testConnection()
+      
+      setTestResult({
+        success: result.success,
+        message: result.latency 
+          ? `${result.message}（延迟: ${result.latency}ms）`
+          : result.message
+      })
     } catch (error) {
       setTestResult({
         success: false,

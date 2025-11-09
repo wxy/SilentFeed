@@ -11,6 +11,14 @@ vi.mock("@/storage/ai-config", () => ({
   AIProviderType: {} as any
 }))
 
+// Mock aiManager
+vi.mock("@/core/ai/AICapabilityManager", () => ({
+  aiManager: {
+    initialize: vi.fn(),
+    testConnection: vi.fn()
+  }
+}))
+
 describe("AIConfig", () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -154,6 +162,17 @@ describe("AIConfig", () => {
   
   describe("测试连接", () => {
     it("应该验证 OpenAI API Key 格式", async () => {
+      const { aiManager } = await import("@/core/ai/AICapabilityManager")
+      
+      // Mock 成功的连接测试
+      vi.mocked(aiManager.initialize).mockResolvedValue(undefined)
+      vi.mocked(aiManager.testConnection).mockResolvedValue({
+        success: true,
+        message: "连接成功！OpenAI API 正常工作",
+        latency: 123
+      })
+      vi.mocked(aiConfigModule.validateApiKey).mockReturnValue(true)
+      
       render(<AIConfig />)
       
       // 选择 OpenAI
@@ -168,13 +187,24 @@ describe("AIConfig", () => {
       const testButton = screen.getByText("测试连接")
       fireEvent.click(testButton)
       
-      // 应该显示格式正确
+      // 应该显示连接成功
       await waitFor(() => {
-        expect(screen.getByText(/API Key 格式正确/)).toBeInTheDocument()
+        expect(screen.getByText(/连接成功/)).toBeInTheDocument()
+        expect(screen.getByText(/延迟: 123ms/)).toBeInTheDocument()
       })
     })
     
     it("应该验证 Anthropic API Key 格式", async () => {
+      const { aiManager } = await import("@/core/ai/AICapabilityManager")
+      
+      vi.mocked(aiManager.initialize).mockResolvedValue(undefined)
+      vi.mocked(aiManager.testConnection).mockResolvedValue({
+        success: true,
+        message: "连接成功！Anthropic API 正常工作",
+        latency: 234
+      })
+      vi.mocked(aiConfigModule.validateApiKey).mockReturnValue(true)
+      
       render(<AIConfig />)
       
       // 选择 Anthropic
@@ -189,9 +219,9 @@ describe("AIConfig", () => {
       const testButton = screen.getByText("测试连接")
       fireEvent.click(testButton)
       
-      // 应该显示格式正确
+      // 应该显示连接成功
       await waitFor(() => {
-        expect(screen.getByText(/API Key 格式正确/)).toBeInTheDocument()
+        expect(screen.getByText(/连接成功/)).toBeInTheDocument()
       })
     })
     
