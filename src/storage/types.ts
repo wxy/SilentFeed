@@ -52,6 +52,20 @@ export interface AnalysisResult {
   keywords: string[]            // Top 20 关键词（TF-IDF）
   topics: string[]              // 主题标签
   language: 'zh' | 'en' | 'other' // 语言（扩展支持 other）
+  
+  // Phase 4: AI 分析结果（可选）
+  aiAnalysis?: {
+    topics: Record<string, number>  // 主题概率分布 {"技术": 0.7, "设计": 0.3}
+    provider: 'deepseek' | 'keyword' | 'openai' | 'anthropic' // AI 提供商
+    model: string                   // 模型名称
+    timestamp: number               // 分析时间戳
+    cost?: number                   // 分析成本（美元）
+    tokensUsed?: {                  // Token 使用量
+      prompt: number
+      completion: number
+      total: number
+    }
+  }
 }
 
 /**

@@ -23,6 +23,8 @@ import { DwellTimeCalculator, type InteractionType } from "~core/tracker/DwellTi
 import { contentExtractor } from "~core/extractor"
 import { TextAnalyzer } from "~core/analyzer"
 import { logger } from "~utils/logger"
+import { aiManager } from "~core/ai/AICapabilityManager"
+import { extractKeywordsFromTopics, detectLanguage } from "~core/ai/helpers"
 
 // 配置：注入到所有 HTTP/HTTPS 页面
 export const config: PlasmoCSConfig = {
@@ -59,8 +61,10 @@ const CHECK_INTERVAL_MS = 5000
 let calculator: DwellTimeCalculator
 let isRecorded = false // 防止重复记录
 let checkTimer: number | null = null // 定时检查的计时器
+let urlCheckTimer: number | null = null // URL 轮询定时器
 let eventListeners: Array<{ element: EventTarget; event: string; handler: EventListener }> = [] // 追踪所有事件监听器
 let isContextValid = true // 扩展上下文是否有效（热重载检测）
+let currentUrl = window.location.href // 当前 URL（用于检测 SPA 导航）
 
 // ==================== 扩展上下文检测 ====================
 
@@ -173,8 +177,6 @@ async function analyzePageContent() {
       }
     }
     
-    const analyzer = new TextAnalyzer()
-    
     // 合并标题、描述和内容进行分析，优化权重分配
     let fullText = ''
     if (extracted.title) {
@@ -194,17 +196,76 @@ async function analyzePageContent() {
       总计: fullText.length
     })
     
-    // 提取关键词，增加数量
-    const keywords = analyzer.extractKeywords(fullText, { topK: 30, minWordLength: 2 })
-      .map(kw => kw.word) // 只取词汇，不要权重
+    // Sprint 3: 尝试使用 AI 分析内容
+    let keywords: string[] = []
+    let topics: string[] = []
+    let language = extracted.language
+    let aiAnalysis: any = undefined
     
-    // 改进的主题分类
-    const topics = classifyTopics(keywords)
+    try {
+      // 初始化 AI 管理器
+      await aiManager.initialize()
+      
+      // 检测语言（AI helpers 提供更准确的检测）
+      const detectedLang = detectLanguage(fullText)
+      language = detectedLang === 'zh' || detectedLang === 'en' ? detectedLang : 'other'
+      
+      // 调用 AI 分析
+      const aiResult = await aiManager.analyzeContent(fullText)
+      
+      logger.debug('🤖 [PageTracker] AI 分析完成', {
+        provider: aiResult.metadata.provider,
+        model: aiResult.metadata.model,
+        主题分布: aiResult.topicProbabilities,
+        主题数量: Object.keys(aiResult.topicProbabilities).length,
+        cost: aiResult.metadata.cost
+      })
+      
+      // 从 AI 主题概率提取关键词（向后兼容）
+      keywords = extractKeywordsFromTopics(aiResult.topicProbabilities, 0.05)
+        .slice(0, 20) // 保留前 20 个
+      
+      // 从 AI 主题概率提取主题列表
+      topics = Object.entries(aiResult.topicProbabilities)
+        .filter(([_, prob]) => prob > 0.1) // 过滤低概率主题
+        .map(([topic, _]) => topic)
+      
+      // 如果没有检测到主题，使用 'other'
+      if (topics.length === 0) {
+        topics = ['other']
+      }
+      
+      // 构建 AI 分析元数据
+      aiAnalysis = {
+        topics: aiResult.topicProbabilities,
+        provider: aiResult.metadata.provider,
+        model: aiResult.metadata.model,
+        timestamp: aiResult.metadata.timestamp,
+        cost: aiResult.metadata.cost,
+        tokensUsed: aiResult.metadata.tokensUsed
+      }
+      
+    } catch (aiError) {
+      // AI 分析失败，回退到关键词分析
+      logger.debug('⚠️ [PageTracker] AI 分析失败，使用关键词 fallback', aiError)
+      
+      const analyzer = new TextAnalyzer()
+      
+      // 提取关键词，增加数量
+      keywords = analyzer.extractKeywords(fullText, { topK: 30, minWordLength: 2 })
+        .map(kw => kw.word) // 只取词汇，不要权重
+      
+      // 改进的主题分类
+      topics = classifyTopics(keywords)
+      
+      keywords = keywords.slice(0, 20) // 保留前20个
+    }
     
     return {
-      keywords: keywords.slice(0, 20), // 保留前20个
+      keywords,
       topics,
-      language: extracted.language,
+      language,
+      aiAnalysis, // Sprint 3: 新增 AI 分析结果
     }
   } catch (error) {
     logger.debug('⚠️ [PageTracker] 内容分析失败', error)
@@ -408,8 +469,9 @@ async function recordPageVisit(): Promise<void> {
       isRecorded = true
       logger.info('✅ [PageTracker] 页面访问已记录到数据库（通过 Background）')
       
-      // 记录成功后立即清理
-      cleanup()
+      // ⚠️ 不要在这里清理！
+      // SPA 页面可能会继续导航到其他页面
+      // 只在页面真正卸载时才清理（由 beforeunload/pagehide 处理）
     } else {
       throw new Error(response?.error || '未知错误')
     }
@@ -449,8 +511,10 @@ function checkThreshold(): void {
 function cleanup(): void {
   logger.debug('🧹 [PageTracker] 清理资源')
   
-  // 停止 DwellTimeCalculator
-  calculator.stop()
+  // 停止 DwellTimeCalculator（只在未停止时调用）
+  if (calculator && !calculator['isStopped']) {
+    calculator.stop()
+  }
   
   // 停止定时检查
   if (checkTimer) {
@@ -458,9 +522,19 @@ function cleanup(): void {
     checkTimer = null
   }
   
+  // 停止 URL 轮询
+  if (urlCheckTimer) {
+    clearInterval(urlCheckTimer)
+    urlCheckTimer = null
+  }
+  
   // 移除所有事件监听器
   eventListeners.forEach(({ element, event, handler }) => {
-    element.removeEventListener(event, handler)
+    try {
+      element.removeEventListener(event, handler)
+    } catch (error) {
+      // 忽略移除失败的情况
+    }
   })
   eventListeners = []
 }
@@ -511,18 +585,174 @@ function startThresholdChecking(): void {
  * 页面卸载时保存数据
  */
 function setupUnloadListener(): void {
-  const handler = () => {
+  // beforeunload: 页面即将卸载（可能被阻止）
+  const beforeUnloadHandler = () => {
     const dwellTime = calculator.getEffectiveDwellTime()
     
-    // 如果达到阈值但还没记录，尝试记录（可能失败）
     if (dwellTime >= THRESHOLD_SECONDS && !isRecorded) {
-      logger.debug('⚡ [PageTracker] 页面卸载前记录')
+      logger.info('⚡ [PageTracker] beforeunload - 页面卸载前尝试记录')
       recordPageVisit()
+    }
+    
+    // 清理资源
+    cleanup()
+  }
+  
+  // pagehide: 页面隐藏（更可靠，移动端友好）
+  const pageHideHandler = () => {
+    const dwellTime = calculator.getEffectiveDwellTime()
+    
+    if (dwellTime >= THRESHOLD_SECONDS && !isRecorded) {
+      logger.info('⚡ [PageTracker] pagehide - 页面隐藏前尝试记录')
+      recordPageVisit()
+    }
+    
+    // 清理资源
+    cleanup()
+  }
+  
+  // visibilitychange: 页面变为隐藏状态
+  const visibilityHandler = () => {
+    if (document.visibilityState === 'hidden') {
+      const dwellTime = calculator.getEffectiveDwellTime()
+      
+      if (dwellTime >= THRESHOLD_SECONDS && !isRecorded) {
+        logger.info('⚡ [PageTracker] visibilitychange - 页面隐藏前尝试记录')
+        recordPageVisit()
+      }
+      
+      // 注意：visibilitychange 不一定是页面卸载，可能只是切换标签页
+      // 所以这里不清理资源
     }
   }
   
-  window.addEventListener('beforeunload', handler)
-  eventListeners.push({ element: window, event: 'beforeunload', handler })
+  window.addEventListener('beforeunload', beforeUnloadHandler)
+  window.addEventListener('pagehide', pageHideHandler)
+  document.addEventListener('visibilitychange', visibilityHandler)
+  
+  eventListeners.push({ element: window, event: 'beforeunload', handler: beforeUnloadHandler })
+  eventListeners.push({ element: window, event: 'pagehide', handler: pageHideHandler })
+  eventListeners.push({ element: document, event: 'visibilitychange', handler: visibilityHandler })
+  
+  logger.debug('🎯 [PageTracker] 页面卸载监听已设置', {
+    事件: ['beforeunload', 'pagehide', 'visibilitychange']
+  })
+}
+
+/**
+ * 监听 SPA 页面导航（URL 变化）
+ */
+function setupNavigationListener(): void {
+  logger.info('🎯 [PageTracker] 开始设置 SPA 导航监听')
+  
+  // 方案 1: 监听标准事件
+  const popstateHandler = () => {
+    logger.debug('🔄 [PageTracker] popstate 事件触发')
+    handleUrlChange()
+  }
+  window.addEventListener('popstate', popstateHandler)
+  eventListeners.push({ element: window, event: 'popstate', handler: popstateHandler })
+  
+  const hashchangeHandler = () => {
+    logger.debug('🔄 [PageTracker] hashchange 事件触发')
+    handleUrlChange()
+  }
+  window.addEventListener('hashchange', hashchangeHandler)
+  eventListeners.push({ element: window, event: 'hashchange', handler: hashchangeHandler })
+  
+  // 方案 2: 拦截 history API（可能被框架覆盖）
+  try {
+    const originalPushState = history.pushState.bind(history)
+    const originalReplaceState = history.replaceState.bind(history)
+    
+    history.pushState = function(...args) {
+      logger.debug('🔄 [PageTracker] pushState 被调用', { 
+        url: args[2],
+        当前URL: window.location.href 
+      })
+      originalPushState(...args)
+      setTimeout(() => handleUrlChange(), 0)
+    }
+    
+    history.replaceState = function(...args) {
+      logger.debug('🔄 [PageTracker] replaceState 被调用', { 
+        url: args[2],
+        当前URL: window.location.href 
+      })
+      originalReplaceState(...args)
+      setTimeout(() => handleUrlChange(), 0)
+    }
+    
+    logger.debug('✅ [PageTracker] history API 拦截成功')
+  } catch (error) {
+    logger.warn('⚠️ [PageTracker] history API 拦截失败', error)
+  }
+  
+  // 方案 3: 定期轮询 URL（兜底方案，每秒检查一次）
+  urlCheckTimer = window.setInterval(() => {
+    const newUrl = window.location.href
+    if (newUrl !== currentUrl) {
+      logger.debug('🔄 [PageTracker] URL 轮询检测到变化')
+      handleUrlChange()
+    }
+  }, 1000)
+  
+  logger.info('🎯 [PageTracker] SPA 导航监听已启动', {
+    方案: ['标准事件', 'history API 拦截', 'URL 轮询（1秒）']
+  })
+}
+
+/**
+ * 处理 URL 变化（SPA 导航）
+ */
+function handleUrlChange(): void {
+  const newUrl = window.location.href
+  
+  logger.debug('🔍 [PageTracker] handleUrlChange 被调用', {
+    当前URL: currentUrl,
+    新URL: newUrl,
+    是否相同: newUrl === currentUrl
+  })
+  
+  if (newUrl !== currentUrl) {
+    logger.info('🔄 [PageTracker] 检测到 URL 变化', {
+      旧URL: currentUrl,
+      新URL: newUrl
+    })
+    
+    // 如果当前页面达到阈值，先记录
+    const dwellTime = calculator.getEffectiveDwellTime()
+    logger.debug('📊 [PageTracker] 检查旧页面停留时间', {
+      停留时间: `${dwellTime.toFixed(1)}秒`,
+      阈值: `${THRESHOLD_SECONDS}秒`,
+      已记录: isRecorded
+    })
+    
+    if (dwellTime >= THRESHOLD_SECONDS && !isRecorded) {
+      logger.info('📝 [PageTracker] URL 变化前记录旧页面')
+      recordPageVisit()
+    }
+    
+    // 重置状态开始追踪新页面
+    resetPageTracking()
+    currentUrl = newUrl
+  }
+}
+
+/**
+ * 重置页面追踪状态（用于 SPA 导航）
+ */
+function resetPageTracking(): void {
+  // 重置 calculator
+  calculator = new DwellTimeCalculator()
+  
+  // 重置记录状态
+  isRecorded = false
+  
+  logger.info('🔄 [PageTracker] 页面追踪状态已重置', {
+    页面: document.title,
+    URL: window.location.href
+  })
 }
 
 // ==================== 初始化 ====================
@@ -531,15 +761,21 @@ function init(): void {
   // 初始化 DwellTimeCalculator
   calculator = new DwellTimeCalculator()
   
+  // 初始化当前 URL
+  currentUrl = window.location.href
+  
   logger.info('🚀 [PageTracker] 页面访问追踪已启动', {
     页面: document.title,
-    URL: window.location.href
+    URL: window.location.href,
+    时间: new Date().toLocaleTimeString(),
+    '是否刷新': performance.navigation.type === 1 ? '是' : '否'
   })
 
   // 设置监听器
   setupVisibilityListener()
   setupInteractionListeners()
   setupUnloadListener()
+  setupNavigationListener() // SPA 导航监听（对 MPA 无效但不影响）
   
   // 启动定时检查
   startThresholdChecking()

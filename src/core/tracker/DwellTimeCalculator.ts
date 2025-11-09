@@ -86,14 +86,10 @@ export class DwellTimeCalculator {
     if (this.isStopped) return // 已停止，忽略事件
     
     const now = Date.now()
-    const timeSinceLastInteraction = (now - this.lastInteractionTime) / 1000
     this.lastInteractionTime = now
     
-    logger.debug(`👆 [DwellTime] 用户交互: ${type}`, {
-      time: new Date(now).toLocaleTimeString(),
-      距上次交互: `${timeSinceLastInteraction.toFixed(1)}秒`,
-      当前有效时间: `${this.getEffectiveDwellTime().toFixed(1)}秒`
-    })
+    // 删除频繁的交互日志，只在必要时记录
+    // logger.debug(`👆 [DwellTime] 用户交互: ${type}`, ...)
     
     // 注意：不更新 lastActiveTime
     // lastActiveTime 只在 onVisibilityChange(true) 时设置
@@ -133,16 +129,8 @@ export class DwellTimeCalculator {
       effectiveTime += Math.max(0, currentSegment)
     }
     
-    // 添加调试日志（仅在超时或每 10 秒记录一次）
-    if (isTimeout || Math.floor(timeSinceLastInteraction) % 10 === 0) {
-      logger.debug('⏱️ [DwellTime] 有效停留时间', {
-        累计激活: `${this.totalActiveTime.toFixed(1)}秒`,
-        当前片段: this.isCurrentlyActive ? `${((now - this.lastActiveTime) / 1000).toFixed(1)}秒` : '页面失活',
-        有效时间: `${effectiveTime.toFixed(1)}秒`,
-        距上次交互: `${timeSinceLastInteraction.toFixed(1)}秒`,
-        状态: isTimeout ? '⚠️ 超时（30秒无交互）' : '✅ 正常'
-      })
-    }
+    // 删除频繁的停留时间日志
+    // 只在重要时刻（达到阈值、记录等）才记录
     
     return effectiveTime
   }

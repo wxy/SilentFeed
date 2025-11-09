@@ -11,7 +11,7 @@ import type {
   AnalyzeOptions
 } from "../types"
 import { TextAnalyzer } from "@/core/analyzer/TextAnalyzer"
-import { TopicClassifier } from "@/core/profile/TopicClassifier"
+import { TopicClassifier, type TopicDistribution } from "@/core/profile/TopicClassifier"
 
 export class FallbackKeywordProvider implements AIProvider {
   readonly name = "Keyword Analysis"
@@ -93,7 +93,7 @@ export class FallbackKeywordProvider implements AIProvider {
    * 转换 TopicDistribution 为 string key 格式
    */
   private convertToStringKeys(
-    distribution: Record<string, number>
+    distribution: TopicDistribution
   ): Record<string, number> {
     // TopicDistribution 已经是归一化的概率分布
     // 直接转换 key 为中文主题名即可

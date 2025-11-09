@@ -163,9 +163,9 @@ describe("AICapabilityManager", () => {
       
       manager["recordUsage"](result)
       
-      // 实际日志格式: "[AICapabilityManager] Cost: $0.000021 (150 tokens)"
+      // 实际日志格式: "[AI管理器] 成本: $0.000021 (150 tokens)"
       expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining("[AICapabilityManager] Cost: $0.000021")
+        expect.stringContaining("[AI管理器] 成本: $0.000021")
       )
     })
   })
