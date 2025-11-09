@@ -11,6 +11,7 @@
 
 import type { AIProvider, UnifiedAnalysisResult, AnalyzeOptions } from "./types"
 import { DeepSeekProvider } from "./providers/DeepSeekProvider"
+import { DeepSeekReasonerProvider } from "./providers/DeepSeekReasonerProvider"
 import { FallbackKeywordProvider } from "./providers/FallbackKeywordProvider"
 import { getAIConfig, type AIProviderType } from "@/storage/ai-config"
 
@@ -115,6 +116,9 @@ export class AICapabilityManager {
     switch (type) {
       case "deepseek":
         return new DeepSeekProvider({ apiKey })
+      
+      case "deepseek-reasoner":
+        return new DeepSeekReasonerProvider({ apiKey })
       
       case "openai":
         // TODO: 实现 OpenAIProvider (Sprint 6)
