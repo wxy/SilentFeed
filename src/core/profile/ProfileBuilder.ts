@@ -129,19 +129,139 @@ export class ProfileBuilder {
 
   /**
    * 聚合主题分布
+   * 
+   * 优先使用 AI 分析的概率云，如果没有则回退到关键词分类
    */
   private aggregateTopics(
     weightedVisits: Array<ConfirmedVisit & { timeWeight: number }>,
     keywordWeights: Map<string, number>
   ): TopicDistribution {
-    // 将关键词权重转换为 Keyword[] 格式
+    // 尝试从 AI 分析结果聚合主题概率
+    const aiBasedTopics = this.aggregateAITopics(weightedVisits)
+    
+    if (aiBasedTopics) {
+      return aiBasedTopics
+    }
+
+    // 回退到关键词分类
     const keywords = Array.from(keywordWeights.entries()).map(([word, weight]) => ({
       word,
       weight,
     }))
 
-    // 使用主题分类器进行分类
     return topicClassifier.classify(keywords)
+  }
+
+  /**
+   * 从 AI 分析结果聚合主题概率分布
+   * 
+   * 使用加权平均：每个页面的主题概率 × 时间权重 × 行为权重
+   * 
+   * @returns 聚合后的主题分布，如果没有 AI 分析则返回 null
+   */
+  private aggregateAITopics(
+    weightedVisits: Array<ConfirmedVisit & { timeWeight: number }>
+  ): TopicDistribution | null {
+    // 收集所有有 AI 分析的页面
+    const aiPages = weightedVisits.filter(visit => visit.analysis.aiAnalysis?.topics)
+    
+    if (aiPages.length === 0) {
+      return null // 没有 AI 分析数据
+    }
+
+    // 初始化主题累积权重
+    const topicWeights = new Map<string, number>()
+    let totalWeight = 0
+
+    aiPages.forEach((visit) => {
+      const behaviorWeight = this.calculateBehaviorWeight(visit.duration)
+      const pageWeight = visit.timeWeight * behaviorWeight
+      
+      const aiTopics = visit.analysis.aiAnalysis!.topics
+
+      // 累加每个主题的加权概率
+      Object.entries(aiTopics).forEach(([topic, probability]) => {
+        const current = topicWeights.get(topic) || 0
+        topicWeights.set(topic, current + probability * pageWeight)
+      })
+
+      totalWeight += pageWeight
+    })
+
+    // 归一化：确保所有概率和为 1
+    const normalized: TopicDistribution = {
+      [Topic.TECHNOLOGY]: 0,
+      [Topic.SCIENCE]: 0,
+      [Topic.BUSINESS]: 0,
+      [Topic.DESIGN]: 0,
+      [Topic.ARTS]: 0,
+      [Topic.HEALTH]: 0,
+      [Topic.SPORTS]: 0,
+      [Topic.ENTERTAINMENT]: 0,
+      [Topic.NEWS]: 0,
+      [Topic.EDUCATION]: 0,
+      [Topic.OTHER]: 0,
+    }
+
+    topicWeights.forEach((weight, topic) => {
+      // 映射 AI 返回的主题名到 Topic 枚举
+      const mappedTopic = this.mapToTopicEnum(topic)
+      normalized[mappedTopic] = weight / totalWeight
+    })
+
+    // 确保所有值非负且归一化
+    const sum = Object.values(normalized).reduce((a, b) => a + b, 0)
+    if (sum > 0) {
+      Object.keys(normalized).forEach((key) => {
+        normalized[key as Topic] /= sum
+      })
+    }
+
+    return normalized
+  }
+
+  /**
+   * 映射 AI 返回的主题名称到 Topic 枚举
+   * 
+   * AI 可能返回中文或英文主题名，需要统一映射
+   */
+  private mapToTopicEnum(aiTopic: string): Topic {
+    const topicMap: Record<string, Topic> = {
+      // 中文映射
+      '技术': Topic.TECHNOLOGY,
+      '科学': Topic.SCIENCE,
+      '商业': Topic.BUSINESS,
+      '设计': Topic.DESIGN,
+      '艺术': Topic.ARTS,
+      '健康': Topic.HEALTH,
+      '体育': Topic.SPORTS,
+      '娱乐': Topic.ENTERTAINMENT,
+      '新闻': Topic.NEWS,
+      '教育': Topic.EDUCATION,
+      
+      // 英文映射
+      'technology': Topic.TECHNOLOGY,
+      'science': Topic.SCIENCE,
+      'business': Topic.BUSINESS,
+      'design': Topic.DESIGN,
+      'arts': Topic.ARTS,
+      'health': Topic.HEALTH,
+      'sports': Topic.SPORTS,
+      'entertainment': Topic.ENTERTAINMENT,
+      'news': Topic.NEWS,
+      'education': Topic.EDUCATION,
+      
+      // 模糊匹配
+      'tech': Topic.TECHNOLOGY,
+      'sci': Topic.SCIENCE,
+      'biz': Topic.BUSINESS,
+      'art': Topic.ARTS,
+      'sport': Topic.SPORTS,
+      'edu': Topic.EDUCATION,
+    }
+
+    const normalized = aiTopic.toLowerCase().trim()
+    return topicMap[normalized] || Topic.OTHER
   }
 
   /**

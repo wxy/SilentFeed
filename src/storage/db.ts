@@ -543,6 +543,77 @@ export async function deleteUserProfile(): Promise<void> {
   await db.userProfile.delete('singleton')
 }
 
+/**
+ * 获取 AI 分析质量统计 (Phase 4 - Sprint 5.2)
+ * 
+ * 统计 AI 分析 vs 关键词分析的占比、成本等
+ */
+export async function getAIAnalysisStats(): Promise<{
+  totalPages: number
+  aiAnalyzedPages: number
+  keywordAnalyzedPages: number
+  aiPercentage: number
+  providerDistribution: Array<{ provider: string; count: number; percentage: number }>
+  totalCost: number
+  totalTokens: number
+  avgCostPerPage: number
+}> {
+  const confirmedVisits = await db.confirmedVisits.toArray()
+  
+  // 过滤有效记录（有分析数据）
+  const analyzedVisits = confirmedVisits.filter(visit => {
+    if (!visit.analysis) return false
+    if (!visit.analysis.keywords || visit.analysis.keywords.length === 0) return false
+    return true
+  })
+
+  // 统计 AI 分析的页面
+  const aiPages = analyzedVisits.filter(visit => visit.analysis.aiAnalysis)
+  const keywordPages = analyzedVisits.filter(visit => !visit.analysis.aiAnalysis)
+
+  // 提供商分布统计
+  const providerCount = new Map<string, number>()
+  aiPages.forEach(visit => {
+    const provider = visit.analysis.aiAnalysis!.provider
+    providerCount.set(provider, (providerCount.get(provider) || 0) + 1)
+  })
+
+  const providerDistribution = Array.from(providerCount.entries())
+    .map(([provider, count]) => ({
+      provider: provider === 'deepseek' ? 'DeepSeek' :
+                provider === 'openai' ? 'OpenAI' :
+                provider === 'anthropic' ? 'Anthropic' :
+                provider === 'keyword' ? '关键词' :
+                provider,
+      count,
+      percentage: (count / Math.max(aiPages.length, 1)) * 100
+    }))
+    .sort((a, b) => b.count - a.count)
+
+  // 成本统计
+  let totalCost = 0
+  let totalTokens = 0
+  aiPages.forEach(visit => {
+    if (visit.analysis.aiAnalysis?.cost) {
+      totalCost += visit.analysis.aiAnalysis.cost
+    }
+    if (visit.analysis.aiAnalysis?.tokensUsed) {
+      totalTokens += visit.analysis.aiAnalysis.tokensUsed.total
+    }
+  })
+
+  return {
+    totalPages: analyzedVisits.length,
+    aiAnalyzedPages: aiPages.length,
+    keywordAnalyzedPages: keywordPages.length,
+    aiPercentage: analyzedVisits.length > 0 ? (aiPages.length / analyzedVisits.length) * 100 : 0,
+    providerDistribution,
+    totalCost,
+    totalTokens,
+    avgCostPerPage: aiPages.length > 0 ? totalCost / aiPages.length : 0
+  }
+}
+
 // ==================== 兴趣快照操作 (Phase 3.4) ====================
 
 /**

@@ -382,4 +382,281 @@ describe("ProfileBuilder", () => {
       expect(profile.keywords.length).toBeLessThanOrEqual(5)
     })
   })
+
+  describe("AI 概率云聚合 (Phase 4)", () => {
+    it("应该使用 AI 分析的主题概率", async () => {
+      const now = Date.now()
+      const visits: ConfirmedVisit[] = [
+        {
+          id: '1',
+          url: 'https://ai.example.com/article',
+          title: 'AI 分析的文章',
+          domain: 'ai.example.com',
+          visitTime: now - 24 * 60 * 60 * 1000,
+          duration: 180,
+          interactionCount: 10,
+          analysis: {
+            keywords: ['ai', 'machine', 'learning'],
+            topics: ['technology'],
+            language: 'zh',
+            aiAnalysis: {
+              topics: {
+                '技术': 0.8,
+                '科学': 0.2
+              },
+              provider: 'deepseek',
+              model: 'deepseek-chat',
+              timestamp: now
+            }
+          },
+          meta: null,
+          contentSummary: null,
+          source: 'organic',
+          status: 'qualified',
+          contentRetainUntil: now + 90 * 24 * 60 * 60 * 1000,
+          analysisRetainUntil: -1
+        }
+      ]
+
+      const profile = await builder.buildFromVisits(visits)
+
+      // 应该优先使用 AI 概率分布
+      expect(profile.topics[Topic.TECHNOLOGY]).toBeGreaterThan(0.5)
+      expect(profile.topics[Topic.SCIENCE]).toBeGreaterThan(0)
+      expect(profile.topics[Topic.TECHNOLOGY]).toBeGreaterThan(profile.topics[Topic.SCIENCE])
+    })
+
+    it("应该正确聚合多个 AI 分析结果", async () => {
+      const now = Date.now()
+      const visits: ConfirmedVisit[] = [
+        // 技术页面 80%
+        {
+          id: '1',
+          url: 'https://tech.example.com',
+          title: '技术文章',
+          domain: 'tech.example.com',
+          visitTime: now - 24 * 60 * 60 * 1000,
+          duration: 300, // 5分钟，高权重
+          interactionCount: 20,
+          analysis: {
+            keywords: ['tech'],
+            topics: ['technology'],
+            language: 'zh',
+            aiAnalysis: {
+              topics: { '技术': 0.9, '设计': 0.1 },
+              provider: 'deepseek',
+              model: 'deepseek-chat',
+              timestamp: now
+            }
+          },
+          meta: null,
+          contentSummary: null,
+          source: 'organic',
+          status: 'qualified',
+          contentRetainUntil: now + 90 * 24 * 60 * 60 * 1000,
+          analysisRetainUntil: -1
+        },
+        // 设计页面 70%
+        {
+          id: '2',
+          url: 'https://design.example.com',
+          title: '设计文章',
+          domain: 'design.example.com',
+          visitTime: now - 12 * 60 * 60 * 1000,
+          duration: 240, // 4分钟
+          interactionCount: 15,
+          analysis: {
+            keywords: ['design'],
+            topics: ['design'],
+            language: 'zh',
+            aiAnalysis: {
+              topics: { '设计': 0.7, '艺术': 0.3 },
+              provider: 'openai',
+              model: 'gpt-4o-mini',
+              timestamp: now
+            }
+          },
+          meta: null,
+          contentSummary: null,
+          source: 'organic',
+          status: 'qualified',
+          contentRetainUntil: now + 90 * 24 * 60 * 60 * 1000,
+          analysisRetainUntil: -1
+        }
+      ]
+
+      const profile = await builder.buildFromVisits(visits)
+
+      // 应该聚合所有 AI 概率
+      expect(profile.topics[Topic.TECHNOLOGY]).toBeGreaterThan(0)
+      expect(profile.topics[Topic.DESIGN]).toBeGreaterThan(0)
+      expect(profile.topics[Topic.ARTS]).toBeGreaterThan(0)
+      
+      // 所有概率之和应该约为 1（允许浮点误差）
+      const sum = Object.values(profile.topics).reduce((a, b) => a + b, 0)
+      expect(sum).toBeCloseTo(1.0, 2)
+    })
+
+    it("AI 分析和关键词分析混合时应优先使用 AI", async () => {
+      const now = Date.now()
+      const visits: ConfirmedVisit[] = [
+        // 有 AI 分析
+        {
+          id: '1',
+          url: 'https://ai.example.com',
+          title: 'AI 文章',
+          domain: 'ai.example.com',
+          visitTime: now - 24 * 60 * 60 * 1000,
+          duration: 180,
+          interactionCount: 10,
+          analysis: {
+            keywords: ['ai'],
+            topics: ['technology'],
+            language: 'zh',
+            aiAnalysis: {
+              topics: { '技术': 1.0 },
+              provider: 'deepseek',
+              model: 'deepseek-chat',
+              timestamp: now
+            }
+          },
+          meta: null,
+          contentSummary: null,
+          source: 'organic',
+          status: 'qualified',
+          contentRetainUntil: now + 90 * 24 * 60 * 60 * 1000,
+          analysisRetainUntil: -1
+        },
+        // 仅关键词分析（应被忽略）
+        {
+          id: '2',
+          url: 'https://keyword.example.com',
+          title: '关键词文章',
+          domain: 'keyword.example.com',
+          visitTime: now - 12 * 60 * 60 * 1000,
+          duration: 180,
+          interactionCount: 10,
+          analysis: {
+            keywords: ['design', 'ui', 'interface'],
+            topics: ['design'],
+            language: 'zh'
+            // 没有 aiAnalysis
+          },
+          meta: null,
+          contentSummary: null,
+          source: 'organic',
+          status: 'qualified',
+          contentRetainUntil: now + 90 * 24 * 60 * 60 * 1000,
+          analysisRetainUntil: -1
+        }
+      ]
+
+      const profile = await builder.buildFromVisits(visits)
+
+      // 应该只使用 AI 分析的页面
+      expect(profile.topics[Topic.TECHNOLOGY]).toBeCloseTo(1.0, 1)
+      // 关键词分析的设计主题不应该出现
+      expect(profile.topics[Topic.DESIGN]).toBe(0)
+    })
+
+    it("没有 AI 分析时应回退到关键词分类", async () => {
+      const now = Date.now()
+      const visits: ConfirmedVisit[] = [
+        {
+          id: '1',
+          url: 'https://keyword.example.com',
+          title: '关键词文章',
+          domain: 'keyword.example.com',
+          visitTime: now - 24 * 60 * 60 * 1000,
+          duration: 180,
+          interactionCount: 10,
+          analysis: {
+            keywords: ['react', 'javascript', 'programming'],
+            topics: ['technology'],
+            language: 'zh'
+            // 没有 aiAnalysis
+          },
+          meta: null,
+          contentSummary: null,
+          source: 'organic',
+          status: 'qualified',
+          contentRetainUntil: now + 90 * 24 * 60 * 60 * 1000,
+          analysisRetainUntil: -1
+        }
+      ]
+
+      const profile = await builder.buildFromVisits(visits)
+
+      // 应该使用关键词分类
+      expect(profile.topics[Topic.TECHNOLOGY]).toBeGreaterThan(0)
+      expect(profile.keywords.some(kw => kw.word === 'react')).toBe(true)
+    })
+
+    it("应该正确映射中英文主题名称", async () => {
+      const now = Date.now()
+      const visits: ConfirmedVisit[] = [
+        // 中文主题
+        {
+          id: '1',
+          url: 'https://chinese.example.com',
+          title: '中文主题',
+          domain: 'chinese.example.com',
+          visitTime: now - 24 * 60 * 60 * 1000,
+          duration: 180,
+          interactionCount: 10,
+          analysis: {
+            keywords: ['test'],
+            topics: ['technology'],
+            language: 'zh',
+            aiAnalysis: {
+              topics: { '技术': 0.5, '科学': 0.5 },
+              provider: 'deepseek',
+              model: 'deepseek-chat',
+              timestamp: now
+            }
+          },
+          meta: null,
+          contentSummary: null,
+          source: 'organic',
+          status: 'qualified',
+          contentRetainUntil: now + 90 * 24 * 60 * 60 * 1000,
+          analysisRetainUntil: -1
+        },
+        // 英文主题
+        {
+          id: '2',
+          url: 'https://english.example.com',
+          title: 'English Topics',
+          domain: 'english.example.com',
+          visitTime: now - 12 * 60 * 60 * 1000,
+          duration: 180,
+          interactionCount: 10,
+          analysis: {
+            keywords: ['test'],
+            topics: ['business'],
+            language: 'en',
+            aiAnalysis: {
+              topics: { 'business': 0.6, 'technology': 0.4 },
+              provider: 'openai',
+              model: 'gpt-4o-mini',
+              timestamp: now
+            }
+          },
+          meta: null,
+          contentSummary: null,
+          source: 'organic',
+          status: 'qualified',
+          contentRetainUntil: now + 90 * 24 * 60 * 60 * 1000,
+          analysisRetainUntil: -1
+        }
+      ]
+
+      const profile = await builder.buildFromVisits(visits)
+
+      // 应该正确映射到枚举
+      expect(profile.topics[Topic.TECHNOLOGY]).toBeGreaterThan(0)
+      expect(profile.topics[Topic.SCIENCE]).toBeGreaterThan(0)
+      expect(profile.topics[Topic.BUSINESS]).toBeGreaterThan(0)
+    })
+  })
 })
