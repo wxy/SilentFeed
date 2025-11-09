@@ -528,9 +528,13 @@
 
 ---
 
-## 阶段 4: AI 能力集成 🤖 (当前阶段)
+## 阶段 4: AI 能力集成 ✅ (已完成)
 
 **目标**：建立灵活的 AI 分析能力，支持远程 API 和降级策略
+
+**完成日期**: 2025-11-09
+**版本**: v0.4.0
+**PR**: [#8](https://github.com/wxy/FeedAIMuter/pull/8)
 
 **开发原则**：
 1. ✅ **UI 优先** - 先做配置界面，能看到变化
@@ -538,319 +542,380 @@
 3. ✅ **渐进测试** - 每个功能都能立即测试
 4. ✅ **不考虑迁移** - 丢弃旧数据，重新开始
 
-**预计时间**: 10-14 天
+**实际时间**: 10 天
 
 ---
 
-### Sprint 1: UI 基础（2-3天）✨ 可见变化
+### Sprint 1: UI 基础（2-3天）✅ 已完成
 
-#### 4.1 AI 配置界面（1天）
+#### 4.1 AI 配置界面 ✅
 **文件**: `src/components/settings/AIConfig.tsx`
 
+**验收标准**:
+- ✅ 能看到 AI 配置界面
+- ✅ 能选择 AI 提供商
+- ✅ 能输入和保存 API Key
+- ✅ 测试连接按钮正常工作
+- ✅ 数据加密存储
+
+#### 4.2 AI 状态卡片 ✅
+**文件**: `src/components/settings/CollectionStats.tsx`
+
+**验收标准**:
+- ✅ 能看到 AI 状态卡片
+- ✅ 显示当前提供商和连接状态
+- ✅ 显示使用统计
+
+---
+
+### Sprint 2-4: AI 集成 ✅ 已完成
+
+- ✅ OpenAI Provider
+- ✅ Anthropic Provider  
+- ✅ DeepSeek Provider
+- ✅ AICapabilityManager
+- ✅ 集成到 page-tracker
+
+---
+
+### Sprint 5-6: 画像升级与成本控制 ✅ 已完成
+
+- ✅ ProfileBuilder AI 概率云
+- ✅ 多货币成本追踪（USD/CNY）
+- ✅ AI 质量统计 UI
+- ✅ 兴趣演化历程优化
+- ✅ UI 布局重构
+
+---
+
+### Phase 4 完成总结
+
+**完成功能**:
+- ✅ 3 个 AI Provider（OpenAI/Anthropic/DeepSeek）
+- ✅ 智能降级机制
+- ✅ AI 配置和状态 UI
+- ✅ 成本追踪（支持 USD/CNY）
+- ✅ 用户画像 AI 增强
+
+**技术指标**:
+- ✅ 测试覆盖: 464/464 通过
+- ✅ 构建成功
+- ✅ 所有 Sprint 完成
+
+**文档**:
+- ✅ PR #8 已创建
+- ✅ 开发计划已更新
+
+---
+
+## 阶段 5: RSS 自动发现与智能订阅 🎯 (当前阶段)
+
+**目标**: 建立智能 RSS 发现和订阅系统
+
+**核心理念**: "静默发现 + 智能筛选 + 用户决策"
+- 🔒 **隐私优先** - 只分析本地数据
+- 🎯 **质量优先** - 先验证质量和相关性
+- 👤 **用户控制** - 最终决策权在用户
+
+**预计时间**: 6-8 天
+
+---
+
+### 设计原则
+
+#### RSS 来源策略
+1. **手动管理** - 用户主动添加/OPML 导入（基础功能）
+2. **自动发现** - 从浏览页面静默发现 RSS（核心功能）
+3. **AI 推荐** - 基于用户画像主动推荐（可选功能，Phase 6）
+
+#### 三层架构
+
+```
+第一层：自动发现（静默）
+用户浏览页面 → 检测 RSS → 添加到候选池 → 试探性抓取
+
+第二层：智能筛选  
+候选源 → 质量检查 → 相关性分析 → 晋升为推荐源
+
+第三层：用户决策
+推荐源 → 非侵入式提示 → 用户选择订阅/忽略/稍后
+```
+
+---
+
+### Sprint 1: RSS 检测基础（2天）📡 基础设施
+
+#### 5.1 RSS 检测器
+**文件**: `src/contents/rss-detector.ts`
+
 **功能**:
-- 设置页面新增 "AI 配置" 标签
-- 远程 API 配置表单（OpenAI/Anthropic/DeepSeek）
-- API Key 输入和保存（chrome.storage.sync 加密）
-- 测试连接按钮
+- Content Script 检测 RSS 链接
+  - `<link rel="alternate" type="application/rss+xml">`
+  - `<link rel="alternate" type="application/atom+xml">`
+- 尝试常见 URL 模式
+  - `/feed`, `/rss`, `/atom.xml`, `/index.xml`
+  - 域名根目录: `feed.xml`, `rss.xml`
+- 发送到 background 进行验证
+
+**验收标准**:
+- [ ] 检测到 RSS 链接
+- [ ] 支持 RSS 和 Atom 格式
+- [ ] 尝试常见路径
+- [ ] 有完整测试覆盖
+
+#### 5.2 RSS 验证器
+**文件**: `src/core/rss/RSSValidator.ts`
+
+**功能**:
+- 验证 RSS/Atom 格式
+- 检查 XML 结构
+- 提取基本信息（title, description, link）
+
+**验收标准**:
+- [ ] 验证 RSS 2.0 格式
+- [ ] 验证 Atom 1.0 格式
+- [ ] 提取元数据
+- [ ] 错误处理完善
+
+#### 5.3 发现源数据模型
+**文件**: `src/storage/types.ts`, `src/storage/db.ts`
+
+**功能**:
+- 新增 `discoveredFeeds` 表
+- 定义 `DiscoveredFeed` 类型
+- 状态机：candidate → recommended → subscribed/ignored
+
+**数据模型**:
+```typescript
+interface DiscoveredFeed {
+  id: string
+  url: string
+  title: string
+  description?: string
+  discoveredFrom: string  // 发现来源页面 URL
+  discoveredAt: number
+  status: 'candidate' | 'recommended' | 'subscribed' | 'ignored'
+  
+  // 质量评估（稍后填充）
+  quality?: {
+    updateFrequency: number  // 篇/周
+    formatValid: boolean
+    reachable: boolean
+    lastChecked: number
+  }
+  
+  // 相关性分析（稍后填充）
+  relevance?: {
+    matchScore: number  // 0-100
+    matchedTopics: Topic[]
+    sampleArticles: {
+      title: string
+      matchScore: number
+    }[]
+  }
+}
+```
+
+**验收标准**:
+- [ ] 数据表创建成功
+- [ ] 类型定义完整
+- [ ] CRUD 操作正常
+
+---
+
+### Sprint 2: 内容抓取与分析（2天）📥 智能评估
+
+#### 5.4 RSS 抓取器
+**文件**: `src/core/rss/RSSFetcher.ts`
+
+**功能**:
+- Background 抓取 RSS 内容
+- 解析 RSS/Atom XML
+- 提取文章列表（最新 5-10 篇）
+- 错误处理和重试
+
+**验收标准**:
+- [ ] 成功抓取 RSS 内容
+- [ ] 解析文章列表
+- [ ] 处理网络错误
+- [ ] 有测试覆盖
+
+#### 5.5 内容质量分析器
+**文件**: `src/core/rss/FeedQualityAnalyzer.ts`
+
+**功能**:
+- 更新频率检测（基于发布时间）
+- RSS 格式规范性检查
+- 可达性检测
+- 质量评分（0-100）
+
+**评估指标**:
+```typescript
+{
+  updateFrequency: 计算篇/周,
+  formatValid: XML 格式是否规范,
+  reachable: HTTP 状态码 200,
+  score: 综合评分
+}
+```
+
+**验收标准**:
+- [ ] 正确计算更新频率
+- [ ] 检测格式问题
+- [ ] 评分算法合理
+
+#### 5.6 相关性分析器
+**文件**: `src/core/rss/FeedRelevanceAnalyzer.ts`
+
+**功能**:
+- 使用 AI 分析文章内容
+- 与用户画像匹配
+- 计算推荐分数（0-100）
+- 提取匹配主题
+
+**算法**:
+```typescript
+1. 抓取最新 3-5 篇文章
+2. 使用 AI 分析每篇文章的主题概率
+3. 与用户画像的主题分布计算余弦相似度
+4. 综合得分 = 平均相似度 * 质量分数
+5. 阈值：≥60 分推荐订阅
+```
+
+**验收标准**:
+- [ ] AI 分析文章内容
+- [ ] 计算与用户画像的匹配度
+- [ ] 推荐分数准确
+
+---
+
+### Sprint 3: 订阅管理 UI（2天）🎨 用户交互
+
+#### 5.7 RSS 管理页面
+**文件**: `src/components/settings/RSSManager.tsx`
+
+**功能**:
+- 设置页"RSS 源"标签
+- 三个列表展示：
+  1. **已订阅源**（可开启/暂停/删除）
+  2. **推荐订阅**（显示匹配度和预览）
+  3. **候选源**（正在评估中）
 
 **UI 设计**:
 ```
-设置 → AI 配置
+┌─ 已订阅源 (5) ─────────────────────┐
+│  ✓ 源名称  最新文章  更新频率  操作 │
+│  ✓ TechCrunch  2小时前  8篇/周  ⚙️  │
+│  ⏸ Hacker News  -  (已暂停)  ⚙️   │
+└────────────────────────────────────┘
 
-┌─────────────────────────────────────────────────┐
-│ 远程 AI 服务（可选，需要 API Key）              │
-├─────────────────────────────────────────────────┤
-│ 提供商: [未配置 ▼]                              │
-│         └─ OpenAI                               │
-│         └─ Anthropic (Claude)                   │
-│         └─ DeepSeek                             │
-│                                                 │
-│ [配置 API Key...]                               │
-│                                                 │
-│ ℹ️ 配置后将优先使用远程 AI（更准确，需付费）    │
-└─────────────────────────────────────────────────┘
+┌─ 发现的源 (2) - 推荐订阅 ──────────┐
+│  匹配度  源名称  预览  操作          │
+│  85%  Wired  [查看3篇]  [订阅][忽略]│
+│  78%  The Verge  [查看5篇]  [订阅]  │
+└────────────────────────────────────┘
+
+┌─ 候选源 (12) - 正在评估 ──────────┐
+│  源名称  发现时间  状态              │
+│  ArsTechnica  2天前  抓取中...      │
+│  [显示更多...]                       │
+└────────────────────────────────────┘
 ```
 
 **验收标准**:
-- [ ] 能看到 AI 配置界面
-- [ ] 能选择 AI 提供商
-- [ ] 能输入和保存 API Key
-- [ ] 测试连接按钮正常工作
-- [ ] 数据加密存储
+- [ ] 三个列表正常显示
+- [ ] 订阅/取消订阅操作正常
+- [ ] 源状态切换（开启/暂停）
+- [ ] 响应式设计
 
-#### 4.2 AI 状态卡片（半天）
-**文件**: `src/components/settings/CollectionStats.tsx`
+#### 5.8 手动添加与 OPML
+**文件**: `src/components/settings/RSSManager.tsx`
 
 **功能**:
-- 数据管理页面新增 "AI 状态" 卡片
-- 显示当前配置的 AI 提供商
-- 显示连接状态
-- 显示本月使用统计
+- 手动添加 RSS URL
+- OPML 导入（标准 RSS 订阅列表格式）
+- OPML 导出
+- URL 验证
 
 **验收标准**:
-- [ ] 能看到 AI 状态卡片
-- [ ] 显示当前提供商和连接状态
-- [ ] 显示使用统计
+- [ ] 手动添加功能正常
+- [ ] OPML 导入成功
+- [ ] OPML 导出成功
+- [ ] URL 格式验证
 
-#### 4.3 分析结果展示优化（半天）
-**文件**: `src/components/settings/UserProfileDisplay.tsx`
-
-**功能**:
-- 用户画像页面新增 "AI 分析质量" 指标
-- 显示 AI 分析 vs 关键词分析的占比
-- 显示平均置信度
-
-**验收标准**:
-- [ ] 能看到分析质量指标
-- [ ] 数据准确显示
-
----
-
-### Sprint 2: AI 抽象层（1-2天）🏗 基础设施
-
-#### 4.4 数据类型定义（半天）
-**文件**: `src/core/ai/types.ts`
+#### 5.9 Popup 推荐提示
+**文件**: `src/popup.tsx`
 
 **功能**:
-```typescript
-export interface UnifiedAnalysisResult {
-  // 通用字段
-  topicProbabilities: Record<Topic, number>
-  confidence: number
-  provider: string
-  
-  // AI 特有（可选）
-  entities?: Entity[]
-  sentiment?: Sentiment
-  
-  // 兼容字段
-  keywords: string[]
-  topics: string[]
-  language: string
-}
+- 显示发现的推荐源数量
+- 点击跳转到设置页
+- 非侵入式设计
 
-export interface AIProvider {
-  name: string
-  isAvailable(): Promise<boolean>
-  analyzeContent(text: string): Promise<UnifiedAnalysisResult>
-}
+**UI 设计**:
+```
+┌─────────────────────────────┐
+│  📰 发现 2 个相关 RSS 源     │
+│                              │
+│  • TechCrunch (技术 85%)     │
+│  • Hacker News (技术 78%)    │
+│                              │
+│  [查看详情]  [稍后]          │
+└─────────────────────────────┘
 ```
 
 **验收标准**:
-- [ ] 类型定义完整
-- [ ] 兼容现有 AnalysisResult
-
-#### 4.5 OpenAI Provider（1天）
-**文件**: `src/core/ai/providers/OpenAIProvider.ts`
-
-**功能**:
-- 实现第一个真实的 AI Provider
-- 使用 GPT-4o-mini（便宜快速）
-- Prompt 工程
-
-**验收标准**:
-- [ ] OpenAI API 调用成功
-- [ ] 返回统一格式数据
-- [ ] 错误处理完善
-- [ ] 有测试覆盖
-
-**测试**:
-```javascript
-const provider = new OpenAIProvider('sk-xxx')
-const result = await provider.analyzeContent('React 是...')
-console.log(result.topicProbabilities)
-```
-
-#### 4.6 降级方案（半天）
-**文件**: `src/core/ai/providers/FallbackKeywordProvider.ts`
-
-**功能**:
-- 包装现有 TextAnalyzer 为 AIProvider
-- 关键词 → 概率云转换
-
-**验收标准**:
-- [ ] 降级方案正常工作
-- [ ] 格式转换正确
+- [ ] 显示推荐源提示
+- [ ] 点击跳转正常
+- [ ] 稍后功能正常
 
 ---
 
-### Sprint 3: 集成到页面分析（1天）🔗 打通流程
+### Sprint 4: 自动化流程（可选，1-2天）🤖 后台任务
 
-#### 4.7 AICapabilityManager（半天）
-**文件**: `src/core/ai/AICapabilityManager.ts`
-
-**功能**:
-- 管理 AI Provider 列表
-- 自动选择可用的 Provider
-- 降级策略
-
-**优先级逻辑**:
-```typescript
-1. 用户配置的远程 API（如果有）
-2. 降级到关键词分析（始终可用）
-```
-
-**验收标准**:
-- [ ] Provider 管理正常
-- [ ] 降级策略正确
-- [ ] 有测试覆盖
-
-#### 4.8 集成到 page-tracker（半天）
-**文件**: `src/contents/page-tracker.ts`
+#### 5.10 后台调度器
+**文件**: `src/background/feed-scheduler.ts`
 
 **功能**:
-- 替换现有的 TextAnalyzer 调用
-- 使用 AICapabilityManager
+- 定时检查候选源（每 24 小时）
+- 定时抓取订阅源（1-24 小时，根据更新频率）
+- 智能调度策略
 
 **验收标准**:
-- [ ] 新页面使用 AI 分析
-- [ ] 降级方案正常工作
-- [ ] 数据库保存正确
+- [ ] 定时任务正常运行
+- [ ] 根据更新频率调整抓取间隔
+- [ ] 错误处理和重试
 
-**测试流程**:
-1. 配置 OpenAI API Key
-2. 浏览新页面
-3. 检查 IndexedDB，看到 AI 分析结果
-4. 移除 API Key，看到降级到关键词分析
-
----
-
-### Sprint 4: 更多远程 API（2天）🚀 扩展能力
-
-#### 4.9 Anthropic Provider（1天）
-**文件**: `src/core/ai/providers/AnthropicProvider.ts`
+#### 5.11 推荐通知
+**文件**: `src/background/badge-manager.ts`
 
 **功能**:
-- 使用 Claude-3-Haiku（最便宜）
-- API 调用和解析
+- Badge 显示推荐源数量
+- 可选：浏览器通知
 
 **验收标准**:
-- [ ] Anthropic API 调用成功
-- [ ] 格式转换正确
-
-#### 4.10 DeepSeek Provider（1天）
-**文件**: `src/core/ai/providers/DeepSeekProvider.ts`
-
-**功能**:
-- 使用 deepseek-chat
-- API 调用和解析
-
-**验收标准**:
-- [ ] DeepSeek API 调用成功
-- [ ] 格式转换正确
-
----
-
-### Sprint 5: 用户画像升级（2天）📊 数据优化
-
-#### 4.11 ProfileBuilder 升级（1天）
-**文件**: `src/core/profile/ProfileBuilder.ts`
-
-**功能**:
-- 使用 topicProbabilities 替代 keywords
-- 概率云加权聚合
-
-**验收标准**:
-- [ ] 新算法正常工作
-- [ ] 画像更准确
-- [ ] 兼容旧数据
-
-#### 4.12 UI 展示优化（1天）
-**文件**: `src/components/settings/UserProfileDisplay.tsx`
-
-**功能**:
-- 显示 AI 分析的实体
-- 显示情感倾向
-- 显示置信度
-
-**验收标准**:
-- [ ] 实体展示清晰
-- [ ] 数据准确
-
----
-
-### Sprint 6: 成本控制（1天）💰 可选功能
-
-#### 4.13 成本追踪（半天）
-**文件**: `src/core/ai/CostTracker.ts`
-
-**功能**:
-- 记录 API 使用
-- 计算成本
-
-**验收标准**:
-- [ ] 成本记录准确
-- [ ] 数据库存储正常
-
-#### 4.14 成本统计 UI（半天）
-**文件**: `src/components/settings/AIConfig.tsx`
-
-**功能**:
-- 显示本月使用
-- 显示预算进度
-
-**验收标准**:
-- [ ] UI 显示正确
-- [ ] 数据实时更新
+- [ ] Badge 正确显示数字
+- [ ] 通知不打扰用户
 
 ---
 
 ### 本阶段文档
-- [ ] `docs/PHASE_4_AI_INTEGRATION.md` - 详细设计文档
+- [ ] `docs/PHASE_5_RSS_DISCOVERY.md` - 详细设计文档
 - [ ] 更新 `docs/DEVELOPMENT_PLAN.md`
 - [ ] 更新 `docs/TDD.md`
 
 ### 完成标准
-- [ ] 所有 UI 组件完成
-- [ ] OpenAI Provider 工作正常
-- [ ] Anthropic Provider 工作正常
-- [ ] DeepSeek Provider 工作正常
-- [ ] 降级方案正常
-- [ ] 用户画像升级完成
-- [ ] 成本追踪功能完成
-- [ ] 测试覆盖率 ≥ 80%
+- [ ] RSS 检测器工作正常
+- [ ] RSS 抓取和解析成功
+- [ ] 质量和相关性分析准确
+- [ ] UI 界面完整可用
+- [ ] OPML 导入/导出正常
+- [ ] 测试覆盖率 ≥ 70%
 - [ ] 浏览器实测通过
 - [ ] 文档已更新
 
 ---
 
-## 阶段 5: RSS 自动发现 (原阶段 4)
-
-### 目标
-自动检测网页的 RSS 源并提示订阅
-
-### 功能列表
-
-#### 4.1 RSS 检测
-**文件**: `src/contents/rss-detector.ts`
-
-**功能**:
-- 检测 `<link rel="alternate">` 标签
-- 尝试常见 RSS URL 模式
-- 验证 RSS 有效性
-
-#### 4.2 订阅管理
-**文件**: `src/core/rss/RSSManager.ts`
-
-**功能**:
-- OPML 导入/导出
-- 源健康检测
-- 自动订阅/取消
-
-#### 4.3 订阅 UI
-**更新**: `src/popup.tsx`
-
-**功能**:
-- 显示已订阅源列表
-- 显示"发现新源"提示
-- 一键订阅/取消订阅
-
-### 本阶段文档
-- [ ] `docs/PHASE_4_RSS_DISCOVERY.md`
-
----
-
-## 阶段 5: AI 推荐引擎 (预计 4 小时)
+## 阶段 6: AI 推荐引擎 (预计 4-6 天)
 
 ### 目标
 实现基础推荐算法和 AI 集成
