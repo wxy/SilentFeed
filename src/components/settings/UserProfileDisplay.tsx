@@ -456,6 +456,36 @@ export function UserProfileDisplay() {
             )}
           </h3>
           
+          {/* 当前画像状态卡片 - 新增 */}
+          <div className="mb-4 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">📊</span>
+              <div className="flex-1">
+                <h4 className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
+                  当前画像状态（实时）
+                </h4>
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="bg-white/60 dark:bg-gray-800/60 rounded px-3 py-2">
+                    <div className="text-gray-500 dark:text-gray-400 mb-1">基于页面数</div>
+                    <div className="text-lg font-bold text-blue-900 dark:text-blue-100">
+                      {profile.totalPages} 页
+                    </div>
+                  </div>
+                  <div className="bg-white/60 dark:bg-gray-800/60 rounded px-3 py-2">
+                    <div className="text-gray-500 dark:text-gray-400 mb-1">最后更新</div>
+                    <div className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+                      {formatLastUpdated(profile.lastUpdated)}
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs text-blue-700 dark:text-blue-300 mt-3 leading-relaxed">
+                  💡 <strong>说明</strong>：画像会持续更新以反映你的最新兴趣。下方"演化历程"仅记录<strong>主导兴趣变化</strong>的关键时刻，
+                  当兴趣保持稳定时不会创建新记录点（这是正常现象，表示你的核心兴趣比较专注）。
+                </p>
+              </div>
+            </div>
+          </div>
+          
           {/* 水平卡片布局展示最近5个快照 */}
           {evolutionHistory && evolutionHistory.snapshots && evolutionHistory.snapshots.length > 0 ? (
             <div className="bg-gradient-to-br from-gray-50 via-white to-blue-50 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-600">
