@@ -172,11 +172,11 @@ describe("DeepSeekReasonerProvider", () => {
       
       const result = await provider.analyzeContent("测试")
       
-      // DeepSeek Reasoner 新价格（10% 缓存命中率）:
-      // 输入: 100 tokens * (0.1 * 0.1 + 0.9 * 1.0) / 1M = ¥0.000091
-      // 输出: 50 tokens * 2.0 / 1M = ¥0.000100
-      // 总计: ¥0.000191
-      expect(result.metadata.cost).toBeCloseTo(0.000191, 6)
+      // DeepSeek Reasoner 正确价格（10% 缓存命中率）:
+      // 输入: 100 tokens * (0.1 * 0.2 + 0.9 * 2.0) / 1M = ¥0.000182
+      // 输出: 50 tokens * 3.0 / 1M = ¥0.000150
+      // 总计: ¥0.000332
+      expect(result.metadata.cost).toBeCloseTo(0.000332, 6)
     })
     
     it("应该使用 deepseek-reasoner 模型", async () => {

@@ -44,12 +44,12 @@ const PROVIDER_OPTIONS: ProviderOption[] = [
   {
     value: "deepseek",
     label: "DeepSeek Chat",
-    description: "国内友好、最便宜（¥1/M 输入, ¥2/M 输出，缓存命中 ¥0.1/M）"
+    description: "国内友好、最便宜（¥2/M 输入, ¥3/M 输出，缓存命中 ¥0.2/M）"
   },
   {
     value: "deepseek-reasoner",
     label: "DeepSeek Reasoner",
-    description: "推理增强模型（¥1/M 输入, ¥2/M 输出，缓存命中 ¥0.1/M）"
+    description: "推理增强模型（¥2/M 输入, ¥3/M 输出，缓存命中 ¥0.2/M）"
   }
 ]
 
@@ -289,12 +289,14 @@ export function AIConfig() {
           </label>
           
           <div className="flex items-center gap-2">
-            <span className="text-gray-600 dark:text-gray-400">$</span>
+            <span className="text-gray-600 dark:text-gray-400">
+              {provider === "deepseek" || provider === "deepseek-reasoner" ? "¥" : "$"}
+            </span>
             <input
               id="budget"
               type="number"
               min="1"
-              max="100"
+              max={provider === "deepseek" || provider === "deepseek-reasoner" ? "500" : "100"}
               step="1"
               value={monthlyBudget}
               onChange={(e) => setMonthlyBudget(Math.max(1, Number(e.target.value)))}
@@ -309,7 +311,10 @@ export function AIConfig() {
             💡 超出预算后将自动降级到免费的关键词分析
           </p>
           <p className="text-xs text-orange-600 dark:text-orange-400">
-            ⚠️ 建议设置合理预算以避免意外费用（推荐 $5-10）
+            ⚠️ 建议设置合理预算以避免意外费用
+            {provider === "deepseek" || provider === "deepseek-reasoner" 
+              ? "（推荐 ¥10-50）" 
+              : "（推荐 $5-10）"}
           </p>
         </div>
       )}
@@ -391,15 +396,15 @@ export function AIConfig() {
                 {provider === "deepseek" ? "DeepSeek Chat" : "DeepSeek Reasoner"}（人民币计价）
               </p>
               <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                <li>• 输入（缓存未命中）: ¥1.00/M tokens</li>
-                <li>• 输入（缓存命中）: ¥0.10/M tokens</li>
-                <li>• 输出: ¥2.00/M tokens</li>
+                <li>• 输入（缓存未命中）: ¥2.00/M tokens</li>
+                <li>• 输入（缓存命中）: ¥0.20/M tokens</li>
+                <li>• 输出: ¥3.00/M tokens</li>
               </ul>
               <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
                 假设每天浏览 50 个页面，每个页面平均 1000 tokens，10% 缓存命中率：
               </p>
               <p className="text-sm text-blue-600 dark:text-blue-400">
-                约 ¥0.14 / 月 （≈ $0.02 / 月）
+                约 ¥1.41/月 (≈ $0.20/月)
               </p>
             </div>
           ) : provider === "openai" ? (
