@@ -163,6 +163,74 @@
         "clearAllFinalConfirm": "最后确认：真的要清除所有数据吗？\n清除后将回到初始状态，需要重新开始采集。",
         "clearAllSuccess": "所有数据清除成功！\n扩展已恢复到初始状态。",
         "clearAllFailed": "清除失败，请稍后重试"
+      },
+      "userProfile": "用户画像"
+    },
+    "userProfile": {
+      "alerts": {
+        "rebuildSuccess": "用户画像重建成功！",
+        "rebuildFailed": "重建失败，请稍后重试"
+      },
+      "noData": {
+        "message": "还没有足够的浏览数据来构建用户画像",
+        "hint": "继续浏览感兴趣的内容，系统将自动分析您的兴趣偏好",
+        "tip": "💡 不需要等到1000页，有几条有效记录就可以生成画像"
+      },
+      "lastUpdated": {
+        "justNow": "刚刚更新",
+        "hoursAgo": "{{hours}} 小时前",
+        "daysAgo": "{{days}} 天前"
+      },
+      "updateTime": {
+        "label": "画像更新时间",
+        "basedOn": "基于 {{count}} 页面分析"
+      },
+      "analysisQuality": {
+        "label": "分析质量",
+        "aiAnalysis": "AI 分析 ({{provider}})",
+        "keywordAnalysis": "关键词分析",
+        "aiHint": "✨ 使用 AI 语义理解",
+        "keywordHint": "📝 使用传统关键词提取"
+      },
+      "aiPrompt": {
+        "title": "升级到 AI 分析，获得更精准的画像",
+        "description": "当前使用关键词分析。配置 AI 后，系统将能够：",
+        "benefit1": "• 更准确地理解文章主题和语义",
+        "benefit2": "• 识别隐含的兴趣倾向",
+        "benefit3": "• 提供更个性化的推荐",
+        "configureButton": "立即配置 AI"
+      },
+      "interests": {
+        "title": "你的兴趣画像",
+        "primaryAbsolute": "⭐ 绝对主导：{{topic}}",
+        "primaryRelative": "🎯 相对主导：{{topic}}",
+        "primaryLeading": "📈 显著领先：{{topic}}",
+        "noData": "暂无主题分类数据",
+        "levelAbsolute": "👑 绝对主导",
+        "levelRelative": "🎯 相对主导",
+        "levelLeading": "📈 显著领先",
+        "levelAbsoluteHint": "✨ 绝对主导兴趣！占比超过33.3%，这是你的核心兴趣领域",
+        "levelRelativeHint": "🎯 相对主导兴趣！明显超越其他兴趣，是当前的重点关注领域",
+        "levelLeadingHint": "📈 显著领先兴趣！在众多兴趣中脱颖而出，值得深入发展"
+      },
+      "evolution": {
+        "title": "兴趣演化历程",
+        "totalSnapshots": "共 {{count}} 个记录点",
+        "rebuildLabel": "🔄 重建",
+        "scoreLabel": "占比: {{score}}%",
+        "pagesLabel": "页面: {{pages}}",
+        "rebuildTrigger": "用户主动重建画像",
+        "stable": "保持稳定",
+        "moreRecords": "还有 {{count}} 条更早的记录",
+        "legend": "💡 从左到右按时间排列 | 圆圈大小代表主导程度 | 🔥绝对 ⭐相对 💫领先 | 🔄重建/兴趣变化 📊强度变化",
+        "noData": "暂无兴趣变化记录",
+        "noDataHint": "随着你浏览更多页面，系统会自动记录兴趣演化历程"
+      },
+      "keywords": {
+        "title": "兴趣关键词云",
+        "noData": "暂无关键词数据",
+        "weightLabel": "权重: {{weight}}",
+        "hint": "💡 关键词大小代表权重，hover查看详细权重值"
       }
     }
   },
