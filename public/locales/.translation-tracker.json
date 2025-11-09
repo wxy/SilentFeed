@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-11-09T13:57:26.033Z",
+  "lastUpdate": "2025-11-09T14:49:02.329Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -3135,6 +3135,1308 @@
         "value": "💡 Keyword size represents weight, hover to view detailed weight values",
         "hash": "6c0e7748",
         "lastModified": "2025-11-09T13:57:25.531Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.languages.zhCN": {
+      "zh-CN": {
+        "value": "简体中文",
+        "hash": "d688a3a4",
+        "lastModified": "2025-11-09T14:20:34.296Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Simplified Chinese",
+        "hash": "1e81fc32",
+        "lastModified": "2025-11-09T14:20:34.296Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.languages.en": {
+      "zh-CN": {
+        "value": "English",
+        "hash": "78463a38",
+        "lastModified": "2025-11-09T14:20:35.724Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "English",
+        "hash": "78463a38",
+        "lastModified": "2025-11-09T14:20:35.724Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.languages.ja": {
+      "zh-CN": {
+        "value": "日本語",
+        "hash": "00110af8",
+        "lastModified": "2025-11-09T14:20:37.371Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Japanese",
+        "hash": "f32ced6a",
+        "lastModified": "2025-11-09T14:20:37.371Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.languages.fr": {
+      "zh-CN": {
+        "value": "Français",
+        "hash": "e0545693",
+        "lastModified": "2025-11-09T14:20:38.911Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "French",
+        "hash": "ad225f70",
+        "lastModified": "2025-11-09T14:20:38.911Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.languages.de": {
+      "zh-CN": {
+        "value": "Deutsch",
+        "hash": "8f0ca218",
+        "lastModified": "2025-11-09T14:20:40.335Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "German",
+        "hash": "86bc3115",
+        "lastModified": "2025-11-09T14:20:40.335Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.languages.es": {
+      "zh-CN": {
+        "value": "Español",
+        "hash": "de92bbe0",
+        "lastModified": "2025-11-09T14:20:41.775Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Spanish",
+        "hash": "cb5480c3",
+        "lastModified": "2025-11-09T14:20:41.775Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.languages.ko": {
+      "zh-CN": {
+        "value": "한국어",
+        "hash": "d6d014c6",
+        "lastModified": "2025-11-09T14:20:44.551Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Korean",
+        "hash": "d0bdb3cd",
+        "lastModified": "2025-11-09T14:20:44.551Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.aiProviders.keyword": {
+      "zh-CN": {
+        "value": "关键词分析",
+        "hash": "edc4e547",
+        "lastModified": "2025-11-09T14:20:46.783Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Keyword Analysis",
+        "hash": "c97004a9",
+        "lastModified": "2025-11-09T14:20:46.783Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.aiProviders.openai": {
+      "zh-CN": {
+        "value": "OpenAI",
+        "hash": "0523b132",
+        "lastModified": "2025-11-09T14:20:48.730Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "OpenAI",
+        "hash": "0523b132",
+        "lastModified": "2025-11-09T14:20:48.730Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.aiProviders.anthropic": {
+      "zh-CN": {
+        "value": "Anthropic (Claude)",
+        "hash": "3b7c6c99",
+        "lastModified": "2025-11-09T14:20:50.300Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Anthropic (Claude)",
+        "hash": "3b7c6c99",
+        "lastModified": "2025-11-09T14:20:50.300Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.aiProviders.deepseek": {
+      "zh-CN": {
+        "value": "DeepSeek",
+        "hash": "264d9bb4",
+        "lastModified": "2025-11-09T14:20:51.991Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "DeepSeek",
+        "hash": "264d9bb4",
+        "lastModified": "2025-11-09T14:20:51.991Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topics.technology": {
+      "zh-CN": {
+        "value": "技术",
+        "hash": "a95dd3e1",
+        "lastModified": "2025-11-09T14:20:54.157Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Technology",
+        "hash": "e7e767d7",
+        "lastModified": "2025-11-09T14:20:54.157Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topics.science": {
+      "zh-CN": {
+        "value": "科学",
+        "hash": "4a27f616",
+        "lastModified": "2025-11-09T14:20:56.861Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Science",
+        "hash": "35bf1210",
+        "lastModified": "2025-11-09T14:20:56.861Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topics.business": {
+      "zh-CN": {
+        "value": "商业",
+        "hash": "837171e3",
+        "lastModified": "2025-11-09T14:20:58.756Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Business",
+        "hash": "d6e6cb19",
+        "lastModified": "2025-11-09T14:20:58.756Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topics.design": {
+      "zh-CN": {
+        "value": "设计",
+        "hash": "b08890a6",
+        "lastModified": "2025-11-09T14:21:00.102Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Design",
+        "hash": "1afa74da",
+        "lastModified": "2025-11-09T14:21:00.102Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topics.arts": {
+      "zh-CN": {
+        "value": "艺术",
+        "hash": "37e834be",
+        "lastModified": "2025-11-09T14:21:01.496Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Art",
+        "hash": "978d7d6b",
+        "lastModified": "2025-11-09T14:21:01.496Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topics.health": {
+      "zh-CN": {
+        "value": "健康",
+        "hash": "fbc026c9",
+        "lastModified": "2025-11-09T14:21:02.867Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Health",
+        "hash": "605669ca",
+        "lastModified": "2025-11-09T14:21:02.867Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topics.sports": {
+      "zh-CN": {
+        "value": "体育",
+        "hash": "b0dc2f50",
+        "lastModified": "2025-11-09T14:21:04.363Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Sports",
+        "hash": "918e180e",
+        "lastModified": "2025-11-09T14:21:04.363Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topics.entertainment": {
+      "zh-CN": {
+        "value": "娱乐",
+        "hash": "9acf9c6f",
+        "lastModified": "2025-11-09T14:21:05.814Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Entertainment",
+        "hash": "336fdcf7",
+        "lastModified": "2025-11-09T14:21:05.814Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topics.news": {
+      "zh-CN": {
+        "value": "新闻",
+        "hash": "1d9c15c5",
+        "lastModified": "2025-11-09T14:21:07.398Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "News",
+        "hash": "dd1ba187",
+        "lastModified": "2025-11-09T14:21:07.398Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topics.education": {
+      "zh-CN": {
+        "value": "教育",
+        "hash": "8640cb15",
+        "lastModified": "2025-11-09T14:21:08.841Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Education",
+        "hash": "de7a22a0",
+        "lastModified": "2025-11-09T14:21:08.841Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topics.other": {
+      "zh-CN": {
+        "value": "其他",
+        "hash": "0d98c747",
+        "lastModified": "2025-11-09T14:21:10.641Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Other",
+        "hash": "6311ae17",
+        "lastModified": "2025-11-09T14:21:10.642Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topicPersonalities.technology": {
+      "zh-CN": {
+        "value": "科技极客，总是追求最新的技术趋势",
+        "hash": "e00fcca1",
+        "lastModified": "2025-11-09T14:21:12.783Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Tech geeks, always chasing the latest technology trends.",
+        "hash": "b3542948",
+        "lastModified": "2025-11-09T14:21:12.783Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topicPersonalities.science": {
+      "zh-CN": {
+        "value": "理性探索者，对世界充满好奇心",
+        "hash": "c0b77ec8",
+        "lastModified": "2025-11-09T14:21:14.947Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Rational Explorer, full of curiosity about the world",
+        "hash": "286e6766",
+        "lastModified": "2025-11-09T14:21:14.947Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topicPersonalities.business": {
+      "zh-CN": {
+        "value": "商业领袖，具有敏锐的市场嗅觉",
+        "hash": "b1d98c86",
+        "lastModified": "2025-11-09T14:21:16.447Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Business leader with a keen market sense",
+        "hash": "05276477",
+        "lastModified": "2025-11-09T14:21:16.447Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topicPersonalities.design": {
+      "zh-CN": {
+        "value": "美感追求者，注重视觉和用户体验",
+        "hash": "d8e52fcf",
+        "lastModified": "2025-11-09T14:21:18.180Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Aesthetic seekers, who value visual appeal and user experience.",
+        "hash": "8a3def5c",
+        "lastModified": "2025-11-09T14:21:18.180Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topicPersonalities.arts": {
+      "zh-CN": {
+        "value": "艺术鉴赏家，欣赏各种创意表达",
+        "hash": "a962a434",
+        "lastModified": "2025-11-09T14:21:20.471Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Art Connoisseur, appreciating various creative expressions",
+        "hash": "b354cb90",
+        "lastModified": "2025-11-09T14:21:20.471Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topicPersonalities.health": {
+      "zh-CN": {
+        "value": "健康生活倡导者，关注身心wellness",
+        "hash": "afd443e3",
+        "lastModified": "2025-11-09T14:21:23.825Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Advocate for healthy living, focusing on physical and mental wellness",
+        "hash": "c6aa1b8a",
+        "lastModified": "2025-11-09T14:21:23.825Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topicPersonalities.sports": {
+      "zh-CN": {
+        "value": "运动爱好者，享受竞技和健身乐趣",
+        "hash": "6fc168d4",
+        "lastModified": "2025-11-09T14:21:25.920Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Sports enthusiasts who enjoy the thrill of competition and the joy of fitness.",
+        "hash": "991c0c44",
+        "lastModified": "2025-11-09T14:21:25.920Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topicPersonalities.entertainment": {
+      "zh-CN": {
+        "value": "娱乐达人，热爱轻松有趣的内容",
+        "hash": "ba13675f",
+        "lastModified": "2025-11-09T14:21:27.946Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Entertainment enthusiast, passionate about light and fun content.",
+        "hash": "bc8a651d",
+        "lastModified": "2025-11-09T14:21:27.946Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topicPersonalities.news": {
+      "zh-CN": {
+        "value": "信息收集者，关注时事和社会动态",
+        "hash": "dc27eebc",
+        "lastModified": "2025-11-09T14:21:29.777Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Information gatherer, keeping an eye on current events and social trends",
+        "hash": "b507f79e",
+        "lastModified": "2025-11-09T14:21:29.777Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topicPersonalities.education": {
+      "zh-CN": {
+        "value": "终身学习者，持续自我提升",
+        "hash": "bf3860af",
+        "lastModified": "2025-11-09T14:21:31.632Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Lifelong learner, continuously self-improving.",
+        "hash": "c5bf47f5",
+        "lastModified": "2025-11-09T14:21:31.632Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topicPersonalities.other": {
+      "zh-CN": {
+        "value": "兴趣广泛的探索者",
+        "hash": "4af2381a",
+        "lastModified": "2025-11-09T14:21:33.475Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "An explorer with diverse interests.",
+        "hash": "de2ecfa7",
+        "lastModified": "2025-11-09T14:21:33.475Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.title": {
+      "zh-CN": {
+        "value": "AI 配置",
+        "hash": "5258ce61",
+        "lastModified": "2025-11-09T14:36:10.081Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "AI Configuration",
+        "hash": "f7703f3c",
+        "lastModified": "2025-11-09T14:36:10.082Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.subtitle": {
+      "zh-CN": {
+        "value": "配置远程 AI 服务以获得更准确的内容分析",
+        "hash": "636ddf6d",
+        "lastModified": "2025-11-09T14:36:12.026Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Configure remote AI services for more accurate content analysis",
+        "hash": "c4164770",
+        "lastModified": "2025-11-09T14:36:12.026Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.providerLabel": {
+      "zh-CN": {
+        "value": "AI 提供商",
+        "hash": "8ab9206e",
+        "lastModified": "2025-11-09T14:36:13.873Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "AI Provider",
+        "hash": "c410594b",
+        "lastModified": "2025-11-09T14:36:13.873Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.apiKeyLabel": {
+      "zh-CN": {
+        "value": "API Key",
+        "hash": "d876ff8d",
+        "lastModified": "2025-11-09T14:36:16.021Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "API Key",
+        "hash": "d876ff8d",
+        "lastModified": "2025-11-09T14:36:16.021Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.budgetLabel": {
+      "zh-CN": {
+        "value": "月度预算限制",
+        "hash": "ee9ff41c",
+        "lastModified": "2025-11-09T14:36:17.573Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Monthly budget limit",
+        "hash": "edd2af6e",
+        "lastModified": "2025-11-09T14:36:17.573Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.budgetUnit": {
+      "zh-CN": {
+        "value": "/ 月",
+        "hash": "a6064cdb",
+        "lastModified": "2025-11-09T14:36:20.422Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "/ month",
+        "hash": "fc2b9c46",
+        "lastModified": "2025-11-09T14:36:20.422Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.selectProviderPlaceholder": {
+      "zh-CN": {
+        "value": "请选择 AI 提供商",
+        "hash": "39e9619c",
+        "lastModified": "2025-11-09T14:36:22.881Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Please select an AI provider",
+        "hash": "02af49e8",
+        "lastModified": "2025-11-09T14:36:22.881Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.apiKeyPlaceholder": {
+      "zh-CN": {
+        "value": "输入你的 {{provider}} API Key",
+        "hash": "4e50b51a",
+        "lastModified": "2025-11-09T14:36:26.673Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Enter your {{provider}} API Key",
+        "hash": "82ddbc43",
+        "lastModified": "2025-11-09T14:36:26.673Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.apiKeyHint": {
+      "zh-CN": {
+        "value": "API Key 将加密存储在浏览器本地，不会上传到服务器",
+        "hash": "e22adb1f",
+        "lastModified": "2025-11-09T14:36:28.861Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "The API Key will be encrypted and stored locally in the browser, and will not be uploaded to the server.",
+        "hash": "e98a4335",
+        "lastModified": "2025-11-09T14:36:28.861Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.budgetHint": {
+      "zh-CN": {
+        "value": "超出预算后将自动降级到免费的关键词分析",
+        "hash": "dcd40085",
+        "lastModified": "2025-11-09T14:36:30.681Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Will automatically downgrade to free keyword analysis after exceeding the budget",
+        "hash": "20e2670a",
+        "lastModified": "2025-11-09T14:36:30.681Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.budgetWarning": {
+      "zh-CN": {
+        "value": "建议设置合理预算以避免意外费用（推荐 {{range}}）",
+        "hash": "dc1d91cf",
+        "lastModified": "2025-11-09T14:36:33.114Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "It is recommended to set a reasonable budget to avoid unexpected costs (suggested {{range}})",
+        "hash": "f2dfcae6",
+        "lastModified": "2025-11-09T14:36:33.114Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.providers.none.label": {
+      "zh-CN": {
+        "value": "无（禁用 AI）",
+        "hash": "07dc96c3",
+        "lastModified": "2025-11-09T14:36:35.648Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "None (AI Disabled)",
+        "hash": "112aed36",
+        "lastModified": "2025-11-09T14:36:35.648Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.providers.none.description": {
+      "zh-CN": {
+        "value": "仅使用关键词分析，不调用 AI 接口",
+        "hash": "2184b858",
+        "lastModified": "2025-11-09T14:36:38.239Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Only use keyword analysis, without calling AI interfaces.",
+        "hash": "ae17b3b2",
+        "lastModified": "2025-11-09T14:36:38.239Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.providers.openai.label": {
+      "zh-CN": {
+        "value": "OpenAI (GPT-4o-mini)",
+        "hash": "48cde21c",
+        "lastModified": "2025-11-09T14:36:40.389Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "OpenAI (GPT-4o-mini)",
+        "hash": "48cde21c",
+        "lastModified": "2025-11-09T14:36:40.389Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.providers.openai.description": {
+      "zh-CN": {
+        "value": "快速、准确、成本适中（$0.15/M 输入, $0.6/M 输出）",
+        "hash": "9e2dd80d",
+        "lastModified": "2025-11-09T14:36:42.681Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Fast, accurate, and cost-effective ($0.15/M input, $0.6/M output)",
+        "hash": "6e933e88",
+        "lastModified": "2025-11-09T14:36:42.681Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.providers.anthropic.label": {
+      "zh-CN": {
+        "value": "Anthropic (Claude-3-Haiku)",
+        "hash": "dd44150e",
+        "lastModified": "2025-11-09T14:36:44.693Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Anthropic (Claude-3-Haiku)",
+        "hash": "dd44150e",
+        "lastModified": "2025-11-09T14:36:44.693Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.providers.anthropic.description": {
+      "zh-CN": {
+        "value": "高质量、稍贵（$0.25/M 输入, $1.25/M 输出）",
+        "hash": "46c6cf77",
+        "lastModified": "2025-11-09T14:36:48.784Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "High quality, slightly expensive ($0.25/M input, $1.25/M output)",
+        "hash": "1fe38c7f",
+        "lastModified": "2025-11-09T14:36:48.784Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.providers.deepseek.label": {
+      "zh-CN": {
+        "value": "DeepSeek",
+        "hash": "264d9bb4",
+        "lastModified": "2025-11-09T14:36:50.625Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "DeepSeek",
+        "hash": "264d9bb4",
+        "lastModified": "2025-11-09T14:36:50.625Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.providers.deepseek.description": {
+      "zh-CN": {
+        "value": "国内友好、最便宜（¥2/M 输入, ¥3/M 输出，缓存命中 ¥0.2/M）",
+        "hash": "46c8ef7b",
+        "lastModified": "2025-11-09T14:36:53.294Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Domestically friendly, cheapest (¥2/M input, ¥3/M output, cache hit ¥0.2/M)",
+        "hash": "d87ad76c",
+        "lastModified": "2025-11-09T14:36:53.294Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.buttons.test": {
+      "zh-CN": {
+        "value": "测试连接",
+        "hash": "69e74756",
+        "lastModified": "2025-11-09T14:36:55.236Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Test connection",
+        "hash": "39838db5",
+        "lastModified": "2025-11-09T14:36:55.236Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.buttons.testing": {
+      "zh-CN": {
+        "value": "测试中...",
+        "hash": "6c501b52",
+        "lastModified": "2025-11-09T14:36:57.205Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Testing...",
+        "hash": "9d770c90",
+        "lastModified": "2025-11-09T14:36:57.205Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.buttons.save": {
+      "zh-CN": {
+        "value": "保存配置",
+        "hash": "ed752639",
+        "lastModified": "2025-11-09T14:37:00.049Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Save Configuration",
+        "hash": "08580e93",
+        "lastModified": "2025-11-09T14:37:00.049Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.buttons.saving": {
+      "zh-CN": {
+        "value": "保存中...",
+        "hash": "2a33020e",
+        "lastModified": "2025-11-09T14:37:02.404Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Saving...",
+        "hash": "575f5f86",
+        "lastModified": "2025-11-09T14:37:02.404Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.buttons.disable": {
+      "zh-CN": {
+        "value": "禁用 AI",
+        "hash": "88a0e8bd",
+        "lastModified": "2025-11-09T14:37:04.352Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Disable AI",
+        "hash": "1000182f",
+        "lastModified": "2025-11-09T14:37:04.352Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.messages.saveSuccess": {
+      "zh-CN": {
+        "value": "配置保存成功！",
+        "hash": "48929289",
+        "lastModified": "2025-11-09T14:37:06.497Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Configuration saved successfully!",
+        "hash": "4a5c1325",
+        "lastModified": "2025-11-09T14:37:06.497Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.messages.disableSuccess": {
+      "zh-CN": {
+        "value": "已禁用 AI，将使用关键词分析",
+        "hash": "ca62470c",
+        "lastModified": "2025-11-09T14:37:08.263Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "AI is disabled, keyword analysis will be used.",
+        "hash": "5155a5bf",
+        "lastModified": "2025-11-09T14:37:08.263Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.messages.latency": {
+      "zh-CN": {
+        "value": "（延迟: {{ms}}ms）",
+        "hash": "3f44e744",
+        "lastModified": "2025-11-09T14:37:10.199Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "(Delay: {{ms}}ms)",
+        "hash": "4bd2d562",
+        "lastModified": "2025-11-09T14:37:10.199Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.errors.selectProviderAndKey": {
+      "zh-CN": {
+        "value": "请选择提供商并输入 API Key",
+        "hash": "faf183d8",
+        "lastModified": "2025-11-09T14:37:12.750Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Please select a provider and enter the API Key",
+        "hash": "835aacfd",
+        "lastModified": "2025-11-09T14:37:12.750Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.errors.selectProviderAndKeyFirst": {
+      "zh-CN": {
+        "value": "请先选择提供商并输入 API Key",
+        "hash": "6f1a57dd",
+        "lastModified": "2025-11-09T14:37:13.364Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "请先选择提供商并输入 API Key",
+        "hash": "6f1a57dd",
+        "lastModified": "2025-11-09T14:37:13.364Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.errors.invalidApiKeyFormat": {
+      "zh-CN": {
+        "value": "API Key 格式不正确",
+        "hash": "2f9b8cf0",
+        "lastModified": "2025-11-09T14:37:15.028Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "The API Key format is incorrect.",
+        "hash": "50161919",
+        "lastModified": "2025-11-09T14:37:15.028Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.errors.saveFailed": {
+      "zh-CN": {
+        "value": "保存失败：{{error}}",
+        "hash": "f75980ad",
+        "lastModified": "2025-11-09T14:37:17.661Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Save failed: {{error}}",
+        "hash": "1f66a5c5",
+        "lastModified": "2025-11-09T14:37:17.661Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.errors.testFailed": {
+      "zh-CN": {
+        "value": "测试失败：{{error}}",
+        "hash": "b06d1b11",
+        "lastModified": "2025-11-09T14:37:19.502Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Test failed: {{error}}",
+        "hash": "2d29639d",
+        "lastModified": "2025-11-09T14:37:19.502Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.errors.disableFailed": {
+      "zh-CN": {
+        "value": "禁用失败：{{error}}",
+        "hash": "99b5cf88",
+        "lastModified": "2025-11-09T14:37:21.452Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Disable failed: {{error}}",
+        "hash": "2dad3fcf",
+        "lastModified": "2025-11-09T14:37:21.452Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.info.title": {
+      "zh-CN": {
+        "value": "关于 AI 分析",
+        "hash": "32993148",
+        "lastModified": "2025-11-09T14:37:22.984Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "About AI Analysis",
+        "hash": "58208182",
+        "lastModified": "2025-11-09T14:37:22.984Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.info.withConfig": {
+      "zh-CN": {
+        "value": "配置后：优先使用 AI 分析（更准确，需付费）",
+        "hash": "d98722d7",
+        "lastModified": "2025-11-09T14:37:25.445Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "After configuration: Prioritize AI analysis (more accurate, paid)",
+        "hash": "eb90a1c1",
+        "lastModified": "2025-11-09T14:37:25.445Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.info.withoutConfig": {
+      "zh-CN": {
+        "value": "不配置：使用免费的关键词分析（可用但准确度较低）",
+        "hash": "cb8bb89c",
+        "lastModified": "2025-11-09T14:37:27.492Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Not configured: Use free keyword analysis (available but with lower accuracy)",
+        "hash": "01fb8c43",
+        "lastModified": "2025-11-09T14:37:27.492Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.info.fallback": {
+      "zh-CN": {
+        "value": "降级策略：API 失败或超预算时自动降级到关键词分析",
+        "hash": "c73eab4b",
+        "lastModified": "2025-11-09T14:37:30.152Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Downgrade strategy: Automatically fall back to keyword analysis when API fails or exceeds budget.",
+        "hash": "b99904af",
+        "lastModified": "2025-11-09T14:37:30.152Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.info.privacy": {
+      "zh-CN": {
+        "value": "隐私保护：所有数据处理在本地，API Key 加密存储",
+        "hash": "3b23affb",
+        "lastModified": "2025-11-09T14:37:32.509Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Privacy Protection: All data processing is done locally, and API Keys are stored encrypted.",
+        "hash": "cadf1499",
+        "lastModified": "2025-11-09T14:37:32.509Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.cost.title": {
+      "zh-CN": {
+        "value": "成本参考（每百万 tokens）",
+        "hash": "9b268796",
+        "lastModified": "2025-11-09T14:37:34.554Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Cost Reference (per million tokens)",
+        "hash": "5978254b",
+        "lastModified": "2025-11-09T14:37:34.554Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.cost.example": {
+      "zh-CN": {
+        "value": "假设每天浏览 50 个页面，每个页面平均 1000 tokens，10% 缓存命中率：",
+        "hash": "657f8cfe",
+        "lastModified": "2025-11-09T14:37:37.217Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Assuming 50 pages browsed per day, with an average of 1000 tokens per page and a 10% cache hit rate:",
+        "hash": "c0662792",
+        "lastModified": "2025-11-09T14:37:37.217Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.cost.note": {
+      "zh-CN": {
+        "value": "实际成本会根据页面内容长度、访问频率等因素有所不同",
+        "hash": "b4522925",
+        "lastModified": "2025-11-09T14:37:39.568Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "The actual cost may vary depending on factors such as page content length and access frequency.",
+        "hash": "349adf29",
+        "lastModified": "2025-11-09T14:37:39.568Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.cost.deepseek.title": {
+      "zh-CN": {
+        "value": "DeepSeek（人民币计价）",
+        "hash": "634fe523",
+        "lastModified": "2025-11-09T14:37:41.620Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "DeepSeek (RMB Denominated)",
+        "hash": "742ba223",
+        "lastModified": "2025-11-09T14:37:41.620Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.cost.deepseek.inputUncached": {
+      "zh-CN": {
+        "value": "输入（缓存未命中）: ¥2.00/M tokens",
+        "hash": "6756b4dd",
+        "lastModified": "2025-11-09T14:37:43.668Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Input (cache miss): ¥2.00/M tokens",
+        "hash": "e953eb65",
+        "lastModified": "2025-11-09T14:37:43.668Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.cost.deepseek.inputCached": {
+      "zh-CN": {
+        "value": "输入（缓存命中）: ¥0.20/M tokens",
+        "hash": "91ca7010",
+        "lastModified": "2025-11-09T14:37:45.816Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Input (cache hit): ¥0.20/M tokens",
+        "hash": "b584a6ab",
+        "lastModified": "2025-11-09T14:37:45.816Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.cost.deepseek.output": {
+      "zh-CN": {
+        "value": "输出: ¥3.00/M tokens",
+        "hash": "bdc70142",
+        "lastModified": "2025-11-09T14:37:48.230Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Output: ¥3.00/M tokens",
+        "hash": "0f7964b7",
+        "lastModified": "2025-11-09T14:37:48.230Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.cost.deepseek.estimate": {
+      "zh-CN": {
+        "value": "约 ¥1.41/月 (≈ $0.20/月)",
+        "hash": "ee5fc22b",
+        "lastModified": "2025-11-09T14:37:50.528Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Approx. ¥1.41/month (≈ $0.20/month)",
+        "hash": "2bc8159e",
+        "lastModified": "2025-11-09T14:37:50.528Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.cost.openai.title": {
+      "zh-CN": {
+        "value": "OpenAI GPT-4o-mini（美元计价）",
+        "hash": "3b111fb9",
+        "lastModified": "2025-11-09T14:37:52.680Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "OpenAI GPT-4o-mini (USD)",
+        "hash": "03de64cf",
+        "lastModified": "2025-11-09T14:37:52.680Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.cost.openai.input": {
+      "zh-CN": {
+        "value": "输入: $0.15/M tokens",
+        "hash": "2c972878",
+        "lastModified": "2025-11-09T14:37:54.726Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Input: $0.15/M tokens",
+        "hash": "5234e327",
+        "lastModified": "2025-11-09T14:37:54.726Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.cost.openai.output": {
+      "zh-CN": {
+        "value": "输出: $0.60/M tokens",
+        "hash": "e719e3ab",
+        "lastModified": "2025-11-09T14:37:57.105Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Output: $0.60/M tokens",
+        "hash": "fa059cc3",
+        "lastModified": "2025-11-09T14:37:57.105Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.cost.openai.estimate": {
+      "zh-CN": {
+        "value": "约 $0.11 / 月",
+        "hash": "789f54e7",
+        "lastModified": "2025-11-09T14:37:58.828Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "About $0.11 / month",
+        "hash": "132daad2",
+        "lastModified": "2025-11-09T14:37:58.828Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.cost.anthropic.title": {
+      "zh-CN": {
+        "value": "Anthropic Claude 3 Haiku（美元计价）",
+        "hash": "cd42ab01",
+        "lastModified": "2025-11-09T14:38:00.874Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Anthropic Claude 3 Haiku (USD)",
+        "hash": "f2d8f8df",
+        "lastModified": "2025-11-09T14:38:00.874Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.cost.anthropic.input": {
+      "zh-CN": {
+        "value": "输入: $0.25/M tokens",
+        "hash": "78cea95f",
+        "lastModified": "2025-11-09T14:38:02.715Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Input: $0.25/M tokens",
+        "hash": "76688c0d",
+        "lastModified": "2025-11-09T14:38:02.715Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.cost.anthropic.output": {
+      "zh-CN": {
+        "value": "输出: $1.25/M tokens",
+        "hash": "c8676dc1",
+        "lastModified": "2025-11-09T14:38:04.569Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Output: $1.25/M tokens",
+        "hash": "7101be87",
+        "lastModified": "2025-11-09T14:38:04.569Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.cost.anthropic.estimate": {
+      "zh-CN": {
+        "value": "约 $0.23 / 月",
+        "hash": "bd81efd4",
+        "lastModified": "2025-11-09T14:38:06.719Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "About $0.23 / month",
+        "hash": "25bb6852",
+        "lastModified": "2025-11-09T14:38:06.719Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.errors.selectProvider": {
+      "zh-CN": {
+        "value": "请选择 AI 提供商",
+        "hash": "39e9619c",
+        "lastModified": "2025-11-09T14:47:25.885Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Please select an AI provider",
+        "hash": "02af49e8",
+        "lastModified": "2025-11-09T14:47:25.885Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.errors.enterApiKey": {
+      "zh-CN": {
+        "value": "请输入 API Key",
+        "hash": "58aacc17",
+        "lastModified": "2025-11-09T14:47:27.622Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Please enter the API Key",
+        "hash": "0776da73",
+        "lastModified": "2025-11-09T14:47:27.622Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.labels.provider": {
+      "zh-CN": {
+        "value": "AI 提供商",
+        "hash": "8ab9206e",
+        "lastModified": "2025-11-09T14:48:56.300Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "AI Provider",
+        "hash": "c410594b",
+        "lastModified": "2025-11-09T14:48:56.300Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.labels.apiKey": {
+      "zh-CN": {
+        "value": "API Key",
+        "hash": "d876ff8d",
+        "lastModified": "2025-11-09T14:48:57.807Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "API Key",
+        "hash": "d876ff8d",
+        "lastModified": "2025-11-09T14:48:57.807Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.placeholders.apiKey": {
+      "zh-CN": {
+        "value": "输入你的 API Key",
+        "hash": "dff0504a",
+        "lastModified": "2025-11-09T14:48:59.677Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Enter your API Key",
+        "hash": "8a337a2a",
+        "lastModified": "2025-11-09T14:48:59.677Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.hints.apiKey": {
+      "zh-CN": {
+        "value": "API Key 将加密存储在浏览器本地，不会上传到服务器",
+        "hash": "e22adb1f",
+        "lastModified": "2025-11-09T14:49:01.827Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "The API Key will be encrypted and stored locally in the browser, and will not be uploaded to the server.",
+        "hash": "e98a4335",
+        "lastModified": "2025-11-09T14:49:01.827Z",
         "status": "ai-translated"
       }
     }

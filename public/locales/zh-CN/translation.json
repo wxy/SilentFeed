@@ -232,6 +232,100 @@
         "weightLabel": "权重: {{weight}}",
         "hint": "💡 关键词大小代表权重，hover查看详细权重值"
       }
+    },
+    "aiConfig": {
+      "title": "AI 配置",
+      "subtitle": "配置远程 AI 服务以获得更准确的内容分析",
+      "labels": {
+        "provider": "AI 提供商",
+        "apiKey": "API Key"
+      },
+      "placeholders": {
+        "apiKey": "输入你的 API Key"
+      },
+      "hints": {
+        "apiKey": "API Key 将加密存储在浏览器本地，不会上传到服务器"
+      },
+      "providerLabel": "AI 提供商",
+      "apiKeyLabel": "API Key",
+      "budgetLabel": "月度预算限制",
+      "budgetUnit": "/ 月",
+      "selectProviderPlaceholder": "请选择 AI 提供商",
+      "apiKeyPlaceholder": "输入你的 {{provider}} API Key",
+      "apiKeyHint": "API Key 将加密存储在浏览器本地，不会上传到服务器",
+      "budgetHint": "超出预算后将自动降级到免费的关键词分析",
+      "budgetWarning": "建议设置合理预算以避免意外费用（推荐 {{range}}）",
+      "providers": {
+        "none": {
+          "label": "无（禁用 AI）",
+          "description": "仅使用关键词分析，不调用 AI 接口"
+        },
+        "openai": {
+          "label": "OpenAI (GPT-4o-mini)",
+          "description": "快速、准确、成本适中（$0.15/M 输入, $0.6/M 输出）"
+        },
+        "anthropic": {
+          "label": "Anthropic (Claude-3-Haiku)",
+          "description": "高质量、稍贵（$0.25/M 输入, $1.25/M 输出）"
+        },
+        "deepseek": {
+          "label": "DeepSeek",
+          "description": "国内友好、最便宜（¥2/M 输入, ¥3/M 输出，缓存命中 ¥0.2/M）"
+        }
+      },
+      "buttons": {
+        "test": "测试连接",
+        "testing": "测试中...",
+        "save": "保存配置",
+        "saving": "保存中...",
+        "disable": "禁用 AI"
+      },
+      "messages": {
+        "saveSuccess": "配置保存成功！",
+        "disableSuccess": "已禁用 AI，将使用关键词分析",
+        "latency": "（延迟: {{ms}}ms）"
+      },
+      "errors": {
+        "selectProvider": "请选择 AI 提供商",
+        "enterApiKey": "请输入 API Key",
+        "selectProviderAndKey": "请选择提供商并输入 API Key",
+        "selectProviderAndKeyFirst": "请先选择提供商并输入 API Key",
+        "invalidApiKeyFormat": "API Key 格式不正确",
+        "saveFailed": "保存失败：{{error}}",
+        "testFailed": "测试失败：{{error}}",
+        "disableFailed": "禁用失败：{{error}}"
+      },
+      "info": {
+        "title": "关于 AI 分析",
+        "withConfig": "配置后：优先使用 AI 分析（更准确，需付费）",
+        "withoutConfig": "不配置：使用免费的关键词分析（可用但准确度较低）",
+        "fallback": "降级策略：API 失败或超预算时自动降级到关键词分析",
+        "privacy": "隐私保护：所有数据处理在本地，API Key 加密存储"
+      },
+      "cost": {
+        "title": "成本参考（每百万 tokens）",
+        "example": "假设每天浏览 50 个页面，每个页面平均 1000 tokens，10% 缓存命中率：",
+        "note": "实际成本会根据页面内容长度、访问频率等因素有所不同",
+        "deepseek": {
+          "title": "DeepSeek（人民币计价）",
+          "inputUncached": "输入（缓存未命中）: ¥2.00/M tokens",
+          "inputCached": "输入（缓存命中）: ¥0.20/M tokens",
+          "output": "输出: ¥3.00/M tokens",
+          "estimate": "约 ¥1.41/月 (≈ $0.20/月)"
+        },
+        "openai": {
+          "title": "OpenAI GPT-4o-mini（美元计价）",
+          "input": "输入: $0.15/M tokens",
+          "output": "输出: $0.60/M tokens",
+          "estimate": "约 $0.11 / 月"
+        },
+        "anthropic": {
+          "title": "Anthropic Claude 3 Haiku（美元计价）",
+          "input": "输入: $0.25/M tokens",
+          "output": "输出: $1.25/M tokens",
+          "estimate": "约 $0.23 / 月"
+        }
+      }
     }
   },
   "common": {
@@ -240,7 +334,47 @@
     "success": "成功",
     "cancel": "取消",
     "confirm": "确认",
-    "selectLanguage": "选择语言"
+    "selectLanguage": "选择语言",
+    "languages": {
+      "zhCN": "简体中文",
+      "en": "English",
+      "ja": "日本語",
+      "fr": "Français",
+      "de": "Deutsch",
+      "es": "Español",
+      "ko": "한국어"
+    },
+    "aiProviders": {
+      "keyword": "关键词分析",
+      "openai": "OpenAI",
+      "anthropic": "Anthropic (Claude)",
+      "deepseek": "DeepSeek"
+    },
+    "topics": {
+      "technology": "技术",
+      "science": "科学",
+      "business": "商业",
+      "design": "设计",
+      "arts": "艺术",
+      "health": "健康",
+      "sports": "体育",
+      "entertainment": "娱乐",
+      "news": "新闻",
+      "education": "教育",
+      "other": "其他"
+    },
+    "topicPersonalities": {
+      "technology": "科技极客，总是追求最新的技术趋势",
+      "science": "理性探索者，对世界充满好奇心",
+      "business": "商业领袖，具有敏锐的市场嗅觉",
+      "design": "美感追求者，注重视觉和用户体验",
+      "arts": "艺术鉴赏家，欣赏各种创意表达",
+      "health": "健康生活倡导者，关注身心wellness",
+      "sports": "运动爱好者，享受竞技和健身乐趣",
+      "entertainment": "娱乐达人，热爱轻松有趣的内容",
+      "news": "信息收集者，关注时事和社会动态",
+      "education": "终身学习者，持续自我提升",
+      "other": "兴趣广泛的探索者"
+    }
   }
 }
-

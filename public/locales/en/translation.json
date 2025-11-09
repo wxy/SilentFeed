@@ -30,7 +30,48 @@
     "success": "Success",
     "cancel": "Cancel",
     "confirm": "Confirm",
-    "selectLanguage": "Select Language"
+    "selectLanguage": "Select Language",
+    "languages": {
+      "zhCN": "Simplified Chinese",
+      "en": "English",
+      "ja": "Japanese",
+      "fr": "French",
+      "de": "German",
+      "es": "Spanish",
+      "ko": "Korean"
+    },
+    "aiProviders": {
+      "keyword": "Keyword Analysis",
+      "openai": "OpenAI",
+      "anthropic": "Anthropic (Claude)",
+      "deepseek": "DeepSeek"
+    },
+    "topics": {
+      "technology": "Technology",
+      "science": "Science",
+      "business": "Business",
+      "design": "Design",
+      "arts": "Art",
+      "health": "Health",
+      "sports": "Sports",
+      "entertainment": "Entertainment",
+      "news": "News",
+      "education": "Education",
+      "other": "Other"
+    },
+    "topicPersonalities": {
+      "technology": "Tech geeks, always chasing the latest technology trends.",
+      "science": "Rational Explorer, full of curiosity about the world",
+      "business": "Business leader with a keen market sense",
+      "design": "Aesthetic seekers, who value visual appeal and user experience.",
+      "arts": "Art Connoisseur, appreciating various creative expressions",
+      "health": "Advocate for healthy living, focusing on physical and mental wellness",
+      "sports": "Sports enthusiasts who enjoy the thrill of competition and the joy of fitness.",
+      "entertainment": "Entertainment enthusiast, passionate about light and fun content.",
+      "news": "Information gatherer, keeping an eye on current events and social trends",
+      "education": "Lifelong learner, continuously self-improving.",
+      "other": "An explorer with diverse interests."
+    }
   },
   "options": {
     "title": "Settings",
@@ -108,33 +149,12 @@
     "collectionStats": {
       "noData": "No data available",
       "overview": "Collection Overview",
-      "totalPages": "Total Collection",
-      "pagesCollected": "Page has been collected",
-      "validRecords": "Effective records",
-      "dwellTimeOver30s": "Stay for more than 30 seconds",
-      "avgDwellTime": "Average Dwell Time",
-      "perPage": "Average per page",
       "textAnalysis": "Text Analysis Statistics",
-      "comingSoonInPhase3": "Display after Phase 3 completion",
       "textAnalysisHint": "Continue browsing the webpage, and the system will automatically extract and analyze the content.",
       "userProfile": "User Profile",
-      "profileHint": "Will display interest topics, keyword weights, and other information",
-      "storage": "Storage Usage",
-      "totalSize": "Total occupied space",
-      "pendingVisits": "Temporary Record (Pending Confirmation)",
-      "confirmedVisits": "Valid Records (Confirmed)",
-      "recommendations": "Recommended Records",
-      "records": "Strip",
       "storageHint": "Estimated storage space usage",
-      "topDomains": "Frequently Visited Domains (Top 10)",
-      "noDomains": "No data available",
-      "visits": "Second visit",
       "dataManagement": "Data Management",
-      "clearHistory": "Clear browsing history",
-      "resetProfile": "Reset User Profile",
       "clearAll": "Clear all data",
-      "comingSoon": "Coming soon",
-      "dataManagementHint": "The data management feature will be available in future versions.",
       "totalPagesLabel": "Total pages collected",
       "dwellTimeHint": "Pages with a stay of more than 30 seconds",
       "storageLabel": "Storage Usage",
@@ -268,6 +288,100 @@
         "noData": "No keyword data available",
         "weightLabel": "Weight: {{weight}}",
         "hint": "💡 Keyword size represents weight, hover to view detailed weight values"
+      }
+    },
+    "aiConfig": {
+      "title": "AI Configuration",
+      "subtitle": "Configure remote AI services for more accurate content analysis",
+      "providerLabel": "AI Provider",
+      "apiKeyLabel": "API Key",
+      "budgetLabel": "Monthly budget limit",
+      "budgetUnit": "/ month",
+      "selectProviderPlaceholder": "Please select an AI provider",
+      "apiKeyPlaceholder": "Enter your {{provider}} API Key",
+      "apiKeyHint": "The API Key will be encrypted and stored locally in the browser, and will not be uploaded to the server.",
+      "budgetHint": "Will automatically downgrade to free keyword analysis after exceeding the budget",
+      "budgetWarning": "It is recommended to set a reasonable budget to avoid unexpected costs (suggested {{range}})",
+      "providers": {
+        "none": {
+          "label": "None (AI Disabled)",
+          "description": "Only use keyword analysis, without calling AI interfaces."
+        },
+        "openai": {
+          "label": "OpenAI (GPT-4o-mini)",
+          "description": "Fast, accurate, and cost-effective ($0.15/M input, $0.6/M output)"
+        },
+        "anthropic": {
+          "label": "Anthropic (Claude-3-Haiku)",
+          "description": "High quality, slightly expensive ($0.25/M input, $1.25/M output)"
+        },
+        "deepseek": {
+          "label": "DeepSeek",
+          "description": "Domestically friendly, cheapest (¥2/M input, ¥3/M output, cache hit ¥0.2/M)"
+        }
+      },
+      "buttons": {
+        "test": "Test connection",
+        "testing": "Testing...",
+        "save": "Save Configuration",
+        "saving": "Saving...",
+        "disable": "Disable AI"
+      },
+      "messages": {
+        "saveSuccess": "Configuration saved successfully!",
+        "disableSuccess": "AI is disabled, keyword analysis will be used.",
+        "latency": "(Delay: {{ms}}ms)"
+      },
+      "errors": {
+        "selectProviderAndKey": "Please select a provider and enter the API Key",
+        "selectProviderAndKeyFirst": "请先选择提供商并输入 API Key",
+        "invalidApiKeyFormat": "The API Key format is incorrect.",
+        "saveFailed": "Save failed: {{error}}",
+        "testFailed": "Test failed: {{error}}",
+        "disableFailed": "Disable failed: {{error}}",
+        "selectProvider": "Please select an AI provider",
+        "enterApiKey": "Please enter the API Key"
+      },
+      "info": {
+        "title": "About AI Analysis",
+        "withConfig": "After configuration: Prioritize AI analysis (more accurate, paid)",
+        "withoutConfig": "Not configured: Use free keyword analysis (available but with lower accuracy)",
+        "fallback": "Downgrade strategy: Automatically fall back to keyword analysis when API fails or exceeds budget.",
+        "privacy": "Privacy Protection: All data processing is done locally, and API Keys are stored encrypted."
+      },
+      "cost": {
+        "title": "Cost Reference (per million tokens)",
+        "example": "Assuming 50 pages browsed per day, with an average of 1000 tokens per page and a 10% cache hit rate:",
+        "note": "The actual cost may vary depending on factors such as page content length and access frequency.",
+        "deepseek": {
+          "title": "DeepSeek (RMB Denominated)",
+          "inputUncached": "Input (cache miss): ¥2.00/M tokens",
+          "inputCached": "Input (cache hit): ¥0.20/M tokens",
+          "output": "Output: ¥3.00/M tokens",
+          "estimate": "Approx. ¥1.41/month (≈ $0.20/month)"
+        },
+        "openai": {
+          "title": "OpenAI GPT-4o-mini (USD)",
+          "input": "Input: $0.15/M tokens",
+          "output": "Output: $0.60/M tokens",
+          "estimate": "About $0.11 / month"
+        },
+        "anthropic": {
+          "title": "Anthropic Claude 3 Haiku (USD)",
+          "input": "Input: $0.25/M tokens",
+          "output": "Output: $1.25/M tokens",
+          "estimate": "About $0.23 / month"
+        }
+      },
+      "labels": {
+        "provider": "AI Provider",
+        "apiKey": "API Key"
+      },
+      "placeholders": {
+        "apiKey": "Enter your API Key"
+      },
+      "hints": {
+        "apiKey": "The API Key will be encrypted and stored locally in the browser, and will not be uploaded to the server."
       }
     }
   }
