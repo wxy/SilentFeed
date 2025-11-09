@@ -16,7 +16,7 @@ export interface AIConfig {
   provider: AIProviderType | null
   apiKey: string
   enabled: boolean
-  monthlyBudget: number // 月度预算（美元），必须设置，最小 $1
+  monthlyBudget: number // 月度预算（美元或人民币），必须设置，最小 $1 或 ¥10
 }
 
 /**
@@ -173,8 +173,9 @@ export function validateApiKey(
       return apiKey.startsWith("sk-ant-")
     
     case "deepseek":
-      // DeepSeek API Key 没有固定前缀，只检查长度
-      return apiKey.length > 20
+      // DeepSeek API Key 格式: sk-xxx
+      // 注：chat 和 reasoner 模型使用相同的 API Key
+      return apiKey.startsWith("sk-") && apiKey.length > 20
     
     default:
       return false

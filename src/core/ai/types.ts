@@ -147,6 +147,9 @@ export interface DeepSeekRequest {
   temperature?: number
   max_tokens?: number
   stream?: boolean
+  response_format?: {
+    type: "json_object" | "text"
+  }
 }
 
 /**

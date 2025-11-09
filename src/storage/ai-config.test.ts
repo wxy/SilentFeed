@@ -173,8 +173,11 @@ describe("ai-config", () => {
     })
     
     it("应该验证 DeepSeek API Key", () => {
-      expect(validateApiKey("deepseek", "a".repeat(25))).toBe(true)
-      expect(validateApiKey("deepseek", "short")).toBe(false)
+      // DeepSeek API Key 格式: sk-xxx，长度 > 20
+      // 注：chat 和 reasoner 模型使用相同的 API Key
+      expect(validateApiKey("deepseek", "sk-" + "a".repeat(25))).toBe(true)
+      expect(validateApiKey("deepseek", "sk-short")).toBe(false) // 长度不够
+      expect(validateApiKey("deepseek", "no-prefix-key")).toBe(false) // 没有 sk- 前缀
       expect(validateApiKey("deepseek", "")).toBe(false)
     })
   })

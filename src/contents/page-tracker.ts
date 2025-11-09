@@ -60,6 +60,7 @@ const CHECK_INTERVAL_MS = 5000
 
 let calculator: DwellTimeCalculator
 let isRecorded = false // 防止重复记录
+let isRecording = false // 防止并发记录
 let checkTimer: number | null = null // 定时检查的计时器
 let urlCheckTimer: number | null = null // URL 轮询定时器
 let eventListeners: Array<{ element: EventTarget; event: string; handler: EventListener }> = [] // 追踪所有事件监听器
@@ -352,66 +353,69 @@ async function recordPageVisit(): Promise<void> {
     logger.debug('🚫 [PageTracker] 已记录过，跳过')
     return
   }
+  
+  // 设置记录标志，防止并发调用
+  isRecording = true
 
-  const pageInfo = getPageInfo()
-  
-    // Phase 2.7 Step 6: 检测访问来源
-  let source: 'organic' | 'recommended' | 'search' = 'organic'
-  let recommendationId: string | undefined
-  
   try {
-    // 检查 chrome.storage 是否可用
-    if (!checkExtensionContext() || !chrome?.storage?.local) {
-      logger.debug('⚠️ [PageTracker] Chrome storage 不可用，跳过来源检测')
-      // 继续记录，但使用默认来源
-    } else {
-      try {
-        // 1. 尝试从 chrome.storage 读取追踪信息
-        const trackingKey = `tracking_${pageInfo.url}`
-        const result = await chrome.storage.local.get(trackingKey)
-        const trackingInfo = result[trackingKey]
-        
-        if (trackingInfo && trackingInfo.expiresAt > Date.now()) {
-          source = trackingInfo.source || 'organic'
-          recommendationId = trackingInfo.recommendationId
-          logger.debug('🔗 [PageTracker] 检测到推荐来源', { source, recommendationId })
+    const pageInfo = getPageInfo()
+    
+      // Phase 2.7 Step 6: 检测访问来源
+    let source: 'organic' | 'recommended' | 'search' = 'organic'
+    let recommendationId: string | undefined
+    
+    try {
+      // 检查 chrome.storage 是否可用
+      if (!checkExtensionContext() || !chrome?.storage?.local) {
+        logger.debug('⚠️ [PageTracker] Chrome storage 不可用，跳过来源检测')
+        // 继续记录，但使用默认来源
+      } else {
+        try {
+          // 1. 尝试从 chrome.storage 读取追踪信息
+          const trackingKey = `tracking_${pageInfo.url}`
+          const result = await chrome.storage.local.get(trackingKey)
+          const trackingInfo = result[trackingKey]
           
-          // 使用后立即删除追踪信息
-          await chrome.storage.local.remove(trackingKey)
-        } else {
-          // 2. 检测是否来自搜索引擎（基于 referrer）
-          const referrer = document.referrer
-          if (referrer) {
-            try {
-              const referrerUrl = new URL(referrer)
-              const searchEngines = ['google.com', 'bing.com', 'baidu.com', 'duckduckgo.com']
-              if (searchEngines.some(engine => referrerUrl.hostname.includes(engine))) {
-                source = 'search'
-                logger.debug('🔍 [PageTracker] 检测到搜索引擎来源', { referrer })
+          if (trackingInfo && trackingInfo.expiresAt > Date.now()) {
+            source = trackingInfo.source || 'organic'
+            recommendationId = trackingInfo.recommendationId
+            logger.debug('🔗 [PageTracker] 检测到推荐来源', { source, recommendationId })
+            
+            // 使用后立即删除追踪信息
+            await chrome.storage.local.remove(trackingKey)
+          } else {
+            // 2. 检测是否来自搜索引擎（基于 referrer）
+            const referrer = document.referrer
+            if (referrer) {
+              try {
+                const referrerUrl = new URL(referrer)
+                const searchEngines = ['google.com', 'bing.com', 'baidu.com', 'duckduckgo.com']
+                if (searchEngines.some(engine => referrerUrl.hostname.includes(engine))) {
+                  source = 'search'
+                  logger.debug('🔍 [PageTracker] 检测到搜索引擎来源', { referrer })
+                }
+              } catch (urlError) {
+                // 无效的 referrer URL，忽略
+                logger.debug('⚠️ [PageTracker] 无效的 referrer URL')
               }
-            } catch (urlError) {
-              // 无效的 referrer URL，忽略
-              logger.debug('⚠️ [PageTracker] 无效的 referrer URL')
             }
           }
+        } catch (storageError) {
+          logger.debug('⚠️ [PageTracker] Chrome storage 访问失败，使用默认来源', storageError)
         }
-      } catch (storageError) {
-        logger.debug('⚠️ [PageTracker] Chrome storage 访问失败，使用默认来源', storageError)
       }
+    } catch (error) {
+      logger.debug('⚠️ [PageTracker] 检测来源失败，使用默认值', error)
     }
-  } catch (error) {
-    logger.debug('⚠️ [PageTracker] 检测来源失败，使用默认值', error)
-  }
-  
-  logger.info('💾 [PageTracker] 准备记录页面访问', {
-    页面: pageInfo.title,
-    URL: pageInfo.url,
-    停留时间: `${pageInfo.dwellTime.toFixed(1)}秒`,
-    来源: source,
-    时间戳: new Date(pageInfo.visitedAt).toLocaleTimeString()
-  })
+    
+    logger.info('💾 [PageTracker] 准备记录页面访问', {
+      页面: pageInfo.title,
+      URL: pageInfo.url,
+      停留时间: `${pageInfo.dwellTime.toFixed(1)}秒`,
+      来源: source,
+      时间戳: new Date(pageInfo.visitedAt).toLocaleTimeString()
+    })
 
-  try {
     // ⚠️ 架构变更：不再直接访问数据库
     // Content Script 通过消息传递数据到 Background
     // Background 负责所有数据库操作
@@ -483,10 +487,11 @@ async function recordPageVisit(): Promise<void> {
     } else {
       logger.error('❌ [PageTracker] 记录页面访问失败', error)
     }
+  } finally {
+    // 无论成功或失败，都重置记录标志
+    isRecording = false
   }
-}
-
-/**
+}/**
  * 检查是否达到阈值
  */
 function checkThreshold(): void {
@@ -497,7 +502,8 @@ function checkThreshold(): void {
   
   const dwellTime = calculator.getEffectiveDwellTime()
 
-  if (dwellTime >= THRESHOLD_SECONDS && !isRecorded) {
+  // 防止重复记录或并发记录
+  if (dwellTime >= THRESHOLD_SECONDS && !isRecorded && !isRecording) {
     logger.info('🎯 [PageTracker] 达到阈值，开始记录')
     recordPageVisit()
   }

@@ -57,18 +57,21 @@ describe("AIConfig", () => {
       expect(screen.getByLabelText("AI 提供商")).toBeInTheDocument()
     })
     
-    it("应该显示所有提供商选项", () => {
+    it("应该显示所有提供商选项", async () => {
       render(<AIConfig />)
       
-      const select = screen.getByLabelText("AI 提供商")
-      expect(select).toBeInTheDocument()
+      // 等待组件加载完成
+      await waitFor(() => {
+        expect(screen.getByLabelText("AI 提供商")).toBeInTheDocument()
+      })
       
-      // 检查选项（现在有两个 DeepSeek 选项）
-      expect(screen.getByRole("option", { name: /未配置/ })).toBeInTheDocument()
+      const select = screen.getByLabelText("AI 提供商")
+      
+      // 检查选项（Phase 4: 包含"无"选项和三个提供商）
+      expect(screen.getByRole("option", { name: /无（禁用 AI）/ })).toBeInTheDocument()
       expect(screen.getByRole("option", { name: /OpenAI/ })).toBeInTheDocument()
       expect(screen.getByRole("option", { name: /Anthropic/ })).toBeInTheDocument()
-      expect(screen.getByRole("option", { name: /DeepSeek Chat/ })).toBeInTheDocument()
-      expect(screen.getByRole("option", { name: /DeepSeek Reasoner/ })).toBeInTheDocument()
+      expect(screen.getByRole("option", { name: /DeepSeek/ })).toBeInTheDocument()
     })
   })
   

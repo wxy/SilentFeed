@@ -25,11 +25,11 @@ interface ProviderOption {
   description: string
 }
 
-const PROVIDER_OPTIONS: ProviderOption[] = [
+const PROVIDER_OPTIONS = [
   {
     value: null,
-    label: "未配置",
-    description: "使用免费的关键词分析（准确度较低）"
+    label: "无（禁用 AI）",
+    description: "仅使用关键词分析，不调用 AI 接口"
   },
   {
     value: "openai",
@@ -43,15 +43,10 @@ const PROVIDER_OPTIONS: ProviderOption[] = [
   },
   {
     value: "deepseek",
-    label: "DeepSeek Chat",
+    label: "DeepSeek",
     description: "国内友好、最便宜（¥2/M 输入, ¥3/M 输出，缓存命中 ¥0.2/M）"
-  },
-  {
-    value: "deepseek-reasoner",
-    label: "DeepSeek Reasoner",
-    description: "推理增强模型（¥2/M 输入, ¥3/M 输出，缓存命中 ¥0.2/M）"
   }
-]
+] as const
 
 export function AIConfig() {
   const { _ } = useI18n()
@@ -248,11 +243,9 @@ export function AIConfig() {
         </select>
         
         {/* Provider 说明 */}
-        {provider && (
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            {PROVIDER_OPTIONS.find((o) => o.value === provider)?.description}
-          </p>
-        )}
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          {PROVIDER_OPTIONS.find((o) => o.value === provider)?.description || "请选择 AI 提供商"}
+        </p>
       </div>
       
       {/* API Key 输入 */}
@@ -290,13 +283,13 @@ export function AIConfig() {
           
           <div className="flex items-center gap-2">
             <span className="text-gray-600 dark:text-gray-400">
-              {provider === "deepseek" || provider === "deepseek-reasoner" ? "¥" : "$"}
+              {provider === "deepseek" ? "¥" : "$"}
             </span>
             <input
               id="budget"
               type="number"
               min="1"
-              max={provider === "deepseek" || provider === "deepseek-reasoner" ? "500" : "100"}
+              max={provider === "deepseek" ? "500" : "100"}
               step="1"
               value={monthlyBudget}
               onChange={(e) => setMonthlyBudget(Math.max(1, Number(e.target.value)))}
@@ -312,7 +305,7 @@ export function AIConfig() {
           </p>
           <p className="text-xs text-orange-600 dark:text-orange-400">
             ⚠️ 建议设置合理预算以避免意外费用
-            {provider === "deepseek" || provider === "deepseek-reasoner" 
+            {provider === "deepseek"
               ? "（推荐 ¥10-50）" 
               : "（推荐 $5-10）"}
           </p>
@@ -390,10 +383,10 @@ export function AIConfig() {
             💰 成本参考（每百万 tokens）
           </h3>
           
-          {provider === "deepseek" || provider === "deepseek-reasoner" ? (
+          {provider === "deepseek" ? (
             <div className="mt-3 space-y-2">
               <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {provider === "deepseek" ? "DeepSeek Chat" : "DeepSeek Reasoner"}（人民币计价）
+                DeepSeek（人民币计价）
               </p>
               <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
                 <li>• 输入（缓存未命中）: ¥2.00/M tokens</li>

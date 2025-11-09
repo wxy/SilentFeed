@@ -147,7 +147,7 @@ export class DeepSeekReasonerProvider implements AIProvider {
           "Authorization": `Bearer ${this.config.apiKey}`
         },
         body: JSON.stringify(request),
-        signal: AbortSignal.timeout(10000) // 10秒超时
+        signal: AbortSignal.timeout(20000) // 20秒超时（简单测试）
       })
       
       const latency = Date.now() - startTime
@@ -193,24 +193,24 @@ export class DeepSeekReasonerProvider implements AIProvider {
    * 构建提示词
    */
   private buildPrompt(content: string): string {
-    return `你是一个内容分析专家。请深入分析以下文本的主题分布。
+    // JSON Mode 要求提示词中包含 "JSON" 和格式示例
+    return `分析以下文本的主题分布，输出 JSON 格式结果。
 
-文本内容：
+文本：
 ${content}
 
-请仔细思考文本的核心主题，然后以 JSON 格式返回分析结果，包含主题及其概率（0-1之间的数字，总和为1）。
-主题应该是具体的、有意义的类别（如"技术"、"设计"、"商业"等）。
+请识别 3-5 个主要主题（如"技术"、"设计"、"商业"等），并给出每个主题的概率（0-1之间，总和为1）。
 
-返回格式示例：
+输出格式（JSON）：
 {
   "topics": {
-    "技术": 0.7,
-    "开源": 0.2,
+    "技术": 0.6,
+    "API": 0.3,
     "教程": 0.1
   }
 }
 
-只返回 JSON，不要其他解释。`
+只输出 JSON，不要其他内容。`
   }
   
   /**
@@ -228,12 +228,25 @@ ${content}
           content: prompt
         }
       ],
-      temperature: 0.3, // 降低随机性，更稳定
-      max_tokens: 500,  // 主题分析不需要太多 tokens
+      // DeepSeek Reasoner 不支持 temperature，设置了也不生效
+      // temperature: 0.3,
+      
+      // 启用 JSON Mode，强制模型输出 JSON
+      // 这会大幅减少推理过程，直接输出结构化结果
+      response_format: {
+        type: "json_object"
+      },
+      
+      // max_tokens 包含思维链 + 最终答案
+      // 根据文档：模型单次回答的最大长度（含思维链输出），默认为 32K，最大为 64K
+      // 实测推理链约 2000 tokens，设置 4000 给予充足空间，避免截断
+      max_tokens: 4000,
       stream: false
     }
     
-    const timeout = options?.timeout || 30000 // 默认 30 秒
+    // Reasoner 模型推理较慢，需要更长超时
+    // 4000 tokens 预计需要 60-90 秒
+    const timeout = options?.timeout || 90000 // 90 秒
     
     const response = await fetch(this.endpoint, {
       method: "POST",
@@ -258,9 +271,51 @@ ${content}
    */
   private parseResponse(response: DeepSeekResponse): AIAnalysisOutput {
     try {
-      const content = response.choices[0]?.message?.content
-      if (!content) {
-        throw new Error("No content in response")
+      const message = response.choices[0]?.message
+      
+      // 根据 DeepSeek Reasoner 文档：
+      // - reasoning_content: 思维链内容（推理过程）
+      // - content: 最终回答内容（这才是我们需要的 JSON）
+      
+      const reasoningContent = (message as any)?.reasoning_content
+      const finalContent = message?.content
+      const finishReason = response.choices[0]?.finish_reason
+      
+      console.log("[DeepSeekReasonerProvider] Response structure:", {
+        hasReasoningContent: !!reasoningContent,
+        hasFinalContent: !!finalContent,
+        reasoningLength: reasoningContent?.length || 0,
+        finalLength: finalContent?.length || 0,
+        finishReason
+      })
+      
+      // 输出完整的 reasoning_content，便于调试
+      if (reasoningContent) {
+        console.log("[DeepSeekReasonerProvider] Full reasoning_content:")
+        console.log(reasoningContent)
+      }
+      
+      // 如果 finish_reason 是 'length'，说明达到 max_tokens 限制
+      if (finishReason === 'length') {
+        console.warn("[DeepSeekReasonerProvider] Response truncated due to max_tokens limit")
+        console.warn("[DeepSeekReasonerProvider] Consider increasing max_tokens")
+      }
+      
+      // 优先使用最终回答（content）
+      let content = finalContent
+      
+      // 如果最终回答为空，说明 max_tokens 不够，模型只输出了推理过程
+      if (!content || content.trim().length === 0) {
+        console.warn("[DeepSeekReasonerProvider] Final content is empty, model may have run out of tokens")
+        
+        // 尝试从推理内容中提取 JSON（作为降级方案）
+        if (reasoningContent && typeof reasoningContent === 'string') {
+          console.log("[DeepSeekReasonerProvider] Attempting to extract JSON from reasoning_content")
+          console.log("[DeepSeekReasonerProvider] Last 500 chars:", reasoningContent.slice(-500))
+          content = reasoningContent
+        } else {
+          throw new Error("Both content and reasoning_content are empty")
+        }
       }
       
       // 提取 JSON（处理可能的 markdown 代码块）

@@ -7,11 +7,15 @@
  * 1. 优先使用用户配置的 AI Provider（如果可用）
  * 2. AI 失败时自动降级到关键词分析
  * 3. 记录成本和使用情况
+ * 
+ * Phase 4: 仅使用 DeepSeek Chat 模型
+ * Phase 5: 根据任务类型（页面分析 vs 推荐）选择合适的模型
  */
 
 import type { AIProvider, UnifiedAnalysisResult, AnalyzeOptions } from "./types"
 import { DeepSeekProvider } from "./providers/DeepSeekProvider"
-import { DeepSeekReasonerProvider } from "./providers/DeepSeekReasonerProvider"
+// DeepSeekReasonerProvider 保留供 Phase 5 使用（推荐引擎）
+// import { DeepSeekReasonerProvider } from "./providers/DeepSeekReasonerProvider"
 import { FallbackKeywordProvider } from "./providers/FallbackKeywordProvider"
 import { getAIConfig, type AIProviderType } from "@/storage/ai-config"
 
@@ -115,10 +119,9 @@ export class AICapabilityManager {
   private createProvider(type: AIProviderType, apiKey: string): AIProvider {
     switch (type) {
       case "deepseek":
+        // Phase 4: 仅使用 DeepSeek Chat 模型（快速、便宜）
+        // Phase 5: 可能根据任务类型选择 Chat 或 Reasoner
         return new DeepSeekProvider({ apiKey })
-      
-      case "deepseek-reasoner":
-        return new DeepSeekReasonerProvider({ apiKey })
       
       case "openai":
         // TODO: 实现 OpenAIProvider (Sprint 6)
