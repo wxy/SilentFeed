@@ -543,6 +543,97 @@ export async function deleteUserProfile(): Promise<void> {
   await db.userProfile.delete('singleton')
 }
 
+/**
+ * 获取 AI 分析质量统计 (Phase 4 - Sprint 5.2)
+ * 
+ * 统计 AI 分析 vs 关键词分析的占比、成本等
+ */
+export async function getAIAnalysisStats(): Promise<{
+  totalPages: number
+  aiAnalyzedPages: number
+  keywordAnalyzedPages: number
+  aiPercentage: number
+  providerDistribution: Array<{ provider: string; count: number; percentage: number }>
+  totalCostUSD: number
+  totalCostCNY: number
+  totalTokens: number
+  avgCostPerPage: number
+  primaryCurrency: 'USD' | 'CNY' | null
+}> {
+  const confirmedVisits = await db.confirmedVisits.toArray()
+  
+  // 过滤有效记录（有分析数据）
+  const analyzedVisits = confirmedVisits.filter(visit => {
+    if (!visit.analysis) return false
+    if (!visit.analysis.keywords || visit.analysis.keywords.length === 0) return false
+    return true
+  })
+
+  // 统计 AI 分析的页面
+  const aiPages = analyzedVisits.filter(visit => visit.analysis.aiAnalysis)
+  const keywordPages = analyzedVisits.filter(visit => !visit.analysis.aiAnalysis)
+
+  // 提供商分布统计
+  const providerCount = new Map<string, number>()
+  aiPages.forEach(visit => {
+    const provider = visit.analysis.aiAnalysis!.provider
+    providerCount.set(provider, (providerCount.get(provider) || 0) + 1)
+  })
+
+  const providerDistribution = Array.from(providerCount.entries())
+    .map(([provider, count]) => ({
+      provider: provider === 'deepseek' ? 'DeepSeek' :
+                provider === 'openai' ? 'OpenAI' :
+                provider === 'anthropic' ? 'Anthropic' :
+                provider === 'keyword' ? '关键词' :
+                provider,
+      count,
+      percentage: (count / Math.max(aiPages.length, 1)) * 100
+    }))
+    .sort((a, b) => b.count - a.count)
+
+  // 成本统计（分货币）
+  let totalCostUSD = 0
+  let totalCostCNY = 0
+  let totalTokens = 0
+  let currencyCount = { USD: 0, CNY: 0 }
+  
+  aiPages.forEach(visit => {
+    const aiAnalysis = visit.analysis.aiAnalysis
+    if (aiAnalysis?.cost) {
+      const currency = aiAnalysis.currency || 'USD' // 默认美元
+      if (currency === 'CNY') {
+        totalCostCNY += aiAnalysis.cost
+        currencyCount.CNY++
+      } else {
+        totalCostUSD += aiAnalysis.cost
+        currencyCount.USD++
+      }
+    }
+    if (aiAnalysis?.tokensUsed) {
+      totalTokens += aiAnalysis.tokensUsed.total
+    }
+  })
+
+  // 确定主要货币（用于显示平均成本）
+  const primaryCurrency = currencyCount.CNY > currencyCount.USD ? 'CNY' : 
+                         currencyCount.USD > 0 ? 'USD' : null
+  const primaryCost = primaryCurrency === 'CNY' ? totalCostCNY : totalCostUSD
+
+  return {
+    totalPages: analyzedVisits.length,
+    aiAnalyzedPages: aiPages.length,
+    keywordAnalyzedPages: keywordPages.length,
+    aiPercentage: analyzedVisits.length > 0 ? (aiPages.length / analyzedVisits.length) * 100 : 0,
+    providerDistribution,
+    totalCostUSD,
+    totalCostCNY,
+    totalTokens,
+    avgCostPerPage: aiPages.length > 0 ? primaryCost / aiPages.length : 0,
+    primaryCurrency
+  }
+}
+
 // ==================== 兴趣快照操作 (Phase 3.4) ====================
 
 /**

@@ -29,17 +29,40 @@ export class InterestSnapshotManager {
     trigger: InterestSnapshot['trigger'] = 'manual'
   ): Promise<void> {
     try {
+      console.log('[SnapshotManager] 🔍 开始处理画像更新', {
+        trigger,
+        页面数: newProfile.totalPages,
+        主题分布: newProfile.topics
+      })
+      
       // 计算当前主导兴趣
       const currentPrimary = this.calculatePrimaryTopic(newProfile.topics)
       
       if (!currentPrimary) {
-        console.log('[SnapshotManager] 没有主导兴趣，跳过快照')
+        console.log('[SnapshotManager] ⚠️ 没有主导兴趣，跳过快照', {
+          主题分布: newProfile.topics,
+          原因: '没有满足主导条件的兴趣'
+        })
         return
       }
+
+      console.log('[SnapshotManager] ✅ 检测到主导兴趣', {
+        主题: currentPrimary.topic,
+        分数: currentPrimary.score,
+        级别: currentPrimary.level
+      })
 
       // 获取最近的快照历史
       const recentSnapshots = await getInterestHistory(5)
       const lastSnapshot = recentSnapshots[0]
+
+      console.log('[SnapshotManager] 快照历史', {
+        总快照数: recentSnapshots.length,
+        最近快照: lastSnapshot ? {
+          主题: lastSnapshot.primaryTopic,
+          时间: new Date(lastSnapshot.timestamp).toLocaleString()
+        } : '无'
+      })
 
       // 检查是否需要创建快照
       let shouldCreateSnapshot = false
@@ -49,6 +72,7 @@ export class InterestSnapshotManager {
         // 首次创建快照
         shouldCreateSnapshot = true
         changeNote = `首次建立兴趣画像：${TOPIC_NAMES[currentPrimary.topic as Topic]}`
+        console.log('[SnapshotManager] 📸 触发条件: 首次创建快照')
       } else if (lastSnapshot.primaryTopic !== currentPrimary.topic) {
         // 主导兴趣发生变化
         shouldCreateSnapshot = true
@@ -56,15 +80,26 @@ export class InterestSnapshotManager {
         const newTopicName = TOPIC_NAMES[currentPrimary.topic as Topic] || currentPrimary.topic
         changeNote = `主导兴趣变化：${oldTopicName} → ${newTopicName}`
         trigger = 'primary_change'
+        console.log('[SnapshotManager] 📸 触发条件: 主导兴趣变化', {
+          旧: oldTopicName,
+          新: newTopicName
+        })
       } else if (trigger === 'rebuild') {
         // 强制重建时也创建快照
         shouldCreateSnapshot = true
         changeNote = '用户主动重建画像'
+        console.log('[SnapshotManager] 📸 触发条件: 强制重建')
+      } else {
+        console.log('[SnapshotManager] ⏭️ 跳过快照创建', {
+          原因: '主导兴趣未变化且非强制重建',
+          当前主题: currentPrimary.topic,
+          上次主题: lastSnapshot.primaryTopic
+        })
       }
 
       if (shouldCreateSnapshot) {
         await this.createSnapshot(newProfile, currentPrimary, trigger, changeNote)
-        console.log('[SnapshotManager] ✅ 创建兴趣快照:', changeNote)
+        console.log('[SnapshotManager] ✅ 创建兴趣快照成功:', changeNote)
       }
     } catch (error) {
       console.error('[SnapshotManager] ❌ 处理兴趣变化失败:', error)
@@ -115,7 +150,18 @@ export class InterestSnapshotManager {
       .filter(([topic, score]) => topic !== Topic.OTHER && score > 0)
       .sort(([, a], [, b]) => b - a)
 
-    if (validEntries.length === 0) return null
+    console.log('[SnapshotManager] 🎯 计算主导兴趣', {
+      有效主题数: validEntries.length,
+      主题详情: validEntries.map(([topic, score]) => ({
+        主题: TOPIC_NAMES[topic as Topic] || topic,
+        分数: (score * 100).toFixed(1) + '%'
+      }))
+    })
+
+    if (validEntries.length === 0) {
+      console.log('[SnapshotManager] ⚠️ 没有有效主题（除OTHER外）')
+      return null
+    }
 
     const [firstTopic, firstScore] = validEntries[0]
     const [, secondScore = 0] = validEntries[1] || []
@@ -124,20 +170,37 @@ export class InterestSnapshotManager {
     const totalScore = validEntries.reduce((sum, [, score]) => sum + score, 0)
     const avgScore = totalScore / validEntries.length
 
+    console.log('[SnapshotManager] 📊 主导判定参数', {
+      最高分: (firstScore * 100).toFixed(1) + '%',
+      次高分: (secondScore * 100).toFixed(1) + '%',
+      平均分: (avgScore * 100).toFixed(1) + '%',
+      比值_最高次高: secondScore > 0 ? (firstScore / secondScore).toFixed(2) : '无次高',
+      比值_最高平均: (firstScore / avgScore).toFixed(2)
+    })
+
     // 策略1: 绝对主导 (>33.3%)
     if (firstScore > 1/3) {
+      console.log('[SnapshotManager] ✅ 满足绝对主导 (>33.3%)')
       return { topic: firstTopic, score: firstScore, level: 'absolute' }
     }
 
     // 策略2: 相对主导 (最高比第二高多50%以上，且>20%)
     if (firstScore > 0.2 && firstScore / secondScore >= 1.5) {
+      console.log('[SnapshotManager] ✅ 满足相对主导 (>20% 且比次高多50%+)')
       return { topic: firstTopic, score: firstScore, level: 'relative' }
     }
 
     // 策略3: 显著领先 (>25%，且比平均值高2倍以上)
     if (firstScore > 0.25 && firstScore / avgScore >= 2.0) {
+      console.log('[SnapshotManager] ✅ 满足显著领先 (>25% 且比平均高2倍+)')
       return { topic: firstTopic, score: firstScore, level: 'leading' }
     }
+
+    console.log('[SnapshotManager] ❌ 未满足任何主导条件', {
+      绝对主导: `${(firstScore * 100).toFixed(1)}% (需要 >33.3%)`,
+      相对主导: `${(firstScore * 100).toFixed(1)}% 且 ${secondScore > 0 ? (firstScore / secondScore).toFixed(2) : 'N/A'}x (需要 >20% 且 ≥1.5x)`,
+      显著领先: `${(firstScore * 100).toFixed(1)}% 且 ${(firstScore / avgScore).toFixed(2)}x (需要 >25% 且 ≥2.0x)`
+    })
 
     return null
   }

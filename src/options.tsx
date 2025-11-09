@@ -5,6 +5,7 @@ import { useI18n } from "@/i18n/helpers"
 import i18n from "@/i18n"
 import { RecommendationStats } from "@/components/settings/RecommendationStats"
 import { CollectionStats } from "@/components/settings/CollectionStats"
+import { AIConfig } from "@/components/settings/AIConfig"
 import "./style.css"
 
 // 开发环境下加载调试工具
@@ -177,20 +178,10 @@ function IndexOptions() {
               </div>
             )}
 
-            {/* AI 配置 - 预留 */}
+            {/* AI 配置 - Phase 4.1 */}
             {activeTab === "ai" && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 opacity-50">
-                <h2 className="text-lg font-semibold mb-2">
-                  {_("options.ai.title")}
-                </h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                  {_("options.ai.description")}
-                </p>
-                <div className="py-8 text-center">
-                  <p className="text-gray-500 dark:text-gray-400">
-                    {_("options.ai.disabled")}
-                  </p>
-                </div>
+              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                <AIConfig />
               </div>
             )}
 

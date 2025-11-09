@@ -14,6 +14,7 @@ import { getUserProfile } from "@/storage/db"
 import { TOPIC_NAMES, TOPIC_ANIMALS, TOPIC_PERSONALITIES, Topic } from "@/core/profile/topics"
 import { profileManager } from "@/core/profile/ProfileManager"
 import { InterestSnapshotManager } from "@/core/profile/InterestSnapshotManager"
+import { getAIConfig, getProviderDisplayName } from "@/storage/ai-config"
 import type { UserProfile } from "@/core/profile/types"
 
 export function UserProfileDisplay() {
@@ -22,16 +23,21 @@ export function UserProfileDisplay() {
   const [isLoading, setIsLoading] = useState(true)
   const [isRebuilding, setIsRebuilding] = useState(false)
   const [evolutionHistory, setEvolutionHistory] = useState<any>(null)
+  const [aiConfigured, setAiConfigured] = useState(false)
+  const [aiProvider, setAiProvider] = useState("未配置")
 
   useEffect(() => {
     const loadProfile = async () => {
       try {
-        const [data, history] = await Promise.all([
+        const [data, history, aiConfig] = await Promise.all([
           getUserProfile(),
-          InterestSnapshotManager.getEvolutionHistory(10)  // 使用新的API
+          InterestSnapshotManager.getEvolutionHistory(10),
+          getAIConfig()
         ])
         setProfile(data)
         setEvolutionHistory(history)
+        setAiConfigured(aiConfig.enabled && aiConfig.provider !== null)
+        setAiProvider(getProviderDisplayName(aiConfig.provider))
       } catch (error) {
         console.error("[UserProfileDisplay] 加载用户画像失败:", error)
       } finally {
@@ -184,7 +190,7 @@ export function UserProfileDisplay() {
 
       <div className="space-y-6">
         {/* 基本统计 */}
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
             <div className="text-sm text-orange-600 dark:text-orange-400 mb-1">
               画像更新时间
@@ -196,7 +202,66 @@ export function UserProfileDisplay() {
               基于 {profile.totalPages} 页面分析
             </div>
           </div>
+
+          {/* AI 分析质量指标 (Phase 4.1) */}
+          <div className={`rounded-lg p-4 border ${
+            aiConfigured
+              ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
+              : "bg-gray-50 dark:bg-gray-700/20 border-gray-200 dark:border-gray-600"
+          }`}>
+            <div className={`text-sm mb-1 ${
+              aiConfigured
+                ? "text-blue-600 dark:text-blue-400"
+                : "text-gray-600 dark:text-gray-400"
+            }`}>
+              分析质量
+            </div>
+            <div className={`text-lg font-bold ${
+              aiConfigured
+                ? "text-blue-900 dark:text-blue-100"
+                : "text-gray-900 dark:text-gray-100"
+            }`}>
+              {aiConfigured ? `AI 分析 (${aiProvider})` : "关键词分析"}
+            </div>
+            <div className={`text-xs mt-1 ${
+              aiConfigured
+                ? "text-blue-600 dark:text-blue-400"
+                : "text-gray-500 dark:text-gray-400"
+            }`}>
+              {aiConfigured 
+                ? "✨ 使用 AI 语义理解" 
+                : "📝 使用传统关键词提取"}
+            </div>
+          </div>
         </div>
+
+        {/* AI 配置提示 */}
+        {!aiConfigured && (
+          <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">🚀</span>
+              <div className="flex-1">
+                <h3 className="text-sm font-medium text-purple-900 dark:text-purple-100 mb-1">
+                  升级到 AI 分析，获得更精准的画像
+                </h3>
+                <p className="text-xs text-purple-700 dark:text-purple-300 mb-2">
+                  当前使用关键词分析。配置 AI 后，系统将能够：
+                </p>
+                <ul className="text-xs text-purple-700 dark:text-purple-300 space-y-1 mb-3">
+                  <li>• 更准确地理解文章主题和语义</li>
+                  <li>• 识别隐含的兴趣倾向</li>
+                  <li>• 提供更个性化的推荐</li>
+                </ul>
+                <a
+                  href="/options.html?tab=ai"
+                  className="inline-flex items-center gap-1 text-xs bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-lg transition-colors">
+                  <span>立即配置 AI</span>
+                  <span>→</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Top 3 主题分布 */}
         <div>
@@ -314,69 +379,6 @@ export function UserProfileDisplay() {
           )}
         </div>
 
-        {/* Top 关键词 */}
-        <div>
-          <h3 className="text-md font-medium mb-4 flex items-center gap-2">
-            <span>🔤</span>
-            <span>兴趣关键词云</span>
-          </h3>
-          {topKeywords.length === 0 ? (
-            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-center text-gray-500 dark:text-gray-400 text-sm">
-              暂无关键词数据
-            </div>
-          ) : (
-            <div className="bg-gradient-to-br from-indigo-50 via-white to-cyan-50 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-600">
-              <div className="flex flex-wrap gap-3 justify-center">
-                {topKeywords.map((keyword, index) => {
-                  // 根据权重计算字体大小和样式
-                  const getFontSize = () => {
-                    if (index < 2) return 'text-2xl'
-                    if (index < 5) return 'text-lg'
-                    if (index < 8) return 'text-base'
-                    return 'text-sm'
-                  }
-                  
-                  const getColors = () => {
-                    const colorSets = [
-                      'bg-gradient-to-r from-purple-500 to-pink-500 text-white',
-                      'bg-gradient-to-r from-blue-500 to-cyan-500 text-white',
-                      'bg-gradient-to-r from-green-500 to-emerald-500 text-white',
-                      'bg-gradient-to-r from-orange-500 to-amber-500 text-white',
-                      'bg-gradient-to-r from-red-500 to-rose-500 text-white',
-                      'bg-gradient-to-r from-indigo-500 to-purple-500 text-white',
-                      'bg-gradient-to-r from-cyan-500 to-teal-500 text-white',
-                      'bg-gradient-to-r from-yellow-500 to-orange-500 text-white',
-                      'bg-gradient-to-r from-pink-500 to-red-500 text-white',
-                      'bg-gradient-to-r from-teal-500 to-green-500 text-white'
-                    ]
-                    return colorSets[index % colorSets.length]
-                  }
-
-                  return (
-                    <span
-                      key={`${keyword.word}-${index}`}
-                      className={`
-                        inline-flex items-center px-4 py-2 rounded-full font-semibold transition-all duration-300 
-                        hover:scale-105 hover:shadow-lg cursor-default
-                        ${getFontSize()} ${getColors()}
-                      `}
-                      title={`权重: ${keyword.weight.toFixed(3)}`}
-                    >
-                      {keyword.word}
-                      <span className="ml-2 text-xs opacity-80">
-                        {keyword.weight.toFixed(2)}
-                      </span>
-                    </span>
-                  )
-                })}
-              </div>
-              
-              <div className="mt-4 text-center text-xs text-gray-500 dark:text-gray-400">
-                💡 关键词大小代表权重，hover查看详细权重值
-              </div>
-            </div>
-          )}
-        </div>
 
 {/* 兴趣演化历程部分 - 完整替换从 line 390 到 line 560 */}
         {/* 兴趣演化历程 */}
@@ -578,6 +580,70 @@ export function UserProfileDisplay() {
               暂无兴趣变化记录
               <div className="text-xs mt-2 text-gray-400 dark:text-gray-500">
                 随着你浏览更多页面，系统会自动记录兴趣演化历程
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Top 关键词 */}
+        <div>
+          <h3 className="text-md font-medium mb-4 flex items-center gap-2">
+            <span>🔤</span>
+            <span>兴趣关键词云</span>
+          </h3>
+          {topKeywords.length === 0 ? (
+            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-center text-gray-500 dark:text-gray-400 text-sm">
+              暂无关键词数据
+            </div>
+          ) : (
+            <div className="bg-gradient-to-br from-indigo-50 via-white to-cyan-50 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-600">
+              <div className="flex flex-wrap gap-3 justify-center">
+                {topKeywords.map((keyword, index) => {
+                  // 根据权重计算字体大小和样式
+                  const getFontSize = () => {
+                    if (index < 2) return 'text-2xl'
+                    if (index < 5) return 'text-lg'
+                    if (index < 8) return 'text-base'
+                    return 'text-sm'
+                  }
+                  
+                  const getColors = () => {
+                    const colorSets = [
+                      'bg-gradient-to-r from-purple-500 to-pink-500 text-white',
+                      'bg-gradient-to-r from-blue-500 to-cyan-500 text-white',
+                      'bg-gradient-to-r from-green-500 to-emerald-500 text-white',
+                      'bg-gradient-to-r from-orange-500 to-amber-500 text-white',
+                      'bg-gradient-to-r from-red-500 to-rose-500 text-white',
+                      'bg-gradient-to-r from-indigo-500 to-purple-500 text-white',
+                      'bg-gradient-to-r from-cyan-500 to-teal-500 text-white',
+                      'bg-gradient-to-r from-yellow-500 to-orange-500 text-white',
+                      'bg-gradient-to-r from-pink-500 to-red-500 text-white',
+                      'bg-gradient-to-r from-teal-500 to-green-500 text-white'
+                    ]
+                    return colorSets[index % colorSets.length]
+                  }
+
+                  return (
+                    <span
+                      key={`${keyword.word}-${index}`}
+                      className={`
+                        inline-flex items-center px-4 py-2 rounded-full font-semibold transition-all duration-300 
+                        hover:scale-105 hover:shadow-lg cursor-default
+                        ${getFontSize()} ${getColors()}
+                      `}
+                      title={`权重: ${keyword.weight.toFixed(3)}`}
+                    >
+                      {keyword.word}
+                      <span className="ml-2 text-xs opacity-80">
+                        {keyword.weight.toFixed(2)}
+                      </span>
+                    </span>
+                  )
+                })}
+              </div>
+              
+              <div className="mt-4 text-center text-xs text-gray-500 dark:text-gray-400">
+                💡 关键词大小代表权重，hover查看详细权重值
               </div>
             </div>
           )}

@@ -38,8 +38,17 @@ export class ProfileUpdateScheduler {
     const timeSinceLastUpdate = Date.now() - this.schedule.lastUpdateTime
     const newPagesCount = currentPageCount - this.schedule.lastUpdatePageCount
 
+    console.log('[ProfileScheduler] 📊 检查更新条件', {
+      当前页面数: currentPageCount,
+      上次更新页面数: this.schedule.lastUpdatePageCount,
+      新增页面: newPagesCount,
+      距上次更新: `${Math.floor(timeSinceLastUpdate / 1000 / 60)}分钟`,
+      是否首次: this.schedule.lastUpdateTime === 0
+    })
+
     // 策略1: 首次更新（有10+页面时）
     if (this.schedule.lastUpdateTime === 0 && currentPageCount >= 10) {
+      console.log('[ProfileScheduler] ✅ 触发首次构建 (≥10页)')
       return {
         shouldUpdate: true,
         reason: '首次构建画像',
@@ -49,6 +58,7 @@ export class ProfileUpdateScheduler {
 
     // 策略2: 积累了足够新页面（5页以上）
     if (newPagesCount >= 5) {
+      console.log(`[ProfileScheduler] ✅ 触发增量更新 (新增${newPagesCount}页)`)
       return {
         shouldUpdate: true,
         reason: `新增${newPagesCount}页面`,
@@ -58,6 +68,7 @@ export class ProfileUpdateScheduler {
 
     // 策略3: 时间间隔够长（6小时以上）且有新内容
     if (timeSinceLastUpdate > 6 * 60 * 60 * 1000 && newPagesCount > 0) {
+      console.log('[ProfileScheduler] ✅ 触发定期更新 (6小时+新内容)')
       return {
         shouldUpdate: true,
         reason: '定期更新',
@@ -67,12 +78,18 @@ export class ProfileUpdateScheduler {
 
     // 策略4: 超过24小时强制更新
     if (timeSinceLastUpdate > 24 * 60 * 60 * 1000) {
+      console.log('[ProfileScheduler] ✅ 触发强制更新 (24小时)')
       return {
         shouldUpdate: true,
         reason: '强制定期更新',
         priority: 'medium'
       }
     }
+
+    console.log('[ProfileScheduler] ⏭️ 跳过更新', {
+      原因: '未满足任何更新条件',
+      提示: newPagesCount === 0 ? '没有新页面' : `新页面不足(${newPagesCount}<5)`
+    })
 
     return {
       shouldUpdate: false,

@@ -12,34 +12,55 @@
 
 import { useState, useEffect } from "react"
 import { useI18n } from "@/i18n/helpers"
-import { getStorageStats, getAnalysisStats, db } from "@/storage/db"
+import { getStorageStats, getAnalysisStats, getAIAnalysisStats, db } from "@/storage/db"
 import { dataMigrator } from "@/core/migrator/DataMigrator"
 import { ProfileUpdateScheduler } from "@/core/profile/ProfileUpdateScheduler"
 import type { StorageStats } from "@/storage/types"
 import { UserProfileDisplay } from "./UserProfileDisplay"
 import { AnalysisDebugger } from "@/debug/AnalysisDebugger"
 import { profileManager } from "@/core/profile/ProfileManager"
+import { getAIConfig, getProviderDisplayName } from "@/storage/ai-config"
 
 export function CollectionStats() {
   const { _ } = useI18n()
   const [stats, setStats] = useState<StorageStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [analysisStats, setAnalysisStats] = useState<any>(null)
+  const [aiQualityStats, setAiQualityStats] = useState<any>(null)
   const [migrationStats, setMigrationStats] = useState<any>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [isRebuildingProfile, setIsRebuildingProfile] = useState(false)
+  const [aiConfigStatus, setAiConfigStatus] = useState<{
+    enabled: boolean
+    provider: string
+    configured: boolean
+  }>({
+    enabled: false,
+    provider: "未配置",
+    configured: false
+  })
 
   useEffect(() => {
     const loadStats = async () => {
       try {
-        const [storageData, analysisData, migrationData] = await Promise.all([
+        const [storageData, analysisData, aiQualityData, migrationData, aiConfig] = await Promise.all([
           getStorageStats(),
           getAnalysisStats(),
-          dataMigrator.getMigrationStats()
+          getAIAnalysisStats(),
+          dataMigrator.getMigrationStats(),
+          getAIConfig()
         ])
         setStats(storageData)
         setAnalysisStats(analysisData)
+        setAiQualityStats(aiQualityData)
         setMigrationStats(migrationData)
+        
+        // 设置 AI 配置状态
+        setAiConfigStatus({
+          enabled: aiConfig.enabled,
+          provider: getProviderDisplayName(aiConfig.provider),
+          configured: aiConfig.enabled && aiConfig.provider !== null && aiConfig.apiKey !== ""
+        })
       } catch (error) {
         console.error("[CollectionStats] 加载统计失败:", error)
       } finally {
@@ -287,6 +308,168 @@ export function CollectionStats() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* AI 配置状态 (Phase 4 - Sprint 5.2) */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <span>🤖</span>
+          <span>AI 分析质量</span>
+        </h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+          {/* 服务提供商 */}
+          <div className={`rounded-lg p-4 border ${
+            aiConfigStatus.configured
+              ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
+              : "bg-gray-50 dark:bg-gray-700/20 border-gray-200 dark:border-gray-600"
+          }`}>
+            <div className={`text-sm mb-1 ${
+              aiConfigStatus.configured
+                ? "text-green-600 dark:text-green-400"
+                : "text-gray-600 dark:text-gray-400"
+            }`}>
+              服务提供商
+            </div>
+            <div className={`text-2xl font-bold ${
+              aiConfigStatus.configured
+                ? "text-green-900 dark:text-green-100"
+                : "text-gray-900 dark:text-gray-100"
+            }`}>
+              {aiConfigStatus.configured ? aiConfigStatus.provider : "关键词"}
+            </div>
+            <div className={`text-xs mt-1 flex items-center gap-1 ${
+              aiConfigStatus.configured
+                ? "text-green-600 dark:text-green-400"
+                : "text-gray-500 dark:text-gray-400"
+            }`}>
+              {aiConfigStatus.configured ? (
+                <>
+                  <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                  <span>AI 语义理解</span>
+                </>
+              ) : (
+                <>
+                  <span className="inline-block w-2 h-2 bg-gray-400 rounded-full"></span>
+                  <span>传统关键词</span>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* AI 分析占比 */}
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+            <div className="text-sm text-blue-600 dark:text-blue-400 mb-1">
+              AI 分析占比
+            </div>
+            <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+              {aiQualityStats ? `${aiQualityStats.aiPercentage.toFixed(1)}%` : '--'}
+            </div>
+            <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+              {aiQualityStats ? `${aiQualityStats.aiAnalyzedPages}/${aiQualityStats.totalPages} 页` : '无数据'}
+            </div>
+          </div>
+
+          {/* 累计费用 */}
+          <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
+            <div className="text-sm text-purple-600 dark:text-purple-400 mb-1">
+              累计费用
+            </div>
+            <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">
+              {aiQualityStats ? (
+                <div className="space-y-0.5">
+                  {aiQualityStats.totalCostUSD > 0 && (
+                    <div>${aiQualityStats.totalCostUSD.toFixed(4)}</div>
+                  )}
+                  {aiQualityStats.totalCostCNY > 0 && (
+                    <div className={aiQualityStats.totalCostUSD > 0 ? 'text-lg' : ''}>
+                      ¥{aiQualityStats.totalCostCNY.toFixed(4)}
+                    </div>
+                  )}
+                  {aiQualityStats.totalCostUSD === 0 && aiQualityStats.totalCostCNY === 0 && (
+                    <div>$0</div>
+                  )}
+                </div>
+              ) : '$0'}
+            </div>
+            <div className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+              {aiQualityStats && aiQualityStats.aiAnalyzedPages > 0 && aiQualityStats.primaryCurrency
+                ? `均 ${aiQualityStats.primaryCurrency === 'CNY' ? '¥' : '$'}${aiQualityStats.avgCostPerPage.toFixed(6)}/页`
+                : '暂无消费'}
+            </div>
+          </div>
+
+          {/* Token 用量 */}
+          <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4 border border-amber-200 dark:border-amber-800">
+            <div className="text-sm text-amber-600 dark:text-amber-400 mb-1">
+              Token 用量
+            </div>
+            <div className="text-2xl font-bold text-amber-900 dark:text-amber-100">
+              {aiQualityStats && aiQualityStats.totalTokens > 0
+                ? (aiQualityStats.totalTokens / 1000).toFixed(1) + 'K'
+                : '--'}
+            </div>
+            <div className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+              {aiQualityStats && aiQualityStats.aiAnalyzedPages > 0
+                ? `均 ${Math.round(aiQualityStats.totalTokens / aiQualityStats.aiAnalyzedPages)} tokens/页`
+                : '无数据'}
+            </div>
+          </div>
+        </div>
+
+        {/* 提供商分布（仅在有 AI 分析时显示） */}
+        {aiQualityStats && aiQualityStats.providerDistribution.length > 0 && (
+          <div className="mt-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+              提供商分布
+            </h3>
+            <div className="space-y-2">
+              {aiQualityStats.providerDistribution.map((item: any) => (
+                <div key={item.provider} className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        {item.provider}
+                      </span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {item.count} 页 ({item.percentage.toFixed(1)}%)
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                      <div
+                        className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all"
+                        style={{ width: `${item.percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 引导配置 AI（仅在未配置时显示） */}
+        {!aiConfigStatus.configured && (
+          <div className="mt-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <span className="text-xl">💡</span>
+              <div className="flex-1">
+                <h3 className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">
+                  想要更准确的内容分析？
+                </h3>
+                <p className="text-xs text-blue-700 dark:text-blue-300 mb-2">
+                  配置 AI 提供商（OpenAI、Anthropic、DeepSeek），获得更精准的语义理解和主题分类。
+                </p>
+                <a
+                  href="/options.html?tab=ai"
+                  className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                  <span>前往配置</span>
+                  <span>→</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 文本分析统计 (Phase 3.4 完成) */}
