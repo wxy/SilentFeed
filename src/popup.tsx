@@ -6,6 +6,7 @@ import { getPageCount } from "@/storage/db"
 import { ColdStartView } from "@/components/ColdStartView"
 import { RecommendationView } from "@/components/RecommendationView"
 import "./style.css"
+import "@/styles/sketchy.css" // 手绘风格样式
 
 /**
  * Feed AI Muter - Popup 主界面
@@ -46,8 +47,8 @@ function IndexPopup() {
   // 加载中状态
   if (isLoading) {
     return (
-      <div className="w-80 min-h-96 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex items-center justify-center">
-        <div className="text-4xl animate-pulse">⏳</div>
+      <div className="sketchy-container w-80 min-h-96 flex items-center justify-center">
+        <div className="sketchy-emoji text-4xl animate-pulse">⏳</div>
       </div>
     )
   }
@@ -55,13 +56,14 @@ function IndexPopup() {
   const isColdStart = pageCount !== null && pageCount < COLD_START_THRESHOLD
 
   return (
-    <div className="w-80 min-h-96 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col">
-      {/* 头部 */}
-      <div className="px-6 pt-6 pb-4 border-b border-gray-200 dark:border-gray-700">
-        <h1 className="text-xl font-semibold">{_("app.name")}</h1>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+    <div className="sketchy-container sketchy-paper-texture w-80 min-h-96 flex flex-col">
+      {/* 头部 - 手绘风格 */}
+      <div className="px-6 pt-6 pb-4">
+        <h1 className="sketchy-title text-2xl mb-2">{_("app.name")}</h1>
+        <p className="sketchy-text text-sm mt-2">
           {_("app.shortName")}
         </p>
+        <div className="sketchy-divider mt-4"></div>
       </div>
 
       {/* 主体内容 - 两阶段切换 */}
@@ -71,13 +73,13 @@ function IndexPopup() {
         <RecommendationView />
       )}
 
-      {/* 底部按钮 */}
+      {/* 底部按钮 - 手绘风格 */}
       <div className="px-6 pb-6">
         <button
           onClick={openSettings}
-          className="w-full py-2 px-4 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg text-sm font-medium transition-colors"
+          className="sketchy-button w-full"
         >
-          {_("popup.settings")}
+          ⚙️ {_("popup.settings")}
         </button>
       </div>
     </div>

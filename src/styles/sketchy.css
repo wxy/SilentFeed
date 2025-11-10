@@ -1,0 +1,293 @@
+/**
+ * Sketchy UI - 手绘风格样式
+ * 使用 CSS 实现手绘效果，无需 JavaScript 库
+ */
+
+/* 导入手绘风格字体 - 仅用于英文 */
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&family=Indie+Flower&display=swap');
+
+/* 手绘风格根变量 */
+:root {
+  --sketchy-font-en: 'Caveat', cursive;
+  --sketchy-font-en-alt: 'Indie Flower', cursive;
+  
+  /* 手绘颜色 - 更柔和的笔触感 */
+  --sketchy-ink: #2c3e50;
+  --sketchy-ink-light: #34495e;
+  --sketchy-paper: #fffef9;
+  --sketchy-paper-dark: #f8f7f2;
+  --sketchy-accent: #e74c3c;
+  --sketchy-accent-light: #ff6b6b;
+  
+  /* 暗色模式 */
+  --sketchy-ink-dark: #ecf0f1;
+  --sketchy-paper-night: #2c3e50;
+  --sketchy-paper-dark-night: #34495e;
+}
+
+/* 手绘容器基础 */
+.sketchy-container {
+  font-family: var(--sketchy-font-en), -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--sketchy-paper);
+  position: relative;
+}
+
+.dark .sketchy-container {
+  background: var(--sketchy-paper-night);
+}
+
+/* 手绘标题 - 英文使用手写字体 */
+.sketchy-title {
+  font-family: var(--sketchy-font-en);
+  font-weight: 700;
+  color: var(--sketchy-ink);
+  letter-spacing: 0.5px;
+  position: relative;
+}
+
+.dark .sketchy-title {
+  color: var(--sketchy-ink-dark);
+}
+
+/* 手绘标题下划线效果 */
+.sketchy-title::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -4px;
+  height: 3px;
+  background: var(--sketchy-accent);
+  transform: scaleX(0.95) rotate(-0.5deg);
+  opacity: 0.7;
+}
+
+/* 手绘文本 */
+.sketchy-text {
+  font-family: var(--sketchy-font-en), -apple-system, "PingFang SC", sans-serif;
+  color: var(--sketchy-ink-light);
+  line-height: 1.6;
+}
+
+.dark .sketchy-text {
+  color: var(--sketchy-ink-dark);
+}
+
+/* 手绘按钮 */
+.sketchy-button {
+  font-family: var(--sketchy-font-en);
+  font-weight: 600;
+  font-size: 1.1rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--sketchy-paper-dark);
+  color: var(--sketchy-ink);
+  border: 2px solid var(--sketchy-ink);
+  border-radius: 8px;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  /* 手绘边框效果 */
+  box-shadow: 
+    2px 2px 0 rgba(0, 0, 0, 0.1),
+    -1px -1px 0 rgba(255, 255, 255, 0.5);
+  transform: rotate(-0.5deg);
+}
+
+.sketchy-button:hover {
+  transform: rotate(0deg) translateY(-2px);
+  box-shadow: 
+    3px 3px 0 rgba(0, 0, 0, 0.15),
+    -1px -1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.sketchy-button:active {
+  transform: rotate(0.5deg) translateY(0);
+  box-shadow: 
+    1px 1px 0 rgba(0, 0, 0, 0.1);
+}
+
+.dark .sketchy-button {
+  background: var(--sketchy-paper-dark-night);
+  color: var(--sketchy-ink-dark);
+  border-color: var(--sketchy-ink-dark);
+}
+
+/* 手绘卡片 */
+.sketchy-card {
+  background: var(--sketchy-paper);
+  border: 2px solid var(--sketchy-ink);
+  border-radius: 12px;
+  padding: 1.5rem;
+  position: relative;
+  
+  /* 手绘阴影 */
+  box-shadow: 
+    3px 3px 0 rgba(0, 0, 0, 0.1),
+    6px 6px 0 rgba(0, 0, 0, 0.05);
+  
+  /* 轻微旋转让卡片更有手绘感 */
+  transform: rotate(-0.3deg);
+}
+
+.sketchy-card:nth-child(even) {
+  transform: rotate(0.3deg);
+}
+
+.dark .sketchy-card {
+  background: var(--sketchy-paper-dark-night);
+  border-color: var(--sketchy-ink-dark);
+}
+
+/* 手绘分割线 */
+.sketchy-divider {
+  height: 2px;
+  background: var(--sketchy-ink);
+  margin: 1rem 0;
+  transform: scaleY(0.8) rotate(-0.2deg);
+  opacity: 0.3;
+  position: relative;
+}
+
+.sketchy-divider::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--sketchy-ink);
+  transform: translateX(2px) rotate(0.3deg);
+  opacity: 0.5;
+}
+
+/* 手绘进度条 */
+.sketchy-progress {
+  width: 100%;
+  height: 24px;
+  background: var(--sketchy-paper-dark);
+  border: 2px solid var(--sketchy-ink);
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+  transform: rotate(-0.3deg);
+}
+
+.sketchy-progress-bar {
+  height: 100%;
+  background: var(--sketchy-accent);
+  border-right: 2px dashed var(--sketchy-ink);
+  transition: width 0.5s ease;
+  position: relative;
+}
+
+.sketchy-progress-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 8px,
+    rgba(255, 255, 255, 0.1) 8px,
+    rgba(255, 255, 255, 0.1) 16px
+  );
+}
+
+/* 手绘数字/徽章 */
+.sketchy-badge {
+  display: inline-block;
+  font-family: var(--sketchy-font-en);
+  font-weight: 700;
+  font-size: 1.2rem;
+  padding: 0.25rem 0.75rem;
+  background: var(--sketchy-accent-light);
+  color: white;
+  border: 2px solid var(--sketchy-ink);
+  border-radius: 20px;
+  transform: rotate(-3deg);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2);
+}
+
+/* 手绘列表项 */
+.sketchy-list-item {
+  position: relative;
+  padding-left: 1.5rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+}
+
+.sketchy-list-item::before {
+  content: '→';
+  position: absolute;
+  left: 0;
+  font-weight: bold;
+  color: var(--sketchy-accent);
+  transform: rotate(-5deg);
+}
+
+/* 手绘 emoji 增强 */
+.sketchy-emoji {
+  display: inline-block;
+  font-size: 1.5em;
+  transform: rotate(-5deg);
+  transition: transform 0.3s ease;
+}
+
+.sketchy-emoji:hover {
+  transform: rotate(5deg) scale(1.1);
+}
+
+/* 纸张纹理效果 (可选) */
+.sketchy-paper-texture::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.02) 2px,
+      rgba(0, 0, 0, 0.02) 4px
+    );
+  pointer-events: none;
+}
+
+/* 手绘输入框 (用于未来的搜索等) */
+.sketchy-input {
+  font-family: var(--sketchy-font-en), -apple-system, "PingFang SC", sans-serif;
+  padding: 0.5rem 1rem;
+  background: var(--sketchy-paper);
+  border: 2px solid var(--sketchy-ink);
+  border-radius: 8px;
+  transform: rotate(-0.2deg);
+  transition: all 0.2s ease;
+}
+
+.sketchy-input:focus {
+  outline: none;
+  transform: rotate(0deg);
+  box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.2);
+}
+
+/* 动画：手绘线条绘制效果 */
+@keyframes sketch-draw {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.sketchy-animate-draw {
+  stroke-dasharray: 100;
+  animation: sketch-draw 1s ease-out forwards;
+}

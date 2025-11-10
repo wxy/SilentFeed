@@ -28,39 +28,39 @@ export function ColdStartView({ pageCount, totalPages = 1000 }: ColdStartViewPro
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-6 py-8">
-      {/* 成长阶段图标 - 放大显示 */}
-      <div className="text-8xl mb-6 animate-pulse">{stage.icon}</div>
+      {/* 成长阶段图标 - 手绘风格放大显示 */}
+      <div className="sketchy-emoji text-8xl mb-6">{stage.icon}</div>
 
-      {/* 欢迎信息 */}
-      <h2 className="text-lg font-medium text-center mb-2">
+      {/* 欢迎信息 - 手绘风格 */}
+      <h2 className="sketchy-title text-xl text-center mb-3">
         {_("popup.welcome")}
       </h2>
-      <p className="text-sm text-gray-600 dark:text-gray-400 text-center mb-6">
+      <p className="sketchy-text text-sm text-center mb-6 max-w-xs">
         {_("popup.learning")}
       </p>
 
-      {/* 进度条 */}
+      {/* 进度条 - 手绘风格 */}
       <div className="w-full mb-4">
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-xs text-gray-600 dark:text-gray-400">
+        <div className="flex justify-between items-center mb-3">
+          <span className="sketchy-badge">
             {_(`popup.stage.${stage.name}`)}
           </span>
-          <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+          <span className="sketchy-text text-sm font-medium">
             {_("popup.progress", { current: pageCount, total: totalPages })}
           </span>
         </div>
-        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+        <div className="sketchy-progress">
           <div
-            className="bg-green-500 dark:bg-green-600 h-full rounded-full transition-all duration-500"
+            className="sketchy-progress-bar"
             style={{ width: `${progress}%` }}
           />
         </div>
       </div>
 
-      {/* 提示信息 */}
-      <div className="text-center mt-6">
-        <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-2">
-          <span>📖</span>
+      {/* 提示信息 - 手绘风格 */}
+      <div className="sketchy-card mt-6 w-full">
+        <p className="sketchy-text text-sm text-center flex items-center justify-center gap-2">
+          <span className="sketchy-emoji">📖</span>
           <span>{_("popup.hint")}</span>
         </p>
       </div>
