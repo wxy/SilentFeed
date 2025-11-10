@@ -66,6 +66,10 @@ global.chrome = {
       remove: () => Promise.resolve(),
       clear: () => Promise.resolve(),
     },
+    onChanged: {
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+    },
   },
   tabs: {
     query: () => Promise.resolve([]),

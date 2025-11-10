@@ -164,15 +164,15 @@ describe("IndexOptions 组件", () => {
       // 先点击常规标签确保激活
       await user.click(generalTab)
       
-      // 常规标签应该是激活状态
-      expect(generalTab.closest("button")?.className).toContain("bg-green-500")
+      // 常规标签应该是激活状态（手绘风格使用不同的类名）
+      expect(generalTab.closest("button")?.className).toContain("bg-green")
 
       // 点击 RSS 标签
       await user.click(rssTab)
 
       // RSS 标签应该变为激活状态，常规标签应该不再激活
-      expect(rssTab.closest("button")?.className).toContain("bg-green-500")
-      expect(generalTab.closest("button")?.className).not.toContain("bg-green-500")
+      expect(rssTab.closest("button")?.className).toContain("bg-green")
+      expect(generalTab.closest("button")?.className).not.toContain("bg-green")
     })
   })
 
@@ -197,7 +197,9 @@ describe("IndexOptions 组件", () => {
       const generalTab = screen.getByText("常规")
       await user.click(generalTab)
       
-      const options = screen.getAllByRole("option")
+      // 通过 labelText 获取语言 select
+      const languageSelect = screen.getByLabelText("语言")
+      const options = Array.from(languageSelect.querySelectorAll("option"))
       expect(options).toHaveLength(3)
       expect(options[0]).toHaveTextContent("跟随浏览器")
       expect(options[1]).toHaveTextContent("简体中文")
@@ -318,8 +320,9 @@ describe("IndexOptions 组件", () => {
     it("应该使用明暗主题样式类", () => {
       const { container } = render(<IndexOptions />)
       const mainDiv = container.firstChild as HTMLElement
-      expect(mainDiv.className).toContain("bg-gray-50")
-      expect(mainDiv.className).toContain("dark:bg-gray-900")
+      // 手绘风格使用不同的类名
+      expect(mainDiv.className).toContain("sketchy-container")
+      expect(mainDiv.className).toContain("dark:text-gray-100")
     })
   })
 })
