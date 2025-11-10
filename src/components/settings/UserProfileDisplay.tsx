@@ -17,6 +17,46 @@ import { InterestSnapshotManager } from "@/core/profile/InterestSnapshotManager"
 import { getAIConfig, getProviderDisplayName } from "@/storage/ai-config"
 import type { UserProfile } from "@/core/profile/types"
 
+/**
+ * 获取主题名称的国际化文本
+ */
+function getTopicName(topic: Topic | string, _: (key: string) => string): string {
+  const topicMap: Record<string, string> = {
+    'technology': _("common.topics.technology"),
+    'science': _("common.topics.science"),
+    'business': _("common.topics.business"),
+    'design': _("common.topics.design"),
+    'arts': _("common.topics.arts"),
+    'health': _("common.topics.health"),
+    'sports': _("common.topics.sports"),
+    'entertainment': _("common.topics.entertainment"),
+    'news': _("common.topics.news"),
+    'education': _("common.topics.education"),
+    'other': _("common.topics.other")
+  }
+  return topicMap[topic.toLowerCase()] || topic
+}
+
+/**
+ * 获取主题性格描述的国际化文本
+ */
+function getTopicPersonality(topic: Topic | string, _: (key: string) => string): string {
+  const personalityMap: Record<string, string> = {
+    'technology': _("common.topicPersonalities.technology"),
+    'science': _("common.topicPersonalities.science"),
+    'business': _("common.topicPersonalities.business"),
+    'design': _("common.topicPersonalities.design"),
+    'arts': _("common.topicPersonalities.arts"),
+    'health': _("common.topicPersonalities.health"),
+    'sports': _("common.topicPersonalities.sports"),
+    'entertainment': _("common.topicPersonalities.entertainment"),
+    'news': _("common.topicPersonalities.news"),
+    'education': _("common.topicPersonalities.education"),
+    'other': _("common.topicPersonalities.other")
+  }
+  return personalityMap[topic.toLowerCase()] || topic
+}
+
 export function UserProfileDisplay() {
   const { _ } = useI18n()
   const [profile, setProfile] = useState<UserProfile | null>(null)
@@ -148,9 +188,9 @@ export function UserProfileDisplay() {
       return {
         topic: topic as Topic,
         score: scorePercentage,
-        name: TOPIC_NAMES[topic as Topic],
+        name: getTopicName(topic as Topic, _),
         animal: TOPIC_ANIMALS[topic as Topic],
-        personality: TOPIC_PERSONALITIES[topic as Topic],
+        personality: getTopicPersonality(topic as Topic, _),
         isPrimary,
         primaryLevel
       }
@@ -498,7 +538,7 @@ export function UserProfileDisplay() {
                         <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
                           <div className="bg-gray-700 dark:bg-gray-300 text-white dark:text-gray-900 text-xs rounded-lg px-3 py-2 whitespace-nowrap shadow-2xl ring-1 ring-black/10">
                             <div className="font-semibold mb-1">
-                              {snapshot.topicName}
+                              {getTopicName(snapshot.topic, _)}
                               {snapshot.trigger === 'rebuild' && (
                                 <span className="ml-1 text-purple-300 dark:text-purple-600">{_("options.userProfile.evolution.rebuildLabel")}</span>
                               )}
@@ -545,12 +585,12 @@ export function UserProfileDisplay() {
                             ? 'text-purple-900 dark:text-purple-100' 
                             : 'text-gray-800 dark:text-gray-200'
                         }`}>
-                          {levelEmoji} {snapshot.topicName} ({snapshot.basedOnPages})
+                          {levelEmoji} {getTopicName(snapshot.topic, _)} ({snapshot.basedOnPages})
                         </div>
                         
                         {/* 第二行：时间 */}
                         <div className="text-xs text-gray-500 dark:text-gray-400">
-                          {new Date(snapshot.timestamp).toLocaleString('zh-CN', {
+                          {new Date(snapshot.timestamp).toLocaleString(document.documentElement.lang || 'zh-CN', {
                             month: 'short',
                             day: 'numeric',
                             hour: '2-digit',

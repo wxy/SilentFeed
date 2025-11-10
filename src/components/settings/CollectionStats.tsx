@@ -10,7 +10,7 @@
  * 注意：不包括推荐相关数据，推荐数据在 RecommendationStats 组件中
  */
 
-import { useState, useEffect } from "react"
+import React, { useEffect, useState } from "react"
 import { useI18n } from "@/i18n/helpers"
 import { getStorageStats, getAnalysisStats, getAIAnalysisStats, db } from "@/storage/db"
 import { dataMigrator } from "@/core/migrator/DataMigrator"
@@ -20,6 +20,36 @@ import { UserProfileDisplay } from "./UserProfileDisplay"
 import { AnalysisDebugger } from "@/debug/AnalysisDebugger"
 import { profileManager } from "@/core/profile/ProfileManager"
 import { getAIConfig, getProviderDisplayName } from "@/storage/ai-config"
+
+/**
+ * 获取语言名称的国际化文本
+ */
+function getLanguageName(langCode: string, _: (key: string) => string): string {
+  const langMap: Record<string, string> = {
+    'zh-CN': _("common.languages.zhCN"),
+    'zh': _("common.languages.zhCN"),
+    'en': _("common.languages.en"),
+    'ja': _("common.languages.ja"),
+    'fr': _("common.languages.fr"),
+    'de': _("common.languages.de"),
+    'es': _("common.languages.es"),
+    'ko': _("common.languages.ko")
+  }
+  return langMap[langCode] || langCode
+}
+
+/**
+ * 获取AI提供者名称的国际化文本
+ */
+function getProviderName(provider: string, _: (key: string) => string): string {
+  const providerMap: Record<string, string> = {
+    'keyword': _("common.aiProviders.keyword"),
+    'openai': _("common.aiProviders.openai"),
+    'anthropic': _("common.aiProviders.anthropic"),
+    'deepseek': _("common.aiProviders.deepseek")
+  }
+  return providerMap[provider.toLowerCase()] || provider
+}
 
 export function CollectionStats() {
   const { _ } = useI18n()
@@ -264,7 +294,9 @@ export function CollectionStats() {
   const formatDate = (timestamp?: number): string => {
     if (!timestamp) return _("options.collectionStats.unknownDate")
     const date = new Date(timestamp)
-    return date.toLocaleDateString('zh-CN', {
+    // 使用当前语言环境的日期格式
+    const locale = document.documentElement.lang || 'zh-CN'
+    return date.toLocaleDateString(locale, {
       year: 'numeric',
       month: 'long', 
       day: 'numeric'
@@ -444,7 +476,7 @@ export function CollectionStats() {
                   <div className="flex-1">
                     <div className="flex justify-between items-center mb-1">
                       <span className="text-sm text-gray-700 dark:text-gray-300">
-                        {item.provider}
+                        {getProviderName(item.provider, _)}
                       </span>
                       <span className="text-xs text-gray-500 dark:text-gray-400">
                         {_("options.collectionStats.providerDistributionCount", { count: item.count, percentage: item.percentage.toFixed(1) })}
@@ -538,7 +570,7 @@ export function CollectionStats() {
                   {analysisStats.languageDistribution.map((lang: any) => (
                     <div key={lang.language} className="flex justify-between items-center">
                       <span className="text-sm text-gray-700 dark:text-gray-300">
-                        {lang.language}
+                        {getLanguageName(lang.language, _)}
                       </span>
                       <span className="text-sm font-medium">
                         {_("options.collectionStats.languagePages", { count: lang.count })}
