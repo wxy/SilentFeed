@@ -812,6 +812,57 @@ interface DiscoveredFeed {
 - ✅ 支持从其他阅读器迁移（OPML 导入）
 - ✅ 手动添加源的快速入口
 
+##### 5.1.7 国际化集成与测试 ✅ (已完成)
+
+**完成日期**: 2025-11-10
+**分支**: feature/phase-5-sprint-1-ui
+**提交**: 3e41bc8
+
+**实现内容**:
+
+1. **RSSManager 组件国际化** ✅
+   - 导入 react-i18next 的 `useTranslation` hook
+   - 所有硬编码中文文本替换为 `_()` 函数调用
+   - 支持中英双语动态切换
+   - 国际化覆盖率 100%
+
+2. **翻译文件更新** ✅
+   - 新增 27 个翻译 key：
+     * `loading`, `discoveredFrom`, `subscribedAt`
+     * `discoveredFeeds`, `subscribedFeeds`, `ignoredFeeds`
+     * `clickToToggle`, `expand`, `collapse`
+     * 9 种语言名称（en, ja, ko, fr, de, es, ru, pt, it）
+     * 错误消息：`validationFailed`, `subscribeFailed`, `importFailed`
+     * 成功消息：`importedWithErrors`
+   - DeepSeek API 自动翻译成英文
+   - 翻译质量验证通过
+
+3. **OPML 导入器单元测试** ✅
+   - 12 个测试用例全部通过
+   - 测试覆盖：
+     * 标准 OPML 解析
+     * 带分类/描述的 OPML
+     * 嵌套分类处理
+     * title/text 属性优先级
+     * 特殊字符处理
+     * UTF-8 编码支持
+     * 错误处理
+   - 测试通过率: 100% (12/12)
+
+**技术指标**:
+- 新增测试文件: `OPMLImporter.test.ts` (180 行)
+- 修改文件: `RSSManager.tsx`, `zh-CN/translation.json`, `en/translation.json`
+- 新增翻译: 27 keys (zh-CN) + 27 keys (en)
+- 构建成功: 2332ms
+- 类型检查: 通过
+- 测试通过: 12/12
+
+**质量保证**:
+- ✅ 组件支持多语言
+- ✅ 翻译完整无遗漏
+- ✅ OPML 解析器稳定可靠
+- ✅ 代码风格一致
+
 ##### 5.1.4 浏览器实测 ⏸️ (待开始)
 
 ---
