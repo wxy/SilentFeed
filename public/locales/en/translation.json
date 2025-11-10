@@ -30,7 +30,48 @@
     "success": "Success",
     "cancel": "Cancel",
     "confirm": "Confirm",
-    "selectLanguage": "Select Language"
+    "selectLanguage": "Select Language",
+    "languages": {
+      "zhCN": "Simplified Chinese",
+      "en": "English",
+      "ja": "Japanese",
+      "fr": "French",
+      "de": "German",
+      "es": "Spanish",
+      "ko": "Korean"
+    },
+    "aiProviders": {
+      "keyword": "Keyword Analysis",
+      "openai": "OpenAI",
+      "anthropic": "Anthropic (Claude)",
+      "deepseek": "DeepSeek"
+    },
+    "topics": {
+      "technology": "Technology",
+      "science": "Science",
+      "business": "Business",
+      "design": "Design",
+      "arts": "Art",
+      "health": "Health",
+      "sports": "Sports",
+      "entertainment": "Entertainment",
+      "news": "News",
+      "education": "Education",
+      "other": "Other"
+    },
+    "topicPersonalities": {
+      "technology": "Tech geeks, always chasing the latest technology trends.",
+      "science": "Rational Explorer, full of curiosity about the world",
+      "business": "Business leader with a keen market sense",
+      "design": "Aesthetic seekers, who value visual appeal and user experience.",
+      "arts": "Art Connoisseur, appreciating various creative expressions",
+      "health": "Advocate for healthy living, focusing on physical and mental wellness",
+      "sports": "Sports enthusiasts who enjoy the thrill of competition and the joy of fitness.",
+      "entertainment": "Entertainment enthusiast, passionate about light and fun content.",
+      "news": "Information gatherer, keeping an eye on current events and social trends",
+      "education": "Lifelong learner, continuously self-improving.",
+      "other": "An explorer with diverse interests."
+    }
   },
   "options": {
     "title": "Settings",
@@ -108,33 +149,240 @@
     "collectionStats": {
       "noData": "No data available",
       "overview": "Collection Overview",
-      "totalPages": "Total Collection",
-      "pagesCollected": "Page has been collected",
-      "validRecords": "Effective records",
-      "dwellTimeOver30s": "Stay for more than 30 seconds",
-      "avgDwellTime": "Average Dwell Time",
-      "perPage": "Average per page",
       "textAnalysis": "Text Analysis Statistics",
-      "comingSoonInPhase3": "Display after Phase 3 completion",
-      "textAnalysisHint": "Will display statistics such as keyword extraction and topic classification.",
-      "userProfile": "User Profile Statistics",
-      "profileHint": "Will display interest topics, keyword weights, and other information",
-      "storage": "Storage Usage",
-      "totalSize": "Total occupied space",
-      "pendingVisits": "Temporary Record (Pending Confirmation)",
-      "confirmedVisits": "Valid Records (Confirmed)",
-      "recommendations": "Recommended Records",
-      "records": "Strip",
-      "storageHint": "Recommended record data will be displayed after the recommendation feature is enabled.",
-      "topDomains": "Frequently Visited Domains (Top 10)",
-      "noDomains": "No data available",
-      "visits": "Second visit",
+      "textAnalysisHint": "Continue browsing the webpage, and the system will automatically extract and analyze the content.",
+      "userProfile": "User Profile",
+      "storageHint": "Estimated storage space usage",
       "dataManagement": "Data Management",
-      "clearHistory": "Clear browsing history",
-      "resetProfile": "Reset User Profile",
       "clearAll": "Clear all data",
-      "comingSoon": "Coming soon",
-      "dataManagementHint": "The data management feature will be available in future versions."
+      "totalPagesLabel": "Total pages collected",
+      "dwellTimeHint": "Pages with a stay of more than 30 seconds",
+      "storageLabel": "Storage Usage",
+      "storageSizeMB": "{{size}} MB",
+      "firstCollectionLabel": "Start collection time",
+      "avgDailyPages": "Average {{count}} pages per day",
+      "unknownDate": "Unknown",
+      "durationSeconds": "{{seconds}} seconds",
+      "durationMinutes": "{{minutes}} minutes {{seconds}} seconds",
+      "aiQualityTitle": "AI Analysis Quality",
+      "providerLabel": "Service Provider",
+      "providerKeyword": "Keywords",
+      "providerStatusAI": "AI Semantic Understanding",
+      "providerStatusKeyword": "Traditional keywords",
+      "aiPercentageLabel": "AI Analysis Proportion",
+      "aiPercentageValue": "{{percentage}}%",
+      "aiPagesCount": "{{ai}}/{{total}} pages",
+      "totalCostLabel": "Cumulative cost",
+      "totalCostUSD": "${{cost}}",
+      "totalCostCNY": "¥{{cost}}",
+      "avgCostPerPage": "Average {{currency}}{{cost}}/page",
+      "noCost": "No consumption",
+      "tokenUsageLabel": "Token Usage",
+      "tokenUsageK": "{{tokens}}K",
+      "avgTokensPerPage": "{{tokens}} tokens/page",
+      "providerDistributionTitle": "Provider Distribution",
+      "providerDistributionCount": "{{count}} pages ({{percentage}}%)",
+      "aiConfigPromptTitle": "Want more accurate content analysis?",
+      "aiConfigPromptDesc": "Configure AI providers (OpenAI, Anthropic, DeepSeek) for more accurate semantic understanding and topic classification.",
+      "aiConfigPromptLink": "Go to Configuration",
+      "textAnalysisNoData": "No text analysis data available",
+      "totalKeywordsLabel": "Total number of keywords",
+      "totalKeywordsHint": "Contains duplicate words, original extraction",
+      "avgKeywordsLabel": "Average keywords per page",
+      "languageDistributionTitle": "Language Distribution",
+      "languagePages": "{{count}} pages",
+      "rebuildProfile": "Rebuilding User Profiles",
+      "rebuildingProfile": "Rebuilding profile...",
+      "clearDataRestart": "Clear data and start over",
+      "dataManagementNote": "Data Management Instructions:",
+      "dataManagementRebuild": "Rebuild Profile: Reanalyze interest preferences based on existing browsing data",
+      "dataManagementClearData": "Clear Data and Start Over: Delete browsing history and profile, begin from scratch",
+      "dataManagementClearAll": "Clear All Data: Complete erasure including recommendation records",
+      "autoUpdateStrategy": "Auto-update strategy:",
+      "autoUpdateFirst": "First Build: Automatically creates a profile after browsing 10 pages.",
+      "autoUpdateIncremental": "Incremental Update: Smartly updates after every 5 pages of new content",
+      "autoUpdatePeriodic": "Regular Refresh: 6-hour periodic update",
+      "autoUpdateManual": "Manual Rebuild: Force refresh the profile at any time",
+      "alerts": {
+        "analyzeComplete": "History page analysis completed!\nProcessed {{analyzed}} records\nSuccessfully updated {{updated}} records\nFailed {{failed}} records\n{{profileUpdated}}",
+        "profileAutoUpdated": "✅ User profile has been automatically updated",
+        "analyzeFailed": "Analysis failed, please try again later.",
+        "diagnosticComplete": "Diagnosis complete!  \nUnable to analyze records: {{count}}  \nDetails have been output to the console. Please press F12 to view.",
+        "diagnosticFailed": "Diagnosis failed, please try again later.",
+        "cleanInvalidConfirm": "Are you sure you want to clean up invalid records?\nThis will delete records with empty keyword arrays (such as search pages, homepages, etc.)",
+        "cleanInvalidComplete": "Invalid records cleanup completed!\nTotal records: {{total}}\nCleaned: {{cleaned}}\nRemaining valid: {{remaining}}{{profileUpdated}}",
+        "cleanInvalidFailed": "Cleanup failed, please try again later.",
+        "rebuildSuccess": "User profile reconstruction successful!",
+        "rebuildFailed": "Rebuild failed, please try again later.",
+        "clearDataConfirm": "Are you sure you want to clear browsing history and rebuild the user profile?  \nThis will:  \n- Delete all browsing records and analysis results  \n- Remove the current user profile  \n- Reset to the initial state  \n\n⚠️ This action cannot be undone!",
+        "clearDataSuccess": "Data cleared successfully!\nYou can now start browsing again, and the system will automatically build a new user profile.",
+        "clearDataFailed": "Clear failed, please try again later.",
+        "clearAllConfirm": "Are you sure you want to clear all data?  \nThis will delete:  \n- All browsing history  \n- All analysis results  \n- User profiles  \n- Recommendation records  \n\n⚠️ This action cannot be undone! Please consider carefully!",
+        "clearAllFinalConfirm": "Final confirmation: Are you sure you want to clear all data?  \nAfter clearing, it will return to the initial state, and data collection will need to start over.",
+        "clearAllSuccess": "All data cleared successfully!  \nThe extension has been restored to its initial state.",
+        "clearAllFailed": "Clear failed, please try again later."
+      }
+    },
+    "userProfile": {
+      "alerts": {
+        "rebuildSuccess": "User profile reconstruction successful!",
+        "rebuildFailed": "Rebuild failed, please try again later."
+      },
+      "noData": {
+        "message": "There is not enough browsing data to build a user profile.",
+        "hint": "Continue browsing content of interest, and the system will automatically analyze your preferences.",
+        "tip": "💡 No need to wait for 1000 pages - just a few valid records are enough to generate a profile."
+      },
+      "lastUpdated": {
+        "justNow": "Just updated",
+        "hoursAgo": "{{hours}} hours ago",
+        "daysAgo": "{{days}} days ago"
+      },
+      "updateTime": {
+        "label": "Profile Update Time",
+        "basedOn": "Based on {{count}} page analysis"
+      },
+      "analysisQuality": {
+        "label": "Analysis Quality",
+        "aiAnalysis": "AI Analysis ({{provider}})",
+        "keywordAnalysis": "Keyword Analysis",
+        "aiHint": "✨ Using AI Semantic Understanding",
+        "keywordHint": "📝 Using traditional keyword extraction"
+      },
+      "aiPrompt": {
+        "title": "Upgrade to AI analysis for more accurate profiling.",
+        "description": "Currently using keyword analysis. After configuring AI, the system will be able to:",
+        "benefit1": "• More accurately understand the article's topic and semantics",
+        "benefit2": "• Identify implicit interest tendencies",
+        "benefit3": "• Provide more personalized recommendations",
+        "configureButton": "Configure AI Now"
+      },
+      "interests": {
+        "title": "Your Interest Profile",
+        "primaryAbsolute": "⭐ Absolute Dominance: {{topic}}",
+        "primaryRelative": "🎯 Relative Dominance: {{topic}}",
+        "primaryLeading": "📈 Significantly Ahead: {{topic}}",
+        "noData": "No theme classification data available",
+        "levelAbsolute": "👑 Absolute Dominance",
+        "levelRelative": "🎯 Relative Dominance",
+        "levelLeading": "📈 Significantly Ahead",
+        "levelAbsoluteHint": "✨ Absolute Dominant Interest! Accounting for over 33.3%, this is your core interest area.",
+        "levelRelativeHint": "🎯 Relatively Dominant Interest! Significantly surpasses other interests and is the current key focus area.",
+        "levelLeadingHint": "📈 Significantly ahead in interests! Stand out among many interests, worth delving deeper into."
+      },
+      "evolution": {
+        "title": "Evolution of Interests",
+        "totalSnapshots": "Total {{count}} record points",
+        "rebuildLabel": "🔄 Rebuild",
+        "scoreLabel": "Proportion: {{score}}%",
+        "pagesLabel": "Page: {{pages}}",
+        "rebuildTrigger": "User-initiated profile reconstruction",
+        "stable": "Maintain stability",
+        "moreRecords": "There are {{count}} earlier records",
+        "legend": "💡 Arranged chronologically from left to right | Circle size indicates dominance level | 🔥Absolute ⭐Relative 💫Leading | 🔄Rebuilding/Interest Shift 📊Intensity Change",
+        "noData": "No interest change records yet.",
+        "noDataHint": "As you browse more pages, the system automatically records the evolution of your interests."
+      },
+      "keywords": {
+        "title": "Interest Keyword Cloud",
+        "noData": "No keyword data available",
+        "weightLabel": "Weight: {{weight}}",
+        "hint": "💡 Keyword size represents weight, hover to view detailed weight values"
+      }
+    },
+    "aiConfig": {
+      "title": "AI Configuration",
+      "subtitle": "Configure remote AI services for more accurate content analysis",
+      "providerLabel": "AI Provider",
+      "apiKeyLabel": "API Key",
+      "budgetLabel": "Monthly budget limit",
+      "budgetUnit": "/ month",
+      "selectProviderPlaceholder": "Please select an AI provider",
+      "apiKeyPlaceholder": "Enter your {{provider}} API Key",
+      "apiKeyHint": "The API Key will be encrypted and stored locally in the browser, and will not be uploaded to the server.",
+      "budgetHint": "Will automatically downgrade to free keyword analysis after exceeding the budget",
+      "budgetWarning": "It is recommended to set a reasonable budget to avoid unexpected costs (suggested {{range}})",
+      "providers": {
+        "none": {
+          "label": "None (AI Disabled)",
+          "description": "Only use keyword analysis, without calling AI interfaces."
+        },
+        "openai": {
+          "label": "OpenAI (GPT-4o-mini)",
+          "description": "Fast, accurate, and cost-effective ($0.15/M input, $0.6/M output)"
+        },
+        "anthropic": {
+          "label": "Anthropic (Claude-3-Haiku)",
+          "description": "High quality, slightly expensive ($0.25/M input, $1.25/M output)"
+        },
+        "deepseek": {
+          "label": "DeepSeek",
+          "description": "Domestically friendly, cheapest (¥2/M input, ¥3/M output, cache hit ¥0.2/M)"
+        }
+      },
+      "buttons": {
+        "test": "Test connection",
+        "testing": "Testing...",
+        "save": "Save Configuration",
+        "saving": "Saving...",
+        "disable": "Disable AI"
+      },
+      "messages": {
+        "saveSuccess": "Configuration saved successfully!",
+        "disableSuccess": "AI is disabled, keyword analysis will be used.",
+        "latency": "(Delay: {{ms}}ms)"
+      },
+      "errors": {
+        "selectProviderAndKey": "Please select a provider and enter the API Key",
+        "selectProviderAndKeyFirst": "请先选择提供商并输入 API Key",
+        "invalidApiKeyFormat": "The API Key format is incorrect.",
+        "saveFailed": "Save failed: {{error}}",
+        "testFailed": "Test failed: {{error}}",
+        "disableFailed": "Disable failed: {{error}}",
+        "selectProvider": "Please select an AI provider",
+        "enterApiKey": "Please enter the API Key"
+      },
+      "info": {
+        "title": "About AI Analysis",
+        "withConfig": "After configuration: Prioritize AI analysis (more accurate, paid)",
+        "withoutConfig": "Not configured: Use free keyword analysis (available but with lower accuracy)",
+        "fallback": "Downgrade strategy: Automatically fall back to keyword analysis when API fails or exceeds budget.",
+        "privacy": "Privacy Protection: All data processing is done locally, and API Keys are stored encrypted."
+      },
+      "cost": {
+        "title": "Cost Reference (per million tokens)",
+        "example": "Assuming 50 pages browsed per day, with an average of 1000 tokens per page and a 10% cache hit rate:",
+        "note": "The actual cost may vary depending on factors such as page content length and access frequency.",
+        "deepseek": {
+          "title": "DeepSeek (RMB Denominated)",
+          "inputUncached": "Input (cache miss): ¥2.00/M tokens",
+          "inputCached": "Input (cache hit): ¥0.20/M tokens",
+          "output": "Output: ¥3.00/M tokens",
+          "estimate": "Approx. ¥1.41/month (≈ $0.20/month)"
+        },
+        "openai": {
+          "title": "OpenAI GPT-4o-mini (USD)",
+          "input": "Input: $0.15/M tokens",
+          "output": "Output: $0.60/M tokens",
+          "estimate": "About $0.11 / month"
+        },
+        "anthropic": {
+          "title": "Anthropic Claude 3 Haiku (USD)",
+          "input": "Input: $0.25/M tokens",
+          "output": "Output: $1.25/M tokens",
+          "estimate": "About $0.23 / month"
+        }
+      },
+      "labels": {
+        "provider": "AI Provider",
+        "apiKey": "API Key"
+      },
+      "placeholders": {
+        "apiKey": "Enter your API Key"
+      },
+      "hints": {
+        "apiKey": "The API Key will be encrypted and stored locally in the browser, and will not be uploaded to the server."
+      }
     }
   }
 }
