@@ -27,21 +27,21 @@ export function ColdStartView({ pageCount, totalPages = 1000 }: ColdStartViewPro
   const stage = getGrowthStage(pageCount)
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center px-6 py-8">
+    <div className="flex-1 flex flex-col items-center justify-center px-6 py-4">
       {/* 成长阶段图标 - 手绘风格放大显示 */}
-      <div className="sketchy-emoji text-8xl mb-6">{stage.icon}</div>
+      <div className="sketchy-emoji text-7xl mb-4">{stage.icon}</div>
 
       {/* 欢迎信息 - 手绘风格 */}
-      <h2 className="sketchy-title text-xl text-center mb-3">
+      <h2 className="sketchy-title text-xl text-center mb-2">
         {_("popup.welcome")}
       </h2>
-      <p className="sketchy-text text-sm text-center mb-6 max-w-xs">
+      <p className="sketchy-text text-sm text-center mb-4 max-w-xs">
         {_("popup.learning")}
       </p>
 
       {/* 进度条 - 手绘风格 */}
-      <div className="w-full mb-4">
-        <div className="flex justify-between items-center mb-3">
+      <div className="w-full mb-3">
+        <div className="flex justify-between items-center mb-2">
           <span className="sketchy-badge">
             {_(`popup.stage.${stage.name}`)}
           </span>
@@ -58,7 +58,7 @@ export function ColdStartView({ pageCount, totalPages = 1000 }: ColdStartViewPro
       </div>
 
       {/* 提示信息 - 手绘风格 */}
-      <div className="sketchy-card mt-6 w-full">
+      <div className="sketchy-card mt-4 w-full">
         <p className="sketchy-text text-sm text-center flex items-center justify-center gap-2">
           <span className="sketchy-emoji">📖</span>
           <span>{_("popup.hint")}</span>

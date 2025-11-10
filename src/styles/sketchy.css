@@ -6,10 +6,32 @@
 /* 导入手绘风格字体 - 仅用于英文 */
 @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&family=Indie+Flower&display=swap');
 
+/* SVG 滤镜 - 模拟手绘笔触不均匀效果 */
+.sketchy-filter {
+  filter: url('#sketchy-filter');
+}
+
+/* 手绘线条 SVG 定义 */
+svg.sketchy-svg-filters {
+  position: absolute;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
 /* 手绘风格根变量 */
 :root {
   --sketchy-font-en: 'Caveat', cursive;
   --sketchy-font-en-alt: 'Indie Flower', cursive;
+  
+  /* 中文字体 - 使用系统内置的圆润/手写风格字体
+   * 行楷系列: 介于楷书与行书之间，笔画连贯流畅
+   * macOS 正确的 PostScript 名称: STXingkaiSC-Light (注意SC是连着的)
+   * 字体族名: Xingkai SC
+   * 备选: 楷体 (如果行楷不可用)
+   * 特点: 比楷体更随意流畅，笔画有连贯感，更接近手写
+   */
+  --sketchy-font-zh: 'STXingkaiSC-Light', 'Xingkai SC', 'STKaiti-SC-Regular', 'STKaiti', 'Kaiti-SC', 'KaiTi', serif;
   
   /* 手绘颜色 - 更柔和的笔触感 */
   --sketchy-ink: #2c3e50;
@@ -27,7 +49,7 @@
 
 /* 手绘容器基础 */
 .sketchy-container {
-  font-family: var(--sketchy-font-en), -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-family: var(--sketchy-font-zh), var(--sketchy-font-en), -apple-system, sans-serif;
   background: var(--sketchy-paper);
   position: relative;
 }
@@ -38,10 +60,13 @@
 
 /* 手绘标题 - 英文使用手写字体 */
 .sketchy-title {
-  font-family: var(--sketchy-font-en);
+  font-family: var(--sketchy-font-zh), var(--sketchy-font-en);
   font-weight: 700;
+  font-size: 1.25rem;
   color: var(--sketchy-ink);
+  margin: 0.4rem 0;
   letter-spacing: 0.5px;
+  line-height: 1.3;
   position: relative;
 }
 
@@ -62,26 +87,27 @@
   opacity: 0.7;
 }
 
-/* 手绘文本 */
+/* 手绘文本 - 缩小字号和行高 */
 .sketchy-text {
-  font-family: var(--sketchy-font-en), -apple-system, "PingFang SC", sans-serif;
-  color: var(--sketchy-ink-light);
-  line-height: 1.6;
+  font-family: var(--sketchy-font-zh), var(--sketchy-font-en), -apple-system, sans-serif;
+  font-size: 0.85rem;
+  color: var(--sketchy-ink);
+  line-height: 1.4;
 }
 
 .dark .sketchy-text {
   color: var(--sketchy-ink-dark);
 }
 
-/* 手绘按钮 */
+/* 手绘按钮 - 手绘笔触边框 */
 .sketchy-button {
-  font-family: var(--sketchy-font-en);
+  font-family: var(--sketchy-font-zh), var(--sketchy-font-en);
   font-weight: 600;
-  font-size: 1.1rem;
-  padding: 0.75rem 1.5rem;
+  font-size: 0.9rem;
+  padding: 0.4rem 0.85rem;
   background: var(--sketchy-paper-dark);
   color: var(--sketchy-ink);
-  border: 2px solid var(--sketchy-ink);
+  border: 2.5px solid transparent;
   border-radius: 8px;
   position: relative;
   cursor: pointer;
@@ -92,6 +118,17 @@
     2px 2px 0 rgba(0, 0, 0, 0.1),
     -1px -1px 0 rgba(255, 255, 255, 0.5);
   transform: rotate(-0.5deg);
+}
+
+.sketchy-button::before {
+  content: '';
+  position: absolute;
+  inset: -2.5px;
+  border: 2.5px solid var(--sketchy-ink);
+  border-radius: 8px;
+  pointer-events: none;
+  filter: url('#sketchy-stroke');
+  opacity: 0.9;
 }
 
 .sketchy-button:hover {
@@ -113,21 +150,30 @@
   border-color: var(--sketchy-ink-dark);
 }
 
-/* 手绘卡片 */
+/* 手绘卡片 - 手绘笔触边框 */
 .sketchy-card {
   background: var(--sketchy-paper);
-  border: 2px solid var(--sketchy-ink);
-  border-radius: 12px;
-  padding: 1.5rem;
-  position: relative;
-  
-  /* 手绘阴影 */
+  border: 2.5px solid transparent;
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin: 0.75rem 0;
   box-shadow: 
-    3px 3px 0 rgba(0, 0, 0, 0.1),
-    6px 6px 0 rgba(0, 0, 0, 0.05);
-  
-  /* 轻微旋转让卡片更有手绘感 */
+    3px 3px 0 rgba(0,0,0,0.1),
+    -1px -1px 0 rgba(0,0,0,0.05);
   transform: rotate(-0.3deg);
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.sketchy-card::before {
+  content: '';
+  position: absolute;
+  inset: -2.5px;
+  border: 2.5px solid var(--sketchy-ink);
+  border-radius: 8px;
+  pointer-events: none;
+  filter: url('#sketchy-stroke');
+  opacity: 0.9;
 }
 
 .sketchy-card:nth-child(even) {
@@ -139,38 +185,62 @@
   border-color: var(--sketchy-ink-dark);
 }
 
-/* 手绘分割线 */
+/* 手绘分割线 - 模拟手写笔触 */
 .sketchy-divider {
-  height: 2px;
-  background: var(--sketchy-ink);
-  margin: 1rem 0;
-  transform: scaleY(0.8) rotate(-0.2deg);
-  opacity: 0.3;
+  height: 0;
+  border: none;
+  border-top: 2.5px solid var(--sketchy-ink);
+  margin: 0.75rem 0;
+  opacity: 0.5;
   position: relative;
+  filter: url('#sketchy-stroke');
+}
+
+.sketchy-divider::before,
+.sketchy-divider::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  height: 2.5px;
+  background: var(--sketchy-ink);
+  opacity: 0.35;
+  filter: url('#sketchy-stroke');
 }
 
 .sketchy-divider::before {
-  content: '';
-  position: absolute;
-  top: -1px;
   left: 0;
-  right: 0;
-  height: 1px;
-  background: var(--sketchy-ink);
-  transform: translateX(2px) rotate(0.3deg);
-  opacity: 0.5;
+  width: 40%;
+  transform: translateY(-1.5px) rotate(-0.5deg);
 }
 
-/* 手绘进度条 */
+.sketchy-divider::after {
+  right: 0;
+  width: 35%;
+  transform: translateY(1.5px) rotate(0.4deg);
+}
+
+/* 手绘进度条 - 手绘笔触边框 */
 .sketchy-progress {
   width: 100%;
-  height: 24px;
+  height: 20px;
   background: var(--sketchy-paper-dark);
-  border: 2px solid var(--sketchy-ink);
-  border-radius: 12px;
+  border: 3px solid transparent;
+  border-radius: 10px;
   position: relative;
+  opacity: 0.9;
   overflow: hidden;
   transform: rotate(-0.3deg);
+}
+
+.sketchy-progress::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border: 3px solid var(--sketchy-ink);
+  border-radius: 10px;
+  pointer-events: none;
+  filter: url('#sketchy-stroke');
+  opacity: 0.9;
 }
 
 .sketchy-progress-bar {
@@ -200,7 +270,7 @@
 /* 手绘数字/徽章 */
 .sketchy-badge {
   display: inline-block;
-  font-family: var(--sketchy-font-en);
+  font-family: var(--sketchy-font-zh), var(--sketchy-font-en), -apple-system, sans-serif;
   font-weight: 700;
   font-size: 1.2rem;
   padding: 0.25rem 0.75rem;
@@ -229,12 +299,13 @@
   transform: rotate(-5deg);
 }
 
-/* 手绘 emoji 增强 */
+/* emoji 图标增强 - 增大尺寸 */
 .sketchy-emoji {
   display: inline-block;
-  font-size: 1.5em;
-  transform: rotate(-5deg);
+  transform: rotate(-3deg) scale(1.3);
+  filter: saturate(1.2);
   transition: transform 0.3s ease;
+  margin: 0.25rem;
 }
 
 .sketchy-emoji:hover {
@@ -262,7 +333,7 @@
 
 /* 手绘输入框 (用于未来的搜索等) */
 .sketchy-input {
-  font-family: var(--sketchy-font-en), -apple-system, "PingFang SC", sans-serif;
+  font-family: var(--sketchy-font-zh), var(--sketchy-font-en), -apple-system, sans-serif;
   padding: 0.5rem 1rem;
   background: var(--sketchy-paper);
   border: 2px solid var(--sketchy-ink);
