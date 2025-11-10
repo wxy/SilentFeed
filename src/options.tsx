@@ -6,6 +6,7 @@ import i18n from "@/i18n"
 import { RecommendationStats } from "@/components/settings/RecommendationStats"
 import { CollectionStats } from "@/components/settings/CollectionStats"
 import { AIConfig } from "@/components/settings/AIConfig"
+import { RSSManager } from "@/components/settings/RSSManager"
 import { getUIStyle, setUIStyle, watchUIStyle, type UIStyle } from "@/storage/ui-config"
 import "./style.css"
 import "@/styles/sketchy.css"
@@ -28,8 +29,15 @@ type TabKey = "general" | "rss" | "ai" | "recommendations" | "data"
 function IndexOptions() {
   const { _ } = useI18n()
   
-  // 从 URL 参数获取初始标签，默认为 general
+  // 从 URL 参数或 hash 获取初始标签，默认为 general
   const getInitialTab = (): TabKey => {
+    // 优先从 hash 读取（支持 #rss 这种格式）
+    const hash = window.location.hash.slice(1) as TabKey
+    if (['general', 'rss', 'ai', 'recommendations', 'data'].includes(hash)) {
+      return hash
+    }
+    
+    // 其次从 URL 参数读取
     const urlParams = new URLSearchParams(window.location.search)
     const tab = urlParams.get('tab') as TabKey
     return ['general', 'rss', 'ai', 'recommendations', 'data'].includes(tab) ? tab : 'general'
@@ -239,20 +247,10 @@ function IndexOptions() {
               </div>
             )}
 
-            {/* RSS 源管理 - 预留 */}
+            {/* RSS 源管理 - Phase 5.1 */}
             {activeTab === "rss" && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 opacity-50">
-                <h2 className="text-lg font-semibold mb-2">
-                  {_("options.rss.title")}
-                </h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                  {_("options.rss.description")}
-                </p>
-                <div className="py-8 text-center">
-                  <p className="text-gray-500 dark:text-gray-400">
-                    {_("options.rss.disabled")}
-                  </p>
-                </div>
+              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                <RSSManager />
               </div>
             )}
 

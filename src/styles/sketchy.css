@@ -237,6 +237,156 @@ svg.sketchy-svg-filters {
   border-color: var(--sketchy-ink-dark);
 }
 
+/* 手绘嵌套卡片 - 卡片内部的小卡片 */
+.sketchy-card-nested {
+  background: var(--sketchy-paper-dark);
+  border: 2px solid transparent;
+  border-radius: 6px;
+  position: relative;
+  transform: rotate(-0.2deg);
+  transition: all 0.15s ease;
+}
+
+.sketchy-card-nested::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border: 2px solid var(--sketchy-ink);
+  border-radius: 6px;
+  pointer-events: none;
+  filter: url('#sketchy-stroke');
+  opacity: 0.7;
+}
+
+.dark .sketchy-card-nested {
+  background: var(--sketchy-paper-night);
+}
+
+/* 小按钮 - 用于列表项操作 */
+.sketchy-button-small {
+  font-weight: 600;
+  font-size: 0.75rem;
+  padding: 0.3rem 0.6rem;
+  background: var(--sketchy-accent-light);
+  color: white;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.15);
+  transform: rotate(-0.5deg);
+}
+
+/* 中文环境的小按钮 */
+[lang="zh-CN"] .sketchy-button-small,
+[lang="zh"] .sketchy-button-small,
+.sketchy-container:not([lang]) .sketchy-button-small {
+  font-family: var(--sketchy-font-zh), var(--sketchy-font-en);
+}
+
+/* 英文环境的小按钮 */
+[lang="en"] .sketchy-button-small,
+[lang="en-US"] .sketchy-button-small {
+  font-family: var(--sketchy-font-en);
+}
+
+.sketchy-button-small::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border: 2px solid var(--sketchy-ink);
+  border-radius: 6px;
+  pointer-events: none;
+  filter: url('#sketchy-stroke');
+  opacity: 0.8;
+}
+
+.sketchy-button-small:hover {
+  transform: rotate(0deg) translateY(-1px);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2);
+}
+
+.sketchy-button-small:active {
+  transform: rotate(0.5deg) translateY(0);
+  box-shadow: 0.5px 0.5px 0 rgba(0, 0, 0, 0.15);
+}
+
+/* 次要小按钮 - 用于忽略等操作 */
+.sketchy-button-small-secondary {
+  font-weight: 600;
+  font-size: 0.75rem;
+  padding: 0.3rem 0.6rem;
+  background: var(--sketchy-paper-dark);
+  color: var(--sketchy-ink);
+  border: 2px solid transparent;
+  border-radius: 6px;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.1);
+  transform: rotate(0.5deg);
+}
+
+/* 中文环境的次要小按钮 */
+[lang="zh-CN"] .sketchy-button-small-secondary,
+[lang="zh"] .sketchy-button-small-secondary,
+.sketchy-container:not([lang]) .sketchy-button-small-secondary {
+  font-family: var(--sketchy-font-zh), var(--sketchy-font-en);
+}
+
+/* 英文环境的次要小按钮 */
+[lang="en"] .sketchy-button-small-secondary,
+[lang="en-US"] .sketchy-button-small-secondary {
+  font-family: var(--sketchy-font-en);
+}
+
+.sketchy-button-small-secondary::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border: 2px solid var(--sketchy-ink);
+  border-radius: 6px;
+  pointer-events: none;
+  filter: url('#sketchy-stroke');
+  opacity: 0.6;
+}
+
+.sketchy-button-small-secondary:hover {
+  transform: rotate(0deg) translateY(-1px);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.15);
+}
+
+.dark .sketchy-button-small-secondary {
+  background: var(--sketchy-paper-dark-night);
+  color: var(--sketchy-ink-dark);
+}
+
+/* 次要文本 - 用于辅助说明 */
+.sketchy-text-muted {
+  font-size: 0.75rem;
+  color: var(--sketchy-ink-light);
+  line-height: 1.3;
+  opacity: 0.7;
+}
+
+/* 中文环境的次要文本 */
+[lang="zh-CN"] .sketchy-text-muted,
+[lang="zh"] .sketchy-text-muted,
+.sketchy-container:not([lang]) .sketchy-text-muted {
+  font-family: var(--sketchy-font-zh), var(--sketchy-font-en), -apple-system, sans-serif;
+}
+
+/* 英文环境的次要文本 */
+[lang="en"] .sketchy-text-muted,
+[lang="en-US"] .sketchy-text-muted {
+  font-family: var(--sketchy-font-en), -apple-system, sans-serif;
+}
+
+.dark .sketchy-text-muted {
+  color: var(--sketchy-ink-dark);
+}
+
 /* 手绘分割线 - 模拟手写笔触 */
 .sketchy-divider {
   height: 0;

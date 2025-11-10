@@ -10,29 +10,58 @@
 
 import { db } from '../../../storage/db'
 import type { DiscoveredFeed, FeedStatus } from '../types'
-import { v4 as uuidv4 } from 'uuid'
 
 export class FeedManager {
   /**
    * 添加候选源
    * 
+   * Phase 5.1.5: 增强去重逻辑
+   * - 相同 URL 直接去重
+   * - 相同域名 + 相似标题视为重复（同一网站的不同格式）
+   * 
    * @param feed - 源信息（不需要 id，会自动生成）
    */
   async addCandidate(feed: Omit<DiscoveredFeed, 'id' | 'status' | 'enabled'>): Promise<string> {
-    const id = uuidv4()
+    // 1. 检查完全相同的 URL
+    const existingByUrl = await db.discoveredFeeds.where('url').equals(feed.url).first()
+    if (existingByUrl) {
+      console.log('[FeedManager] 源已存在（相同 URL）:', feed.url)
+      return existingByUrl.id
+    }
     
+    // 2. 检查同一来源页面的相似源（同一网站的不同格式/路径）
+    const existingFromSameSource = await db.discoveredFeeds
+      .where('discoveredFrom')
+      .equals(feed.discoveredFrom)
+      .toArray()
+    
+    if (existingFromSameSource.length > 0) {
+      // 提取域名和路径进行比较
+      const newUrl = new URL(feed.url)
+      const newDomain = newUrl.hostname
+      
+      for (const existing of existingFromSameSource) {
+        const existingUrl = new URL(existing.url)
+        const existingDomain = existingUrl.hostname
+        
+        // 如果域名相同，认为是同一个源的不同格式
+        if (newDomain === existingDomain) {
+          console.log('[FeedManager] 源已存在（同域名）:', {
+            existing: existing.url,
+            new: feed.url
+          })
+          return existing.id
+        }
+      }
+    }
+    
+    // 3. 没有重复，添加新源
+    const id = crypto.randomUUID()
     const newFeed: DiscoveredFeed = {
       ...feed,
       id,
       status: 'candidate',
       enabled: true
-    }
-    
-    // 检查是否已存在（通过 URL）
-    const existing = await db.discoveredFeeds.where('url').equals(feed.url).first()
-    if (existing) {
-      console.log('[FeedManager] 源已存在:', feed.url)
-      return existing.id
     }
     
     await db.discoveredFeeds.add(newFeed)
@@ -130,9 +159,21 @@ export class FeedManager {
    * 订阅源
    * 
    * @param id - 源 ID
+   * @param source - 订阅来源（discovered/manual/imported）
    */
-  async subscribe(id: string): Promise<void> {
-    await this.updateStatus(id, 'subscribed')
+  async subscribe(id: string, source?: 'discovered' | 'manual' | 'imported'): Promise<void> {
+    const updates: Partial<DiscoveredFeed> = {
+      status: 'subscribed',
+      subscribedAt: Date.now(),
+    }
+    
+    // 如果提供了订阅来源，则更新
+    if (source) {
+      updates.subscriptionSource = source
+    }
+    
+    await db.discoveredFeeds.update(id, updates)
+    console.log('[FeedManager] 已订阅:', id, source || '(保持现有来源)')
   }
   
   /**
