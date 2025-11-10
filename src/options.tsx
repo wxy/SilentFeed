@@ -6,7 +6,9 @@ import i18n from "@/i18n"
 import { RecommendationStats } from "@/components/settings/RecommendationStats"
 import { CollectionStats } from "@/components/settings/CollectionStats"
 import { AIConfig } from "@/components/settings/AIConfig"
+import { getUIStyle, setUIStyle, watchUIStyle, type UIStyle } from "@/storage/ui-config"
 import "./style.css"
+import "@/styles/sketchy.css"
 
 // 开发环境下加载调试工具
 if (process.env.NODE_ENV === 'development') {
@@ -34,6 +36,29 @@ function IndexOptions() {
   }
 
   const [activeTab, setActiveTab] = useState<TabKey>(getInitialTab)
+  const [uiStyle, setUiStyleState] = useState<UIStyle>("sketchy")
+
+  // 加载 UI 风格
+  useEffect(() => {
+    const loadUIStyle = async () => {
+      const style = await getUIStyle()
+      setUiStyleState(style)
+    }
+    loadUIStyle()
+
+    // 监听 UI 风格变化
+    const unwatch = watchUIStyle((newStyle) => {
+      setUiStyleState(newStyle)
+    })
+
+    return () => unwatch()
+  }, [])
+
+  // 切换 UI 风格
+  const handleUIStyleChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const style = e.target.value as UIStyle
+    await setUIStyle(style)
+  }
 
   // 当标签改变时更新 URL
   useEffect(() => {
@@ -79,15 +104,37 @@ function IndexOptions() {
     { key: "data", icon: "📊" }
   ]
 
+  const isSketchyStyle = uiStyle === "sketchy"
+  const currentLang = i18n.language // 获取当前语言
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+    <div className={isSketchyStyle ? "min-h-screen sketchy-container sketchy-paper-texture text-gray-900 dark:text-gray-100" : "min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100"} lang={currentLang}>
+      {/* SVG 滤镜定义 */}
+      {isSketchyStyle && (
+        <svg className="sketchy-svg-filters" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <filter id="sketchy-stroke" x="-30%" y="-30%" width="160%" height="160%">
+              <feTurbulence type="fractalNoise" baseFrequency="1.2" numOctaves="3" result="noise" />
+              <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.2" xChannelSelector="R" yChannelSelector="G" result="displaced" />
+              <feMorphology operator="dilate" radius="0.2" in="displaced" result="thickened" />
+              <feMorphology operator="erode" radius="0.15" in="thickened" result="thinned" />
+              <feGaussianBlur stdDeviation="0.25" in="thinned" result="blurred" />
+              <feComponentTransfer in="blurred">
+                <feFuncA type="linear" slope="1.15" />
+              </feComponentTransfer>
+            </filter>
+          </defs>
+        </svg>
+      )}
+      
       {/* 头部 */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+      <div className={isSketchyStyle ? "border-b border-gray-200 dark:border-gray-700 px-6 py-4" : "bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700"}>
         <div className="max-w-6xl mx-auto px-6 py-6">
-          <h1 className="text-2xl font-bold">{_("app.name")}</h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+          <h1 className={isSketchyStyle ? "sketchy-title text-3xl" : "text-2xl font-bold"}>{_("app.name")}</h1>
+          <p className={isSketchyStyle ? "sketchy-text mt-2" : "text-sm text-gray-600 dark:text-gray-400 mt-1"}>
             {_("options.title")}
           </p>
+          {isSketchyStyle && <div className="sketchy-divider mt-4"></div>}
         </div>
       </div>
 
@@ -95,18 +142,23 @@ function IndexOptions() {
         <div className="flex gap-8">
           {/* 左侧标签导航 */}
           <nav className="w-48 flex-shrink-0">
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className={isSketchyStyle ? "sketchy-card" : "bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden"}>
               {tabs.map((tab) => {
                 const isActive = activeTab === tab.key
                 const baseClass = "w-full px-4 py-3 text-left text-sm font-medium transition-colors flex items-center gap-3"
-                const activeClass = "bg-green-500 text-white dark:bg-green-600"
-                const inactiveClass = "hover:bg-gray-100 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 last:border-b-0"
+                const activeClass = isSketchyStyle 
+                  ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200" 
+                  : "bg-green-500 text-white dark:bg-green-600"
+                const inactiveClass = isSketchyStyle
+                  ? "hover:bg-gray-50 dark:hover:bg-gray-800 border-b border-gray-200 dark:border-gray-700 last:border-b-0"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 last:border-b-0"
+                const sketchyClass = isSketchyStyle && isActive ? "sketchy-text font-semibold" : ""
                 
                 return (
                   <button
                     key={tab.key}
                     onClick={() => setActiveTab(tab.key)}
-                    className={`${baseClass} ${isActive ? activeClass : inactiveClass}`}
+                    className={`${baseClass} ${isActive ? activeClass : inactiveClass} ${sketchyClass}`}
                   >
                     <span className="text-lg">{tab.icon}</span>
                     <span>{_(`options.tabs.${tab.key}`)}</span>
@@ -120,11 +172,11 @@ function IndexOptions() {
           <div className="flex-1">
             {/* 常规设置 */}
             {activeTab === "general" && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-                <h2 className="text-lg font-semibold mb-2">
+              <div className={isSketchyStyle ? "sketchy-card p-6" : "bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6"}>
+                <h2 className={isSketchyStyle ? "sketchy-title text-xl mb-2" : "text-lg font-semibold mb-2"}>
                   {_("options.general.title")}
                 </h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                <p className={isSketchyStyle ? "sketchy-text mb-6" : "text-sm text-gray-600 dark:text-gray-400 mb-6"}>
                   {_("options.general.languageDescription")}
                 </p>
 
@@ -156,6 +208,32 @@ function IndexOptions() {
                       {/* <option value="fr">{_("options.general.languageFr")}</option> */}
                       {/* <option value="ja">{_("options.general.languageJa")}</option> */}
                     </select>
+                  </div>
+
+                  {/* UI 风格选择 */}
+                  <div>
+                    <label
+                      htmlFor="ui-style-select"
+                      className="block text-sm font-medium mb-2"
+                    >
+                      {_("options.general.uiStyle")}
+                    </label>
+                    <select
+                      id="ui-style-select"
+                      value={uiStyle}
+                      onChange={handleUIStyleChange}
+                      className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
+                    >
+                      <option value="sketchy">
+                        {_("options.general.uiStyleSketchy")}
+                      </option>
+                      <option value="normal">
+                        {_("options.general.uiStyleNormal")}
+                      </option>
+                    </select>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                      {_("options.general.uiStyleDescription")}
+                    </p>
                   </div>
                 </div>
               </div>

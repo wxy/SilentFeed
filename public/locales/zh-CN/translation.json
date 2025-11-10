@@ -41,7 +41,11 @@
       "languageEn": "English",
       "languageFr": "Français",
       "languageJa": "日本語",
-      "languageDescription": "选择界面显示语言"
+      "languageDescription": "选择界面显示语言",
+      "uiStyle": "界面风格",
+      "uiStyleSketchy": "🎨 手绘风格",
+      "uiStyleNormal": "📱 标准风格",
+      "uiStyleDescription": "选择扩展的界面外观风格"
     },
     "rss": {
       "title": "RSS 源管理",
