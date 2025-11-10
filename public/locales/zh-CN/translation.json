@@ -283,6 +283,7 @@
       "messages": {
         "saveSuccess": "配置保存成功！",
         "disableSuccess": "已禁用 AI，将使用关键词分析",
+        "testSuccess": "连接成功！（延迟: {{latency}}ms）",
         "latency": "（延迟: {{ms}}ms）"
       },
       "errors": {
