@@ -52,6 +52,65 @@
       "disabled": "将在完成 1000 页面后启用",
       "description": "管理你的 RSS 订阅源"
     },
+    "rssManager": {
+      "addSource": "添加订阅源",
+      "manualSubscribe": "手动订阅 RSS URL",
+      "manualPlaceholder": "https://example.com/feed.xml",
+      "subscribing": "验证中...",
+      "subscribe": "订阅",
+      "importOPML": "批量导入（OPML 文件）",
+      "selectOPML": "📂 选择 OPML 文件",
+      "importing": "导入中...",
+      "importHint": "支持从其他 RSS 阅读器导出的订阅列表",
+      "discovered": "发现的 RSS 源",
+      "discoveredHint": "这些 RSS 源是从你浏览的页面中自动发现的，点击标题查看源内容",
+      "subscribed": "已订阅",
+      "ignored": "已忽略",
+      "candidateCount": "({{count}})",
+      "noFeeds": "暂无发现的 RSS 源",
+      "noFeedsHint": "浏览包含 RSS 订阅的网站时，我们会自动发现并在这里显示",
+      "from": "来自",
+      "source": {
+        "discovered": "自动发现",
+        "manual": "手动订阅",
+        "imported": "OPML导入"
+      },
+      "actions": {
+        "subscribe": "订阅",
+        "ignore": "忽略",
+        "unsubscribe": "取消订阅",
+        "delete": "删除"
+      },
+      "metadata": {
+        "items": "条目",
+        "language": "语言"
+      },
+      "languages": {
+        "zh": "中文",
+        "zhCN": "简体中文",
+        "zhTW": "繁体中文",
+        "en": "英语",
+        "ja": "日语",
+        "fr": "法语",
+        "de": "德语",
+        "es": "西班牙语",
+        "ko": "韩语",
+        "unknown": "未知"
+      },
+      "errors": {
+        "invalidUrl": "请输入有效的 RSS URL",
+        "fetchFailed": "无法获取该 URL 的内容",
+        "notRSS": "该 URL 不是有效的 RSS 源",
+        "alreadyExists": "该源已存在",
+        "networkError": "网络错误，请检查连接",
+        "parseError": "OPML 文件解析失败",
+        "noFeeds": "OPML 文件中未找到任何订阅源"
+      },
+      "success": {
+        "subscribed": "订阅成功！",
+        "imported": "导入成功！共导入 {{count}} 个订阅源"
+      }
+    },
     "ai": {
       "title": "AI 配置",
       "disabled": "将在完成 1000 页面后启用",
