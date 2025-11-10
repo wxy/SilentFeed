@@ -396,7 +396,7 @@
       "subscribing": "Verifying...",
       "subscribe": "Subscribe",
       "importOPML": "Batch Import (OPML File)",
-      "selectOPML": "📂 Select OPML File",
+      "selectOPML": "Select OPML file",
       "importing": "Importing...",
       "importHint": "Supports subscription lists exported from other RSS readers",
       "discovered": "Discovered RSS feeds",
@@ -419,7 +419,7 @@
         "delete": "Delete"
       },
       "metadata": {
-        "items": "Entry",
+        "items": "{{count}} items",
         "language": "Language"
       },
       "languages": {
@@ -432,7 +432,10 @@
         "de": "German",
         "es": "Spanish",
         "ko": "Korean",
-        "unknown": "Unknown"
+        "unknown": "Unknown",
+        "ru": "Russian",
+        "pt": "Portuguese",
+        "it": "Italian"
       },
       "errors": {
         "invalidUrl": "Please enter a valid RSS URL",
@@ -441,12 +444,28 @@
         "alreadyExists": "This source already exists.",
         "networkError": "Network error, please check your connection",
         "parseError": "Failed to parse OPML file",
-        "noFeeds": "No feeds found in the OPML file."
+        "noFeeds": "No feeds found in the OPML file.",
+        "validationFailed": "RSS verification failed",
+        "subscribeFailed": "Subscription failed",
+        "importFailed": "OPML Import Failed"
       },
       "success": {
         "subscribed": "Subscription successful!",
-        "imported": "Import successful! {{count}} feeds imported in total."
-      }
+        "imported": "Import successful! {{count}} feeds imported in total.",
+        "importedWithErrors": "Import completed: Success {{successCount}}, Skipped {{skipCount}}, Failed {{failCount}}"
+      },
+      "opmlHint": "Supports subscription lists exported from other RSS readers",
+      "loading": "Loading...",
+      "discoveredFrom": "From",
+      "subscribedAt": "Subscribed on",
+      "discoveredFeeds": "Discovered RSS Feeds ({{count}})",
+      "discoveredFeedsHint": "These RSS feeds were automatically discovered from the pages you browsed. Click the title to view the feed content.",
+      "subscribedFeeds": "Subscribed ({{count}})",
+      "subscribedFeedsHint": "Your subscribed RSS feeds can be unsubscribed at any time",
+      "ignoredFeeds": "Ignored ({{count}})",
+      "clickToToggle": "Click {{action}}",
+      "expand": "Expand",
+      "collapse": "Collapse"
     }
   }
 }

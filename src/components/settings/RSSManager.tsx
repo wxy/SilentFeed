@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react"
+import { useTranslation } from "react-i18next"
 import { FeedManager } from "@/core/rss/managers/FeedManager"
 import { RSSValidator } from "@/core/rss/RSSValidator"
 import { OPMLImporter } from "@/core/rss/OPMLImporter"
@@ -12,6 +13,7 @@ import type { DiscoveredFeed } from "@/core/rss/types"
  * - 右侧操作：收录、忽略
  */
 export function RSSManager() {
+  const { t: _ } = useTranslation()
   const [candidateFeeds, setCandidateFeeds] = useState<DiscoveredFeed[]>([])
   const [subscribedFeeds, setSubscribedFeeds] = useState<DiscoveredFeed[]>([])
   const [ignoredFeeds, setIgnoredFeeds] = useState<DiscoveredFeed[]>([])
@@ -154,7 +156,7 @@ export function RSSManager() {
   // Phase 5.1.6: 手动订阅 RSS
   const handleManualAdd = async () => {
     if (!manualUrl.trim()) {
-      setManualError('请输入 RSS URL')
+      setManualError(_('options.rssManager.errors.invalidUrl'))
       return
     }
     
@@ -165,7 +167,7 @@ export function RSSManager() {
       // 1. 验证 URL
       const validationResult = await RSSValidator.validateURL(manualUrl.trim())
       if (!validationResult.valid) {
-        setManualError(validationResult.error || 'RSS 验证失败')
+        setManualError(validationResult.error || _('options.rssManager.errors.validationFailed'))
         return
       }
       
@@ -173,7 +175,7 @@ export function RSSManager() {
       const feedManager = new FeedManager()
       const existing = await feedManager.getFeedByUrl(manualUrl.trim())
       if (existing) {
-        setManualError('该源已存在')
+        setManualError(_('options.rssManager.errors.alreadyExists'))
         return
       }
       
@@ -205,7 +207,7 @@ export function RSSManager() {
       setManualUrl('')
       console.log('[RSSManager] 手动订阅成功:', id)
     } catch (error) {
-      setManualError(error instanceof Error ? error.message : '订阅失败')
+      setManualError(error instanceof Error ? error.message : _('options.rssManager.errors.subscribeFailed'))
       console.error('[RSSManager] 手动订阅失败:', error)
     } finally {
       setIsManualAdding(false)
@@ -266,7 +268,7 @@ export function RSSManager() {
       // 4. 显示结果
       console.log(`[RSSManager] OPML 导入完成: 成功 ${successCount}, 跳过 ${skipCount}, 失败 ${failCount}`)
       if (failCount > 0) {
-        setImportError(`导入完成: 成功 ${successCount}, 跳过 ${skipCount}, 失败 ${failCount}`)
+        setImportError(_('options.rssManager.success.importedWithErrors', { successCount, skipCount, failCount }))
       }
       
       // 5. 重置文件输入
@@ -274,7 +276,7 @@ export function RSSManager() {
         fileInputRef.current.value = ''
       }
     } catch (error) {
-      setImportError(error instanceof Error ? error.message : 'OPML 导入失败')
+      setImportError(error instanceof Error ? error.message : _('options.rssManager.errors.importFailed'))
       console.error('[RSSManager] OPML 导入失败:', error)
     } finally {
       setIsImporting(false)
@@ -283,14 +285,18 @@ export function RSSManager() {
   
   // 格式化语言显示
   const formatLanguage = (lang?: string) => {
-    if (!lang) return '未知'
+    if (!lang) return _('options.rssManager.languages.unknown')
     const langMap: Record<string, string> = {
-      'zh-CN': '中文',
-      'zh': '中文',
-      'en': '英文',
-      'en-US': '英文',
-      'ja': '日文',
-      'ko': '韩文',
+      'zh-CN': _('options.rssManager.languages.zh'),
+      'zh': _('options.rssManager.languages.zh'),
+      'en': _('options.rssManager.languages.en'),
+      'en-US': _('options.rssManager.languages.en'),
+      'ja': _('options.rssManager.languages.ja'),
+      'ko': _('options.rssManager.languages.ko'),
+      'fr': _('options.rssManager.languages.fr'),
+      'de': _('options.rssManager.languages.de'),
+      'es': _('options.rssManager.languages.es'),
+      'ru': _('options.rssManager.languages.ru'),
     }
     return langMap[lang] || lang
   }
@@ -345,7 +351,7 @@ export function RSSManager() {
         {feed.itemCount !== undefined && (
           <span className="flex items-center gap-1">
             <span>📄</span>
-            <span>{feed.itemCount} 条</span>
+            <span>{_('options.rssManager.metadata.items', { count: feed.itemCount })}</span>
           </span>
         )}
       </div>
@@ -354,15 +360,15 @@ export function RSSManager() {
       <div className="flex items-center justify-between pl-16">
         <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
           <span className="truncate">
-            来自: {new URL(feed.discoveredFrom).hostname}
+            {_('options.rssManager.discoveredFrom')}: {new URL(feed.discoveredFrom).hostname}
           </span>
           {feed.subscriptionSource && (
             <>
               <span>•</span>
               <span className="text-green-600 dark:text-green-400">
-                {feed.subscriptionSource === 'discovered' && '自动发现'}
-                {feed.subscriptionSource === 'manual' && '手动订阅'}
-                {feed.subscriptionSource === 'imported' && 'OPML导入'}
+                {feed.subscriptionSource === 'discovered' && _('options.rssManager.source.discovered')}
+                {feed.subscriptionSource === 'manual' && _('options.rssManager.source.manual')}
+                {feed.subscriptionSource === 'imported' && _('options.rssManager.source.imported')}
               </span>
             </>
           )}
@@ -370,7 +376,7 @@ export function RSSManager() {
             <>
               <span>•</span>
               <span className="text-green-600 dark:text-green-400">
-                订阅于: {formatDateTime(feed.subscribedAt)}
+                {_('options.rssManager.subscribedAt')}: {formatDateTime(feed.subscribedAt)}
               </span>
             </>
           )}
@@ -396,7 +402,7 @@ export function RSSManager() {
     return (
       <div className="py-8 text-center">
         <div className="text-4xl animate-pulse">⏳</div>
-        <p className="text-sm text-gray-500 mt-2">加载中...</p>
+        <p className="text-sm text-gray-500 mt-2">{_('options.rssManager.loading')}</p>
       </div>
     )
   }
@@ -408,10 +414,10 @@ export function RSSManager() {
       <div className="py-12 text-center">
         <div className="text-6xl mb-4">📡</div>
         <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
-          暂无发现的 RSS 源
+          {_('options.rssManager.noFeeds')}
         </h3>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          浏览包含 RSS 订阅的网站时，我们会自动发现并在这里显示
+          {_('options.rssManager.noFeedsHint')}
         </p>
       </div>
     )
@@ -422,20 +428,20 @@ export function RSSManager() {
       {/* Phase 5.1.6: 手动订阅和 OPML 导入 */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
         <h3 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-3">
-          ➕ 添加订阅源
+          ➕ {_('options.rssManager.addSource')}
         </h3>
         
         {/* 手动订阅 URL */}
         <div className="mb-4">
           <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2">
-            手动订阅 RSS URL
+            {_('options.rssManager.manualSubscribe')}
           </label>
           <div className="flex gap-2">
             <input
               type="url"
               value={manualUrl}
               onChange={(e) => setManualUrl(e.target.value)}
-              placeholder="https://example.com/feed.xml"
+              placeholder={_('options.rssManager.manualPlaceholder')}
               className="flex-1 px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={isManualAdding}
             />
@@ -444,7 +450,7 @@ export function RSSManager() {
               disabled={isManualAdding || !manualUrl.trim()}
               className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded-md transition-colors"
             >
-              {isManualAdding ? '验证中...' : '订阅'}
+              {isManualAdding ? _('options.rssManager.subscribing') : _('options.rssManager.subscribe')}
             </button>
           </div>
           {manualError && (
@@ -457,7 +463,7 @@ export function RSSManager() {
         {/* OPML 导入 */}
         <div>
           <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2">
-            批量导入（OPML 文件）
+            {_('options.rssManager.importOPML')}
           </label>
           <div className="flex gap-2">
             <input
@@ -473,10 +479,10 @@ export function RSSManager() {
               disabled={isImporting}
               className="px-4 py-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded-md transition-colors"
             >
-              {isImporting ? '导入中...' : '📂 选择 OPML 文件'}
+              {isImporting ? _('options.rssManager.importing') : `📂 ${_('options.rssManager.selectOPML')}`}
             </button>
             <p className="text-xs text-gray-500 dark:text-gray-400 self-center">
-              支持从其他 RSS 阅读器导出的订阅列表
+              {_('options.rssManager.opmlHint')}
             </p>
           </div>
           {importError && (
@@ -492,22 +498,22 @@ export function RSSManager() {
         <div>
           <div className="mb-3">
             <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-              📡 发现的 RSS 源 ({candidateFeeds.length})
+              📡 {_('options.rssManager.discoveredFeeds', { count: candidateFeeds.length })}
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              这些 RSS 源是从你浏览的页面中自动发现的，点击标题查看源内容
+              {_('options.rssManager.discoveredFeedsHint')}
             </p>
           </div>
 
           <div className="space-y-2">
             {candidateFeeds.map((feed) => renderFeedItem(feed, [
               {
-                label: '✓ 订阅',
+                label: `✓ ${_('options.rssManager.actions.subscribe')}`,
                 onClick: () => handleSubscribe(feed.id),
                 className: 'px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-medium rounded transition-colors'
               },
               {
-                label: '✗ 忽略',
+                label: `✗ ${_('options.rssManager.actions.ignore')}`,
                 onClick: () => handleIgnore(feed.id),
                 className: 'px-3 py-1.5 bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 text-xs font-medium rounded transition-colors'
               }
@@ -521,17 +527,17 @@ export function RSSManager() {
         <div>
           <div className="mb-3">
             <h3 className="text-lg font-semibold text-green-700 dark:text-green-400">
-              ✓ 已订阅 ({subscribedFeeds.length})
+              ✓ {_('options.rssManager.subscribedFeeds', { count: subscribedFeeds.length })}
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              你已订阅的 RSS 源，可以随时取消订阅
+              {_('options.rssManager.subscribedFeedsHint')}
             </p>
           </div>
 
           <div className="space-y-2">
             {subscribedFeeds.map((feed) => renderFeedItem(feed, [
               {
-                label: '✗ 取消订阅',
+                label: `✗ ${_('options.rssManager.actions.unsubscribe')}`,
                 onClick: () => handleUnsubscribe(feed.id),
                 className: 'px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded transition-colors'
               }
@@ -549,10 +555,10 @@ export function RSSManager() {
           >
             <div className="flex items-center gap-2">
               <span className="text-lg font-semibold text-gray-600 dark:text-gray-300">
-                🚫 已忽略 ({ignoredFeeds.length})
+                🚫 {_('options.rssManager.ignoredFeeds', { count: ignoredFeeds.length })}
               </span>
               <span className="text-xs text-gray-500 dark:text-gray-400">
-                点击{showIgnored ? '收起' : '展开'}
+                {_('options.rssManager.clickToToggle', { action: showIgnored ? _('options.rssManager.collapse') : _('options.rssManager.expand') })}
               </span>
             </div>
             <span className="text-gray-500 dark:text-gray-400">
@@ -564,7 +570,7 @@ export function RSSManager() {
             <div className="mt-2 space-y-2">
               {ignoredFeeds.map((feed) => renderFeedItem(feed, [
                 {
-                  label: '✓ 订阅',
+                  label: `✓ ${_('options.rssManager.actions.subscribe')}`,
                   onClick: () => handleSubscribeIgnored(feed.id),
                   className: 'px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-medium rounded transition-colors'
                 }
