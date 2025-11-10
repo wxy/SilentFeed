@@ -8,7 +8,8 @@ import { CollectionStats } from "@/components/settings/CollectionStats"
 import { AIConfig } from "@/components/settings/AIConfig"
 import { RSSManager } from "@/components/settings/RSSManager"
 import { getUIStyle, setUIStyle, watchUIStyle, type UIStyle } from "@/storage/ui-config"
-import "./style.css"
+import { useTheme } from "@/hooks/useTheme"
+import "@/styles/global.css"
 import "@/styles/sketchy.css"
 
 // 开发环境下加载调试工具
@@ -28,6 +29,7 @@ type TabKey = "general" | "rss" | "ai" | "recommendations" | "data"
  */
 function IndexOptions() {
   const { _ } = useI18n()
+  useTheme() // 自动跟随系统主题
   
   // 从 URL 参数或 hash 获取初始标签，默认为 general
   const getInitialTab = (): TabKey => {

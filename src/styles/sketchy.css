@@ -199,7 +199,24 @@ svg.sketchy-svg-filters {
 .dark .sketchy-button {
   background: var(--sketchy-paper-dark-night);
   color: var(--sketchy-ink-dark);
+  box-shadow: 
+    2px 2px 0 rgba(255, 255, 255, 0.1),
+    -1px -1px 0 rgba(0, 0, 0, 0.3);
+}
+
+.dark .sketchy-button::before {
   border-color: var(--sketchy-ink-dark);
+}
+
+.dark .sketchy-button:hover {
+  box-shadow: 
+    3px 3px 0 rgba(255, 255, 255, 0.15),
+    -1px -1px 0 rgba(0, 0, 0, 0.4);
+}
+
+.dark .sketchy-button:active {
+  box-shadow: 
+    1px 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 /* 手绘卡片 - 手绘笔触边框 */
@@ -234,6 +251,12 @@ svg.sketchy-svg-filters {
 
 .dark .sketchy-card {
   background: var(--sketchy-paper-dark-night);
+  box-shadow: 
+    3px 3px 0 rgba(255, 255, 255, 0.1),
+    -1px -1px 0 rgba(0, 0, 0, 0.3);
+}
+
+.dark .sketchy-card::before {
   border-color: var(--sketchy-ink-dark);
 }
 
@@ -421,6 +444,15 @@ svg.sketchy-svg-filters {
   transform: translateY(1.5px) rotate(0.4deg);
 }
 
+.dark .sketchy-divider {
+  border-top-color: var(--sketchy-ink-dark);
+}
+
+.dark .sketchy-divider::before,
+.dark .sketchy-divider::after {
+  background: var(--sketchy-ink-dark);
+}
+
 /* 手绘进度条 - 手绘笔触边框 */
 .sketchy-progress {
   width: 100%;
@@ -469,6 +501,18 @@ svg.sketchy-svg-filters {
   );
 }
 
+.dark .sketchy-progress {
+  background: var(--sketchy-paper-dark-night);
+}
+
+.dark .sketchy-progress::before {
+  border-color: var(--sketchy-ink-dark);
+}
+
+.dark .sketchy-progress-bar {
+  border-right-color: var(--sketchy-ink-dark);
+}
+
 /* 手绘数字/徽章 */
 .sketchy-badge {
   display: inline-block;
@@ -511,6 +555,10 @@ svg.sketchy-svg-filters {
   font-weight: bold;
   color: var(--sketchy-accent);
   transform: rotate(-5deg);
+}
+
+.dark .sketchy-list-item {
+  color: var(--sketchy-ink-dark);
 }
 
 /* emoji 图标增强 - 增大尺寸 */
@@ -571,6 +619,12 @@ svg.sketchy-svg-filters {
   outline: none;
   transform: rotate(0deg);
   box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.2);
+}
+
+.dark .sketchy-input {
+  background: var(--sketchy-paper-dark-night);
+  border-color: var(--sketchy-ink-dark);
+  color: var(--sketchy-ink-dark);
 }
 
 /* 动画：手绘线条绘制效果 */

@@ -3,7 +3,7 @@ module.exports = {
   content: [
     "./src/**/*.{ts,tsx}",
   ],
-  darkMode: 'media', // 自动检测系统主题
+  darkMode: 'class', // 通过 .dark 类控制暗色主题
   theme: {
     extend: {
       colors: {

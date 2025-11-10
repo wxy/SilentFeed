@@ -4510,6 +4510,7 @@
         "status": "ai-translated"
       }
     },
+
     "options.rssManager.addSource": {
       "zh-CN": {
         "value": "添加订阅源",
