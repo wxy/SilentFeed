@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>字体检测工具 - 找到行楷的真实名称</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            padding: 40px;
+            background: #f5f5f5;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .result {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+        }
+        .warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+        }
+        .font-sample {
+            font-size: 28px;
+            margin: 10px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        code {
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            color: #e74c3c;
+        }
+        h1 { color: #2c3e50; }
+        h2 { color: #34495e; margin-top: 40px; }
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .test-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #dee2e6;
+        }
+        .test-item.matched {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+        .font-name {
+            font-size: 12px;
+            color: #666;
+            font-family: monospace;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 字体检测工具</h1>
+    
+    <div class="info">
+        <strong>目标：</strong>找到"行楷-简"在 CSS 中的正确名称<br>
+        <strong>方法：</strong>通过画布渲染测试，检测字体是否真的被加载
+    </div>
+
+    <h2>步骤1: 检测系统字体</h2>
+    <div id="detection-results"></div>
+
+    <h2>步骤2: 批量测试行楷可能的名称</h2>
+    <div class="test-grid" id="xingkai-tests"></div>
+
+    <h2>步骤3: 视觉对比</h2>
+    <div id="visual-tests"></div>
+
+    <script>
+        // 精确的字体检测函数
+        function detectFont(fontName) {
+            const testString = '测试行楷字体，笔画应该连贯流畅。0123456789';
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            
+            // 使用默认字体测量
+            context.font = '72px monospace';
+            const baselineWidth = context.measureText(testString).width;
+            
+            // 使用待测字体测量
+            context.font = `72px "${fontName}", monospace`;
+            const testWidth = context.measureText(testString).width;
+            
+            // 如果宽度不同，说明字体被加载了
+            return {
+                available: Math.abs(testWidth - baselineWidth) > 1,
+                baselineWidth,
+                testWidth,
+                difference: Math.abs(testWidth - baselineWidth)
+            };
+        }
+
+        // 所有可能的行楷字体名称
+        const xingkaiVariants = [
+            // PostScript 名称变体
+            'STXingkai-SC-Light',
+            'STXingkai-SC-Regular',
+            'STXingkai-SC-Bold',
+            'STXingkai',
+            'Xingkai-SC',
+            'XingkaiSC-Light',
+            'XingkaiSC-Regular',
+            'STXingkai-Light',
+            'STXingkai-Regular',
+            
+            // 完整名称
+            'Xingkai SC Light',
+            'Xingkai SC Regular',
+            'ST Xingkai',
+            'STXingkai SC',
+            
+            // 中文名称
+            '行楷-简',
+            '行楷',
+            '华文行楷',
+            'STXingkai-简',
+            
+            // 其他可能
+            'XingKai',
+            'XingKai SC',
+            'xingkai',
+            'STXINGKAI'
+        ];
+
+        // 楷体作为对比
+        const kaitiVariants = [
+            'STKaiti-SC-Regular',
+            'STKaiti-SC-Light',
+            'STKaiti',
+            'Kaiti-SC',
+            'Kaiti SC',
+            'KaiTi',
+            '楷体-简',
+            '楷体',
+            '华文楷体'
+        ];
+
+        // 执行检测
+        console.log('=== 开始字体检测 ===');
+        
+        const detectionDiv = document.getElementById('detection-results');
+        const xingkaiDiv = document.getElementById('xingkai-tests');
+        const visualDiv = document.getElementById('visual-tests');
+
+        // 检测行楷
+        let foundXingkai = [];
+        xingkaiVariants.forEach(font => {
+            const result = detectFont(font);
+            const div = document.createElement('div');
+            div.className = 'test-item' + (result.available ? ' matched' : '');
+            div.innerHTML = `
+                <div class="font-name">${font}</div>
+                <div style="font-size: 11px; color: ${result.available ? '#28a745' : '#dc3545'}">
+                    ${result.available ? '✅ 可用' : '❌ 不可用'} 
+                    (差异: ${result.difference.toFixed(1)}px)
+                </div>
+            `;
+            xingkaiDiv.appendChild(div);
+            
+            if (result.available) {
+                foundXingkai.push(font);
+                console.log(`✅ 找到行楷: ${font}`, result);
+            }
+        });
+
+        // 检测楷体
+        let foundKaiti = [];
+        kaitiVariants.forEach(font => {
+            const result = detectFont(font);
+            if (result.available) {
+                foundKaiti.push(font);
+                console.log(`✅ 找到楷体: ${font}`, result);
+            }
+        });
+
+        // 显示结果
+        if (foundXingkai.length > 0) {
+            detectionDiv.innerHTML = `
+                <div class="result success">
+                    <h3>🎉 找到 ${foundXingkai.length} 个行楷字体！</h3>
+                    <p><strong>推荐使用第一个:</strong> <code>${foundXingkai[0]}</code></p>
+                    <p><strong>所有可用的:</strong></p>
+                    <ul>
+                        ${foundXingkai.map(f => `<li><code>${f}</code></li>`).join('')}
+                    </ul>
+                    <p style="margin-top: 20px; padding: 10px; background: #fff3cd; border-radius: 4px;">
+                        <strong>📝 复制这个配置到 sketchy.css:</strong><br>
+                        <code style="display: block; margin-top: 5px; padding: 10px; background: white;">
+                        --sketchy-font-zh: '${foundXingkai[0]}', '${foundKaiti[0] || 'serif'}', serif;
+                        </code>
+                    </p>
+                </div>
+            `;
+        } else {
+            detectionDiv.innerHTML = `
+                <div class="result warning">
+                    <h3>⚠️ 未找到行楷字体</h3>
+                    <p>可能的原因:</p>
+                    <ul>
+                        <li>字体名称不在测试列表中</li>
+                        <li>需要用不同的方法检测</li>
+                        <li>系统中可能没有行楷字体</li>
+                    </ul>
+                    <p>找到的楷体: ${foundKaiti.length > 0 ? `<code>${foundKaiti[0]}</code>` : '无'}</p>
+                </div>
+            `;
+        }
+
+        // 视觉测试
+        if (foundXingkai.length > 0) {
+            visualDiv.innerHTML = `
+                <div class="result">
+                    <h3>视觉对比 - 确认是行楷还是楷体</h3>
+                    
+                    <div style="margin: 20px 0;">
+                        <strong>使用 ${foundXingkai[0]}:</strong>
+                        <div class="font-sample" style="font-family: '${foundXingkai[0]}', serif;">
+                            Feed AI Muter - RSS 静音器 - 欢迎使用！继续浏览以学习你的兴趣。行楷的笔画应该连贯流畅。
+                        </div>
+                    </div>
+
+                    ${foundKaiti.length > 0 ? `
+                    <div style="margin: 20px 0;">
+                        <strong>对比 ${foundKaiti[0]} (楷体):</strong>
+                        <div class="font-sample" style="font-family: '${foundKaiti[0]}', serif;">
+                            Feed AI Muter - RSS 静音器 - 欢迎使用！继续浏览以学习你的兴趣。楷体的笔画工整独立。
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    <div style="margin: 20px 0;">
+                        <strong>系统默认 (对比参考):</strong>
+                        <div class="font-sample" style="font-family: -apple-system, sans-serif;">
+                            Feed AI Muter - RSS 静音器 - 欢迎使用！继续浏览以学习你的兴趣。苹方字体方正现代。
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 20px; padding: 15px; background: #e3f2fd; border-radius: 4px;">
+                        <strong>🔍 如何判断:</strong>
+                        <ul style="margin: 10px 0;">
+                            <li><strong>行楷:</strong> 某些笔画会连在一起，像快速书写，字形略斜</li>
+                            <li><strong>楷体:</strong> 每个笔画独立分离，工整端正，像印刷体</li>
+                            <li><strong>苹方:</strong> 现代几何感，笔画粗细均匀</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+        }
+
+        console.log('=== 检测完成 ===');
+        console.log('找到的行楷字体:', foundXingkai);
+        console.log('找到的楷体字体:', foundKaiti);
+    </script>
+</body>
+</html>
