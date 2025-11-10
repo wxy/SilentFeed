@@ -53,8 +53,8 @@ describe("AIConfig", () => {
     it("应该渲染 AI 配置界面", () => {
       render(<AIConfig />)
       
-      expect(screen.getByText(/AI 配置/)).toBeInTheDocument()
-      expect(screen.getByLabelText("AI 提供商")).toBeInTheDocument()
+      expect(screen.getByText(/AI Configuration/)).toBeInTheDocument()
+      expect(screen.getByLabelText("AI Provider")).toBeInTheDocument()
     })
     
     it("应该显示所有提供商选项", async () => {
@@ -62,13 +62,13 @@ describe("AIConfig", () => {
       
       // 等待组件加载完成
       await waitFor(() => {
-        expect(screen.getByLabelText("AI 提供商")).toBeInTheDocument()
+        expect(screen.getByLabelText("AI Provider")).toBeInTheDocument()
       })
       
-      const select = screen.getByLabelText("AI 提供商")
+      const select = screen.getByLabelText("AI Provider")
       
       // 检查选项（Phase 4: 包含"无"选项和三个提供商）
-      expect(screen.getByRole("option", { name: /无（禁用 AI）/ })).toBeInTheDocument()
+      expect(screen.getByRole("option", { name: /None \(AI Disabled\)/ })).toBeInTheDocument()
       expect(screen.getByRole("option", { name: /OpenAI/ })).toBeInTheDocument()
       expect(screen.getByRole("option", { name: /Anthropic/ })).toBeInTheDocument()
       expect(screen.getByRole("option", { name: /DeepSeek/ })).toBeInTheDocument()
@@ -79,7 +79,7 @@ describe("AIConfig", () => {
     it("选择 Provider 后应该显示 API Key 输入框", async () => {
       render(<AIConfig />)
       
-      const select = screen.getByLabelText("AI 提供商")
+      const select = screen.getByLabelText("AI Provider")
       
       // 初始状态：不显示 API Key 输入
       expect(screen.queryByLabelText("API Key")).not.toBeInTheDocument()
@@ -95,23 +95,23 @@ describe("AIConfig", () => {
     it("选择 Provider 后应该显示提供商说明", () => {
       render(<AIConfig />)
       
-      const select = screen.getByLabelText("AI 提供商")
+      const select = screen.getByLabelText("AI Provider")
       
       // 选择 OpenAI
       fireEvent.change(select, { target: { value: "openai" } })
       
-      expect(screen.getByText(/快速、准确/)).toBeInTheDocument()
+      expect(screen.getByText(/Fast, accurate/)).toBeInTheDocument()
     })
     
     it("选择 Provider 后应该显示预算控制", () => {
       render(<AIConfig />)
       
-      const select = screen.getByLabelText("AI 提供商")
+      const select = screen.getByLabelText("AI Provider")
       
       // 选择 OpenAI
       fireEvent.change(select, { target: { value: "openai" } })
       
-      expect(screen.getByLabelText(/月度预算/)).toBeInTheDocument()
+      expect(screen.getByLabelText(/Monthly budget limit/)).toBeInTheDocument()
     })
   })
   
@@ -120,7 +120,7 @@ describe("AIConfig", () => {
       render(<AIConfig />)
       
       // 选择 OpenAI
-      const select = screen.getByLabelText("AI 提供商")
+      const select = screen.getByLabelText("AI Provider")
       fireEvent.change(select, { target: { value: "openai" } })
       
       // 输入 API Key
@@ -128,7 +128,7 @@ describe("AIConfig", () => {
       fireEvent.change(apiKeyInput, { target: { value: "sk-test-123456" } })
       
       // 点击保存
-      const saveButton = screen.getByText("保存配置")
+      const saveButton = screen.getByText("Save Configuration")
       fireEvent.click(saveButton)
       
       // 等待保存完成
@@ -142,18 +142,18 @@ describe("AIConfig", () => {
       })
       
       // 应该显示成功消息
-      expect(screen.getByText(/配置保存成功/)).toBeInTheDocument()
+      expect(screen.getByText(/successfully saved!/)).toBeInTheDocument()
     })
     
     it("API Key 为空时保存按钮应该被禁用", async () => {
       render(<AIConfig />)
       
       // 选择 OpenAI
-      const select = screen.getByLabelText("AI 提供商")
+      const select = screen.getByLabelText("AI Provider")
       fireEvent.change(select, { target: { value: "openai" } })
       
       // 不输入 API Key
-      const saveButton = screen.getByText("保存配置")
+      const saveButton = screen.getByText("Save Configuration")
       
       // 保存按钮应该被禁用
       expect(saveButton).toBeDisabled()
@@ -172,7 +172,7 @@ describe("AIConfig", () => {
       vi.mocked(aiManager.initialize).mockResolvedValue(undefined)
       vi.mocked(aiManager.testConnection).mockResolvedValue({
         success: true,
-        message: "连接成功！OpenAI API 正常工作",
+        message: "Connection successful! OpenAI API works normally",
         latency: 123
       })
       vi.mocked(aiConfigModule.validateApiKey).mockReturnValue(true)
@@ -180,7 +180,7 @@ describe("AIConfig", () => {
       render(<AIConfig />)
       
       // 选择 OpenAI
-      const select = screen.getByLabelText("AI 提供商")
+      const select = screen.getByLabelText("AI Provider")
       fireEvent.change(select, { target: { value: "openai" } })
       
       // 输入正确格式的 API Key
@@ -188,13 +188,13 @@ describe("AIConfig", () => {
       fireEvent.change(apiKeyInput, { target: { value: "sk-test-123456" } })
       
       // 点击测试连接
-      const testButton = screen.getByText("测试连接")
+      const testButton = screen.getByText("Test connection")
       fireEvent.click(testButton)
       
       // 应该显示连接成功
       await waitFor(() => {
-        expect(screen.getByText(/连接成功/)).toBeInTheDocument()
-        expect(screen.getByText(/延迟: 123ms/)).toBeInTheDocument()
+        expect(screen.getByText(/successful/)).toBeInTheDocument()
+        expect(screen.getByText(/Delay: 123ms/)).toBeInTheDocument()
       })
     })
     
@@ -204,7 +204,7 @@ describe("AIConfig", () => {
       vi.mocked(aiManager.initialize).mockResolvedValue(undefined)
       vi.mocked(aiManager.testConnection).mockResolvedValue({
         success: true,
-        message: "连接成功！Anthropic API 正常工作",
+        message: "Connection successful! Anthropic API works normally",
         latency: 234
       })
       vi.mocked(aiConfigModule.validateApiKey).mockReturnValue(true)
@@ -212,7 +212,7 @@ describe("AIConfig", () => {
       render(<AIConfig />)
       
       // 选择 Anthropic
-      const select = screen.getByLabelText("AI 提供商")
+      const select = screen.getByLabelText("AI Provider")
       fireEvent.change(select, { target: { value: "anthropic" } })
       
       // 输入正确格式的 API Key
@@ -220,12 +220,12 @@ describe("AIConfig", () => {
       fireEvent.change(apiKeyInput, { target: { value: "sk-ant-test-123456" } })
       
       // 点击测试连接
-      const testButton = screen.getByText("测试连接")
+      const testButton = screen.getByText("Test connection")
       fireEvent.click(testButton)
       
       // 应该显示连接成功
       await waitFor(() => {
-        expect(screen.getByText(/连接成功/)).toBeInTheDocument()
+        expect(screen.getByText(/successful/)).toBeInTheDocument()
       })
     })
     
@@ -233,7 +233,7 @@ describe("AIConfig", () => {
       render(<AIConfig />)
       
       // 选择 OpenAI
-      const select = screen.getByLabelText("AI 提供商")
+      const select = screen.getByLabelText("AI Provider")
       fireEvent.change(select, { target: { value: "openai" } })
       
       // 输入错误格式的 API Key（不以 sk- 开头）
@@ -241,12 +241,12 @@ describe("AIConfig", () => {
       fireEvent.change(apiKeyInput, { target: { value: "wrong-key" } })
       
       // 点击测试连接
-      const testButton = screen.getByText("测试连接")
+      const testButton = screen.getByText("Test connection")
       fireEvent.click(testButton)
       
       // 应该显示格式错误
       await waitFor(() => {
-        expect(screen.getByText(/API Key 格式不正确/)).toBeInTheDocument()
+        expect(screen.getByText(/format is incorrect/)).toBeInTheDocument()
       })
     })
   })
@@ -264,7 +264,7 @@ describe("AIConfig", () => {
       
       // 等待配置加载
       await waitFor(() => {
-        const select = screen.getByLabelText("AI 提供商") as HTMLSelectElement
+        const select = screen.getByLabelText("AI Provider") as HTMLSelectElement
         expect(select.value).toBe("openai")
       })
       
@@ -272,7 +272,7 @@ describe("AIConfig", () => {
       expect(screen.getByLabelText("API Key")).toBeInTheDocument()
       
       // 检查预算
-      const budgetInput = screen.getByLabelText(/月度预算/) as HTMLInputElement
+      const budgetInput = screen.getByLabelText(/Monthly budget limit/) as HTMLInputElement
       expect(budgetInput.value).toBe("10")
     })
   })
@@ -290,12 +290,12 @@ describe("AIConfig", () => {
       
       // 等待配置加载
       await waitFor(() => {
-        const select = screen.getByLabelText("AI 提供商") as HTMLSelectElement
+        const select = screen.getByLabelText("AI Provider") as HTMLSelectElement
         expect(select.value).toBe("openai")
       })
       
       // 点击禁用 AI
-      const disableButton = screen.getByText("禁用 AI")
+      const disableButton = screen.getByText("Disable AI")
       fireEvent.click(disableButton)
       
       // 应该清除配置
@@ -309,7 +309,7 @@ describe("AIConfig", () => {
       })
       
       // 应该显示成功消息
-      expect(screen.getByText(/已禁用 AI/)).toBeInTheDocument()
+      expect(screen.getByText(/AI is disabled/)).toBeInTheDocument()
     })
   })
   
@@ -317,22 +317,22 @@ describe("AIConfig", () => {
     it("应该显示关于 AI 分析的提示信息", () => {
       render(<AIConfig />)
       
-      expect(screen.getByText(/关于 AI 分析/)).toBeInTheDocument()
-      expect(screen.getByText(/配置后/)).toBeInTheDocument()
-      expect(screen.getByText(/不配置/)).toBeInTheDocument()
-      expect(screen.getByText(/降级策略/)).toBeInTheDocument()
+      expect(screen.getByText(/About AI Analysis/)).toBeInTheDocument()
+      expect(screen.getByText(/After configuration/)).toBeInTheDocument()
+      expect(screen.getByText(/Not configured/)).toBeInTheDocument()
+      expect(screen.getByText(/Downgrade strategy/)).toBeInTheDocument()
     })
     
     it("选择 Provider 后应该显示成本参考", () => {
       render(<AIConfig />)
       
       // 选择 OpenAI
-      const select = screen.getByLabelText("AI 提供商")
+      const select = screen.getByLabelText("AI Provider")
       fireEvent.change(select, { target: { value: "openai" } })
       
-      expect(screen.getByText(/成本参考/)).toBeInTheDocument()
+      expect(screen.getByText(/Cost Reference/)).toBeInTheDocument()
       // 新的文案格式
       expect(screen.getByText(/OpenAI GPT-4o-mini/)).toBeInTheDocument()
     })
   })
-})
+})  
