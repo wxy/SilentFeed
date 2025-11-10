@@ -12,6 +12,7 @@ export function AIConfig() {
   const { _ } = useI18n()
   const [provider, setProvider] = useState<AIProviderType | null>(null)
   const [apiKey, setApiKey] = useState("")
+  const [monthlyBudget, setMonthlyBudget] = useState<number>(5) // 默认 $5/月
   const [isTesting, setIsTesting] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
@@ -30,6 +31,7 @@ export function AIConfig() {
       if (config.provider) {
         setProvider(config.provider)
         setApiKey(config.apiKey)
+        setMonthlyBudget(config.monthlyBudget || 5)
       }
     })
   }, [])
@@ -65,7 +67,7 @@ export function AIConfig() {
         provider,
         apiKey: apiKey.trim(),
         enabled: true,
-        monthlyBudget: 5
+        monthlyBudget
       })
 
       // 3. 测试连接
@@ -113,7 +115,7 @@ export function AIConfig() {
         provider,
         apiKey,
         enabled: true,
-        monthlyBudget: 5
+        monthlyBudget
       })
       setMessage({ type: "success", text: _("options.aiConfig.messages.saveSuccess") })
     } catch (error) {
@@ -163,10 +165,11 @@ export function AIConfig() {
 
       {/* 提供商选择 */}
       <div>
-        <label className="block text-sm font-medium mb-2">
+        <label htmlFor="ai-provider" className="block text-sm font-medium mb-2">
           {_("options.aiConfig.labels.provider")}
         </label>
         <select
+          id="ai-provider"
           value={provider || ""}
           onChange={(e) => {
             const value = e.target.value
@@ -191,10 +194,11 @@ export function AIConfig() {
       {provider && (
         <>
           <div>
-            <label className="block text-sm font-medium mb-2">
+            <label htmlFor="api-key" className="block text-sm font-medium mb-2">
               {_("options.aiConfig.labels.apiKey")}
             </label>
             <input
+              id="api-key"
               type="password"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
@@ -206,18 +210,51 @@ export function AIConfig() {
             </p>
           </div>
 
+          {/* 预算控制 */}
+          <div>
+            <label htmlFor="monthly-budget" className="block text-sm font-medium mb-2">
+              {_("options.aiConfig.budgetLabel")}
+            </label>
+            <div className="flex items-center gap-2">
+              <span className="text-gray-600 dark:text-gray-400">
+                {provider === "deepseek" ? "¥" : "$"}
+              </span>
+              <input
+                id="monthly-budget"
+                type="number"
+                min="1"
+                max={provider === "deepseek" ? "500" : "100"}
+                step="1"
+                value={monthlyBudget}
+                onChange={(e) => setMonthlyBudget(Math.max(1, Number(e.target.value)))}
+                className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                {_("options.aiConfig.budgetUnit")}
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-gray-500">
+              {_("options.aiConfig.budgetHint")}
+            </p>
+            <p className="mt-1 text-xs text-orange-600 dark:text-orange-400">
+              {_("options.aiConfig.budgetWarning", {
+                range: provider === "deepseek" ? "¥10-50" : "$5-10"
+              })}
+            </p>
+          </div>
+
           {/* 操作按钮 */}
           <div className="flex gap-4">
             <button
               onClick={handleTest}
-              disabled={isTesting || isSaving}
+              disabled={!apiKey || isTesting || isSaving}
               className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
               {isTesting ? _("options.aiConfig.buttons.testing") : _("options.aiConfig.buttons.test")}
             </button>
             <button
               onClick={handleSave}
-              disabled={isTesting || isSaving}
+              disabled={!apiKey || isTesting || isSaving}
               className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
               {isSaving ? _("options.aiConfig.buttons.saving") : _("options.aiConfig.buttons.save")}

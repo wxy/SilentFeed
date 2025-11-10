@@ -330,6 +330,7 @@
       "messages": {
         "saveSuccess": "Configuration saved successfully!",
         "disableSuccess": "AI is disabled, keyword analysis will be used.",
+        "testSuccess": "Connection successful! (Delay: {{latency}}ms)",
         "latency": "(Delay: {{ms}}ms)"
       },
       "errors": {
