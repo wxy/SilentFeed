@@ -9,9 +9,34 @@ import type { UserProfile } from "@/core/profile/types"
 import { Topic } from "@/core/profile/topics"
 
 // Mock i18n
+const translations: Record<string, string> = {
+  "options.collectionStats.userProfile": "用户画像",
+  "options.userProfile.noData.message": "还没有足够的浏览数据来构建用户画像",
+  "options.userProfile.noData.hint": "继续浏览感兴趣的内容，系统将自动分析您的兴趣偏好",
+  "options.userProfile.noData.tip": "💡 不需要等到1000页，有几条有效记录就可以生成画像",
+  "options.userProfile.interests.title": "你的兴趣画像",
+  "options.userProfile.interests.noData": "暂无主题分类数据",
+  "options.userProfile.keywords.title": "兴趣关键词云",
+  "options.userProfile.keywords.noData": "暂无关键词数据",
+  "options.userProfile.evolution.title": "兴趣演化历程",
+  "options.userProfile.evolution.noData": "暂无兴趣变化记录",
+  "options.userProfile.updateTime.label": "画像更新时间",
+  "options.userProfile.analysisQuality.label": "分析质量",
+  "options.userProfile.analysisQuality.keywordAnalysis": "关键词分析",
+  "options.userProfile.analysisQuality.keywordHint": "📝 使用传统关键词提取",
+}
+
 vi.mock("@/i18n/helpers", () => ({
   useI18n: () => ({
-    _: (key: string) => key,
+    _: (key: string, params?: Record<string, any>) => {
+      let text = translations[key] || key
+      if (params) {
+        Object.entries(params).forEach(([k, v]) => {
+          text = text.replace(new RegExp(`{{${k}}}`, 'g'), String(v))
+        })
+      }
+      return text
+    },
   }),
 }))
 
@@ -36,6 +61,15 @@ vi.mock("@/core/profile/InterestSnapshotManager", () => ({
       totalSnapshots: 0
     }),
   },
+}))
+
+// Mock AI Config
+vi.mock("@/storage/ai-config", () => ({
+  getAIConfig: vi.fn().mockResolvedValue({
+    enabled: false,
+    provider: null
+  }),
+  getProviderDisplayName: vi.fn((provider: string | null) => provider || "")
 }))
 
 describe("UserProfileDisplay 组件", () => {

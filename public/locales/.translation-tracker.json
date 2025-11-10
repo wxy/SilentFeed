@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-11-07T13:18:44.846Z",
+  "lastUpdate": "2025-11-09T14:49:02.329Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -1306,29 +1306,29 @@
     },
     "options.collectionStats.textAnalysisHint": {
       "zh-CN": {
-        "value": "将展示关键词提取、主题分类等统计",
-        "hash": "6ffa1e8e",
-        "lastModified": "2025-11-07T13:18:12.087Z",
+        "value": "继续浏览网页，系统将自动提取和分析内容",
+        "hash": "1f0032d2",
+        "lastModified": "2025-11-09T13:54:26.472Z",
         "status": "verified"
       },
       "en": {
-        "value": "Will display statistics such as keyword extraction and topic classification.",
-        "hash": "02b401d8",
-        "lastModified": "2025-11-07T13:18:12.087Z",
+        "value": "Continue browsing the webpage, and the system will automatically extract and analyze the content.",
+        "hash": "91f8afc1",
+        "lastModified": "2025-11-09T13:54:26.472Z",
         "status": "ai-translated"
       }
     },
     "options.collectionStats.userProfile": {
       "zh-CN": {
-        "value": "用户画像统计",
-        "hash": "7fdf0ab1",
-        "lastModified": "2025-11-07T13:18:13.607Z",
+        "value": "用户画像",
+        "hash": "8857b829",
+        "lastModified": "2025-11-09T13:55:49.279Z",
         "status": "verified"
       },
       "en": {
-        "value": "User Profile Statistics",
-        "hash": "3c3acee3",
-        "lastModified": "2025-11-07T13:18:13.607Z",
+        "value": "User Profile",
+        "hash": "90b1f665",
+        "lastModified": "2025-11-09T13:55:49.279Z",
         "status": "ai-translated"
       }
     },
@@ -1432,15 +1432,15 @@
     },
     "options.collectionStats.storageHint": {
       "zh-CN": {
-        "value": "推荐记录数据将在推荐功能启用后显示",
-        "hash": "54f22d75",
-        "lastModified": "2025-11-07T13:18:27.242Z",
+        "value": "预估存储空间使用",
+        "hash": "aac16f77",
+        "lastModified": "2025-11-09T13:53:29.607Z",
         "status": "verified"
       },
       "en": {
-        "value": "Recommended record data will be displayed after the recommendation feature is enabled.",
-        "hash": "f55ca8f5",
-        "lastModified": "2025-11-07T13:18:27.242Z",
+        "value": "Estimated storage space usage",
+        "hash": "d950464c",
+        "lastModified": "2025-11-09T13:53:29.607Z",
         "status": "ai-translated"
       }
     },
@@ -1530,15 +1530,15 @@
     },
     "options.collectionStats.clearAll": {
       "zh-CN": {
-        "value": "清空所有数据",
-        "hash": "baca2508",
-        "lastModified": "2025-11-07T13:18:40.999Z",
+        "value": "清除所有数据",
+        "hash": "a9366928",
+        "lastModified": "2025-11-09T13:54:45.143Z",
         "status": "verified"
       },
       "en": {
         "value": "Clear all data",
         "hash": "3c2e1c64",
-        "lastModified": "2025-11-07T13:18:40.999Z",
+        "lastModified": "2025-11-09T13:54:45.143Z",
         "status": "ai-translated"
       }
     },
@@ -1567,6 +1567,2876 @@
         "value": "The data management feature will be available in future versions.",
         "hash": "c0ac25d3",
         "lastModified": "2025-11-07T13:18:44.341Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.totalPagesLabel": {
+      "zh-CN": {
+        "value": "累计采集页面",
+        "hash": "e04dfdfd",
+        "lastModified": "2025-11-09T13:53:22.341Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Total pages collected",
+        "hash": "bc1c0c8e",
+        "lastModified": "2025-11-09T13:53:22.341Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.dwellTimeHint": {
+      "zh-CN": {
+        "value": "停留超过30秒的页面",
+        "hash": "7b328ec1",
+        "lastModified": "2025-11-09T13:53:24.296Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Pages with a stay of more than 30 seconds",
+        "hash": "014163fb",
+        "lastModified": "2025-11-09T13:53:24.296Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.storageLabel": {
+      "zh-CN": {
+        "value": "存储占用",
+        "hash": "b9d0f24c",
+        "lastModified": "2025-11-09T13:53:26.141Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Storage Usage",
+        "hash": "a049ac2b",
+        "lastModified": "2025-11-09T13:53:26.141Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.storageSizeMB": {
+      "zh-CN": {
+        "value": "{{size}} MB",
+        "hash": "765eaa26",
+        "lastModified": "2025-11-09T13:53:27.766Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{size}} MB",
+        "hash": "765eaa26",
+        "lastModified": "2025-11-09T13:53:27.766Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.firstCollectionLabel": {
+      "zh-CN": {
+        "value": "开始采集时间",
+        "hash": "d0fc07fd",
+        "lastModified": "2025-11-09T13:53:31.518Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Start collection time",
+        "hash": "fb4809de",
+        "lastModified": "2025-11-09T13:53:31.518Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.avgDailyPages": {
+      "zh-CN": {
+        "value": "平均每日 {{count}} 页",
+        "hash": "c5f60400",
+        "lastModified": "2025-11-09T13:53:33.604Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Average {{count}} pages per day",
+        "hash": "e1cd71f1",
+        "lastModified": "2025-11-09T13:53:33.604Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.unknownDate": {
+      "zh-CN": {
+        "value": "未知",
+        "hash": "1622dc9b",
+        "lastModified": "2025-11-09T13:53:35.549Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Unknown",
+        "hash": "88183b94",
+        "lastModified": "2025-11-09T13:53:35.549Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.durationSeconds": {
+      "zh-CN": {
+        "value": "{{seconds}}秒",
+        "hash": "fee156cd",
+        "lastModified": "2025-11-09T13:53:37.877Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{seconds}} seconds",
+        "hash": "2944bb7a",
+        "lastModified": "2025-11-09T13:53:37.877Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.durationMinutes": {
+      "zh-CN": {
+        "value": "{{minutes}}分{{seconds}}秒",
+        "hash": "dacc9771",
+        "lastModified": "2025-11-09T13:53:40.052Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{minutes}} minutes {{seconds}} seconds",
+        "hash": "747bceda",
+        "lastModified": "2025-11-09T13:53:40.053Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiQualityTitle": {
+      "zh-CN": {
+        "value": "AI 分析质量",
+        "hash": "7526a2bf",
+        "lastModified": "2025-11-09T13:53:41.793Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "AI Analysis Quality",
+        "hash": "b00b571f",
+        "lastModified": "2025-11-09T13:53:41.793Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.providerLabel": {
+      "zh-CN": {
+        "value": "服务提供商",
+        "hash": "c8973d6b",
+        "lastModified": "2025-11-09T13:53:43.736Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Service Provider",
+        "hash": "508a05a7",
+        "lastModified": "2025-11-09T13:53:43.736Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.providerKeyword": {
+      "zh-CN": {
+        "value": "关键词",
+        "hash": "9699a50e",
+        "lastModified": "2025-11-09T13:53:46.415Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Keywords",
+        "hash": "86734357",
+        "lastModified": "2025-11-09T13:53:46.415Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.providerStatusAI": {
+      "zh-CN": {
+        "value": "AI 语义理解",
+        "hash": "b3b82ff0",
+        "lastModified": "2025-11-09T13:53:48.653Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "AI Semantic Understanding",
+        "hash": "b485f727",
+        "lastModified": "2025-11-09T13:53:48.653Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.providerStatusKeyword": {
+      "zh-CN": {
+        "value": "传统关键词",
+        "hash": "443486f9",
+        "lastModified": "2025-11-09T13:53:50.394Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Traditional keywords",
+        "hash": "e630f0db",
+        "lastModified": "2025-11-09T13:53:50.394Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiPercentageLabel": {
+      "zh-CN": {
+        "value": "AI 分析占比",
+        "hash": "2e84bed3",
+        "lastModified": "2025-11-09T13:53:52.852Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "AI Analysis Proportion",
+        "hash": "fa996fbd",
+        "lastModified": "2025-11-09T13:53:52.852Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiPercentageValue": {
+      "zh-CN": {
+        "value": "{{percentage}}%",
+        "hash": "418f8055",
+        "lastModified": "2025-11-09T13:53:55.135Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{percentage}}%",
+        "hash": "418f8055",
+        "lastModified": "2025-11-09T13:53:55.135Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiPagesCount": {
+      "zh-CN": {
+        "value": "{{ai}}/{{total}} 页",
+        "hash": "bcb18fb2",
+        "lastModified": "2025-11-09T13:53:56.845Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{ai}}/{{total}} pages",
+        "hash": "9ae09ed3",
+        "lastModified": "2025-11-09T13:53:56.845Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.totalCostLabel": {
+      "zh-CN": {
+        "value": "累计费用",
+        "hash": "20c9c3f3",
+        "lastModified": "2025-11-09T13:53:58.587Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Cumulative cost",
+        "hash": "6a3b534e",
+        "lastModified": "2025-11-09T13:53:58.587Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.totalCostUSD": {
+      "zh-CN": {
+        "value": "${{cost}}",
+        "hash": "65f31adb",
+        "lastModified": "2025-11-09T13:54:00.432Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "${{cost}}",
+        "hash": "65f31adb",
+        "lastModified": "2025-11-09T13:54:00.432Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.totalCostCNY": {
+      "zh-CN": {
+        "value": "¥{{cost}}",
+        "hash": "c0b5508a",
+        "lastModified": "2025-11-09T13:54:02.271Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "¥{{cost}}",
+        "hash": "c0b5508a",
+        "lastModified": "2025-11-09T13:54:02.271Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.avgCostPerPage": {
+      "zh-CN": {
+        "value": "均 {{currency}}{{cost}}/页",
+        "hash": "b02736dd",
+        "lastModified": "2025-11-09T13:54:05.240Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Average {{currency}}{{cost}}/page",
+        "hash": "8419e080",
+        "lastModified": "2025-11-09T13:54:05.240Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.noCost": {
+      "zh-CN": {
+        "value": "暂无消费",
+        "hash": "0a7b8c28",
+        "lastModified": "2025-11-09T13:54:06.891Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "No consumption",
+        "hash": "dddc0c83",
+        "lastModified": "2025-11-09T13:54:06.891Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.tokenUsageLabel": {
+      "zh-CN": {
+        "value": "Token 用量",
+        "hash": "8952bc8d",
+        "lastModified": "2025-11-09T13:54:08.436Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Token Usage",
+        "hash": "5a7d7793",
+        "lastModified": "2025-11-09T13:54:08.436Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.tokenUsageK": {
+      "zh-CN": {
+        "value": "{{tokens}}K",
+        "hash": "19609c42",
+        "lastModified": "2025-11-09T13:54:10.025Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{tokens}}K",
+        "hash": "19609c42",
+        "lastModified": "2025-11-09T13:54:10.025Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.avgTokensPerPage": {
+      "zh-CN": {
+        "value": "均 {{tokens}} tokens/页",
+        "hash": "32c8232b",
+        "lastModified": "2025-11-09T13:54:11.823Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{tokens}} tokens/page",
+        "hash": "7a812d27",
+        "lastModified": "2025-11-09T13:54:11.823Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.providerDistributionTitle": {
+      "zh-CN": {
+        "value": "提供商分布",
+        "hash": "98bb61fa",
+        "lastModified": "2025-11-09T13:54:14.458Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Provider Distribution",
+        "hash": "759a307f",
+        "lastModified": "2025-11-09T13:54:14.458Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.providerDistributionCount": {
+      "zh-CN": {
+        "value": "{{count}} 页 ({{percentage}}%)",
+        "hash": "251b56d8",
+        "lastModified": "2025-11-09T13:54:16.183Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{count}} pages ({{percentage}}%)",
+        "hash": "e914c2d8",
+        "lastModified": "2025-11-09T13:54:16.183Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiConfigPromptTitle": {
+      "zh-CN": {
+        "value": "想要更准确的内容分析？",
+        "hash": "08052c01",
+        "lastModified": "2025-11-09T13:54:18.247Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Want more accurate content analysis?",
+        "hash": "0be4b0a2",
+        "lastModified": "2025-11-09T13:54:18.247Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiConfigPromptDesc": {
+      "zh-CN": {
+        "value": "配置 AI 提供商（OpenAI、Anthropic、DeepSeek），获得更精准的语义理解和主题分类。",
+        "hash": "cc1e6fa1",
+        "lastModified": "2025-11-09T13:54:20.906Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Configure AI providers (OpenAI, Anthropic, DeepSeek) for more accurate semantic understanding and topic classification.",
+        "hash": "18fc1b19",
+        "lastModified": "2025-11-09T13:54:20.906Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiConfigPromptLink": {
+      "zh-CN": {
+        "value": "前往配置",
+        "hash": "c70a9b04",
+        "lastModified": "2025-11-09T13:54:22.762Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Go to Configuration",
+        "hash": "721463c8",
+        "lastModified": "2025-11-09T13:54:22.762Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.textAnalysisNoData": {
+      "zh-CN": {
+        "value": "暂无文本分析数据",
+        "hash": "7e4333bf",
+        "lastModified": "2025-11-09T13:54:24.388Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "No text analysis data available",
+        "hash": "2a6276f0",
+        "lastModified": "2025-11-09T13:54:24.388Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.totalKeywordsLabel": {
+      "zh-CN": {
+        "value": "总关键词数",
+        "hash": "c6267085",
+        "lastModified": "2025-11-09T13:54:28.893Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Total number of keywords",
+        "hash": "0bf9bc07",
+        "lastModified": "2025-11-09T13:54:28.893Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.totalKeywordsHint": {
+      "zh-CN": {
+        "value": "含重复词，原始提取",
+        "hash": "03059826",
+        "lastModified": "2025-11-09T13:54:31.273Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Contains duplicate words, original extraction",
+        "hash": "0d0658f9",
+        "lastModified": "2025-11-09T13:54:31.273Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.avgKeywordsLabel": {
+      "zh-CN": {
+        "value": "平均每页关键词",
+        "hash": "83ac55b4",
+        "lastModified": "2025-11-09T13:54:33.925Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Average keywords per page",
+        "hash": "96327f6f",
+        "lastModified": "2025-11-09T13:54:33.925Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.languageDistributionTitle": {
+      "zh-CN": {
+        "value": "语言分布",
+        "hash": "74c77a21",
+        "lastModified": "2025-11-09T13:54:35.962Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Language Distribution",
+        "hash": "99d7f84a",
+        "lastModified": "2025-11-09T13:54:35.962Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.languagePages": {
+      "zh-CN": {
+        "value": "{{count}} 页面",
+        "hash": "9790b35b",
+        "lastModified": "2025-11-09T13:54:37.699Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{count}} pages",
+        "hash": "a4b3ab30",
+        "lastModified": "2025-11-09T13:54:37.699Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.rebuildProfile": {
+      "zh-CN": {
+        "value": "重建用户画像",
+        "hash": "537b93e7",
+        "lastModified": "2025-11-09T13:54:40.262Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Rebuilding User Profiles",
+        "hash": "7f60d7da",
+        "lastModified": "2025-11-09T13:54:40.262Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.rebuildingProfile": {
+      "zh-CN": {
+        "value": "重建画像中...",
+        "hash": "401fdb9c",
+        "lastModified": "2025-11-09T13:54:42.002Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Rebuilding profile...",
+        "hash": "3683764e",
+        "lastModified": "2025-11-09T13:54:42.002Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.clearDataRestart": {
+      "zh-CN": {
+        "value": "清除数据重新开始",
+        "hash": "ad29b21b",
+        "lastModified": "2025-11-09T13:54:43.674Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Clear data and start over",
+        "hash": "c9eb9bfc",
+        "lastModified": "2025-11-09T13:54:43.674Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.dataManagementNote": {
+      "zh-CN": {
+        "value": "数据管理说明：",
+        "hash": "fef7e4f8",
+        "lastModified": "2025-11-09T13:54:46.823Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Data Management Instructions:",
+        "hash": "e262bf68",
+        "lastModified": "2025-11-09T13:54:46.823Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.dataManagementRebuild": {
+      "zh-CN": {
+        "value": "重建画像：基于现有浏览数据重新分析兴趣偏好",
+        "hash": "27a1813a",
+        "lastModified": "2025-11-09T13:54:49.479Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Rebuild Profile: Reanalyze interest preferences based on existing browsing data",
+        "hash": "a00e8071",
+        "lastModified": "2025-11-09T13:54:49.479Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.dataManagementClearData": {
+      "zh-CN": {
+        "value": "清除数据重新开始：删除浏览历史和画像，从零开始",
+        "hash": "b00fcbb2",
+        "lastModified": "2025-11-09T13:54:51.842Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Clear Data and Start Over: Delete browsing history and profile, begin from scratch",
+        "hash": "288f6074",
+        "lastModified": "2025-11-09T13:54:51.842Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.dataManagementClearAll": {
+      "zh-CN": {
+        "value": "清除所有数据：包括推荐记录在内的完全清空",
+        "hash": "09d9348c",
+        "lastModified": "2025-11-09T13:54:54.189Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Clear All Data: Complete erasure including recommendation records",
+        "hash": "b31e0980",
+        "lastModified": "2025-11-09T13:54:54.190Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.autoUpdateStrategy": {
+      "zh-CN": {
+        "value": "自动更新策略：",
+        "hash": "bbf0baaa",
+        "lastModified": "2025-11-09T13:54:56.238Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Auto-update strategy:",
+        "hash": "e37c5b43",
+        "lastModified": "2025-11-09T13:54:56.238Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.autoUpdateFirst": {
+      "zh-CN": {
+        "value": "首次构建：浏览10页后自动创建画像",
+        "hash": "b081e529",
+        "lastModified": "2025-11-09T13:55:00.053Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "First Build: Automatically creates a profile after browsing 10 pages.",
+        "hash": "1ce90c76",
+        "lastModified": "2025-11-09T13:55:00.053Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.autoUpdateIncremental": {
+      "zh-CN": {
+        "value": "增量更新：每5页新内容后智能更新",
+        "hash": "12d532ce",
+        "lastModified": "2025-11-09T13:55:02.182Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Incremental Update: Smartly updates after every 5 pages of new content",
+        "hash": "2dd3f418",
+        "lastModified": "2025-11-09T13:55:02.182Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.autoUpdatePeriodic": {
+      "zh-CN": {
+        "value": "定期刷新：6小时周期性更新",
+        "hash": "ff6355e9",
+        "lastModified": "2025-11-09T13:55:04.123Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Regular Refresh: 6-hour periodic update",
+        "hash": "d9321214",
+        "lastModified": "2025-11-09T13:55:04.123Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.autoUpdateManual": {
+      "zh-CN": {
+        "value": "手动重建：随时可以强制刷新画像",
+        "hash": "94f97c84",
+        "lastModified": "2025-11-09T13:55:06.579Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Manual Rebuild: Force refresh the profile at any time",
+        "hash": "c5ce044b",
+        "lastModified": "2025-11-09T13:55:06.579Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.alerts.analyzeComplete": {
+      "zh-CN": {
+        "value": "历史页面分析完成！\n处理了 {{analyzed}} 条记录\n成功更新 {{updated}} 条记录\n失败 {{failed}} 条\n{{profileUpdated}}",
+        "hash": "85dee362",
+        "lastModified": "2025-11-09T13:55:10.369Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "History page analysis completed!\nProcessed {{analyzed}} records\nSuccessfully updated {{updated}} records\nFailed {{failed}} records\n{{profileUpdated}}",
+        "hash": "d675d245",
+        "lastModified": "2025-11-09T13:55:10.369Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.alerts.profileAutoUpdated": {
+      "zh-CN": {
+        "value": "\n✅ 用户画像已自动更新",
+        "hash": "414d990e",
+        "lastModified": "2025-11-09T13:55:12.117Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "✅ User profile has been automatically updated",
+        "hash": "d5dea349",
+        "lastModified": "2025-11-09T13:55:12.117Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.alerts.analyzeFailed": {
+      "zh-CN": {
+        "value": "分析失败，请稍后重试",
+        "hash": "b09f8381",
+        "lastModified": "2025-11-09T13:55:13.841Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Analysis failed, please try again later.",
+        "hash": "825aeb6a",
+        "lastModified": "2025-11-09T13:55:13.841Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.alerts.diagnosticComplete": {
+      "zh-CN": {
+        "value": "诊断完成！\n无法分析记录: {{count}} 条\n详情已输出到控制台，请按F12查看",
+        "hash": "49d9546a",
+        "lastModified": "2025-11-09T13:55:16.923Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Diagnosis complete!  \nUnable to analyze records: {{count}}  \nDetails have been output to the console. Please press F12 to view.",
+        "hash": "ecca02ab",
+        "lastModified": "2025-11-09T13:55:16.923Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.alerts.diagnosticFailed": {
+      "zh-CN": {
+        "value": "诊断失败，请稍后重试",
+        "hash": "3f5baa5c",
+        "lastModified": "2025-11-09T13:55:18.674Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Diagnosis failed, please try again later.",
+        "hash": "b4451dcc",
+        "lastModified": "2025-11-09T13:55:18.674Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.alerts.cleanInvalidConfirm": {
+      "zh-CN": {
+        "value": "确定要清理无效记录吗？\n这将删除关键词数组为空的记录（如搜索页面、首页等）",
+        "hash": "a5f9ef98",
+        "lastModified": "2025-11-09T13:55:21.633Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Are you sure you want to clean up invalid records?\nThis will delete records with empty keyword arrays (such as search pages, homepages, etc.)",
+        "hash": "ad101aca",
+        "lastModified": "2025-11-09T13:55:21.633Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.alerts.cleanInvalidComplete": {
+      "zh-CN": {
+        "value": "无效记录清理完成！\n总记录: {{total}} 条\n已清理: {{cleaned}} 条\n剩余有效: {{remaining}} 条{{profileUpdated}}",
+        "hash": "4e4fac20",
+        "lastModified": "2025-11-09T13:55:24.030Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Invalid records cleanup completed!\nTotal records: {{total}}\nCleaned: {{cleaned}}\nRemaining valid: {{remaining}}{{profileUpdated}}",
+        "hash": "16b94c94",
+        "lastModified": "2025-11-09T13:55:24.030Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.alerts.cleanInvalidFailed": {
+      "zh-CN": {
+        "value": "清理失败，请稍后重试",
+        "hash": "01547b83",
+        "lastModified": "2025-11-09T13:55:26.008Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Cleanup failed, please try again later.",
+        "hash": "94c8b588",
+        "lastModified": "2025-11-09T13:55:26.008Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.alerts.rebuildSuccess": {
+      "zh-CN": {
+        "value": "用户画像重建成功！",
+        "hash": "4ef73670",
+        "lastModified": "2025-11-09T13:55:27.672Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "User profile reconstruction successful!",
+        "hash": "970d2ab9",
+        "lastModified": "2025-11-09T13:55:27.672Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.alerts.rebuildFailed": {
+      "zh-CN": {
+        "value": "重建失败，请稍后重试",
+        "hash": "8878448e",
+        "lastModified": "2025-11-09T13:55:29.620Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Rebuild failed, please try again later.",
+        "hash": "fd10d255",
+        "lastModified": "2025-11-09T13:55:29.620Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.alerts.clearDataConfirm": {
+      "zh-CN": {
+        "value": "确定要清除浏览历史并重建用户画像吗？\n这将：\n- 删除所有浏览记录和分析结果\n- 删除当前用户画像\n- 重置为初始状态\n\n⚠️ 此操作不可恢复！",
+        "hash": "2c760be8",
+        "lastModified": "2025-11-09T13:55:32.744Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Are you sure you want to clear browsing history and rebuild the user profile?  \nThis will:  \n- Delete all browsing records and analysis results  \n- Remove the current user profile  \n- Reset to the initial state  \n\n⚠️ This action cannot be undone!",
+        "hash": "2b5786fc",
+        "lastModified": "2025-11-09T13:55:32.744Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.alerts.clearDataSuccess": {
+      "zh-CN": {
+        "value": "数据清除成功！\n现在可以重新开始浏览，系统将自动构建新的用户画像。",
+        "hash": "81c30046",
+        "lastModified": "2025-11-09T13:55:35.047Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Data cleared successfully!\nYou can now start browsing again, and the system will automatically build a new user profile.",
+        "hash": "1368af10",
+        "lastModified": "2025-11-09T13:55:35.047Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.alerts.clearDataFailed": {
+      "zh-CN": {
+        "value": "清除失败，请稍后重试",
+        "hash": "77e716f8",
+        "lastModified": "2025-11-09T13:55:36.890Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Clear failed, please try again later.",
+        "hash": "94d0a991",
+        "lastModified": "2025-11-09T13:55:36.890Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.alerts.clearAllConfirm": {
+      "zh-CN": {
+        "value": "确定要清除所有数据吗？\n这将删除：\n- 所有浏览历史\n- 所有分析结果\n- 用户画像\n- 推荐记录\n\n⚠️ 此操作不可恢复！请慎重考虑！",
+        "hash": "9fa3e1b6",
+        "lastModified": "2025-11-09T13:55:40.067Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Are you sure you want to clear all data?  \nThis will delete:  \n- All browsing history  \n- All analysis results  \n- User profiles  \n- Recommendation records  \n\n⚠️ This action cannot be undone! Please consider carefully!",
+        "hash": "e9dd2112",
+        "lastModified": "2025-11-09T13:55:40.067Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.alerts.clearAllFinalConfirm": {
+      "zh-CN": {
+        "value": "最后确认：真的要清除所有数据吗？\n清除后将回到初始状态，需要重新开始采集。",
+        "hash": "5c5299b9",
+        "lastModified": "2025-11-09T13:55:42.564Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Final confirmation: Are you sure you want to clear all data?  \nAfter clearing, it will return to the initial state, and data collection will need to start over.",
+        "hash": "08e866a6",
+        "lastModified": "2025-11-09T13:55:42.564Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.alerts.clearAllSuccess": {
+      "zh-CN": {
+        "value": "所有数据清除成功！\n扩展已恢复到初始状态。",
+        "hash": "b40c4443",
+        "lastModified": "2025-11-09T13:55:45.083Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "All data cleared successfully!  \nThe extension has been restored to its initial state.",
+        "hash": "dedfb0b7",
+        "lastModified": "2025-11-09T13:55:45.083Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.alerts.clearAllFailed": {
+      "zh-CN": {
+        "value": "清除失败，请稍后重试",
+        "hash": "77e716f8",
+        "lastModified": "2025-11-09T13:55:46.821Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Clear failed, please try again later.",
+        "hash": "94d0a991",
+        "lastModified": "2025-11-09T13:55:46.821Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.alerts.rebuildSuccess": {
+      "zh-CN": {
+        "value": "用户画像重建成功！",
+        "hash": "4ef73670",
+        "lastModified": "2025-11-09T13:55:50.815Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "User profile reconstruction successful!",
+        "hash": "970d2ab9",
+        "lastModified": "2025-11-09T13:55:50.815Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.alerts.rebuildFailed": {
+      "zh-CN": {
+        "value": "重建失败，请稍后重试",
+        "hash": "8878448e",
+        "lastModified": "2025-11-09T13:55:53.173Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Rebuild failed, please try again later.",
+        "hash": "fd10d255",
+        "lastModified": "2025-11-09T13:55:53.173Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.noData.message": {
+      "zh-CN": {
+        "value": "还没有足够的浏览数据来构建用户画像",
+        "hash": "3a8f958d",
+        "lastModified": "2025-11-09T13:55:55.117Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "There is not enough browsing data to build a user profile.",
+        "hash": "22fd32d5",
+        "lastModified": "2025-11-09T13:55:55.118Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.noData.hint": {
+      "zh-CN": {
+        "value": "继续浏览感兴趣的内容，系统将自动分析您的兴趣偏好",
+        "hash": "58514535",
+        "lastModified": "2025-11-09T13:55:57.366Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Continue browsing content of interest, and the system will automatically analyze your preferences.",
+        "hash": "69cdb123",
+        "lastModified": "2025-11-09T13:55:57.366Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.noData.tip": {
+      "zh-CN": {
+        "value": "💡 不需要等到1000页，有几条有效记录就可以生成画像",
+        "hash": "f20b8ac7",
+        "lastModified": "2025-11-09T13:55:59.633Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "💡 No need to wait for 1000 pages - just a few valid records are enough to generate a profile.",
+        "hash": "aebc4a2d",
+        "lastModified": "2025-11-09T13:55:59.633Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.lastUpdated.justNow": {
+      "zh-CN": {
+        "value": "刚刚更新",
+        "hash": "be576a2c",
+        "lastModified": "2025-11-09T13:56:01.875Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Just updated",
+        "hash": "8f96f60f",
+        "lastModified": "2025-11-09T13:56:01.875Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.lastUpdated.hoursAgo": {
+      "zh-CN": {
+        "value": "{{hours}} 小时前",
+        "hash": "90b69a60",
+        "lastModified": "2025-11-09T13:56:03.714Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{hours}} hours ago",
+        "hash": "6b709b0b",
+        "lastModified": "2025-11-09T13:56:03.714Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.lastUpdated.daysAgo": {
+      "zh-CN": {
+        "value": "{{days}} 天前",
+        "hash": "f907f2a1",
+        "lastModified": "2025-11-09T13:56:06.488Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{days}} days ago",
+        "hash": "db5f643c",
+        "lastModified": "2025-11-09T13:56:06.488Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.updateTime.label": {
+      "zh-CN": {
+        "value": "画像更新时间",
+        "hash": "511f4284",
+        "lastModified": "2025-11-09T13:56:07.945Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Profile Update Time",
+        "hash": "ef6ea98b",
+        "lastModified": "2025-11-09T13:56:07.945Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.updateTime.basedOn": {
+      "zh-CN": {
+        "value": "基于 {{count}} 页面分析",
+        "hash": "11391b96",
+        "lastModified": "2025-11-09T13:56:10.069Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Based on {{count}} page analysis",
+        "hash": "ac340bbf",
+        "lastModified": "2025-11-09T13:56:10.069Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.analysisQuality.label": {
+      "zh-CN": {
+        "value": "分析质量",
+        "hash": "b0702dd4",
+        "lastModified": "2025-11-09T13:56:11.494Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Analysis Quality",
+        "hash": "56c879a5",
+        "lastModified": "2025-11-09T13:56:11.495Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.analysisQuality.aiAnalysis": {
+      "zh-CN": {
+        "value": "AI 分析 ({{provider}})",
+        "hash": "35fc566c",
+        "lastModified": "2025-11-09T13:56:13.343Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "AI Analysis ({{provider}})",
+        "hash": "d6bfe440",
+        "lastModified": "2025-11-09T13:56:13.343Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.analysisQuality.keywordAnalysis": {
+      "zh-CN": {
+        "value": "关键词分析",
+        "hash": "edc4e547",
+        "lastModified": "2025-11-09T13:56:15.391Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Keyword Analysis",
+        "hash": "c97004a9",
+        "lastModified": "2025-11-09T13:56:15.391Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.analysisQuality.aiHint": {
+      "zh-CN": {
+        "value": "✨ 使用 AI 语义理解",
+        "hash": "57516a42",
+        "lastModified": "2025-11-09T13:56:18.664Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "✨ Using AI Semantic Understanding",
+        "hash": "bb8fa41e",
+        "lastModified": "2025-11-09T13:56:18.664Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.analysisQuality.keywordHint": {
+      "zh-CN": {
+        "value": "📝 使用传统关键词提取",
+        "hash": "cfd1c085",
+        "lastModified": "2025-11-09T13:56:20.509Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "📝 Using traditional keyword extraction",
+        "hash": "b01f3921",
+        "lastModified": "2025-11-09T13:56:20.509Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.aiPrompt.title": {
+      "zh-CN": {
+        "value": "升级到 AI 分析，获得更精准的画像",
+        "hash": "8bae8a49",
+        "lastModified": "2025-11-09T13:56:22.557Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Upgrade to AI analysis for more accurate profiling.",
+        "hash": "ff1c971e",
+        "lastModified": "2025-11-09T13:56:22.557Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.aiPrompt.description": {
+      "zh-CN": {
+        "value": "当前使用关键词分析。配置 AI 后，系统将能够：",
+        "hash": "98ae9156",
+        "lastModified": "2025-11-09T13:56:24.706Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Currently using keyword analysis. After configuring AI, the system will be able to:",
+        "hash": "22794bbb",
+        "lastModified": "2025-11-09T13:56:24.706Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.aiPrompt.benefit1": {
+      "zh-CN": {
+        "value": "• 更准确地理解文章主题和语义",
+        "hash": "3f52bf80",
+        "lastModified": "2025-11-09T13:56:27.224Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "• More accurately understand the article's topic and semantics",
+        "hash": "d641b8b2",
+        "lastModified": "2025-11-09T13:56:27.224Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.aiPrompt.benefit2": {
+      "zh-CN": {
+        "value": "• 识别隐含的兴趣倾向",
+        "hash": "f458e7ed",
+        "lastModified": "2025-11-09T13:56:29.108Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "• Identify implicit interest tendencies",
+        "hash": "0e78a9c9",
+        "lastModified": "2025-11-09T13:56:29.108Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.aiPrompt.benefit3": {
+      "zh-CN": {
+        "value": "• 提供更个性化的推荐",
+        "hash": "c20b6d75",
+        "lastModified": "2025-11-09T13:56:30.748Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "• Provide more personalized recommendations",
+        "hash": "b07f9592",
+        "lastModified": "2025-11-09T13:56:30.748Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.aiPrompt.configureButton": {
+      "zh-CN": {
+        "value": "立即配置 AI",
+        "hash": "fce2dfe2",
+        "lastModified": "2025-11-09T13:56:32.315Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Configure AI Now",
+        "hash": "d14c1151",
+        "lastModified": "2025-11-09T13:56:32.315Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.interests.title": {
+      "zh-CN": {
+        "value": "你的兴趣画像",
+        "hash": "c832cdaa",
+        "lastModified": "2025-11-09T13:56:33.803Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Your Interest Profile",
+        "hash": "2861ef4b",
+        "lastModified": "2025-11-09T13:56:33.803Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.interests.primaryAbsolute": {
+      "zh-CN": {
+        "value": "⭐ 绝对主导：{{topic}}",
+        "hash": "ee5f61e6",
+        "lastModified": "2025-11-09T13:56:35.460Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "⭐ Absolute Dominance: {{topic}}",
+        "hash": "a6efb1a7",
+        "lastModified": "2025-11-09T13:56:35.460Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.interests.primaryRelative": {
+      "zh-CN": {
+        "value": "🎯 相对主导：{{topic}}",
+        "hash": "e5e2183a",
+        "lastModified": "2025-11-09T13:56:37.468Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "🎯 Relative Dominance: {{topic}}",
+        "hash": "aa4095f5",
+        "lastModified": "2025-11-09T13:56:37.468Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.interests.primaryLeading": {
+      "zh-CN": {
+        "value": "📈 显著领先：{{topic}}",
+        "hash": "5d421c09",
+        "lastModified": "2025-11-09T13:56:39.266Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "📈 Significantly Ahead: {{topic}}",
+        "hash": "59fa88bf",
+        "lastModified": "2025-11-09T13:56:39.266Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.interests.noData": {
+      "zh-CN": {
+        "value": "暂无主题分类数据",
+        "hash": "b34e44ad",
+        "lastModified": "2025-11-09T13:56:41.214Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "No theme classification data available",
+        "hash": "18014db1",
+        "lastModified": "2025-11-09T13:56:41.214Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.interests.levelAbsolute": {
+      "zh-CN": {
+        "value": "👑 绝对主导",
+        "hash": "26ee2836",
+        "lastModified": "2025-11-09T13:56:43.137Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "👑 Absolute Dominance",
+        "hash": "f59376cd",
+        "lastModified": "2025-11-09T13:56:43.137Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.interests.levelRelative": {
+      "zh-CN": {
+        "value": "🎯 相对主导",
+        "hash": "60790593",
+        "lastModified": "2025-11-09T13:56:44.598Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "🎯 Relative Dominance",
+        "hash": "94cefb22",
+        "lastModified": "2025-11-09T13:56:44.598Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.interests.levelLeading": {
+      "zh-CN": {
+        "value": "📈 显著领先",
+        "hash": "47704bd7",
+        "lastModified": "2025-11-09T13:56:47.849Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "📈 Significantly Ahead",
+        "hash": "3f62557f",
+        "lastModified": "2025-11-09T13:56:47.849Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.interests.levelAbsoluteHint": {
+      "zh-CN": {
+        "value": "✨ 绝对主导兴趣！占比超过33.3%，这是你的核心兴趣领域",
+        "hash": "51b98dcd",
+        "lastModified": "2025-11-09T13:56:51.288Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "✨ Absolute Dominant Interest! Accounting for over 33.3%, this is your core interest area.",
+        "hash": "d0047b77",
+        "lastModified": "2025-11-09T13:56:51.288Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.interests.levelRelativeHint": {
+      "zh-CN": {
+        "value": "🎯 相对主导兴趣！明显超越其他兴趣，是当前的重点关注领域",
+        "hash": "43161c39",
+        "lastModified": "2025-11-09T13:56:53.451Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "🎯 Relatively Dominant Interest! Significantly surpasses other interests and is the current key focus area.",
+        "hash": "37f95876",
+        "lastModified": "2025-11-09T13:56:53.451Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.interests.levelLeadingHint": {
+      "zh-CN": {
+        "value": "📈 显著领先兴趣！在众多兴趣中脱颖而出，值得深入发展",
+        "hash": "36714870",
+        "lastModified": "2025-11-09T13:56:56.292Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "📈 Significantly ahead in interests! Stand out among many interests, worth delving deeper into.",
+        "hash": "5a1ba95e",
+        "lastModified": "2025-11-09T13:56:56.292Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.evolution.title": {
+      "zh-CN": {
+        "value": "兴趣演化历程",
+        "hash": "bfeb44c3",
+        "lastModified": "2025-11-09T13:56:58.000Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Evolution of Interests",
+        "hash": "102ad387",
+        "lastModified": "2025-11-09T13:56:58.000Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.evolution.totalSnapshots": {
+      "zh-CN": {
+        "value": "共 {{count}} 个记录点",
+        "hash": "7b88452d",
+        "lastModified": "2025-11-09T13:56:59.932Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Total {{count}} record points",
+        "hash": "0b921d35",
+        "lastModified": "2025-11-09T13:56:59.932Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.evolution.rebuildLabel": {
+      "zh-CN": {
+        "value": "🔄 重建",
+        "hash": "740f0ea2",
+        "lastModified": "2025-11-09T13:57:01.446Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "🔄 Rebuild",
+        "hash": "a6d21c0b",
+        "lastModified": "2025-11-09T13:57:01.446Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.evolution.scoreLabel": {
+      "zh-CN": {
+        "value": "占比: {{score}}%",
+        "hash": "f33755f8",
+        "lastModified": "2025-11-09T13:57:03.394Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Proportion: {{score}}%",
+        "hash": "937a85e7",
+        "lastModified": "2025-11-09T13:57:03.394Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.evolution.pagesLabel": {
+      "zh-CN": {
+        "value": "页面: {{pages}}",
+        "hash": "d39206a4",
+        "lastModified": "2025-11-09T13:57:05.048Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Page: {{pages}}",
+        "hash": "fc0a1196",
+        "lastModified": "2025-11-09T13:57:05.048Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.evolution.rebuildTrigger": {
+      "zh-CN": {
+        "value": "用户主动重建画像",
+        "hash": "90b5765a",
+        "lastModified": "2025-11-09T13:57:06.687Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "User-initiated profile reconstruction",
+        "hash": "bf9fd4d6",
+        "lastModified": "2025-11-09T13:57:06.687Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.evolution.stable": {
+      "zh-CN": {
+        "value": "保持稳定",
+        "hash": "0edcf834",
+        "lastModified": "2025-11-09T13:57:08.547Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Maintain stability",
+        "hash": "b34ef302",
+        "lastModified": "2025-11-09T13:57:08.547Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.evolution.moreRecords": {
+      "zh-CN": {
+        "value": "还有 {{count}} 条更早的记录",
+        "hash": "ce50d6eb",
+        "lastModified": "2025-11-09T13:57:10.145Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "There are {{count}} earlier records",
+        "hash": "ac2de7cd",
+        "lastModified": "2025-11-09T13:57:10.145Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.evolution.legend": {
+      "zh-CN": {
+        "value": "💡 从左到右按时间排列 | 圆圈大小代表主导程度 | 🔥绝对 ⭐相对 💫领先 | 🔄重建/兴趣变化 📊强度变化",
+        "hash": "97539215",
+        "lastModified": "2025-11-09T13:57:13.552Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "💡 Arranged chronologically from left to right | Circle size indicates dominance level | 🔥Absolute ⭐Relative 💫Leading | 🔄Rebuilding/Interest Shift 📊Intensity Change",
+        "hash": "1c12dd0a",
+        "lastModified": "2025-11-09T13:57:13.552Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.evolution.noData": {
+      "zh-CN": {
+        "value": "暂无兴趣变化记录",
+        "hash": "95cbd27e",
+        "lastModified": "2025-11-09T13:57:15.396Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "No interest change records yet.",
+        "hash": "d22e19bd",
+        "lastModified": "2025-11-09T13:57:15.396Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.evolution.noDataHint": {
+      "zh-CN": {
+        "value": "随着你浏览更多页面，系统会自动记录兴趣演化历程",
+        "hash": "07a153d9",
+        "lastModified": "2025-11-09T13:57:17.351Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "As you browse more pages, the system automatically records the evolution of your interests.",
+        "hash": "213bd87c",
+        "lastModified": "2025-11-09T13:57:17.351Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.keywords.title": {
+      "zh-CN": {
+        "value": "兴趣关键词云",
+        "hash": "2544c0ab",
+        "lastModified": "2025-11-09T13:57:19.488Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Interest Keyword Cloud",
+        "hash": "f5dff6aa",
+        "lastModified": "2025-11-09T13:57:19.488Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.keywords.noData": {
+      "zh-CN": {
+        "value": "暂无关键词数据",
+        "hash": "eeccfbbc",
+        "lastModified": "2025-11-09T13:57:21.169Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "No keyword data available",
+        "hash": "2f8fdaa0",
+        "lastModified": "2025-11-09T13:57:21.169Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.keywords.weightLabel": {
+      "zh-CN": {
+        "value": "权重: {{weight}}",
+        "hash": "6fba486a",
+        "lastModified": "2025-11-09T13:57:22.867Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Weight: {{weight}}",
+        "hash": "7d3a8fd4",
+        "lastModified": "2025-11-09T13:57:22.867Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.keywords.hint": {
+      "zh-CN": {
+        "value": "💡 关键词大小代表权重，hover查看详细权重值",
+        "hash": "3abf41b7",
+        "lastModified": "2025-11-09T13:57:25.531Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "💡 Keyword size represents weight, hover to view detailed weight values",
+        "hash": "6c0e7748",
+        "lastModified": "2025-11-09T13:57:25.531Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.languages.zhCN": {
+      "zh-CN": {
+        "value": "简体中文",
+        "hash": "d688a3a4",
+        "lastModified": "2025-11-09T14:20:34.296Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Simplified Chinese",
+        "hash": "1e81fc32",
+        "lastModified": "2025-11-09T14:20:34.296Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.languages.en": {
+      "zh-CN": {
+        "value": "English",
+        "hash": "78463a38",
+        "lastModified": "2025-11-09T14:20:35.724Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "English",
+        "hash": "78463a38",
+        "lastModified": "2025-11-09T14:20:35.724Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.languages.ja": {
+      "zh-CN": {
+        "value": "日本語",
+        "hash": "00110af8",
+        "lastModified": "2025-11-09T14:20:37.371Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Japanese",
+        "hash": "f32ced6a",
+        "lastModified": "2025-11-09T14:20:37.371Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.languages.fr": {
+      "zh-CN": {
+        "value": "Français",
+        "hash": "e0545693",
+        "lastModified": "2025-11-09T14:20:38.911Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "French",
+        "hash": "ad225f70",
+        "lastModified": "2025-11-09T14:20:38.911Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.languages.de": {
+      "zh-CN": {
+        "value": "Deutsch",
+        "hash": "8f0ca218",
+        "lastModified": "2025-11-09T14:20:40.335Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "German",
+        "hash": "86bc3115",
+        "lastModified": "2025-11-09T14:20:40.335Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.languages.es": {
+      "zh-CN": {
+        "value": "Español",
+        "hash": "de92bbe0",
+        "lastModified": "2025-11-09T14:20:41.775Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Spanish",
+        "hash": "cb5480c3",
+        "lastModified": "2025-11-09T14:20:41.775Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.languages.ko": {
+      "zh-CN": {
+        "value": "한국어",
+        "hash": "d6d014c6",
+        "lastModified": "2025-11-09T14:20:44.551Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Korean",
+        "hash": "d0bdb3cd",
+        "lastModified": "2025-11-09T14:20:44.551Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.aiProviders.keyword": {
+      "zh-CN": {
+        "value": "关键词分析",
+        "hash": "edc4e547",
+        "lastModified": "2025-11-09T14:20:46.783Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Keyword Analysis",
+        "hash": "c97004a9",
+        "lastModified": "2025-11-09T14:20:46.783Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.aiProviders.openai": {
+      "zh-CN": {
+        "value": "OpenAI",
+        "hash": "0523b132",
+        "lastModified": "2025-11-09T14:20:48.730Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "OpenAI",
+        "hash": "0523b132",
+        "lastModified": "2025-11-09T14:20:48.730Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.aiProviders.anthropic": {
+      "zh-CN": {
+        "value": "Anthropic (Claude)",
+        "hash": "3b7c6c99",
+        "lastModified": "2025-11-09T14:20:50.300Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Anthropic (Claude)",
+        "hash": "3b7c6c99",
+        "lastModified": "2025-11-09T14:20:50.300Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.aiProviders.deepseek": {
+      "zh-CN": {
+        "value": "DeepSeek",
+        "hash": "264d9bb4",
+        "lastModified": "2025-11-09T14:20:51.991Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "DeepSeek",
+        "hash": "264d9bb4",
+        "lastModified": "2025-11-09T14:20:51.991Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topics.technology": {
+      "zh-CN": {
+        "value": "技术",
+        "hash": "a95dd3e1",
+        "lastModified": "2025-11-09T14:20:54.157Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Technology",
+        "hash": "e7e767d7",
+        "lastModified": "2025-11-09T14:20:54.157Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topics.science": {
+      "zh-CN": {
+        "value": "科学",
+        "hash": "4a27f616",
+        "lastModified": "2025-11-09T14:20:56.861Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Science",
+        "hash": "35bf1210",
+        "lastModified": "2025-11-09T14:20:56.861Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topics.business": {
+      "zh-CN": {
+        "value": "商业",
+        "hash": "837171e3",
+        "lastModified": "2025-11-09T14:20:58.756Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Business",
+        "hash": "d6e6cb19",
+        "lastModified": "2025-11-09T14:20:58.756Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topics.design": {
+      "zh-CN": {
+        "value": "设计",
+        "hash": "b08890a6",
+        "lastModified": "2025-11-09T14:21:00.102Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Design",
+        "hash": "1afa74da",
+        "lastModified": "2025-11-09T14:21:00.102Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topics.arts": {
+      "zh-CN": {
+        "value": "艺术",
+        "hash": "37e834be",
+        "lastModified": "2025-11-09T14:21:01.496Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Art",
+        "hash": "978d7d6b",
+        "lastModified": "2025-11-09T14:21:01.496Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topics.health": {
+      "zh-CN": {
+        "value": "健康",
+        "hash": "fbc026c9",
+        "lastModified": "2025-11-09T14:21:02.867Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Health",
+        "hash": "605669ca",
+        "lastModified": "2025-11-09T14:21:02.867Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topics.sports": {
+      "zh-CN": {
+        "value": "体育",
+        "hash": "b0dc2f50",
+        "lastModified": "2025-11-09T14:21:04.363Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Sports",
+        "hash": "918e180e",
+        "lastModified": "2025-11-09T14:21:04.363Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topics.entertainment": {
+      "zh-CN": {
+        "value": "娱乐",
+        "hash": "9acf9c6f",
+        "lastModified": "2025-11-09T14:21:05.814Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Entertainment",
+        "hash": "336fdcf7",
+        "lastModified": "2025-11-09T14:21:05.814Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topics.news": {
+      "zh-CN": {
+        "value": "新闻",
+        "hash": "1d9c15c5",
+        "lastModified": "2025-11-09T14:21:07.398Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "News",
+        "hash": "dd1ba187",
+        "lastModified": "2025-11-09T14:21:07.398Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topics.education": {
+      "zh-CN": {
+        "value": "教育",
+        "hash": "8640cb15",
+        "lastModified": "2025-11-09T14:21:08.841Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Education",
+        "hash": "de7a22a0",
+        "lastModified": "2025-11-09T14:21:08.841Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topics.other": {
+      "zh-CN": {
+        "value": "其他",
+        "hash": "0d98c747",
+        "lastModified": "2025-11-09T14:21:10.641Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Other",
+        "hash": "6311ae17",
+        "lastModified": "2025-11-09T14:21:10.642Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topicPersonalities.technology": {
+      "zh-CN": {
+        "value": "科技极客，总是追求最新的技术趋势",
+        "hash": "e00fcca1",
+        "lastModified": "2025-11-09T14:21:12.783Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Tech geeks, always chasing the latest technology trends.",
+        "hash": "b3542948",
+        "lastModified": "2025-11-09T14:21:12.783Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topicPersonalities.science": {
+      "zh-CN": {
+        "value": "理性探索者，对世界充满好奇心",
+        "hash": "c0b77ec8",
+        "lastModified": "2025-11-09T14:21:14.947Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Rational Explorer, full of curiosity about the world",
+        "hash": "286e6766",
+        "lastModified": "2025-11-09T14:21:14.947Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topicPersonalities.business": {
+      "zh-CN": {
+        "value": "商业领袖，具有敏锐的市场嗅觉",
+        "hash": "b1d98c86",
+        "lastModified": "2025-11-09T14:21:16.447Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Business leader with a keen market sense",
+        "hash": "05276477",
+        "lastModified": "2025-11-09T14:21:16.447Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topicPersonalities.design": {
+      "zh-CN": {
+        "value": "美感追求者，注重视觉和用户体验",
+        "hash": "d8e52fcf",
+        "lastModified": "2025-11-09T14:21:18.180Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Aesthetic seekers, who value visual appeal and user experience.",
+        "hash": "8a3def5c",
+        "lastModified": "2025-11-09T14:21:18.180Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topicPersonalities.arts": {
+      "zh-CN": {
+        "value": "艺术鉴赏家，欣赏各种创意表达",
+        "hash": "a962a434",
+        "lastModified": "2025-11-09T14:21:20.471Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Art Connoisseur, appreciating various creative expressions",
+        "hash": "b354cb90",
+        "lastModified": "2025-11-09T14:21:20.471Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topicPersonalities.health": {
+      "zh-CN": {
+        "value": "健康生活倡导者，关注身心wellness",
+        "hash": "afd443e3",
+        "lastModified": "2025-11-09T14:21:23.825Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Advocate for healthy living, focusing on physical and mental wellness",
+        "hash": "c6aa1b8a",
+        "lastModified": "2025-11-09T14:21:23.825Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topicPersonalities.sports": {
+      "zh-CN": {
+        "value": "运动爱好者，享受竞技和健身乐趣",
+        "hash": "6fc168d4",
+        "lastModified": "2025-11-09T14:21:25.920Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Sports enthusiasts who enjoy the thrill of competition and the joy of fitness.",
+        "hash": "991c0c44",
+        "lastModified": "2025-11-09T14:21:25.920Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topicPersonalities.entertainment": {
+      "zh-CN": {
+        "value": "娱乐达人，热爱轻松有趣的内容",
+        "hash": "ba13675f",
+        "lastModified": "2025-11-09T14:21:27.946Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Entertainment enthusiast, passionate about light and fun content.",
+        "hash": "bc8a651d",
+        "lastModified": "2025-11-09T14:21:27.946Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topicPersonalities.news": {
+      "zh-CN": {
+        "value": "信息收集者，关注时事和社会动态",
+        "hash": "dc27eebc",
+        "lastModified": "2025-11-09T14:21:29.777Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Information gatherer, keeping an eye on current events and social trends",
+        "hash": "b507f79e",
+        "lastModified": "2025-11-09T14:21:29.777Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topicPersonalities.education": {
+      "zh-CN": {
+        "value": "终身学习者，持续自我提升",
+        "hash": "bf3860af",
+        "lastModified": "2025-11-09T14:21:31.632Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Lifelong learner, continuously self-improving.",
+        "hash": "c5bf47f5",
+        "lastModified": "2025-11-09T14:21:31.632Z",
+        "status": "ai-translated"
+      }
+    },
+    "common.topicPersonalities.other": {
+      "zh-CN": {
+        "value": "兴趣广泛的探索者",
+        "hash": "4af2381a",
+        "lastModified": "2025-11-09T14:21:33.475Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "An explorer with diverse interests.",
+        "hash": "de2ecfa7",
+        "lastModified": "2025-11-09T14:21:33.475Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.title": {
+      "zh-CN": {
+        "value": "AI 配置",
+        "hash": "5258ce61",
+        "lastModified": "2025-11-09T14:36:10.081Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "AI Configuration",
+        "hash": "f7703f3c",
+        "lastModified": "2025-11-09T14:36:10.082Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.subtitle": {
+      "zh-CN": {
+        "value": "配置远程 AI 服务以获得更准确的内容分析",
+        "hash": "636ddf6d",
+        "lastModified": "2025-11-09T14:36:12.026Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Configure remote AI services for more accurate content analysis",
+        "hash": "c4164770",
+        "lastModified": "2025-11-09T14:36:12.026Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.providerLabel": {
+      "zh-CN": {
+        "value": "AI 提供商",
+        "hash": "8ab9206e",
+        "lastModified": "2025-11-09T14:36:13.873Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "AI Provider",
+        "hash": "c410594b",
+        "lastModified": "2025-11-09T14:36:13.873Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.apiKeyLabel": {
+      "zh-CN": {
+        "value": "API Key",
+        "hash": "d876ff8d",
+        "lastModified": "2025-11-09T14:36:16.021Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "API Key",
+        "hash": "d876ff8d",
+        "lastModified": "2025-11-09T14:36:16.021Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.budgetLabel": {
+      "zh-CN": {
+        "value": "月度预算限制",
+        "hash": "ee9ff41c",
+        "lastModified": "2025-11-09T14:36:17.573Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Monthly budget limit",
+        "hash": "edd2af6e",
+        "lastModified": "2025-11-09T14:36:17.573Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.budgetUnit": {
+      "zh-CN": {
+        "value": "/ 月",
+        "hash": "a6064cdb",
+        "lastModified": "2025-11-09T14:36:20.422Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "/ month",
+        "hash": "fc2b9c46",
+        "lastModified": "2025-11-09T14:36:20.422Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.selectProviderPlaceholder": {
+      "zh-CN": {
+        "value": "请选择 AI 提供商",
+        "hash": "39e9619c",
+        "lastModified": "2025-11-09T14:36:22.881Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Please select an AI provider",
+        "hash": "02af49e8",
+        "lastModified": "2025-11-09T14:36:22.881Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.apiKeyPlaceholder": {
+      "zh-CN": {
+        "value": "输入你的 {{provider}} API Key",
+        "hash": "4e50b51a",
+        "lastModified": "2025-11-09T14:36:26.673Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Enter your {{provider}} API Key",
+        "hash": "82ddbc43",
+        "lastModified": "2025-11-09T14:36:26.673Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.apiKeyHint": {
+      "zh-CN": {
+        "value": "API Key 将加密存储在浏览器本地，不会上传到服务器",
+        "hash": "e22adb1f",
+        "lastModified": "2025-11-09T14:36:28.861Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "The API Key will be encrypted and stored locally in the browser, and will not be uploaded to the server.",
+        "hash": "e98a4335",
+        "lastModified": "2025-11-09T14:36:28.861Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.budgetHint": {
+      "zh-CN": {
+        "value": "超出预算后将自动降级到免费的关键词分析",
+        "hash": "dcd40085",
+        "lastModified": "2025-11-09T14:36:30.681Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Will automatically downgrade to free keyword analysis after exceeding the budget",
+        "hash": "20e2670a",
+        "lastModified": "2025-11-09T14:36:30.681Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.budgetWarning": {
+      "zh-CN": {
+        "value": "建议设置合理预算以避免意外费用（推荐 {{range}}）",
+        "hash": "dc1d91cf",
+        "lastModified": "2025-11-09T14:36:33.114Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "It is recommended to set a reasonable budget to avoid unexpected costs (suggested {{range}})",
+        "hash": "f2dfcae6",
+        "lastModified": "2025-11-09T14:36:33.114Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.providers.none.label": {
+      "zh-CN": {
+        "value": "无（禁用 AI）",
+        "hash": "07dc96c3",
+        "lastModified": "2025-11-09T14:36:35.648Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "None (AI Disabled)",
+        "hash": "112aed36",
+        "lastModified": "2025-11-09T14:36:35.648Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.providers.none.description": {
+      "zh-CN": {
+        "value": "仅使用关键词分析，不调用 AI 接口",
+        "hash": "2184b858",
+        "lastModified": "2025-11-09T14:36:38.239Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Only use keyword analysis, without calling AI interfaces.",
+        "hash": "ae17b3b2",
+        "lastModified": "2025-11-09T14:36:38.239Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.providers.openai.label": {
+      "zh-CN": {
+        "value": "OpenAI (GPT-4o-mini)",
+        "hash": "48cde21c",
+        "lastModified": "2025-11-09T14:36:40.389Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "OpenAI (GPT-4o-mini)",
+        "hash": "48cde21c",
+        "lastModified": "2025-11-09T14:36:40.389Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.providers.openai.description": {
+      "zh-CN": {
+        "value": "快速、准确、成本适中（$0.15/M 输入, $0.6/M 输出）",
+        "hash": "9e2dd80d",
+        "lastModified": "2025-11-09T14:36:42.681Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Fast, accurate, and cost-effective ($0.15/M input, $0.6/M output)",
+        "hash": "6e933e88",
+        "lastModified": "2025-11-09T14:36:42.681Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.providers.anthropic.label": {
+      "zh-CN": {
+        "value": "Anthropic (Claude-3-Haiku)",
+        "hash": "dd44150e",
+        "lastModified": "2025-11-09T14:36:44.693Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Anthropic (Claude-3-Haiku)",
+        "hash": "dd44150e",
+        "lastModified": "2025-11-09T14:36:44.693Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.providers.anthropic.description": {
+      "zh-CN": {
+        "value": "高质量、稍贵（$0.25/M 输入, $1.25/M 输出）",
+        "hash": "46c6cf77",
+        "lastModified": "2025-11-09T14:36:48.784Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "High quality, slightly expensive ($0.25/M input, $1.25/M output)",
+        "hash": "1fe38c7f",
+        "lastModified": "2025-11-09T14:36:48.784Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.providers.deepseek.label": {
+      "zh-CN": {
+        "value": "DeepSeek",
+        "hash": "264d9bb4",
+        "lastModified": "2025-11-09T14:36:50.625Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "DeepSeek",
+        "hash": "264d9bb4",
+        "lastModified": "2025-11-09T14:36:50.625Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.providers.deepseek.description": {
+      "zh-CN": {
+        "value": "国内友好、最便宜（¥2/M 输入, ¥3/M 输出，缓存命中 ¥0.2/M）",
+        "hash": "46c8ef7b",
+        "lastModified": "2025-11-09T14:36:53.294Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Domestically friendly, cheapest (¥2/M input, ¥3/M output, cache hit ¥0.2/M)",
+        "hash": "d87ad76c",
+        "lastModified": "2025-11-09T14:36:53.294Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.buttons.test": {
+      "zh-CN": {
+        "value": "测试连接",
+        "hash": "69e74756",
+        "lastModified": "2025-11-09T14:36:55.236Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Test connection",
+        "hash": "39838db5",
+        "lastModified": "2025-11-09T14:36:55.236Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.buttons.testing": {
+      "zh-CN": {
+        "value": "测试中...",
+        "hash": "6c501b52",
+        "lastModified": "2025-11-09T14:36:57.205Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Testing...",
+        "hash": "9d770c90",
+        "lastModified": "2025-11-09T14:36:57.205Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.buttons.save": {
+      "zh-CN": {
+        "value": "保存配置",
+        "hash": "ed752639",
+        "lastModified": "2025-11-09T14:37:00.049Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Save Configuration",
+        "hash": "08580e93",
+        "lastModified": "2025-11-09T14:37:00.049Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.buttons.saving": {
+      "zh-CN": {
+        "value": "保存中...",
+        "hash": "2a33020e",
+        "lastModified": "2025-11-09T14:37:02.404Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Saving...",
+        "hash": "575f5f86",
+        "lastModified": "2025-11-09T14:37:02.404Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.buttons.disable": {
+      "zh-CN": {
+        "value": "禁用 AI",
+        "hash": "88a0e8bd",
+        "lastModified": "2025-11-09T14:37:04.352Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Disable AI",
+        "hash": "1000182f",
+        "lastModified": "2025-11-09T14:37:04.352Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.messages.saveSuccess": {
+      "zh-CN": {
+        "value": "配置保存成功！",
+        "hash": "48929289",
+        "lastModified": "2025-11-09T14:37:06.497Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Configuration saved successfully!",
+        "hash": "4a5c1325",
+        "lastModified": "2025-11-09T14:37:06.497Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.messages.disableSuccess": {
+      "zh-CN": {
+        "value": "已禁用 AI，将使用关键词分析",
+        "hash": "ca62470c",
+        "lastModified": "2025-11-09T14:37:08.263Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "AI is disabled, keyword analysis will be used.",
+        "hash": "5155a5bf",
+        "lastModified": "2025-11-09T14:37:08.263Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.messages.latency": {
+      "zh-CN": {
+        "value": "（延迟: {{ms}}ms）",
+        "hash": "3f44e744",
+        "lastModified": "2025-11-09T14:37:10.199Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "(Delay: {{ms}}ms)",
+        "hash": "4bd2d562",
+        "lastModified": "2025-11-09T14:37:10.199Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.errors.selectProviderAndKey": {
+      "zh-CN": {
+        "value": "请选择提供商并输入 API Key",
+        "hash": "faf183d8",
+        "lastModified": "2025-11-09T14:37:12.750Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Please select a provider and enter the API Key",
+        "hash": "835aacfd",
+        "lastModified": "2025-11-09T14:37:12.750Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.errors.selectProviderAndKeyFirst": {
+      "zh-CN": {
+        "value": "请先选择提供商并输入 API Key",
+        "hash": "6f1a57dd",
+        "lastModified": "2025-11-09T14:37:13.364Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "请先选择提供商并输入 API Key",
+        "hash": "6f1a57dd",
+        "lastModified": "2025-11-09T14:37:13.364Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.errors.invalidApiKeyFormat": {
+      "zh-CN": {
+        "value": "API Key 格式不正确",
+        "hash": "2f9b8cf0",
+        "lastModified": "2025-11-09T14:37:15.028Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "The API Key format is incorrect.",
+        "hash": "50161919",
+        "lastModified": "2025-11-09T14:37:15.028Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.errors.saveFailed": {
+      "zh-CN": {
+        "value": "保存失败：{{error}}",
+        "hash": "f75980ad",
+        "lastModified": "2025-11-09T14:37:17.661Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Save failed: {{error}}",
+        "hash": "1f66a5c5",
+        "lastModified": "2025-11-09T14:37:17.661Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.errors.testFailed": {
+      "zh-CN": {
+        "value": "测试失败：{{error}}",
+        "hash": "b06d1b11",
+        "lastModified": "2025-11-09T14:37:19.502Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Test failed: {{error}}",
+        "hash": "2d29639d",
+        "lastModified": "2025-11-09T14:37:19.502Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.errors.disableFailed": {
+      "zh-CN": {
+        "value": "禁用失败：{{error}}",
+        "hash": "99b5cf88",
+        "lastModified": "2025-11-09T14:37:21.452Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Disable failed: {{error}}",
+        "hash": "2dad3fcf",
+        "lastModified": "2025-11-09T14:37:21.452Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.info.title": {
+      "zh-CN": {
+        "value": "关于 AI 分析",
+        "hash": "32993148",
+        "lastModified": "2025-11-09T14:37:22.984Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "About AI Analysis",
+        "hash": "58208182",
+        "lastModified": "2025-11-09T14:37:22.984Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.info.withConfig": {
+      "zh-CN": {
+        "value": "配置后：优先使用 AI 分析（更准确，需付费）",
+        "hash": "d98722d7",
+        "lastModified": "2025-11-09T14:37:25.445Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "After configuration: Prioritize AI analysis (more accurate, paid)",
+        "hash": "eb90a1c1",
+        "lastModified": "2025-11-09T14:37:25.445Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.info.withoutConfig": {
+      "zh-CN": {
+        "value": "不配置：使用免费的关键词分析（可用但准确度较低）",
+        "hash": "cb8bb89c",
+        "lastModified": "2025-11-09T14:37:27.492Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Not configured: Use free keyword analysis (available but with lower accuracy)",
+        "hash": "01fb8c43",
+        "lastModified": "2025-11-09T14:37:27.492Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.info.fallback": {
+      "zh-CN": {
+        "value": "降级策略：API 失败或超预算时自动降级到关键词分析",
+        "hash": "c73eab4b",
+        "lastModified": "2025-11-09T14:37:30.152Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Downgrade strategy: Automatically fall back to keyword analysis when API fails or exceeds budget.",
+        "hash": "b99904af",
+        "lastModified": "2025-11-09T14:37:30.152Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.info.privacy": {
+      "zh-CN": {
+        "value": "隐私保护：所有数据处理在本地，API Key 加密存储",
+        "hash": "3b23affb",
+        "lastModified": "2025-11-09T14:37:32.509Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Privacy Protection: All data processing is done locally, and API Keys are stored encrypted.",
+        "hash": "cadf1499",
+        "lastModified": "2025-11-09T14:37:32.509Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.cost.title": {
+      "zh-CN": {
+        "value": "成本参考（每百万 tokens）",
+        "hash": "9b268796",
+        "lastModified": "2025-11-09T14:37:34.554Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Cost Reference (per million tokens)",
+        "hash": "5978254b",
+        "lastModified": "2025-11-09T14:37:34.554Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.cost.example": {
+      "zh-CN": {
+        "value": "假设每天浏览 50 个页面，每个页面平均 1000 tokens，10% 缓存命中率：",
+        "hash": "657f8cfe",
+        "lastModified": "2025-11-09T14:37:37.217Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Assuming 50 pages browsed per day, with an average of 1000 tokens per page and a 10% cache hit rate:",
+        "hash": "c0662792",
+        "lastModified": "2025-11-09T14:37:37.217Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.cost.note": {
+      "zh-CN": {
+        "value": "实际成本会根据页面内容长度、访问频率等因素有所不同",
+        "hash": "b4522925",
+        "lastModified": "2025-11-09T14:37:39.568Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "The actual cost may vary depending on factors such as page content length and access frequency.",
+        "hash": "349adf29",
+        "lastModified": "2025-11-09T14:37:39.568Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.cost.deepseek.title": {
+      "zh-CN": {
+        "value": "DeepSeek（人民币计价）",
+        "hash": "634fe523",
+        "lastModified": "2025-11-09T14:37:41.620Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "DeepSeek (RMB Denominated)",
+        "hash": "742ba223",
+        "lastModified": "2025-11-09T14:37:41.620Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.cost.deepseek.inputUncached": {
+      "zh-CN": {
+        "value": "输入（缓存未命中）: ¥2.00/M tokens",
+        "hash": "6756b4dd",
+        "lastModified": "2025-11-09T14:37:43.668Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Input (cache miss): ¥2.00/M tokens",
+        "hash": "e953eb65",
+        "lastModified": "2025-11-09T14:37:43.668Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.cost.deepseek.inputCached": {
+      "zh-CN": {
+        "value": "输入（缓存命中）: ¥0.20/M tokens",
+        "hash": "91ca7010",
+        "lastModified": "2025-11-09T14:37:45.816Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Input (cache hit): ¥0.20/M tokens",
+        "hash": "b584a6ab",
+        "lastModified": "2025-11-09T14:37:45.816Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.cost.deepseek.output": {
+      "zh-CN": {
+        "value": "输出: ¥3.00/M tokens",
+        "hash": "bdc70142",
+        "lastModified": "2025-11-09T14:37:48.230Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Output: ¥3.00/M tokens",
+        "hash": "0f7964b7",
+        "lastModified": "2025-11-09T14:37:48.230Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.cost.deepseek.estimate": {
+      "zh-CN": {
+        "value": "约 ¥1.41/月 (≈ $0.20/月)",
+        "hash": "ee5fc22b",
+        "lastModified": "2025-11-09T14:37:50.528Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Approx. ¥1.41/month (≈ $0.20/month)",
+        "hash": "2bc8159e",
+        "lastModified": "2025-11-09T14:37:50.528Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.cost.openai.title": {
+      "zh-CN": {
+        "value": "OpenAI GPT-4o-mini（美元计价）",
+        "hash": "3b111fb9",
+        "lastModified": "2025-11-09T14:37:52.680Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "OpenAI GPT-4o-mini (USD)",
+        "hash": "03de64cf",
+        "lastModified": "2025-11-09T14:37:52.680Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.cost.openai.input": {
+      "zh-CN": {
+        "value": "输入: $0.15/M tokens",
+        "hash": "2c972878",
+        "lastModified": "2025-11-09T14:37:54.726Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Input: $0.15/M tokens",
+        "hash": "5234e327",
+        "lastModified": "2025-11-09T14:37:54.726Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.cost.openai.output": {
+      "zh-CN": {
+        "value": "输出: $0.60/M tokens",
+        "hash": "e719e3ab",
+        "lastModified": "2025-11-09T14:37:57.105Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Output: $0.60/M tokens",
+        "hash": "fa059cc3",
+        "lastModified": "2025-11-09T14:37:57.105Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.cost.openai.estimate": {
+      "zh-CN": {
+        "value": "约 $0.11 / 月",
+        "hash": "789f54e7",
+        "lastModified": "2025-11-09T14:37:58.828Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "About $0.11 / month",
+        "hash": "132daad2",
+        "lastModified": "2025-11-09T14:37:58.828Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.cost.anthropic.title": {
+      "zh-CN": {
+        "value": "Anthropic Claude 3 Haiku（美元计价）",
+        "hash": "cd42ab01",
+        "lastModified": "2025-11-09T14:38:00.874Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Anthropic Claude 3 Haiku (USD)",
+        "hash": "f2d8f8df",
+        "lastModified": "2025-11-09T14:38:00.874Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.cost.anthropic.input": {
+      "zh-CN": {
+        "value": "输入: $0.25/M tokens",
+        "hash": "78cea95f",
+        "lastModified": "2025-11-09T14:38:02.715Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Input: $0.25/M tokens",
+        "hash": "76688c0d",
+        "lastModified": "2025-11-09T14:38:02.715Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.cost.anthropic.output": {
+      "zh-CN": {
+        "value": "输出: $1.25/M tokens",
+        "hash": "c8676dc1",
+        "lastModified": "2025-11-09T14:38:04.569Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Output: $1.25/M tokens",
+        "hash": "7101be87",
+        "lastModified": "2025-11-09T14:38:04.569Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.cost.anthropic.estimate": {
+      "zh-CN": {
+        "value": "约 $0.23 / 月",
+        "hash": "bd81efd4",
+        "lastModified": "2025-11-09T14:38:06.719Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "About $0.23 / month",
+        "hash": "25bb6852",
+        "lastModified": "2025-11-09T14:38:06.719Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.errors.selectProvider": {
+      "zh-CN": {
+        "value": "请选择 AI 提供商",
+        "hash": "39e9619c",
+        "lastModified": "2025-11-09T14:47:25.885Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Please select an AI provider",
+        "hash": "02af49e8",
+        "lastModified": "2025-11-09T14:47:25.885Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.errors.enterApiKey": {
+      "zh-CN": {
+        "value": "请输入 API Key",
+        "hash": "58aacc17",
+        "lastModified": "2025-11-09T14:47:27.622Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Please enter the API Key",
+        "hash": "0776da73",
+        "lastModified": "2025-11-09T14:47:27.622Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.labels.provider": {
+      "zh-CN": {
+        "value": "AI 提供商",
+        "hash": "8ab9206e",
+        "lastModified": "2025-11-09T14:48:56.300Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "AI Provider",
+        "hash": "c410594b",
+        "lastModified": "2025-11-09T14:48:56.300Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.labels.apiKey": {
+      "zh-CN": {
+        "value": "API Key",
+        "hash": "d876ff8d",
+        "lastModified": "2025-11-09T14:48:57.807Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "API Key",
+        "hash": "d876ff8d",
+        "lastModified": "2025-11-09T14:48:57.807Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.placeholders.apiKey": {
+      "zh-CN": {
+        "value": "输入你的 API Key",
+        "hash": "dff0504a",
+        "lastModified": "2025-11-09T14:48:59.677Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Enter your API Key",
+        "hash": "8a337a2a",
+        "lastModified": "2025-11-09T14:48:59.677Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.hints.apiKey": {
+      "zh-CN": {
+        "value": "API Key 将加密存储在浏览器本地，不会上传到服务器",
+        "hash": "e22adb1f",
+        "lastModified": "2025-11-09T14:49:01.827Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "The API Key will be encrypted and stored locally in the browser, and will not be uploaded to the server.",
+        "hash": "e98a4335",
+        "lastModified": "2025-11-09T14:49:01.827Z",
         "status": "ai-translated"
       }
     }

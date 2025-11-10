@@ -1,444 +1,320 @@
-import React, { useState, useEffect } from "react"
 import { useI18n } from "@/i18n/helpers"
+import { useEffect, useState } from "react"
 import {
   getAIConfig,
   saveAIConfig,
   validateApiKey,
-  type AIProviderType,
-  type AIConfig as AIConfigData
+  type AIProviderType
 } from "@/storage/ai-config"
 import { aiManager } from "@/core/ai/AICapabilityManager"
 
-/**
- * AI 配置组件
- * 
- * 功能：
- * 1. 选择 AI 提供商（OpenAI/Anthropic/DeepSeek）
- * 2. 输入和保存 API Key（加密存储）
- * 3. 测试连接
- * 4. 显示配置状态
- */
-
-interface ProviderOption {
-  value: AIProviderType | null
-  label: string
-  description: string
-}
-
-const PROVIDER_OPTIONS = [
-  {
-    value: null,
-    label: "无（禁用 AI）",
-    description: "仅使用关键词分析，不调用 AI 接口"
-  },
-  {
-    value: "openai",
-    label: "OpenAI (GPT-4o-mini)",
-    description: "快速、准确、成本适中（$0.15/M 输入, $0.6/M 输出）"
-  },
-  {
-    value: "anthropic",
-    label: "Anthropic (Claude-3-Haiku)",
-    description: "高质量、稍贵（$0.25/M 输入, $1.25/M 输出）"
-  },
-  {
-    value: "deepseek",
-    label: "DeepSeek",
-    description: "国内友好、最便宜（¥2/M 输入, ¥3/M 输出，缓存命中 ¥0.2/M）"
-  }
-] as const
-
 export function AIConfig() {
   const { _ } = useI18n()
-  
-  // 状态
   const [provider, setProvider] = useState<AIProviderType | null>(null)
   const [apiKey, setApiKey] = useState("")
-  const [enabled, setEnabled] = useState(false)
-  const [monthlyBudget, setMonthlyBudget] = useState<number>(5) // 默认 $5/月
-  
-  // UI 状态
-  const [saving, setSaving] = useState(false)
-  const [testing, setTesting] = useState(false)
-  const [testResult, setTestResult] = useState<{
-    success: boolean
-    message: string
-  } | null>(null)
-  
-  // 加载配置
+  const [isTesting, setIsTesting] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
+
+  // 动态获取本地化的提供商选项
+  const getProviderOptions = (): Array<{ value: AIProviderType | ""; label: string; description: string }> => [
+    { value: "", label: _("options.aiConfig.providers.none.label"), description: _("options.aiConfig.providers.none.description") },
+    { value: "openai", label: _("options.aiConfig.providers.openai.label"), description: _("options.aiConfig.providers.openai.description") },
+    { value: "anthropic", label: _("options.aiConfig.providers.anthropic.label"), description: _("options.aiConfig.providers.anthropic.description") },
+    { value: "deepseek", label: _("options.aiConfig.providers.deepseek.label"), description: _("options.aiConfig.providers.deepseek.description") }
+  ]
+
+  // 加载保存的配置
   useEffect(() => {
-    loadConfig()
-  }, [])
-  
-  /**
-   * 从存储加载配置
-   */
-  async function loadConfig() {
-    try {
-      const config = await getAIConfig()
-      setProvider(config.provider)
-      setApiKey(config.apiKey || "")
-      setEnabled(config.enabled)
-      setMonthlyBudget(config.monthlyBudget ?? 5)
-    } catch (error) {
-      console.error("[AIConfig] Failed to load config:", error)
-    }
-  }
-  
-  /**
-   * 保存配置
-   */
-  async function handleSave() {
-    if (!provider || !apiKey.trim()) {
-      setTestResult({
-        success: false,
-        message: "请选择提供商并输入 API Key"
-      })
-      return
-    }
-    
-    setSaving(true)
-    setTestResult(null)
-    
-    try {
-      const config: AIConfigData = {
-        provider,
-        apiKey: apiKey.trim(),
-        enabled: true,
-        monthlyBudget
+    getAIConfig().then((config) => {
+      if (config.provider) {
+        setProvider(config.provider)
+        setApiKey(config.apiKey)
       }
-      
-      await saveAIConfig(config)
-      
-      setTestResult({
-        success: true,
-        message: "配置保存成功！"
-      })
-    } catch (error) {
-      setTestResult({
-        success: false,
-        message: `保存失败：${error instanceof Error ? error.message : String(error)}`
-      })
-    } finally {
-      setSaving(false)
-    }
-  }
-  
-  /**
-   * 测试连接
-   */
-  async function handleTestConnection() {
-    if (!provider || !apiKey.trim()) {
-      setTestResult({
-        success: false,
-        message: "请先选择提供商并输入 API Key"
-      })
+    })
+  }, [])
+
+  // 测试连接
+  const handleTest = async () => {
+    if (!provider) {
+      setMessage({ type: "error", text: _("options.aiConfig.errors.selectProvider") })
       return
     }
-    
-    setTesting(true)
-    setTestResult(null)
-    
+    if (!apiKey) {
+      setMessage({ type: "error", text: _("options.aiConfig.errors.enterApiKey") })
+      return
+    }
+
+    setIsTesting(true)
+    setMessage(null)
+
     try {
       // 1. 先验证格式
       const isValid = validateApiKey(provider, apiKey)
       if (!isValid) {
-        setTestResult({
-          success: false,
-          message: "API Key 格式不正确"
+        setMessage({
+          type: "error",
+          text: _("options.aiConfig.errors.invalidApiKeyFormat")
         })
-        setTesting(false)
+        setIsTesting(false)
         return
       }
-      
-      // 2. 保存配置（以便 aiManager 可以读取）
+
+      // 2. 临时保存配置（以便 aiManager 可以读取）
       await saveAIConfig({
         provider,
         apiKey: apiKey.trim(),
         enabled: true,
-        monthlyBudget
+        monthlyBudget: 5
       })
-      
-      // 3. 重新初始化 aiManager
-      await aiManager.initialize()
-      
-      // 4. 测试真实连接
+
+      // 3. 测试连接
+      const startTime = Date.now()
       const result = await aiManager.testConnection()
-      
-      setTestResult({
-        success: result.success,
-        message: result.latency 
-          ? `${result.message}（延迟: ${result.latency}ms）`
-          : result.message
-      })
+      const latency = Date.now() - startTime
+
+      if (result.success) {
+        setMessage({
+          type: "success",
+          text: _("options.aiConfig.messages.testSuccess", { latency })
+        })
+      } else {
+        setMessage({
+          type: "error",
+          text: _("options.aiConfig.errors.testFailed", { error: result.message || "Unknown error" })
+        })
+      }
     } catch (error) {
-      setTestResult({
-        success: false,
-        message: `测试失败：${error instanceof Error ? error.message : String(error)}`
+      setMessage({
+        type: "error",
+        text: _("options.aiConfig.errors.testFailed", { error: error instanceof Error ? error.message : String(error) })
       })
     } finally {
-      setTesting(false)
+      setIsTesting(false)
     }
   }
-  
-  // validateApiKey 函数已从 ai-config.ts 导入，这里不需要重复定义
-  
-  /**
-   * 禁用 AI
-   */
-  async function handleDisable() {
+
+  // 保存配置
+  const handleSave = async () => {
+    if (!provider) {
+      setMessage({ type: "error", text: _("options.aiConfig.errors.selectProviderAndKey") })
+      return
+    }
+    if (!apiKey) {
+      setMessage({ type: "error", text: _("options.aiConfig.errors.selectProviderAndKey") })
+      return
+    }
+
+    setIsSaving(true)
+    setMessage(null)
+
+    try {
+      await saveAIConfig({
+        provider,
+        apiKey,
+        enabled: true,
+        monthlyBudget: 5
+      })
+      setMessage({ type: "success", text: _("options.aiConfig.messages.saveSuccess") })
+    } catch (error) {
+      setMessage({
+        type: "error",
+        text: _("options.aiConfig.errors.saveFailed", { error: error instanceof Error ? error.message : String(error) })
+      })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  // 禁用 AI
+  const handleDisable = async () => {
+    setIsSaving(true)
+    setMessage(null)
+
     try {
       await saveAIConfig({
         provider: null,
         apiKey: "",
         enabled: false,
-        monthlyBudget: 5 // 保留默认预算
+        monthlyBudget: 5
       })
-      
       setProvider(null)
       setApiKey("")
-      setEnabled(false)
-      setTestResult({
-        success: true,
-        message: "已禁用 AI，将使用关键词分析"
-      })
+      setMessage({ type: "success", text: _("options.aiConfig.messages.disableSuccess") })
     } catch (error) {
-      setTestResult({
-        success: false,
-        message: `禁用失败：${error instanceof Error ? error.message : String(error)}`
+      setMessage({
+        type: "error",
+        text: _("options.aiConfig.errors.disableFailed", { error: error instanceof Error ? error.message : String(error) })
       })
+    } finally {
+      setIsSaving(false)
     }
   }
-  
+
   return (
-    <div className="ai-config space-y-6 p-6">
+    <div className="space-y-6 p-6">
       {/* 标题 */}
       <div>
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
-          🤖 AI 配置
-        </h2>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          配置远程 AI 服务以获得更准确的内容分析
+        <h2 className="text-2xl font-bold mb-2">🤖 {_("options.aiConfig.title")}</h2>
+        <p className="text-gray-600 dark:text-gray-400">
+          {_("options.aiConfig.subtitle")}
         </p>
       </div>
-      
-      {/* Provider 选择 */}
-      <div className="space-y-2">
-        <label
-          htmlFor="provider"
-          className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-          AI 提供商
+
+      {/* 提供商选择 */}
+      <div>
+        <label className="block text-sm font-medium mb-2">
+          {_("options.aiConfig.labels.provider")}
         </label>
-        
         <select
-          id="provider"
           value={provider || ""}
-          onChange={(e) => setProvider((e.target.value as AIProviderType) || null)}
-          className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100">
-          {PROVIDER_OPTIONS.map((option) => (
-            <option key={option.value || "none"} value={option.value || ""}>
+          onChange={(e) => {
+            const value = e.target.value
+            setProvider(value === "" ? null : value as AIProviderType)
+          }}
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        >
+          {getProviderOptions().map((option) => (
+            <option key={option.value} value={option.value}>
               {option.label}
             </option>
           ))}
         </select>
-        
-        {/* Provider 说明 */}
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          {PROVIDER_OPTIONS.find((o) => o.value === provider)?.description || "请选择 AI 提供商"}
-        </p>
-      </div>
-      
-      {/* API Key 输入 */}
-      {provider && (
-        <div className="space-y-2">
-          <label
-            htmlFor="apiKey"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            API Key
-          </label>
-          
-          <input
-            id="apiKey"
-            type="password"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            placeholder={`输入你的 ${PROVIDER_OPTIONS.find((o) => o.value === provider)?.label} API Key`}
-            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
-          />
-          
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            API Key 将加密存储在浏览器本地，不会上传到服务器
-          </p>
-        </div>
-      )}
-      
-      {/* 预算控制 */}
-      {provider && (
-        <div className="space-y-2">
-          <label
-            htmlFor="budget"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            月度预算限制
-          </label>
-          
-          <div className="flex items-center gap-2">
-            <span className="text-gray-600 dark:text-gray-400">
-              {provider === "deepseek" ? "¥" : "$"}
-            </span>
-            <input
-              id="budget"
-              type="number"
-              min="1"
-              max={provider === "deepseek" ? "500" : "100"}
-              step="1"
-              value={monthlyBudget}
-              onChange={(e) => setMonthlyBudget(Math.max(1, Number(e.target.value)))}
-              className="w-32 rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-            />
-            <span className="text-sm text-gray-600 dark:text-gray-400">
-              / 月
-            </span>
-          </div>
-          
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            💡 超出预算后将自动降级到免费的关键词分析
-          </p>
-          <p className="text-xs text-orange-600 dark:text-orange-400">
-            ⚠️ 建议设置合理预算以避免意外费用
-            {provider === "deepseek"
-              ? "（推荐 ¥10-50）" 
-              : "（推荐 $5-10）"}
-          </p>
-        </div>
-      )}
-      
-      {/* 操作按钮 */}
-      <div className="flex gap-3">
         {provider && (
-          <>
-            <button
-              onClick={handleTestConnection}
-              disabled={testing || !apiKey.trim()}
-              className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">
-              {testing ? "测试中..." : "测试连接"}
-            </button>
-            
-            <button
-              onClick={handleSave}
-              disabled={saving || !apiKey.trim()}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
-              {saving ? "保存中..." : "保存配置"}
-            </button>
-            
-            {enabled && (
-              <button
-                onClick={handleDisable}
-                className="rounded-lg bg-red-100 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-200 dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800">
-                禁用 AI
-              </button>
-            )}
-          </>
+          <p className="mt-1 text-sm text-gray-500">
+            {getProviderOptions().find(opt => opt.value === provider)?.description}
+          </p>
         )}
       </div>
-      
-      {/* 测试结果 */}
-      {testResult && (
-        <div
-          className={`rounded-lg p-4 ${
-            testResult.success
-              ? "bg-green-50 text-green-800 dark:bg-green-900 dark:text-green-200"
-              : "bg-red-50 text-red-800 dark:bg-red-900 dark:text-red-200"
-          }`}>
-          <p className="text-sm">
-            {testResult.success ? "✅" : "❌"} {testResult.message}
-          </p>
-        </div>
+
+      {/* API Key */}
+      {provider && (
+        <>
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              {_("options.aiConfig.labels.apiKey")}
+            </label>
+            <input
+              type="password"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder={_("options.aiConfig.placeholders.apiKey")}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <p className="mt-1 text-sm text-gray-500">
+              {_("options.aiConfig.hints.apiKey")}
+            </p>
+          </div>
+
+          {/* 操作按钮 */}
+          <div className="flex gap-4">
+            <button
+              onClick={handleTest}
+              disabled={isTesting || isSaving}
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+            >
+              {isTesting ? _("options.aiConfig.buttons.testing") : _("options.aiConfig.buttons.test")}
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={isTesting || isSaving}
+              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+            >
+              {isSaving ? _("options.aiConfig.buttons.saving") : _("options.aiConfig.buttons.save")}
+            </button>
+            {provider && (
+              <button
+                onClick={handleDisable}
+                disabled={isTesting || isSaving}
+                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              >
+                {_("options.aiConfig.buttons.disable")}
+              </button>
+            )}
+          </div>
+
+          {/* 消息提示 */}
+          {message && (
+            <div
+              className={`p-4 rounded-lg ${
+                message.type === "success"
+                  ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
+                  : "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200"
+              }`}
+            >
+              {message.text}
+            </div>
+          )}
+        </>
       )}
-      
-      {/* 提示信息 */}
-      <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900">
-        <h3 className="font-medium text-blue-900 dark:text-blue-100">
-          ℹ️ 关于 AI 分析
-        </h3>
-        <ul className="mt-2 space-y-1 text-sm text-blue-800 dark:text-blue-200">
-          <li>
-            • <strong>配置后</strong>：优先使用 AI 分析（更准确，需付费）
-          </li>
-          <li>
-            • <strong>不配置</strong>：使用免费的关键词分析（可用但准确度较低）
-          </li>
-          <li>
-            • <strong>降级策略</strong>：API 失败或超预算时自动降级到关键词分析
-          </li>
-          <li>
-            • <strong>隐私保护</strong>：所有数据处理在本地，API Key 加密存储
-          </li>
+
+      {/* 使用说明 */}
+      <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+        <h3 className="font-semibold mb-2">{_("options.aiConfig.info.title")}</h3>
+        <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+          <li>• {_("options.aiConfig.info.withConfig")}</li>
+          <li>• {_("options.aiConfig.info.withoutConfig")}</li>
+          <li>• {_("options.aiConfig.info.fallback")}</li>
+          <li>• {_("options.aiConfig.info.privacy")}</li>
         </ul>
       </div>
-      
+
       {/* 成本参考 */}
-      {provider && (
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
-          <h3 className="font-medium text-gray-900 dark:text-gray-100">
-            💰 成本参考（每百万 tokens）
-          </h3>
-          
-          {provider === "deepseek" ? (
-            <div className="mt-3 space-y-2">
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                DeepSeek（人民币计价）
-              </p>
-              <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                <li>• 输入（缓存未命中）: ¥2.00/M tokens</li>
-                <li>• 输入（缓存命中）: ¥0.20/M tokens</li>
-                <li>• 输出: ¥3.00/M tokens</li>
-              </ul>
-              <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
-                假设每天浏览 50 个页面，每个页面平均 1000 tokens，10% 缓存命中率：
-              </p>
-              <p className="text-sm text-blue-600 dark:text-blue-400">
-                约 ¥1.41/月 (≈ $0.20/月)
-              </p>
+      <div className="mt-8 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+        <h3 className="font-semibold mb-2">{_("options.aiConfig.cost.title")}</h3>
+        <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">
+          {_("options.aiConfig.cost.example")}
+        </p>
+
+        <div className="space-y-3 text-sm">
+          {/* DeepSeek */}
+          <div>
+            <div className="font-semibold text-gray-800 dark:text-gray-200">
+              {_("options.aiConfig.cost.deepseek.title")}
             </div>
-          ) : provider === "openai" ? (
-            <div className="mt-3 space-y-2">
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                OpenAI GPT-4o-mini（美元计价）
-              </p>
-              <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                <li>• 输入: $0.15/M tokens</li>
-                <li>• 输出: $0.60/M tokens</li>
-              </ul>
-              <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
-                假设每天浏览 50 个页面，每个页面平均 1000 tokens：
-              </p>
-              <p className="text-sm text-blue-600 dark:text-blue-400">
-                约 $0.11 / 月
-              </p>
+            <ul className="ml-4 mt-1 space-y-1 text-gray-700 dark:text-gray-300">
+              <li>• {_("options.aiConfig.cost.deepseek.inputUncached")}</li>
+              <li>• {_("options.aiConfig.cost.deepseek.inputCached")}</li>
+              <li>• {_("options.aiConfig.cost.deepseek.output")}</li>
+              <li className="font-medium text-blue-600 dark:text-blue-400">
+                → {_("options.aiConfig.cost.deepseek.estimate")}
+              </li>
+            </ul>
+          </div>
+
+          {/* OpenAI */}
+          <div>
+            <div className="font-semibold text-gray-800 dark:text-gray-200">
+              {_("options.aiConfig.cost.openai.title")}
             </div>
-          ) : provider === "anthropic" ? (
-            <div className="mt-3 space-y-2">
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Anthropic Claude 3 Haiku（美元计价）
-              </p>
-              <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                <li>• 输入: $0.25/M tokens</li>
-                <li>• 输出: $1.25/M tokens</li>
-              </ul>
-              <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
-                假设每天浏览 50 个页面，每个页面平均 1000 tokens：
-              </p>
-              <p className="text-sm text-blue-600 dark:text-blue-400">
-                约 $0.23 / 月
-              </p>
+            <ul className="ml-4 mt-1 space-y-1 text-gray-700 dark:text-gray-300">
+              <li>• {_("options.aiConfig.cost.openai.input")}</li>
+              <li>• {_("options.aiConfig.cost.openai.output")}</li>
+              <li className="font-medium text-blue-600 dark:text-blue-400">
+                → {_("options.aiConfig.cost.openai.estimate")}
+              </li>
+            </ul>
+          </div>
+
+          {/* Anthropic */}
+          <div>
+            <div className="font-semibold text-gray-800 dark:text-gray-200">
+              {_("options.aiConfig.cost.anthropic.title")}
             </div>
-          ) : null}
-          
-          <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-            💡 实际成本会根据页面内容长度、访问频率等因素有所不同
-          </p>
+            <ul className="ml-4 mt-1 space-y-1 text-gray-700 dark:text-gray-300">
+              <li>• {_("options.aiConfig.cost.anthropic.input")}</li>
+              <li>• {_("options.aiConfig.cost.anthropic.output")}</li>
+              <li className="font-medium text-blue-600 dark:text-blue-400">
+                → {_("options.aiConfig.cost.anthropic.estimate")}
+              </li>
+            </ul>
+          </div>
         </div>
-      )}
+
+        <p className="mt-4 text-xs text-gray-600 dark:text-gray-400">
+          {_("options.aiConfig.cost.note")}
+        </p>
+      </div>
     </div>
   )
 }

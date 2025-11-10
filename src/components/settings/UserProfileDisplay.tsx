@@ -17,6 +17,46 @@ import { InterestSnapshotManager } from "@/core/profile/InterestSnapshotManager"
 import { getAIConfig, getProviderDisplayName } from "@/storage/ai-config"
 import type { UserProfile } from "@/core/profile/types"
 
+/**
+ * 获取主题名称的国际化文本
+ */
+function getTopicName(topic: Topic | string, _: (key: string) => string): string {
+  const topicMap: Record<string, string> = {
+    'technology': _("common.topics.technology"),
+    'science': _("common.topics.science"),
+    'business': _("common.topics.business"),
+    'design': _("common.topics.design"),
+    'arts': _("common.topics.arts"),
+    'health': _("common.topics.health"),
+    'sports': _("common.topics.sports"),
+    'entertainment': _("common.topics.entertainment"),
+    'news': _("common.topics.news"),
+    'education': _("common.topics.education"),
+    'other': _("common.topics.other")
+  }
+  return topicMap[topic.toLowerCase()] || topic
+}
+
+/**
+ * 获取主题性格描述的国际化文本
+ */
+function getTopicPersonality(topic: Topic | string, _: (key: string) => string): string {
+  const personalityMap: Record<string, string> = {
+    'technology': _("common.topicPersonalities.technology"),
+    'science': _("common.topicPersonalities.science"),
+    'business': _("common.topicPersonalities.business"),
+    'design': _("common.topicPersonalities.design"),
+    'arts': _("common.topicPersonalities.arts"),
+    'health': _("common.topicPersonalities.health"),
+    'sports': _("common.topicPersonalities.sports"),
+    'entertainment': _("common.topicPersonalities.entertainment"),
+    'news': _("common.topicPersonalities.news"),
+    'education': _("common.topicPersonalities.education"),
+    'other': _("common.topicPersonalities.other")
+  }
+  return personalityMap[topic.toLowerCase()] || topic
+}
+
 export function UserProfileDisplay() {
   const { _ } = useI18n()
   const [profile, setProfile] = useState<UserProfile | null>(null)
@@ -24,7 +64,7 @@ export function UserProfileDisplay() {
   const [isRebuilding, setIsRebuilding] = useState(false)
   const [evolutionHistory, setEvolutionHistory] = useState<any>(null)
   const [aiConfigured, setAiConfigured] = useState(false)
-  const [aiProvider, setAiProvider] = useState("未配置")
+  const [aiProvider, setAiProvider] = useState("")
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -61,10 +101,10 @@ export function UserProfileDisplay() {
       setEvolutionHistory(history)
       
       // 简单的成功提示
-      alert("用户画像重建成功！")
+      alert(_("options.userProfile.alerts.rebuildSuccess"))
     } catch (error) {
       console.error("[UserProfileDisplay] 重建用户画像失败:", error)
-      alert("重建失败，请稍后重试")
+      alert(_("options.userProfile.alerts.rebuildFailed"))
     } finally {
       setIsRebuilding(false)
     }
@@ -96,13 +136,13 @@ export function UserProfileDisplay() {
           <div className="text-center">
             <span className="text-4xl mb-2 block">🔍</span>
             <p className="text-gray-500 dark:text-gray-400 text-sm">
-              还没有足够的浏览数据来构建用户画像
+              {_("options.userProfile.noData.message")}
             </p>
             <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">
-              继续浏览感兴趣的内容，系统将自动分析您的兴趣偏好
+              {_("options.userProfile.noData.hint")}
             </p>
             <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">
-              💡 不需要等到1000页，有几条有效记录就可以生成画像
+              {_("options.userProfile.noData.tip")}
             </p>
           </div>
         </div>
@@ -148,9 +188,9 @@ export function UserProfileDisplay() {
       return {
         topic: topic as Topic,
         score: scorePercentage,
-        name: TOPIC_NAMES[topic as Topic],
+        name: getTopicName(topic as Topic, _),
         animal: TOPIC_ANIMALS[topic as Topic],
-        personality: TOPIC_PERSONALITIES[topic as Topic],
+        personality: getTopicPersonality(topic as Topic, _),
         isPrimary,
         primaryLevel
       }
@@ -170,10 +210,10 @@ export function UserProfileDisplay() {
     const diff = now - timestamp
     const hours = Math.floor(diff / (1000 * 60 * 60))
     
-    if (hours < 1) return "刚刚更新"
-    if (hours < 24) return `${hours} 小时前`
+    if (hours < 1) return _("options.userProfile.lastUpdated.justNow")
+    if (hours < 24) return _("options.userProfile.lastUpdated.hoursAgo", { hours })
     const days = Math.floor(hours / 24)
-    return `${days} 天前`
+    return _("options.userProfile.lastUpdated.daysAgo", { days })
   }
 
   return (
@@ -193,13 +233,13 @@ export function UserProfileDisplay() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
             <div className="text-sm text-orange-600 dark:text-orange-400 mb-1">
-              画像更新时间
+              {_("options.userProfile.updateTime.label")}
             </div>
             <div className="text-lg font-bold text-orange-900 dark:text-orange-100">
               {new Date(profile.lastUpdated).toLocaleString('zh-CN')}
             </div>
             <div className="text-xs text-orange-600 dark:text-orange-400 mt-1">
-              基于 {profile.totalPages} 页面分析
+              {_("options.userProfile.updateTime.basedOn", { count: profile.totalPages })}
             </div>
           </div>
 
@@ -214,14 +254,14 @@ export function UserProfileDisplay() {
                 ? "text-blue-600 dark:text-blue-400"
                 : "text-gray-600 dark:text-gray-400"
             }`}>
-              分析质量
+              {_("options.userProfile.analysisQuality.label")}
             </div>
             <div className={`text-lg font-bold ${
               aiConfigured
                 ? "text-blue-900 dark:text-blue-100"
                 : "text-gray-900 dark:text-gray-100"
             }`}>
-              {aiConfigured ? `AI 分析 (${aiProvider})` : "关键词分析"}
+              {aiConfigured ? _("options.userProfile.analysisQuality.aiAnalysis", { provider: aiProvider }) : _("options.userProfile.analysisQuality.keywordAnalysis")}
             </div>
             <div className={`text-xs mt-1 ${
               aiConfigured
@@ -229,8 +269,8 @@ export function UserProfileDisplay() {
                 : "text-gray-500 dark:text-gray-400"
             }`}>
               {aiConfigured 
-                ? "✨ 使用 AI 语义理解" 
-                : "📝 使用传统关键词提取"}
+                ? _("options.userProfile.analysisQuality.aiHint")
+                : _("options.userProfile.analysisQuality.keywordHint")}
             </div>
           </div>
         </div>
@@ -242,20 +282,20 @@ export function UserProfileDisplay() {
               <span className="text-2xl">🚀</span>
               <div className="flex-1">
                 <h3 className="text-sm font-medium text-purple-900 dark:text-purple-100 mb-1">
-                  升级到 AI 分析，获得更精准的画像
+                  {_("options.userProfile.aiPrompt.title")}
                 </h3>
                 <p className="text-xs text-purple-700 dark:text-purple-300 mb-2">
-                  当前使用关键词分析。配置 AI 后，系统将能够：
+                  {_("options.userProfile.aiPrompt.description")}
                 </p>
                 <ul className="text-xs text-purple-700 dark:text-purple-300 space-y-1 mb-3">
-                  <li>• 更准确地理解文章主题和语义</li>
-                  <li>• 识别隐含的兴趣倾向</li>
-                  <li>• 提供更个性化的推荐</li>
+                  <li>{_("options.userProfile.aiPrompt.benefit1")}</li>
+                  <li>{_("options.userProfile.aiPrompt.benefit2")}</li>
+                  <li>{_("options.userProfile.aiPrompt.benefit3")}</li>
                 </ul>
                 <a
                   href="/options.html?tab=ai"
                   className="inline-flex items-center gap-1 text-xs bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-lg transition-colors">
-                  <span>立即配置 AI</span>
+                  <span>{_("options.userProfile.aiPrompt.configureButton")}</span>
                   <span>→</span>
                 </a>
               </div>
@@ -267,19 +307,18 @@ export function UserProfileDisplay() {
         <div>
           <h3 className="text-md font-medium mb-4 flex items-center gap-2">
             <span>🎯</span>
-            <span>你的兴趣画像</span>
+            <span>{_("options.userProfile.interests.title")}</span>
             {primaryTopic && (
               <span className="text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-1 rounded-full animate-pulse">
-                {primaryTopic.primaryLevel === 'absolute' && '⭐ 绝对主导'}
-                {primaryTopic.primaryLevel === 'relative' && '🎯 相对主导'} 
-                {primaryTopic.primaryLevel === 'leading' && '📈 显著领先'}
-                ：{primaryTopic.name}
+                {primaryTopic.primaryLevel === 'absolute' && _("options.userProfile.interests.primaryAbsolute", { topic: primaryTopic.name })}
+                {primaryTopic.primaryLevel === 'relative' && _("options.userProfile.interests.primaryRelative", { topic: primaryTopic.name })} 
+                {primaryTopic.primaryLevel === 'leading' && _("options.userProfile.interests.primaryLeading", { topic: primaryTopic.name })}
               </span>
             )}
           </h3>
           {topTopics.length === 0 ? (
             <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-center text-gray-500 dark:text-gray-400 text-sm">
-              暂无主题分类数据
+              {_("options.userProfile.interests.noData")}
             </div>
           ) : (
             <div className="space-y-4">
@@ -326,9 +365,9 @@ export function UserProfileDisplay() {
                           </span>
                           {item.isPrimary && (
                             <span className="text-xs bg-gradient-to-r from-yellow-400 to-orange-400 text-yellow-900 px-2 py-1 rounded-full font-bold">
-                              {item.primaryLevel === 'absolute' && '👑 绝对主导'}
-                              {item.primaryLevel === 'relative' && '🎯 相对主导'}
-                              {item.primaryLevel === 'leading' && '📈 显著领先'}
+                              {item.primaryLevel === 'absolute' && _("options.userProfile.interests.levelAbsolute")}
+                              {item.primaryLevel === 'relative' && _("options.userProfile.interests.levelRelative")}
+                              {item.primaryLevel === 'leading' && _("options.userProfile.interests.levelLeading")}
                             </span>
                           )}
                         </h4>
@@ -366,9 +405,9 @@ export function UserProfileDisplay() {
                       {/* 主导兴趣提示 */}
                       {item.isPrimary && (
                         <div className="mt-2 text-xs text-purple-600 dark:text-purple-400 font-medium">
-                          {item.primaryLevel === 'absolute' && '✨ 绝对主导兴趣！占比超过33.3%，这是你的核心兴趣领域'}
-                          {item.primaryLevel === 'relative' && '🎯 相对主导兴趣！明显超越其他兴趣，是当前的重点关注领域'}
-                          {item.primaryLevel === 'leading' && '📈 显著领先兴趣！在众多兴趣中脱颖而出，值得深入发展'}
+                          {item.primaryLevel === 'absolute' && _("options.userProfile.interests.levelAbsoluteHint")}
+                          {item.primaryLevel === 'relative' && _("options.userProfile.interests.levelRelativeHint")}
+                          {item.primaryLevel === 'leading' && _("options.userProfile.interests.levelLeadingHint")}
                         </div>
                       )}
                     </div>
@@ -385,10 +424,10 @@ export function UserProfileDisplay() {
         <div>
           <h3 className="text-md font-medium mb-4 flex items-center gap-2">
             <span>📈</span>
-            <span>兴趣演化历程</span>
+            <span>{_("options.userProfile.evolution.title")}</span>
             {evolutionHistory && evolutionHistory.totalSnapshots > 0 && (
               <span className="text-xs bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 px-2 py-1 rounded-full">
-                共 {evolutionHistory.totalSnapshots} 个记录点
+                {_("options.userProfile.evolution.totalSnapshots", { count: evolutionHistory.totalSnapshots })}
               </span>
             )}
           </h3>
@@ -499,17 +538,17 @@ export function UserProfileDisplay() {
                         <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
                           <div className="bg-gray-700 dark:bg-gray-300 text-white dark:text-gray-900 text-xs rounded-lg px-3 py-2 whitespace-nowrap shadow-2xl ring-1 ring-black/10">
                             <div className="font-semibold mb-1">
-                              {snapshot.topicName}
+                              {getTopicName(snapshot.topic, _)}
                               {snapshot.trigger === 'rebuild' && (
-                                <span className="ml-1 text-purple-300 dark:text-purple-600">🔄 重建</span>
+                                <span className="ml-1 text-purple-300 dark:text-purple-600">{_("options.userProfile.evolution.rebuildLabel")}</span>
                               )}
                             </div>
-                            <div>占比: {Math.round(snapshot.score * 100)}%</div>
-                            <div>页面: {snapshot.basedOnPages}</div>
+                            <div>{_("options.userProfile.evolution.scoreLabel", { score: Math.round(snapshot.score * 100) })}</div>
+                            <div>{_("options.userProfile.evolution.pagesLabel", { pages: snapshot.basedOnPages })}</div>
                             <div className="text-gray-300 dark:text-gray-600 mt-1">
                               {snapshot.trigger === 'rebuild' 
-                                ? '用户主动重建画像'
-                                : snapshot.changeDetails || '保持稳定'}
+                                ? _("options.userProfile.evolution.rebuildTrigger")
+                                : snapshot.changeDetails || _("options.userProfile.evolution.stable")}
                             </div>
                             {/* 向上的小三角 */}
                             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-px">
@@ -546,12 +585,12 @@ export function UserProfileDisplay() {
                             ? 'text-purple-900 dark:text-purple-100' 
                             : 'text-gray-800 dark:text-gray-200'
                         }`}>
-                          {levelEmoji} {snapshot.topicName} ({snapshot.basedOnPages})
+                          {levelEmoji} {getTopicName(snapshot.topic, _)} ({snapshot.basedOnPages})
                         </div>
                         
                         {/* 第二行：时间 */}
                         <div className="text-xs text-gray-500 dark:text-gray-400">
-                          {new Date(snapshot.timestamp).toLocaleString('zh-CN', {
+                          {new Date(snapshot.timestamp).toLocaleString(document.documentElement.lang || 'zh-CN', {
                             month: 'short',
                             day: 'numeric',
                             hour: '2-digit',
@@ -567,19 +606,19 @@ export function UserProfileDisplay() {
               {/* 底部提示 */}
               {evolutionHistory.totalSnapshots > 5 && (
                 <div className="mt-4 text-center text-xs text-gray-500 dark:text-gray-400">
-                  还有 {evolutionHistory.totalSnapshots - 5} 条更早的记录
+                  {_("options.userProfile.evolution.moreRecords", { count: evolutionHistory.totalSnapshots - 5 })}
                 </div>
               )}
 
               <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 text-center text-xs text-gray-500 dark:text-gray-400">
-                💡 从左到右按时间排列 | 圆圈大小代表主导程度 | 🔥绝对 ⭐相对 💫领先 | 🔄重建/兴趣变化 📊强度变化
+                {_("options.userProfile.evolution.legend")}
               </div>
             </div>
           ) : (
             <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 text-center text-gray-500 dark:text-gray-400 text-sm">
-              暂无兴趣变化记录
+              {_("options.userProfile.evolution.noData")}
               <div className="text-xs mt-2 text-gray-400 dark:text-gray-500">
-                随着你浏览更多页面，系统会自动记录兴趣演化历程
+                {_("options.userProfile.evolution.noDataHint")}
               </div>
             </div>
           )}
@@ -589,11 +628,11 @@ export function UserProfileDisplay() {
         <div>
           <h3 className="text-md font-medium mb-4 flex items-center gap-2">
             <span>🔤</span>
-            <span>兴趣关键词云</span>
+            <span>{_("options.userProfile.keywords.title")}</span>
           </h3>
           {topKeywords.length === 0 ? (
             <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-center text-gray-500 dark:text-gray-400 text-sm">
-              暂无关键词数据
+              {_("options.userProfile.keywords.noData")}
             </div>
           ) : (
             <div className="bg-gradient-to-br from-indigo-50 via-white to-cyan-50 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-600">
@@ -631,7 +670,7 @@ export function UserProfileDisplay() {
                         hover:scale-105 hover:shadow-lg cursor-default
                         ${getFontSize()} ${getColors()}
                       `}
-                      title={`权重: ${keyword.weight.toFixed(3)}`}
+                      title={_("options.userProfile.keywords.weightLabel", { weight: keyword.weight.toFixed(3) })}
                     >
                       {keyword.word}
                       <span className="ml-2 text-xs opacity-80">
@@ -643,7 +682,7 @@ export function UserProfileDisplay() {
               </div>
               
               <div className="mt-4 text-center text-xs text-gray-500 dark:text-gray-400">
-                💡 关键词大小代表权重，hover查看详细权重值
+                {_("options.userProfile.keywords.hint")}
               </div>
             </div>
           )}
