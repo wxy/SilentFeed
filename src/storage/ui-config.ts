@@ -1,6 +1,7 @@
 /**
  * UI 风格配置存储
  * 管理用户的 UI 主题偏好（手绘风格 vs 普通风格）
+ * 颜色主题自动跟随系统
  */
 
 export type UIStyle = "sketchy" | "normal"
@@ -41,5 +42,39 @@ export function watchUIStyle(callback: (style: UIStyle) => void): () => void {
   
   return () => {
     chrome.storage.onChanged.removeListener(listener)
+  }
+}
+
+/**
+ * 检测当前系统主题
+ * @returns 系统是否为暗色主题
+ */
+export function getSystemTheme(): "light" | "dark" {
+  if (typeof window !== "undefined" && window.matchMedia) {
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+  }
+  return "light" // 默认明亮主题
+}
+
+/**
+ * 监听系统主题变化
+ * @param callback - 系统主题变化时的回调函数
+ * @returns 取消监听的函数
+ */
+export function watchSystemTheme(callback: (isDark: boolean) => void): () => void {
+  if (typeof window === "undefined" || !window.matchMedia) {
+    return () => {} // 不支持的环境
+  }
+  
+  const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)")
+  
+  const listener = (e: MediaQueryListEvent) => {
+    callback(e.matches)
+  }
+  
+  mediaQuery.addEventListener("change", listener)
+  
+  return () => {
+    mediaQuery.removeEventListener("change", listener)
   }
 }

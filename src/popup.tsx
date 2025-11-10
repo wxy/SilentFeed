@@ -5,9 +5,10 @@ import { useI18n } from "@/i18n/helpers"
 import i18n from "@/i18n"
 import { getPageCount } from "@/storage/db"
 import { getUIStyle, watchUIStyle, type UIStyle } from "@/storage/ui-config"
+import { useTheme } from "@/hooks/useTheme"
 import { ColdStartView } from "@/components/ColdStartView"
 import { RecommendationView } from "@/components/RecommendationView"
-import "./style.css"
+import "@/styles/global.css"
 import "@/styles/sketchy.css" // 手绘风格样式
 
 /**
@@ -16,6 +17,7 @@ import "@/styles/sketchy.css" // 手绘风格样式
  */
 function IndexPopup() {
   const { _ } = useI18n()
+  useTheme() // 应用主题到 DOM
   
   const [pageCount, setPageCount] = useState<number | null>(null)
   const [isLoading, setIsLoading] = useState(true)
