@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-11-10T04:53:57.100Z",
+  "lastUpdate": "2025-11-10T08:55:04.061Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -4507,6 +4507,76 @@
         "value": "Connection successful! (Latency: {{latency}}ms)",
         "hash": "54342783",
         "lastModified": "2025-11-10T04:53:56.594Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.themeMode": {
+      "zh-CN": {
+        "value": "主题模式",
+        "hash": "b0bb0f81",
+        "lastModified": "2025-11-10T08:54:54.767Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Theme Mode",
+        "hash": "aac03376",
+        "lastModified": "2025-11-10T08:54:54.768Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.themeModeAuto": {
+      "zh-CN": {
+        "value": "🌗 跟随系统",
+        "hash": "8a0a2109",
+        "lastModified": "2025-11-10T08:54:57.002Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "🌗 Follow System",
+        "hash": "10b227cb",
+        "lastModified": "2025-11-10T08:54:57.002Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.themeModeLight": {
+      "zh-CN": {
+        "value": "☀️ 明亮主题",
+        "hash": "393b354c",
+        "lastModified": "2025-11-10T08:54:59.050Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "☀️ Bright Theme",
+        "hash": "7340a6a0",
+        "lastModified": "2025-11-10T08:54:59.050Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.themeModeDark": {
+      "zh-CN": {
+        "value": "🌙 暗色主题",
+        "hash": "3c7b9909",
+        "lastModified": "2025-11-10T08:55:01.112Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "🌙 Dark Theme",
+        "hash": "db3f154f",
+        "lastModified": "2025-11-10T08:55:01.112Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.themeModeDescription": {
+      "zh-CN": {
+        "value": "选择明暗主题，或跟随系统设置自动切换",
+        "hash": "2737d5e5",
+        "lastModified": "2025-11-10T08:55:03.555Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Choose a light or dark theme, or switch automatically with your system settings",
+        "hash": "05a1f4b2",
+        "lastModified": "2025-11-10T08:55:03.555Z",
         "status": "ai-translated"
       }
     }

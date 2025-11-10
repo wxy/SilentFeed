@@ -3,9 +3,10 @@
 @tailwind components;
 @tailwind utilities;
 
-/* CSS 变量 - 自动适配明暗主题 */
+/* CSS 变量 - 明暗主题（通过 .dark 类控制） */
 @layer base {
   :root {
+    /* 明亮主题 */
     /* 背景层级 */
     --bg-base: 255 255 255;
     --bg-surface: 250 250 250;
@@ -25,26 +26,25 @@
     --primary-hover: 46 139 111;
   }
 
-  @media (prefers-color-scheme: dark) {
-    :root {
-      /* 背景层级 */
-      --bg-base: 10 10 10;
-      --bg-surface: 26 26 26;
-      --bg-hover: 42 42 42;
-      
-      /* 文本层级 */
-      --text-primary: 224 224 224;
-      --text-secondary: 160 160 160;
-      --text-tertiary: 112 112 112;
-      
-      /* 边框 */
-      --border: 51 51 51;
-      --border-hover: 74 74 74;
-      
-      /* 主色调 */
-      --primary: 95 211 168;
-      --primary-hover: 61 171 133;
-    }
+  /* 暗色主题 - 通过 .dark 类激活 */
+  .dark {
+    /* 背景层级 */
+    --bg-base: 10 10 10;
+    --bg-surface: 26 26 26;
+    --bg-hover: 42 42 42;
+    
+    /* 文本层级 */
+    --text-primary: 224 224 224;
+    --text-secondary: 160 160 160;
+    --text-tertiary: 112 112 112;
+    
+    /* 边框 */
+    --border: 51 51 51;
+    --border-hover: 74 74 74;
+    
+    /* 主色调 */
+    --primary: 95 211 168;
+    --primary-hover: 61 171 133;
   }
 
   /* 基础元素样式 */
