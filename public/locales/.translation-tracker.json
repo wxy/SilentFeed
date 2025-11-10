@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-11-09T14:49:02.329Z",
+  "lastUpdate": "2025-11-10T04:53:57.100Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -4437,6 +4437,76 @@
         "value": "The API Key will be encrypted and stored locally in the browser, and will not be uploaded to the server.",
         "hash": "e98a4335",
         "lastModified": "2025-11-09T14:49:01.827Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.uiStyle": {
+      "zh-CN": {
+        "value": "界面风格",
+        "hash": "447f075a",
+        "lastModified": "2025-11-10T04:53:48.816Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Interface style",
+        "hash": "a1ad09c0",
+        "lastModified": "2025-11-10T04:53:48.818Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.uiStyleSketchy": {
+      "zh-CN": {
+        "value": "🎨 手绘风格",
+        "hash": "02b00055",
+        "lastModified": "2025-11-10T04:53:50.756Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "🎨 Hand-drawn Style",
+        "hash": "f39e60b4",
+        "lastModified": "2025-11-10T04:53:50.756Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.uiStyleNormal": {
+      "zh-CN": {
+        "value": "📱 标准风格",
+        "hash": "4cdc3d59",
+        "lastModified": "2025-11-10T04:53:52.806Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "📱 Standard Style",
+        "hash": "216e7fe4",
+        "lastModified": "2025-11-10T04:53:52.806Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.uiStyleDescription": {
+      "zh-CN": {
+        "value": "选择扩展的界面外观风格",
+        "hash": "c7a6c3f1",
+        "lastModified": "2025-11-10T04:53:54.647Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Choose the interface appearance style for the extension",
+        "hash": "8609930c",
+        "lastModified": "2025-11-10T04:53:54.647Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.messages.testSuccess": {
+      "zh-CN": {
+        "value": "连接成功！（延迟: {{latency}}ms）",
+        "hash": "6f33424c",
+        "lastModified": "2025-11-10T04:53:56.594Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Connection successful! (Latency: {{latency}}ms)",
+        "hash": "54342783",
+        "lastModified": "2025-11-10T04:53:56.594Z",
         "status": "ai-translated"
       }
     }

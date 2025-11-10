@@ -6,7 +6,9 @@ import i18n from "@/i18n"
 import { RecommendationStats } from "@/components/settings/RecommendationStats"
 import { CollectionStats } from "@/components/settings/CollectionStats"
 import { AIConfig } from "@/components/settings/AIConfig"
+import { getUIStyle, setUIStyle, watchUIStyle, type UIStyle } from "@/storage/ui-config"
 import "./style.css"
+import "@/styles/sketchy.css"
 
 // 开发环境下加载调试工具
 if (process.env.NODE_ENV === 'development') {
@@ -34,6 +36,29 @@ function IndexOptions() {
   }
 
   const [activeTab, setActiveTab] = useState<TabKey>(getInitialTab)
+  const [uiStyle, setUiStyleState] = useState<UIStyle>("sketchy")
+
+  // 加载 UI 风格
+  useEffect(() => {
+    const loadUIStyle = async () => {
+      const style = await getUIStyle()
+      setUiStyleState(style)
+    }
+    loadUIStyle()
+
+    // 监听 UI 风格变化
+    const unwatch = watchUIStyle((newStyle) => {
+      setUiStyleState(newStyle)
+    })
+
+    return () => unwatch()
+  }, [])
+
+  // 切换 UI 风格
+  const handleUIStyleChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const style = e.target.value as UIStyle
+    await setUIStyle(style)
+  }
 
   // 当标签改变时更新 URL
   useEffect(() => {
@@ -156,6 +181,32 @@ function IndexOptions() {
                       {/* <option value="fr">{_("options.general.languageFr")}</option> */}
                       {/* <option value="ja">{_("options.general.languageJa")}</option> */}
                     </select>
+                  </div>
+
+                  {/* UI 风格选择 */}
+                  <div>
+                    <label
+                      htmlFor="ui-style-select"
+                      className="block text-sm font-medium mb-2"
+                    >
+                      {_("options.general.uiStyle")}
+                    </label>
+                    <select
+                      id="ui-style-select"
+                      value={uiStyle}
+                      onChange={handleUIStyleChange}
+                      className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
+                    >
+                      <option value="sketchy">
+                        {_("options.general.uiStyleSketchy")}
+                      </option>
+                      <option value="normal">
+                        {_("options.general.uiStyleNormal")}
+                      </option>
+                    </select>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                      {_("options.general.uiStyleDescription")}
+                    </p>
                   </div>
                 </div>
               </div>
