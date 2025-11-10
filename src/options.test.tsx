@@ -119,9 +119,9 @@ describe("IndexOptions 组件", () => {
       const aiTab = screen.getByText("AI")
       await user.click(aiTab)
 
-      // 新的 AIConfig 组件内容（国际化后为英文）
-      expect(screen.getByText(/AI Configuration/)).toBeInTheDocument()
-      expect(screen.getByText(/Configure remote AI services/)).toBeInTheDocument()
+      // AIConfig组件内容 - 使用mock的中文翻译
+      expect(screen.getByText("AI 配置")).toBeInTheDocument()
+      expect(screen.getByText("配置 AI 推荐引擎")).toBeInTheDocument()
     })
 
     it("点击数据标签应该切换到数据管理页面", async () => {
@@ -284,9 +284,9 @@ describe("IndexOptions 组件", () => {
 
       await user.click(screen.getByText("AI"))
 
-      // 新的 AIConfig 组件显示配置说明（国际化后为英文）
-      expect(screen.getByText(/About AI Analysis/)).toBeInTheDocument()
-      expect(screen.getByText(/After configuration/)).toBeInTheDocument()
+      // AIConfig组件显示配置说明 - 使用mock的中文翻译  
+      expect(screen.getByText("AI 配置")).toBeInTheDocument()
+      expect(screen.getByText("配置 AI 推荐引擎")).toBeInTheDocument()
     })
   })
 
