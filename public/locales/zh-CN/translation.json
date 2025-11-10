@@ -52,6 +52,74 @@
       "disabled": "将在完成 1000 页面后启用",
       "description": "管理你的 RSS 订阅源"
     },
+    "rssManager": {
+      "addSource": "添加订阅源",
+      "manualSubscribe": "手动订阅 RSS URL",
+      "manualPlaceholder": "https://example.com/feed.xml",
+      "subscribing": "验证中...",
+      "subscribe": "订阅",
+      "importOPML": "批量导入（OPML 文件）",
+      "selectOPML": "选择 OPML 文件",
+      "importing": "导入中...",
+      "opmlHint": "支持从其他 RSS 阅读器导出的订阅列表",
+      "loading": "加载中...",
+      "noFeeds": "暂无发现的 RSS 源",
+      "noFeedsHint": "浏览包含 RSS 订阅的网站时，我们会自动发现并在这里显示",
+      "discoveredFrom": "来自",
+      "subscribedAt": "订阅于",
+      "discoveredFeeds": "发现的 RSS 源 ({{count}})",
+      "discoveredFeedsHint": "这些 RSS 源是从你浏览的页面中自动发现的，点击标题查看源内容",
+      "subscribedFeeds": "已订阅 ({{count}})",
+      "subscribedFeedsHint": "你已订阅的 RSS 源，可以随时取消订阅",
+      "ignoredFeeds": "已忽略 ({{count}})",
+      "clickToToggle": "点击{{action}}",
+      "expand": "展开",
+      "collapse": "收起",
+      "source": {
+        "discovered": "自动发现",
+        "manual": "手动订阅",
+        "imported": "OPML导入"
+      },
+      "actions": {
+        "subscribe": "订阅",
+        "ignore": "忽略",
+        "unsubscribe": "取消订阅",
+        "delete": "删除"
+      },
+      "metadata": {
+        "items": "{{count}} 条",
+        "language": "语言"
+      },
+      "languages": {
+        "zh": "中文",
+        "en": "英文",
+        "ja": "日文",
+        "ko": "韩文",
+        "fr": "法文",
+        "de": "德文",
+        "es": "西班牙文",
+        "ru": "俄文",
+        "pt": "葡萄牙文",
+        "it": "意大利文",
+        "unknown": "未知"
+      },
+      "errors": {
+        "invalidUrl": "请输入有效的 RSS URL",
+        "fetchFailed": "无法获取该 URL 的内容",
+        "notRSS": "该 URL 不是有效的 RSS 源",
+        "validationFailed": "RSS 验证失败",
+        "alreadyExists": "该源已存在",
+        "subscribeFailed": "订阅失败",
+        "networkError": "网络错误，请检查连接",
+        "parseError": "OPML 文件解析失败",
+        "importFailed": "OPML 导入失败"
+      },
+      "success": {
+        "subscribed": "订阅成功！",
+        "imported": "导入成功！共导入 {{count}} 个订阅源",
+        "importedWithErrors": "导入完成: 成功 {{successCount}}, 跳过 {{skipCount}}, 失败 {{failCount}}"
+      }
+    },
     "ai": {
       "title": "AI 配置",
       "disabled": "将在完成 1000 页面后启用",

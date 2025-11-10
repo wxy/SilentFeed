@@ -48,12 +48,22 @@ export interface DiscoveredFeed {
   description?: string          // 源描述
   link?: string                 // 源网站 URL
   
+  // Phase 5.1.6: 扩展元数据
+  language?: string             // 语言（zh-CN, en-US等）
+  category?: string             // 分类
+  lastBuildDate?: number        // 最后构建日期
+  itemCount?: number            // 条目数
+  generator?: string            // 生成器
+  
   // 发现信息
   discoveredFrom: string        // 发现来源页面 URL
   discoveredAt: number          // 发现时间戳
   
   // 状态管理
   status: FeedStatus            // 源状态
+  
+  // Phase 5.1.6: 订阅来源追踪
+  subscriptionSource?: 'discovered' | 'manual' | 'imported'  // 订阅来源
   
   // 质量评估（后台填充）
   quality?: FeedQuality
@@ -126,6 +136,15 @@ export interface FeedMetadata {
   title: string
   description: string
   link: string
+  
+  // Phase 5.1.6: 扩展元数据
+  language?: string           // 语言（如 zh-CN, en-US）
+  category?: string           // 分类
+  lastBuildDate?: number      // 最后构建日期（时间戳）
+  pubDate?: number            // 发布日期（时间戳）
+  itemCount?: number          // 条目数
+  generator?: string          // 生成器
+  copyright?: string          // 版权信息
 }
 
 /**

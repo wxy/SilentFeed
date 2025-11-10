@@ -4,13 +4,15 @@
  * 功能：
  * 1. 检测页面中的 RSS 链接（<link> 标签）
  * 2. 尝试常见 RSS URL 模式
- * 3. 发送检测结果到 background script
+ * 3. 验证 RSS 源（使用 DOMParser）
+ * 4. 发送验证结果到 background script
  * 
  * @module contents/rss-detector
  */
 
 import type { PlasmoCSConfig } from "plasmo"
 import type { RSSLink } from "~core/rss/types"
+import { RSSValidator } from "~core/rss/RSSValidator"
 
 /**
  * Plasmo Content Script 配置
@@ -113,22 +115,60 @@ function normalizeURL(url: string): string | null {
 
 /**
  * 发送检测结果到 background script
+ * 
+ * 功能：
+ * 1. 验证每个 RSS URL
+ * 2. 只发送验证通过的源
+ * 3. 包含完整的元数据
  */
 async function sendRSSLinksToBackground(feeds: RSSLink[]): Promise<void> {
   if (feeds.length === 0) return
+  
+  console.log(`[RSS Detector] 开始验证 ${feeds.length} 个 RSS 源...`)
+  
+  // 验证每个源并收集结果
+  const validatedFeeds = []
+  
+  for (const feed of feeds) {
+    try {
+      console.log(`[RSS Detector] 验证: ${feed.url}`)
+      const result = await RSSValidator.validateURL(feed.url)
+      
+      if (result.valid && result.metadata) {
+        validatedFeeds.push({
+          url: feed.url,
+          type: result.type || feed.type,
+          title: result.metadata.title,
+          description: result.metadata.description,
+          metadata: result.metadata,
+        })
+        console.log(`[RSS Detector] ✓ 验证通过: ${result.metadata.title}`)
+      } else {
+        console.log(`[RSS Detector] ✗ 验证失败: ${feed.url} - ${result.error}`)
+      }
+    } catch (error) {
+      console.warn(`[RSS Detector] 验证异常: ${feed.url}`, error)
+    }
+  }
+  
+  // 只发送验证通过的源
+  if (validatedFeeds.length === 0) {
+    console.log(`[RSS Detector] 没有通过验证的 RSS 源`)
+    return
+  }
   
   try {
     await chrome.runtime.sendMessage({
       type: "RSS_DETECTED",
       payload: {
-        feeds,
+        feeds: validatedFeeds,
         sourceURL: window.location.href,
         sourceTitle: document.title,
         detectedAt: Date.now(),
       },
     })
     
-    console.log(`[RSS Detector] 检测到 ${feeds.length} 个 RSS 源`, feeds)
+    console.log(`[RSS Detector] 已发送 ${validatedFeeds.length} 个有效 RSS 源`, validatedFeeds)
   } catch (error) {
     // Background script 可能未运行，静默失败
     console.warn("[RSS Detector] 发送消息失败:", error)

@@ -621,6 +621,31 @@
 
 ---
 
+### UI 改进：主题系统简化 ✅ (已完成)
+
+**完成日期**: 2025-11-10
+**分支**: feature/ui-theme-improvements
+**PR**: 待创建
+
+#### 变更概述
+采用**方案 A**（仅跟随系统主题），移除手动主题选择功能，简化主题系统。
+
+#### 主要修改
+- ✅ Tailwind 配置: `darkMode: 'media'` → `'class'`
+- ✅ 删除 ThemeMode 类型和主题选择相关代码
+- ✅ 简化 useTheme Hook 为仅系统主题跟随
+- ✅ 移除设置页主题选择下拉框
+- ✅ 清理重复文件和 i18n 翻译
+- ✅ 更新测试: 568 个测试全部通过
+
+#### 设计理念
+- 符合"克制设计"原则
+- 减少用户选择疲劳
+- 与 Chrome 扩展生态一致
+- 代码更简单可靠
+
+---
+
 ### 设计原则
 
 #### RSS 来源策略
@@ -729,6 +754,116 @@ interface DiscoveredFeed {
 - 测试总数: 513 → 553
 - 测试通过率: 100%
 - 代码行数: +1085
+
+#### 待完成任务
+
+##### 5.1.6 完整元数据与订阅管理 ✅ (已完成)
+
+**完成日期**: 2025-11-10
+**分支**: feature/phase-5-sprint-1-ui
+
+**实现内容**:
+
+1. **增强 RSS 验证器** ✅
+   - 扩展 `FeedMetadata` 类型添加完整元数据字段
+   - `RSSValidator` 提取：语言、分类、发布日期、条目数、生成器
+   - 新增 `validateURL()` 方法从网络获取并验证 RSS
+
+2. **优化源列表 UI** ✅
+   - 三行布局：
+     * 第一行：RSS/ATOM 徽章（#FF6600 橙色+白字） + 标题链接
+     * 第二行：元数据（📅 发布日期 | 🏷️ 分类 | 🌐 语言 | 📄 条目数）
+     * 第三行：来源信息 + 订阅来源标签 + 操作按钮
+   - 标题格式：`RSS标题 - 域名`
+
+3. **订阅来源追踪** ✅
+   - `DiscoveredFeed` 新增 `subscriptionSource` 字段
+   - 三种来源：`discovered`（自动发现）| `manual`（手动订阅）| `imported`（OPML导入）
+   - UI 显示来源标签（绿色高亮）
+
+4. **手动订阅功能** ✅
+   - 输入框 + 订阅按钮
+   - URL 验证和去重
+   - 自动提取完整元数据
+   - 直接加入订阅列表（标记 `manual`）
+
+5. **OPML 导入功能** ✅
+   - 创建 `OPMLImporter.ts` 工具类
+   - 支持解析 OPML XML 格式
+   - 批量导入并订阅（标记 `imported`）
+   - 显示导入结果统计
+
+6. **数据流程完善** ✅
+   - `background.ts` 使用验证结果的元数据
+   - 标题组合：`RSS标题 - 源域名`
+   - 保存完整元数据到数据库
+   - 订阅来源自动标记
+
+**技术指标**:
+- 新增文件: `OPMLImporter.ts` (150 行)
+- 修改文件: `RSSValidator.ts`, `types.ts`, `FeedManager.ts`, `RSSManager.tsx`, `background.ts`
+- 构建成功: 2117ms
+- 类型检查: 通过
+
+**用户体验提升**:
+- ✅ RSS 列表显示更多有用信息（语言、分类、条目数）
+- ✅ 橙色 RSS 徽章更符合行业标准
+- ✅ 可追溯订阅来源（发现 vs 手动 vs 导入）
+- ✅ 支持从其他阅读器迁移（OPML 导入）
+- ✅ 手动添加源的快速入口
+
+##### 5.1.7 国际化集成与测试 ✅ (已完成)
+
+**完成日期**: 2025-11-10
+**分支**: feature/phase-5-sprint-1-ui
+**提交**: 3e41bc8
+
+**实现内容**:
+
+1. **RSSManager 组件国际化** ✅
+   - 导入 react-i18next 的 `useTranslation` hook
+   - 所有硬编码中文文本替换为 `_()` 函数调用
+   - 支持中英双语动态切换
+   - 国际化覆盖率 100%
+
+2. **翻译文件更新** ✅
+   - 新增 27 个翻译 key：
+     * `loading`, `discoveredFrom`, `subscribedAt`
+     * `discoveredFeeds`, `subscribedFeeds`, `ignoredFeeds`
+     * `clickToToggle`, `expand`, `collapse`
+     * 9 种语言名称（en, ja, ko, fr, de, es, ru, pt, it）
+     * 错误消息：`validationFailed`, `subscribeFailed`, `importFailed`
+     * 成功消息：`importedWithErrors`
+   - DeepSeek API 自动翻译成英文
+   - 翻译质量验证通过
+
+3. **OPML 导入器单元测试** ✅
+   - 12 个测试用例全部通过
+   - 测试覆盖：
+     * 标准 OPML 解析
+     * 带分类/描述的 OPML
+     * 嵌套分类处理
+     * title/text 属性优先级
+     * 特殊字符处理
+     * UTF-8 编码支持
+     * 错误处理
+   - 测试通过率: 100% (12/12)
+
+**技术指标**:
+- 新增测试文件: `OPMLImporter.test.ts` (180 行)
+- 修改文件: `RSSManager.tsx`, `zh-CN/translation.json`, `en/translation.json`
+- 新增翻译: 27 keys (zh-CN) + 27 keys (en)
+- 构建成功: 2332ms
+- 类型检查: 通过
+- 测试通过: 12/12
+
+**质量保证**:
+- ✅ 组件支持多语言
+- ✅ 翻译完整无遗漏
+- ✅ OPML 解析器稳定可靠
+- ✅ 代码风格一致
+
+##### 5.1.4 浏览器实测 ⏸️ (待开始)
 
 ---
 

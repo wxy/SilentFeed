@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-11-10T08:55:04.061Z",
+  "lastUpdate": "2025-11-10T16:00:44.755Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -4510,73 +4510,900 @@
         "status": "ai-translated"
       }
     },
-    "options.general.themeMode": {
+
+    "options.rssManager.addSource": {
       "zh-CN": {
-        "value": "主题模式",
-        "hash": "b0bb0f81",
-        "lastModified": "2025-11-10T08:54:54.767Z",
+        "value": "添加订阅源",
+        "hash": "498f1d06",
+        "lastModified": "2025-11-10T15:49:18.131Z",
         "status": "verified"
       },
       "en": {
-        "value": "Theme Mode",
-        "hash": "aac03376",
-        "lastModified": "2025-11-10T08:54:54.768Z",
+        "value": "Add feed",
+        "hash": "8e572f3b",
+        "lastModified": "2025-11-10T15:49:18.133Z",
         "status": "ai-translated"
       }
     },
-    "options.general.themeModeAuto": {
+    "options.rssManager.manualSubscribe": {
       "zh-CN": {
-        "value": "🌗 跟随系统",
-        "hash": "8a0a2109",
-        "lastModified": "2025-11-10T08:54:57.002Z",
+        "value": "手动订阅 RSS URL",
+        "hash": "e5813cba",
+        "lastModified": "2025-11-10T15:49:20.005Z",
         "status": "verified"
       },
       "en": {
-        "value": "🌗 Follow System",
-        "hash": "10b227cb",
-        "lastModified": "2025-11-10T08:54:57.002Z",
+        "value": "Manually subscribe to RSS URL",
+        "hash": "ffba8502",
+        "lastModified": "2025-11-10T15:49:20.005Z",
         "status": "ai-translated"
       }
     },
-    "options.general.themeModeLight": {
+    "options.rssManager.manualPlaceholder": {
       "zh-CN": {
-        "value": "☀️ 明亮主题",
-        "hash": "393b354c",
-        "lastModified": "2025-11-10T08:54:59.050Z",
+        "value": "https://example.com/feed.xml",
+        "hash": "f7880620",
+        "lastModified": "2025-11-10T15:49:21.936Z",
         "status": "verified"
       },
       "en": {
-        "value": "☀️ Bright Theme",
-        "hash": "7340a6a0",
-        "lastModified": "2025-11-10T08:54:59.050Z",
+        "value": "https://example.com/feed.xml",
+        "hash": "f7880620",
+        "lastModified": "2025-11-10T15:49:21.936Z",
         "status": "ai-translated"
       }
     },
-    "options.general.themeModeDark": {
+    "options.rssManager.subscribing": {
       "zh-CN": {
-        "value": "🌙 暗色主题",
-        "hash": "3c7b9909",
-        "lastModified": "2025-11-10T08:55:01.112Z",
+        "value": "验证中...",
+        "hash": "fd3193ee",
+        "lastModified": "2025-11-10T15:49:23.468Z",
         "status": "verified"
       },
       "en": {
-        "value": "🌙 Dark Theme",
-        "hash": "db3f154f",
-        "lastModified": "2025-11-10T08:55:01.112Z",
+        "value": "Verifying...",
+        "hash": "1384e505",
+        "lastModified": "2025-11-10T15:49:23.468Z",
         "status": "ai-translated"
       }
     },
-    "options.general.themeModeDescription": {
+    "options.rssManager.subscribe": {
       "zh-CN": {
-        "value": "选择明暗主题，或跟随系统设置自动切换",
-        "hash": "2737d5e5",
-        "lastModified": "2025-11-10T08:55:03.555Z",
+        "value": "订阅",
+        "hash": "02daf71f",
+        "lastModified": "2025-11-10T15:49:25.209Z",
         "status": "verified"
       },
       "en": {
-        "value": "Choose a light or dark theme, or switch automatically with your system settings",
-        "hash": "05a1f4b2",
-        "lastModified": "2025-11-10T08:55:03.555Z",
+        "value": "Subscribe",
+        "hash": "b2691758",
+        "lastModified": "2025-11-10T15:49:25.209Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.importOPML": {
+      "zh-CN": {
+        "value": "批量导入（OPML 文件）",
+        "hash": "7c8b1f98",
+        "lastModified": "2025-11-10T15:49:26.744Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Batch Import (OPML File)",
+        "hash": "cc393e72",
+        "lastModified": "2025-11-10T15:49:26.744Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.selectOPML": {
+      "zh-CN": {
+        "value": "选择 OPML 文件",
+        "hash": "6115b816",
+        "lastModified": "2025-11-10T15:59:55.000Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Select OPML file",
+        "hash": "88c53739",
+        "lastModified": "2025-11-10T15:59:55.001Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.importing": {
+      "zh-CN": {
+        "value": "导入中...",
+        "hash": "763476f8",
+        "lastModified": "2025-11-10T15:49:30.636Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Importing...",
+        "hash": "fa072aec",
+        "lastModified": "2025-11-10T15:49:30.636Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.importHint": {
+      "zh-CN": {
+        "value": "支持从其他 RSS 阅读器导出的订阅列表",
+        "hash": "380bd51e",
+        "lastModified": "2025-11-10T15:49:32.386Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Supports subscription lists exported from other RSS readers",
+        "hash": "409857f6",
+        "lastModified": "2025-11-10T15:49:32.386Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.discovered": {
+      "zh-CN": {
+        "value": "发现的 RSS 源",
+        "hash": "d3e33c98",
+        "lastModified": "2025-11-10T15:49:34.426Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Discovered RSS feeds",
+        "hash": "14f18d34",
+        "lastModified": "2025-11-10T15:49:34.426Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.discoveredHint": {
+      "zh-CN": {
+        "value": "这些 RSS 源是从你浏览的页面中自动发现的，点击标题查看源内容",
+        "hash": "4471309b",
+        "lastModified": "2025-11-10T15:49:36.663Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "These RSS feeds were automatically discovered from the pages you browsed. Click the title to view the feed content.",
+        "hash": "85543753",
+        "lastModified": "2025-11-10T15:49:36.663Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.subscribed": {
+      "zh-CN": {
+        "value": "已订阅",
+        "hash": "d813712b",
+        "lastModified": "2025-11-10T15:49:38.110Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Subscribed",
+        "hash": "808c7457",
+        "lastModified": "2025-11-10T15:49:38.110Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.ignored": {
+      "zh-CN": {
+        "value": "已忽略",
+        "hash": "82b783f0",
+        "lastModified": "2025-11-10T15:49:39.647Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Ignored",
+        "hash": "d96143ba",
+        "lastModified": "2025-11-10T15:49:39.647Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.candidateCount": {
+      "zh-CN": {
+        "value": "({{count}})",
+        "hash": "ee73636e",
+        "lastModified": "2025-11-10T15:49:41.389Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "({{count}})",
+        "hash": "ee73636e",
+        "lastModified": "2025-11-10T15:49:41.389Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.noFeeds": {
+      "zh-CN": {
+        "value": "暂无发现的 RSS 源",
+        "hash": "95aa31f8",
+        "lastModified": "2025-11-10T15:49:43.028Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "No RSS feeds found",
+        "hash": "0b1c2bab",
+        "lastModified": "2025-11-10T15:49:43.028Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.noFeedsHint": {
+      "zh-CN": {
+        "value": "浏览包含 RSS 订阅的网站时，我们会自动发现并在这里显示",
+        "hash": "437de39f",
+        "lastModified": "2025-11-10T15:49:44.972Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "When browsing websites with RSS feeds, we automatically discover and display them here.",
+        "hash": "a342c4a1",
+        "lastModified": "2025-11-10T15:49:44.972Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.from": {
+      "zh-CN": {
+        "value": "来自",
+        "hash": "de71402a",
+        "lastModified": "2025-11-10T15:49:46.512Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "From",
+        "hash": "5da618e8",
+        "lastModified": "2025-11-10T15:49:46.512Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.source.discovered": {
+      "zh-CN": {
+        "value": "自动发现",
+        "hash": "c0b1747d",
+        "lastModified": "2025-11-10T15:49:48.366Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Auto Discovery",
+        "hash": "9eb8f4c1",
+        "lastModified": "2025-11-10T15:49:48.366Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.source.manual": {
+      "zh-CN": {
+        "value": "手动订阅",
+        "hash": "9927cd74",
+        "lastModified": "2025-11-10T15:49:50.194Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Manual subscription",
+        "hash": "75343753",
+        "lastModified": "2025-11-10T15:49:50.194Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.source.imported": {
+      "zh-CN": {
+        "value": "OPML导入",
+        "hash": "d364008b",
+        "lastModified": "2025-11-10T15:49:51.938Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "OPML Import",
+        "hash": "5de2b60d",
+        "lastModified": "2025-11-10T15:49:51.938Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.actions.subscribe": {
+      "zh-CN": {
+        "value": "订阅",
+        "hash": "02daf71f",
+        "lastModified": "2025-11-10T15:49:53.348Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Subscribe",
+        "hash": "b2691758",
+        "lastModified": "2025-11-10T15:49:53.348Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.actions.ignore": {
+      "zh-CN": {
+        "value": "忽略",
+        "hash": "c0d5d68f",
+        "lastModified": "2025-11-10T15:49:54.905Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Ignore",
+        "hash": "fd038fc7",
+        "lastModified": "2025-11-10T15:49:54.905Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.actions.unsubscribe": {
+      "zh-CN": {
+        "value": "取消订阅",
+        "hash": "04595ce8",
+        "lastModified": "2025-11-10T15:49:56.750Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Unsubscribe",
+        "hash": "4182c8f1",
+        "lastModified": "2025-11-10T15:49:56.750Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.actions.delete": {
+      "zh-CN": {
+        "value": "删除",
+        "hash": "2f4aaddd",
+        "lastModified": "2025-11-10T15:49:58.285Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Delete",
+        "hash": "f2a6c498",
+        "lastModified": "2025-11-10T15:49:58.285Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.metadata.items": {
+      "zh-CN": {
+        "value": "{{count}} 条",
+        "hash": "0495d382",
+        "lastModified": "2025-11-10T16:00:19.873Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{count}} items",
+        "hash": "39d76132",
+        "lastModified": "2025-11-10T16:00:19.873Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.metadata.language": {
+      "zh-CN": {
+        "value": "语言",
+        "hash": "295bb704",
+        "lastModified": "2025-11-10T15:50:01.765Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Language",
+        "hash": "4994a8ff",
+        "lastModified": "2025-11-10T15:50:01.765Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.languages.zh": {
+      "zh-CN": {
+        "value": "中文",
+        "hash": "a7bac223",
+        "lastModified": "2025-11-10T15:50:04.941Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Chinese",
+        "hash": "3b261136",
+        "lastModified": "2025-11-10T15:50:04.941Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.languages.zhCN": {
+      "zh-CN": {
+        "value": "简体中文",
+        "hash": "d688a3a4",
+        "lastModified": "2025-11-10T15:50:06.475Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Simplified Chinese",
+        "hash": "1e81fc32",
+        "lastModified": "2025-11-10T15:50:06.475Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.languages.zhTW": {
+      "zh-CN": {
+        "value": "繁体中文",
+        "hash": "dd16f5f4",
+        "lastModified": "2025-11-10T15:50:08.019Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Traditional Chinese",
+        "hash": "d0bb8c23",
+        "lastModified": "2025-11-10T15:50:08.019Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.languages.en": {
+      "zh-CN": {
+        "value": "英文",
+        "hash": "f9fb6a06",
+        "lastModified": "2025-11-10T16:00:21.515Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "English",
+        "hash": "78463a38",
+        "lastModified": "2025-11-10T16:00:21.515Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.languages.ja": {
+      "zh-CN": {
+        "value": "日文",
+        "hash": "cef67a3b",
+        "lastModified": "2025-11-10T16:00:23.254Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Japanese",
+        "hash": "f32ced6a",
+        "lastModified": "2025-11-10T16:00:23.254Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.languages.fr": {
+      "zh-CN": {
+        "value": "法文",
+        "hash": "4d57a074",
+        "lastModified": "2025-11-10T16:00:26.736Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "French",
+        "hash": "ad225f70",
+        "lastModified": "2025-11-10T16:00:26.736Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.languages.de": {
+      "zh-CN": {
+        "value": "德文",
+        "hash": "a25b670d",
+        "lastModified": "2025-11-10T16:00:28.170Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "German",
+        "hash": "86bc3115",
+        "lastModified": "2025-11-10T16:00:28.170Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.languages.es": {
+      "zh-CN": {
+        "value": "西班牙文",
+        "hash": "542f9c52",
+        "lastModified": "2025-11-10T16:00:29.910Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Spanish",
+        "hash": "cb5480c3",
+        "lastModified": "2025-11-10T16:00:29.910Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.languages.ko": {
+      "zh-CN": {
+        "value": "韩文",
+        "hash": "bc2f65cf",
+        "lastModified": "2025-11-10T16:00:25.098Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Korean",
+        "hash": "d0bdb3cd",
+        "lastModified": "2025-11-10T16:00:25.098Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.languages.unknown": {
+      "zh-CN": {
+        "value": "未知",
+        "hash": "1622dc9b",
+        "lastModified": "2025-11-10T15:50:19.996Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Unknown",
+        "hash": "88183b94",
+        "lastModified": "2025-11-10T15:50:19.996Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.errors.invalidUrl": {
+      "zh-CN": {
+        "value": "请输入有效的 RSS URL",
+        "hash": "eb1e2b5a",
+        "lastModified": "2025-11-10T15:50:21.632Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Please enter a valid RSS URL",
+        "hash": "e3c51588",
+        "lastModified": "2025-11-10T15:50:21.633Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.errors.fetchFailed": {
+      "zh-CN": {
+        "value": "无法获取该 URL 的内容",
+        "hash": "1775ab40",
+        "lastModified": "2025-11-10T15:50:23.270Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Unable to retrieve the content of this URL",
+        "hash": "c7aa8c88",
+        "lastModified": "2025-11-10T15:50:23.270Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.errors.notRSS": {
+      "zh-CN": {
+        "value": "该 URL 不是有效的 RSS 源",
+        "hash": "094e625c",
+        "lastModified": "2025-11-10T15:50:25.217Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "This URL is not a valid RSS feed",
+        "hash": "994d18bc",
+        "lastModified": "2025-11-10T15:50:25.217Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.errors.alreadyExists": {
+      "zh-CN": {
+        "value": "该源已存在",
+        "hash": "f240b144",
+        "lastModified": "2025-11-10T15:50:27.161Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "This source already exists.",
+        "hash": "03836217",
+        "lastModified": "2025-11-10T15:50:27.161Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.errors.networkError": {
+      "zh-CN": {
+        "value": "网络错误，请检查连接",
+        "hash": "3dd64840",
+        "lastModified": "2025-11-10T15:50:28.800Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Network error, please check your connection",
+        "hash": "2d6c16b1",
+        "lastModified": "2025-11-10T15:50:28.800Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.errors.parseError": {
+      "zh-CN": {
+        "value": "OPML 文件解析失败",
+        "hash": "739d3638",
+        "lastModified": "2025-11-10T15:50:30.543Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Failed to parse OPML file",
+        "hash": "2c8721c9",
+        "lastModified": "2025-11-10T15:50:30.543Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.errors.noFeeds": {
+      "zh-CN": {
+        "value": "OPML 文件中未找到任何订阅源",
+        "hash": "035ee77a",
+        "lastModified": "2025-11-10T15:50:32.180Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "No feeds found in the OPML file.",
+        "hash": "2be367e8",
+        "lastModified": "2025-11-10T15:50:32.180Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.success.subscribed": {
+      "zh-CN": {
+        "value": "订阅成功！",
+        "hash": "5483e6d3",
+        "lastModified": "2025-11-10T15:50:33.919Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Subscription successful!",
+        "hash": "09b30508",
+        "lastModified": "2025-11-10T15:50:33.919Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.success.imported": {
+      "zh-CN": {
+        "value": "导入成功！共导入 {{count}} 个订阅源",
+        "hash": "6250c357",
+        "lastModified": "2025-11-10T15:50:35.764Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Import successful! {{count}} feeds imported in total.",
+        "hash": "f927ab89",
+        "lastModified": "2025-11-10T15:50:35.764Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.opmlHint": {
+      "zh-CN": {
+        "value": "支持从其他 RSS 阅读器导出的订阅列表",
+        "hash": "380bd51e",
+        "lastModified": "2025-11-10T15:59:56.730Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Supports subscription lists exported from other RSS readers",
+        "hash": "409857f6",
+        "lastModified": "2025-11-10T15:59:56.730Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.loading": {
+      "zh-CN": {
+        "value": "加载中...",
+        "hash": "26b5bd49",
+        "lastModified": "2025-11-10T15:59:58.680Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Loading...",
+        "hash": "8524de96",
+        "lastModified": "2025-11-10T15:59:58.680Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.discoveredFrom": {
+      "zh-CN": {
+        "value": "来自",
+        "hash": "de71402a",
+        "lastModified": "2025-11-10T16:00:00.423Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "From",
+        "hash": "5da618e8",
+        "lastModified": "2025-11-10T16:00:00.423Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.subscribedAt": {
+      "zh-CN": {
+        "value": "订阅于",
+        "hash": "3a52f27a",
+        "lastModified": "2025-11-10T16:00:01.955Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Subscribed on",
+        "hash": "ec59738d",
+        "lastModified": "2025-11-10T16:00:01.955Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.discoveredFeeds": {
+      "zh-CN": {
+        "value": "发现的 RSS 源 ({{count}})",
+        "hash": "6172070d",
+        "lastModified": "2025-11-10T16:00:03.675Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Discovered RSS Feeds ({{count}})",
+        "hash": "7be79aa0",
+        "lastModified": "2025-11-10T16:00:03.675Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.discoveredFeedsHint": {
+      "zh-CN": {
+        "value": "这些 RSS 源是从你浏览的页面中自动发现的，点击标题查看源内容",
+        "hash": "4471309b",
+        "lastModified": "2025-11-10T16:00:07.132Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "These RSS feeds were automatically discovered from the pages you browsed. Click the title to view the feed content.",
+        "hash": "85543753",
+        "lastModified": "2025-11-10T16:00:07.132Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.subscribedFeeds": {
+      "zh-CN": {
+        "value": "已订阅 ({{count}})",
+        "hash": "c7bb0df3",
+        "lastModified": "2025-11-10T16:00:09.121Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Subscribed ({{count}})",
+        "hash": "7ef32d10",
+        "lastModified": "2025-11-10T16:00:09.122Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.subscribedFeedsHint": {
+      "zh-CN": {
+        "value": "你已订阅的 RSS 源，可以随时取消订阅",
+        "hash": "3b4118f4",
+        "lastModified": "2025-11-10T16:00:10.968Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Your subscribed RSS feeds can be unsubscribed at any time",
+        "hash": "b8be36fa",
+        "lastModified": "2025-11-10T16:00:10.968Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.ignoredFeeds": {
+      "zh-CN": {
+        "value": "已忽略 ({{count}})",
+        "hash": "3234f182",
+        "lastModified": "2025-11-10T16:00:12.910Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Ignored ({{count}})",
+        "hash": "6f6d9f5c",
+        "lastModified": "2025-11-10T16:00:12.910Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.clickToToggle": {
+      "zh-CN": {
+        "value": "点击{{action}}",
+        "hash": "f62d911f",
+        "lastModified": "2025-11-10T16:00:14.445Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Click {{action}}",
+        "hash": "737c0c82",
+        "lastModified": "2025-11-10T16:00:14.445Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.expand": {
+      "zh-CN": {
+        "value": "展开",
+        "hash": "e2edde5a",
+        "lastModified": "2025-11-10T16:00:15.880Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Expand",
+        "hash": "8098b34f",
+        "lastModified": "2025-11-10T16:00:15.880Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.collapse": {
+      "zh-CN": {
+        "value": "收起",
+        "hash": "def9e98b",
+        "lastModified": "2025-11-10T16:00:17.995Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Collapse",
+        "hash": "2b31634e",
+        "lastModified": "2025-11-10T16:00:17.995Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.languages.ru": {
+      "zh-CN": {
+        "value": "俄文",
+        "hash": "dedd8994",
+        "lastModified": "2025-11-10T16:00:31.654Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Russian",
+        "hash": "deba6920",
+        "lastModified": "2025-11-10T16:00:31.654Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.languages.pt": {
+      "zh-CN": {
+        "value": "葡萄牙文",
+        "hash": "3973d874",
+        "lastModified": "2025-11-10T16:00:34.228Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Portuguese",
+        "hash": "30e32c7c",
+        "lastModified": "2025-11-10T16:00:34.228Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.languages.it": {
+      "zh-CN": {
+        "value": "意大利文",
+        "hash": "9aa7542b",
+        "lastModified": "2025-11-10T16:00:35.747Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Italian",
+        "hash": "4be8e06d",
+        "lastModified": "2025-11-10T16:00:35.747Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.errors.validationFailed": {
+      "zh-CN": {
+        "value": "RSS 验证失败",
+        "hash": "41d6a37a",
+        "lastModified": "2025-11-10T16:00:38.060Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "RSS verification failed",
+        "hash": "4bdf5517",
+        "lastModified": "2025-11-10T16:00:38.060Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.errors.subscribeFailed": {
+      "zh-CN": {
+        "value": "订阅失败",
+        "hash": "3a89ae1c",
+        "lastModified": "2025-11-10T16:00:39.845Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Subscription failed",
+        "hash": "661ce9ad",
+        "lastModified": "2025-11-10T16:00:39.845Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.errors.importFailed": {
+      "zh-CN": {
+        "value": "OPML 导入失败",
+        "hash": "428460cc",
+        "lastModified": "2025-11-10T16:00:41.627Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "OPML Import Failed",
+        "hash": "b261aebb",
+        "lastModified": "2025-11-10T16:00:41.627Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.success.importedWithErrors": {
+      "zh-CN": {
+        "value": "导入完成: 成功 {{successCount}}, 跳过 {{skipCount}}, 失败 {{failCount}}",
+        "hash": "449bbaeb",
+        "lastModified": "2025-11-10T16:00:44.246Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Import completed: Success {{successCount}}, Skipped {{skipCount}}, Failed {{failCount}}",
+        "hash": "b044b505",
+        "lastModified": "2025-11-10T16:00:44.246Z",
         "status": "ai-translated"
       }
     }

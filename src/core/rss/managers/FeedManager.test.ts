@@ -15,7 +15,8 @@ vi.mock('../../../storage/db', () => ({
       get: vi.fn(),
       where: vi.fn(() => ({
         equals: vi.fn(() => ({
-          first: vi.fn()
+          first: vi.fn(),
+          toArray: vi.fn(() => Promise.resolve([])) // 添加 toArray 支持
         })),
         reverse: vi.fn(() => ({
           sortBy: vi.fn()
@@ -52,8 +53,13 @@ describe('FeedManager', () => {
       }
       
       // Mock where().equals().first() 返回 undefined（源不存在）
+      // Mock where().equals().toArray() 返回空数组（同源不存在）
       const mockFirst = vi.fn().mockResolvedValue(undefined)
-      const mockEquals = vi.fn().mockReturnValue({ first: mockFirst })
+      const mockToArray = vi.fn().mockResolvedValue([])
+      const mockEquals = vi.fn().mockReturnValue({ 
+        first: mockFirst,
+        toArray: mockToArray 
+      })
       const mockWhere = vi.fn().mockReturnValue({ equals: mockEquals })
       vi.mocked(db.discoveredFeeds.where).mockReturnValue(mockWhere() as any)
       

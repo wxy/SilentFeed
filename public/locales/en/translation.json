@@ -388,6 +388,84 @@
       "hints": {
         "apiKey": "The API Key will be encrypted and stored locally in the browser, and will not be uploaded to the server."
       }
+    },
+    "rssManager": {
+      "addSource": "Add feed",
+      "manualSubscribe": "Manually subscribe to RSS URL",
+      "manualPlaceholder": "https://example.com/feed.xml",
+      "subscribing": "Verifying...",
+      "subscribe": "Subscribe",
+      "importOPML": "Batch Import (OPML File)",
+      "selectOPML": "Select OPML file",
+      "importing": "Importing...",
+      "importHint": "Supports subscription lists exported from other RSS readers",
+      "discovered": "Discovered RSS feeds",
+      "discoveredHint": "These RSS feeds were automatically discovered from the pages you browsed. Click the title to view the feed content.",
+      "subscribed": "Subscribed",
+      "ignored": "Ignored",
+      "candidateCount": "({{count}})",
+      "noFeeds": "No RSS feeds found",
+      "noFeedsHint": "When browsing websites with RSS feeds, we automatically discover and display them here.",
+      "from": "From",
+      "source": {
+        "discovered": "Auto Discovery",
+        "manual": "Manual subscription",
+        "imported": "OPML Import"
+      },
+      "actions": {
+        "subscribe": "Subscribe",
+        "ignore": "Ignore",
+        "unsubscribe": "Unsubscribe",
+        "delete": "Delete"
+      },
+      "metadata": {
+        "items": "{{count}} items",
+        "language": "Language"
+      },
+      "languages": {
+        "zh": "Chinese",
+        "zhCN": "Simplified Chinese",
+        "zhTW": "Traditional Chinese",
+        "en": "English",
+        "ja": "Japanese",
+        "fr": "French",
+        "de": "German",
+        "es": "Spanish",
+        "ko": "Korean",
+        "unknown": "Unknown",
+        "ru": "Russian",
+        "pt": "Portuguese",
+        "it": "Italian"
+      },
+      "errors": {
+        "invalidUrl": "Please enter a valid RSS URL",
+        "fetchFailed": "Unable to retrieve the content of this URL",
+        "notRSS": "This URL is not a valid RSS feed",
+        "alreadyExists": "This source already exists.",
+        "networkError": "Network error, please check your connection",
+        "parseError": "Failed to parse OPML file",
+        "noFeeds": "No feeds found in the OPML file.",
+        "validationFailed": "RSS verification failed",
+        "subscribeFailed": "Subscription failed",
+        "importFailed": "OPML Import Failed"
+      },
+      "success": {
+        "subscribed": "Subscription successful!",
+        "imported": "Import successful! {{count}} feeds imported in total.",
+        "importedWithErrors": "Import completed: Success {{successCount}}, Skipped {{skipCount}}, Failed {{failCount}}"
+      },
+      "opmlHint": "Supports subscription lists exported from other RSS readers",
+      "loading": "Loading...",
+      "discoveredFrom": "From",
+      "subscribedAt": "Subscribed on",
+      "discoveredFeeds": "Discovered RSS Feeds ({{count}})",
+      "discoveredFeedsHint": "These RSS feeds were automatically discovered from the pages you browsed. Click the title to view the feed content.",
+      "subscribedFeeds": "Subscribed ({{count}})",
+      "subscribedFeedsHint": "Your subscribed RSS feeds can be unsubscribed at any time",
+      "ignoredFeeds": "Ignored ({{count}})",
+      "clickToToggle": "Click {{action}}",
+      "expand": "Expand",
+      "collapse": "Collapse"
     }
   }
 }

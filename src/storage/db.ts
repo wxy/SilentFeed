@@ -128,9 +128,9 @@ export class FeedAIMuterDB extends Dexie {
       interestSnapshots: 'id, timestamp, primaryTopic, trigger, [primaryTopic+timestamp]',
       
       // 发现的 RSS 源
-      // 索引: id（主键）, url, status, discoveredAt, subscribedAt
+      // 索引: id（主键）, url, status, discoveredAt, subscribedAt, discoveredFrom
       // 复合索引: [status+discoveredAt] 用于按状态和时间查询
-      discoveredFeeds: 'id, url, status, discoveredAt, subscribedAt, [status+discoveredAt]',
+      discoveredFeeds: 'id, url, status, discoveredAt, subscribedAt, discoveredFrom, [status+discoveredAt]',
       
       // RSS 文章
       // 索引: id（主键）, feedId, published, read, starred

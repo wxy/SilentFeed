@@ -16,6 +16,44 @@ import type { ValidationResult, FeedMetadata } from "./types"
  */
 export class RSSValidator {
   /**
+   * 验证 RSS URL（从网络获取并验证）
+   * 
+   * @param url - RSS URL
+   * @returns 验证结果
+   */
+  static async validateURL(url: string): Promise<ValidationResult> {
+    try {
+      // 1. 获取 RSS 内容
+      const response = await fetch(url, {
+        headers: {
+          'Accept': 'application/rss+xml, application/atom+xml, application/xml, text/xml',
+        },
+        signal: AbortSignal.timeout(10000), // 10秒超时
+      })
+      
+      if (!response.ok) {
+        return {
+          valid: false,
+          type: null,
+          error: `HTTP ${response.status}: ${response.statusText}`,
+        }
+      }
+      
+      // 2. 解析 XML
+      const xml = await response.text()
+      
+      // 3. 验证 XML 内容
+      return await this.validate(xml)
+    } catch (error) {
+      return {
+        valid: false,
+        type: null,
+        error: `网络请求失败: ${error instanceof Error ? error.message : String(error)}`,
+      }
+    }
+  }
+  
+  /**
    * 验证 RSS/Atom Feed
    * 
    * @param xml - RSS/Atom XML 字符串
@@ -82,11 +120,30 @@ export class RSSValidator {
         }
       }
       
+      // 提取扩展元数据
+      const language = channel.querySelector("language")?.textContent?.trim()
+      const category = channel.querySelector("category")?.textContent?.trim()
+      const lastBuildDate = channel.querySelector("lastBuildDate")?.textContent?.trim()
+      const pubDate = channel.querySelector("pubDate")?.textContent?.trim()
+      const generator = channel.querySelector("generator")?.textContent?.trim()
+      const copyright = channel.querySelector("copyright")?.textContent?.trim()
+      
+      // 统计条目数
+      const items = channel.querySelectorAll("item")
+      const itemCount = items.length
+      
       // 提取元数据
       const metadata: FeedMetadata = {
         title,
         description,
         link: link || "",
+        language,
+        category,
+        lastBuildDate: lastBuildDate ? new Date(lastBuildDate).getTime() : undefined,
+        pubDate: pubDate ? new Date(pubDate).getTime() : undefined,
+        itemCount,
+        generator,
+        copyright,
       }
       
       return {
@@ -123,11 +180,29 @@ export class RSSValidator {
         }
       }
       
+      // 提取扩展元数据
+      const language = feed.getAttribute("xml:lang") || 
+                      feed.querySelector("language")?.textContent?.trim()
+      const category = feed.querySelector("category")?.getAttribute("term")?.trim()
+      const updated = feed.querySelector("updated")?.textContent?.trim()
+      const generator = feed.querySelector("generator")?.textContent?.trim()
+      const rights = feed.querySelector("rights")?.textContent?.trim()
+      
+      // 统计条目数
+      const entries = feed.querySelectorAll("entry")
+      const itemCount = entries.length
+      
       // 提取元数据
       const metadata: FeedMetadata = {
         title,
         description: subtitle || "",
         link: link || "",
+        language,
+        category,
+        lastBuildDate: updated ? new Date(updated).getTime() : undefined,
+        itemCount,
+        generator,
+        copyright: rights,
       }
       
       return {

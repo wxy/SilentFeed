@@ -25,7 +25,8 @@ describe("RSSValidator", () => {
       
       expect(result.valid).toBe(true)
       expect(result.type).toBe("rss")
-      expect(result.metadata).toEqual({
+      // 只检查核心字段，允许额外的 metadata 字段
+      expect(result.metadata).toMatchObject({
         title: "Example Feed",
         description: "This is an example feed",
         link: "https://example.com",
@@ -121,7 +122,8 @@ describe("RSSValidator", () => {
       
       expect(result.valid).toBe(true)
       expect(result.type).toBe("atom")
-      expect(result.metadata).toEqual({
+      // 只检查核心字段，允许额外的 metadata 字段
+      expect(result.metadata).toMatchObject({
         title: "Example Atom Feed",
         description: "This is an example Atom feed",
         link: "https://example.com",

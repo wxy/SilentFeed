@@ -3,6 +3,11 @@ import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import IndexOptions from "./options"
 
+// Mock RSSManager 组件
+vi.mock("@/components/settings/RSSManager", () => ({
+  RSSManager: () => <div>RSS Manager Loaded</div>
+}))
+
 // Mock i18n
 vi.mock("@/i18n", () => ({
   default: {
@@ -108,8 +113,8 @@ describe("IndexOptions 组件", () => {
       const rssTab = screen.getByText("RSS 源")
       await user.click(rssTab)
 
-      expect(screen.getByText("RSS 源管理")).toBeInTheDocument()
-      expect(screen.getByText("管理你的 RSS 订阅源")).toBeInTheDocument()
+      // RSS Manager 已被 mock，检查 mock 组件是否渲染
+      expect(screen.getByText("RSS Manager Loaded")).toBeInTheDocument()
     })
 
     it("点击 AI 标签应该切换到 AI 页面", async () => {
@@ -274,13 +279,14 @@ describe("IndexOptions 组件", () => {
   })
 
   describe("预留区域", () => {
-    it("RSS 页面应该显示禁用提示", async () => {
+    it("RSS 页面应该显示 RSS 管理器", async () => {
       const user = userEvent.setup()
       render(<IndexOptions />)
 
       await user.click(screen.getByText("RSS 源"))
 
-      expect(screen.getByText("将在完成 1000 页面后启用")).toBeInTheDocument()
+      // RSS Manager 已被 mock
+      expect(screen.getByText("RSS Manager Loaded")).toBeInTheDocument()
     })
 
     it("AI 页面应该显示配置说明", async () => {
