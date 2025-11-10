@@ -57,7 +57,9 @@ describe("IndexPopup 组件", () => {
   beforeEach(() => {
     // Mock chrome.runtime.openOptionsPage
     global.chrome = {
+      ...global.chrome,
       runtime: {
+        ...global.chrome.runtime,
         openOptionsPage: vi.fn()
       }
     } as any
@@ -122,10 +124,10 @@ describe("IndexPopup 组件", () => {
 
     // 等待组件加载
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "设置" })).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: /设置/i })).toBeInTheDocument()
     })
 
-    const settingsButton = screen.getByRole("button", { name: "设置" })
+    const settingsButton = screen.getByRole("button", { name: /设置/i })
     await user.click(settingsButton)
 
     expect(chrome.runtime.openOptionsPage).toHaveBeenCalled()
@@ -136,13 +138,13 @@ describe("IndexPopup 组件", () => {
 
     // 等待加载完成
     await waitFor(() => {
-      const progressBar = document.querySelector(".bg-green-500")
+      const progressBar = document.querySelector(".sketchy-progress-bar, .bg-green-500")
       expect(progressBar).toBeInTheDocument()
     })
 
     // 初始状态进度应该是 0%
     const progressBar = document.querySelector(
-      ".bg-green-500"
+      ".sketchy-progress-bar, .bg-green-500"
     ) as HTMLElement
     expect(progressBar.style.width).toBe("0%")
   })

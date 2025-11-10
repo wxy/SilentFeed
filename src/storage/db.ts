@@ -2,12 +2,12 @@
  * IndexedDB 数据库定义（使用 Dexie.js）
  * 
  * 数据库名称: FeedAIMuterDB
- * 当前版本: 3
+ * 当前版本: 5
  * 
  * ⚠️ 版本管理说明：
  * - 开发过程中如果遇到版本冲突，请删除旧数据库
  * - 生产环境版本号应该只增不减
- * - 当前固定为版本 3
+ * - 当前固定为版本 5（Phase 5: RSS 功能）
  */
 
 import Dexie from 'dexie'
@@ -21,6 +21,7 @@ import type {
   InterestSnapshot
 } from './types'
 import type { UserProfile } from '../core/profile/types'
+import type { DiscoveredFeed, FeedArticle } from '../core/rss/types'
 
 /**
  * 数据库类
@@ -46,6 +47,12 @@ export class FeedAIMuterDB extends Dexie {
 
   // 表 7: 兴趣变化快照（Phase 3.4）
   interestSnapshots!: Table<InterestSnapshot, string>
+
+  // 表 8: 发现的 RSS 源（Phase 5.1）
+  discoveredFeeds!: Table<DiscoveredFeed, string>
+
+  // 表 9: RSS 文章（Phase 5.1）
+  feedArticles!: Table<FeedArticle, string>
 
   constructor() {
     super('FeedAIMuterDB')
@@ -109,6 +116,28 @@ export class FeedAIMuterDB extends Dexie {
       // 复合索引: [primaryTopic+timestamp] 用于按主导兴趣查询历史
       interestSnapshots: 'id, timestamp, primaryTopic, trigger, [primaryTopic+timestamp]'
     })
+
+    // 版本 5: 新增 RSS 源和文章表（Phase 5.1）
+    this.version(5).stores({
+      pendingVisits: 'id, url, startTime, expiresAt',
+      confirmedVisits: 'id, domain, visitTime, *analysis.keywords, [visitTime+domain]',
+      settings: 'id',
+      statistics: 'id, type, timestamp',
+      recommendations: 'id, recommendedAt, isRead, source, [isRead+recommendedAt]',
+      userProfile: 'id, lastUpdated',
+      interestSnapshots: 'id, timestamp, primaryTopic, trigger, [primaryTopic+timestamp]',
+      
+      // 发现的 RSS 源
+      // 索引: id（主键）, url, status, discoveredAt, subscribedAt
+      // 复合索引: [status+discoveredAt] 用于按状态和时间查询
+      discoveredFeeds: 'id, url, status, discoveredAt, subscribedAt, [status+discoveredAt]',
+      
+      // RSS 文章
+      // 索引: id（主键）, feedId, published, read, starred
+      // 复合索引: [feedId+published] 用于按源和时间查询
+      // 复合索引: [read+published] 用于按阅读状态和时间查询
+      feedArticles: 'id, feedId, published, read, starred, [feedId+published], [read+published]'
+    })
   }
 }
 
@@ -128,9 +157,9 @@ async function checkDatabaseVersion(): Promise<void> {
     const existingDB = dbs.find(d => d.name === 'FeedAIMuterDB')
     
     if (existingDB && existingDB.version) {
-      console.log(`[DB] 现有数据库版本: ${existingDB.version}, 代码版本: 4`)
+      console.log(`[DB] 现有数据库版本: ${existingDB.version}, 代码版本: 5`)
       
-      if (existingDB.version > 4) {
+      if (existingDB.version > 5) {
         console.warn('[DB] ⚠️ 浏览器中的数据库版本较高，Dexie 将自动处理')
       }
     }
@@ -153,7 +182,7 @@ export async function initializeDatabase(): Promise<void> {
     if (!db.isOpen()) {
       console.log('[DB] 正在打开数据库...')
       await db.open()
-      console.log('[DB] ✅ 数据库已打开（版本 4）')
+      console.log('[DB] ✅ 数据库已打开（版本 5）')
     }
     
     // ✅ 关键修复：使用 count() 检查是否已有设置，而不是 get()
