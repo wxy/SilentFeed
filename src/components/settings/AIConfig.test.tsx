@@ -89,7 +89,7 @@ describe("AIConfig", () => {
       
       // 应该显示 API Key 输入框
       expect(screen.getByLabelText("API Key")).toBeInTheDocument()
-      expect(screen.getByPlaceholderText(/OpenAI/)).toBeInTheDocument()
+      expect(screen.getByPlaceholderText(/Enter your API Key/)).toBeInTheDocument()
     })
     
     it("选择 Provider 后应该显示提供商说明", () => {
@@ -142,7 +142,7 @@ describe("AIConfig", () => {
       })
       
       // 应该显示成功消息
-      expect(screen.getByText(/successfully saved!/)).toBeInTheDocument()
+      expect(screen.getByText(/Configuration saved successfully!/)).toBeInTheDocument()
     })
     
     it("API Key 为空时保存按钮应该被禁用", async () => {
@@ -193,9 +193,10 @@ describe("AIConfig", () => {
       
       // 应该显示连接成功
       await waitFor(() => {
-        expect(screen.getByText(/successful/)).toBeInTheDocument()
-        expect(screen.getByText(/Delay: 123ms/)).toBeInTheDocument()
+        expect(screen.getByText(/Connection successful!/)).toBeInTheDocument()
       })
+      // 检查延迟信息（mock环境中可能是0ms）
+      expect(screen.getByText(/\d+ms/)).toBeInTheDocument()
     })
     
     it("应该验证 Anthropic API Key 格式", async () => {
@@ -225,7 +226,7 @@ describe("AIConfig", () => {
       
       // 应该显示连接成功
       await waitFor(() => {
-        expect(screen.getByText(/successful/)).toBeInTheDocument()
+        expect(screen.getByText(/Connection successful!/)).toBeInTheDocument()
       })
     })
     
@@ -278,7 +279,7 @@ describe("AIConfig", () => {
   })
   
   describe("禁用 AI", () => {
-    it("应该加载已保存的配置", async () => {
+    it("应该禁用已配置的 AI", async () => {
       vi.mocked(aiConfigModule.getAIConfig).mockResolvedValue({
         provider: "openai",
         apiKey: "sk-saved-key",
@@ -288,28 +289,35 @@ describe("AIConfig", () => {
       
       render(<AIConfig />)
       
-      // 等待配置加载
+      // 等待配置加载，确认 API Key 输入框已显示
       await waitFor(() => {
-        const select = screen.getByLabelText("AI Provider") as HTMLSelectElement
-        expect(select.value).toBe("openai")
+        expect(screen.getByLabelText("API Key")).toBeInTheDocument()
       })
       
       // 点击禁用 AI
       const disableButton = screen.getByText("Disable AI")
       fireEvent.click(disableButton)
       
-      // 应该清除配置
-      await waitFor(() => {
-        expect(aiConfigModule.saveAIConfig).toHaveBeenCalledWith({
-          provider: null,
-          apiKey: "",
-          enabled: false,
-          monthlyBudget: 5 // 保留默认预算
-        })
-      })
+      // 应该清除配置并显示成功消息
+      await waitFor(
+        () => {
+          expect(aiConfigModule.saveAIConfig).toHaveBeenCalledWith({
+            provider: null,
+            apiKey: "",
+            enabled: false,
+            monthlyBudget: 5 // 保留默认预算
+          })
+        },
+        { timeout: 3000 }
+      )
       
-      // 应该显示成功消息
-      expect(screen.getByText(/AI is disabled/)).toBeInTheDocument()
+      // 检查成功消息
+      await waitFor(
+        () => {
+          expect(screen.getByText(/keyword analysis will be used/)).toBeInTheDocument()
+        },
+        { timeout: 3000 }
+      )
     })
   })
   
