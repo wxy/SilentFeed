@@ -105,9 +105,10 @@ function IndexOptions() {
   ]
 
   const isSketchyStyle = uiStyle === "sketchy"
+  const currentLang = i18n.language // 获取当前语言
 
   return (
-    <div className={isSketchyStyle ? "min-h-screen sketchy-container sketchy-paper-texture text-gray-900 dark:text-gray-100" : "min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100"}>
+    <div className={isSketchyStyle ? "min-h-screen sketchy-container sketchy-paper-texture text-gray-900 dark:text-gray-100" : "min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100"} lang={currentLang}>
       {/* SVG 滤镜定义 */}
       {isSketchyStyle && (
         <svg className="sketchy-svg-filters" xmlns="http://www.w3.org/2000/svg">

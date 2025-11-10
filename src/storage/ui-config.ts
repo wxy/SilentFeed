@@ -12,7 +12,7 @@ const UI_STYLE_KEY = "ui_style"
  * @returns UI 风格（默认: sketchy）
  */
 export async function getUIStyle(): Promise<UIStyle> {
-  const result = await chrome.storage.local.get(UI_STYLE_KEY)
+  const result = await chrome.storage.sync.get(UI_STYLE_KEY)
   return (result[UI_STYLE_KEY] as UIStyle) || "sketchy" // 默认使用手绘风格
 }
 
@@ -21,7 +21,7 @@ export async function getUIStyle(): Promise<UIStyle> {
  * @param style - 要设置的 UI 风格
  */
 export async function setUIStyle(style: UIStyle): Promise<void> {
-  await chrome.storage.local.set({ [UI_STYLE_KEY]: style })
+  await chrome.storage.sync.set({ [UI_STYLE_KEY]: style })
   console.log(`[UI Config] UI 风格已设置为: ${style}`)
 }
 

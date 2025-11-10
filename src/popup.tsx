@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 
 import "@/i18n" // 初始化 i18n
 import { useI18n } from "@/i18n/helpers"
+import i18n from "@/i18n"
 import { getPageCount } from "@/storage/db"
 import { getUIStyle, watchUIStyle, type UIStyle } from "@/storage/ui-config"
 import { ColdStartView } from "@/components/ColdStartView"
@@ -64,6 +65,7 @@ function IndexPopup() {
 
   // 根据风格决定是否应用手绘样式
   const isSketchyStyle = uiStyle === "sketchy"
+  const currentLang = i18n.language // 获取当前语言
   const containerClass = isSketchyStyle 
     ? "sketchy-container sketchy-paper-texture w-80 max-h-[600px] flex flex-col overflow-hidden"
     : "w-80 max-h-[600px] flex flex-col overflow-hidden p-4 bg-white dark:bg-gray-900"
@@ -71,7 +73,7 @@ function IndexPopup() {
   // 加载中状态
   if (isLoading) {
     return (
-      <div className={containerClass}>
+      <div className={containerClass} lang={currentLang}>
         {isSketchyStyle && (
           <svg className="sketchy-svg-filters" xmlns="http://www.w3.org/2000/svg">
             <defs>
@@ -100,7 +102,7 @@ function IndexPopup() {
   const isColdStart = pageCount !== null && pageCount < COLD_START_THRESHOLD
 
   return (
-    <div className={containerClass}>
+    <div className={containerClass} lang={currentLang}>
       {/* SVG 滤镜定义 - 手绘笔触效果 */}
       {isSketchyStyle && (
         <svg className="sketchy-svg-filters" xmlns="http://www.w3.org/2000/svg">
