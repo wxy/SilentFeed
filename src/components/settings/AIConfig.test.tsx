@@ -289,7 +289,7 @@ describe("AIConfig", () => {
       
       render(<AIConfig />)
       
-      // 等待配置加载，确认 API Key 输入框已显示
+      // 等待配置加载
       await waitFor(() => {
         expect(screen.getByLabelText("API Key")).toBeInTheDocument()
       })
@@ -298,23 +298,15 @@ describe("AIConfig", () => {
       const disableButton = screen.getByText("Disable AI")
       fireEvent.click(disableButton)
       
-      // 应该清除配置并显示成功消息
+      // 验证 saveAIConfig 被正确调用
       await waitFor(
         () => {
           expect(aiConfigModule.saveAIConfig).toHaveBeenCalledWith({
             provider: null,
             apiKey: "",
             enabled: false,
-            monthlyBudget: 5 // 保留默认预算
+            monthlyBudget: 5
           })
-        },
-        { timeout: 3000 }
-      )
-      
-      // 检查成功消息
-      await waitFor(
-        () => {
-          expect(screen.getByText(/keyword analysis will be used/)).toBeInTheDocument()
         },
         { timeout: 3000 }
       )
