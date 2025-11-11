@@ -2,8 +2,18 @@ import { useState, useEffect, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { FeedManager } from "@/core/rss/managers/FeedManager"
 import { RSSValidator } from "@/core/rss/RSSValidator"
+import { RSSFetcher, type FeedItem } from "@/core/rss/RSSFetcher"
 import { OPMLImporter } from "@/core/rss/OPMLImporter"
 import type { DiscoveredFeed } from "@/core/rss/types"
+
+/**
+ * 解码 HTML 实体（如 &#xxxx;）
+ */
+function decodeHtmlEntities(text: string): string {
+  const textarea = document.createElement('textarea')
+  textarea.innerHTML = text
+  return textarea.value
+}
 
 /**
  * RSS 源管理组件
@@ -24,9 +34,15 @@ export function RSSManager() {
   const [manualUrl, setManualUrl] = useState('')
   const [isManualAdding, setIsManualAdding] = useState(false)
   const [manualError, setManualError] = useState('')
+  const [manualSuccess, setManualSuccess] = useState('')
   const [isImporting, setIsImporting] = useState(false)
   const [importError, setImportError] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
+  
+  // RSS 条目预览
+  const [expandedFeedId, setExpandedFeedId] = useState<string | null>(null)
+  const [previewArticles, setPreviewArticles] = useState<Record<string, FeedItem[]>>({})
+  const [loadingPreview, setLoadingPreview] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     loadFeeds()
@@ -47,6 +63,47 @@ export function RSSManager() {
       console.error('[RSSManager] 加载候选源失败:', error)
     } finally {
       setLoading(false)
+    }
+  }
+  
+  // 加载 RSS 预览文章
+  const loadPreviewArticles = async (feedId: string, feedUrl: string) => {
+    if (previewArticles[feedId]) {
+      // 已加载过，直接展开/收起
+      setExpandedFeedId(expandedFeedId === feedId ? null : feedId)
+      return
+    }
+    
+    // 开始加载
+    setLoadingPreview(prev => ({ ...prev, [feedId]: true }))
+    setExpandedFeedId(feedId)
+    
+    try {
+      const fetcher = new RSSFetcher()
+      const result = await fetcher.fetch(feedUrl)
+      
+      if (result.success && result.items) {
+        // 只显示最新 5 篇
+        setPreviewArticles(prev => ({
+          ...prev,
+          [feedId]: result.items.slice(0, 5)
+        }))
+      } else {
+        console.error('[RSSManager] 加载预览失败:', result.error)
+        // 加载失败，仍然展开显示错误
+        setPreviewArticles(prev => ({
+          ...prev,
+          [feedId]: []
+        }))
+      }
+    } catch (error) {
+      console.error('[RSSManager] 加载预览失败:', error)
+      setPreviewArticles(prev => ({
+        ...prev,
+        [feedId]: []
+      }))
+    } finally {
+      setLoadingPreview(prev => ({ ...prev, [feedId]: false }))
     }
   }
 
@@ -119,20 +176,57 @@ export function RSSManager() {
       const feedManager = new FeedManager()
       await feedManager.subscribe(feedId, 'discovered') // 保持原始来源
       
-      // 从忽略列表移除，添加到订阅列表
+      // 从忽略列表移除，添加到订阅列表（先显示分析中状态）
       const feed = ignoredFeeds.find(f => f.id === feedId)
       if (feed) {
         setIgnoredFeeds(prev => prev.filter(f => f.id !== feedId))
         setSubscribedFeeds(prev => [...prev, { 
           ...feed, 
           status: 'subscribed', 
-          subscribedAt: Date.now() 
+          subscribedAt: Date.now(),
+          quality: undefined  // 清空旧的质量数据，触发"分析中"状态
         }])
+        
+        // 监听质量分析完成，更新 UI
+        // 通过轮询检查质量数据更新（简单实现）
+        const checkQuality = async () => {
+          for (let i = 0; i < 60; i++) {  // 最多等待 60 秒
+            await new Promise(resolve => setTimeout(resolve, 1000))
+            const updatedFeed = await feedManager.getFeed(feedId)
+            if (updatedFeed?.quality) {
+              setSubscribedFeeds(prev => prev.map(f => 
+                f.id === feedId ? updatedFeed : f
+              ))
+              break
+            }
+          }
+        }
+        checkQuality()
       }
       
       console.log('[RSSManager] 已从忽略列表订阅:', feedId)
     } catch (error) {
-      console.error('[RSSManager] 订阅失败:', error)
+      console.error('[RSSManager] 从忽略列表订阅失败:', error)
+      // 验证失败，源已被删除，刷新列表并提示用户
+      await loadFeeds()
+      alert(_(error instanceof Error ? error.message : 'options.rssManager.errors.revalidationFailed'))
+    }
+  }
+  
+  // 删除源
+  const handleDelete = async (feedId: string) => {
+    try {
+      const feedManager = new FeedManager()
+      await feedManager.delete(feedId)
+      
+      // 从相应列表移除
+      setIgnoredFeeds(prev => prev.filter(f => f.id !== feedId))
+      setCandidateFeeds(prev => prev.filter(f => f.id !== feedId))
+      setSubscribedFeeds(prev => prev.filter(f => f.id !== feedId))
+      
+      console.log('[RSSManager] 已删除源:', feedId)
+    } catch (error) {
+      console.error('[RSSManager] 删除源失败:', error)
     }
   }
 
@@ -162,6 +256,7 @@ export function RSSManager() {
     
     setIsManualAdding(true)
     setManualError('')
+    setManualSuccess('')
     
     try {
       // 1. 验证 URL
@@ -193,17 +288,40 @@ export function RSSManager() {
         lastBuildDate: metadata.lastBuildDate,
         itemCount: metadata.itemCount,
         generator: metadata.generator,
-        discoveredFrom: 'manual', // 标记为手动添加
+        discoveredFrom: metadata.link || manualUrl.trim(), // 使用源网站链接或 RSS URL
         discoveredAt: Date.now(),
       })
       
       // 4. 直接订阅
       await feedManager.subscribe(id, 'manual')
       
-      // 5. 刷新列表
+      // 5. 刷新列表，先显示"分析中"状态
       await loadFeeds()
       
-      // 6. 清空输入
+      // 6. 触发质量分析（异步，不阻塞 UI）
+      feedManager.analyzeFeed(id, true).catch(error => {
+        console.error('[RSSManager] 手动订阅源质量分析失败:', error)
+      })
+      
+      // 7. 轮询检查质量分析完成
+      const checkQuality = async () => {
+        for (let i = 0; i < 60; i++) {  // 最多等待 60 秒
+          await new Promise(resolve => setTimeout(resolve, 1000))
+          const updatedFeed = await feedManager.getFeed(id)
+          if (updatedFeed?.quality) {
+            setSubscribedFeeds(prev => prev.map(f => 
+              f.id === id ? updatedFeed : f
+            ))
+            break
+          }
+        }
+      }
+      checkQuality()
+      
+      // 8. 显示成功消息
+      setManualSuccess(_('options.rssManager.success.subscribed'))
+      
+      // 9. 清空输入
       setManualUrl('')
       console.log('[RSSManager] 手动订阅成功:', id)
     } catch (error) {
@@ -232,6 +350,7 @@ export function RSSManager() {
       let successCount = 0
       let skipCount = 0
       let failCount = 0
+      const importedIds: string[] = [] // 记录成功导入的 ID
       
       for (const opmlFeed of opmlFeeds) {
         try {
@@ -249,12 +368,13 @@ export function RSSManager() {
             description: opmlFeed.description,
             link: opmlFeed.htmlUrl,
             category: opmlFeed.category,
-            discoveredFrom: 'imported', // 标记为 OPML 导入
+            discoveredFrom: opmlFeed.htmlUrl || opmlFeed.xmlUrl, // 使用网站链接或 RSS URL
             discoveredAt: Date.now(),
           })
           
           // 直接订阅
           await feedManager.subscribe(id, 'imported')
+          importedIds.push(id)
           successCount++
         } catch (error) {
           failCount++
@@ -262,10 +382,18 @@ export function RSSManager() {
         }
       }
       
-      // 3. 刷新列表
+      // 3. 批量触发质量分析（异步，不阻塞 UI）
+      if (importedIds.length > 0) {
+        console.log(`[RSSManager] 开始分析 ${importedIds.length} 个导入的源...`)
+        feedManager.analyzeCandidates(importedIds.length).catch(error => {
+          console.error('[RSSManager] OPML 导入源质量分析失败:', error)
+        })
+      }
+      
+      // 4. 刷新列表
       await loadFeeds()
       
-      // 4. 显示结果
+      // 5. 显示结果
       console.log(`[RSSManager] OPML 导入完成: 成功 ${successCount}, 跳过 ${skipCount}, 失败 ${failCount}`)
       if (failCount > 0) {
         setImportError(_('options.rssManager.success.importedWithErrors', { successCount, skipCount, failCount }))
@@ -301,7 +429,21 @@ export function RSSManager() {
     return langMap[lang] || lang
   }
   
-  // 渲染源列表项（三行布局）
+  // 获取质量评分颜色
+  const getQualityColor = (score: number) => {
+    if (score >= 70) return 'text-green-600 dark:text-green-400'
+    if (score >= 50) return 'text-yellow-600 dark:text-yellow-400'
+    return 'text-red-600 dark:text-red-400'
+  }
+  
+  // 获取质量评分文本
+  const getQualityText = (score: number) => {
+    if (score >= 70) return _('options.rssManager.quality.high')
+    if (score >= 50) return _('options.rssManager.quality.medium')
+    return _('options.rssManager.quality.low')
+  }
+
+  // 渲染源列表项（三行布局 + 质量分析）
   const renderFeedItem = (
     feed: DiscoveredFeed,
     actions: { label: string; onClick: () => void; className: string }[]
@@ -310,26 +452,36 @@ export function RSSManager() {
       key={feed.id}
       className="flex flex-col gap-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 border border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 transition-colors"
     >
-      {/* 第一行：格式徽章 + 标题（可点击） */}
+      {/* 第一行：标题（可点击预览）+ 格式徽章 */}
       <div className="flex items-center gap-2">
-        <span 
-          className="inline-block w-14 px-2 py-1 text-white text-xs font-mono font-bold rounded text-center flex-shrink-0"
-          style={{ backgroundColor: '#FF6600' }}
+        <button
+          onClick={() => loadPreviewArticles(feed.id, feed.url)}
+          className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline flex-1 truncate text-left"
         >
-          {getFormatBadge(feed.url)}
-        </span>
-        <a
+          {feed.title}
+          {expandedFeedId === feed.id && (
+            <span className="ml-2 text-gray-500">
+              {loadingPreview[feed.id] ? '⏳' : '▼'}
+            </span>
+          )}
+          {expandedFeedId !== feed.id && previewArticles[feed.id] && (
+            <span className="ml-2 text-gray-500">▶</span>
+          )}
+        </button>
+        <a 
           href={feed.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline flex-1 truncate"
+          className="inline-block px-1.5 py-0.5 text-white text-[10px] font-mono font-bold rounded flex-shrink-0 hover:opacity-80 transition-opacity"
+          style={{ backgroundColor: '#FF6600' }}
+          title={_('options.rssManager.openXML')}
         >
-          {feed.title}
+          XML/{getFormatBadge(feed.url)}
         </a>
       </div>
       
-      {/* 第二行：元数据（发布日期、类别、语言、条目数） */}
-      <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 pl-16">
+      {/* 第二行：元数据（发布日期、类别、语言、条目数） + 质量分析 */}
+      <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
         {feed.lastBuildDate && (
           <span className="flex items-center gap-1">
             <span>📅</span>
@@ -354,14 +506,59 @@ export function RSSManager() {
             <span>{_('options.rssManager.metadata.items', { count: feed.itemCount })}</span>
           </span>
         )}
+        
+        {/* 质量分析显示 */}
+        {feed.quality && (
+          <>
+            <span>•</span>
+            <span className={`flex items-center gap-1 font-semibold ${getQualityColor(feed.quality.score)}`}>
+              <span>📊</span>
+              <span>{_('options.rssManager.quality.score')}: {feed.quality.score}/100</span>
+              <span className="text-gray-400">({getQualityText(feed.quality.score)})</span>
+            </span>
+            <span>•</span>
+            <span className="flex items-center gap-1">
+              <span>🔄</span>
+              <span>{feed.quality.updateFrequency.toFixed(1)} {_('options.rssManager.quality.articlesPerWeek')}</span>
+            </span>
+            {!feed.quality.formatValid && (
+              <>
+                <span>•</span>
+                <span className="text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                  <span>⚠️</span>
+                  <span>{_('options.rssManager.quality.formatInvalid')}</span>
+                </span>
+              </>
+            )}
+          </>
+        )}
+        
+        {/* 分析中状态 */}
+        {!feed.quality && feed.status === 'candidate' && (
+          <>
+            <span>•</span>
+            <span className="text-blue-600 dark:text-blue-400 flex items-center gap-1 animate-pulse">
+              <span>🔍</span>
+              <span>{_('options.rssManager.quality.analyzing')}</span>
+            </span>
+          </>
+        )}
       </div>
       
       {/* 第三行：来源 + 订阅来源 + 操作按钮 */}
-      <div className="flex items-center justify-between pl-16">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
-          <span className="truncate">
-            {_('options.rssManager.discoveredFrom')}: {new URL(feed.discoveredFrom).hostname}
-          </span>
+          {feed.discoveredFrom && (
+            <span className="truncate">
+              {_('options.rssManager.discoveredFrom')}: {(() => {
+                try {
+                  return new URL(feed.discoveredFrom).hostname
+                } catch {
+                  return feed.discoveredFrom
+                }
+              })()}
+            </span>
+          )}
           {feed.subscriptionSource && (
             <>
               <span>•</span>
@@ -395,6 +592,49 @@ export function RSSManager() {
           ))}
         </div>
       </div>
+      
+      {/* 预览区域 */}
+      {expandedFeedId === feed.id && (
+        <div className="mt-3 pl-16 border-t border-gray-200 dark:border-gray-600 pt-3">
+          {loadingPreview[feed.id] ? (
+            <div className="text-center py-4 text-gray-500">
+              <span className="animate-pulse">⏳ {_('options.rssManager.preview.loading')}</span>
+            </div>
+          ) : previewArticles[feed.id]?.length > 0 ? (
+            <div className="space-y-2">
+              <h4 className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+                📰 {_('options.rssManager.preview.latestArticles')}
+              </h4>
+              {previewArticles[feed.id].map((item, index) => (
+                <div key={index} className="pl-4 border-l-2 border-blue-200 dark:border-blue-800">
+                  <a
+                    href={item.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline block"
+                  >
+                    {decodeHtmlEntities(item.title)}
+                  </a>
+                  {item.pubDate && (
+                    <span className="text-xs text-gray-400 dark:text-gray-500">
+                      {formatDateTime(item.pubDate.getTime())}
+                    </span>
+                  )}
+                  {item.description && (
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
+                      {decodeHtmlEntities(item.description.replace(/<[^>]*>/g, '').substring(0, 200))}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-4 text-gray-500 text-sm">
+              {_('options.rssManager.preview.noArticles')}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 
@@ -456,6 +696,11 @@ export function RSSManager() {
           {manualError && (
             <p className="text-sm text-red-600 dark:text-red-400 mt-1">
               {manualError}
+            </p>
+          )}
+          {manualSuccess && (
+            <p className="text-sm text-green-600 dark:text-green-400 mt-1">
+              {manualSuccess}
             </p>
           )}
         </div>
@@ -573,6 +818,11 @@ export function RSSManager() {
                   label: `✓ ${_('options.rssManager.actions.subscribe')}`,
                   onClick: () => handleSubscribeIgnored(feed.id),
                   className: 'px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-medium rounded transition-colors'
+                },
+                {
+                  label: `🗑 ${_('options.rssManager.actions.delete')}`,
+                  onClick: () => handleDelete(feed.id),
+                  className: 'px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded transition-colors'
                 }
               ]))}
             </div>

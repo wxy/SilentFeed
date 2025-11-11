@@ -6,15 +6,36 @@
  * 2. 提取 Feed 元数据（title, description, link）
  * 3. 检查 XML 结构有效性
  * 
+ * 使用 fast-xml-parser 进行 XML 解析（轻量级，适合 background script）
+ * 
  * @module core/rss/RSSValidator
  */
 
+import { XMLParser } from 'fast-xml-parser'
 import type { ValidationResult, FeedMetadata } from "./types"
 
 /**
  * RSS 验证器类
  */
 export class RSSValidator {
+  private static parser: XMLParser
+
+  /**
+   * 获取或创建 XML 解析器实例
+   */
+  private static getParser(): XMLParser {
+    if (!this.parser) {
+      this.parser = new XMLParser({
+        ignoreAttributes: false,
+        attributeNamePrefix: '@_',
+        textNodeName: '#text',
+        parseAttributeValue: false,
+        trimValues: true,
+        cdataPropName: '__cdata',
+      })
+    }
+    return this.parser
+  }
   /**
    * 验证 RSS URL（从网络获取并验证）
    * 
@@ -62,12 +83,12 @@ export class RSSValidator {
   static async validate(xml: string): Promise<ValidationResult> {
     try {
       // 1. 解析 XML
-      const parser = new DOMParser()
-      const doc = parser.parseFromString(xml, "text/xml")
+      const parser = this.getParser()
+      let parsed: any
       
-      // 2. 检查解析错误
-      const parseError = doc.querySelector("parsererror")
-      if (parseError) {
+      try {
+        parsed = parser.parse(xml)
+      } catch (parseError) {
         return {
           valid: false,
           type: null,
@@ -75,16 +96,13 @@ export class RSSValidator {
         }
       }
       
-      // 3. 检测 RSS 或 Atom
-      const rssChannel = doc.querySelector("rss > channel")
-      const atomFeed = doc.querySelector("feed")
-      
-      if (rssChannel) {
+      // 2. 检测 RSS 或 Atom
+      if (parsed.rss && parsed.rss.channel) {
         // RSS 2.0
-        return this.validateRSS(doc, rssChannel)
-      } else if (atomFeed) {
+        return this.validateRSS(parsed.rss.channel)
+      } else if (parsed.feed) {
         // Atom 1.0
-        return this.validateAtom(doc, atomFeed)
+        return this.validateAtom(parsed.feed)
       } else {
         return {
           valid: false,
@@ -102,14 +120,38 @@ export class RSSValidator {
   }
   
   /**
+   * 获取文本内容（处理各种可能的格式）
+   */
+  private static getText(value: any): string | undefined {
+    if (!value) return undefined
+    
+    // 如果是字符串，直接返回
+    if (typeof value === 'string') return value.trim()
+    
+    // 如果有 #text 属性
+    if (value['#text']) return String(value['#text']).trim()
+    
+    // 如果有 __cdata 属性（CDATA 内容）
+    if (value['__cdata']) return String(value['__cdata']).trim()
+    
+    // 如果是对象但没有特殊字段，转为字符串
+    if (typeof value === 'object') {
+      const str = JSON.stringify(value)
+      return str === '{}' ? undefined : str
+    }
+    
+    return String(value).trim()
+  }
+  
+  /**
    * 验证 RSS 2.0 格式
    */
-  private static validateRSS(doc: Document, channel: Element): ValidationResult {
+  private static validateRSS(channel: any): ValidationResult {
     try {
       // 提取必需字段
-      const title = channel.querySelector("title")?.textContent?.trim()
-      const description = channel.querySelector("description")?.textContent?.trim()
-      const link = channel.querySelector("link")?.textContent?.trim()
+      const title = this.getText(channel.title)
+      const description = this.getText(channel.description)
+      const link = this.getText(channel.link)
       
       // RSS 2.0 要求 title 和 description
       if (!title || !description) {
@@ -121,16 +163,17 @@ export class RSSValidator {
       }
       
       // 提取扩展元数据
-      const language = channel.querySelector("language")?.textContent?.trim()
-      const category = channel.querySelector("category")?.textContent?.trim()
-      const lastBuildDate = channel.querySelector("lastBuildDate")?.textContent?.trim()
-      const pubDate = channel.querySelector("pubDate")?.textContent?.trim()
-      const generator = channel.querySelector("generator")?.textContent?.trim()
-      const copyright = channel.querySelector("copyright")?.textContent?.trim()
+      const language = this.getText(channel.language)
+      const category = this.getText(channel.category)
+      const lastBuildDate = this.getText(channel.lastBuildDate)
+      const pubDate = this.getText(channel.pubDate)
+      const generator = this.getText(channel.generator)
+      const copyright = this.getText(channel.copyright)
       
       // 统计条目数
-      const items = channel.querySelectorAll("item")
-      const itemCount = items.length
+      const items = channel.item || []
+      const itemArray = Array.isArray(items) ? items : [items]
+      const itemCount = itemArray.length
       
       // 提取元数据
       const metadata: FeedMetadata = {
@@ -163,13 +206,24 @@ export class RSSValidator {
   /**
    * 验证 Atom 1.0 格式
    */
-  private static validateAtom(doc: Document, feed: Element): ValidationResult {
+  private static validateAtom(feed: any): ValidationResult {
     try {
       // 提取必需字段
-      const title = feed.querySelector("title")?.textContent?.trim()
-      const subtitle = feed.querySelector("subtitle")?.textContent?.trim()
-      const linkElement = feed.querySelector("link[rel='alternate'], link:not([rel])")
-      const link = linkElement?.getAttribute("href")?.trim()
+      const title = this.getText(feed.title)
+      const subtitle = this.getText(feed.subtitle)
+      
+      // 提取 link (优先 rel="alternate")
+      let link: string | undefined
+      if (feed.link) {
+        const links = Array.isArray(feed.link) ? feed.link : [feed.link]
+        const alternateLink = links.find((l: any) => l['@_rel'] === 'alternate')
+        if (alternateLink && alternateLink['@_href']) {
+          link = alternateLink['@_href']
+        } else {
+          const firstLink = links.find((l: any) => l['@_href'])
+          if (firstLink) link = firstLink['@_href']
+        }
+      }
       
       // Atom 要求 title
       if (!title) {
@@ -181,16 +235,18 @@ export class RSSValidator {
       }
       
       // 提取扩展元数据
-      const language = feed.getAttribute("xml:lang") || 
-                      feed.querySelector("language")?.textContent?.trim()
-      const category = feed.querySelector("category")?.getAttribute("term")?.trim()
-      const updated = feed.querySelector("updated")?.textContent?.trim()
-      const generator = feed.querySelector("generator")?.textContent?.trim()
-      const rights = feed.querySelector("rights")?.textContent?.trim()
+      const language = feed['@_xml:lang'] || this.getText(feed.language)
+      const category = feed.category ? 
+        (Array.isArray(feed.category) ? feed.category[0]['@_term'] : feed.category['@_term']) :
+        undefined
+      const updated = this.getText(feed.updated)
+      const generator = this.getText(feed.generator)
+      const rights = this.getText(feed.rights)
       
       // 统计条目数
-      const entries = feed.querySelectorAll("entry")
-      const itemCount = entries.length
+      const entries = feed.entry || []
+      const entryArray = Array.isArray(entries) ? entries : [entries]
+      const itemCount = entryArray.length
       
       // 提取元数据
       const metadata: FeedMetadata = {

@@ -1,7 +1,10 @@
 /**
  * RSS 抓取器
  * 负责从网络抓取 RSS/Atom feed 并解析为统一的数据结构
+ * 使用 fast-xml-parser 进行 XML 解析（轻量级，适合 background script）
  */
+
+import { XMLParser } from 'fast-xml-parser'
 
 export interface FeedItem {
   title: string
@@ -32,9 +35,20 @@ export interface FetchResult {
 
 export class RSSFetcher {
   private readonly timeout: number
+  private readonly parser: XMLParser
 
   constructor(options: { timeout?: number } = {}) {
     this.timeout = options.timeout || 10000 // 默认 10 秒超时
+    
+    // 配置 XML 解析器
+    this.parser = new XMLParser({
+      ignoreAttributes: false,
+      attributeNamePrefix: '@_',
+      textNodeName: '#text',
+      parseAttributeValue: false,
+      trimValues: true,
+      cdataPropName: '__cdata',
+    })
   }
 
   /**
@@ -68,12 +82,12 @@ export class RSSFetcher {
       }
 
       const xmlText = await response.text()
-      const parser = new DOMParser()
-      const doc = parser.parseFromString(xmlText, 'text/xml')
-
-      // 检查 XML 解析错误
-      const parseError = doc.querySelector('parsererror')
-      if (parseError) {
+      
+      // 使用 fast-xml-parser 解析 XML
+      let parsed: any
+      try {
+        parsed = this.parser.parse(xmlText)
+      } catch (parseError) {
         return {
           success: false,
           items: [],
@@ -83,8 +97,8 @@ export class RSSFetcher {
       }
 
       // 判断是 RSS 还是 Atom
-      const isAtom = doc.querySelector('feed') !== null
-      const result = isAtom ? this.parseAtom(doc, url) : this.parseRSS(doc, url)
+      const isAtom = parsed.feed !== undefined
+      const result = isAtom ? this.parseAtom(parsed, url) : this.parseRSS(parsed, url)
 
       console.log(`抓取成功: ${result.feedInfo.title}, ${result.items.length} 篇文章`)
       return result
@@ -103,9 +117,9 @@ export class RSSFetcher {
   /**
    * 解析 RSS 2.0 格式
    */
-  private parseRSS(doc: Document, feedUrl: string): FetchResult {
-    const channel = doc.querySelector('channel')
-    if (!channel) {
+  private parseRSS(parsed: any, feedUrl: string): FetchResult {
+    const rss = parsed.rss
+    if (!rss || !rss.channel) {
       return {
         success: false,
         items: [],
@@ -114,38 +128,42 @@ export class RSSFetcher {
       }
     }
 
+    const channel = rss.channel
+
     // 提取 feed 信息
     const feedInfo: FeedInfo = {
-      title: this.getTextContent(channel, 'title') || 'Untitled Feed',
-      description: this.getTextContent(channel, 'description'),
-      link: this.getTextContent(channel, 'link') || feedUrl,
-      language: this.getTextContent(channel, 'language'),
-      lastBuildDate: this.parseDate(this.getTextContent(channel, 'lastBuildDate')),
-      generator: this.getTextContent(channel, 'generator'),
+      title: this.getText(channel.title) || 'Untitled Feed',
+      description: this.getText(channel.description),
+      link: this.getText(channel.link) || feedUrl,
+      language: this.getText(channel.language),
+      lastBuildDate: this.parseDate(this.getText(channel.lastBuildDate)),
+      generator: this.getText(channel.generator),
     }
 
     // 提取文章列表
-    const itemElements = Array.from(channel.querySelectorAll('item'))
-    const items: FeedItem[] = itemElements.map(item => {
-      // content:encoded 需要用 getElement 而不是 querySelector
-      const contentEncoded = item.getElementsByTagName('content:encoded')[0]
-      const dcCreator = item.getElementsByTagName('dc:creator')[0]
-      
+    const items = channel.item || []
+    const itemArray = Array.isArray(items) ? items : [items]
+
+    const feedItems: FeedItem[] = itemArray.map(item => {
+      // 处理 content:encoded 和 dc:creator
+      const contentEncoded = item['content:encoded'] || item.encoded
+      const dcCreator = item['dc:creator'] || item.creator
+
       return {
-        title: this.getTextContent(item, 'title') || 'Untitled',
-        link: this.getTextContent(item, 'link') || '',
-        description: this.getTextContent(item, 'description'),
-        content: contentEncoded?.textContent?.trim() || this.getTextContent(item, 'content'),
-        pubDate: this.parseDate(this.getTextContent(item, 'pubDate')),
-        author: this.getTextContent(item, 'author') || dcCreator?.textContent?.trim(),
-        categories: this.getCategories(item),
-        guid: this.getTextContent(item, 'guid'),
+        title: this.getText(item.title) || 'Untitled',
+        link: this.getText(item.link) || '',
+        description: this.getText(item.description),
+        content: this.getText(contentEncoded) || this.getText(item.content),
+        pubDate: this.parseDate(this.getText(item.pubDate)),
+        author: this.getText(item.author) || this.getText(dcCreator),
+        categories: this.getCategories(item.category),
+        guid: this.getText(item.guid),
       }
     })
 
     return {
       success: true,
-      items,
+      items: feedItems,
       feedInfo,
     }
   }
@@ -153,8 +171,8 @@ export class RSSFetcher {
   /**
    * 解析 Atom 1.0 格式
    */
-  private parseAtom(doc: Document, feedUrl: string): FetchResult {
-    const feed = doc.querySelector('feed')
+  private parseAtom(parsed: any, feedUrl: string): FetchResult {
+    const feed = parsed.feed
     if (!feed) {
       return {
         success: false,
@@ -166,32 +184,34 @@ export class RSSFetcher {
 
     // 提取 feed 信息
     const feedInfo: FeedInfo = {
-      title: this.getTextContent(feed, 'title') || 'Untitled Feed',
-      description: this.getTextContent(feed, 'subtitle'),
-      link: this.getAtomLink(feed) || feedUrl,
-      language: feed.getAttribute('xml:lang') || undefined,
-      lastBuildDate: this.parseDate(this.getTextContent(feed, 'updated')),
-      generator: this.getTextContent(feed, 'generator'),
+      title: this.getText(feed.title) || 'Untitled Feed',
+      description: this.getText(feed.subtitle),
+      link: this.getAtomLink(feed.link) || feedUrl,
+      language: feed['@_xml:lang'],
+      lastBuildDate: this.parseDate(this.getText(feed.updated)),
+      generator: this.getText(feed.generator),
     }
 
     // 提取文章列表
-    const entryElements = Array.from(feed.querySelectorAll('entry'))
-    const items: FeedItem[] = entryElements.map(entry => ({
-      title: this.getTextContent(entry, 'title') || 'Untitled',
-      link: this.getAtomLink(entry) || '',
-      description: this.getTextContent(entry, 'summary'),
-      content: this.getTextContent(entry, 'content'),
+    const entries = feed.entry || []
+    const entryArray = Array.isArray(entries) ? entries : [entries]
+
+    const feedItems: FeedItem[] = entryArray.map(entry => ({
+      title: this.getText(entry.title) || 'Untitled',
+      link: this.getAtomLink(entry.link) || '',
+      description: this.getText(entry.summary),
+      content: this.getText(entry.content),
       pubDate: this.parseDate(
-        this.getTextContent(entry, 'published') || this.getTextContent(entry, 'updated')
+        this.getText(entry.published) || this.getText(entry.updated)
       ),
-      author: this.getAtomAuthor(entry),
-      categories: this.getAtomCategories(entry),
-      guid: this.getTextContent(entry, 'id'),
+      author: this.getAtomAuthor(entry.author),
+      categories: this.getAtomCategories(entry.category),
+      guid: this.getText(entry.id),
     }))
 
     return {
       success: true,
-      items,
+      items: feedItems,
       feedInfo,
     }
   }
@@ -231,11 +251,27 @@ export class RSSFetcher {
   // ==================== 辅助方法 ====================
 
   /**
-   * 获取元素的文本内容（支持 CSS 选择器）
+   * 获取文本内容（处理各种可能的格式）
    */
-  private getTextContent(parent: Element, selector: string): string | undefined {
-    const element = parent.querySelector(selector)
-    return element?.textContent?.trim() || undefined
+  private getText(value: any): string | undefined {
+    if (!value) return undefined
+    
+    // 如果是字符串，直接返回
+    if (typeof value === 'string') return value.trim()
+    
+    // 如果有 #text 属性
+    if (value['#text']) return String(value['#text']).trim()
+    
+    // 如果有 __cdata 属性（CDATA 内容）
+    if (value['__cdata']) return String(value['__cdata']).trim()
+    
+    // 如果是对象但没有特殊字段，转为字符串
+    if (typeof value === 'object') {
+      const str = JSON.stringify(value)
+      return str === '{}' ? undefined : str
+    }
+    
+    return String(value).trim()
   }
 
   /**
@@ -249,38 +285,57 @@ export class RSSFetcher {
   }
 
   /**
-   * 获取 RSS 分类列表
+   * 获取分类列表
    */
-  private getCategories(item: Element): string[] {
-    const categoryElements = Array.from(item.querySelectorAll('category'))
-    return categoryElements
-      .map(el => el.textContent?.trim())
+  private getCategories(category: any): string[] {
+    if (!category) return []
+    
+    const categories = Array.isArray(category) ? category : [category]
+    return categories
+      .map(cat => this.getText(cat))
       .filter((cat): cat is string => !!cat)
   }
 
   /**
-   * 获取 Atom link（rel="alternate"）
+   * 获取 Atom link（rel="alternate" 或第一个 link）
    */
-  private getAtomLink(element: Element): string | undefined {
-    const link = element.querySelector('link[rel="alternate"]') || element.querySelector('link')
-    return link?.getAttribute('href') || undefined
+  private getAtomLink(link: any): string | undefined {
+    if (!link) return undefined
+    
+    const links = Array.isArray(link) ? link : [link]
+    
+    // 优先查找 rel="alternate"
+    const alternateLink = links.find(l => l['@_rel'] === 'alternate')
+    if (alternateLink && alternateLink['@_href']) {
+      return alternateLink['@_href']
+    }
+    
+    // 否则返回第一个有 href 的 link
+    const firstLink = links.find(l => l['@_href'])
+    return firstLink ? firstLink['@_href'] : undefined
   }
 
   /**
    * 获取 Atom 作者
    */
-  private getAtomAuthor(entry: Element): string | undefined {
-    const authorName = this.getTextContent(entry, 'author > name')
-    return authorName
+  private getAtomAuthor(author: any): string | undefined {
+    if (!author) return undefined
+    
+    const authors = Array.isArray(author) ? author : [author]
+    const firstAuthor = authors[0]
+    
+    return this.getText(firstAuthor?.name)
   }
 
   /**
    * 获取 Atom 分类列表
    */
-  private getAtomCategories(entry: Element): string[] {
-    const categoryElements = Array.from(entry.querySelectorAll('category'))
-    return categoryElements
-      .map(el => el.getAttribute('term'))
-      .filter((cat): cat is string => !!cat)
+  private getAtomCategories(category: any): string[] {
+    if (!category) return []
+    
+    const categories = Array.isArray(category) ? category : [category]
+    return categories
+      .map(cat => cat['@_term'])
+      .filter((term): term is string => !!term)
   }
 }

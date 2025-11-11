@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-11-10T16:00:44.755Z",
+  "lastUpdate": "2025-11-11T06:08:10.299Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -4510,7 +4510,6 @@
         "status": "ai-translated"
       }
     },
-
     "options.rssManager.addSource": {
       "zh-CN": {
         "value": "添加订阅源",
@@ -5404,6 +5403,174 @@
         "value": "Import completed: Success {{successCount}}, Skipped {{skipCount}}, Failed {{failCount}}",
         "hash": "b044b505",
         "lastModified": "2025-11-10T16:00:44.246Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.quality.score": {
+      "zh-CN": {
+        "value": "质量",
+        "hash": "3a7170b9",
+        "lastModified": "2025-11-11T04:22:43.952Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Quality",
+        "hash": "571094bb",
+        "lastModified": "2025-11-11T04:22:43.953Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.quality.high": {
+      "zh-CN": {
+        "value": "优质",
+        "hash": "04da1613",
+        "lastModified": "2025-11-11T04:22:45.835Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "High quality",
+        "hash": "b8924eb7",
+        "lastModified": "2025-11-11T04:22:45.835Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.quality.medium": {
+      "zh-CN": {
+        "value": "中等",
+        "hash": "eadd05ba",
+        "lastModified": "2025-11-11T04:22:47.626Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Medium",
+        "hash": "87f8a6ab",
+        "lastModified": "2025-11-11T04:22:47.626Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.quality.low": {
+      "zh-CN": {
+        "value": "较低",
+        "hash": "6c839ecc",
+        "lastModified": "2025-11-11T04:22:49.417Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Lower",
+        "hash": "b75fcdd2",
+        "lastModified": "2025-11-11T04:22:49.417Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.quality.articlesPerWeek": {
+      "zh-CN": {
+        "value": "篇/周",
+        "hash": "f9676459",
+        "lastModified": "2025-11-11T04:22:51.055Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Article/Week",
+        "hash": "0cda4117",
+        "lastModified": "2025-11-11T04:22:51.055Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.quality.formatInvalid": {
+      "zh-CN": {
+        "value": "格式异常",
+        "hash": "e8319de6",
+        "lastModified": "2025-11-11T04:22:52.779Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Format exception",
+        "hash": "5bbbd712",
+        "lastModified": "2025-11-11T04:22:52.779Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.quality.analyzing": {
+      "zh-CN": {
+        "value": "分析中...",
+        "hash": "ee0b2c88",
+        "lastModified": "2025-11-11T04:22:54.743Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Analyzing...",
+        "hash": "bc2e1c9e",
+        "lastModified": "2025-11-11T04:22:54.743Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.preview.loading": {
+      "zh-CN": {
+        "value": "加载预览中...",
+        "hash": "38b4aed9",
+        "lastModified": "2025-11-11T05:57:15.790Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Loading preview...",
+        "hash": "21f58fc5",
+        "lastModified": "2025-11-11T05:57:15.791Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.preview.latestArticles": {
+      "zh-CN": {
+        "value": "最新文章",
+        "hash": "0f6c5697",
+        "lastModified": "2025-11-11T05:57:17.545Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Latest Articles",
+        "hash": "b6e99176",
+        "lastModified": "2025-11-11T05:57:17.545Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.preview.noArticles": {
+      "zh-CN": {
+        "value": "暂无文章",
+        "hash": "fa34716c",
+        "lastModified": "2025-11-11T05:57:19.350Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "No articles available",
+        "hash": "384d0ab7",
+        "lastModified": "2025-11-11T05:57:19.350Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.openXML": {
+      "zh-CN": {
+        "value": "查看原始 XML",
+        "hash": "9d3cfe07",
+        "lastModified": "2025-11-11T05:57:21.045Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "View original XML",
+        "hash": "f93fba20",
+        "lastModified": "2025-11-11T05:57:21.045Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.errors.revalidationFailed": {
+      "zh-CN": {
+        "value": "RSS 源重新验证失败，已删除",
+        "hash": "f31f36ea",
+        "lastModified": "2025-11-11T06:08:09.791Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "RSS feed revalidation failed, has been deleted",
+        "hash": "3284b517",
+        "lastModified": "2025-11-11T06:08:09.792Z",
         "status": "ai-translated"
       }
     }
