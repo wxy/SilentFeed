@@ -86,18 +86,21 @@ export interface DiscoveredFeed {
   
   // 订阅信息
   subscribedAt?: number         // 订阅时间戳
-  enabled: boolean              // 是否启用（可以暂停订阅源）
   
-  // 更新信息
-  lastFetched?: number          // 最后抓取时间戳
+  // Phase 5 Sprint 3: 状态管理和定时抓取
+  isActive: boolean             // 是否启用定时抓取（默认 true，可暂停）
+  lastFetchedAt?: number        // 最后抓取时间戳
   lastError?: string            // 最后错误信息
+  articleCount: number          // 文章总数（默认 0）
+  unreadCount: number           // 未读文章数（默认 0）
+  latestArticles?: FeedArticle[] // 最新文章列表（最新 5-10 篇）
 }
 
 /**
  * RSS 文章
  */
 export interface FeedArticle {
-  id: string                    // UUID
+  id: string                    // UUID 或 link hash
   feedId: string                // 所属 RSS 源 ID
   
   // 文章信息
@@ -119,7 +122,7 @@ export interface FeedArticle {
   }
   
   // 用户行为
-  read: boolean                 // 是否已读
+  read: boolean                 // 是否已读（Phase 5 Sprint 3: 默认 false）
   starred: boolean              // 是否收藏
 }
 

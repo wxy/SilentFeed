@@ -23,7 +23,7 @@ export class FeedManager {
    * 
    * @param feed - 源信息（不需要 id，会自动生成）
    */
-  async addCandidate(feed: Omit<DiscoveredFeed, 'id' | 'status' | 'enabled'>): Promise<string> {
+  async addCandidate(feed: Omit<DiscoveredFeed, 'id' | 'status' | 'isActive' | 'articleCount' | 'unreadCount'>): Promise<string> {
     // 1. 检查完全相同的 URL
     const existingByUrl = await db.discoveredFeeds.where('url').equals(feed.url).first()
     if (existingByUrl) {
@@ -63,7 +63,9 @@ export class FeedManager {
       ...feed,
       id,
       status: 'candidate',
-      enabled: true
+      isActive: true,           // Phase 5 Sprint 3: 默认启用
+      articleCount: 0,          // Phase 5 Sprint 3: 初始文章数为 0
+      unreadCount: 0            // Phase 5 Sprint 3: 初始未读数为 0
     }
     
     await db.discoveredFeeds.add(newFeed)
@@ -379,11 +381,11 @@ export class FeedManager {
    * 启用/暂停源（不改变订阅状态）
    * 
    * @param id - 源 ID
-   * @param enabled - 是否启用
+   * @param isActive - 是否启用
    */
-  async setEnabled(id: string, enabled: boolean): Promise<void> {
-    await db.discoveredFeeds.update(id, { enabled })
-    console.log('[FeedManager] 已更新源启用状态:', id, enabled)
+  async setEnabled(id: string, isActive: boolean): Promise<void> {
+    await db.discoveredFeeds.update(id, { isActive })
+    console.log('[FeedManager] 已更新源启用状态:', id, isActive)
   }
   
   /**
@@ -419,7 +421,7 @@ export class FeedManager {
    */
   async updateFetchInfo(id: string, error?: string): Promise<void> {
     const updates: Partial<DiscoveredFeed> = {
-      lastFetched: Date.now()
+      lastFetchedAt: Date.now()
     }
     
     if (error) {
@@ -450,6 +452,59 @@ export class FeedManager {
       subscribed: feeds.filter(f => f.status === 'subscribed').length,
       ignored: feeds.filter(f => f.status === 'ignored').length
     }
+  }
+
+  // ==================== Phase 5 Sprint 3: 状态管理 ====================
+
+  /**
+   * 切换订阅源的启用状态
+   * 
+   * Phase 5 Sprint 3: 用于暂停/恢复定时抓取
+   * 
+   * @param feedId - 源 ID
+   * @returns 新的 isActive 状态
+   */
+  async toggleActive(feedId: string): Promise<boolean> {
+    const feed = await this.getFeed(feedId)
+    if (!feed) {
+      throw new Error(`源不存在: ${feedId}`)
+    }
+
+    const newState = !feed.isActive
+    await db.discoveredFeeds.update(feedId, { isActive: newState })
+    
+    console.log('[FeedManager] 已切换源启用状态:', {
+      feedId,
+      title: feed.title,
+      isActive: newState
+    })
+
+    return newState
+  }
+
+  /**
+   * 获取所有启用的订阅源
+   * 
+   * Phase 5 Sprint 3: 用于定时抓取
+   * 
+   * @returns 启用且已订阅的源列表
+   */
+  async getActiveSubscriptions(): Promise<DiscoveredFeed[]> {
+    const subscribed = await db.discoveredFeeds
+      .where('status')
+      .equals('subscribed')
+      .toArray()
+
+    // 过滤出 isActive 为 true 的源
+    const active = subscribed.filter(feed => feed.isActive)
+
+    console.log('[FeedManager] 启用的订阅源:', {
+      total: subscribed.length,
+      active: active.length,
+      paused: subscribed.length - active.length
+    })
+
+    return active
   }
 }
 

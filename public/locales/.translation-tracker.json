@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-11-11T06:08:10.299Z",
+  "lastUpdate": "2025-11-11T11:47:10.091Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -5571,6 +5571,272 @@
         "value": "RSS feed revalidation failed, has been deleted",
         "hash": "3284b517",
         "lastModified": "2025-11-11T06:08:09.792Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.actions.pause": {
+      "zh-CN": {
+        "value": "暂停",
+        "hash": "8d63ef38",
+        "lastModified": "2025-11-11T11:16:44.771Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Pause",
+        "hash": "105b296a",
+        "lastModified": "2025-11-11T11:16:44.772Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.actions.resume": {
+      "zh-CN": {
+        "value": "恢复",
+        "hash": "c7db6d4f",
+        "lastModified": "2025-11-11T11:16:46.743Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Restore",
+        "hash": "2bd339d8",
+        "lastModified": "2025-11-11T11:16:46.743Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.fetch.totalArticles": {
+      "zh-CN": {
+        "value": "共 {{count}} 篇文章",
+        "hash": "03313a94",
+        "lastModified": "2025-11-11T11:16:50.468Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "A total of {{count}} articles",
+        "hash": "43dbe417",
+        "lastModified": "2025-11-11T11:16:50.468Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.fetch.unreadArticles": {
+      "zh-CN": {
+        "value": "{{count}} 篇未读",
+        "hash": "e1effa12",
+        "lastModified": "2025-11-11T11:16:52.083Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{count}} unread posts",
+        "hash": "934ef237",
+        "lastModified": "2025-11-11T11:16:52.083Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.fetch.lastFetched": {
+      "zh-CN": {
+        "value": "最后抓取",
+        "hash": "a11d0a23",
+        "lastModified": "2025-11-11T11:16:53.912Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Last crawl",
+        "hash": "3b6261de",
+        "lastModified": "2025-11-11T11:16:53.912Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.time.justNow": {
+      "zh-CN": {
+        "value": "刚刚",
+        "hash": "4181f7fe",
+        "lastModified": "2025-11-11T11:16:55.919Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Just now",
+        "hash": "58038ee4",
+        "lastModified": "2025-11-11T11:16:55.919Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.time.minutesAgo": {
+      "zh-CN": {
+        "value": "分钟前",
+        "hash": "2e3a36de",
+        "lastModified": "2025-11-11T11:16:57.840Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "minutes ago",
+        "hash": "53c53a79",
+        "lastModified": "2025-11-11T11:16:57.840Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.time.hoursAgo": {
+      "zh-CN": {
+        "value": "小时前",
+        "hash": "bb39a0c6",
+        "lastModified": "2025-11-11T11:16:59.851Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "hours ago",
+        "hash": "f329a0da",
+        "lastModified": "2025-11-11T11:16:59.851Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.time.daysAgo": {
+      "zh-CN": {
+        "value": "天前",
+        "hash": "c6615916",
+        "lastModified": "2025-11-11T11:17:01.377Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "days ago",
+        "hash": "7a1af30a",
+        "lastModified": "2025-11-11T11:17:01.377Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.status.paused": {
+      "zh-CN": {
+        "value": "已暂停",
+        "hash": "a2d930fd",
+        "lastModified": "2025-11-11T11:17:03.024Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Paused",
+        "hash": "e99180ab",
+        "lastModified": "2025-11-11T11:17:03.024Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.fetch.articles": {
+      "zh-CN": {
+        "value": "篇",
+        "hash": "1b4c402a",
+        "lastModified": "2025-11-11T11:46:55.334Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Article",
+        "hash": "5e2f8ee4",
+        "lastModified": "2025-11-11T11:46:55.335Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.fetch.unread": {
+      "zh-CN": {
+        "value": "未读",
+        "hash": "894a101e",
+        "lastModified": "2025-11-11T11:46:56.924Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Unread",
+        "hash": "53770fd3",
+        "lastModified": "2025-11-11T11:46:56.924Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.fetch.last": {
+      "zh-CN": {
+        "value": "上次",
+        "hash": "e8a01dca",
+        "lastModified": "2025-11-11T11:46:58.639Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Last time",
+        "hash": "8c1522c5",
+        "lastModified": "2025-11-11T11:46:58.639Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.fetch.perWeek": {
+      "zh-CN": {
+        "value": "篇/周",
+        "hash": "f9676459",
+        "lastModified": "2025-11-11T11:47:00.380Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Article/Week",
+        "hash": "0cda4117",
+        "lastModified": "2025-11-11T11:47:00.380Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.time.now": {
+      "zh-CN": {
+        "value": "现在",
+        "hash": "505ccfb0",
+        "lastModified": "2025-11-11T11:47:02.014Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Now",
+        "hash": "1e1cc9bd",
+        "lastModified": "2025-11-11T11:47:02.014Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.time.soon": {
+      "zh-CN": {
+        "value": "马上",
+        "hash": "f5abec12",
+        "lastModified": "2025-11-11T11:47:03.820Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Right away",
+        "hash": "dcf2b238",
+        "lastModified": "2025-11-11T11:47:03.820Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.time.minutesLater": {
+      "zh-CN": {
+        "value": "分钟后",
+        "hash": "9b582959",
+        "lastModified": "2025-11-11T11:47:05.678Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "minutes later",
+        "hash": "c87bcefc",
+        "lastModified": "2025-11-11T11:47:05.678Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.time.hoursLater": {
+      "zh-CN": {
+        "value": "小时后",
+        "hash": "fdb6bb96",
+        "lastModified": "2025-11-11T11:47:07.544Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "When I was little",
+        "hash": "8b034d71",
+        "lastModified": "2025-11-11T11:47:07.544Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.time.daysLater": {
+      "zh-CN": {
+        "value": "天后",
+        "hash": "17fbc240",
+        "lastModified": "2025-11-11T11:47:09.585Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Empress",
+        "hash": "3915841f",
+        "lastModified": "2025-11-11T11:47:09.585Z",
         "status": "ai-translated"
       }
     }

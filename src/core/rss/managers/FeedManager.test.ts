@@ -95,7 +95,9 @@ describe('FeedManager', () => {
           url: mockFeed.url,
           title: mockFeed.title,
           status: 'candidate',
-          enabled: true
+          isActive: true,
+          articleCount: 0,
+          unreadCount: 0
         })
       )
     })
@@ -112,7 +114,9 @@ describe('FeedManager', () => {
         id: 'existing-id',
         ...mockFeed,
         status: 'candidate',
-        enabled: true
+        isActive: true,
+        articleCount: 0,
+        unreadCount: 0
       }
       
       // Mock where().equals().first() 返回已存在的源
@@ -138,7 +142,9 @@ describe('FeedManager', () => {
           discoveredFrom: 'https://example1.com',
           discoveredAt: Date.now() - 1000,
           status: 'candidate',
-          enabled: true
+          isActive: true,
+        articleCount: 0,
+        unreadCount: 0
         },
         {
           id: '2',
@@ -147,7 +153,9 @@ describe('FeedManager', () => {
           discoveredFrom: 'https://example2.com',
           discoveredAt: Date.now(),
           status: 'subscribed',
-          enabled: true
+          isActive: true,
+        articleCount: 0,
+        unreadCount: 0
         }
       ]
       
@@ -171,7 +179,9 @@ describe('FeedManager', () => {
           discoveredFrom: 'https://example1.com',
           discoveredAt: Date.now(),
           status: 'subscribed',
-          enabled: true
+          isActive: true,
+        articleCount: 0,
+        unreadCount: 0
         }
       ]
       
@@ -276,7 +286,7 @@ describe('FeedManager', () => {
       
       expect(db.discoveredFeeds.update).toHaveBeenCalledWith(
         'test-id',
-        { enabled: true }
+        { isActive: true }
       )
     })
     
@@ -287,7 +297,7 @@ describe('FeedManager', () => {
       
       expect(db.discoveredFeeds.update).toHaveBeenCalledWith(
         'test-id',
-        { enabled: false }
+        { isActive: false }
       )
     })
   })
@@ -352,7 +362,9 @@ describe('FeedManager', () => {
         discoveredFrom: 'https://example.com',
         discoveredAt: Date.now(),
         status: 'candidate',
-        enabled: true
+        isActive: true,
+        articleCount: 0,
+        unreadCount: 0
       }
       
       vi.mocked(db.discoveredFeeds.get).mockResolvedValue(mockFeed)
@@ -378,7 +390,7 @@ describe('FeedManager', () => {
         discoveredFrom: 'https://example.com',
         discoveredAt: now,
         status: 'candidate',
-        enabled: true,
+        isActive: true,
         quality: {
           score: 75,
           updateFrequency: 5,
@@ -407,7 +419,7 @@ describe('FeedManager', () => {
         discoveredFrom: 'https://example.com',
         discoveredAt: now,
         status: 'candidate',
-        enabled: true,
+        isActive: true,
         quality: {
           score: 75,
           updateFrequency: 5,
@@ -447,7 +459,9 @@ describe('FeedManager', () => {
           discoveredFrom: 'https://example.com',
           discoveredAt: Date.now(),
           status: 'candidate',
-          enabled: true
+          isActive: true,
+        articleCount: 0,
+        unreadCount: 0
         },
         {
           id: 'feed-2',
@@ -456,7 +470,9 @@ describe('FeedManager', () => {
           discoveredFrom: 'https://example.com',
           discoveredAt: Date.now(),
           status: 'candidate',
-          enabled: true
+          isActive: true,
+        articleCount: 0,
+        unreadCount: 0
         }
       ]
       
@@ -492,7 +508,7 @@ describe('FeedManager', () => {
         discoveredFrom: 'https://example.com',
         discoveredAt: Date.now(),
         status: 'candidate' as const,
-        enabled: true
+        isActive: true
       }))
       
       vi.spyOn(feedManager, 'getFeeds').mockResolvedValue(mockFeeds)

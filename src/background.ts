@@ -4,6 +4,7 @@ import { initializeDatabase, getPageCount, getUnreadRecommendations, db } from '
 import type { ConfirmedVisit } from './storage/types'
 import { FeedManager } from './core/rss/managers/FeedManager'
 import { RSSValidator } from './core/rss/RSSValidator'
+import { feedScheduler } from './background/feed-scheduler'
 
 console.log('FeedAIMuter Background Service Worker 已启动')
 
@@ -97,6 +98,11 @@ chrome.runtime.onInstalled.addListener(async () => {
   try {
     console.log('[Background] Service Worker 启动...')
     await updateBadge()
+    
+    // Phase 5 Sprint 3: 启动 RSS 定时调度器
+    console.log('[Background] 启动 RSS 定时调度器...')
+    feedScheduler.start(30) // 每 30 分钟检查一次
+    
     console.log('[Background] ✅ Service Worker 启动完成')
   } catch (error) {
     console.error('[Background] ❌ Service Worker 启动失败:', error)
@@ -265,6 +271,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         case 'RSS_IGNORED':
           await updateBadge()
           sendResponse({ success: true })
+          break
+        
+        case 'MANUAL_FETCH_FEEDS':
+          // Phase 5 Sprint 3: 手动触发 RSS 抓取
+          try {
+            console.log('[Background] 手动触发 RSS 抓取...')
+            const result = await feedScheduler.runOnce()
+            sendResponse({ success: true, data: result })
+          } catch (error) {
+            console.error('[Background] ❌ 手动抓取失败:', error)
+            sendResponse({ success: false, error: String(error) })
+          }
           break
         
         default:
