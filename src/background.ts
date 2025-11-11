@@ -5,8 +5,12 @@ import type { ConfirmedVisit } from './storage/types'
 import { FeedManager } from './core/rss/managers/FeedManager'
 import { RSSValidator } from './core/rss/RSSValidator'
 import { feedScheduler } from './background/feed-scheduler'
+import { IconManager } from './utils/IconManager'
 
 console.log('FeedAIMuter Background Service Worker 已启动')
+
+// Phase 5.2: 初始化图标管理器
+let iconManager: IconManager | null = null
 
 // 开发环境下加载调试工具
 if (process.env.NODE_ENV === 'development') {
@@ -24,46 +28,88 @@ if (process.env.NODE_ENV === 'development') {
 let rssDiscoveryViewed = false
 
 /**
- * 统一的徽章更新函数
+ * 统一的徽章/图标更新函数
+ * 
+ * Phase 5.2: 使用新的图标系统
  * 
  * 优先级：
- * 1. RSS 发现（未查看） - 显示雷达 📡
- * 2. 学习阶段（< 1000 页） - 显示进度百分比
- * 3. 推荐阶段（≥ 1000 页） - 显示未读推荐数
+ * 1. RSS 发现（未查看） - 图标动画
+ * 2. 学习阶段（< 1000 页） - 图标进度遮罩
+ * 3. 推荐阶段（≥ 1000 页） - 图标波纹点亮
  */
 async function updateBadge(): Promise<void> {
   try {
+    // Phase 5.2: 如果图标管理器未初始化,跳过图标更新
+    if (!iconManager) {
+      console.log('[Background] ⏳ 图标管理器未初始化,使用旧徽章系统')
+      return updateLegacyBadge()
+    }
+    
     // 1. 检查是否有未查看的 RSS 发现
     const feedManager = new FeedManager()
     const candidateFeeds = await feedManager.getFeeds('candidate')
     
     if (candidateFeeds.length > 0 && !rssDiscoveryViewed) {
-      // 显示雷达图标
-      await chrome.action.setBadgeText({ text: '📡' })
-      await chrome.action.setBadgeBackgroundColor({ color: '#4CAF50' }) // 绿色背景
-      console.log(`[Background] 📡 显示 RSS 发现提示 (${candidateFeeds.length} 个源)`)
+      // 启动 RSS 发现动画
+      iconManager.startDiscoverAnimation()
+      console.log(`[Background] 📡 启动 RSS 发现动画 (${candidateFeeds.length} 个源)`)
       return
     }
     
-    // 2. 正常徽章逻辑
+    // 停止发现动画(如果在播放)
+    iconManager.stopDiscoverAnimation()
+    
+    // 2. 正常图标逻辑
     const pageCount = await getPageCount()
     
     if (pageCount < 1000) {
-      // 学习阶段：显示进度百分比
-      const progress = Math.floor((pageCount / 1000) * 100)
-      await chrome.action.setBadgeText({ text: `${progress}%` })
-      await chrome.action.setBadgeBackgroundColor({ color: '#2196F3' }) // 蓝色
-      console.log(`[Background] 学习进度：${progress}%`)
+      // 学习阶段：显示进度遮罩
+      iconManager.setLearningProgress(pageCount)
+      iconManager.setRecommendCount(0)  // 清除推荐
+      console.log(`[Background] 学习进度：${pageCount}/1000 页`)
     } else {
-      // 推荐阶段：显示未读推荐数
+      // 推荐阶段：显示推荐波纹
       const unreadRecs = await getUnreadRecommendations(50)
-      const unreadCount = unreadRecs.length
-      await chrome.action.setBadgeText({ text: unreadCount > 0 ? String(unreadCount) : '' })
-      await chrome.action.setBadgeBackgroundColor({ color: '#F44336' }) // 红色
+      const unreadCount = Math.min(unreadRecs.length, 3)  // 最多3条波纹
+      iconManager.setRecommendCount(unreadCount)
+      iconManager.setLearningProgress(1000)  // 学习完成
       console.log(`[Background] 未读推荐：${unreadCount}`)
     }
   } catch (error) {
-    console.error('[Background] ❌ 更新徽章失败:', error)
+    console.error('[Background] ❌ 更新图标失败:', error)
+    // 降级到旧徽章系统
+    updateLegacyBadge().catch(e => console.error('[Background] 降级徽章更新也失败:', e))
+  }
+}
+
+/**
+ * 旧的徽章系统(降级方案)
+ */
+async function updateLegacyBadge(): Promise<void> {
+  try {
+    const feedManager = new FeedManager()
+    const candidateFeeds = await feedManager.getFeeds('candidate')
+    
+    if (candidateFeeds.length > 0 && !rssDiscoveryViewed) {
+      await chrome.action.setBadgeText({ text: '📡' })
+      await chrome.action.setBadgeBackgroundColor({ color: '#4CAF50' })
+      return
+    }
+    
+    const pageCount = await getPageCount()
+    
+    if (pageCount < 1000) {
+      const progress = Math.floor((pageCount / 1000) * 100)
+      await chrome.action.setBadgeText({ text: `${progress}%` })
+      await chrome.action.setBadgeBackgroundColor({ color: '#2196F3' })
+    } else {
+      const unreadRecs = await getUnreadRecommendations(50)
+      const unreadCount = unreadRecs.length
+      await chrome.action.setBadgeText({ text: unreadCount > 0 ? String(unreadCount) : '' })
+      await chrome.action.setBadgeBackgroundColor({ color: '#F44336' })
+    }
+  } catch (error) {
+    console.error('[Background] ❌ 更新旧徽章失败:', error)
   }
 }
 
@@ -97,6 +143,19 @@ chrome.runtime.onInstalled.addListener(async () => {
 ;(async () => {
   try {
     console.log('[Background] Service Worker 启动...')
+    
+    // Phase 5.2: 初始化图标管理器
+    try {
+      iconManager = new IconManager()
+      // 开发模式下强制重新加载图片(防止缓存)
+      const forceReload = process.env.NODE_ENV === 'development'
+      await iconManager.initialize(forceReload)
+      console.log('[Background] ✅ 图标管理器初始化成功', forceReload ? '(强制重新加载)' : '')
+    } catch (error) {
+      console.error('[Background] ❌ 图标管理器初始化失败,使用旧徽章系统:', error)
+      iconManager = null
+    }
+    
     await updateBadge()
     
     // Phase 5 Sprint 3: 启动 RSS 定时调度器
@@ -277,11 +336,110 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           // Phase 5 Sprint 3: 手动触发 RSS 抓取
           try {
             console.log('[Background] 手动触发 RSS 抓取...')
+            
+            // Phase 5.2: 启动后台抓取动画
+            if (iconManager) {
+              iconManager.startFetchingAnimation()
+            }
+            
             const result = await feedScheduler.runOnce()
+            
+            // Phase 5.2: 停止后台抓取动画
+            if (iconManager) {
+              iconManager.stopFetchingAnimation()
+              await updateBadge()  // 恢复正常状态
+            }
+            
             sendResponse({ success: true, data: result })
           } catch (error) {
             console.error('[Background] ❌ 手动抓取失败:', error)
+            
+            // 停止动画
+            if (iconManager) {
+              iconManager.stopFetchingAnimation()
+            }
+            
             sendResponse({ success: false, error: String(error) })
+          }
+          break
+        
+        // 开发环境下的图标调试命令
+        case 'DEBUG_SET_LEARNING':
+          if (process.env.NODE_ENV === 'development' && iconManager) {
+            iconManager.setLearningProgress(message.pages)
+            sendResponse({ success: true })
+          } else {
+            sendResponse({ success: false, error: 'Not in development mode' })
+          }
+          break
+        
+        case 'DEBUG_SET_RECOMMEND':
+          if (process.env.NODE_ENV === 'development' && iconManager) {
+            iconManager.setRecommendCount(message.count)
+            sendResponse({ success: true })
+          } else {
+            sendResponse({ success: false, error: 'Not in development mode' })
+          }
+          break
+        
+        case 'DEBUG_START_DISCOVER':
+          if (process.env.NODE_ENV === 'development' && iconManager) {
+            iconManager.startDiscoverAnimation()
+            sendResponse({ success: true })
+          } else {
+            sendResponse({ success: false, error: 'Not in development mode' })
+          }
+          break
+        
+        case 'DEBUG_SET_FETCHING':
+          if (process.env.NODE_ENV === 'development' && iconManager) {
+            if (message.enable) {
+              iconManager.startFetchingAnimation()
+            } else {
+              iconManager.stopFetchingAnimation()
+            }
+            sendResponse({ success: true })
+          } else {
+            sendResponse({ success: false, error: 'Not in development mode' })
+          }
+          break
+        
+        case 'DEBUG_SET_PAUSED':
+          if (process.env.NODE_ENV === 'development' && iconManager) {
+            if (message.enable) {
+              iconManager.pause()
+            } else {
+              iconManager.resume()
+            }
+            sendResponse({ success: true })
+          } else {
+            sendResponse({ success: false, error: 'Not in development mode' })
+          }
+          break
+        
+        case 'DEBUG_SET_ERROR':
+          if (process.env.NODE_ENV === 'development' && iconManager) {
+            if (message.enable) {
+              iconManager.setError(true)
+            } else {
+              iconManager.clearError()
+            }
+            sendResponse({ success: true })
+          } else {
+            sendResponse({ success: false, error: 'Not in development mode' })
+          }
+          break
+        
+        case 'DEBUG_RESET_ICON':
+          if (process.env.NODE_ENV === 'development' && iconManager) {
+            iconManager.clearError()
+            iconManager.resume()
+            iconManager.stopFetchingAnimation()
+            iconManager.stopDiscoverAnimation()
+            await updateBadge()  // 恢复到当前实际状态
+            sendResponse({ success: true })
+          } else {
+            sendResponse({ success: false, error: 'Not in development mode' })
           }
           break
         
