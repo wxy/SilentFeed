@@ -68,6 +68,17 @@
     "permissions": [
       "tabs",
       "storage"
+    ],
+    "web_accessible_resources": [
+      {
+        "resources": [
+          "assets/icons/128/*.png",
+          "assets/icons/128/overlays/*.png"
+        ],
+        "matches": [
+          "<all_urls>"
+        ]
+      }
     ]
   }
 }

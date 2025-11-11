@@ -31,7 +31,8 @@
       "rss": "RSS 源",
       "ai": "AI",
       "recommendations": "推荐统计",
-      "data": "采集统计"
+      "data": "采集统计",
+      "debug": "调试工具"
     },
     "general": {
       "title": "常规设置",

@@ -12,15 +12,6 @@ import { useTheme } from "@/hooks/useTheme"
 import "@/styles/global.css"
 import "@/styles/sketchy.css"
 
-// 开发环境下加载调试工具
-if (process.env.NODE_ENV === 'development') {
-  import('./debug/generate-interest-changes').then(() => {
-    console.log('🔧 开发调试工具已加载到 Options 页面')
-  }).catch(error => {
-    console.error('❌ 加载调试工具失败:', error)
-  })
-}
-
 type TabKey = "general" | "rss" | "ai" | "recommendations" | "data"
 
 /**
