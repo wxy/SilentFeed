@@ -151,20 +151,25 @@ export function RSSManager() {
     }
   }
   
-  // 取消订阅
+  // 取消订阅（移到忽略列表）
   const handleUnsubscribe = async (feedId: string) => {
     try {
       const feedManager = new FeedManager()
       await feedManager.unsubscribe(feedId)
       
-      // 从订阅列表移除，添加到候选列表
+      // 从订阅列表移除，添加到忽略列表（而不是候选列表）
       const feed = subscribedFeeds.find(f => f.id === feedId)
       if (feed) {
         setSubscribedFeeds(prev => prev.filter(f => f.id !== feedId))
-        setCandidateFeeds(prev => [...prev, { ...feed, status: 'candidate', subscribedAt: undefined }])
+        setIgnoredFeeds(prev => [...prev, { 
+          ...feed, 
+          status: 'ignored', 
+          subscribedAt: undefined,
+          subscriptionSource: feed.subscriptionSource  // 保留订阅来源
+        }])
       }
       
-      console.log('[RSSManager] 已取消订阅:', feedId)
+      console.log('[RSSManager] 已取消订阅（移到忽略列表）:', feedId)
     } catch (error) {
       console.error('[RSSManager] 取消订阅失败:', error)
     }
@@ -230,6 +235,23 @@ export function RSSManager() {
     }
   }
 
+  // Phase 5 Sprint 3: 切换源的启用/暂停状态
+  const handleToggleActive = async (feedId: string) => {
+    try {
+      const feedManager = new FeedManager()
+      const newState = await feedManager.toggleActive(feedId)
+      
+      // 更新订阅列表中的状态
+      setSubscribedFeeds(prev => prev.map(feed => 
+        feed.id === feedId ? { ...feed, isActive: newState } : feed
+      ))
+      
+      console.log('[RSSManager] 已切换源状态:', feedId, newState)
+    } catch (error) {
+      console.error('[RSSManager] 切换源状态失败:', error)
+    }
+  }
+
   // 获取格式徽章文本
   const getFormatBadge = (url: string) => {
     if (url.includes('atom')) return 'ATOM'
@@ -245,6 +267,73 @@ export function RSSManager() {
       hour: '2-digit',
       minute: '2-digit'
     })
+  }
+
+  // Phase 5 Sprint 3: 格式化相对时间（如 "2小时前"）
+  const formatRelativeTime = (timestamp: number) => {
+    const now = Date.now()
+    const diff = now - timestamp
+    const seconds = Math.floor(diff / 1000)
+    const minutes = Math.floor(seconds / 60)
+    const hours = Math.floor(minutes / 60)
+    const days = Math.floor(hours / 24)
+
+    if (days > 0) {
+      return `${days} ${_('options.rssManager.time.daysAgo')}`
+    } else if (hours > 0) {
+      return `${hours} ${_('options.rssManager.time.hoursAgo')}`
+    } else if (minutes > 0) {
+      return `${minutes} ${_('options.rssManager.time.minutesAgo')}`
+    } else {
+      return _('options.rssManager.time.justNow')
+    }
+  }
+
+  // Phase 5 Sprint 3: 计算下次抓取时间
+  const calculateNextFetchTime = (feed: DiscoveredFeed): number | null => {
+    if (!feed.quality || !feed.lastFetchedAt || !feed.isActive) {
+      return null
+    }
+
+    const frequency = feed.quality.updateFrequency // 篇/周
+    let intervalMs = 0
+
+    if (frequency >= 7) {
+      intervalMs = 6 * 60 * 60 * 1000  // 6 小时
+    } else if (frequency >= 3) {
+      intervalMs = 12 * 60 * 60 * 1000 // 12 小时
+    } else if (frequency >= 1) {
+      intervalMs = 24 * 60 * 60 * 1000 // 24 小时
+    } else {
+      return null // 低频源不自动抓取
+    }
+
+    return feed.lastFetchedAt + intervalMs
+  }
+
+  // 格式化时间间隔（如 "6小时后"）
+  const formatTimeUntil = (timestamp: number) => {
+    const now = Date.now()
+    const diff = timestamp - now
+    
+    if (diff <= 0) {
+      return _('options.rssManager.time.now')
+    }
+
+    const seconds = Math.floor(diff / 1000)
+    const minutes = Math.floor(seconds / 60)
+    const hours = Math.floor(minutes / 60)
+    const days = Math.floor(hours / 24)
+
+    if (days > 0) {
+      return `${days} ${_('options.rssManager.time.daysLater')}`
+    } else if (hours > 0) {
+      return `${hours} ${_('options.rssManager.time.hoursLater')}`
+    } else if (minutes > 0) {
+      return `${minutes} ${_('options.rssManager.time.minutesLater')}`
+    } else {
+      return _('options.rssManager.time.soon')
+    }
   }
   
   // Phase 5.1.6: 手动订阅 RSS
@@ -443,200 +532,322 @@ export function RSSManager() {
     return _('options.rssManager.quality.low')
   }
 
-  // 渲染源列表项（三行布局 + 质量分析）
+  // 渲染源列表项（三行紧凑布局）
   const renderFeedItem = (
     feed: DiscoveredFeed,
-    actions: { label: string; onClick: () => void; className: string }[]
-  ) => (
-    <div 
-      key={feed.id}
-      className="flex flex-col gap-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 border border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 transition-colors"
-    >
-      {/* 第一行：标题（可点击预览）+ 格式徽章 */}
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => loadPreviewArticles(feed.id, feed.url)}
-          className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline flex-1 truncate text-left"
-        >
-          {feed.title}
-          {expandedFeedId === feed.id && (
-            <span className="ml-2 text-gray-500">
-              {loadingPreview[feed.id] ? '⏳' : '▼'}
+    actions: { label: string; onClick: () => void; className: string; row?: 2 | 3 }[]
+  ) => {
+    const nextFetchTime = feed.status === 'subscribed' ? calculateNextFetchTime(feed) : null
+    
+    // 安全获取域名
+    const getHostname = (url: string): string => {
+      try {
+        return new URL(url).hostname
+      } catch {
+        return url
+      }
+    }
+    
+    // 分组按钮：第二行和第三行
+    const row2Actions = actions.filter(a => !a.row || a.row === 2)
+    const row3Actions = actions.filter(a => a.row === 3)
+    
+    return (
+      <div 
+        key={feed.id}
+        className="flex flex-col gap-1.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 border border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 transition-colors"
+      >
+        {/* 第一行：RSS 本身属性 */}
+        <div className="flex items-center gap-2 text-sm">
+          {/* XML/RSS 图标 */}
+          <a 
+            href={feed.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center px-1.5 py-0.5 text-white text-xs font-mono font-bold rounded flex-shrink-0 hover:opacity-80 transition-opacity"
+            style={{ backgroundColor: '#FF6600' }}
+            title={_('options.rssManager.openXML')}
+          >
+            {getFormatBadge(feed.url)}
+          </a>
+          
+          {/* 语言文本图标 */}
+          {feed.language && (
+            <span 
+              className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded text-[10px] font-mono font-bold uppercase"
+              title={formatLanguage(feed.language)}
+            >
+              {feed.language}
             </span>
           )}
-          {expandedFeedId !== feed.id && previewArticles[feed.id] && (
-            <span className="ml-2 text-gray-500">▶</span>
+          
+          {/* 标题 */}
+          <button
+            onClick={() => loadPreviewArticles(feed.id, feed.url)}
+            className="font-medium text-blue-600 dark:text-blue-400 hover:underline flex-1 truncate text-left"
+          >
+            {feed.title}
+          </button>
+          
+          {/* 质量文本图标 */}
+          {feed.quality && (
+            <span 
+              className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                feed.quality.score >= 70 
+                  ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
+                  : feed.quality.score >= 50 
+                  ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' 
+                  : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+              }`}
+              title={`${_('options.rssManager.quality.score')}: ${feed.quality.score}/100`}
+            >
+              {getQualityText(feed.quality.score)}
+            </span>
           )}
-        </button>
-        <a 
-          href={feed.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-block px-1.5 py-0.5 text-white text-[10px] font-mono font-bold rounded flex-shrink-0 hover:opacity-80 transition-opacity"
-          style={{ backgroundColor: '#FF6600' }}
-          title={_('options.rssManager.openXML')}
-        >
-          XML/{getFormatBadge(feed.url)}
-        </a>
-      </div>
-      
-      {/* 第二行：元数据（发布日期、类别、语言、条目数） + 质量分析 */}
-      <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-        {feed.lastBuildDate && (
-          <span className="flex items-center gap-1">
-            <span>📅</span>
-            <span>{formatDateTime(feed.lastBuildDate)}</span>
-          </span>
-        )}
-        {feed.category && (
-          <span className="flex items-center gap-1">
-            <span>🏷️</span>
-            <span>{feed.category}</span>
-          </span>
-        )}
-        {feed.language && (
-          <span className="flex items-center gap-1">
-            <span>🌐</span>
-            <span>{formatLanguage(feed.language)}</span>
-          </span>
-        )}
-        {feed.itemCount !== undefined && (
-          <span className="flex items-center gap-1">
-            <span>📄</span>
-            <span>{_('options.rssManager.metadata.items', { count: feed.itemCount })}</span>
-          </span>
-        )}
+          
+          {/* 类别文本图标 */}
+          {feed.category && (
+            <span 
+              className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded text-[10px] font-medium"
+              title={_('options.rssManager.category')}
+            >
+              {feed.category}
+            </span>
+          )}
+        </div>
         
-        {/* 质量分析显示 */}
-        {feed.quality && (
-          <>
-            <span>•</span>
-            <span className={`flex items-center gap-1 font-semibold ${getQualityColor(feed.quality.score)}`}>
-              <span>📊</span>
-              <span>{_('options.rssManager.quality.score')}: {feed.quality.score}/100</span>
-              <span className="text-gray-400">({getQualityText(feed.quality.score)})</span>
-            </span>
-            <span>•</span>
-            <span className="flex items-center gap-1">
-              <span>🔄</span>
-              <span>{feed.quality.updateFrequency.toFixed(1)} {_('options.rssManager.quality.articlesPerWeek')}</span>
-            </span>
-            {!feed.quality.formatValid && (
+        {/* 第二行：订阅/发现信息 + 操作按钮 */}
+        <div className="flex items-center justify-between gap-2 text-xs text-gray-600 dark:text-gray-400">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            {/* 已订阅源：订阅时间 */}
+            {feed.status === 'subscribed' && feed.subscribedAt ? (
+              <>
+                <span className="flex items-center gap-1 truncate">
+                  <span>📌</span>
+                  <span className="truncate">{_('options.rssManager.subscribedAt')}: {formatDateTime(feed.subscribedAt)}</span>
+                </span>
+                
+                {/* 订阅方式 */}
+                {feed.subscriptionSource && (
+                  <>
+                    <span>•</span>
+                    <span className="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded text-[10px] font-medium">
+                      {feed.subscriptionSource === 'manual' 
+                        ? _('options.rssManager.source.manual')
+                        : feed.subscriptionSource === 'imported'
+                        ? _('options.rssManager.source.imported')
+                        : _('options.rssManager.source.discovered')}
+                    </span>
+                  </>
+                )}
+                
+                {/* 暂停状态 */}
+                {!feed.isActive && (
+                  <>
+                    <span>•</span>
+                    <span className="text-gray-400 dark:text-gray-500">
+                      ⏸ {_('options.rssManager.status.paused')}
+                    </span>
+                  </>
+                )}
+              </>
+            ) : (
+              /* 候选源和忽略源：发现信息 */
+              <>
+                {feed.discoveredFrom && (
+                  <span className="flex items-center gap-1 truncate">
+                    <span>🔍</span>
+                    <span className="truncate">{_('options.rssManager.discoveredAt')}: {formatDateTime(feed.discoveredAt)}</span>
+                  </span>
+                )}
+                
+                {/* 订阅来源（忽略列表可能有） */}
+                {feed.subscriptionSource && (
+                  <>
+                    <span>•</span>
+                    <span className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded text-[10px] font-medium">
+                      {feed.subscriptionSource === 'manual' 
+                        ? _('options.rssManager.source.manual')
+                        : feed.subscriptionSource === 'imported'
+                        ? _('options.rssManager.source.imported')
+                        : _('options.rssManager.source.discovered')}
+                    </span>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+          
+          {/* 第二行操作按钮 */}
+          {row2Actions.length > 0 && (
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              {row2Actions.map((action, index) => (
+                <button
+                  key={index}
+                  onClick={action.onClick}
+                  className={`${action.className} text-white text-xs px-2 py-1 rounded hover:opacity-90 transition-opacity whitespace-nowrap`}
+                >
+                  {action.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        
+        {/* 第三行：统计信息 + 操作按钮 */}
+        <div className="flex items-center justify-between gap-2 text-xs text-gray-500 dark:text-gray-400">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            {/* 已订阅源：抓取统计 */}
+            {feed.status === 'subscribed' && (
+              <>
+                {/* 抓取数量/未读数量 */}
+                {feed.articleCount > 0 && (
+                  <span className="flex items-center gap-1">
+                    <span>📰</span>
+                    <span>
+                      {feed.articleCount} {_('options.rssManager.fetch.articles')}
+                      {feed.unreadCount > 0 && (
+                        <span className="ml-1 text-orange-600 dark:text-orange-400 font-semibold">
+                          / {feed.unreadCount} {_('options.rssManager.fetch.unread')}
+                        </span>
+                      )}
+                    </span>
+                  </span>
+                )}
+                
+                {/* 上次抓取时间/下次抓取时间 */}
+                {feed.lastFetchedAt && (
+                  <>
+                    {feed.articleCount > 0 && <span>•</span>}
+                    <span className="flex items-center gap-1">
+                      <span>⏱️</span>
+                      <span>
+                        {_('options.rssManager.fetch.last')}: {formatRelativeTime(feed.lastFetchedAt)}
+                        {nextFetchTime && feed.isActive && (
+                          <span className="ml-1 text-blue-600 dark:text-blue-400">
+                            → {formatTimeUntil(nextFetchTime)}
+                          </span>
+                        )}
+                      </span>
+                    </span>
+                  </>
+                )}
+                
+                {/* 平均每周文章数 */}
+                {feed.quality && feed.quality.updateFrequency > 0 && (
+                  <>
+                    <span>•</span>
+                    <span className="flex items-center gap-1">
+                      <span>📊</span>
+                      <span>{feed.quality.updateFrequency.toFixed(1)} {_('options.rssManager.fetch.perWeek')}</span>
+                    </span>
+                  </>
+                )}
+              </>
+            )}
+            
+            {/* 候选源和忽略源：发现时的统计 */}
+            {(feed.status === 'candidate' || feed.status === 'ignored') && (
+              <>
+                {/* 分析中状态 */}
+                {!feed.quality ? (
+                  <div className="text-blue-600 dark:text-blue-400 animate-pulse">
+                    🔍 {_('options.rssManager.quality.analyzing')}
+                  </div>
+                ) : (
+                  <>
+                    {/* 发现时的文章数 */}
+                    {feed.itemCount && feed.itemCount > 0 && (
+                      <span className="flex items-center gap-1">
+                        <span>📰</span>
+                        <span>{feed.itemCount} {_('options.rssManager.fetch.articles')}</span>
+                      </span>
+                    )}
+                    
+                    {/* 预估每周文章数 */}
+                    {feed.quality.updateFrequency > 0 && (
+                      <>
+                        {feed.itemCount && feed.itemCount > 0 && <span>•</span>}
+                        <span className="flex items-center gap-1">
+                          <span>📊</span>
+                          <span>{feed.quality.updateFrequency.toFixed(1)} {_('options.rssManager.fetch.perWeek')}</span>
+                        </span>
+                      </>
+                    )}
+                  </>
+                )}
+              </>
+            )}
+            
+            {/* 格式警告（所有源） */}
+            {feed.quality && !feed.quality.formatValid && (
               <>
                 <span>•</span>
-                <span className="text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                  <span>⚠️</span>
-                  <span>{_('options.rssManager.quality.formatInvalid')}</span>
+                <span className="text-amber-600 dark:text-amber-400">
+                  ⚠️ {_('options.rssManager.quality.formatInvalid')}
                 </span>
               </>
             )}
-          </>
-        )}
-        
-        {/* 分析中状态 */}
-        {!feed.quality && feed.status === 'candidate' && (
-          <>
-            <span>•</span>
-            <span className="text-blue-600 dark:text-blue-400 flex items-center gap-1 animate-pulse">
-              <span>🔍</span>
-              <span>{_('options.rssManager.quality.analyzing')}</span>
-            </span>
-          </>
-        )}
-      </div>
-      
-      {/* 第三行：来源 + 订阅来源 + 操作按钮 */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
-          {feed.discoveredFrom && (
-            <span className="truncate">
-              {_('options.rssManager.discoveredFrom')}: {(() => {
-                try {
-                  return new URL(feed.discoveredFrom).hostname
-                } catch {
-                  return feed.discoveredFrom
-                }
-              })()}
-            </span>
-          )}
-          {feed.subscriptionSource && (
-            <>
-              <span>•</span>
-              <span className="text-green-600 dark:text-green-400">
-                {feed.subscriptionSource === 'discovered' && _('options.rssManager.source.discovered')}
-                {feed.subscriptionSource === 'manual' && _('options.rssManager.source.manual')}
-                {feed.subscriptionSource === 'imported' && _('options.rssManager.source.imported')}
-              </span>
-            </>
-          )}
-          {feed.subscribedAt && (
-            <>
-              <span>•</span>
-              <span className="text-green-600 dark:text-green-400">
-                {_('options.rssManager.subscribedAt')}: {formatDateTime(feed.subscribedAt)}
-              </span>
-            </>
-          )}
-        </div>
-        
-        {/* 操作按钮 */}
-        <div className="flex gap-2 flex-shrink-0">
-          {actions.map((action, index) => (
-            <button
-              key={index}
-              onClick={action.onClick}
-              className={action.className}
-            >
-              {action.label}
-            </button>
-          ))}
-        </div>
-      </div>
-      
-      {/* 预览区域 */}
-      {expandedFeedId === feed.id && (
-        <div className="mt-3 pl-16 border-t border-gray-200 dark:border-gray-600 pt-3">
-          {loadingPreview[feed.id] ? (
-            <div className="text-center py-4 text-gray-500">
-              <span className="animate-pulse">⏳ {_('options.rssManager.preview.loading')}</span>
-            </div>
-          ) : previewArticles[feed.id]?.length > 0 ? (
-            <div className="space-y-2">
-              <h4 className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
-                📰 {_('options.rssManager.preview.latestArticles')}
-              </h4>
-              {previewArticles[feed.id].map((item, index) => (
-                <div key={index} className="pl-4 border-l-2 border-blue-200 dark:border-blue-800">
-                  <a
-                    href={item.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline block"
-                  >
-                    {decodeHtmlEntities(item.title)}
-                  </a>
-                  {item.pubDate && (
-                    <span className="text-xs text-gray-400 dark:text-gray-500">
-                      {formatDateTime(item.pubDate.getTime())}
-                    </span>
-                  )}
-                  {item.description && (
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
-                      {decodeHtmlEntities(item.description.replace(/<[^>]*>/g, '').substring(0, 200))}
-                    </p>
-                  )}
-                </div>
+          </div>
+          
+          {/* 第三行操作按钮 */}
+          {row3Actions.length > 0 && (
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              {row3Actions.map((action, index) => (
+                <button
+                  key={index}
+                  onClick={action.onClick}
+                  className={`${action.className} text-white text-xs px-2 py-1 rounded hover:opacity-90 transition-opacity whitespace-nowrap`}
+                >
+                  {action.label}
+                </button>
               ))}
             </div>
-          ) : (
-            <div className="text-center py-4 text-gray-500 text-sm">
-              {_('options.rssManager.preview.noArticles')}
-            </div>
           )}
         </div>
-      )}
-    </div>
-  )
+        
+        {/* 文章预览区域 */}
+        {expandedFeedId === feed.id && previewArticles[feed.id] && (
+          <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+            <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {_('options.rssManager.preview.latestArticles')}
+            </div>
+            {previewArticles[feed.id].length > 0 ? (
+              <div className="space-y-1.5 max-h-60 overflow-y-auto">
+                {previewArticles[feed.id].map((item, idx) => (
+                  <div key={idx} className="p-2 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
+                    <a
+                      href={item.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline block"
+                    >
+                      {decodeHtmlEntities(item.title)}
+                    </a>
+                    {item.pubDate && (
+                      <span className="text-[10px] text-gray-500 dark:text-gray-400 mt-1 block">
+                        {item.pubDate.toLocaleString('zh-CN')}
+                      </span>
+                    )}
+                    {item.description && (
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
+                        {decodeHtmlEntities(item.description.replace(/<[^>]*>/g, '').substring(0, 200))}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-4 text-gray-500 text-sm">
+                {_('options.rssManager.preview.noArticles')}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    )
+  }
+
 
   if (loading) {
     return (
@@ -722,9 +933,18 @@ export function RSSManager() {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={isImporting}
-              className="px-4 py-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded-md transition-colors"
+              className="px-4 py-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded-md transition-colors flex items-center gap-1"
             >
-              {isImporting ? _('options.rssManager.importing') : `📂 ${_('options.rssManager.selectOPML')}`}
+              {isImporting ? (
+                _('options.rssManager.importing')
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  {_('options.rssManager.selectOPML')}
+                </>
+              )}
             </button>
             <p className="text-xs text-gray-500 dark:text-gray-400 self-center">
               {_('options.rssManager.opmlHint')}
@@ -753,14 +973,16 @@ export function RSSManager() {
           <div className="space-y-2">
             {candidateFeeds.map((feed) => renderFeedItem(feed, [
               {
-                label: `✓ ${_('options.rssManager.actions.subscribe')}`,
+                label: _('options.rssManager.actions.subscribe'),
                 onClick: () => handleSubscribe(feed.id),
-                className: 'px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-medium rounded transition-colors'
+                className: 'bg-green-500 hover:bg-green-600',
+                row: 2
               },
               {
-                label: `✗ ${_('options.rssManager.actions.ignore')}`,
+                label: _('options.rssManager.actions.ignore'),
                 onClick: () => handleIgnore(feed.id),
-                className: 'px-3 py-1.5 bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 text-xs font-medium rounded transition-colors'
+                className: 'bg-gray-400 hover:bg-gray-500 dark:bg-gray-600 dark:hover:bg-gray-500',
+                row: 2
               }
             ]))}
           </div>
@@ -781,11 +1003,22 @@ export function RSSManager() {
 
           <div className="space-y-2">
             {subscribedFeeds.map((feed) => renderFeedItem(feed, [
+              // 第二行：暂停/恢复 + 取消订阅
               {
-                label: `✗ ${_('options.rssManager.actions.unsubscribe')}`,
+                label: feed.isActive ? _('options.rssManager.actions.pause') : _('options.rssManager.actions.resume'),
+                onClick: () => handleToggleActive(feed.id),
+                className: feed.isActive 
+                  ? 'bg-gray-400 hover:bg-gray-500'
+                  : 'bg-blue-500 hover:bg-blue-600',
+                row: 2
+              },
+              {
+                label: _('options.rssManager.actions.unsubscribe'),
                 onClick: () => handleUnsubscribe(feed.id),
-                className: 'px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded transition-colors'
+                className: 'bg-orange-500 hover:bg-orange-600',
+                row: 2
               }
+              // 订阅列表不显示删除按钮，只能取消订阅（移到忽略列表）
             ]))}
           </div>
         </div>
@@ -815,14 +1048,16 @@ export function RSSManager() {
             <div className="mt-2 space-y-2">
               {ignoredFeeds.map((feed) => renderFeedItem(feed, [
                 {
-                  label: `✓ ${_('options.rssManager.actions.subscribe')}`,
+                  label: _('options.rssManager.actions.subscribe'),
                   onClick: () => handleSubscribeIgnored(feed.id),
-                  className: 'px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-medium rounded transition-colors'
+                  className: 'bg-green-500 hover:bg-green-600',
+                  row: 2
                 },
                 {
-                  label: `🗑 ${_('options.rssManager.actions.delete')}`,
+                  label: _('options.rssManager.actions.delete'),
                   onClick: () => handleDelete(feed.id),
-                  className: 'px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded transition-colors'
+                  className: 'bg-red-700 hover:bg-red-800 dark:bg-red-800 dark:hover:bg-red-900',
+                  row: 2
                 }
               ]))}
             </div>

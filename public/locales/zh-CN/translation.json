@@ -66,6 +66,7 @@
       "noFeeds": "暂无发现的 RSS 源",
       "noFeedsHint": "浏览包含 RSS 订阅的网站时，我们会自动发现并在这里显示",
       "discoveredFrom": "来自",
+      "discoveredAt": "发现于",
       "subscribedAt": "订阅于",
       "discoveredFeeds": "发现的 RSS 源 ({{count}})",
       "discoveredFeedsHint": "这些 RSS 源是从你浏览的页面中自动发现的，点击标题查看源内容",
@@ -84,7 +85,9 @@
         "subscribe": "订阅",
         "ignore": "忽略",
         "unsubscribe": "取消订阅",
-        "delete": "删除"
+        "delete": "删除",
+        "pause": "暂停",
+        "resume": "恢复"
       },
       "metadata": {
         "items": "{{count}} 条",
@@ -103,6 +106,26 @@
         "loading": "加载预览中...",
         "latestArticles": "最新文章",
         "noArticles": "暂无文章"
+      },
+      "fetch": {
+        "articles": "篇",
+        "unread": "未读",
+        "last": "上次",
+        "perWeek": "篇/周"
+      },
+      "time": {
+        "justNow": "刚刚",
+        "minutesAgo": "分钟前",
+        "hoursAgo": "小时前",
+        "daysAgo": "天前",
+        "now": "现在",
+        "soon": "马上",
+        "minutesLater": "分钟后",
+        "hoursLater": "小时后",
+        "daysLater": "天后"
+      },
+      "status": {
+        "paused": "已暂停"
       },
       "openXML": "查看原始 XML",
       "languages": {

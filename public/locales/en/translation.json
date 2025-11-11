@@ -416,7 +416,9 @@
         "subscribe": "Subscribe",
         "ignore": "Ignore",
         "unsubscribe": "Unsubscribe",
-        "delete": "Delete"
+        "delete": "Delete",
+        "pause": "Pause",
+        "resume": "Restore"
       },
       "metadata": {
         "items": "{{count}} items",
@@ -458,6 +460,7 @@
       "opmlHint": "Supports subscription lists exported from other RSS readers",
       "loading": "Loading...",
       "discoveredFrom": "From",
+      "discoveredAt": "Discovered on",
       "subscribedAt": "Subscribed on",
       "discoveredFeeds": "Discovered RSS Feeds ({{count}})",
       "discoveredFeedsHint": "These RSS feeds were automatically discovered from the pages you browsed. Click the title to view the feed content.",
@@ -481,7 +484,30 @@
         "latestArticles": "Latest Articles",
         "noArticles": "No articles available"
       },
-      "openXML": "View original XML"
+      "openXML": "View original XML",
+      "fetch": {
+        "totalArticles": "A total of {{count}} articles",
+        "unreadArticles": "{{count}} unread posts",
+        "lastFetched": "Last crawl",
+        "articles": "articles",
+        "unread": "unread",
+        "last": "Last",
+        "perWeek": "per week"
+      },
+      "time": {
+        "justNow": "Just now",
+        "minutesAgo": "minutes ago",
+        "hoursAgo": "hours ago",
+        "daysAgo": "days ago",
+        "now": "Now",
+        "soon": "Soon",
+        "minutesLater": "minutes later",
+        "hoursLater": "hours later",
+        "daysLater": "days later"
+      },
+      "status": {
+        "paused": "Paused"
+      }
     }
   }
 }
