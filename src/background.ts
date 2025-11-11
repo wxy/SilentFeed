@@ -3,6 +3,7 @@ import { ProfileUpdateScheduler } from './core/profile/ProfileUpdateScheduler'
 import { initializeDatabase, getPageCount, getUnreadRecommendations, db } from './storage/db'
 import type { ConfirmedVisit } from './storage/types'
 import { FeedManager } from './core/rss/managers/FeedManager'
+import { RSSValidator } from './core/rss/RSSValidator'
 
 console.log('FeedAIMuter Background Service Worker 已启动')
 
@@ -155,6 +156,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             
             const feedManager = new FeedManager()
             let addedCount = 0
+            const newFeedIds: string[] = [] // 记录新添加的源 ID
             
             for (const feed of feeds) {
               // 1. 检查是否已存在（任何状态）
@@ -175,13 +177,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 }
               }
               
-              // 2. Content Script 已经完成验证，直接使用元数据
-              const metadata = feed.metadata
+              // 2. 使用 RSSValidator 验证并获取元数据
+              console.log('[Background] 验证 RSS 源:', feed.url)
+              const result = await RSSValidator.validateURL(feed.url)
+              
+              if (!result.valid || !result.metadata) {
+                console.log('[Background] ❌ 验证失败，跳过:', feed.url, result.error)
+                continue
+              }
+              
+              const metadata = result.metadata
               const sourceDomain = new URL(sourceURL).hostname
               
               // 3. 添加到候选列表（使用 RSS 标题 + 域名）
-              console.log('[Background] 添加到候选列表:', feed.title)
-              await feedManager.addCandidate({
+              console.log('[Background] 添加到候选列表:', metadata.title)
+              const feedId = await feedManager.addCandidate({
                 url: feed.url,
                 title: `${metadata.title} - ${sourceDomain}`,
                 description: metadata.description,
@@ -195,13 +205,48 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 discoveredAt: Date.now(),
               })
               addedCount++
+              newFeedIds.push(feedId)
             }
             
-            // 只有真正添加了新源才重置查看状态
+            // 只有真正添加了新源才重置查看状态并触发质量分析
             if (addedCount > 0) {
               console.log(`[Background] 成功添加 ${addedCount} 个有效 RSS 源`)
               rssDiscoveryViewed = false
               await updateBadge()
+              
+              // 4. 后台异步触发质量分析（不阻塞响应）
+              if (newFeedIds.length > 0) {
+                console.log('[Background] 开始后台质量分析...')
+                Promise.all(
+                  newFeedIds.map(feedId => 
+                    feedManager.analyzeFeed(feedId)
+                      .then(quality => {
+                        if (quality) {
+                          console.log(`[Background] ✅ 质量分析完成: ${feedId}, 评分: ${quality.score}`)
+                          
+                          // 如果质量分析失败（评分为0且有错误），自动删除
+                          if (quality.score === 0 && quality.error) {
+                            console.log(`[Background] ⚠️ 质量分析发现错误，自动删除: ${feedId}`)
+                            feedManager.delete(feedId).catch((err: Error) => {
+                              console.error(`[Background] 自动删除失败: ${feedId}`, err)
+                            })
+                          }
+                        }
+                      })
+                      .catch((error: Error) => {
+                        console.error(`[Background] ❌ 质量分析失败: ${feedId}`, error)
+                        // 分析失败也自动删除
+                        feedManager.delete(feedId).catch((err: Error) => {
+                          console.error(`[Background] 自动删除失败: ${feedId}`, err)
+                        })
+                      })
+                  )
+                ).then(() => {
+                  console.log('[Background] 所有质量分析完成')
+                }).catch(error => {
+                  console.error('[Background] 批量质量分析失败:', error)
+                })
+              }
             }
             
             sendResponse({ success: true })

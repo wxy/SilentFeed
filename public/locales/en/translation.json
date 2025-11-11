@@ -447,7 +447,8 @@
         "noFeeds": "No feeds found in the OPML file.",
         "validationFailed": "RSS verification failed",
         "subscribeFailed": "Subscription failed",
-        "importFailed": "OPML Import Failed"
+        "importFailed": "OPML Import Failed",
+        "revalidationFailed": "RSS feed revalidation failed, has been deleted"
       },
       "success": {
         "subscribed": "Subscription successful!",
@@ -465,7 +466,22 @@
       "ignoredFeeds": "Ignored ({{count}})",
       "clickToToggle": "Click {{action}}",
       "expand": "Expand",
-      "collapse": "Collapse"
+      "collapse": "Collapse",
+      "quality": {
+        "score": "Quality",
+        "high": "High quality",
+        "medium": "Medium",
+        "low": "Lower",
+        "articlesPerWeek": "Article/Week",
+        "formatInvalid": "Format exception",
+        "analyzing": "Analyzing..."
+      },
+      "preview": {
+        "loading": "Loading preview...",
+        "latestArticles": "Latest Articles",
+        "noArticles": "No articles available"
+      },
+      "openXML": "View original XML"
     }
   }
 }

@@ -90,6 +90,21 @@
         "items": "{{count}} 条",
         "language": "语言"
       },
+      "quality": {
+        "score": "质量",
+        "high": "优质",
+        "medium": "中等",
+        "low": "较低",
+        "articlesPerWeek": "篇/周",
+        "formatInvalid": "格式异常",
+        "analyzing": "分析中..."
+      },
+      "preview": {
+        "loading": "加载预览中...",
+        "latestArticles": "最新文章",
+        "noArticles": "暂无文章"
+      },
+      "openXML": "查看原始 XML",
       "languages": {
         "zh": "中文",
         "en": "英文",
@@ -112,7 +127,8 @@
         "subscribeFailed": "订阅失败",
         "networkError": "网络错误，请检查连接",
         "parseError": "OPML 文件解析失败",
-        "importFailed": "OPML 导入失败"
+        "importFailed": "OPML 导入失败",
+        "revalidationFailed": "RSS 源重新验证失败，已删除"
       },
       "success": {
         "subscribed": "订阅成功！",

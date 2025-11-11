@@ -6,10 +6,12 @@
  * - 查询源列表
  * - 更新源状态
  * - 订阅/取消订阅
+ * - 质量分析
  */
 
 import { db } from '../../../storage/db'
 import type { DiscoveredFeed, FeedStatus } from '../types'
+import { FeedQualityAnalyzer } from '../FeedQualityAnalyzer'
 
 export class FeedManager {
   /**
@@ -142,6 +144,146 @@ export class FeedManager {
   }
   
   /**
+   * 分析源质量
+   * 
+   * Phase 5.2: 质量分析集成
+   * - 使用 FeedQualityAnalyzer 分析 RSS 源
+   * - 自动保存质量数据到数据库
+   * - 支持重新分析（强制刷新）
+   * 
+   * @param id - 源 ID
+   * @param forceRefresh - 是否强制重新分析（忽略缓存）
+   * @returns 质量分析结果
+   */
+  async analyzeFeed(
+    id: string,
+    forceRefresh: boolean = false
+  ): Promise<DiscoveredFeed['quality'] | null> {
+    try {
+      // 1. 获取源信息
+      const feed = await this.getFeed(id)
+      if (!feed) {
+        console.error('[FeedManager] 分析失败：源不存在', id)
+        return null
+      }
+      
+      // 2. 如果已有质量数据且未过期（24小时内），直接返回
+      if (!forceRefresh && feed.quality) {
+        const age = Date.now() - feed.quality.lastChecked
+        const maxAge = 24 * 60 * 60 * 1000 // 24 小时
+        
+        if (age < maxAge) {
+          console.log('[FeedManager] 使用缓存的质量数据:', id, feed.quality.score)
+          return feed.quality
+        }
+      }
+      
+      // 3. 执行质量分析
+      console.log('[FeedManager] 开始分析源质量:', feed.title)
+      const analyzer = new FeedQualityAnalyzer()
+      const quality = await analyzer.analyze(feed.url)
+      
+      // 4. 保存质量数据
+      await this.updateQuality(id, quality)
+      
+      console.log('[FeedManager] 质量分析完成:', {
+        title: feed.title,
+        score: quality.score,
+        frequency: quality.updateFrequency
+      })
+      
+      return quality
+    } catch (error) {
+      console.error('[FeedManager] 分析源质量失败:', id, error)
+      
+      // 保存错误信息
+      await this.updateQuality(id, {
+        score: 0,
+        updateFrequency: 0,
+        formatValid: false,
+        reachable: false,
+        lastChecked: Date.now(),
+        details: {
+          updateFrequencyScore: 0,
+          completenessScore: 0,
+          formatScore: 0,
+          reachabilityScore: 0
+        },
+        error: error instanceof Error ? error.message : String(error)
+      })
+      
+      return null
+    }
+  }
+  
+  /**
+   * 批量分析候选源质量
+   * 
+   * Phase 5.2: 后台任务调度支持
+   * - 分析所有未分析过的候选源
+   * - 支持限制数量（避免一次分析太多）
+   * - 返回分析结果统计
+   * 
+   * @param limit - 最大分析数量（默认 10）
+   * @returns 分析结果统计
+   */
+  async analyzeCandidates(limit: number = 10): Promise<{
+    total: number
+    analyzed: number
+    success: number
+    failed: number
+  }> {
+    // 1. 获取所有候选源
+    const candidates = await this.getFeeds('candidate')
+    
+    // 2. 筛选出未分析过的源（或质量数据过期的源）
+    const maxAge = 24 * 60 * 60 * 1000 // 24 小时
+    const needsAnalysis = candidates.filter(feed => {
+      if (!feed.quality) return true
+      const age = Date.now() - feed.quality.lastChecked
+      return age >= maxAge
+    })
+    
+    // 3. 限制分析数量
+    const toAnalyze = needsAnalysis.slice(0, limit)
+    
+    console.log('[FeedManager] 批量分析候选源:', {
+      total: candidates.length,
+      needsAnalysis: needsAnalysis.length,
+      willAnalyze: toAnalyze.length
+    })
+    
+    // 4. 逐个分析（避免并发过多）
+    let success = 0
+    let failed = 0
+    
+    for (const feed of toAnalyze) {
+      const quality = await this.analyzeFeed(feed.id)
+      if (quality && !quality.error) {
+        success++
+      } else {
+        failed++
+      }
+      
+      // 延迟 500ms 避免请求过于频繁
+      await new Promise(resolve => setTimeout(resolve, 500))
+    }
+    
+    console.log('[FeedManager] 批量分析完成:', {
+      analyzed: toAnalyze.length,
+      success,
+      failed
+    })
+    
+    return {
+      total: candidates.length,
+      analyzed: toAnalyze.length,
+      success,
+      failed
+    }
+  }
+  
+  /**
    * 更新源相关性评估
    * 
    * @param id - 源 ID
@@ -162,6 +304,28 @@ export class FeedManager {
    * @param source - 订阅来源（discovered/manual/imported）
    */
   async subscribe(id: string, source?: 'discovered' | 'manual' | 'imported'): Promise<void> {
+    // 获取当前源信息
+    const feed = await db.discoveredFeeds.get(id)
+    if (!feed) {
+      throw new Error(`源不存在: ${id}`)
+    }
+    
+    const wasIgnored = feed.status === 'ignored'
+    
+    // 如果从忽略状态恢复，先重新验证
+    if (wasIgnored) {
+      console.log('[FeedManager] 从忽略列表恢复，重新验证 RSS 源...')
+      const { RSSValidator } = await import('../RSSValidator')
+      const validationResult = await RSSValidator.validateURL(feed.url)
+      
+      if (!validationResult.valid || !validationResult.metadata) {
+        // 验证失败，删除该源
+        console.error('[FeedManager] ❌ 重新验证失败，删除源:', feed.url, validationResult.error)
+        await this.delete(id)
+        throw new Error(`RSS 源验证失败: ${validationResult.error || '无法访问或格式错误'}`)
+      }
+    }
+    
     const updates: Partial<DiscoveredFeed> = {
       status: 'subscribed',
       subscribedAt: Date.now(),
@@ -174,6 +338,19 @@ export class FeedManager {
     
     await db.discoveredFeeds.update(id, updates)
     console.log('[FeedManager] 已订阅:', id, source || '(保持现有来源)')
+    
+    // 如果从忽略状态恢复，重新进行质量分析
+    if (wasIgnored) {
+      console.log('[FeedManager] 从忽略列表恢复，重新进行质量分析...')
+      // 异步执行，不阻塞订阅操作
+      this.analyzeFeed(id, true).catch((error: Error) => {
+        console.error('[FeedManager] 质量分析失败:', error)
+        // 质量分析失败，也删除该源
+        this.delete(id).catch((err: Error) => {
+          console.error('[FeedManager] 删除失败的源失败:', err)
+        })
+      })
+    }
   }
   
   /**

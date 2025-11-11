@@ -15,6 +15,8 @@ export type FeedStatus =
 
 /**
  * RSS 源质量评估
+ * 
+ * Phase 5.2: 扩展字段以支持详细评分和错误信息
  */
 export interface FeedQuality {
   updateFrequency: number       // 更新频率（篇/周）
@@ -22,6 +24,17 @@ export interface FeedQuality {
   reachable: boolean            // 是否可达
   score: number                 // 质量评分 (0-100)
   lastChecked: number           // 最后检查时间戳
+  
+  /** 详细评分（可选，用于调试） */
+  details?: {
+    updateFrequencyScore: number  // 0-100
+    completenessScore: number     // 0-100
+    formatScore: number           // 0-100
+    reachabilityScore: number     // 0-100
+  }
+  
+  /** 错误信息（如果分析失败） */
+  error?: string
 }
 
 /**
