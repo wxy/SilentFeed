@@ -19,10 +19,17 @@
     "retry": "Retry",
     "recommendations": "Recommended for You",
     "recommendationCount": "Total {{count}} items",
-    "dismissAll": "I don't want to read any of these.",
+    "dismissAll": "Don't want to read any",
     "confirmDismiss": "Are you sure you want to mark all {{count}} recommendations as \"Not interested\"?",
     "noRecommendations": "No recommendations yet",
-    "checkBackLater": "Come back later for new recommendations"
+    "checkBackLater": "Come back later for new recommendations",
+    "confirmDismissAll": "Are you sure you want to mark all {{count}} recommendations as \"Not Interested\"?",
+    "later": "Read Later",
+    "dismiss": "Don't want to read",
+    "readLater": "Read Later",
+    "notInterested": "Not interested",
+    "rssFeeds": "RSS Feed",
+    "manageRSSFeeds": "Manage RSS Feeds"
   },
   "common": {
     "loading": "Loading...",
@@ -112,7 +119,10 @@
       "ai": "AI",
       "privacy": "Privacy",
       "recommendations": "Recommended Statistics",
-      "data": "Collection Statistics"
+      "data": "Collection Statistics",
+      "recommendation": "Recommend",
+      "stats": "Recommendation Statistics",
+      "debug": "Debugging tools"
     },
     "stats": {
       "noData": "No data available",
@@ -460,7 +470,7 @@
       "opmlHint": "Supports subscription lists exported from other RSS readers",
       "loading": "Loading...",
       "discoveredFrom": "From",
-      "discoveredAt": "Discovered on",
+      "discoveredAt": "Discovered in",
       "subscribedAt": "Subscribed on",
       "discoveredFeeds": "Discovered RSS Feeds ({{count}})",
       "discoveredFeedsHint": "These RSS feeds were automatically discovered from the pages you browsed. Click the title to view the feed content.",

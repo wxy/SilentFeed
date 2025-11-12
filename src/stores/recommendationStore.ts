@@ -5,6 +5,7 @@
 
 import { create } from 'zustand'
 import type { Recommendation } from '@/storage/types'
+import { getRecommendationConfig } from '@/storage/recommendation-config'
 import {
   getUnreadRecommendations,
   markAsRead,
@@ -69,7 +70,22 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
     set({ isLoading: true, error: null })
     
     try {
-      const recommendations = await getUnreadRecommendations(50)
+      // 获取推荐配置
+      const config = await getRecommendationConfig()
+      const maxLimit = config.maxRecommendations * 2 // 加载2倍数量，预留排序空间
+      
+      // TODO: Phase 6 - 临时使用 Mock 数据进行 UI 开发
+      // 生产环境中将替换为: const recommendations = await getUnreadRecommendations(maxLimit)
+      const { getMockRecommendations } = await import('@/utils/mockData')
+      let recommendations = await getMockRecommendations(maxLimit)
+      
+      // 按评分降序排序
+      recommendations = recommendations.sort((a, b) => b.score - a.score)
+      
+      // 只保留前N条（根据配置）
+      recommendations = recommendations.slice(0, config.maxRecommendations)
+      
+      console.log('[RecommendationStore] 加载推荐数据:', recommendations.length, '条（限制:', config.maxRecommendations, ')')
       set({ recommendations, isLoading: false })
     } catch (error) {
       console.error('加载推荐失败:', error)

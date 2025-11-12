@@ -3,16 +3,16 @@ import { useState, useEffect } from "react"
 import "@/i18n"
 import { useI18n } from "@/i18n/helpers"
 import i18n from "@/i18n"
-import { RecommendationStats } from "@/components/settings/RecommendationStats"
 import { CollectionStats } from "@/components/settings/CollectionStats"
 import { AIConfig } from "@/components/settings/AIConfig"
 import { RSSManager } from "@/components/settings/RSSManager"
+import { RecommendationSettings } from "@/components/settings/RecommendationSettings"
 import { getUIStyle, setUIStyle, watchUIStyle, type UIStyle } from "@/storage/ui-config"
 import { useTheme } from "@/hooks/useTheme"
 import "@/styles/global.css"
 import "@/styles/sketchy.css"
 
-type TabKey = "general" | "rss" | "ai" | "recommendations" | "data"
+type TabKey = "general" | "rss" | "ai" | "recommendation" | "data"
 
 /**
  * Feed AI Muter - 设置页面
@@ -26,14 +26,14 @@ function IndexOptions() {
   const getInitialTab = (): TabKey => {
     // 优先从 hash 读取（支持 #rss 这种格式）
     const hash = window.location.hash.slice(1) as TabKey
-    if (['general', 'rss', 'ai', 'recommendations', 'data'].includes(hash)) {
+    if (['general', 'rss', 'ai', 'recommendation', 'data'].includes(hash)) {
       return hash
     }
     
     // 其次从 URL 参数读取
     const urlParams = new URLSearchParams(window.location.search)
     const tab = urlParams.get('tab') as TabKey
-    return ['general', 'rss', 'ai', 'recommendations', 'data'].includes(tab) ? tab : 'general'
+    return ['general', 'rss', 'ai', 'recommendation', 'data'].includes(tab) ? tab : 'general'
   }
 
   const [activeTab, setActiveTab] = useState<TabKey>(getInitialTab)
@@ -101,8 +101,8 @@ function IndexOptions() {
     { key: "general", icon: "⚙️" },
     { key: "rss", icon: "📡" },
     { key: "ai", icon: "🤖" },
-    { key: "recommendations", icon: "📊" },
-    { key: "data", icon: "📊" }
+    { key: "recommendation", icon: "🎯" },
+    { key: "data", icon: "📈" }
   ]
 
   const isSketchyStyle = uiStyle === "sketchy"
@@ -254,8 +254,15 @@ function IndexOptions() {
               </div>
             )}
 
-            {/* 推荐统计 - Phase 2.7 */}
-            {activeTab === "recommendations" && <RecommendationStats />}
+            {/* 推荐设置 - Phase 6 */}
+            {activeTab === "recommendation" && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                <h2 className="text-lg font-semibold mb-4">
+                  {_("options.tabs.recommendation")}
+                </h2>
+                <RecommendationSettings />
+              </div>
+            )}
 
             {/* 采集统计 - Phase 2.7+ */}
             {activeTab === "data" && <CollectionStats />}

@@ -12,7 +12,7 @@
  * Phase 5: 根据任务类型（页面分析 vs 推荐）选择合适的模型
  */
 
-import type { AIProvider, UnifiedAnalysisResult, AnalyzeOptions } from "./types"
+import type { AIProvider, UnifiedAnalysisResult, AnalyzeOptions, RecommendationReasonRequest, RecommendationReasonResult } from "./types"
 import { DeepSeekProvider } from "./providers/DeepSeekProvider"
 // DeepSeekReasonerProvider 保留供 Phase 5 使用（推荐引擎）
 // import { DeepSeekReasonerProvider } from "./providers/DeepSeekReasonerProvider"
@@ -137,6 +137,72 @@ export class AICapabilityManager {
   }
   
   /**
+   * 生成推荐理由
+   */
+  async generateRecommendationReason(
+    request: RecommendationReasonRequest
+  ): Promise<RecommendationReasonResult> {
+    try {
+      // 尝试使用主要 AI Provider
+      if (this.primaryProvider) {
+        const available = await this.primaryProvider.isAvailable()
+        if (available && this.primaryProvider.generateRecommendationReason) {
+          const result = await this.primaryProvider.generateRecommendationReason(request)
+          
+          // 记录成本
+          this.recordRecommendationUsage(result)
+          
+          return result
+        }
+      }
+      
+      // 降级到关键词策略
+      return this.generateKeywordRecommendationReason(request)
+      
+    } catch (error) {
+      console.warn("[AICapabilityManager] Primary provider failed for recommendation:", error)
+      
+      // 降级到关键词策略
+      return this.generateKeywordRecommendationReason(request)
+    }
+  }
+
+  /**
+   * 关键词降级策略 - 推荐理由生成
+   */
+  private generateKeywordRecommendationReason(
+    request: RecommendationReasonRequest
+  ): RecommendationReasonResult {
+    const { userInterests, relevanceScore } = request
+    
+    // 简单的关键词匹配
+    const matchedInterests = userInterests.filter(interest => 
+      request.articleTitle.toLowerCase().includes(interest.toLowerCase()) ||
+      request.articleSummary.toLowerCase().includes(interest.toLowerCase())
+    )
+    
+    let reason = ""
+    if (matchedInterests.length > 0) {
+      reason = `因为您对${matchedInterests.slice(0, 2).join("、")}感兴趣`
+    } else if (relevanceScore > 0.5) {
+      reason = "内容质量较高，值得关注"
+    } else {
+      reason = "可能对您有用的内容"
+    }
+    
+    return {
+      reason,
+      matchedInterests,
+      confidence: Math.min(0.6, relevanceScore),
+      metadata: {
+        provider: "keyword",
+        model: "keyword-fallback",
+        timestamp: Date.now()
+      }
+    }
+  }
+
+  /**
    * 记录使用情况
    */
   private recordUsage(result: UnifiedAnalysisResult): void {
@@ -152,6 +218,23 @@ export class AICapabilityManager {
       }
     } catch (error) {
       console.error("[AICapabilityManager] Failed to record usage:", error)
+    }
+  }
+
+  /**
+   * 记录推荐理由使用情况
+   */
+  private recordRecommendationUsage(result: RecommendationReasonResult): void {
+    try {
+      const { metadata } = result
+      
+      if (metadata.tokensUsed) {
+        console.log(
+          `[AI管理器] 推荐理由生成 - tokens: ${metadata.tokensUsed.input + metadata.tokensUsed.output}`
+        )
+      }
+    } catch (error) {
+      console.error("[AICapabilityManager] Failed to record recommendation usage:", error)
     }
   }
 }

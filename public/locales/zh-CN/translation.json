@@ -19,10 +19,16 @@
     "retry": "重试",
     "recommendations": "为你推荐",
     "recommendationCount": "共 {{count}} 条",
-    "dismissAll": "这些我都不想读",
-    "confirmDismiss": "确定要标记所有 {{count}} 条推荐为「不想读」吗？",
+    "dismissAll": "全部不想读",
+    "confirmDismissAll": "确定要标记所有 {{count}} 条推荐为「不想读」吗？",
     "noRecommendations": "暂无推荐",
-    "checkBackLater": "稍后回来查看新推荐"
+    "checkBackLater": "稍后回来查看新推荐",
+    "later": "稍后读",
+    "dismiss": "不想读",
+    "readLater": "稍后阅读", 
+    "notInterested": "不感兴趣",
+    "rssFeeds": "RSS源",
+    "manageRSSFeeds": "管理RSS订阅源"
   },
   "options": {
     "title": "设置",
@@ -30,7 +36,7 @@
       "general": "常规",
       "rss": "RSS 源",
       "ai": "AI",
-      "recommendations": "推荐统计",
+      "recommendation": "推荐",
       "data": "采集统计",
       "debug": "调试工具"
     },

@@ -173,6 +173,11 @@ export interface Recommendation {
   score: number                 // 推荐分数（0-1）
   reason?: string               // 推荐理由（可选）
   
+  // Phase 6: 全文抓取信息
+  wordCount?: number            // 文章字数
+  readingTime?: number          // 预估阅读时长（分钟）
+  excerpt?: string              // 文章摘要（来自全文提取）
+  
   // 阅读状态
   isRead: boolean               // 是否已读
   clickedAt?: number            // 点击时间

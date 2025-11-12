@@ -8,12 +8,14 @@ import { getUIStyle, watchUIStyle, type UIStyle } from "@/storage/ui-config"
 import { useTheme } from "@/hooks/useTheme"
 import { ColdStartView } from "@/components/ColdStartView"
 import { RecommendationView } from "@/components/RecommendationView"
+import { trackPopupOpen } from "@/core/recommender/adaptive-count"
 import "@/styles/global.css"
 import "@/styles/sketchy.css" // 手绘风格样式
 
 /**
  * Feed AI Muter - Popup 主界面
  * Phase 2.7: 两阶段 UI（冷启动 + 推荐）
+ * Phase 6: 添加弹窗打开跟踪
  */
 function IndexPopup() {
   const { _ } = useI18n()
@@ -23,7 +25,13 @@ function IndexPopup() {
   const [isLoading, setIsLoading] = useState(true)
   const [uiStyle, setUiStyle] = useState<UIStyle>("sketchy")
 
-  const COLD_START_THRESHOLD = 1000
+  // TODO: Phase 6 - 临时降低为100页以便测试推荐UI，正式版改回1000
+  const COLD_START_THRESHOLD = 100
+
+  // Phase 6: 跟踪弹窗打开
+  useEffect(() => {
+    trackPopupOpen()
+  }, [])
 
   useEffect(() => {
     // 加载 UI 风格
@@ -143,15 +151,17 @@ function IndexPopup() {
         <RecommendationView />
       )}
 
-      {/* 底部按钮 - 手绘风格 */}
-      <div className={isSketchyStyle ? "px-6 pb-4" : "mt-4"}>
-        <button
-          onClick={openSettings}
-          className={isSketchyStyle ? "sketchy-button w-full" : "w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"}
-        >
-          ⚙️ {_("popup.settings")}
-        </button>
-      </div>
+      {/* 底部按钮 - 仅在冷启动阶段显示（推荐阶段顶部已有设置按钮） */}
+      {isColdStart && (
+        <div className={isSketchyStyle ? "px-6 pb-4" : "mt-4"}>
+          <button
+            onClick={openSettings}
+            className={isSketchyStyle ? "sketchy-button w-full" : "w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"}
+          >
+            ⚙️ {_("popup.settings")}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

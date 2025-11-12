@@ -6,7 +6,51 @@
  * - Anthropic (Claude-3-Haiku)
  * - DeepSeek
  * - 关键词分析（降级策略）
+ * 
+ * 新增推荐功能支持
  */
+
+/**
+ * 推荐理由生成请求
+ */
+export interface RecommendationReasonRequest {
+  /** 文章标题 */
+  articleTitle: string
+  
+  /** 文章内容摘要 */
+  articleSummary: string
+  
+  /** 用户兴趣关键词 */
+  userInterests: string[]
+  
+  /** 相关性评分 */
+  relevanceScore: number
+}
+
+/**
+ * 推荐理由生成结果
+ */
+export interface RecommendationReasonResult {
+  /** 推荐理由（简短，1-2句话） */
+  reason: string
+  
+  /** 匹配的兴趣点 */
+  matchedInterests: string[]
+  
+  /** 置信度 (0-1) */
+  confidence: number
+  
+  /** 生成元数据 */
+  metadata: {
+    provider: "openai" | "anthropic" | "deepseek" | "keyword"
+    model: string
+    timestamp: number
+    tokensUsed?: {
+      input: number
+      output: number
+    }
+  }
+}
 
 /**
  * 统一分析结果
@@ -91,6 +135,16 @@ export interface AIProvider {
     content: string,
     options?: AnalyzeOptions
   ): Promise<UnifiedAnalysisResult>
+  
+  /**
+   * 生成推荐理由（可选功能）
+   * 
+   * @param request - 推荐理由生成请求
+   * @returns 推荐理由结果
+   */
+  generateRecommendationReason?(
+    request: RecommendationReasonRequest
+  ): Promise<RecommendationReasonResult>
   
   /**
    * 测试连接

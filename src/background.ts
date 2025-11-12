@@ -6,6 +6,7 @@ import { FeedManager } from './core/rss/managers/FeedManager'
 import { RSSValidator } from './core/rss/RSSValidator'
 import { feedScheduler } from './background/feed-scheduler'
 import { IconManager } from './utils/IconManager'
+import { evaluateAndAdjust } from './core/recommender/adaptive-count'
 
 console.log('FeedAIMuter Background Service Worker 已启动')
 
@@ -161,6 +162,12 @@ chrome.runtime.onInstalled.addListener(async () => {
     // Phase 5 Sprint 3: 启动 RSS 定时调度器
     console.log('[Background] 启动 RSS 定时调度器...')
     feedScheduler.start(30) // 每 30 分钟检查一次
+    
+    // Phase 6: 启动推荐数量定期评估
+    console.log('[Background] 创建推荐数量评估定时器（每周一次）...')
+    chrome.alarms.create('evaluate-recommendations', {
+      periodInMinutes: 7 * 24 * 60 // 每 7 天（1 周）
+    })
     
     console.log('[Background] ✅ Service Worker 启动完成')
   } catch (error) {
@@ -453,6 +460,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   })()
   
   return true
+})
+
+/**
+ * Phase 6: 定时器事件监听器
+ * 处理推荐数量定期评估
+ */
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  console.log('[Background] 定时器触发:', alarm.name)
+  
+  try {
+    if (alarm.name === 'evaluate-recommendations') {
+      console.log('[Background] 开始评估推荐数量...')
+      const newCount = await evaluateAndAdjust()
+      console.log(`[Background] ✅ 推荐数量已调整为: ${newCount} 条`)
+    }
+  } catch (error) {
+    console.error('[Background] ❌ 定时器处理失败:', error)
+  }
 })
 
 export { BadgeManager, ProgressStage } from './core/badge/BadgeManager'
