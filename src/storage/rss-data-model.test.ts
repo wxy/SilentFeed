@@ -38,7 +38,9 @@ describe("RSS 数据模型", () => {
         discoveredFrom: "https://example.com/page",
         discoveredAt: Date.now(),
         status: "candidate",
-        enabled: true,
+        isActive: true,
+        articleCount: 0,
+        unreadCount: 0,
       }
       
       await db.discoveredFeeds.add(feed)
@@ -59,7 +61,9 @@ describe("RSS 数据模型", () => {
           discoveredFrom: "https://example.com",
           discoveredAt: Date.now(),
           status: "candidate",
-          enabled: true,
+          isActive: true,
+          articleCount: 0,
+          unreadCount: 0,
         },
         {
           id: "feed-2",
@@ -68,7 +72,9 @@ describe("RSS 数据模型", () => {
           discoveredFrom: "https://example.com",
           discoveredAt: Date.now(),
           status: "recommended",
-          enabled: true,
+          isActive: true,
+          articleCount: 0,
+          unreadCount: 0,
         },
         {
           id: "feed-3",
@@ -78,7 +84,9 @@ describe("RSS 数据模型", () => {
           discoveredAt: Date.now(),
           status: "subscribed",
           subscribedAt: Date.now(),
-          enabled: true,
+          isActive: true,
+          articleCount: 0,
+          unreadCount: 0,
         },
       ])
       
@@ -99,7 +107,9 @@ describe("RSS 数据模型", () => {
         discoveredFrom: "https://example.com",
         discoveredAt: Date.now(),
         status: "recommended",
-        enabled: true,
+        isActive: true,
+        articleCount: 0,
+        unreadCount: 0,
         quality: {
           updateFrequency: 7, // 7 篇/周
           formatValid: true,
@@ -124,7 +134,9 @@ describe("RSS 数据模型", () => {
         discoveredFrom: "https://example.com",
         discoveredAt: Date.now(),
         status: "recommended",
-        enabled: true,
+        isActive: true,
+        articleCount: 0,
+        unreadCount: 0,
         relevance: {
           matchScore: 78,
           matchedTopics: [Topic.TECHNOLOGY, Topic.SCIENCE],
@@ -151,7 +163,9 @@ describe("RSS 数据模型", () => {
         discoveredFrom: "https://example.com",
         discoveredAt: Date.now(),
         status: "candidate",
-        enabled: true,
+        isActive: true,
+        articleCount: 0,
+        unreadCount: 0,
       }
       
       await db.discoveredFeeds.add(feed)

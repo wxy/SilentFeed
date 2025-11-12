@@ -190,5 +190,129 @@ describe('OPMLImporter', () => {
       expect(feeds).toHaveLength(1)
       expect(feeds[0].title).toBe('中文博客')
     })
+    
+    it('应该处理无效的 OPML 内容', async () => {
+      const invalidContent = 'not xml content'
+      const file = new File([invalidContent], 'invalid.opml', { type: 'text/xml' })
+      
+      await expect(OPMLImporter.fromFile(file)).rejects.toThrow(/OPML 解析失败|格式错误/)
+    })
+  })
+
+  describe('generate', () => {
+    it('应该生成标准 OPML 文件', () => {
+      const feeds = [
+        {
+          title: 'Tech Blog',
+          xmlUrl: 'https://techblog.com/feed.xml',
+          htmlUrl: 'https://techblog.com',
+          description: 'A technology blog'
+        },
+        {
+          title: 'News Site',
+          xmlUrl: 'https://news.com/rss'
+        }
+      ]
+
+      const opml = OPMLImporter.generate(feeds)
+
+      expect(opml).toContain('<?xml version="1.0" encoding="UTF-8"?>')
+      expect(opml).toContain('<opml version="2.0">')
+      expect(opml).toContain('Tech Blog')
+      expect(opml).toContain('https://techblog.com/feed.xml')
+      expect(opml).toContain('https://techblog.com')
+      expect(opml).toContain('A technology blog')
+      expect(opml).toContain('News Site')
+      expect(opml).toContain('https://news.com/rss')
+    })
+
+    it('应该按分类组织源', () => {
+      const feeds = [
+        {
+          title: 'Tech Blog 1',
+          xmlUrl: 'https://tech1.com/feed',
+          category: 'Technology'
+        },
+        {
+          title: 'Tech Blog 2',
+          xmlUrl: 'https://tech2.com/feed',
+          category: 'Technology'
+        },
+        {
+          title: 'News Blog',
+          xmlUrl: 'https://news.com/feed',
+          category: 'News'
+        }
+      ]
+
+      const opml = OPMLImporter.generate(feeds)
+
+      expect(opml).toContain('Technology')
+      expect(opml).toContain('News')
+      // Technology 分类下应该有两个源
+      const techSection = opml.substring(
+        opml.indexOf('<outline text="Technology"'),
+        opml.indexOf('</outline>', opml.indexOf('<outline text="Technology"'))
+      )
+      expect(techSection).toContain('Tech Blog 1')
+      expect(techSection).toContain('Tech Blog 2')
+    })
+
+    it('应该处理未分类的源', () => {
+      const feeds = [
+        {
+          title: 'Uncategorized Feed',
+          xmlUrl: 'https://feed.com/rss'
+        }
+      ]
+
+      const opml = OPMLImporter.generate(feeds)
+
+      expect(opml).toContain('未分类')
+      expect(opml).toContain('Uncategorized Feed')
+    })
+
+    it('应该转义特殊字符', () => {
+      const feeds = [
+        {
+          title: 'Blog & News',
+          xmlUrl: 'https://blog.com/feed?id=1&type=rss',
+          description: 'News < Today > "Breaking"'
+        }
+      ]
+
+      const opml = OPMLImporter.generate(feeds)
+
+      expect(opml).toContain('Blog &amp; News')
+      expect(opml).toContain('https://blog.com/feed?id=1&amp;type=rss')
+      expect(opml).toContain('News &lt; Today &gt; &quot;Breaking&quot;')
+    })
+
+    it('应该支持自定义标题', () => {
+      const feeds = [
+        {
+          title: 'Test Feed',
+          xmlUrl: 'https://test.com/feed'
+        }
+      ]
+
+      const opml = OPMLImporter.generate(feeds, 'My Custom Feeds')
+
+      expect(opml).toContain('<title>My Custom Feeds</title>')
+    })
+
+    it('应该包含创建日期', () => {
+      const feeds = [
+        {
+          title: 'Test Feed',
+          xmlUrl: 'https://test.com/feed'
+        }
+      ]
+
+      const opml = OPMLImporter.generate(feeds)
+
+      expect(opml).toContain('<dateCreated>')
+      expect(opml).toMatch(/<dateCreated>[^<]+<\/dateCreated>/)
+    })
   })
 })
