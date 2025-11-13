@@ -8,6 +8,9 @@
  * - 推荐数量由系统根据用户行为自动调整
  */
 
+import { getAIConfig, isAIConfigured, type AIProviderType } from './ai-config'
+import { aiManager } from '../core/ai/AICapabilityManager'
+
 const STORAGE_KEY = "recommendation-config"
 
 /**
@@ -27,6 +30,58 @@ export interface RecommendationConfig {
    * - 清理慢（推荐停留时间长）→ 推荐多
    */
   maxRecommendations: number
+}
+
+/**
+ * AI配置状态检查结果
+ */
+export interface AIConfigStatus {
+  /** 是否已配置AI */
+  isConfigured: boolean
+  
+  /** AI提供商类型 */
+  provider: AIProviderType | null
+  
+  /** API密钥是否有效（格式检查） */
+  isKeyValid: boolean
+  
+  /** AI服务是否可用（网络连接检查） */
+  isAvailable: boolean
+  
+  /** 本地AI是否可用 */
+  hasLocalAI: boolean
+  
+  /** 预算状态 */
+  budgetStatus: {
+    /** 月度预算（美元或人民币） */
+    monthlyBudget: number
+    /** 已使用金额 */
+    usedAmount: number
+    /** 是否超出预算 */
+    isOverBudget: boolean
+    /** 使用率 */
+    usageRate: number
+  }
+  
+  /** 最后检查时间 */
+  lastChecked: number
+  
+  /** 错误信息（如果有） */
+  error?: string
+}
+
+/**
+ * 本地AI检测结果
+ */
+export interface LocalAIStatus {
+  /** Ollama是否可用 */
+  hasOllama: boolean
+  
+  /** Chrome AI是否可用 */
+  hasChromeAI: boolean
+  
+  /** 可用的本地AI服务 */
+  availableServices: ('ollama' | 'chrome-ai')[]
 }
 
 /**
@@ -79,6 +134,233 @@ export async function saveRecommendationConfig(
   } catch (error) {
     console.error("[RecommendationConfig] 保存失败:", error)
     throw error
+  }
+}
+
+/**
+ * 检查AI配置状态
+ */
+export async function checkAIConfigStatus(): Promise<AIConfigStatus> {
+  try {
+    const aiConfig = await getAIConfig()
+    const isConfigured = await isAIConfigured()
+    
+    // 基础状态
+    const status: AIConfigStatus = {
+      isConfigured,
+      provider: aiConfig.provider,
+      isKeyValid: false,
+      isAvailable: false,
+      hasLocalAI: false,
+      budgetStatus: {
+        monthlyBudget: aiConfig.monthlyBudget,
+        usedAmount: 0, // TODO: 从使用统计中获取
+        isOverBudget: false,
+        usageRate: 0
+      },
+      lastChecked: Date.now()
+    }
+    
+    if (!isConfigured) {
+      return status
+    }
+    
+    // 检查API密钥格式
+    if (aiConfig.provider && aiConfig.apiKey) {
+      const { validateApiKey } = await import('./ai-config')
+      status.isKeyValid = validateApiKey(aiConfig.provider, aiConfig.apiKey)
+    }
+    
+    // 检查AI服务可用性（仅在密钥格式正确时）
+    if (status.isKeyValid) {
+      try {
+        await aiManager.initialize()
+        const testResult = await aiManager.testConnection()
+        status.isAvailable = testResult.success
+        if (!testResult.success) {
+          status.error = testResult.message
+        }
+      } catch (error) {
+        status.isAvailable = false
+        status.error = error instanceof Error ? error.message : '连接测试失败'
+      }
+    }
+    
+    // 检查本地AI可用性
+    const localAIStatus = await checkLocalAIStatus()
+    status.hasLocalAI = localAIStatus.availableServices.length > 0
+    
+    // TODO: 计算预算使用情况
+    // const usageStats = await getAIUsageStats()
+    // status.budgetStatus.usedAmount = usageStats.totalCost
+    // status.budgetStatus.isOverBudget = usageStats.totalCost > aiConfig.monthlyBudget
+    // status.budgetStatus.usageRate = usageStats.totalCost / aiConfig.monthlyBudget
+    
+    return status
+    
+  } catch (error) {
+    console.error("[RecommendationConfig] AI配置检查失败:", error)
+    return {
+      isConfigured: false,
+      provider: null,
+      isKeyValid: false,
+      isAvailable: false,
+      hasLocalAI: false,
+      budgetStatus: {
+        monthlyBudget: 5,
+        usedAmount: 0,
+        isOverBudget: false,
+        usageRate: 0
+      },
+      lastChecked: Date.now(),
+      error: error instanceof Error ? error.message : '检查失败'
+    }
+  }
+}
+
+/**
+ * 检查本地AI服务状态
+ */
+export async function checkLocalAIStatus(): Promise<LocalAIStatus> {
+  const status: LocalAIStatus = {
+    hasOllama: false,
+    hasChromeAI: false,
+    availableServices: []
+  }
+  
+  try {
+    // 检查Chrome AI
+    if (typeof window !== 'undefined' && 'ai' in window) {
+      const ai = (window as any).ai
+      if (ai && 'languageModel' in ai) {
+        try {
+          const capabilities = await ai.languageModel.capabilities()
+          if (capabilities && capabilities.available === 'readily') {
+            status.hasChromeAI = true
+            status.availableServices.push('chrome-ai')
+          }
+        } catch (error) {
+          console.warn("[LocalAI] Chrome AI检查失败:", error)
+        }
+      }
+    }
+    
+    // 检查Ollama（通过尝试连接本地端口）
+    try {
+      const response = await fetch('http://localhost:11434/api/tags', {
+        method: 'GET',
+        signal: AbortSignal.timeout(3000) // 3秒超时
+      })
+      
+      if (response.ok) {
+        status.hasOllama = true
+        status.availableServices.push('ollama')
+      }
+    } catch (error) {
+      // Ollama不可用，这是正常的
+      console.log("[LocalAI] Ollama未检测到（正常）")
+    }
+    
+  } catch (error) {
+    console.error("[LocalAI] 本地AI检查失败:", error)
+  }
+  
+  return status
+}
+
+/**
+ * 获取AI配置推荐设置
+ * 根据当前AI配置状态，推荐最佳的推荐配置
+ */
+export async function getRecommendedSettings(): Promise<{
+  config: Partial<RecommendationConfig>
+  reason: string
+  priority: 'high' | 'medium' | 'low'
+}> {
+  const aiStatus = await checkAIConfigStatus()
+  const localAIStatus = await checkLocalAIStatus()
+  
+  // 如果AI配置可用且预算充足，建议开启推理模式
+  if (aiStatus.isAvailable && !aiStatus.budgetStatus.isOverBudget) {
+    return {
+      config: {
+        useReasoning: aiStatus.budgetStatus.usageRate < 0.8, // 使用率<80%时推荐
+        useLocalAI: false
+      },
+      reason: aiStatus.budgetStatus.usageRate < 0.8 
+        ? '你的AI配置正常且预算充足，推荐开启推理模式获得更好的推荐质量'
+        : 'AI配置正常，但预算使用较多，建议关闭推理模式控制成本',
+      priority: 'medium'
+    }
+  }
+  
+  // 如果远程AI不可用但有本地AI，推荐使用本地AI
+  if (!aiStatus.isAvailable && localAIStatus.availableServices.length > 0) {
+    return {
+      config: {
+        useReasoning: false,
+        useLocalAI: true
+      },
+      reason: `检测到${localAIStatus.availableServices.join('、')}可用，推荐使用本地AI保护隐私`,
+      priority: 'high'
+    }
+  }
+  
+  // 默认建议：使用TF-IDF算法
+  return {
+    config: {
+      useReasoning: false,
+      useLocalAI: false
+    },
+    reason: aiStatus.error 
+      ? `AI配置异常（${aiStatus.error}），建议使用纯算法推荐`
+      : '暂无AI配置，使用高效的TF-IDF算法推荐',
+    priority: 'low'
+  }
+}
+
+/**
+ * 智能配置调整
+ * 根据AI状态自动调整推荐配置
+ */
+export async function autoAdjustConfig(): Promise<{
+  adjusted: boolean
+  changes: string[]
+  newConfig: RecommendationConfig
+}> {
+  const currentConfig = await getRecommendationConfig()
+  const recommended = await getRecommendedSettings()
+  const changes: string[] = []
+  let adjusted = false
+  
+  const newConfig = { ...currentConfig }
+  
+  // 检查是否需要调整推理模式
+  if (recommended.config.useReasoning !== undefined && 
+      currentConfig.useReasoning !== recommended.config.useReasoning) {
+    newConfig.useReasoning = recommended.config.useReasoning
+    changes.push(`推理模式: ${currentConfig.useReasoning ? '开启' : '关闭'} → ${newConfig.useReasoning ? '开启' : '关闭'}`)
+    adjusted = true
+  }
+  
+  // 检查是否需要调整本地AI
+  if (recommended.config.useLocalAI !== undefined && 
+      currentConfig.useLocalAI !== recommended.config.useLocalAI) {
+    newConfig.useLocalAI = recommended.config.useLocalAI
+    changes.push(`本地AI: ${currentConfig.useLocalAI ? '开启' : '关闭'} → ${newConfig.useLocalAI ? '开启' : '关闭'}`)
+    adjusted = true
+  }
+  
+  // 如果有调整，保存新配置
+  if (adjusted) {
+    await saveRecommendationConfig(newConfig)
+    console.log("[RecommendationConfig] 自动调整完成:", changes)
+  }
+  
+  return {
+    adjusted,
+    changes,
+    newConfig
   }
 }
 

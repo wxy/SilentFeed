@@ -47,7 +47,7 @@ class TFIDFCalculator {
       const words = this.tokenize(article.title + ' ' + article.content)
       const uniqueWords = new Set(words)
 
-      for (const word of uniqueWords) {
+      for (const word of Array.from(uniqueWords)) {
         const count = this.documentFrequency.get(word) || 0
         this.documentFrequency.set(word, count + 1)
       }
@@ -67,7 +67,7 @@ class TFIDFCalculator {
     }
 
     const tfidf = new Map<string, number>()
-    for (const [word, count] of wordCounts) {
+    for (const [word, count] of Array.from(wordCounts.entries())) {
       const tf = count / words.length
       const df = this.documentFrequency.get(word) || 1
       const idf = Math.log(this.totalDocuments / df)
@@ -94,7 +94,7 @@ class TFIDFCalculator {
   cosineSimilarity(vector1: Map<string, number>, vector2: Map<string, number>): number {
     const words1 = new Set(vector1.keys())
     const words2 = new Set(vector2.keys())
-    const intersection = new Set([...words1].filter(word => words2.has(word)))
+    const intersection = new Set(Array.from(words1).filter(word => words2.has(word)))
 
     if (intersection.size === 0) return 0
 
@@ -102,17 +102,17 @@ class TFIDFCalculator {
     let norm1 = 0
     let norm2 = 0
 
-    for (const word of intersection) {
+    for (const word of Array.from(intersection)) {
       const val1 = vector1.get(word) || 0
       const val2 = vector2.get(word) || 0
       dotProduct += val1 * val2
     }
 
-    for (const val of vector1.values()) {
+    for (const val of Array.from(vector1.values())) {
       norm1 += val * val
     }
 
-    for (const val of vector2.values()) {
+    for (const val of Array.from(vector2.values())) {
       norm2 += val * val
     }
 

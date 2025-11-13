@@ -7,6 +7,7 @@ import { RSSValidator } from './core/rss/RSSValidator'
 import { feedScheduler } from './background/feed-scheduler'
 import { IconManager } from './utils/IconManager'
 import { evaluateAndAdjust } from './core/recommender/adaptive-count'
+import { setupNotificationListeners, testNotification } from './core/recommender/notification'
 
 console.log('FeedAIMuter Background Service Worker 已启动')
 
@@ -168,6 +169,10 @@ chrome.runtime.onInstalled.addListener(async () => {
     chrome.alarms.create('evaluate-recommendations', {
       periodInMinutes: 7 * 24 * 60 // 每 7 天（1 周）
     })
+    
+    // Phase 6: 设置通知监听器
+    console.log('[Background] 设置推荐通知监听器...')
+    setupNotificationListeners()
     
     console.log('[Background] ✅ Service Worker 启动完成')
   } catch (error) {
@@ -447,6 +452,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             sendResponse({ success: true })
           } else {
             sendResponse({ success: false, error: 'Not in development mode' })
+          }
+          break
+        
+        // Phase 6: 测试推荐通知
+        case 'TEST_NOTIFICATION':
+          try {
+            console.log('[Background] 触发测试通知...')
+            await testNotification()
+            sendResponse({ success: true })
+          } catch (error) {
+            console.error('[Background] ❌ 测试通知失败:', error)
+            sendResponse({ success: false, error: String(error) })
           }
           break
         

@@ -236,7 +236,7 @@ export async function adjustRecommendationCount(
  */
 export async function evaluateAndAdjust(): Promise<number> {
   const { getRecommendationConfig, saveRecommendationConfig } = await import(
-    "@/storage/recommendation-config"
+    "../../storage/recommendation-config"
   )
   
   const config = await getRecommendationConfig()
