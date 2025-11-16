@@ -8,14 +8,11 @@
  * 2. AI 失败时自动降级到关键词分析
  * 3. 记录成本和使用情况
  * 
- * Phase 4: 仅使用 DeepSeek Chat 模型
- * Phase 5: 根据任务类型（页面分析 vs 推荐）选择合适的模型
+ * Phase 6: 使用统一的 DeepSeekReasonerProvider，根据 useReasoning 参数动态切换模型
  */
 
-import type { AIProvider, UnifiedAnalysisResult, AnalyzeOptions } from "./types"
-import { DeepSeekProvider } from "./providers/DeepSeekProvider"
-// DeepSeekReasonerProvider 保留供 Phase 5 使用（推荐引擎）
-// import { DeepSeekReasonerProvider } from "./providers/DeepSeekReasonerProvider"
+import type { AIProvider, UnifiedAnalysisResult, AnalyzeOptions, RecommendationReasonRequest, RecommendationReasonResult } from "./types"
+import { DeepSeekReasonerProvider } from "./providers/DeepSeekReasonerProvider"
 import { FallbackKeywordProvider } from "./providers/FallbackKeywordProvider"
 import { getAIConfig, type AIProviderType } from "@/storage/ai-config"
 
@@ -119,9 +116,9 @@ export class AICapabilityManager {
   private createProvider(type: AIProviderType, apiKey: string): AIProvider {
     switch (type) {
       case "deepseek":
-        // Phase 4: 仅使用 DeepSeek Chat 模型（快速、便宜）
-        // Phase 5: 可能根据任务类型选择 Chat 或 Reasoner
-        return new DeepSeekProvider({ apiKey })
+        // Phase 6: 使用统一的 DeepSeekReasonerProvider
+        // 它会根据 useReasoning 参数动态选择 deepseek-chat 或 deepseek-reasoner
+        return new DeepSeekReasonerProvider({ apiKey })
       
       case "openai":
         // TODO: 实现 OpenAIProvider (Sprint 6)
@@ -137,6 +134,72 @@ export class AICapabilityManager {
   }
   
   /**
+   * 生成推荐理由
+   */
+  async generateRecommendationReason(
+    request: RecommendationReasonRequest
+  ): Promise<RecommendationReasonResult> {
+    try {
+      // 尝试使用主要 AI Provider
+      if (this.primaryProvider) {
+        const available = await this.primaryProvider.isAvailable()
+        if (available && this.primaryProvider.generateRecommendationReason) {
+          const result = await this.primaryProvider.generateRecommendationReason(request)
+          
+          // 记录成本
+          this.recordRecommendationUsage(result)
+          
+          return result
+        }
+      }
+      
+      // 降级到关键词策略
+      return this.generateKeywordRecommendationReason(request)
+      
+    } catch (error) {
+      console.warn("[AICapabilityManager] Primary provider failed for recommendation:", error)
+      
+      // 降级到关键词策略
+      return this.generateKeywordRecommendationReason(request)
+    }
+  }
+
+  /**
+   * 关键词降级策略 - 推荐理由生成
+   */
+  private generateKeywordRecommendationReason(
+    request: RecommendationReasonRequest
+  ): RecommendationReasonResult {
+    const { userInterests, relevanceScore } = request
+    
+    // 简单的关键词匹配
+    const matchedInterests = userInterests.filter(interest => 
+      request.articleTitle.toLowerCase().includes(interest.toLowerCase()) ||
+      request.articleSummary.toLowerCase().includes(interest.toLowerCase())
+    )
+    
+    let reason = ""
+    if (matchedInterests.length > 0) {
+      reason = `因为您对${matchedInterests.slice(0, 2).join("、")}感兴趣`
+    } else if (relevanceScore > 0.5) {
+      reason = "内容质量较高，值得关注"
+    } else {
+      reason = "可能对您有用的内容"
+    }
+    
+    return {
+      reason,
+      matchedInterests,
+      confidence: Math.min(0.6, relevanceScore),
+      metadata: {
+        provider: "keyword",
+        model: "keyword-fallback",
+        timestamp: Date.now()
+      }
+    }
+  }
+
+  /**
    * 记录使用情况
    */
   private recordUsage(result: UnifiedAnalysisResult): void {
@@ -145,13 +208,35 @@ export class AICapabilityManager {
       
       // TODO: Sprint 5 - 持久化成本追踪
       if (metadata.cost) {
+        // Phase 6: 修复日志显示，分别展示输入和输出 token 数
+        const promptTokens = metadata.tokensUsed?.prompt || 0
+        const completionTokens = metadata.tokensUsed?.completion || 0
+        const totalTokens = metadata.tokensUsed?.total || 0
+        
         console.log(
           `[AI管理器] 成本: ¥${metadata.cost.toFixed(6)} ` +
-          `(${metadata.tokensUsed?.total} tokens)`
+          `(输入: ${promptTokens} tokens, 输出: ${completionTokens} tokens, 总计: ${totalTokens} tokens)`
         )
       }
     } catch (error) {
       console.error("[AICapabilityManager] Failed to record usage:", error)
+    }
+  }
+
+  /**
+   * 记录推荐理由使用情况
+   */
+  private recordRecommendationUsage(result: RecommendationReasonResult): void {
+    try {
+      const { metadata } = result
+      
+      if (metadata.tokensUsed) {
+        console.log(
+          `[AI管理器] 推荐理由生成 - tokens: ${metadata.tokensUsed.input + metadata.tokensUsed.output}`
+        )
+      }
+    } catch (error) {
+      console.error("[AICapabilityManager] Failed to record recommendation usage:", error)
     }
   }
 }

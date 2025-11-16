@@ -23,7 +23,7 @@ export class FeedManager {
    * 
    * @param feed - 源信息（不需要 id，会自动生成）
    */
-  async addCandidate(feed: Omit<DiscoveredFeed, 'id' | 'status' | 'isActive' | 'articleCount' | 'unreadCount'>): Promise<string> {
+  async addCandidate(feed: Omit<DiscoveredFeed, 'id' | 'status' | 'isActive' | 'articleCount' | 'unreadCount' | 'recommendedCount'>): Promise<string> {
     // 1. 检查完全相同的 URL
     const existingByUrl = await db.discoveredFeeds.where('url').equals(feed.url).first()
     if (existingByUrl) {
@@ -65,7 +65,8 @@ export class FeedManager {
       status: 'candidate',
       isActive: true,           // Phase 5 Sprint 3: 默认启用
       articleCount: 0,          // Phase 5 Sprint 3: 初始文章数为 0
-      unreadCount: 0            // Phase 5 Sprint 3: 初始未读数为 0
+      unreadCount: 0,           // Phase 5 Sprint 3: 初始未读数为 0
+      recommendedCount: 0       // Phase 6: 初始推荐数为 0
     }
     
     await db.discoveredFeeds.add(newFeed)

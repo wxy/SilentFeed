@@ -4,8 +4,10 @@ import { initializeDatabase, getPageCount, getUnreadRecommendations, db } from '
 import type { ConfirmedVisit } from './storage/types'
 import { FeedManager } from './core/rss/managers/FeedManager'
 import { RSSValidator } from './core/rss/RSSValidator'
-import { feedScheduler } from './background/feed-scheduler'
+import { feedScheduler, fetchFeed } from './background/feed-scheduler'
 import { IconManager } from './utils/IconManager'
+import { evaluateAndAdjust } from './core/recommender/adaptive-count'
+import { setupNotificationListeners, testNotification } from './core/recommender/notification'
 
 console.log('FeedAIMuter Background Service Worker 已启动')
 
@@ -161,6 +163,16 @@ chrome.runtime.onInstalled.addListener(async () => {
     // Phase 5 Sprint 3: 启动 RSS 定时调度器
     console.log('[Background] 启动 RSS 定时调度器...')
     feedScheduler.start(30) // 每 30 分钟检查一次
+    
+    // Phase 6: 启动推荐数量定期评估
+    console.log('[Background] 创建推荐数量评估定时器（每周一次）...')
+    chrome.alarms.create('evaluate-recommendations', {
+      periodInMinutes: 7 * 24 * 60 // 每 7 天（1 周）
+    })
+    
+    // Phase 6: 设置通知监听器
+    console.log('[Background] 设置推荐通知监听器...')
+    setupNotificationListeners()
     
     console.log('[Background] ✅ Service Worker 启动完成')
   } catch (error) {
@@ -333,7 +345,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           break
         
         case 'MANUAL_FETCH_FEEDS':
-          // Phase 5 Sprint 3: 手动触发 RSS 抓取
+          // Phase 5 Sprint 3: 手动触发所有RSS抓取
           try {
             console.log('[Background] 手动触发 RSS 抓取...')
             
@@ -342,7 +354,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               iconManager.startFetchingAnimation()
             }
             
-            const result = await feedScheduler.runOnce()
+            // 使用强制手动抓取，忽略时间和频率限制
+            const result = await feedScheduler.fetchAllManual()
             
             // Phase 5.2: 停止后台抓取动画
             if (iconManager) {
@@ -353,6 +366,67 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             sendResponse({ success: true, data: result })
           } catch (error) {
             console.error('[Background] ❌ 手动抓取失败:', error)
+            
+            // 停止动画
+            if (iconManager) {
+              iconManager.stopFetchingAnimation()
+            }
+            
+            sendResponse({ success: false, error: String(error) })
+          }
+          break
+
+        case 'MANUAL_FETCH_SINGLE_FEED':
+          // 手动触发单个RSS源抓取
+          try {
+            const { feedId } = message.payload as { feedId: string }
+            console.log('[Background] 手动触发单个RSS源抓取:', feedId)
+            
+            // Phase 5.2: 启动后台抓取动画
+            if (iconManager) {
+              iconManager.startFetchingAnimation()
+            }
+            
+            // 获取特定的RSS源
+            const feed = await db.discoveredFeeds.get(feedId)
+            if (!feed) {
+              throw new Error(`RSS源不存在: ${feedId}`)
+            }
+            
+            if (feed.status !== 'subscribed') {
+              throw new Error(`RSS源未订阅: ${feed.title}`)
+            }
+            
+            if (!feed.isActive) {
+              throw new Error(`RSS源已暂停: ${feed.title}`)
+            }
+            
+            // 强制抓取单个源
+            const success = await fetchFeed(feed)
+            
+            // Phase 5.2: 停止后台抓取动画
+            if (iconManager) {
+              iconManager.stopFetchingAnimation()
+              await updateBadge()  // 恢复正常状态
+            }
+            
+            if (success) {
+              sendResponse({ 
+                success: true, 
+                data: { 
+                  total: 1, 
+                  fetched: 1, 
+                  skipped: 0, 
+                  failed: 0,
+                  feedTitle: feed.title 
+                } 
+              })
+            } else {
+              throw new Error(`抓取失败: ${feed.title}`)
+            }
+            
+          } catch (error) {
+            console.error('[Background] ❌ 单个RSS源抓取失败:', error)
             
             // 停止动画
             if (iconManager) {
@@ -443,6 +517,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           }
           break
         
+        // Phase 6: 测试推荐通知
+        case 'TEST_NOTIFICATION':
+          try {
+            console.log('[Background] 触发测试通知...')
+            await testNotification()
+            sendResponse({ success: true })
+          } catch (error) {
+            console.error('[Background] ❌ 测试通知失败:', error)
+            sendResponse({ success: false, error: String(error) })
+          }
+          break
+        
         default:
           sendResponse({ success: false, error: 'Unknown message type' })
       }
@@ -453,6 +539,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   })()
   
   return true
+})
+
+/**
+ * Phase 6: 定时器事件监听器
+ * 处理推荐数量定期评估
+ */
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  console.log('[Background] 定时器触发:', alarm.name)
+  
+  try {
+    if (alarm.name === 'evaluate-recommendations') {
+      console.log('[Background] 开始评估推荐数量...')
+      const newCount = await evaluateAndAdjust()
+      console.log(`[Background] ✅ 推荐数量已调整为: ${newCount} 条`)
+    }
+  } catch (error) {
+    console.error('[Background] ❌ 定时器处理失败:', error)
+  }
 })
 
 export { BadgeManager, ProgressStage } from './core/badge/BadgeManager'

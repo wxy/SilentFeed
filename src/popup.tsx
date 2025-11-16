@@ -8,12 +8,14 @@ import { getUIStyle, watchUIStyle, type UIStyle } from "@/storage/ui-config"
 import { useTheme } from "@/hooks/useTheme"
 import { ColdStartView } from "@/components/ColdStartView"
 import { RecommendationView } from "@/components/RecommendationView"
+import { trackPopupOpen } from "@/core/recommender/adaptive-count"
 import "@/styles/global.css"
 import "@/styles/sketchy.css" // 手绘风格样式
 
 /**
  * Feed AI Muter - Popup 主界面
  * Phase 2.7: 两阶段 UI（冷启动 + 推荐）
+ * Phase 6: 添加弹窗打开跟踪，动态高度适应
  */
 function IndexPopup() {
   const { _ } = useI18n()
@@ -23,7 +25,19 @@ function IndexPopup() {
   const [isLoading, setIsLoading] = useState(true)
   const [uiStyle, setUiStyle] = useState<UIStyle>("sketchy")
 
-  const COLD_START_THRESHOLD = 1000
+  // TODO: Phase 6 - 临时降低为100页以便测试推荐UI，正式版改回1000
+  const COLD_START_THRESHOLD = 100
+
+  // Phase 6: 跟踪弹窗打开
+  useEffect(() => {
+    trackPopupOpen()
+    
+    // 确保 body 和 html 没有固定高度
+    document.body.style.minHeight = 'auto'
+    document.body.style.height = 'auto'
+    document.documentElement.style.minHeight = 'auto'
+    document.documentElement.style.height = 'auto'
+  }, [])
 
   useEffect(() => {
     // 加载 UI 风格
@@ -68,9 +82,10 @@ function IndexPopup() {
   // 根据风格决定是否应用手绘样式
   const isSketchyStyle = uiStyle === "sketchy"
   const currentLang = i18n.language // 获取当前语言
+  // 弹窗高度根据内容动态计算，无固定高度，无滚动条
   const containerClass = isSketchyStyle 
-    ? "sketchy-container sketchy-paper-texture w-80 max-h-[600px] flex flex-col overflow-hidden"
-    : "w-80 max-h-[600px] flex flex-col overflow-hidden p-4 bg-white dark:bg-gray-900"
+    ? "sketchy-container sketchy-paper-texture w-80 flex flex-col"
+    : "w-80 flex flex-col p-4 bg-white dark:bg-gray-900"
 
   // 加载中状态
   if (isLoading) {
@@ -128,12 +143,12 @@ function IndexPopup() {
       )}
       
       {/* 头部 - 手绘风格 */}
-      <div className={isSketchyStyle ? "px-6 pt-4 pb-3" : "mb-4"}>
-        <h1 className={isSketchyStyle ? "sketchy-title text-xl mb-1" : "text-2xl font-bold mb-2"}>{_("app.name")}</h1>
-        <p className={isSketchyStyle ? "sketchy-text text-xs mt-1" : "text-sm text-gray-600 dark:text-gray-400"}>
+      <div className={isSketchyStyle ? "px-6 pt-3 pb-2" : "mb-3"}>
+        <h1 className={isSketchyStyle ? "sketchy-title text-lg mb-0.5" : "text-xl font-bold mb-1"}>{_("app.name")}</h1>
+        <p className={isSketchyStyle ? "sketchy-text text-xs mt-0.5" : "text-sm text-gray-600 dark:text-gray-400"}>
           {_("app.shortName")}
         </p>
-        {isSketchyStyle && <div className="sketchy-divider mt-3"></div>}
+        {isSketchyStyle && <div className="sketchy-divider mt-2"></div>}
       </div>
 
       {/* 主体内容 - 两阶段切换 */}
@@ -143,15 +158,17 @@ function IndexPopup() {
         <RecommendationView />
       )}
 
-      {/* 底部按钮 - 手绘风格 */}
-      <div className={isSketchyStyle ? "px-6 pb-4" : "mt-4"}>
-        <button
-          onClick={openSettings}
-          className={isSketchyStyle ? "sketchy-button w-full" : "w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"}
-        >
-          ⚙️ {_("popup.settings")}
-        </button>
-      </div>
+      {/* 底部按钮 - 仅在冷启动阶段显示（推荐阶段顶部已有设置按钮） */}
+      {isColdStart && (
+        <div className={isSketchyStyle ? "px-6 pb-4" : "mt-4"}>
+          <button
+            onClick={openSettings}
+            className={isSketchyStyle ? "sketchy-button w-full" : "w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"}
+          >
+            ⚙️ {_("popup.settings")}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

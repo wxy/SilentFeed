@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-11-11T11:47:10.091Z",
+  "lastUpdate": "2025-11-12T10:08:06.831Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -634,15 +634,15 @@
     },
     "popup.dismissAll": {
       "zh-CN": {
-        "value": "这些我都不想读",
-        "hash": "fcb385a7",
-        "lastModified": "2025-11-03T09:03:58.259Z",
+        "value": "全部不想读",
+        "hash": "8c576e47",
+        "lastModified": "2025-11-12T10:07:45.809Z",
         "status": "verified"
       },
       "en": {
-        "value": "I don't want to read any of these.",
-        "hash": "c5df47e5",
-        "lastModified": "2025-11-03T09:03:58.259Z",
+        "value": "Don't want to read any",
+        "hash": "67835c31",
+        "lastModified": "2025-11-12T10:07:45.810Z",
         "status": "ai-translated"
       }
     },
@@ -5837,6 +5837,160 @@
         "value": "Empress",
         "hash": "3915841f",
         "lastModified": "2025-11-11T11:47:09.585Z",
+        "status": "ai-translated"
+      }
+    },
+    "popup.confirmDismissAll": {
+      "zh-CN": {
+        "value": "确定要标记所有 {{count}} 条推荐为「不想读」吗？",
+        "hash": "b54d1305",
+        "lastModified": "2025-11-12T10:07:48.128Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Are you sure you want to mark all {{count}} recommendations as \"Not Interested\"?",
+        "hash": "92385432",
+        "lastModified": "2025-11-12T10:07:48.128Z",
+        "status": "ai-translated"
+      }
+    },
+    "popup.later": {
+      "zh-CN": {
+        "value": "稍后读",
+        "hash": "a627636f",
+        "lastModified": "2025-11-12T10:07:49.832Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Read Later",
+        "hash": "888f6c9f",
+        "lastModified": "2025-11-12T10:07:49.832Z",
+        "status": "ai-translated"
+      }
+    },
+    "popup.dismiss": {
+      "zh-CN": {
+        "value": "不想读",
+        "hash": "68c2a967",
+        "lastModified": "2025-11-12T10:07:52.188Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Don't want to read",
+        "hash": "5425d4b7",
+        "lastModified": "2025-11-12T10:07:52.188Z",
+        "status": "ai-translated"
+      }
+    },
+    "popup.readLater": {
+      "zh-CN": {
+        "value": "稍后阅读",
+        "hash": "01ed9362",
+        "lastModified": "2025-11-12T10:07:53.930Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Read Later",
+        "hash": "888f6c9f",
+        "lastModified": "2025-11-12T10:07:53.930Z",
+        "status": "ai-translated"
+      }
+    },
+    "popup.notInterested": {
+      "zh-CN": {
+        "value": "不感兴趣",
+        "hash": "1d4e6d29",
+        "lastModified": "2025-11-12T10:07:55.877Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Not interested",
+        "hash": "c0a38f62",
+        "lastModified": "2025-11-12T10:07:55.877Z",
+        "status": "ai-translated"
+      }
+    },
+    "popup.rssFeeds": {
+      "zh-CN": {
+        "value": "RSS源",
+        "hash": "72355b2b",
+        "lastModified": "2025-11-12T10:07:57.718Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "RSS Feed",
+        "hash": "7eca39de",
+        "lastModified": "2025-11-12T10:07:57.718Z",
+        "status": "ai-translated"
+      }
+    },
+    "popup.manageRSSFeeds": {
+      "zh-CN": {
+        "value": "管理RSS订阅源",
+        "hash": "5408aff1",
+        "lastModified": "2025-11-12T10:07:59.360Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Manage RSS Feeds",
+        "hash": "d92ede02",
+        "lastModified": "2025-11-12T10:07:59.360Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.tabs.recommendation": {
+      "zh-CN": {
+        "value": "推荐",
+        "hash": "3f981012",
+        "lastModified": "2025-11-12T10:08:00.793Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Recommend",
+        "hash": "cab1fe09",
+        "lastModified": "2025-11-12T10:08:00.793Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.tabs.stats": {
+      "zh-CN": {
+        "value": "推荐统计",
+        "hash": "cf3a5f33",
+        "lastModified": "2025-11-12T10:08:02.430Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Recommendation Statistics",
+        "hash": "7d994b58",
+        "lastModified": "2025-11-12T10:08:02.430Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.tabs.debug": {
+      "zh-CN": {
+        "value": "调试工具",
+        "hash": "5a13d06b",
+        "lastModified": "2025-11-12T10:08:04.374Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Debugging tools",
+        "hash": "1e5d40c0",
+        "lastModified": "2025-11-12T10:08:04.374Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.discoveredAt": {
+      "zh-CN": {
+        "value": "发现于",
+        "hash": "c4defe48",
+        "lastModified": "2025-11-12T10:08:06.320Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Discovered in",
+        "hash": "6b6ca23e",
+        "lastModified": "2025-11-12T10:08:06.321Z",
         "status": "ai-translated"
       }
     }

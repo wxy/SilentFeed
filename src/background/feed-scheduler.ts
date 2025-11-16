@@ -35,7 +35,12 @@ export function calculateNextFetchInterval(feed: DiscoveredFeed): number {
   
   const frequency = quality.updateFrequency // 篇/周
   
-  if (frequency >= 7) {
+  // 修复：对于超低频源（< 0.25 篇/周，即每月更新），至少每周抓取一次
+  // 这样可以确保所有源都有机会被更新，不会被遗忘
+  if (!frequency || frequency < 0.25) {
+    // 超低频源 → 每周抓取一次（7 天）
+    return 7 * 24 * 60 * 60 * 1000
+  } else if (frequency >= 7) {
     // 每天更新 → 6 小时抓取
     return 6 * 60 * 60 * 1000
   } else if (frequency >= 3) {
@@ -45,8 +50,8 @@ export function calculateNextFetchInterval(feed: DiscoveredFeed): number {
     // 每周 1-2 次 → 24 小时抓取
     return 24 * 60 * 60 * 1000
   } else {
-    // 低频源不自动抓取
-    return 0
+    // 每月更新 (0.25-1 篇/周) → 48 小时抓取
+    return 48 * 60 * 60 * 1000
   }
 }
 
@@ -54,9 +59,10 @@ export function calculateNextFetchInterval(feed: DiscoveredFeed): number {
  * 判断源是否需要抓取
  * 
  * @param feed - RSS 源
+ * @param forceManual - 强制手动抓取（忽略时间和频率限制）
  * @returns 是否需要抓取
  */
-export function shouldFetch(feed: DiscoveredFeed): boolean {
+export function shouldFetch(feed: DiscoveredFeed, forceManual = false): boolean {
   // 1. 必须是已订阅状态
   if (feed.status !== 'subscribed') {
     return false
@@ -67,14 +73,19 @@ export function shouldFetch(feed: DiscoveredFeed): boolean {
     return false
   }
   
-  // 3. 计算抓取间隔
-  const interval = calculateNextFetchInterval(feed)
-  if (interval === 0) {
-    // 低频源不自动抓取
-    return false
+  // 3. 手动抓取时忽略时间和频率限制
+  if (forceManual) {
+    console.log('[FeedScheduler] 强制手动抓取:', feed.title)
+    return true
   }
   
-  // 4. 检查是否到了抓取时间
+  // 4. 计算抓取间隔
+  const interval = calculateNextFetchInterval(feed)
+  
+  // 注意：修复后的 calculateNextFetchInterval 总是返回 > 0 的值
+  // 不再有"低频源不自动抓取"的情况
+  
+  // 5. 检查是否到了抓取时间
   const now = Date.now()
   const lastFetchedAt = feed.lastFetchedAt || 0
   const nextFetchTime = lastFetchedAt + interval
@@ -163,26 +174,48 @@ export async function fetchFeed(feed: DiscoveredFeed): Promise<boolean> {
     const existing = feed.latestArticles || []
     const merged = mergeArticles(existing, newArticles)
     
-    // 4. 只保留最新 20 篇（节省存储空间）
-    const latest = merged.slice(0, 20)
+    // 4. 保留文章数量增加（避免历史数据丢失）
+    // 根据现有文章数量动态决定：如果文章较多说明是高频源
+    const existingCount = existing.length
+    let keepCount = 20 // 默认保留数量
     
-    // 5. 统计未读数量
+    if (existingCount >= 15) {
+      keepCount = 50  // 高频源：保留更多历史
+    } else if (existingCount >= 8) {
+      keepCount = 30  // 中频源
+    }
+    
+    const latest = merged.slice(0, keepCount)
+    
+    // 5. 统计数量（区分总数、推荐数、阅读数）
+    const totalCount = latest.length
     const unreadCount = latest.filter(a => !a.read).length
+    const readCount = totalCount - unreadCount
+    
+    // Phase 6: 统计推荐数量（基于 AI 分析结果）
+    // 如果文章有 AI 分析结果且置信度 >= 0.6，视为推荐
+    const recommendedCount = latest.filter(a => {
+      if (!a.analysis) return false
+      return a.analysis.confidence >= 0.6
+    }).length
     
     // 6. 更新数据库
     await db.discoveredFeeds.update(feed.id, {
       lastFetchedAt: Date.now(),
       lastError: undefined,
       latestArticles: latest,
-      articleCount: latest.length,
-      unreadCount
+      articleCount: totalCount,
+      unreadCount,
+      recommendedCount
     })
     
     console.log('[FeedScheduler] ✅ 抓取成功:', {
       feed: feed.title,
       newArticles: newArticles.length,
-      totalArticles: latest.length,
-      unreadCount
+      totalArticles: totalCount,
+      unreadCount,
+      readCount,
+      keepCount
     })
     
     return true
@@ -272,7 +305,7 @@ export class FeedScheduler {
     console.log('[FeedScheduler] 已订阅源数量:', subscribedFeeds.length)
     
     // 2. 筛选需要抓取的源
-    const feedsToFetch = subscribedFeeds.filter(shouldFetch)
+    const feedsToFetch = subscribedFeeds.filter(feed => shouldFetch(feed))
     
     console.log('[FeedScheduler] 需要抓取的源:', {
       total: subscribedFeeds.length,
@@ -316,6 +349,64 @@ export class FeedScheduler {
   async triggerNow(): Promise<void> {
     console.log('[FeedScheduler] 🔄 手动触发抓取...')
     await this.runOnce()
+  }
+  
+  /**
+   * 手动抓取所有已订阅的源（忽略时间和频率限制）
+   * 
+   * 用于用户手动"全部读取"操作
+   */
+  async fetchAllManual(): Promise<{
+    total: number
+    fetched: number
+    skipped: number
+    failed: number
+  }> {
+    console.log('[FeedScheduler] 📡 手动抓取所有源...')
+    
+    // 1. 获取所有已订阅的源
+    const subscribedFeeds = await db.discoveredFeeds
+      .where('status')
+      .equals('subscribed')
+      .toArray()
+    
+    console.log('[FeedScheduler] 已订阅源数量:', subscribedFeeds.length)
+    
+    // 2. 强制抓取所有启用的源（忽略时间和频率限制）
+    const feedsToFetch = subscribedFeeds.filter(feed => shouldFetch(feed, true))
+    
+    console.log('[FeedScheduler] 强制抓取的源:', {
+      total: subscribedFeeds.length,
+      needFetch: feedsToFetch.length,
+      skipped: subscribedFeeds.length - feedsToFetch.length
+    })
+    
+    // 3. 并发抓取（最多 5 个）
+    const results = {
+      total: subscribedFeeds.length,
+      fetched: 0,
+      skipped: subscribedFeeds.length - feedsToFetch.length,
+      failed: 0
+    }
+    
+    const concurrency = 5
+    for (let i = 0; i < feedsToFetch.length; i += concurrency) {
+      const batch = feedsToFetch.slice(i, i + concurrency)
+      const promises = batch.map(feed => fetchFeed(feed))
+      const batchResults = await Promise.all(promises)
+      
+      batchResults.forEach(success => {
+        if (success) {
+          results.fetched++
+        } else {
+          results.failed++
+        }
+      })
+    }
+    
+    console.log('[FeedScheduler] ✅ 手动抓取完成:', results)
+    
+    return results
   }
 }
 

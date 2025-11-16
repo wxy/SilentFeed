@@ -88,11 +88,13 @@ export interface DiscoveredFeed {
   subscribedAt?: number         // 订阅时间戳
   
   // Phase 5 Sprint 3: 状态管理和定时抓取
-  isActive: boolean             // 是否启用定时抓取（默认 true，可暂停）
+  isActive: boolean             // 是否启用（默认 true）
   lastFetchedAt?: number        // 最后抓取时间戳
-  lastError?: string            // 最后错误信息
+  lastError?: string            // 最后抓取错误
   articleCount: number          // 文章总数（默认 0）
   unreadCount: number           // 未读文章数（默认 0）
+  recommendedCount: number      // 推荐文章数（默认 0）Phase 6: AI 推荐
+  recommendedReadCount?: number // 推荐已读数（默认 0）Phase 6: AI 推荐
   latestArticles?: FeedArticle[] // 最新文章列表（最新 5-10 篇）
 }
 
@@ -120,6 +122,12 @@ export interface FeedArticle {
     confidence: number
     provider: string
   }
+  
+  // TF-IDF 评分（可选，Phase 6: 抓取全文后计算并缓存）
+  tfidfScore?: number           // TF-IDF 相关性评分 (0-1)
+  
+  // 推荐状态
+  recommended?: boolean         // 是否进入过推荐池（Phase 6: AI 推荐）
   
   // 用户行为
   read: boolean                 // 是否已读（Phase 5 Sprint 3: 默认 false）

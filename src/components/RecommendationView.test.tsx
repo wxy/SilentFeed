@@ -35,6 +35,9 @@ vi.mock("@/i18n/helpers", () => ({
         "popup.recommendationCount": `${params?.count || 0} 条推荐`,
         "popup.dismissAll": "全部忽略",
         "popup.confirmDismiss": `确定要忽略全部 ${params?.count || 0} 条推荐吗？`,
+        "popup.confirmDismissAll": `确定要忽略全部 ${params?.count || 0} 条推荐吗？`,
+        "popup.settings": "⚙️ 设置",
+        "popup.notInterested": "不想读",
       }
       return translations[key] || key
     },
@@ -148,9 +151,10 @@ describe("RecommendationView 组件", () => {
       mockRecommendations = mockRecs
       render(<RecommendationView />)
 
-      expect(screen.getByText("为你推荐")).toBeInTheDocument()
-      expect(screen.getByText("2 条推荐")).toBeInTheDocument()
-      expect(screen.getByText("全部忽略")).toBeInTheDocument()
+      // Phase 6: 组件结构变更，不再显示 "为你推荐" 和推荐数量标题
+      // 改为检查操作按钮
+      expect(screen.getByText(/设置/)).toBeInTheDocument()
+      expect(screen.getByText(/全部忽略/)).toBeInTheDocument()
     })
 
     it("应该渲染所有推荐条目", () => {
@@ -165,44 +169,49 @@ describe("RecommendationView 组件", () => {
       mockRecommendations = mockRecs
       render(<RecommendationView />)
 
+      // 第一条推荐会显示摘要（isTopItem=true）
       expect(
         screen.getByText("这是第一篇推荐文章的摘要")
       ).toBeInTheDocument()
+      // 第二条不显示摘要（使用紧凑布局）
       expect(
-        screen.getByText("这是第二篇推荐文章的摘要")
-      ).toBeInTheDocument()
+        screen.queryByText("这是第二篇推荐文章的摘要")
+      ).not.toBeInTheDocument()
     })
 
     it("应该显示推荐来源", () => {
       mockRecommendations = mockRecs
       render(<RecommendationView />)
 
-      expect(screen.getByText("Tech Blog")).toBeInTheDocument()
-      expect(screen.getByText("Dev News")).toBeInTheDocument()
+      // 使用正则表达式匹配，因为文本被 emoji 分割
+      expect(screen.getByText(/Tech Blog/)).toBeInTheDocument()
+      expect(screen.getByText(/Dev News/)).toBeInTheDocument()
     })
 
     it("应该显示推荐分数（百分比）", () => {
       mockRecommendations = mockRecs
       render(<RecommendationView />)
 
-      expect(screen.getByText("95%")).toBeInTheDocument()
-      expect(screen.getByText("88%")).toBeInTheDocument()
+      // 使用正则表达式或查询所有包含分数的元素
+      expect(screen.getByText(/95/)).toBeInTheDocument()
+      expect(screen.getByText(/88/)).toBeInTheDocument()
     })
 
     it("当没有摘要时不应该显示摘要区域", () => {
-      const recsWithoutSummary: Recommendation[] = [
+      mockRecommendations = [
         {
           id: "rec-1",
           url: "https://example.com/1",
           title: "无摘要文章",
+          summary: "",
           source: "Blog",
           sourceUrl: "https://example.com",
           recommendedAt: Date.now(),
+          score: 0.8,
           isRead: false,
         },
       ]
 
-      mockRecommendations = recsWithoutSummary
       const { container } = render(<RecommendationView />)
 
       // 标题有 line-clamp-2 但是 text-sm
@@ -213,19 +222,20 @@ describe("RecommendationView 组件", () => {
     })
 
     it("当没有分数时不应该显示分数", () => {
-      const recsWithoutScore: Recommendation[] = [
+      mockRecommendations = [
         {
           id: "rec-1",
-          url: "https://example.com/1",
+          url: "https://example.com/1", 
           title: "无分数文章",
+          summary: "这是一篇没有分数的测试文章",
           source: "Blog",
           recommendedAt: Date.now(),
+          score: 0,
           isRead: false,
-        sourceUrl: "https://example.com",
+          sourceUrl: "https://example.com",
         },
       ]
 
-      mockRecommendations = recsWithoutScore
       render(<RecommendationView />)
 
       // 不应该有百分比文本
@@ -240,10 +250,10 @@ describe("RecommendationView 组件", () => {
       title: "测试文章",
       summary: "测试摘要",
       source: "Test Blog",
+      sourceUrl: "https://example.com",
       score: 0.9,
       recommendedAt: Date.now(),
       isRead: false,
-        sourceUrl: "https://example.com",
     }
 
     it("点击推荐应该打开新标签页", async () => {
@@ -267,14 +277,13 @@ describe("RecommendationView 组件", () => {
       const item = screen.getByText("测试文章")
       await user.click(item)
 
+      // Phase 6: 改为使用 adaptive-metrics 追踪点击次数
       await waitFor(() => {
         expect(chrome.storage.local.set).toHaveBeenCalledWith(
           expect.objectContaining({
-            "tracking_https://example.com/article": expect.objectContaining({
-              source: "recommended",
-              recommendationId: "rec-1",
-              timestamp: expect.any(Number),
-              expiresAt: expect.any(Number),
+            "adaptive-metrics": expect.objectContaining({
+              clickCount: expect.any(Number),
+              lastUpdated: expect.any(Number),
             }),
           })
         )
@@ -296,10 +305,11 @@ describe("RecommendationView 组件", () => {
 
     it("当保存追踪信息失败时应该继续打开链接", async () => {
       const user = userEvent.setup()
-      const consoleWarnSpy = vi
-        .spyOn(console, "warn")
+      const consoleErrorSpy = vi
+        .spyOn(console, "error")
         .mockImplementation(() => {})
       
+      // trackRecommendationClick 内部会捕获存储错误并输出到 console
       chrome.storage.local.set = vi
         .fn()
         .mockRejectedValue(new Error("Storage error"))
@@ -310,11 +320,11 @@ describe("RecommendationView 组件", () => {
       const item = screen.getByText("测试文章")
       await user.click(item)
 
-      // 即使保存失败，仍应该打开链接
+      // 即使保存失败，仍应该打开链接并标记为已读
       expect(chrome.tabs.create).toHaveBeenCalled()
-      expect(consoleWarnSpy).toHaveBeenCalled()
+      expect(mockMarkAsRead).toHaveBeenCalled()
 
-      consoleWarnSpy.mockRestore()
+      consoleErrorSpy.mockRestore()
     })
   })
 
@@ -324,8 +334,10 @@ describe("RecommendationView 组件", () => {
         id: "rec-1",
         url: "https://example.com/1",
         title: "文章 1",
+        summary: "这是第一篇测试文章的摘要",
         source: "Blog",
         recommendedAt: Date.now(),
+        score: 0.9,
         isRead: false,
         sourceUrl: "https://example.com",
       },
@@ -333,8 +345,10 @@ describe("RecommendationView 组件", () => {
         id: "rec-2",
         url: "https://example.com/2",
         title: "文章 2",
+        summary: "这是第二篇测试文章的摘要",
         source: "Blog",
         recommendedAt: Date.now(),
+        score: 0.8,
         isRead: false,
         sourceUrl: "https://example.com",
       },
@@ -397,8 +411,10 @@ describe("RecommendationView 组件", () => {
         id: "rec-1",
         url: "https://example.com/1",
         title: "测试文章",
+        summary: "这是一篇测试文章的摘要",
         source: "Blog",
         recommendedAt: Date.now(),
+        score: 0.85,
         isRead: false,
         sourceUrl: "https://example.com",
       }
@@ -415,8 +431,10 @@ describe("RecommendationView 组件", () => {
         id: "rec-1",
         url: "https://example.com/1",
         title: "测试文章",
+        summary: "这是一篇测试文章的摘要",
         source: "Blog",
         recommendedAt: Date.now(),
+        score: 0.85,
         isRead: false,
         sourceUrl: "https://example.com",
       }
@@ -433,8 +451,10 @@ describe("RecommendationView 组件", () => {
         id: "rec-1",
         url: "https://example.com/1",
         title: "测试文章",
+        summary: "这是一篇测试文章的摘要",
         source: "Blog",
         recommendedAt: Date.now(),
+        score: 0.85,
         isRead: false,
         sourceUrl: "https://example.com",
       }
@@ -442,8 +462,10 @@ describe("RecommendationView 组件", () => {
       mockRecommendations = [mockRec]
       const { container } = render(<RecommendationView />)
 
-      const scrollContainer = container.querySelector(".overflow-y-auto")
-      expect(scrollContainer).toBeInTheDocument()
+      // Phase 6: 移除了滚动容器，改为固定高度布局
+      // 检查推荐列表容器存在
+      const listContainer = container.querySelector("[data-recommendation-id]")
+      expect(listContainer).toBeInTheDocument()
     })
   })
 })

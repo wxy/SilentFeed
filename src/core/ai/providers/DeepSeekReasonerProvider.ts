@@ -1,11 +1,12 @@
 /**
- * DeepSeek Reasoner Provider
+ * DeepSeek Provider (Unified)
  * 
- * 使用 DeepSeek 推理模型进行内容分析
+ * 统一的 DeepSeek Provider，支持根据 useReasoning 参数动态选择模型：
+ * - useReasoning=true: 使用 deepseek-reasoner（推理模型，输出推理链）
+ * - useReasoning=false: 使用 deepseek-chat（普通模型，速度快、成本低）
  * 
  * 特点：
- * - 推理能力更强
- * - 适合复杂内容分析
+ * - 国内访问友好
  * - 价格：¥2/M 输入（缓存未命中）、¥0.2/M 输入（缓存命中）、¥3/M 输出
  * - OpenAI 兼容接口
  * 
@@ -23,7 +24,7 @@ import type {
 } from "../types"
 
 export class DeepSeekReasonerProvider implements AIProvider {
-  readonly name = "DeepSeek Reasoner"
+  readonly name = "DeepSeek"
   
   private config: AIProviderConfig
   private endpoint = "https://api.deepseek.com/v1/chat/completions"
@@ -220,8 +221,15 @@ ${content}
     prompt: string,
     options?: AnalyzeOptions
   ): Promise<DeepSeekResponse> {
+    // Phase 6: 根据 useReasoning 参数动态选择模型
+    // - useReasoning=true: 使用 deepseek-reasoner（推理模型，慢但更准确）
+    // - useReasoning=false: 使用 deepseek-chat（普通模型，快速且便宜）
+    const selectedModel = options?.useReasoning ? "deepseek-reasoner" : "deepseek-chat"
+    
+    console.log(`[DeepSeekReasonerProvider] Using model: ${selectedModel}, useReasoning: ${options?.useReasoning}`)
+    
     const request: DeepSeekRequest = {
-      model: this.model,
+      model: selectedModel,
       messages: [
         {
           role: "user",
@@ -244,9 +252,13 @@ ${content}
       stream: false
     }
     
-    // Reasoner 模型推理较慢，需要更长超时
-    // 4000 tokens 预计需要 60-90 秒
-    const timeout = options?.timeout || 90000 // 90 秒
+    // Phase 6: 根据模型类型设置不同超时
+    // - Reasoner 推理模型较慢：120 秒（推理链可能很长）
+    // - Chat 普通模型：60 秒（给予充足时间处理复杂内容）
+    const defaultTimeout = selectedModel === "deepseek-reasoner" ? 120000 : 60000
+    const timeout = options?.timeout || defaultTimeout
+    
+    console.log(`[DeepSeekReasonerProvider] Timeout: ${timeout}ms for model ${selectedModel}`)
     
     const response = await fetch(this.endpoint, {
       method: "POST",

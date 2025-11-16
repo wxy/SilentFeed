@@ -9,20 +9,21 @@ vi.mock("@/i18n/helpers", () => ({
   useI18n: () => ({
     _: (key: string, options?: any) => {
       // 简单的测试翻译函数，直接返回 key 的最后一部分
-      const translations: Record<string, string> = {
-        "app.name": "Feed AI Muter",
-        "app.shortName": "RSS 静音器",
-        "popup.welcome": "欢迎使用智能 RSS 阅读器",
-        "popup.learning": "正在学习你的兴趣...",
-        "popup.progress": `${options?.current || 0}/${options?.total || 1000} 页`,
-        "popup.stage.explorer": "探索者阶段",
-        "popup.stage.learner": "学习者阶段",
-        "popup.stage.grower": "成长者阶段",
-        "popup.stage.master": "大师阶段",
-        "popup.hint": "开始浏览，我会自动学习你的兴趣",
-        "popup.settings": "设置"
+      const translations: Record<string, (options?: any) => string> = {
+        "app.name": () => "Feed AI Muter",
+        "app.shortName": () => "RSS 静音器",
+        "popup.welcome": () => "欢迎使用智能 RSS 阅读器",
+        "popup.learning": () => "正在学习你的兴趣...",
+        "popup.progress": (opt) => `${opt?.current || 0}/${opt?.total || 1000} 页`,
+        "popup.stage.explorer": () => "探索者阶段",
+        "popup.stage.learner": () => "学习者阶段",
+        "popup.stage.grower": () => "成长者阶段",
+        "popup.stage.master": () => "大师阶段",
+        "popup.hint": () => "开始浏览，我会自动学习你的兴趣",
+        "popup.settings": () => "设置"
       }
-      return translations[key] || key
+      const fn = translations[key]
+      return fn ? fn(options) : key
     }
   })
 }))
@@ -84,12 +85,13 @@ describe("IndexPopup 组件", () => {
     expect(screen.getByText("正在学习你的兴趣...")).toBeInTheDocument()
   })
 
-  it("应该显示初始化进度 0/1000", async () => {
+  it("应该显示初始化进度 0/100", async () => {
     render(<IndexPopup />)
 
     // 等待加载完成
+    // Phase 6: 临时改为 100 页阈值
     await waitFor(() => {
-      expect(screen.getByText(/0\/1000 页/)).toBeInTheDocument()
+      expect(screen.getByText(/0\/100 页/)).toBeInTheDocument()
     })
   })
 
