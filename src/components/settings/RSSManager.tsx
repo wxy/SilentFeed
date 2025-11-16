@@ -43,6 +43,14 @@ export function RSSManager() {
   const [expandedFeedId, setExpandedFeedId] = useState<string | null>(null)
   const [previewArticles, setPreviewArticles] = useState<Record<string, FeedItem[]>>({})
   const [loadingPreview, setLoadingPreview] = useState<Record<string, boolean>>({})
+  
+  // RSS 手动读取
+  const [isFetchingAll, setIsFetchingAll] = useState(false)
+  const [isFetchingSingle, setIsFetchingSingle] = useState<string | null>(null)
+  const [fetchCompleted, setFetchCompleted] = useState<{
+    all: boolean
+    single: string | null
+  }>({ all: false, single: null })
 
   useEffect(() => {
     loadFeeds()
@@ -64,6 +72,89 @@ export function RSSManager() {
     } finally {
       setLoading(false)
     }
+  }
+  
+  /**
+   * 手动触发全部RSS读取
+   */
+  const handleFetchAllFeeds = async () => {
+    setIsFetchingAll(true)
+    setFetchCompleted(prev => ({ ...prev, all: false }))
+    try {
+      console.log('[RSSManager] 手动触发全部RSS读取...')
+      
+      const response = await chrome.runtime.sendMessage({
+        type: 'MANUAL_FETCH_FEEDS'
+      })
+      
+      if (response.success) {
+        console.log('[RSSManager] 全部RSS读取完成:', response.data)
+        
+        // 显示完成反馈
+        setFetchCompleted(prev => ({ ...prev, all: true }))
+        
+        // 重新加载源列表以刷新统计数据
+        await loadFeeds()
+        
+        // 2秒后隐藏完成反馈
+        setTimeout(() => {
+          setFetchCompleted(prev => ({ ...prev, all: false }))
+        }, 2000)
+      } else {
+        throw new Error(response.error || '读取失败')
+      }
+    } catch (error) {
+      console.error('[RSSManager] 全部RSS读取失败:', error)
+      alert('RSS读取失败: ' + (error instanceof Error ? error.message : String(error)))
+    } finally {
+      setIsFetchingAll(false)
+    }
+  }
+
+  /**
+   * 手动触发单个RSS读取
+   */
+  const handleFetchSingleFeed = async (feedId: string) => {
+    setIsFetchingSingle(feedId)
+    setFetchCompleted(prev => ({ ...prev, single: null }))
+    try {
+      const feed = subscribedFeeds.find(f => f.id === feedId)
+      const feedTitle = feed?.title || 'Unknown Feed'
+      console.log(`[RSSManager] 手动读取RSS: ${feedTitle}`)
+      
+      // 使用新的单个源读取API
+      const response = await chrome.runtime.sendMessage({
+        type: 'MANUAL_FETCH_SINGLE_FEED',
+        payload: { feedId }
+      })
+      
+      if (response.success) {
+        console.log(`[RSSManager] ${feedTitle} 读取完成:`, response.data)
+        
+        // 显示完成反馈
+        setFetchCompleted(prev => ({ ...prev, single: feedId }))
+        
+        await loadFeeds()
+        
+        // 2秒后隐藏完成反馈
+        setTimeout(() => {
+          setFetchCompleted(prev => ({ ...prev, single: null }))
+        }, 2000)
+      } else {
+        throw new Error(response.error || '读取失败')
+      }
+    } catch (error) {
+      console.error(`[RSSManager] 读取失败:`, error)
+      alert(`读取失败: ` + (error instanceof Error ? error.message : String(error)))
+    } finally {
+      setIsFetchingSingle(null)
+    }
+  }
+  
+  // 计算RSS源的推荐数量（暂时返回0，待优化）
+  const getRecommendedCountForFeed = (feed: DiscoveredFeed): number => {
+    // Phase 6: 返回 RSS 源的推荐数（从数据库字段读取）
+    return feed.recommendedCount || 0
   }
   
   // 加载 RSS 预览文章
@@ -535,7 +626,7 @@ export function RSSManager() {
   // 渲染源列表项（三行紧凑布局）
   const renderFeedItem = (
     feed: DiscoveredFeed,
-    actions: { label: string; onClick: () => void; className: string; row?: 2 | 3 }[]
+    actions: { label: string; onClick: () => void; className: string; row?: 2 | 3; disabled?: boolean }[]
   ) => {
     const nextFetchTime = feed.status === 'subscribed' ? calculateNextFetchTime(feed) : null
     
@@ -685,7 +776,8 @@ export function RSSManager() {
                 <button
                   key={index}
                   onClick={action.onClick}
-                  className={`${action.className} text-white text-xs px-2 py-1 rounded hover:opacity-90 transition-opacity whitespace-nowrap`}
+                  disabled={action.disabled}
+                  className={`${action.className} text-white text-xs px-2 py-1 rounded hover:opacity-90 transition-opacity whitespace-nowrap disabled:bg-gray-400 disabled:cursor-not-allowed`}
                 >
                   {action.label}
                 </button>
@@ -700,17 +792,17 @@ export function RSSManager() {
             {/* 已订阅源：抓取统计 */}
             {feed.status === 'subscribed' && (
               <>
-                {/* 抓取数量/未读数量 */}
+                {/* 文章统计：总数/推荐数/阅读数 */}
                 {feed.articleCount > 0 && (
                   <span className="flex items-center gap-1">
                     <span>📰</span>
                     <span>
                       {feed.articleCount} {_('options.rssManager.fetch.articles')}
-                      {feed.unreadCount > 0 && (
-                        <span className="ml-1 text-orange-600 dark:text-orange-400 font-semibold">
-                          / {feed.unreadCount} {_('options.rssManager.fetch.unread')}
-                        </span>
-                      )}
+                      {/* 显示推荐数和推荐已读数 */}
+                      <span className="ml-1 text-gray-600 dark:text-gray-300">
+                        / {getRecommendedCountForFeed(feed)} {_('options.rssManager.fetch.recommended')}
+                        / {feed.recommendedReadCount || 0} {_('options.rssManager.fetch.read')}
+                      </span>
                     </span>
                   </span>
                 )}
@@ -992,18 +1084,38 @@ export function RSSManager() {
       {/* 2. 已订阅的源 */}
       {subscribedFeeds.length > 0 && (
         <div>
-          <div className="mb-3">
-            <h3 className="text-lg font-semibold text-green-700 dark:text-green-400">
-              ✓ {_('options.rssManager.subscribedFeeds', { count: subscribedFeeds.length })}
-            </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              {_('options.rssManager.subscribedFeedsHint')}
-            </p>
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-green-700 dark:text-green-400">
+                ✓ {_('options.rssManager.subscribedFeeds', { count: subscribedFeeds.length })}
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                {_('options.rssManager.subscribedFeedsHint')}
+              </p>
+            </div>
+            <button
+              onClick={handleFetchAllFeeds}
+              disabled={isFetchingAll || fetchCompleted.all}
+              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white text-sm rounded-lg transition-colors"
+            >
+              {isFetchingAll ? '📡 读取中...' : fetchCompleted.all ? '✅ 读取完成' : '📡 全部读取'}
+            </button>
           </div>
 
           <div className="space-y-2">
             {subscribedFeeds.map((feed) => renderFeedItem(feed, [
-              // 第二行：暂停/恢复 + 取消订阅
+              // 第二行：读取 + 暂停/恢复 + 取消订阅
+              {
+                label: isFetchingSingle === feed.id 
+                  ? '📡 读取中...' 
+                  : fetchCompleted.single === feed.id 
+                  ? '✅ 读取完成'
+                  : '📡 读取',
+                onClick: () => handleFetchSingleFeed(feed.id),
+                className: 'bg-green-500 hover:bg-green-600 disabled:bg-gray-400',
+                disabled: isFetchingSingle === feed.id || fetchCompleted.single === feed.id,
+                row: 2
+              },
               {
                 label: feed.isActive ? _('options.rssManager.actions.pause') : _('options.rssManager.actions.resume'),
                 onClick: () => handleToggleActive(feed.id),

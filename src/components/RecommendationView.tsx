@@ -16,7 +16,26 @@ import {
   trackDismiss,
   trackDismissAll
 } from "@/core/recommender/adaptive-count"
+import { sanitizeHtml } from "@/utils/html"
 import type { Recommendation } from "@/storage/types"
+
+/**
+ * 获取推荐引擎标志
+ */
+function getEngineLabel(recommendation: Recommendation): { emoji: string; text: string } {
+  const reason = recommendation.reason || ""
+  
+  if (reason.includes("推理AI")) {
+    return { emoji: "🧠", text: "推理AI" }
+  } else if (reason.includes("AI")) {
+    return { emoji: "🤖", text: "AI" }
+  } else if (reason.includes("算法")) {
+    return { emoji: "🔍", text: "算法" }
+  } else {
+    // 默认情况，可能是关键词匹配
+    return { emoji: "🔍", text: "算法" }
+  }
+}
 
 export function RecommendationView() {
   const { _ } = useI18n()
@@ -26,7 +45,8 @@ export function RecommendationView() {
     error,
     loadRecommendations,
     markAsRead,
-    dismissAll
+    dismissAll,
+    dismissSelected
   } = useRecommendationStore()
   
   const [maxRecommendations, setMaxRecommendations] = useState(5)
@@ -60,31 +80,59 @@ export function RecommendationView() {
     loadRecommendations()
   }, [loadRecommendations])
 
-  const handleItemClick = async (rec: Recommendation) => {
-    // Phase 6: 跟踪推荐点击
-    await trackRecommendationClick()
-    
-    // 打开链接
-    await chrome.tabs.create({ url: rec.url })
-    
-    // 标记为已读
-    await markAsRead(rec.id)
+  const handleItemClick = async (rec: Recommendation, event: React.MouseEvent) => {
+    try {
+      console.log('[RecommendationView] 点击推荐条目:', rec.id, rec.title)
+      
+      // 立即添加视觉反馈：降低透明度，表示正在处理
+      const element = event.currentTarget as HTMLElement
+      element.style.opacity = '0.6'
+      element.style.pointerEvents = 'none'
+      
+      // Phase 6: 跟踪推荐点击
+      await trackRecommendationClick()
+      
+      // 打开链接
+      await chrome.tabs.create({ url: rec.url })
+      
+      // 标记为已读（这会立即从列表中移除该条目）
+      console.log('[RecommendationView] 开始标记为已读:', rec.id)
+      await markAsRead(rec.id)
+      console.log('[RecommendationView] ✅ 标记已读完成，条目已从列表移除:', rec.id)
+      
+    } catch (error) {
+      console.error('[RecommendationView] ❌ 处理点击失败:', error)
+      
+      // 恢复视觉状态（如果操作失败）
+      const element = event.currentTarget as HTMLElement
+      element.style.opacity = '1'
+      element.style.pointerEvents = 'auto'
+    }
   }
 
   const handleDismiss = async (recId: string, event: React.MouseEvent) => {
     event.stopPropagation() // 阻止点击事件冒泡
     
-    // Phase 6: 跟踪单个不想读
-    await trackDismiss()
-    
-    // TODO: Phase 6.2 - 实现单个推荐的不想读功能（存储到数据库）
-    console.log(`[推荐] 标记不想读: ${recId}`)
-    
-    // 临时视觉效果
-    const element = event.currentTarget.closest('[data-recommendation-id]')
-    if (element) {
-      ;(element as HTMLElement).style.opacity = '0.3'
-      ;(element as HTMLElement).style.pointerEvents = 'none'
+    try {
+      console.log('[RecommendationView] 点击不想读:', recId)
+      
+      // Phase 6: 跟踪单个不想读
+      await trackDismiss()
+      
+      // 调用store的dismissSelected方法来真正删除推荐
+      console.log('[RecommendationView] 开始标记为不想读:', recId)
+      await dismissSelected([recId])
+      console.log('[RecommendationView] ✅ 标记不想读完成:', recId)
+      
+    } catch (error) {
+      console.error('[RecommendationView] ❌ 标记不想读失败:', error)
+      
+      // 如果删除失败，给用户提示
+      const element = event.currentTarget.closest('[data-recommendation-id]')
+      if (element) {
+        ;(element as HTMLElement).style.opacity = '0.3'
+        ;(element as HTMLElement).style.pointerEvents = 'none'
+      }
     }
   }
 
@@ -175,10 +223,21 @@ export function RecommendationView() {
         <div className="h-[300px] flex items-center justify-center">
           <div className="text-center px-6">
             <div className="text-4xl mb-4">✨</div>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
               {_("popup.noRecommendations")}
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
+            <button
+              onClick={async () => {
+                const { generateRecommendations } = useRecommendationStore.getState()
+                await generateRecommendations()
+                await loadRecommendations()
+              }}
+              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded-lg transition-colors mb-3"
+              disabled={isLoading}
+            >
+              {isLoading ? "生成中..." : "🤖 手动推荐"}
+            </button>
+            <p className="text-xs text-gray-500 dark:text-gray-500">
               {_("popup.checkBackLater")}
             </p>
           </div>
@@ -208,6 +267,19 @@ export function RecommendationView() {
               <span>{_("popup.rssFeeds")}</span>
             </button>
           )}
+          
+          <button
+            onClick={async () => {
+              const { generateRecommendations } = useRecommendationStore.getState()
+              await generateRecommendations()
+              await loadRecommendations()
+            }}
+            className="text-xs text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+            disabled={isLoading}
+            title="手动生成推荐"
+          >
+            🤖 {isLoading ? "生成中..." : "手动推荐"}
+          </button>
         </div>
         
         <button
@@ -225,7 +297,7 @@ export function RecommendationView() {
             key={rec.id}
             recommendation={rec}
             isTopItem={index === 0} // 第一条显示摘要
-            onClick={() => handleItemClick(rec)}
+            onClick={(e) => handleItemClick(rec, e)}
             onDismiss={(e) => handleDismiss(rec.id, e)}
           />
         ))}
@@ -244,7 +316,7 @@ export function RecommendationView() {
 interface RecommendationItemProps {
   recommendation: Recommendation
   isTopItem: boolean  // 是否为第一条（评分最高）
-  onClick: () => void
+  onClick: (event: React.MouseEvent) => void
   onDismiss: (event: React.MouseEvent) => void
 }
 
@@ -260,22 +332,22 @@ function RecommendationItem({ recommendation, isTopItem, onClick, onDismiss }: R
       >
         {/* 标题行 - 限制单行 */}
         <div 
-          onClick={onClick}
+          onClick={(e) => onClick(e)}
           className="cursor-pointer mb-1.5"
         >
           <h3 className="text-sm font-medium line-clamp-1 leading-snug">
-            {recommendation.title}
+            {sanitizeHtml(recommendation.title)}
           </h3>
         </div>
         
         {/* 摘要 - 仅第一条显示，限制2行 */}
         {(recommendation.excerpt || recommendation.summary) && (
           <div 
-            onClick={onClick}
+            onClick={(e) => onClick(e)}
             className="cursor-pointer mb-1.5"
           >
             <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
-              {recommendation.excerpt || recommendation.summary}
+              {sanitizeHtml(recommendation.excerpt || recommendation.summary)}
             </p>
           </div>
         )}
@@ -284,7 +356,7 @@ function RecommendationItem({ recommendation, isTopItem, onClick, onDismiss }: R
         {recommendation.reason && (
           <div className="mb-1.5">
             <p className="text-xs text-blue-700 dark:text-blue-300 italic line-clamp-1">
-              💡 {recommendation.reason}
+              💡 {sanitizeHtml(recommendation.reason)}
             </p>
           </div>
         )}
@@ -313,6 +385,14 @@ function RecommendationItem({ recommendation, isTopItem, onClick, onDismiss }: R
                 ⭐ {Math.round(recommendation.score * 100)}%
               </span>
             )}
+            
+            {/* 推荐引擎标志 */}
+            <span className="text-xs text-gray-500 dark:text-gray-500 flex-shrink-0 ml-1">
+              {(() => {
+                const { emoji, text } = getEngineLabel(recommendation)
+                return `${emoji} ${text}`
+              })()}
+            </span>
           </div>
           
           <button
@@ -335,11 +415,11 @@ function RecommendationItem({ recommendation, isTopItem, onClick, onDismiss }: R
     >
       {/* 标题行 - 单行，超出隐藏 */}
       <div 
-        onClick={onClick}
+        onClick={(e) => onClick(e)}
         className="cursor-pointer flex-1 overflow-hidden"
       >
         <h3 className="text-sm font-medium line-clamp-1 leading-snug">
-          {recommendation.title}
+          {sanitizeHtml(recommendation.title)}
         </h3>
       </div>
       
@@ -367,6 +447,14 @@ function RecommendationItem({ recommendation, isTopItem, onClick, onDismiss }: R
               {Math.round(recommendation.score * 100)}%
             </span>
           )}
+          
+          {/* 推荐引擎标志 */}
+          <span className="text-xs text-gray-500 dark:text-gray-500 flex-shrink-0 ml-1">
+            {(() => {
+              const { emoji, text } = getEngineLabel(recommendation)
+              return `${emoji} ${text}`
+            })()}
+          </span>
         </div>
         
         <button

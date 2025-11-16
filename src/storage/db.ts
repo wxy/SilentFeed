@@ -2,12 +2,12 @@
  * IndexedDB 数据库定义（使用 Dexie.js）
  * 
  * 数据库名称: FeedAIMuterDB
- * 当前版本: 6
+ * 当前版本: 9
  * 
  * ⚠️ 版本管理说明：
  * - 开发过程中如果遇到版本冲突，请删除旧数据库
  * - 生产环境版本号应该只增不减
- * - 当前固定为版本 6（Phase 5 Sprint 3: 定时抓取）
+ * - 当前固定为版本 9（Phase 6: 删除 feedArticles 表，统一使用 latestArticles 数组）
  */
 
 import Dexie from 'dexie'
@@ -50,9 +50,6 @@ export class FeedAIMuterDB extends Dexie {
 
   // 表 8: 发现的 RSS 源（Phase 5.1）
   discoveredFeeds!: Table<DiscoveredFeed, string>
-
-  // 表 9: RSS 文章（Phase 5.1）
-  feedArticles!: Table<FeedArticle, string>
 
   constructor() {
     super('FeedAIMuterDB')
@@ -117,7 +114,7 @@ export class FeedAIMuterDB extends Dexie {
       interestSnapshots: 'id, timestamp, primaryTopic, trigger, [primaryTopic+timestamp]'
     })
 
-    // 版本 5: 新增 RSS 源和文章表（Phase 5.1）
+    // 版本 5: 新增 RSS 源表（Phase 5.1）
     this.version(5).stores({
       pendingVisits: 'id, url, startTime, expiresAt',
       confirmedVisits: 'id, domain, visitTime, *analysis.keywords, [visitTime+domain]',
@@ -127,16 +124,8 @@ export class FeedAIMuterDB extends Dexie {
       userProfile: 'id, lastUpdated',
       interestSnapshots: 'id, timestamp, primaryTopic, trigger, [primaryTopic+timestamp]',
       
-      // 发现的 RSS 源
-      // 索引: id（主键）, url, status, discoveredAt, subscribedAt, discoveredFrom
-      // 复合索引: [status+discoveredAt] 用于按状态和时间查询
-      discoveredFeeds: 'id, url, status, discoveredAt, subscribedAt, discoveredFrom, [status+discoveredAt]',
-      
-      // RSS 文章
-      // 索引: id（主键）, feedId, published, read, starred
-      // 复合索引: [feedId+published] 用于按源和时间查询
-      // 复合索引: [read+published] 用于按阅读状态和时间查询
-      feedArticles: 'id, feedId, published, read, starred, [feedId+published], [read+published]'
+      // 发现的 RSS 源（文章存储在 latestArticles 数组中）
+      discoveredFeeds: 'id, url, status, discoveredAt, subscribedAt, discoveredFrom, [status+discoveredAt]'
     })
 
     // 版本 6: 扩展 RSS 源字段，支持定时抓取（Phase 5 Sprint 3）
@@ -150,13 +139,7 @@ export class FeedAIMuterDB extends Dexie {
       interestSnapshots: 'id, timestamp, primaryTopic, trigger, [primaryTopic+timestamp]',
       
       // 发现的 RSS 源（新增 isActive, lastFetchedAt 索引）
-      // 索引: isActive 用于查询启用的源
-      // 索引: lastFetchedAt 用于查询需要更新的源
-      // 复合索引: [isActive+lastFetchedAt] 用于智能调度
-      discoveredFeeds: 'id, url, status, discoveredAt, subscribedAt, discoveredFrom, isActive, lastFetchedAt, [status+discoveredAt], [isActive+lastFetchedAt]',
-      
-      // RSS 文章（保持不变）
-      feedArticles: 'id, feedId, published, read, starred, [feedId+published], [read+published]'
+      discoveredFeeds: 'id, url, status, discoveredAt, subscribedAt, discoveredFrom, isActive, lastFetchedAt, [status+discoveredAt], [isActive+lastFetchedAt]'
     }).upgrade(async (tx) => {
       // 数据迁移：为现有记录添加默认值
       const feeds = await tx.table('discoveredFeeds').toArray()
@@ -195,6 +178,56 @@ export class FeedAIMuterDB extends Dexie {
         }
       }
     })
+
+    // 版本 7: 添加推荐数量字段（Phase 6）
+    this.version(7).stores({
+      pendingVisits: 'id, url, startTime, expiresAt',
+      confirmedVisits: 'id, domain, visitTime, *analysis.keywords, [visitTime+domain]',
+      settings: 'id',
+      statistics: 'id, type, timestamp',
+      recommendations: 'id, recommendedAt, isRead, source, [isRead+recommendedAt]',
+      userProfile: 'id, lastUpdated',
+      interestSnapshots: 'id, timestamp, primaryTopic, trigger, [primaryTopic+timestamp]',
+      discoveredFeeds: 'id, url, status, discoveredAt, subscribedAt, discoveredFrom, isActive, lastFetchedAt, [status+discoveredAt], [isActive+lastFetchedAt]'
+    }).upgrade(async (tx) => {
+      // 为所有 Feed 添加 recommendedCount 字段
+      const feeds = await tx.table('discoveredFeeds').toArray()
+      
+      for (const feed of feeds) {
+        if (feed.recommendedCount === undefined) {
+          await tx.table('discoveredFeeds').update(feed.id, {
+            recommendedCount: 0
+          })
+        }
+      }
+    })
+
+    // 版本 8: 添加 sourceUrl 索引（Phase 6 - 修复统计查询）
+    this.version(8).stores({
+      pendingVisits: 'id, url, startTime, expiresAt',
+      confirmedVisits: 'id, domain, visitTime, *analysis.keywords, [visitTime+domain]',
+      settings: 'id',
+      statistics: 'id, type, timestamp',
+      // 推荐记录：新增 sourceUrl 索引用于按来源统计
+      recommendations: 'id, recommendedAt, isRead, source, sourceUrl, [isRead+recommendedAt]',
+      userProfile: 'id, lastUpdated',
+      interestSnapshots: 'id, timestamp, primaryTopic, trigger, [primaryTopic+timestamp]',
+      discoveredFeeds: 'id, url, status, discoveredAt, subscribedAt, discoveredFrom, isActive, lastFetchedAt, [status+discoveredAt], [isActive+lastFetchedAt]'
+    })
+
+    // 版本 9: 删除未使用的 feedArticles 表（Phase 6 - 清理存储结构）
+    // 所有文章数据存储在 discoveredFeeds.latestArticles 数组中
+    this.version(9).stores({
+      pendingVisits: 'id, url, startTime, expiresAt',
+      confirmedVisits: 'id, domain, visitTime, *analysis.keywords, [visitTime+domain]',
+      settings: 'id',
+      statistics: 'id, type, timestamp',
+      recommendations: 'id, recommendedAt, isRead, source, sourceUrl, [isRead+recommendedAt]',
+      userProfile: 'id, lastUpdated',
+      interestSnapshots: 'id, timestamp, primaryTopic, trigger, [primaryTopic+timestamp]',
+      discoveredFeeds: 'id, url, status, discoveredAt, subscribedAt, discoveredFrom, isActive, lastFetchedAt, [status+discoveredAt], [isActive+lastFetchedAt]',
+      feedArticles: null  // 删除表
+    })
   }
 }
 
@@ -214,9 +247,9 @@ async function checkDatabaseVersion(): Promise<void> {
     const existingDB = dbs.find(d => d.name === 'FeedAIMuterDB')
     
     if (existingDB && existingDB.version) {
-      console.log(`[DB] 现有数据库版本: ${existingDB.version}, 代码版本: 6`)
+      console.log(`[DB] 现有数据库版本: ${existingDB.version}, 代码版本: 8`)
       
-      if (existingDB.version > 6) {
+      if (existingDB.version > 8) {
         console.warn('[DB] ⚠️ 浏览器中的数据库版本较高，Dexie 将自动处理')
       }
     }
@@ -239,7 +272,7 @@ export async function initializeDatabase(): Promise<void> {
     if (!db.isOpen()) {
       console.log('[DB] 正在打开数据库...')
       await db.open()
-      console.log('[DB] ✅ 数据库已打开（版本 6）')
+      console.log('[DB] ✅ 数据库已打开（版本 8）')
     }
     
     // ✅ 关键修复：使用 count() 检查是否已有设置，而不是 get()
@@ -454,9 +487,25 @@ export async function markAsRead(
   readDuration?: number,
   scrollDepth?: number
 ): Promise<void> {
+  console.log('[DB] markAsRead 开始:', { id, readDuration, scrollDepth })
+  
   const recommendation = await db.recommendations.get(id)
   if (!recommendation) {
+    console.error('[DB] ❌ 推荐记录不存在:', id)
     throw new Error(`推荐记录不存在: ${id}`)
+  }
+  
+  console.log('[DB] 找到推荐记录:', {
+    id: recommendation.id,
+    title: recommendation.title,
+    isRead: recommendation.isRead,
+    sourceUrl: recommendation.sourceUrl
+  })
+  
+  // 🔧 防重复：如果已经标记为已读，直接返回
+  if (recommendation.isRead) {
+    console.log('[DB] ⚠️ 推荐已经是已读状态，跳过重复标记:', id)
+    return
   }
   
   // 更新阅读状态
@@ -478,7 +527,27 @@ export async function markAsRead(
     }
   }
   
-  await db.recommendations.update(id, updates)
+  const updateCount = await db.recommendations.update(id, updates)
+  console.log('[DB] ✅ markAsRead 完成:', {
+    id,
+    updateCount,
+    updates
+  })
+  
+  // 验证更新结果
+  const updated = await db.recommendations.get(id)
+  console.log('[DB] 验证更新结果:', {
+    id,
+    isRead: updated?.isRead,
+    clickedAt: updated?.clickedAt
+  })
+  
+  // 🔧 关键修复：立即更新 RSS 源统计
+  if (recommendation.sourceUrl) {
+    console.log('[DB] 开始更新 RSS 源统计:', recommendation.sourceUrl)
+    await updateFeedStats(recommendation.sourceUrl)
+    console.log('[DB] ✅ RSS 源统计已更新')
+  }
 }
 
 /**
@@ -506,11 +575,11 @@ export async function dismissRecommendations(ids: string[]): Promise<void> {
  * @param limit - 数量限制（默认 50）
  */
 export async function getUnreadRecommendations(limit: number = 50): Promise<Recommendation[]> {
-  // Dexie 不支持直接索引布尔值，使用 filter
+  // 过滤掉已读和已忽略的推荐
   return await db.recommendations
     .orderBy('recommendedAt')
     .reverse() // 倒序（最新在前）
-    .filter(r => !r.isRead)
+    .filter(r => !r.isRead && r.feedback !== 'dismissed')
     .limit(limit)
     .toArray()
 }
@@ -797,3 +866,115 @@ export async function cleanOldSnapshots(monthsToKeep: number = 6): Promise<numbe
   
   return oldSnapshots.length
 }
+
+/**
+ * 更新 RSS 源的推荐数和已读数统计
+ * Phase 6: 基于推荐池中的数据统计
+ * 
+ * @param feedUrl - RSS 源的 URL（用于匹配推荐来源）
+ */
+export async function updateFeedStats(feedUrl: string): Promise<void> {
+  try {
+    // 1. 找到对应的 RSS 源
+    const feed = await db.discoveredFeeds.where('url').equals(feedUrl).first()
+    if (!feed) {
+      console.warn('[DB] 未找到 RSS 源:', feedUrl)
+      return
+    }
+    
+    // 2. 统计推荐池中来自该源的推荐数（历史累计，包括已读和未读）
+    const recommendedCount = await db.recommendations
+      .where('sourceUrl')
+      .equals(feedUrl)
+      .count()  // 所有推荐（历史累计）
+    
+    // 3. 统计已读数（历史累计）
+    const readCount = await db.recommendations
+      .where('sourceUrl')
+      .equals(feedUrl)
+      .and(rec => rec.isRead === true)
+      .count()
+    
+    // 4. 更新 RSS 源统计
+    await db.discoveredFeeds.update(feed.id, {
+      recommendedCount,
+      recommendedReadCount: readCount  // Phase 6: 保存推荐已读数
+    })
+    
+    console.log('[DB] 更新 RSS 源统计:', {
+      feedUrl,
+      feedTitle: feed.title,
+      recommendedCount,
+      readCount
+    })
+  } catch (error) {
+    console.error('[DB] 更新 RSS 源统计失败:', error)
+  }
+}
+
+/**
+ * 批量更新所有 RSS 源的统计信息
+ * Phase 6: 在推荐生成后调用，只更新已订阅的源
+ */
+export async function updateAllFeedStats(): Promise<void> {
+  try {
+    // Phase 6: 只更新已订阅的源
+    const subscribedFeeds = await db.discoveredFeeds
+      .where('status')
+      .equals('subscribed')
+      .toArray()
+    
+    for (const feed of subscribedFeeds) {
+      await updateFeedStats(feed.url)
+    }
+    
+    console.log('[DB] 批量更新完成，共', subscribedFeeds.length, '个源')
+  } catch (error) {
+    console.error('[DB] 批量更新 RSS 源统计失败:', error)
+  }
+}
+
+/**
+ * 重置推荐数据
+ * Phase 6: 清空推荐池和历史，重置统计数字，清除所有文章的评分和分析数据
+ */
+export async function resetRecommendationData(): Promise<void> {
+  try {
+    // 1. 清空推荐池
+    await db.recommendations.clear()
+    console.log('[DB] 清空推荐池')
+    
+    // 2. 重置所有 RSS 源的推荐数为 0，并清除所有文章的评分和分析数据
+    const allFeeds = await db.discoveredFeeds.toArray()
+    let totalArticlesCleared = 0
+    
+    for (const feed of allFeeds) {
+      // 清除所有文章的 analysis、recommended 和 tfidfScore 字段
+      if (feed.latestArticles && feed.latestArticles.length > 0) {
+        feed.latestArticles.forEach(article => {
+          delete article.analysis       // 清除 AI 分析结果
+          delete article.recommended    // 清除推荐池标记
+          delete article.tfidfScore     // 清除 TF-IDF 评分缓存（但保留全文）
+        })
+        totalArticlesCleared += feed.latestArticles.length
+      }
+      
+      await db.discoveredFeeds.update(feed.id, {
+        recommendedCount: 0,
+        latestArticles: feed.latestArticles || []
+      })
+    }
+    console.log('[DB] 重置 RSS 源推荐数:', allFeeds.length, '个源')
+    console.log('[DB] 清除文章评分和分析数据:', totalArticlesCleared, '篇文章')
+    
+    // 3. 清空自适应指标（推荐相关的统计）
+    await chrome.storage.local.remove('adaptive-metrics')
+    console.log('[DB] 清空自适应指标')
+    
+    console.log('[DB] ✅ 推荐数据重置完成')
+  } catch (error) {
+    console.error('[DB] ❌ 重置推荐数据失败:', error)
+    throw error
+  }
+}
+

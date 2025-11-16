@@ -501,6 +501,8 @@
         "lastFetched": "Last crawl",
         "articles": "articles",
         "unread": "unread",
+        "recommended": "recommended",
+        "read": "read",
         "last": "Last",
         "perWeek": "per week"
       },

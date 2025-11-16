@@ -35,6 +35,9 @@ vi.mock("@/i18n/helpers", () => ({
         "popup.recommendationCount": `${params?.count || 0} 条推荐`,
         "popup.dismissAll": "全部忽略",
         "popup.confirmDismiss": `确定要忽略全部 ${params?.count || 0} 条推荐吗？`,
+        "popup.confirmDismissAll": `确定要忽略全部 ${params?.count || 0} 条推荐吗？`,
+        "popup.settings": "⚙️ 设置",
+        "popup.notInterested": "不想读",
       }
       return translations[key] || key
     },
@@ -190,19 +193,20 @@ describe("RecommendationView 组件", () => {
     })
 
     it("当没有摘要时不应该显示摘要区域", () => {
-      const recsWithoutSummary: Recommendation[] = [
+      mockRecommendations = [
         {
           id: "rec-1",
           url: "https://example.com/1",
           title: "无摘要文章",
+          summary: "",
           source: "Blog",
           sourceUrl: "https://example.com",
           recommendedAt: Date.now(),
+          score: 0.8,
           isRead: false,
         },
       ]
 
-      mockRecommendations = recsWithoutSummary
       const { container } = render(<RecommendationView />)
 
       // 标题有 line-clamp-2 但是 text-sm
@@ -213,19 +217,20 @@ describe("RecommendationView 组件", () => {
     })
 
     it("当没有分数时不应该显示分数", () => {
-      const recsWithoutScore: Recommendation[] = [
+      mockRecommendations = [
         {
           id: "rec-1",
-          url: "https://example.com/1",
+          url: "https://example.com/1", 
           title: "无分数文章",
+          summary: "这是一篇没有分数的测试文章",
           source: "Blog",
           recommendedAt: Date.now(),
+          score: 0,
           isRead: false,
-        sourceUrl: "https://example.com",
+          sourceUrl: "https://example.com",
         },
       ]
 
-      mockRecommendations = recsWithoutScore
       render(<RecommendationView />)
 
       // 不应该有百分比文本
@@ -240,10 +245,10 @@ describe("RecommendationView 组件", () => {
       title: "测试文章",
       summary: "测试摘要",
       source: "Test Blog",
+      sourceUrl: "https://example.com",
       score: 0.9,
       recommendedAt: Date.now(),
       isRead: false,
-        sourceUrl: "https://example.com",
     }
 
     it("点击推荐应该打开新标签页", async () => {
@@ -324,8 +329,10 @@ describe("RecommendationView 组件", () => {
         id: "rec-1",
         url: "https://example.com/1",
         title: "文章 1",
+        summary: "这是第一篇测试文章的摘要",
         source: "Blog",
         recommendedAt: Date.now(),
+        score: 0.9,
         isRead: false,
         sourceUrl: "https://example.com",
       },
@@ -333,8 +340,10 @@ describe("RecommendationView 组件", () => {
         id: "rec-2",
         url: "https://example.com/2",
         title: "文章 2",
+        summary: "这是第二篇测试文章的摘要",
         source: "Blog",
         recommendedAt: Date.now(),
+        score: 0.8,
         isRead: false,
         sourceUrl: "https://example.com",
       },
@@ -397,8 +406,10 @@ describe("RecommendationView 组件", () => {
         id: "rec-1",
         url: "https://example.com/1",
         title: "测试文章",
+        summary: "这是一篇测试文章的摘要",
         source: "Blog",
         recommendedAt: Date.now(),
+        score: 0.85,
         isRead: false,
         sourceUrl: "https://example.com",
       }
@@ -415,8 +426,10 @@ describe("RecommendationView 组件", () => {
         id: "rec-1",
         url: "https://example.com/1",
         title: "测试文章",
+        summary: "这是一篇测试文章的摘要",
         source: "Blog",
         recommendedAt: Date.now(),
+        score: 0.85,
         isRead: false,
         sourceUrl: "https://example.com",
       }
@@ -433,8 +446,10 @@ describe("RecommendationView 组件", () => {
         id: "rec-1",
         url: "https://example.com/1",
         title: "测试文章",
+        summary: "这是一篇测试文章的摘要",
         source: "Blog",
         recommendedAt: Date.now(),
+        score: 0.85,
         isRead: false,
         sourceUrl: "https://example.com",
       }

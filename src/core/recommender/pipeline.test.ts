@@ -156,11 +156,11 @@ describe('推荐数据流管道', () => {
   })
 
   describe('数据流处理', () => {
-    it('应该处理TF-IDF推荐流程', async () => {
+    it('应该处理AI推荐流程', async () => {
       const result = await pipeline.process(mockInput)
       
       expect(result).toBeDefined()
-      expect(result.algorithm).toBe('tfidf')
+      expect(result.algorithm).toBe('ai')
       expect(result.articles).toHaveLength(3)
       expect(result.stats.inputCount).toBe(3)
       expect(result.stats.processed.finalRecommended).toBeLessThanOrEqual(3)

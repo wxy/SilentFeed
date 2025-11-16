@@ -10,7 +10,8 @@ import {
   getUnreadRecommendations,
   markAsRead,
   dismissRecommendations,
-  getRecommendationStats
+  getRecommendationStats,
+  db
 } from '@/storage/db'
 
 /**
@@ -46,6 +47,7 @@ interface RecommendationState {
   
   // Actions
   loadRecommendations: () => Promise<void>
+  generateRecommendations: () => Promise<void>
   refreshStats: (days?: number) => Promise<void>
   markAsRead: (id: string, duration?: number, depth?: number) => Promise<void>
   dismissAll: () => Promise<void>
@@ -64,7 +66,7 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
   error: null,
   
   /**
-   * 加载未读推荐
+   * 加载未读推荐（仅从数据库加载，不生成新推荐）
    */
   loadRecommendations: async () => {
     set({ isLoading: true, error: null })
@@ -72,25 +74,79 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
     try {
       // 获取推荐配置
       const config = await getRecommendationConfig()
-      const maxLimit = config.maxRecommendations * 2 // 加载2倍数量，预留排序空间
       
-      // TODO: Phase 6 - 临时使用 Mock 数据进行 UI 开发
-      // 生产环境中将替换为: const recommendations = await getUnreadRecommendations(maxLimit)
-      const { getMockRecommendations } = await import('@/utils/mockData')
-      let recommendations = await getMockRecommendations(maxLimit)
+      // 只从数据库加载现有推荐，不生成新的
+      const recommendations = await getUnreadRecommendations(config.maxRecommendations * 2)
       
-      // 按评分降序排序
-      recommendations = recommendations.sort((a, b) => b.score - a.score)
+      console.log('[RecommendationStore] 加载推荐数据:', recommendations.length, '条（限制:', config.maxRecommendations, '）')
+      console.log('[RecommendationStore] 推荐详情:', recommendations.map(r => ({
+        id: r.id,
+        title: r.title,
+        isRead: r.isRead,
+        feedback: r.feedback,
+        recommendedAt: new Date(r.recommendedAt).toLocaleString()
+      })))
       
-      // 只保留前N条（根据配置）
-      recommendations = recommendations.slice(0, config.maxRecommendations)
+      // 按评分降序排序并限制数量
+      const sortedRecommendations = recommendations
+        .sort((a: Recommendation, b: Recommendation) => b.score - a.score)
+        .slice(0, config.maxRecommendations)
       
-      console.log('[RecommendationStore] 加载推荐数据:', recommendations.length, '条（限制:', config.maxRecommendations, ')')
-      set({ recommendations, isLoading: false })
+      set({ 
+        recommendations: sortedRecommendations, 
+        isLoading: false 
+      })
+      
     } catch (error) {
-      console.error('加载推荐失败:', error)
-      set({
+      console.error('[RecommendationStore] 加载推荐失败:', error)
+      set({ 
         error: error instanceof Error ? error.message : '加载失败',
+        isLoading: false,
+        recommendations: []
+      })
+    }
+  },
+  
+  /**
+   * 手动生成推荐
+   */
+  generateRecommendations: async () => {
+    set({ isLoading: true, error: null })
+    
+    try {
+      console.log('[RecommendationStore] 手动触发推荐生成...')
+      
+      // 获取推荐配置
+      const config = await getRecommendationConfig()
+      
+      // 动态导入推荐服务
+      const { recommendationService } = await import('../core/recommender/RecommendationService')
+      
+      // Phase 6: 传递 batchSize 参数
+      const result = await recommendationService.generateRecommendations(
+        config.maxRecommendations, 
+        'subscribed',
+        config.batchSize
+      )
+      
+      if (result.errors && result.errors.length > 0) {
+        console.warn('[RecommendationStore] 推荐生成有警告:', result.errors)
+        // 即使有警告也继续，除非完全失败
+        if (result.recommendations.length === 0) {
+          throw new Error(result.errors.join('; '))
+        }
+      }
+      
+      // 重新加载推荐（从数据库）
+      const recommendations = await getUnreadRecommendations(config.maxRecommendations)
+      
+      console.log('[RecommendationStore] 手动生成推荐完成:', recommendations.length, '条')
+      set({ recommendations, isLoading: false })
+      
+    } catch (error) {
+      console.error('[RecommendationStore] 手动生成推荐失败:', error)
+      set({
+        error: error instanceof Error ? error.message : '生成推荐失败',
         isLoading: false
       })
     }
@@ -113,18 +169,34 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
    */
   markAsRead: async (id: string, duration?: number, depth?: number) => {
     try {
-      await markAsRead(id, duration, depth)
+      console.log('[RecommendationStore] 开始标记已读:', id)
       
-      // 从列表中移除已读推荐
-      const { recommendations } = get()
-      set({
-        recommendations: recommendations.filter(r => r.id !== id)
+      // 调用数据库标记已读（会自动更新 RSS 源统计）
+      await markAsRead(id, duration, depth)
+      console.log('[RecommendationStore] 数据库标记已读成功:', id)
+      
+      // 🔧 关键修复：从数据库重新加载未读推荐，而不是 filter 内存数组
+      // 原因：内存数组可能已过期，filter 会找不到对应的 ID
+      const config = await getRecommendationConfig()
+      const freshRecommendations = await getUnreadRecommendations(config.maxRecommendations)
+      
+      console.log('[RecommendationStore] 重新加载未读推荐:', {
+        beforeCount: get().recommendations.length,
+        afterCount: freshRecommendations.length,
+        removedId: id
       })
+      
+      // 更新 store 状态
+      set({
+        recommendations: freshRecommendations
+      })
+      
+      console.log('[RecommendationStore] UI状态更新完成')
       
       // 刷新统计
       await get().refreshStats()
     } catch (error) {
-      console.error('标记已读失败:', error)
+      console.error('[RecommendationStore] 标记已读失败:', id, error)
       set({
         error: error instanceof Error ? error.message : '标记失败'
       })
@@ -163,22 +235,35 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
   dismissSelected: async (ids: string[]) => {
     if (ids.length === 0) return
     
+    console.log('[RecommendationStore] 开始标记不想读:', ids)
     set({ isLoading: true, error: null })
     
     try {
+      // 调用数据库标记为不想读
       await dismissRecommendations(ids)
+      console.log('[RecommendationStore] 数据库标记不想读成功:', ids)
       
-      // 从列表中移除
-      const { recommendations } = get()
+      // 🔧 关键修复：从数据库重新加载未读推荐
+      const config = await getRecommendationConfig()
+      const freshRecommendations = await getUnreadRecommendations(config.maxRecommendations)
+      
+      console.log('[RecommendationStore] 重新加载未读推荐:', {
+        beforeCount: get().recommendations.length,
+        afterCount: freshRecommendations.length,
+        dismissedIds: ids
+      })
+      
       set({
-        recommendations: recommendations.filter(r => !ids.includes(r.id)),
+        recommendations: freshRecommendations,
         isLoading: false
       })
+      
+      console.log('[RecommendationStore] UI状态更新完成')
       
       // 刷新统计
       await get().refreshStats()
     } catch (error) {
-      console.error('标记"不想读"失败:', error)
+      console.error('[RecommendationStore] 标记不想读失败:', ids, error)
       set({
         error: error instanceof Error ? error.message : '操作失败',
         isLoading: false

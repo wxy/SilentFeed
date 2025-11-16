@@ -4,7 +4,7 @@ import { initializeDatabase, getPageCount, getUnreadRecommendations, db } from '
 import type { ConfirmedVisit } from './storage/types'
 import { FeedManager } from './core/rss/managers/FeedManager'
 import { RSSValidator } from './core/rss/RSSValidator'
-import { feedScheduler } from './background/feed-scheduler'
+import { feedScheduler, fetchFeed } from './background/feed-scheduler'
 import { IconManager } from './utils/IconManager'
 import { evaluateAndAdjust } from './core/recommender/adaptive-count'
 import { setupNotificationListeners, testNotification } from './core/recommender/notification'
@@ -345,7 +345,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           break
         
         case 'MANUAL_FETCH_FEEDS':
-          // Phase 5 Sprint 3: 手动触发 RSS 抓取
+          // Phase 5 Sprint 3: 手动触发所有RSS抓取
           try {
             console.log('[Background] 手动触发 RSS 抓取...')
             
@@ -354,7 +354,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               iconManager.startFetchingAnimation()
             }
             
-            const result = await feedScheduler.runOnce()
+            // 使用强制手动抓取，忽略时间和频率限制
+            const result = await feedScheduler.fetchAllManual()
             
             // Phase 5.2: 停止后台抓取动画
             if (iconManager) {
@@ -365,6 +366,67 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             sendResponse({ success: true, data: result })
           } catch (error) {
             console.error('[Background] ❌ 手动抓取失败:', error)
+            
+            // 停止动画
+            if (iconManager) {
+              iconManager.stopFetchingAnimation()
+            }
+            
+            sendResponse({ success: false, error: String(error) })
+          }
+          break
+
+        case 'MANUAL_FETCH_SINGLE_FEED':
+          // 手动触发单个RSS源抓取
+          try {
+            const { feedId } = message.payload as { feedId: string }
+            console.log('[Background] 手动触发单个RSS源抓取:', feedId)
+            
+            // Phase 5.2: 启动后台抓取动画
+            if (iconManager) {
+              iconManager.startFetchingAnimation()
+            }
+            
+            // 获取特定的RSS源
+            const feed = await db.discoveredFeeds.get(feedId)
+            if (!feed) {
+              throw new Error(`RSS源不存在: ${feedId}`)
+            }
+            
+            if (feed.status !== 'subscribed') {
+              throw new Error(`RSS源未订阅: ${feed.title}`)
+            }
+            
+            if (!feed.isActive) {
+              throw new Error(`RSS源已暂停: ${feed.title}`)
+            }
+            
+            // 强制抓取单个源
+            const success = await fetchFeed(feed)
+            
+            // Phase 5.2: 停止后台抓取动画
+            if (iconManager) {
+              iconManager.stopFetchingAnimation()
+              await updateBadge()  // 恢复正常状态
+            }
+            
+            if (success) {
+              sendResponse({ 
+                success: true, 
+                data: { 
+                  total: 1, 
+                  fetched: 1, 
+                  skipped: 0, 
+                  failed: 0,
+                  feedTitle: feed.title 
+                } 
+              })
+            } else {
+              throw new Error(`抓取失败: ${feed.title}`)
+            }
+            
+          } catch (error) {
+            console.error('[Background] ❌ 单个RSS源抓取失败:', error)
             
             // 停止动画
             if (iconManager) {

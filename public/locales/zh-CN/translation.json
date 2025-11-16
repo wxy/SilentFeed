@@ -117,6 +117,8 @@
       "fetch": {
         "articles": "篇",
         "unread": "未读",
+        "recommended": "推荐",
+        "read": "已读",
         "last": "上次",
         "perWeek": "篇/周"
       },

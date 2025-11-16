@@ -23,6 +23,9 @@ export interface RecommendationConfig {
   useReasoning?: boolean
   useLocalAI?: boolean
   maxRecommendations?: number
+  tfidfThreshold?: number  // Phase 6: TF-IDF 最低分数阈值（低于此分数的文章不送 AI 分析）
+  qualityThreshold?: number  // Phase 6: AI 分析质量阈值（进入推荐池的最低分数）
+  batchSize?: number  // Phase 6: 批次大小（每次处理的文章数量）
 }
 
 /**
@@ -38,7 +41,7 @@ export interface RecommendationOptions {
  */
 export interface RecommendationResult {
   articles: RecommendedArticle[]
-  algorithm: 'tfidf' | 'ai' | 'hybrid'
+  algorithm: 'tfidf' | 'ai' | 'hybrid' | 'reasoning-ai'
   stats: RecommendationStats
   timestamp: number
 }
@@ -50,11 +53,18 @@ export interface RecommendedArticle {
   id: string
   title: string
   url: string
+  feedId?: string  // Phase 6: RSS 源 ID，用于准确匹配统计
   score: number
   reason: string
   confidence: number
   matchedInterests: string[]
   keyPoints?: string[]
+  aiAnalysis?: {
+    relevanceScore: number
+    keyPoints: string[]
+    topics?: Record<string, number>
+    provider?: string
+  }
 }
 
 /**

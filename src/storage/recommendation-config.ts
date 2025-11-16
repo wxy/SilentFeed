@@ -17,7 +17,7 @@ const STORAGE_KEY = "recommendation-config"
  * 推荐配置接口
  */
 export interface RecommendationConfig {
-  /** 是否使用推理模式（DeepSeek-R1等，成本更高但质量更好） */
+  /** 是否使用推理模式（DeepSeek-R1等推理型AI，成本更高但质量更好，默认使用标准AI） */
   useReasoning: boolean
   
   /** 是否使用本地AI（Ollama/Chrome AI，隐私保护但消耗性能） */
@@ -30,6 +30,46 @@ export interface RecommendationConfig {
    * - 清理慢（推荐停留时间长）→ 推荐多
    */
   maxRecommendations: number
+  
+  /**
+   * Phase 6: 每次处理的文章批次大小（默认 1 篇）
+   * 避免一次性处理所有文章导致等待时间过长
+   * 用户可以多次点击生成推荐来渐进式处理
+   */
+  batchSize: number
+  
+  /**
+   * Phase 6: 推荐池质量阈值（0-1，默认 0.6）
+   * 只有评分 >= 此阈值的文章才会进入推荐池
+   * 
+   * **⚠️ 重要**: 此阈值根据实际 AI 评分分布调整
+   * 
+   * 实际观察数据（2024-12）：
+   * - 中等质量文章：0.5-0.6
+   * - 良好质量文章：0.6-0.7
+   * - 优秀质量文章：0.7+
+   * - 观察到的最高分：0.65
+   * 
+   * 评分含义：
+   * - 0.7+: 优秀（实际很少见）
+   * - 0.6-0.7: 良好文章（建议推荐）✅ 当前阈值
+   * - 0.5-0.6: 中等相关（可选推荐）
+   * - 0.0-0.5: 低相关（过滤）
+   */
+  qualityThreshold: number
+  
+  /**
+   * Phase 6: TF-IDF 最低分数阈值（0-1，默认 0.1）
+   * 低于此分数的文章不送 AI 分析，直接标记为已分析
+   * 
+   * 分数含义：
+   * - 0.3-1.0: 高度相关（多个关键词匹配）
+   * - 0.1-0.3: 一般相关（部分关键词匹配）
+   * - 0-0.1: 弱相关或不相关（几乎无匹配）
+   * 
+   * 推荐值：0.1（过滤明显不相关的，保留有一定相关性的给 AI 判断）
+   */
+  tfidfThreshold: number
 }
 
 /**
@@ -90,7 +130,10 @@ export interface LocalAIStatus {
 const DEFAULT_CONFIG: RecommendationConfig = {
   useReasoning: false, // 默认不使用推理模式（成本考虑）
   useLocalAI: false,   // 默认不使用本地AI（性能考虑）
-  maxRecommendations: 3 // 初始值3条，后续自动调整
+  maxRecommendations: 3, // 初始值3条，后续自动调整
+  batchSize: 1, // Phase 6: 默认每次处理 1 篇文章（避免超时）
+  qualityThreshold: 0.6, // Phase 6: 根据实际评分分布调整（观察最高分 0.65）
+  tfidfThreshold: 0.1 // Phase 6: TF-IDF 阈值（0.1 = 有一定相关性，过滤明显不相关的）
 }
 
 /**
@@ -101,10 +144,35 @@ export async function getRecommendationConfig(): Promise<RecommendationConfig> {
     const result = await chrome.storage.local.get(STORAGE_KEY)
     const config = result[STORAGE_KEY] as RecommendationConfig | undefined
     
-    return {
+    const merged = {
       ...DEFAULT_CONFIG,
       ...config
     }
+    
+    // Phase 6: 强制更新旧配置（兼容性迁移）
+    let needsUpdate = false
+    
+    // 如果 qualityThreshold 是旧的默认值 0.8，更新为新的 0.6
+    if (merged.qualityThreshold === 0.8) {
+      console.log('[RecommendationConfig] 🔄 检测到旧配置 qualityThreshold=0.8，更新为 0.6')
+      merged.qualityThreshold = 0.6
+      needsUpdate = true
+    }
+    
+    // 如果缺少 tfidfThreshold，添加默认值
+    if (merged.tfidfThreshold === undefined) {
+      console.log('[RecommendationConfig] 🔄 添加缺失的 tfidfThreshold=0.1')
+      merged.tfidfThreshold = 0.1
+      needsUpdate = true
+    }
+    
+    // 自动保存更新后的配置
+    if (needsUpdate) {
+      await chrome.storage.local.set({ [STORAGE_KEY]: merged })
+      console.log('[RecommendationConfig] ✅ 配置已自动更新')
+    }
+    
+    return merged
   } catch (error) {
     console.error("[RecommendationConfig] 加载失败:", error)
     return DEFAULT_CONFIG

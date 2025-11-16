@@ -13,8 +13,10 @@ import {
 } from "@/storage/recommendation-config"
 import { getAdaptiveMetrics, type AdaptiveMetrics } from "@/core/recommender/adaptive-count"
 import type { NotificationConfig } from "@/core/recommender/notification"
+import { useRecommendationStore } from "@/stores/recommendationStore"
 
 export function RecommendationSettings() {
+  const { generateRecommendations, isLoading: isGenerating } = useRecommendationStore()
   const [config, setConfig] = useState<RecommendationConfig>({
     useReasoning: false,
     useLocalAI: false,
@@ -86,6 +88,14 @@ export function RecommendationSettings() {
     }
   }
 
+  const handleGenerateRecommendations = async () => {
+    try {
+      await generateRecommendations()
+    } catch (error) {
+      console.error("[推荐设置] 生成推荐失败:", error)
+    }
+  }
+
   const handleTestNotification = async () => {
     try {
       console.log("[推荐设置] 触发测试通知...")
@@ -104,11 +114,46 @@ export function RecommendationSettings() {
     }
   }
 
+  const handleResetRecommendations = async () => {
+    if (!confirm("⚠️ 确定要重置所有推荐数据吗？\n\n这将清空：\n- 推荐池中的所有推荐\n- RSS 源的推荐数统计\n- 所有文章的 AI 评分和分析数据（可重新分析）\n- 所有文章的 TF-IDF 评分缓存（可重新计算）\n- 推荐相关的统计数据\n\n⚠️ 注意：已抓取的全文内容会保留\n\n此操作不可恢复！")) {
+      return
+    }
+
+    try {
+      const { resetRecommendationData } = await import("@/storage/db")
+      await resetRecommendationData()
+      
+      // 重新加载统计数据
+      await loadMetrics()
+      
+      alert("✅ 推荐数据已重置")
+    } catch (error) {
+      console.error("[推荐设置] 重置推荐数据失败:", error)
+      alert("❌ 重置失败: " + String(error))
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* 推荐设置 */}
       <div>
-        <h3 className="text-lg font-medium mb-4">推荐设置</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-medium">推荐设置</h3>
+          
+          {/* 当前推荐模式指示 */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600 dark:text-gray-400">当前模式:</span>
+            {config.useReasoning ? (
+              <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded text-sm font-medium">
+                🧠 推理AI推荐
+              </span>
+            ) : (
+              <span className="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded text-sm font-medium">
+                🤖 标准AI推荐
+              </span>
+            )}
+          </div>
+        </div>
         
         <div className="space-y-3">
           {/* 推理模式 - TODO: 检查AI配置后启用禁用逻辑 */}
@@ -121,9 +166,9 @@ export function RecommendationSettings() {
               // disabled={!hasAIConfig} // TODO: Phase 6.2 - 未配置AI时禁用
             />
             <div className="flex-1">
-              <div className="font-medium">🧠 启用推理模式</div>
+              <div className="font-medium">🧠 启用推理AI模式</div>
               <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                使用 DeepSeek-R1 等推理模型，生成更深入的推荐理由（成本 2-5倍）
+                使用 DeepSeek-R1 等推理型AI模型，生成更深入的分析（成本 2-5倍，默认使用标准AI）
               </div>
               {/* TODO: Phase 6.2 - 显示未配置提示
               {!hasAIConfig && (
@@ -263,7 +308,16 @@ export function RecommendationSettings() {
       {/* 推荐统计 */}
       {metrics && (
         <div>
-          <h3 className="text-lg font-medium mb-3">推荐统计</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-medium">推荐统计</h3>
+            <button
+              onClick={handleResetRecommendations}
+              className="px-3 py-1 text-sm bg-red-500 hover:bg-red-600 text-white rounded transition-colors"
+              title="清空推荐池和统计数据"
+            >
+              🗑️ 重置数据
+            </button>
+          </div>
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4 text-center">
               <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
@@ -303,6 +357,14 @@ export function RecommendationSettings() {
           className="px-6 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white rounded-lg transition-colors"
         >
           {isSaving ? "保存中..." : "保存设置"}
+        </button>
+
+        <button
+          onClick={handleGenerateRecommendations}
+          disabled={isGenerating}
+          className="px-6 py-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white rounded-lg transition-colors"
+        >
+          {isGenerating ? "生成中..." : "🔮 马上推荐"}
         </button>
 
         {saveSuccess && (

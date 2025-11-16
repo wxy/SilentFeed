@@ -170,6 +170,9 @@ export interface AnalyzeOptions {
   
   /** 超时时间（毫秒） */
   timeout?: number
+  
+  /** 是否使用推理模式（Phase 6）*/
+  useReasoning?: boolean
 }
 
 /**
