@@ -307,8 +307,16 @@ describe('AI配置检查机制', () => {
 
       await saveRecommendationConfig(config)
       
+      // Phase 6: 配置保存会合并默认值（batchSize, qualityThreshold, tfidfThreshold）
       expect(mockChromeStorage.local.set).toHaveBeenCalledWith({
-        'recommendation-config': config
+        'recommendation-config': expect.objectContaining({
+          useReasoning: true,
+          useLocalAI: false,
+          maxRecommendations: 4,
+          batchSize: expect.any(Number),
+          qualityThreshold: expect.any(Number),
+          tfidfThreshold: expect.any(Number)
+        })
       })
     })
 

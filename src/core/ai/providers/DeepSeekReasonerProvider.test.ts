@@ -185,12 +185,28 @@ describe("DeepSeekReasonerProvider", () => {
         json: async () => mockSuccessResponse
       } as Response)
       
-      await provider.analyzeContent("测试")
+      // Phase 6: 需要传递 useReasoning=true 才会使用 deepseek-reasoner 模型
+      await provider.analyzeContent("测试", { useReasoning: true })
       
       const fetchCall = vi.mocked(fetch).mock.calls[0]
       const requestBody = JSON.parse(fetchCall[1]?.body as string)
       
       expect(requestBody.model).toBe("deepseek-reasoner")
+    })
+  
+    it("默认应该使用 deepseek-chat 模型", async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockSuccessResponse
+      } as Response)
+      
+      // 不传 useReasoning 或传 false 时使用 deepseek-chat
+      await provider.analyzeContent("测试")
+      
+      const fetchCall = vi.mocked(fetch).mock.calls[0]
+      const requestBody = JSON.parse(fetchCall[1]?.body as string)
+      
+      expect(requestBody.model).toBe("deepseek-chat")
     })
   })
 })

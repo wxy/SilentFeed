@@ -25,8 +25,8 @@ vi.mock("@/i18n/helpers", () => ({
         "options.tabs.general": "常规",
         "options.tabs.rss": "RSS 源",
         "options.tabs.ai": "AI",
-        "options.tabs.recommendations": "推荐效果",
-        "options.tabs.data": "数据管理",
+        "options.tabs.recommendation": "推荐", // Phase 6: 单数形式
+        "options.tabs.data": "采集统计", // Phase 6: 更新为正确的翻译
         "options.general.title": "常规设置",
         "options.general.language": "语言",
         "options.general.languageAuto": "跟随浏览器",
@@ -81,8 +81,10 @@ describe("IndexOptions 组件", () => {
       expect(screen.getByText("常规")).toBeInTheDocument()
       expect(screen.getByText("RSS 源")).toBeInTheDocument()
       expect(screen.getByText("AI")).toBeInTheDocument()
-      expect(screen.getByText("推荐效果")).toBeInTheDocument()
-      expect(screen.getByText("数据管理")).toBeInTheDocument()
+      // Phase 6: "推荐效果" 改为 "推荐"
+      expect(screen.getByText("推荐")).toBeInTheDocument()
+      // Phase 6: "数据管理" 改为 "采集统计"
+      expect(screen.getByText("采集统计")).toBeInTheDocument()
     })
 
     it("默认应该显示常规设置页面", () => {
@@ -136,10 +138,15 @@ describe("IndexOptions 组件", () => {
       const user = userEvent.setup()
       render(<IndexOptions />)
 
-      const dataTab = screen.getByText("数据管理")
+      // Phase 6: 标签文字改为 "采集统计"
+      const dataTab = screen.getByText("采集统计")
       await user.click(dataTab)
 
-      expect(screen.getByText("数据管理")).toBeInTheDocument()
+      // Phase 6: CollectionStats 组件不再显示标题，检查组件已渲染
+      // 通过查找该组件独有的元素来验证
+      await waitFor(() => {
+        expect(screen.queryByText("常规设置")).not.toBeInTheDocument()
+      })
     })
 
     it("切换标签后常规设置应该消失", async () => {

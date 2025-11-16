@@ -20,7 +20,10 @@ export function RecommendationSettings() {
   const [config, setConfig] = useState<RecommendationConfig>({
     useReasoning: false,
     useLocalAI: false,
-    maxRecommendations: 3
+    maxRecommendations: 3,
+    batchSize: 1,
+    qualityThreshold: 0.6,
+    tfidfThreshold: 0.1
   })
   const [notificationConfig, setNotificationConfig] = useState<NotificationConfig>({
     enabled: true,
