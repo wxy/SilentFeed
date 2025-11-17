@@ -12,6 +12,9 @@
 import { db } from '../../../storage/db'
 import type { DiscoveredFeed, FeedStatus } from '../types'
 import { FeedQualityAnalyzer } from '../FeedQualityAnalyzer'
+import { logger } from '@/utils/logger'
+
+const feedLogger = logger.withTag('FeedManager')
 
 export class FeedManager {
   /**
@@ -27,7 +30,7 @@ export class FeedManager {
     // 1. 检查完全相同的 URL
     const existingByUrl = await db.discoveredFeeds.where('url').equals(feed.url).first()
     if (existingByUrl) {
-      console.log('[FeedManager] 源已存在（相同 URL）:', feed.url)
+      feedLogger.debug('源已存在（相同 URL）:', feed.url)
       return existingByUrl.id
     }
     
@@ -48,7 +51,7 @@ export class FeedManager {
         
         // 如果域名相同，认为是同一个源的不同格式
         if (newDomain === existingDomain) {
-          console.log('[FeedManager] 源已存在（同域名）:', {
+          feedLogger.debug('源已存在（同域名）:', {
             existing: existing.url,
             new: feed.url
           })
@@ -70,7 +73,7 @@ export class FeedManager {
     }
     
     await db.discoveredFeeds.add(newFeed)
-    console.log('[FeedManager] 已添加候选源:', feed.title, feed.url)
+    feedLogger.info('已添加候选源:', { title: feed.title, url: feed.url })
     
     return id
   }
@@ -129,7 +132,7 @@ export class FeedManager {
     }
     
     await db.discoveredFeeds.update(id, updates)
-    console.log('[FeedManager] 已更新源状态:', id, status)
+    feedLogger.debug('已更新源状态:', { id, status })
   }
   
   /**
@@ -143,7 +146,7 @@ export class FeedManager {
     quality: DiscoveredFeed['quality']
   ): Promise<void> {
     await db.discoveredFeeds.update(id, { quality })
-    console.log('[FeedManager] 已更新源质量:', id, quality?.score)
+    feedLogger.debug('已更新源质量:', { id, score: quality?.score })
   }
   
   /**
@@ -166,7 +169,7 @@ export class FeedManager {
       // 1. 获取源信息
       const feed = await this.getFeed(id)
       if (!feed) {
-        console.error('[FeedManager] 分析失败：源不存在', id)
+        feedLogger.error('分析失败：源不存在', id)
         return null
       }
       
@@ -176,20 +179,20 @@ export class FeedManager {
         const maxAge = 24 * 60 * 60 * 1000 // 24 小时
         
         if (age < maxAge) {
-          console.log('[FeedManager] 使用缓存的质量数据:', id, feed.quality.score)
+          feedLogger.debug('使用缓存的质量数据:', { id, score: feed.quality.score })
           return feed.quality
         }
       }
       
       // 3. 执行质量分析
-      console.log('[FeedManager] 开始分析源质量:', feed.title)
+      feedLogger.info('开始分析源质量:', feed.title)
       const analyzer = new FeedQualityAnalyzer()
       const quality = await analyzer.analyze(feed.url)
       
       // 4. 保存质量数据
       await this.updateQuality(id, quality)
       
-      console.log('[FeedManager] 质量分析完成:', {
+      feedLogger.info('质量分析完成:', {
         title: feed.title,
         score: quality.score,
         frequency: quality.updateFrequency
@@ -197,7 +200,7 @@ export class FeedManager {
       
       return quality
     } catch (error) {
-      console.error('[FeedManager] 分析源质量失败:', id, error)
+      feedLogger.error('分析源质量失败:', { id, error })
       
       // 保存错误信息
       await this.updateQuality(id, {
@@ -250,7 +253,7 @@ export class FeedManager {
     // 3. 限制分析数量
     const toAnalyze = needsAnalysis.slice(0, limit)
     
-    console.log('[FeedManager] 批量分析候选源:', {
+    feedLogger.info('批量分析候选源:', {
       total: candidates.length,
       needsAnalysis: needsAnalysis.length,
       willAnalyze: toAnalyze.length
@@ -272,7 +275,7 @@ export class FeedManager {
       await new Promise(resolve => setTimeout(resolve, 500))
     }
     
-    console.log('[FeedManager] 批量分析完成:', {
+    feedLogger.info('批量分析完成:', {
       analyzed: toAnalyze.length,
       success,
       failed
@@ -297,7 +300,7 @@ export class FeedManager {
     relevance: DiscoveredFeed['relevance']
   ): Promise<void> {
     await db.discoveredFeeds.update(id, { relevance })
-    console.log('[FeedManager] 已更新源相关性:', id, relevance?.matchScore)
+    feedLogger.debug('已更新源相关性:', { id, matchScore: relevance?.matchScore })
   }
   
   /**
@@ -317,13 +320,13 @@ export class FeedManager {
     
     // 如果从忽略状态恢复，先重新验证
     if (wasIgnored) {
-      console.log('[FeedManager] 从忽略列表恢复，重新验证 RSS 源...')
+      feedLogger.info('从忽略列表恢复，重新验证 RSS 源...')
       const { RSSValidator } = await import('../RSSValidator')
       const validationResult = await RSSValidator.validateURL(feed.url)
       
       if (!validationResult.valid || !validationResult.metadata) {
         // 验证失败，删除该源
-        console.error('[FeedManager] ❌ 重新验证失败，删除源:', feed.url, validationResult.error)
+        feedLogger.error('❌ 重新验证失败，删除源:', { url: feed.url, error: validationResult.error })
         await this.delete(id)
         throw new Error(`RSS 源验证失败: ${validationResult.error || '无法访问或格式错误'}`)
       }
@@ -340,17 +343,17 @@ export class FeedManager {
     }
     
     await db.discoveredFeeds.update(id, updates)
-    console.log('[FeedManager] 已订阅:', id, source || '(保持现有来源)')
+    feedLogger.info('已订阅:', { id, source: source || '(保持现有来源)' })
     
     // 如果从忽略状态恢复，重新进行质量分析
     if (wasIgnored) {
-      console.log('[FeedManager] 从忽略列表恢复，重新进行质量分析...')
+      feedLogger.info('从忽略列表恢复，重新进行质量分析...')
       // 异步执行，不阻塞订阅操作
       this.analyzeFeed(id, true).catch((error: Error) => {
-        console.error('[FeedManager] 质量分析失败:', error)
+        feedLogger.error('质量分析失败:', error)
         // 质量分析失败，也删除该源
         this.delete(id).catch((err: Error) => {
-          console.error('[FeedManager] 删除失败的源失败:', err)
+          feedLogger.error('删除失败的源失败:', err)
         })
       })
     }
@@ -366,7 +369,7 @@ export class FeedManager {
       status: 'candidate',
       subscribedAt: undefined
     })
-    console.log('[FeedManager] 已取消订阅:', id)
+    feedLogger.info('已取消订阅:', id)
   }
   
   /**
@@ -386,7 +389,7 @@ export class FeedManager {
    */
   async setEnabled(id: string, isActive: boolean): Promise<void> {
     await db.discoveredFeeds.update(id, { isActive })
-    console.log('[FeedManager] 已更新源启用状态:', id, isActive)
+    feedLogger.debug('已更新源启用状态:', { id, isActive })
   }
   
   /**
@@ -397,7 +400,7 @@ export class FeedManager {
   async delete(id: string): Promise<void> {
     // TODO: 同时删除相关文章
     await db.discoveredFeeds.delete(id)
-    console.log('[FeedManager] 已删除源:', id)
+    feedLogger.info('已删除源:', id)
   }
   
   /**
@@ -411,7 +414,7 @@ export class FeedManager {
         await db.discoveredFeeds.delete(id)
       }
     })
-    console.log('[FeedManager] 已批量删除源:', ids.length)
+    feedLogger.info(`已批量删除源: ${ids.length} 个`)
   }
   
   /**
@@ -474,7 +477,7 @@ export class FeedManager {
     const newState = !feed.isActive
     await db.discoveredFeeds.update(feedId, { isActive: newState })
     
-    console.log('[FeedManager] 已切换源启用状态:', {
+    feedLogger.debug('已切换源启用状态:', {
       feedId,
       title: feed.title,
       isActive: newState
@@ -499,7 +502,7 @@ export class FeedManager {
     // 过滤出 isActive 为 true 的源
     const active = subscribed.filter(feed => feed.isActive)
 
-    console.log('[FeedManager] 启用的订阅源:', {
+    feedLogger.debug('启用的订阅源:', {
       total: subscribed.length,
       active: active.length,
       paused: subscribed.length - active.length
