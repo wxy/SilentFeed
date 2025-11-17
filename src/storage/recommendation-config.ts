@@ -10,6 +10,10 @@
 
 import { getAIConfig, isAIConfigured, type AIProviderType } from './ai-config'
 import { aiManager } from '../core/ai/AICapabilityManager'
+import { logger } from '@/utils/logger'
+
+const configLogger = logger.withTag('RecommendationConfig')
+const localAILogger = logger.withTag('LocalAI')
 
 const STORAGE_KEY = "recommendation-config"
 
@@ -154,14 +158,14 @@ export async function getRecommendationConfig(): Promise<RecommendationConfig> {
     
     // 如果 qualityThreshold 是旧的默认值 0.8，更新为新的 0.6
     if (merged.qualityThreshold === 0.8) {
-      console.log('[RecommendationConfig] 🔄 检测到旧配置 qualityThreshold=0.8，更新为 0.6')
+      configLogger.info('检测到旧配置 qualityThreshold=0.8，更新为 0.6')
       merged.qualityThreshold = 0.6
       needsUpdate = true
     }
     
     // 如果缺少 tfidfThreshold，添加默认值
     if (merged.tfidfThreshold === undefined) {
-      console.log('[RecommendationConfig] 🔄 添加缺失的 tfidfThreshold=0.1')
+      configLogger.info('添加缺失的 tfidfThreshold=0.1')
       merged.tfidfThreshold = 0.1
       needsUpdate = true
     }
@@ -169,12 +173,12 @@ export async function getRecommendationConfig(): Promise<RecommendationConfig> {
     // 自动保存更新后的配置
     if (needsUpdate) {
       await chrome.storage.local.set({ [STORAGE_KEY]: merged })
-      console.log('[RecommendationConfig] ✅ 配置已自动更新')
+      configLogger.info('配置已自动更新')
     }
     
     return merged
   } catch (error) {
-    console.error("[RecommendationConfig] 加载失败:", error)
+    configLogger.error('加载失败:', error)
     return DEFAULT_CONFIG
   }
 }
@@ -198,9 +202,9 @@ export async function saveRecommendationConfig(
     }
     
     await chrome.storage.local.set({ [STORAGE_KEY]: updated })
-    console.log("[RecommendationConfig] 配置已保存:", updated)
+    configLogger.debug("配置已保存:", updated)
   } catch (error) {
-    console.error("[RecommendationConfig] 保存失败:", error)
+    configLogger.error("保存失败:", error)
     throw error
   }
 }
@@ -267,7 +271,7 @@ export async function checkAIConfigStatus(): Promise<AIConfigStatus> {
     return status
     
   } catch (error) {
-    console.error("[RecommendationConfig] AI配置检查失败:", error)
+    configLogger.error("AI配置检查失败:", error)
     return {
       isConfigured: false,
       provider: null,
@@ -308,7 +312,7 @@ export async function checkLocalAIStatus(): Promise<LocalAIStatus> {
             status.availableServices.push('chrome-ai')
           }
         } catch (error) {
-          console.warn("[LocalAI] Chrome AI检查失败:", error)
+          localAILogger.warn("Chrome AI检查失败:", error)
         }
       }
     }
@@ -326,11 +330,11 @@ export async function checkLocalAIStatus(): Promise<LocalAIStatus> {
       }
     } catch (error) {
       // Ollama不可用，这是正常的
-      console.log("[LocalAI] Ollama未检测到（正常）")
+      localAILogger.debug("Ollama未检测到（正常）")
     }
     
   } catch (error) {
-    console.error("[LocalAI] 本地AI检查失败:", error)
+    localAILogger.error("本地AI检查失败:", error)
   }
   
   return status
@@ -422,7 +426,7 @@ export async function autoAdjustConfig(): Promise<{
   // 如果有调整，保存新配置
   if (adjusted) {
     await saveRecommendationConfig(newConfig)
-    console.log("[RecommendationConfig] 自动调整完成:", changes)
+    configLogger.info("自动调整完成:", changes)
   }
   
   return {
