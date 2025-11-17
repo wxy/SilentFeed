@@ -18,6 +18,9 @@
  */
 
 import { RSSFetcher, type FeedItem } from './RSSFetcher'
+import { logger } from '@/utils/logger'
+
+const qualityLogger = logger.withTag('FeedQualityAnalyzer')
 
 /**
  * 质量分析结果
@@ -125,7 +128,7 @@ export class FeedQualityAnalyzer {
       }
       
     } catch (error) {
-      console.error('[FeedQualityAnalyzer] 分析失败:', error)
+      qualityLogger.error('分析失败:', error)
       
       return {
         score: 0,
