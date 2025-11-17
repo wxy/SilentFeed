@@ -22,6 +22,9 @@ import type {
   DeepSeekResponse,
   AIAnalysisOutput
 } from "../types"
+import { logger } from "../../../utils/logger"
+
+const reasonerLogger = logger.withTag("DeepSeekReasonerProvider")
 
 export class DeepSeekReasonerProvider implements AIProvider {
   readonly name = "DeepSeek"
@@ -52,19 +55,19 @@ export class DeepSeekReasonerProvider implements AIProvider {
     try {
       // 检查 API Key
       if (!this.config.apiKey || this.config.apiKey.length < 20) {
-        console.warn("[DeepSeekReasonerProvider] Invalid API Key")
+        reasonerLogger.warn("Invalid API Key")
         return false
       }
       
       // 检查网络（简单验证）
       if (!navigator.onLine) {
-        console.warn("[DeepSeekReasonerProvider] No network connection")
+        reasonerLogger.warn("No network connection")
         return false
       }
       
       return true
     } catch (error) {
-      console.error("[DeepSeekReasonerProvider] isAvailable check failed:", error)
+      reasonerLogger.error("isAvailable check failed:", error)
       return false
     }
   }
@@ -113,7 +116,7 @@ export class DeepSeekReasonerProvider implements AIProvider {
         }
       }
     } catch (error) {
-      console.error("[DeepSeekReasonerProvider] analyzeContent failed:", error)
+      reasonerLogger.error("analyzeContent failed:", error)
       throw error
     }
   }
@@ -226,7 +229,7 @@ ${content}
     // - useReasoning=false: 使用 deepseek-chat（普通模型，快速且便宜）
     const selectedModel = options?.useReasoning ? "deepseek-reasoner" : "deepseek-chat"
     
-    console.log(`[DeepSeekReasonerProvider] Using model: ${selectedModel}, useReasoning: ${options?.useReasoning}`)
+    reasonerLogger.debug(`Using model: ${selectedModel}, useReasoning: ${options?.useReasoning}`)
     
     const request: DeepSeekRequest = {
       model: selectedModel,
@@ -258,7 +261,7 @@ ${content}
     const defaultTimeout = selectedModel === "deepseek-reasoner" ? 120000 : 60000
     const timeout = options?.timeout || defaultTimeout
     
-    console.log(`[DeepSeekReasonerProvider] Timeout: ${timeout}ms for model ${selectedModel}`)
+    reasonerLogger.debug(`Timeout: ${timeout}ms for model ${selectedModel}`)
     
     const response = await fetch(this.endpoint, {
       method: "POST",
@@ -293,7 +296,7 @@ ${content}
       const finalContent = message?.content
       const finishReason = response.choices[0]?.finish_reason
       
-      console.log("[DeepSeekReasonerProvider] Response structure:", {
+      reasonerLogger.debug("Response structure:", {
         hasReasoningContent: !!reasoningContent,
         hasFinalContent: !!finalContent,
         reasoningLength: reasoningContent?.length || 0,
@@ -303,14 +306,14 @@ ${content}
       
       // 输出完整的 reasoning_content，便于调试
       if (reasoningContent) {
-        console.log("[DeepSeekReasonerProvider] Full reasoning_content:")
-        console.log(reasoningContent)
+        reasonerLogger.debug("Full reasoning_content:")
+        reasonerLogger.debug(reasoningContent)
       }
       
       // 如果 finish_reason 是 'length'，说明达到 max_tokens 限制
       if (finishReason === 'length') {
-        console.warn("[DeepSeekReasonerProvider] Response truncated due to max_tokens limit")
-        console.warn("[DeepSeekReasonerProvider] Consider increasing max_tokens")
+        reasonerLogger.warn("Response truncated due to max_tokens limit")
+        reasonerLogger.warn("Consider increasing max_tokens")
       }
       
       // 优先使用最终回答（content）
@@ -318,12 +321,12 @@ ${content}
       
       // 如果最终回答为空，说明 max_tokens 不够，模型只输出了推理过程
       if (!content || content.trim().length === 0) {
-        console.warn("[DeepSeekReasonerProvider] Final content is empty, model may have run out of tokens")
+        reasonerLogger.warn("Final content is empty, model may have run out of tokens")
         
         // 尝试从推理内容中提取 JSON（作为降级方案）
         if (reasoningContent && typeof reasoningContent === 'string') {
-          console.log("[DeepSeekReasonerProvider] Attempting to extract JSON from reasoning_content")
-          console.log("[DeepSeekReasonerProvider] Last 500 chars:", reasoningContent.slice(-500))
+          reasonerLogger.debug("Attempting to extract JSON from reasoning_content")
+          reasonerLogger.debug("Last 500 chars:", reasoningContent.slice(-500))
           content = reasoningContent
         } else {
           throw new Error("Both content and reasoning_content are empty")
@@ -348,8 +351,8 @@ ${content}
       
       return { topics }
     } catch (error) {
-      console.error("[DeepSeekReasonerProvider] Failed to parse response:", error)
-      console.error("Response:", response)
+      reasonerLogger.error("Failed to parse response:", error)
+      reasonerLogger.error("Response:", response)
       throw new Error(`解析 AI 响应失败: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
