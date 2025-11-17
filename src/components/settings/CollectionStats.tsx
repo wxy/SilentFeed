@@ -20,6 +20,9 @@ import { UserProfileDisplay } from "./UserProfileDisplay"
 import { AnalysisDebugger } from "@/debug/AnalysisDebugger"
 import { profileManager } from "@/core/profile/ProfileManager"
 import { getAIConfig, getProviderDisplayName } from "@/storage/ai-config"
+import { logger } from "@/utils/logger"
+
+const collectionLogger = logger.withTag("CollectionStats")
 
 /**
  * 获取语言名称的国际化文本
@@ -92,7 +95,7 @@ export function CollectionStats() {
           configured: aiConfig.enabled && aiConfig.provider !== null && aiConfig.apiKey !== ""
         })
       } catch (error) {
-        console.error("[CollectionStats] 加载统计失败:", error)
+        collectionLogger.error("加载统计失败:", error)
       } finally {
         setIsLoading(false)
       }
@@ -110,7 +113,7 @@ export function CollectionStats() {
       
       // 如果成功更新了记录，自动重建用户画像
       if (result.updated > 0) {
-        console.log("[CollectionStats] 自动重建用户画像...")
+        collectionLogger.info("自动重建用户画像...")
         await dataMigrator.rebuildUserProfile()
       }
       
@@ -130,7 +133,7 @@ export function CollectionStats() {
         profileUpdated
       }))
     } catch (error) {
-      console.error("[CollectionStats] 历史页面分析失败:", error)
+      collectionLogger.error("历史页面分析失败:", error)
       alert(_("options.collectionStats.alerts.analyzeFailed"))
     } finally {
       setIsAnalyzing(false)
@@ -139,13 +142,13 @@ export function CollectionStats() {
 
   const handleDebugUnanalyzable = async () => {
     try {
-      console.log("[CollectionStats] 开始诊断无法分析的记录...")
+      collectionLogger.info("开始诊断无法分析的记录...")
       const unanalyzable = await AnalysisDebugger.getUnanalyzableRecords()
       const integrity = await AnalysisDebugger.checkDataIntegrity()
       
       alert(_("options.collectionStats.alerts.diagnosticComplete", { count: unanalyzable.length }))
     } catch (error) {
-      console.error("[CollectionStats] 诊断失败:", error)
+      collectionLogger.error("诊断失败:", error)
       alert(_("options.collectionStats.alerts.diagnosticFailed"))
     }
   }
@@ -156,7 +159,7 @@ export function CollectionStats() {
     }
 
     try {
-      console.log("[CollectionStats] 开始清理无效记录...")
+      collectionLogger.info("开始清理无效记录...")
       const result = await dataMigrator.cleanInvalidRecords()
       
       // 重新加载统计数据
@@ -177,7 +180,7 @@ export function CollectionStats() {
         profileUpdated
       }))
     } catch (error) {
-      console.error("[CollectionStats] 清理无效记录失败:", error)
+      collectionLogger.error("清理无效记录失败:", error)
       alert(_("options.collectionStats.alerts.cleanInvalidFailed"))
     }
   }
@@ -191,7 +194,7 @@ export function CollectionStats() {
       await ProfileUpdateScheduler.forceUpdate()
       alert(_("options.collectionStats.alerts.rebuildSuccess"))
     } catch (error) {
-      console.error("[CollectionStats] 重建用户画像失败:", error)
+      collectionLogger.error("重建用户画像失败:", error)
       alert(_("options.collectionStats.alerts.rebuildFailed"))
     } finally {
       setIsRebuildingProfile(false)
@@ -223,7 +226,7 @@ export function CollectionStats() {
       
       alert(_("options.collectionStats.alerts.clearDataSuccess"))
     } catch (error) {
-      console.error("[CollectionStats] 清除数据失败:", error)
+      collectionLogger.error("清除数据失败:", error)
       alert(_("options.collectionStats.alerts.clearDataFailed"))
     }
   }
@@ -258,7 +261,7 @@ export function CollectionStats() {
       
       alert(_("options.collectionStats.alerts.clearAllSuccess"))
     } catch (error) {
-      console.error("[CollectionStats] 清除所有数据失败:", error)
+      collectionLogger.error("清除所有数据失败:", error)
       alert(_("options.collectionStats.alerts.clearAllFailed"))
     }
   }
