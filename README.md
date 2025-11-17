@@ -22,7 +22,7 @@ FeedAIMuter 是一个 AI 驱动的 RSS 阅读器浏览器扩展，它会自动�
 - 🤫 **静默学习**：在后台自动分析你的浏览行为，构建兴趣画像
 - 🎯 **智能推荐**：只推送你真正感兴趣的内容，过滤信息噪音
 - 🔒 **隐私优先**：所有分析在本地进行，或使用你自己的 AI API
-- 🌱 **渐进式成长**：1000 页面冷启动，逐步了解你的兴趣
+- 🌱 **渐进式成长**：100 页面冷启动，逐步了解你的兴趣
 
 ### ✨ 核心功能（MVP）
 
@@ -31,7 +31,7 @@ FeedAIMuter 是一个 AI 驱动的 RSS 阅读器浏览器扩展，它会自动�
 - ✅ **RSS 自动发现**：检测当前页面的 RSS 源并自动订阅
 - ✅ **AI 智能推荐**：支持用户 API（OpenAI/Anthropic/DeepSeek）和 Chrome AI
 - ✅ **克制的通知**：智能判断提醒时机，避免打扰
-- ✅ **游戏化体验**：1000 页面倒计数，成长可视化
+- ✅ **游戏化体验**：100 页面倒计数，成长可视化
 
 ### 🛠️ 技术栈
 
@@ -71,7 +71,7 @@ npm run dev
 
 - 安装后会提示配置 AI API（可选）
 - 正常浏览网页，扩展会在后台学习你的兴趣
-- 当收集 1000 个有效页面后开始推荐
+- 当收集 100 个有效页面后开始推荐
 - 点击扩展图标查看推荐内容
 
 ### 📁 项目结构
@@ -192,7 +192,7 @@ FeedAIMuter is an AI-powered RSS reader browser extension that intelligently rec
 - 🤫 **Silent Learning**: Automatically analyze browsing behavior in background
 - 🎯 **Smart Recommendations**: Only notify truly interesting content
 - 🔒 **Privacy First**: All analysis done locally or with your own AI API
-- 🌱 **Progressive Growth**: 1000-page cold start to learn your interests
+- 🌱 **Progressive Growth**: 100-page cold start to learn your interests
 
 ### ✨ Key Features (MVP)
 
@@ -201,7 +201,7 @@ FeedAIMuter is an AI-powered RSS reader browser extension that intelligently rec
 - ✅ **RSS Auto-discovery**: Detect and subscribe to RSS feeds automatically
 - ✅ **AI Recommendations**: Support user APIs (OpenAI/Anthropic/DeepSeek) and Chrome AI
 - ✅ **Restrained Notifications**: Smart timing to avoid interruptions
-- ✅ **Gamification**: 1000-page countdown and growth visualization
+- ✅ **Gamification**: 100-page countdown and growth visualization
 
 ### 🚀 Getting Started
 
@@ -229,7 +229,7 @@ npm run dev
 
 - Configure AI API after installation (optional)
 - Browse normally, the extension learns in background
-- After 1000 valid pages, recommendations begin
+- After 100 valid pages, recommendations begin
 - Click extension icon to view recommendations
 
 ### 🛠️ Tech Stack

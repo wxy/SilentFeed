@@ -100,17 +100,17 @@
     },
     "rss": {
       "title": "RSS Feed Management",
-      "disabled": "Will be enabled after completing 1000 pages",
+  "disabled": "Will be enabled after completing 100 pages",
       "description": "Manage your RSS feeds"
     },
     "ai": {
       "title": "AI Configuration",
-      "disabled": "Will be enabled after completing 1000 pages",
+  "disabled": "Will be enabled after completing 100 pages",
       "description": "Configure AI Recommendation Engine"
     },
     "privacy": {
       "title": "Data and Privacy",
-      "disabled": "Will be enabled after completing 1000 pages",
+  "disabled": "Will be enabled after completing 100 pages",
       "description": "Manage your data and privacy settings"
     },
     "tabs": {
@@ -245,7 +245,7 @@
       "noData": {
         "message": "There is not enough browsing data to build a user profile.",
         "hint": "Continue browsing content of interest, and the system will automatically analyze your preferences.",
-        "tip": "💡 No need to wait for 1000 pages - just a few valid records are enough to generate a profile."
+  "tip": "💡 No need to wait for 100 pages - just a few valid records are enough to generate a profile."
       },
       "lastUpdated": {
         "justNow": "Just updated",

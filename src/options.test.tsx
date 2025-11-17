@@ -35,10 +35,10 @@ vi.mock("@/i18n/helpers", () => ({
         "options.general.languageDescription": "选择界面显示语言",
         "options.rss.title": "RSS 源管理",
         "options.rss.description": "管理你的 RSS 订阅源",
-        "options.rss.disabled": "将在完成 1000 页面后启用",
+  "options.rss.disabled": "将在完成 100 页面后启用",
         "options.ai.title": "AI 配置",
         "options.ai.description": "配置 AI 推荐引擎",
-        "options.ai.disabled": "将在完成 1000 页面后启用",
+  "options.ai.disabled": "将在完成 100 页面后启用",
         "options.recommendations.title": "推荐效果统计",
         "options.data.title": "数据管理",
       }

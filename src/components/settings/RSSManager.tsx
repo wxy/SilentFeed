@@ -340,7 +340,7 @@ export function RSSManager() {
         feed.id === feedId ? { ...feed, isActive: newState } : feed
       ))
       
-      rssManagerLogger.info('已切换源状态:', feedId, newState)
+  rssManagerLogger.info('已切换源状态:', { feedId, newState })
     } catch (error) {
       rssManagerLogger.error('切换源状态失败:', error)
     }
@@ -525,8 +525,8 @@ export function RSSManager() {
     
     try {
       // 1. 解析 OPML 文件
-      const opmlFeeds = await OPMLImporter.fromFile(file)
-      rssManagerLogger.info('解析 OPML 成功:', opmlFeeds.length, '个源')
+  const opmlFeeds = await OPMLImporter.fromFile(file)
+  rssManagerLogger.info('解析 OPML 成功:', { count: opmlFeeds.length })
       
       // 2. 批量验证并添加
       const feedManager = new FeedManager()
@@ -561,7 +561,7 @@ export function RSSManager() {
           successCount++
         } catch (error) {
           failCount++
-          rssManagerLogger.error('导入源失败:', opmlFeed.xmlUrl, error)
+          rssManagerLogger.error('导入源失败:', { feedUrl: opmlFeed.xmlUrl, error })
         }
       }
       

@@ -10,6 +10,7 @@ import { ColdStartView } from "@/components/ColdStartView"
 import { RecommendationView } from "@/components/RecommendationView"
 import { trackPopupOpen } from "@/core/recommender/adaptive-count"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
+import { LEARNING_COMPLETE_PAGES } from "@/constants/progress"
 import "@/styles/global.css"
 import "@/styles/sketchy.css" // 手绘风格样式
 
@@ -26,8 +27,7 @@ function IndexPopup() {
   const [isLoading, setIsLoading] = useState(true)
   const [uiStyle, setUiStyle] = useState<UIStyle>("sketchy")
 
-  // TODO: Phase 6 - 临时降低为100页以便测试推荐UI，正式版改回1000
-  const COLD_START_THRESHOLD = 100
+  const COLD_START_THRESHOLD = LEARNING_COMPLETE_PAGES
 
   // Phase 6: 跟踪弹窗打开
   useEffect(() => {

@@ -97,7 +97,8 @@ describe('FeedManager', () => {
           status: 'candidate',
           isActive: true,
           articleCount: 0,
-          unreadCount: 0
+          unreadCount: 0,
+        recommendedCount: 0
         })
       )
     })
@@ -116,7 +117,8 @@ describe('FeedManager', () => {
         status: 'candidate',
         isActive: true,
         articleCount: 0,
-        unreadCount: 0
+        unreadCount: 0,
+        recommendedCount: 0
       }
       
       // Mock where().equals().first() 返回已存在的源
@@ -144,7 +146,8 @@ describe('FeedManager', () => {
           status: 'candidate',
           isActive: true,
         articleCount: 0,
-        unreadCount: 0
+        unreadCount: 0,
+        recommendedCount: 0
         },
         {
           id: '2',
@@ -155,7 +158,8 @@ describe('FeedManager', () => {
           status: 'subscribed',
           isActive: true,
         articleCount: 0,
-        unreadCount: 0
+        unreadCount: 0,
+        recommendedCount: 0
         }
       ]
       
@@ -181,7 +185,8 @@ describe('FeedManager', () => {
           status: 'subscribed',
           isActive: true,
         articleCount: 0,
-        unreadCount: 0
+        unreadCount: 0,
+        recommendedCount: 0
         }
       ]
       
@@ -393,7 +398,8 @@ describe('FeedManager', () => {
         status: 'candidate',
         isActive: true,
         articleCount: 0,
-        unreadCount: 0
+        unreadCount: 0,
+        recommendedCount: 0
       }
       
       vi.mocked(db.discoveredFeeds.get).mockResolvedValue(mockFeed)
@@ -422,6 +428,7 @@ describe('FeedManager', () => {
         isActive: true,
         articleCount: 0,
         unreadCount: 0,
+        recommendedCount: 0,
         quality: {
           score: 75,
           updateFrequency: 5,
@@ -453,6 +460,7 @@ describe('FeedManager', () => {
         isActive: true,
         articleCount: 0,
         unreadCount: 0,
+        recommendedCount: 0,
         quality: {
           score: 75,
           updateFrequency: 5,
@@ -494,7 +502,8 @@ describe('FeedManager', () => {
           status: 'candidate',
           isActive: true,
         articleCount: 0,
-        unreadCount: 0
+        unreadCount: 0,
+        recommendedCount: 0
         },
         {
           id: 'feed-2',
@@ -505,7 +514,8 @@ describe('FeedManager', () => {
           status: 'candidate',
           isActive: true,
         articleCount: 0,
-        unreadCount: 0
+        unreadCount: 0,
+        recommendedCount: 0
         }
       ]
       
@@ -543,7 +553,8 @@ describe('FeedManager', () => {
         status: 'candidate' as const,
         isActive: true,
         articleCount: 0,
-        unreadCount: 0
+        unreadCount: 0,
+        recommendedCount: 0
       }))
       
       vi.spyOn(feedManager, 'getFeeds').mockResolvedValue(mockFeeds)
@@ -579,7 +590,8 @@ describe('FeedManager', () => {
         discoveredAt: Date.now(),
         isActive: true,
         articleCount: 0,
-        unreadCount: 0
+        unreadCount: 0,
+        recommendedCount: 0
       }
       
       vi.mocked(db.discoveredFeeds.get).mockResolvedValue(mockFeed)
@@ -602,7 +614,8 @@ describe('FeedManager', () => {
         discoveredAt: Date.now(),
         isActive: true,
         articleCount: 0,
-        unreadCount: 0
+        unreadCount: 0,
+        recommendedCount: 0
       }
       
       const mockFirst = vi.fn().mockResolvedValue(mockFeed)
@@ -672,7 +685,8 @@ describe('FeedManager', () => {
           discoveredAt: Date.now(),
           isActive: true,
           articleCount: 0,
-          unreadCount: 0
+          unreadCount: 0,
+        recommendedCount: 0
         },
         {
           id: '2',
@@ -683,7 +697,8 @@ describe('FeedManager', () => {
           discoveredAt: Date.now(),
           isActive: true,
           articleCount: 0,
-          unreadCount: 0
+          unreadCount: 0,
+        recommendedCount: 0
         },
         {
           id: '3',
@@ -694,7 +709,8 @@ describe('FeedManager', () => {
           discoveredAt: Date.now(),
           isActive: true,
           articleCount: 0,
-          unreadCount: 0
+          unreadCount: 0,
+        recommendedCount: 0
         }
       ]
       
@@ -723,7 +739,8 @@ describe('FeedManager', () => {
         discoveredAt: Date.now(),
         isActive: true,
         articleCount: 0,
-        unreadCount: 0
+        unreadCount: 0,
+        recommendedCount: 0
       }
       
       vi.spyOn(feedManager, 'getFeed').mockResolvedValue(mockFeed)
@@ -757,7 +774,8 @@ describe('FeedManager', () => {
           discoveredAt: Date.now(),
           isActive: true,
           articleCount: 0,
-          unreadCount: 0
+          unreadCount: 0,
+        recommendedCount: 0
         },
         {
           id: 'feed-2',
@@ -768,7 +786,8 @@ describe('FeedManager', () => {
           discoveredAt: Date.now(),
           isActive: false, // 已暂停
           articleCount: 0,
-          unreadCount: 0
+          unreadCount: 0,
+        recommendedCount: 0
         }
       ]
       
