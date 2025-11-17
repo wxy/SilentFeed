@@ -9,7 +9,11 @@ import { contentExtractor } from "@/core/extractor"
 import { textAnalyzer } from "@/core/analyzer"
 import { topicClassifier } from "@/core/profile/TopicClassifier"
 import { profileManager } from "@/core/profile/ProfileManager"
+import { logger } from "@/utils/logger"
 import type { ConfirmedVisit, AnalysisResult } from "@/storage/types"
+
+// 创建带标签的 logger
+const migratorLogger = logger.withTag('DataMigrator')
 
 /**
  * 历史数据迁移器
@@ -26,13 +30,13 @@ export class DataMigrator {
     failed: number
     updated: number
   }> {
-    console.log("[DataMigrator] 开始分析历史页面...")
+    migratorLogger.info('开始分析历史页面...')
 
     try {
       // 获取所有确认的访问记录
       const visits = await db.confirmedVisits.orderBy('visitTime').toArray()
       
-      console.log(`[DataMigrator] 找到 ${visits.length} 条历史记录`)
+      migratorLogger.info(`找到 ${visits.length} 条历史记录`)
 
       // 找出需要分析的记录（更严格的条件检查）
       const needAnalysis = visits.filter(visit => {
@@ -44,7 +48,7 @@ export class DataMigrator {
         return false
       })
 
-      console.log(`[DataMigrator] 其中 ${needAnalysis.length} 条需要分析`)
+      migratorLogger.info(`其中 ${needAnalysis.length} 条需要分析`)
 
       if (needAnalysis.length === 0) {
         return { total: visits.length, analyzed: 0, failed: 0, updated: 0 }
@@ -57,7 +61,7 @@ export class DataMigrator {
       // 分批处理
       for (let i = 0; i < needAnalysis.length; i += batchSize) {
         const batch = needAnalysis.slice(i, i + batchSize)
-        console.log(`[DataMigrator] 处理批次 ${Math.floor(i / batchSize) + 1}/${Math.ceil(needAnalysis.length / batchSize)}`)
+        migratorLogger.info(`处理批次 ${Math.floor(i / batchSize) + 1}/${Math.ceil(needAnalysis.length / batchSize)}`)
 
         // ✅ 优化：收集批量更新，而不是逐条更新
         const updates: Array<{ key: string; changes: Partial<ConfirmedVisit> }> = []
@@ -79,7 +83,7 @@ export class DataMigrator {
                 }
               })
               updated++
-              console.log(`[DataMigrator] 更新记录: ${visit.title} (${analysis.keywords?.length || 0} 关键词)`)
+              migratorLogger.debug(`更新记录: ${visit.title} (${analysis.keywords?.length || 0} 关键词)`)
             } else {
               // 如果分析失败，至少设置一个空的有效分析结果
               updates.push({
@@ -92,12 +96,12 @@ export class DataMigrator {
                   }
                 }
               })
-              console.log(`[DataMigrator] 设置空分析结果: ${visit.title}`)
+              migratorLogger.debug(`设置空分析结果: ${visit.title}`)
             }
             
             analyzed++
           } catch (error) {
-            console.error(`[DataMigrator] 分析失败: ${visit.title}`, error)
+            migratorLogger.error(`分析失败: ${visit.title}`, error)
             failed++
           }
         }
@@ -110,14 +114,14 @@ export class DataMigrator {
               db.confirmedVisits.update(key, changes)
             )
           )
-          console.log(`[DataMigrator] 批量更新完成: ${updates.length} 条记录`)
+          migratorLogger.info(`批量更新完成: ${updates.length} 条记录`)
         }
 
         // 避免阻塞，每批次之间稍作延迟
         await new Promise(resolve => setTimeout(resolve, 100))
       }
 
-      console.log(`[DataMigrator] 历史页面分析完成: ${analyzed}/${needAnalysis.length} 条记录已处理`)
+      migratorLogger.info(`历史页面分析完成: ${analyzed}/${needAnalysis.length} 条记录已处理`)
 
       return {
         total: visits.length,
@@ -126,7 +130,7 @@ export class DataMigrator {
         updated
       }
     } catch (error) {
-      console.error("[DataMigrator] 历史页面分析失败:", error)
+      migratorLogger.error('历史页面分析失败:', error)
       throw error
     }
   }
@@ -151,7 +155,7 @@ export class DataMigrator {
       }
 
       if (!textToAnalyze.trim()) {
-        console.log(`[DataMigrator] 跳过空内容: ${visit.title}`)
+        migratorLogger.debug(`跳过空内容: ${visit.title}`)
         return null
       }
 
@@ -174,7 +178,7 @@ export class DataMigrator {
         language
       }
     } catch (error) {
-      console.error(`[DataMigrator] 分析内容失败: ${visit.title}`, error)
+      migratorLogger.error(`分析内容失败: ${visit.title}`, error)
       return null
     }
   }
@@ -183,14 +187,14 @@ export class DataMigrator {
    * 重建用户画像（基于所有可用数据）
    */
   async rebuildUserProfile(): Promise<void> {
-    console.log("[DataMigrator] 重建用户画像...")
+    migratorLogger.info('重建用户画像...')
     
     try {
       // 使用 ProfileManager 重建画像
       await profileManager.rebuildProfile()
-      console.log("[DataMigrator] 用户画像重建完成")
+      migratorLogger.info('用户画像重建完成')
     } catch (error) {
-      console.error("[DataMigrator] 重建用户画像失败:", error)
+      migratorLogger.error('重建用户画像失败:', error)
       throw error
     }
   }
@@ -204,7 +208,7 @@ export class DataMigrator {
     cleaned: number
     remaining: number
   }> {
-    console.log("[DataMigrator] 开始清理无效记录...")
+    migratorLogger.info('开始清理无效记录...')
     
     try {
       const visits = await db.confirmedVisits.toArray()
@@ -218,16 +222,16 @@ export class DataMigrator {
         return false
       })
 
-      console.log(`[DataMigrator] 找到 ${invalidVisits.length} 条无效记录`)
+      migratorLogger.info(`找到 ${invalidVisits.length} 条无效记录`)
 
       // 删除无效记录
       if (invalidVisits.length > 0) {
         const deleteIds = invalidVisits.map(visit => visit.id)
         await db.confirmedVisits.bulkDelete(deleteIds)
         
-        console.log(`[DataMigrator] 已删除 ${invalidVisits.length} 条无效记录:`)
+        migratorLogger.info(`已删除 ${invalidVisits.length} 条无效记录:`)
         invalidVisits.forEach(visit => {
-          console.log(`  - ${visit.title} (${visit.url})`)
+          migratorLogger.debug(`  - ${visit.title} (${visit.url})`)
         })
 
         // 重建用户画像
@@ -242,7 +246,7 @@ export class DataMigrator {
         remaining
       }
     } catch (error) {
-      console.error("[DataMigrator] 清理无效记录失败:", error)
+      migratorLogger.error('清理无效记录失败:', error)
       throw error
     }
   }
