@@ -28,9 +28,21 @@ export enum LogLevel {
  */
 class Logger {
   private isDev: boolean
+  private tag: string
 
-  constructor() {
+  constructor(tag: string = '') {
     this.isDev = isDevelopment()
+    this.tag = tag
+  }
+
+  /**
+   * 格式化日志消息（添加标签前缀）
+   */
+  private formatMessage(level: string, message: string): string {
+    if (this.tag) {
+      return `[${this.tag}] ${message}`
+    }
+    return message
   }
 
   /**
@@ -38,7 +50,7 @@ class Logger {
    */
   debug(message: string, data?: any): void {
     if (this.isDev) {
-      console.log(message, data || '')
+      console.log(this.formatMessage('DEBUG', message), data || '')
     }
   }
 
@@ -47,7 +59,7 @@ class Logger {
    */
   info(message: string, data?: any): void {
     if (this.isDev) {
-      console.log(message, data || '')
+      console.log(this.formatMessage('INFO', message), data || '')
     }
   }
 
@@ -55,14 +67,25 @@ class Logger {
    * 警告日志（总是显示）
    */
   warn(message: string, data?: any): void {
-    console.warn(message, data || '')
+    console.warn(this.formatMessage('WARN', message), data || '')
   }
 
   /**
    * 错误日志（总是显示）
    */
   error(message: string, error?: any): void {
-    console.error(message, error || '')
+    console.error(this.formatMessage('ERROR', message), error || '')
+  }
+
+  /**
+   * 创建带特定标签的 logger 实例
+   * 
+   * @example
+   * const moduleLogger = logger.withTag('ProfileBuilder')
+   * moduleLogger.info('开始构建画像')  // 输出: [ProfileBuilder] 开始构建画像
+   */
+  withTag(tag: string): Logger {
+    return new Logger(tag)
   }
 }
 

@@ -15,6 +15,10 @@ import type { AIProvider, UnifiedAnalysisResult, AnalyzeOptions, RecommendationR
 import { DeepSeekReasonerProvider } from "./providers/DeepSeekReasonerProvider"
 import { FallbackKeywordProvider } from "./providers/FallbackKeywordProvider"
 import { getAIConfig, type AIProviderType } from "@/storage/ai-config"
+import { logger } from '../../utils/logger'
+
+// 创建带标签的 logger
+const aiLogger = logger.withTag('AICapabilityManager')
 
 export class AICapabilityManager {
   private primaryProvider: AIProvider | null = null
@@ -32,7 +36,7 @@ export class AICapabilityManager {
       const config = await getAIConfig()
       
       if (!config.enabled || !config.provider) {
-        console.log("[AICapabilityManager] AI not configured, using keyword analysis")
+        aiLogger.info(" AI not configured, using keyword analysis")
         this.primaryProvider = null
         return
       }
@@ -43,10 +47,10 @@ export class AICapabilityManager {
       // 检查可用性
       const available = await this.primaryProvider.isAvailable()
       if (!available) {
-        console.warn("[AICapabilityManager] Primary provider not available, will use fallback")
+        aiLogger.warn(" Primary provider not available, will use fallback")
       }
     } catch (error) {
-      console.error("[AICapabilityManager] Initialization failed:", error)
+      aiLogger.error(" Initialization failed:", error)
       this.primaryProvider = null
     }
   }
@@ -65,7 +69,7 @@ export class AICapabilityManager {
       try {
         const available = await this.primaryProvider.isAvailable()
         if (available) {
-          console.log(`[AICapabilityManager] Using primary provider: ${this.primaryProvider.name}`)
+          aiLogger.info(` Using primary provider: ${this.primaryProvider.name}`)
           const result = await this.primaryProvider.analyzeContent(content, options)
           
           // 记录使用情况
@@ -73,15 +77,15 @@ export class AICapabilityManager {
           
           return result
         } else {
-          console.warn("[AICapabilityManager] Primary provider not available, using fallback")
+          aiLogger.warn(" Primary provider not available, using fallback")
         }
       } catch (error) {
-        console.error("[AICapabilityManager] Primary provider failed, using fallback:", error)
+        aiLogger.error(" Primary provider failed, using fallback:", error)
       }
     }
     
     // 2. 降级到关键词分析
-    console.log("[AICapabilityManager] Using fallback provider: Keyword Analysis")
+    aiLogger.info(" Using fallback provider: Keyword Analysis")
     return await this.fallbackProvider.analyzeContent(content, options)
   }
   
@@ -157,7 +161,7 @@ export class AICapabilityManager {
       return this.generateKeywordRecommendationReason(request)
       
     } catch (error) {
-      console.warn("[AICapabilityManager] Primary provider failed for recommendation:", error)
+      aiLogger.warn(" Primary provider failed for recommendation:", error)
       
       // 降级到关键词策略
       return this.generateKeywordRecommendationReason(request)
@@ -213,13 +217,13 @@ export class AICapabilityManager {
         const completionTokens = metadata.tokensUsed?.completion || 0
         const totalTokens = metadata.tokensUsed?.total || 0
         
-        console.log(
-          `[AI管理器] 成本: ¥${metadata.cost.toFixed(6)} ` +
+        aiLogger.info(
+          `成本: ¥${metadata.cost.toFixed(6)} ` +
           `(输入: ${promptTokens} tokens, 输出: ${completionTokens} tokens, 总计: ${totalTokens} tokens)`
         )
       }
     } catch (error) {
-      console.error("[AICapabilityManager] Failed to record usage:", error)
+      aiLogger.error(" Failed to record usage:", error)
     }
   }
 
@@ -231,12 +235,12 @@ export class AICapabilityManager {
       const { metadata } = result
       
       if (metadata.tokensUsed) {
-        console.log(
-          `[AI管理器] 推荐理由生成 - tokens: ${metadata.tokensUsed.input + metadata.tokensUsed.output}`
+        aiLogger.info(
+          `推荐理由生成 - tokens: ${metadata.tokensUsed.input + metadata.tokensUsed.output}`
         )
       }
     } catch (error) {
-      console.error("[AICapabilityManager] Failed to record recommendation usage:", error)
+      aiLogger.error(" Failed to record recommendation usage:", error)
     }
   }
 }

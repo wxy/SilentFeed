@@ -12,6 +12,10 @@
  * - 封装 Chrome Badge API 调用
  */
 
+import { logger } from "@/utils/logger"
+
+const badgeLogger = logger.withTag('BadgeManager')
+
 /**
  * 进度阶段枚举
  */
@@ -143,7 +147,7 @@ export class BadgeManager {
         await this.updateRecommendationBadge(unreadCount ?? 0)
       }
     } catch (error) {
-      console.error('[BadgeManager] ❌ 更新徽章失败:', error)
+      badgeLogger.error('更新徽章失败:', error)
     }
   }
 
@@ -163,7 +167,7 @@ export class BadgeManager {
     await chrome.action.setBadgeText({ text })
     await chrome.action.setBadgeBackgroundColor({ color: this.BADGE_COLORS.COLD_START })
     
-    console.log(`[BadgeManager] ✅ 徽章已更新（冷启动）: ${text} (${config.name}, ${pageCount}/${this.COLD_START_THRESHOLD} 页)`)
+    badgeLogger.info(`徽章已更新（冷启动）: ${text} (${config.name}, ${pageCount}/${this.COLD_START_THRESHOLD} 页)`)
   }
 
   /**
@@ -182,7 +186,7 @@ export class BadgeManager {
     await chrome.action.setBadgeText({ text })
     await chrome.action.setBadgeBackgroundColor({ color })
     
-    console.log(`[BadgeManager] ✅ 徽章已更新（推荐）: ${text} (${unreadCount} 条未读)`)
+    badgeLogger.info(`徽章已更新（推荐）: ${text} (${unreadCount} 条未读)`)
   }
 
   /**
@@ -191,9 +195,9 @@ export class BadgeManager {
   static async clearBadge(): Promise<void> {
     try {
       await chrome.action.setBadgeText({ text: '' })
-      console.log('[BadgeManager] ✅ 徽章已清除')
+      badgeLogger.info('徽章已清除')
     } catch (error) {
-      console.error('[BadgeManager] ❌ 清除徽章失败:', error)
+      badgeLogger.error('清除徽章失败:', error)
     }
   }
 }

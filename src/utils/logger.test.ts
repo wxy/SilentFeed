@@ -140,6 +140,36 @@ describe("Logger", () => {
     })
   })
 
+  describe("withTag 方法", () => {
+    it("应该创建带标签的 logger", () => {
+      const taggedLogger = logger.withTag("TestModule")
+      
+      taggedLogger.warn("测试消息")
+      expect(consoleWarnSpy).toHaveBeenCalledWith("[TestModule] 测试消息", "")
+    })
+
+    it("应该在所有日志级别添加标签", () => {
+      const taggedLogger = logger.withTag("Component")
+      
+      taggedLogger.warn("警告")
+      taggedLogger.error("错误")
+      
+      expect(consoleWarnSpy).toHaveBeenCalledWith("[Component] 警告", "")
+      expect(consoleErrorSpy).toHaveBeenCalledWith("[Component] 错误", "")
+    })
+
+    it("应该支持链式创建多个标签 logger", () => {
+      const logger1 = logger.withTag("Module1")
+      const logger2 = logger.withTag("Module2")
+      
+      logger1.warn("来自模块1")
+      logger2.warn("来自模块2")
+      
+      expect(consoleWarnSpy).toHaveBeenCalledWith("[Module1] 来自模块1", "")
+      expect(consoleWarnSpy).toHaveBeenCalledWith("[Module2] 来自模块2", "")
+    })
+  })
+
   describe("LogLevel 枚举", () => {
     it("应该导出所有日志级别", () => {
       expect(LogLevel.DEBUG).toBe("debug")
