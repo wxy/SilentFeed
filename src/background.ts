@@ -138,6 +138,12 @@ chrome.runtime.onInstalled.addListener(async () => {
       periodInMinutes: 7 * 24 * 60 // 每 7 天（1 周）
     })
     
+    // Phase 6: 启动推荐生成定时任务
+    bgLogger.info('创建推荐生成定时器（每 20 分钟生成 1 条）...')
+    chrome.alarms.create('generate-recommendation', {
+      periodInMinutes: 20 // 每 20 分钟生成一次推荐
+    })
+    
     // Phase 6: 设置通知监听器
     bgLogger.info('设置推荐通知监听器...')
     setupNotificationListeners()
@@ -506,7 +512,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 /**
  * Phase 6: 定时器事件监听器
- * 处理推荐数量定期评估
+ * 处理推荐数量定期评估和推荐生成
  */
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   bgLogger.debug('定时器触发:', alarm.name)
@@ -516,6 +522,32 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       bgLogger.info('开始评估推荐数量...')
       const newCount = await evaluateAndAdjust()
       bgLogger.info(`✅ 推荐数量已调整为: ${newCount} 条`)
+    } else if (alarm.name === 'generate-recommendation') {
+      // 检查是否达到学习阈值
+      const pageCount = await getPageCount()
+      if (pageCount < LEARNING_COMPLETE_PAGES) {
+        bgLogger.debug(`跳过推荐生成：当前 ${pageCount} 页，需要 ${LEARNING_COMPLETE_PAGES} 页`)
+        return
+      }
+      
+      bgLogger.info('开始自动生成推荐（每次 1 条）...')
+      
+      // 动态导入以避免循环依赖
+      const { recommendationService } = await import('./core/recommender/RecommendationService')
+      
+      const result = await recommendationService.generateRecommendations(
+        1, // 每次只生成 1 条
+        'subscribed', // 只从订阅源
+        10 // 批次大小
+      )
+      
+      if (result.stats.recommendedCount > 0) {
+        bgLogger.info(`✅ 自动推荐生成完成: ${result.stats.recommendedCount} 条`)
+        // 更新徽章显示新推荐
+        await updateBadge()
+      } else {
+        bgLogger.info('暂无新推荐')
+      }
     }
   } catch (error) {
     bgLogger.error('❌ 定时器处理失败:', error)

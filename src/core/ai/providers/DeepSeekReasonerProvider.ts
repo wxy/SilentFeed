@@ -304,10 +304,9 @@ ${content}
         finishReason
       })
       
-      // 输出完整的 reasoning_content，便于调试
+      // 推理内容仅记录长度，不输出完整内容
       if (reasoningContent) {
-        reasonerLogger.debug("Full reasoning_content:")
-        reasonerLogger.debug(reasoningContent)
+        reasonerLogger.debug(`Reasoning content length: ${reasoningContent.length} chars`)
       }
       
       // 如果 finish_reason 是 'length'，说明达到 max_tokens 限制
@@ -326,7 +325,8 @@ ${content}
         // 尝试从推理内容中提取 JSON（作为降级方案）
         if (reasoningContent && typeof reasoningContent === 'string') {
           reasonerLogger.debug("Attempting to extract JSON from reasoning_content")
-          reasonerLogger.debug("Last 500 chars:", reasoningContent.slice(-500))
+          // 只显示最后 500 字符的长度，不输出内容
+          reasonerLogger.debug(`Analyzing last portion (${Math.min(500, reasoningContent.length)} chars)`)
           content = reasoningContent
         } else {
           throw new Error("Both content and reasoning_content are empty")
