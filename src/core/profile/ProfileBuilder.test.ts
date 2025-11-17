@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach } from "vitest"
 import { ProfileBuilder } from "./ProfileBuilder"
 import { Topic } from "./topics"
-import type { ConfirmedVisit } from "../../storage/types"
+import type { ConfirmedVisit } from "@/types/database"
 
 describe("ProfileBuilder", () => {
   let builder: ProfileBuilder

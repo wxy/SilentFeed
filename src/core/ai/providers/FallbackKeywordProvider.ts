@@ -8,8 +8,10 @@
 import type {
   AIProvider,
   UnifiedAnalysisResult,
-  AnalyzeOptions
-} from "../types"
+  AnalyzeOptions,
+  RecommendationReasonRequest,
+  RecommendationReasonResult
+} from "@/types/ai"
 import { TextAnalyzer } from "@/core/analyzer/TextAnalyzer"
 import { TopicClassifier, type TopicDistribution } from "@/core/profile/TopicClassifier"
 

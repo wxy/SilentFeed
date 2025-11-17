@@ -23,7 +23,7 @@ import type {
   StrategyStatus,
   MonitoringMetrics,
   AIStrategyExecutor
-} from '../ai/strategy-types'
+} from '@/types/ai-strategy'
 
 import { aiManager } from '../ai/AICapabilityManager'
 import { getAIConfig } from '../../storage/ai-config'

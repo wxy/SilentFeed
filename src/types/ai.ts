@@ -1,12 +1,12 @@
 /**
  * AI 能力抽象层 - 类型定义
- * 
+ *
  * 提供统一的 AI 分析接口，支持多个提供商：
  * - OpenAI (GPT-4o-mini)
  * - Anthropic (Claude-3-Haiku)
  * - DeepSeek
  * - 关键词分析（降级策略）
- * 
+ *
  * 新增推荐功能支持
  */
 
@@ -16,13 +16,13 @@
 export interface RecommendationReasonRequest {
   /** 文章标题 */
   articleTitle: string
-  
+
   /** 文章内容摘要 */
   articleSummary: string
-  
+
   /** 用户兴趣关键词 */
   userInterests: string[]
-  
+
   /** 相关性评分 */
   relevanceScore: number
 }
@@ -33,13 +33,13 @@ export interface RecommendationReasonRequest {
 export interface RecommendationReasonResult {
   /** 推荐理由（简短，1-2句话） */
   reason: string
-  
+
   /** 匹配的兴趣点 */
   matchedInterests: string[]
-  
+
   /** 置信度 (0-1) */
   confidence: number
-  
+
   /** 生成元数据 */
   metadata: {
     provider: "openai" | "anthropic" | "deepseek" | "keyword"
@@ -54,13 +54,13 @@ export interface RecommendationReasonResult {
 
 /**
  * 统一分析结果
- * 
+ *
  * 所有 AI Provider 必须返回此格式，确保数据一致性
  */
 export interface UnifiedAnalysisResult {
   /**
    * 主题概率分布
-   * 
+   *
    * @example
    * {
    *   "技术": 0.8,
@@ -69,35 +69,35 @@ export interface UnifiedAnalysisResult {
    * }
    */
   topicProbabilities: Record<string, number>
-  
+
   /**
    * 可选：向量嵌入（用于相似度计算）
-   * 
+   *
    * 某些 Provider（如 OpenAI）可以提供 embedding
    * 用于更精确的内容相似度计算
    */
   embedding?: number[]
-  
+
   /**
    * 分析元数据
    */
   metadata: {
     /** 提供商名称 */
     provider: "openai" | "anthropic" | "deepseek" | "keyword"
-    
+
     /** 使用的模型 */
     model: string
-    
+
     /** 分析时间戳 */
     timestamp: number
-    
+
     /** Token 消耗（如果适用） */
     tokensUsed?: {
       prompt: number
       completion: number
       total: number
     }
-    
+
     /** 成本（美元） */
     cost?: number
   }
@@ -105,7 +105,7 @@ export interface UnifiedAnalysisResult {
 
 /**
  * AI Provider 接口
- * 
+ *
  * 所有提供商必须实现此接口
  */
 export interface AIProvider {
@@ -113,19 +113,19 @@ export interface AIProvider {
    * 提供商名称
    */
   readonly name: string
-  
+
   /**
    * 检查提供商是否可用
-   * 
+   *
    * - 检查 API Key 配置
    * - 检查网络连接（可选）
    * - 检查预算限制（可选）
    */
   isAvailable(): Promise<boolean>
-  
+
   /**
    * 分析内容
-   * 
+   *
    * @param content - 页面文本内容
    * @param options - 可选参数
    * @returns 统一分析结果
@@ -135,20 +135,20 @@ export interface AIProvider {
     content: string,
     options?: AnalyzeOptions
   ): Promise<UnifiedAnalysisResult>
-  
+
   /**
    * 生成推荐理由（可选功能）
-   * 
+   *
    * @param request - 推荐理由生成请求
    * @returns 推荐理由结果
    */
   generateRecommendationReason?(
     request: RecommendationReasonRequest
   ): Promise<RecommendationReasonResult>
-  
+
   /**
    * 测试连接
-   * 
+   *
    * 发送最小请求测试 API 是否可用
    */
   testConnection(): Promise<{
@@ -164,13 +164,13 @@ export interface AIProvider {
 export interface AnalyzeOptions {
   /** 最大内容长度（字符数） */
   maxLength?: number
-  
+
   /** 是否需要 embedding */
   includeEmbedding?: boolean
-  
+
   /** 超时时间（毫秒） */
   timeout?: number
-  
+
   /** 是否使用推理模式（Phase 6）*/
   useReasoning?: boolean
 }
@@ -181,13 +181,13 @@ export interface AnalyzeOptions {
 export interface AIProviderConfig {
   /** API Key */
   apiKey: string
-  
+
   /** API 端点（可选，某些提供商需要） */
   endpoint?: string
-  
+
   /** 模型名称（可选，使用默认值） */
   model?: string
-  
+
   /** 月度预算限制（美元） */
   monthlyBudget?: number
 }

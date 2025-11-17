@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { useRecommendationStore } from './recommendationStore'
 import { db } from '@/storage/db'
-import type { Recommendation } from '@/storage/types'
+import type { Recommendation } from '@/types/database'
 
 describe('RecommendationStore', () => {
   beforeEach(async () => {

@@ -5,7 +5,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen } from "@testing-library/react"
 import { UserProfileDisplay } from "./UserProfileDisplay"
-import type { UserProfile } from "@/core/profile/types"
+import type { UserProfile } from "@/types/profile"
 import { Topic } from "@/core/profile/topics"
 
 // Mock i18n

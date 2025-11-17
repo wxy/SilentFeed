@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { useI18n } from "@/i18n/helpers"
 import { FeedManager } from "@/core/rss/managers/FeedManager"
-import type { DiscoveredFeed } from "@/core/rss/types"
+import type { DiscoveredFeed } from "@/types/rss"
 import { logger } from "@/utils/logger"
 
 const feedsCardLogger = logger.withTag("DiscoveredFeedsCard")

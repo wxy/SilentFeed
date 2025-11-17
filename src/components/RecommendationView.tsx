@@ -17,7 +17,7 @@ import {
   trackDismissAll
 } from "@/core/recommender/adaptive-count"
 import { sanitizeHtml } from "@/utils/html"
-import type { Recommendation } from "@/storage/types"
+import type { Recommendation } from "@/types/database"
 import { logger } from "@/utils/logger"
 
 const recViewLogger = logger.withTag("RecommendationView")

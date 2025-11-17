@@ -9,7 +9,7 @@ import { profileBuilder } from "@/core/profile/ProfileBuilder"
 import { InterestSnapshotManager } from "@/core/profile/InterestSnapshotManager"
 import { logger } from "@/utils/logger"
 import { withErrorHandling } from "@/utils/error-handler"
-import type { UserProfile } from "@/core/profile/types"
+import type { UserProfile } from "@/types/profile"
 
 const profileLogger = logger.withTag('ProfileManager')
 

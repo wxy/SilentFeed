@@ -15,7 +15,7 @@ import { TOPIC_NAMES, TOPIC_ANIMALS, TOPIC_PERSONALITIES, Topic } from "@/core/p
 import { profileManager } from "@/core/profile/ProfileManager"
 import { InterestSnapshotManager } from "@/core/profile/InterestSnapshotManager"
 import { getAIConfig, getProviderDisplayName } from "@/storage/ai-config"
-import type { UserProfile } from "@/core/profile/types"
+import type { UserProfile } from "@/types/profile"
 import { logger } from "@/utils/logger"
 
 const profileDisplayLogger = logger.withTag("UserProfileDisplay")

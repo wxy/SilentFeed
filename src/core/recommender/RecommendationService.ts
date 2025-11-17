@@ -8,10 +8,15 @@ import { getUserProfile, updateAllFeedStats } from '../../storage/db'
 import { getRecommendationConfig } from '../../storage/recommendation-config'
 import { FeedManager } from '../rss/managers/FeedManager'
 import { db } from '../../storage/db'
-import type { Recommendation } from '../../storage/types'
-import type { UserProfile } from '../profile/types'
-import type { FeedArticle } from '../rss/types'
-import type { RecommendationInput, RecommendedArticle, RecommendationResult, RecommendationConfig } from './types'
+import type { Recommendation } from '@/types/database'
+import type { UserProfile } from '@/types/profile'
+import type { FeedArticle } from '@/types/rss'
+import type {
+  RecommendationInput,
+  RecommendedArticle,
+  RecommendationResult,
+  RecommendationConfig
+} from '@/types/recommendation'
 import { trackRecommendationGenerated } from './adaptive-count'
 import { sendRecommendationNotification } from './notification'
 import { logger } from '../../utils/logger'

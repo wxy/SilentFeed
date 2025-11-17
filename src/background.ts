@@ -1,6 +1,6 @@
 import { ProfileUpdateScheduler } from './core/profile/ProfileUpdateScheduler'
 import { initializeDatabase, getPageCount, getUnreadRecommendations, db } from './storage/db'
-import type { ConfirmedVisit } from './storage/types'
+import type { ConfirmedVisit } from '@/types/database'
 import { FeedManager } from './core/rss/managers/FeedManager'
 import { RSSValidator } from './core/rss/RSSValidator'
 import { feedScheduler, fetchFeed } from './background/feed-scheduler'

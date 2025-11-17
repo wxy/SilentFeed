@@ -5,4 +5,4 @@
  */
 
 export { TextAnalyzer, textAnalyzer } from "./TextAnalyzer"
-export type { Keyword, Language, TextAnalysisOptions, TokenizeResult } from "./types"
+export type { Keyword, Language, TextAnalysisOptions, TokenizeResult } from "@/types/analyzer"

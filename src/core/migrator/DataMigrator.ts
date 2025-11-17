@@ -10,7 +10,7 @@ import { textAnalyzer } from "@/core/analyzer"
 import { topicClassifier } from "@/core/profile/TopicClassifier"
 import { profileManager } from "@/core/profile/ProfileManager"
 import { logger } from "@/utils/logger"
-import type { ConfirmedVisit, AnalysisResult } from "@/storage/types"
+import type { ConfirmedVisit, AnalysisResult } from "@/types/database"
 
 // 创建带标签的 logger
 const migratorLogger = logger.withTag('DataMigrator')

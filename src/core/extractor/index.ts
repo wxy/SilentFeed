@@ -3,4 +3,4 @@
  */
 
 export { ContentExtractor, contentExtractor } from "./ContentExtractor"
-export type { PageContent, ExtractorConfig } from "./types"
+export type { PageContent, ExtractorConfig } from "@/types/extractor"

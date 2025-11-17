@@ -6,7 +6,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { db } from './storage/db'
-import type { ConfirmedVisit } from './storage/types'
+import type { ConfirmedVisit } from '@/types/database'
 
 describe('Background 消息处理', () => {
   beforeEach(async () => {

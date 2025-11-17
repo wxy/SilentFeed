@@ -5,7 +5,7 @@
  * 用于UI开发和测试，展示不同类型的推荐效果
  */
 
-import type { Recommendation } from '@/storage/types'
+import type { Recommendation } from '@/types/database'
 
 /**
  * Mock 推荐数据

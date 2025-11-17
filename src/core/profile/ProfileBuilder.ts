@@ -4,8 +4,8 @@
  * 从访问记录构建用户兴趣画像
  */
 
-import type { ConfirmedVisit } from "../../storage/types"
-import type { UserProfile, ProfileBuildConfig } from "./types"
+import type { ConfirmedVisit } from "@/types/database"
+import type { UserProfile, ProfileBuildConfig } from "@/types/profile"
 import type { TopicDistribution } from "./TopicClassifier"
 import { topicClassifier } from "./TopicClassifier"
 import { Topic } from "./topics"

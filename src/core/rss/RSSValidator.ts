@@ -12,7 +12,7 @@
  */
 
 import { XMLParser } from 'fast-xml-parser'
-import type { ValidationResult, FeedMetadata } from "./types"
+import type { ValidationResult, FeedMetadata } from "@/types/rss"
 
 /**
  * RSS 验证器类

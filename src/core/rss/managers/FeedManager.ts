@@ -10,7 +10,7 @@
  */
 
 import { db } from '../../../storage/db'
-import type { DiscoveredFeed, FeedStatus } from '../types'
+import type { DiscoveredFeed, FeedStatus } from '@/types/rss'
 import { FeedQualityAnalyzer } from '../FeedQualityAnalyzer'
 import { logger } from '@/utils/logger'
 

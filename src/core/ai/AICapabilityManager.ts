@@ -11,7 +11,13 @@
  * Phase 6: 使用统一的 DeepSeekReasonerProvider，根据 useReasoning 参数动态切换模型
  */
 
-import type { AIProvider, UnifiedAnalysisResult, AnalyzeOptions, RecommendationReasonRequest, RecommendationReasonResult } from "./types"
+import type {
+  AIProvider,
+  UnifiedAnalysisResult,
+  AnalyzeOptions,
+  RecommendationReasonRequest,
+  RecommendationReasonResult
+} from "@/types/ai"
 import { DeepSeekReasonerProvider } from "./providers/DeepSeekReasonerProvider"
 import { FallbackKeywordProvider } from "./providers/FallbackKeywordProvider"
 import { getAIConfig, type AIProviderType } from "@/storage/ai-config"

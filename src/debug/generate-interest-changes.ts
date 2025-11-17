@@ -9,7 +9,7 @@
  */
 
 import { saveInterestSnapshot, getUserProfile } from '@/storage/db'
-import type { InterestSnapshot } from '@/storage/types'
+import type { InterestSnapshot } from '@/types/profile'
 import { Topic, TOPIC_NAMES } from '@/core/profile/topics'
 
 /**

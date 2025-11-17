@@ -7,7 +7,7 @@
  * - 语言检测
  */
 
-import type { PageContent, ExtractorConfig } from "./types"
+import type { PageContent, ExtractorConfig } from "@/types/extractor"
 
 /**
  * 默认配置

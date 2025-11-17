@@ -12,7 +12,7 @@
  */
 
 import type { PlasmoCSConfig } from "plasmo"
-import type { RSSLink } from "~core/rss/types"
+import type { RSSLink } from "@/types/rss"
 
 /**
  * Plasmo Content Script 配置

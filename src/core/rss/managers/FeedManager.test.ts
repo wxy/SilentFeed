@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { FeedManager } from './FeedManager'
 import { db } from '../../../storage/db'
-import type { DiscoveredFeed } from '../types'
+import type { DiscoveredFeed } from '@/types/rss'
 
 // Mock FeedQualityAnalyzer
 vi.mock('../FeedQualityAnalyzer', () => ({

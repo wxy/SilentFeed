@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest"
 import { AICapabilityManager } from "./AICapabilityManager"
-import type { UnifiedAnalysisResult } from "./types"
+import type { UnifiedAnalysisResult } from "@/types/ai"
 
 // Mock chrome.storage
 const mockStorage = {

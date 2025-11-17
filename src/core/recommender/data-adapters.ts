@@ -8,8 +8,8 @@
  * 3. AI分析结果集成到推荐流程
  */
 
-import type { FeedArticle } from '../rss/types'
-import type { UserProfile } from '../profile/types'
+import type { FeedArticle } from '@/types/rss'
+import type { UserProfile } from '@/types/profile'
 import type { ArticleData, UserInterests } from './RuleBasedRecommender'
 import type { ArticleContent } from '../rss/article-fetcher'
 

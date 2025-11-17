@@ -19,7 +19,7 @@ import type {
   DeepSeekRequest,
   DeepSeekResponse,
   AIAnalysisOutput
-} from "../types"
+} from "@/types/ai"
 import { logger } from "../../../utils/logger"
 
 const deepSeekLogger = logger.withTag("DeepSeekProvider")

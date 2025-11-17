@@ -6,7 +6,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen, waitFor } from "@testing-library/react"
 import { CollectionStats } from "./CollectionStats"
-import type { StorageStats } from "@/storage/types"
+import type { StorageStats } from "@/types/database"
 
 // Mock i18n
 vi.mock("@/i18n/helpers", () => ({

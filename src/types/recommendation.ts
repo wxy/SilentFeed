@@ -1,10 +1,9 @@
 /**
- * 推荐系统类型定义
- * Phase 6: 核心类型接口
+ * 推荐引擎核心类型定义
  */
 
-import type { FeedArticle } from '../rss/types'
-import type { UserProfile } from '../profile/types'
+import type { FeedArticle } from "@/types/rss"
+import type { UserProfile } from "@/types/profile"
 
 /**
  * 推荐输入
@@ -23,9 +22,9 @@ export interface RecommendationConfig {
   useReasoning?: boolean
   useLocalAI?: boolean
   maxRecommendations?: number
-  tfidfThreshold?: number  // Phase 6: TF-IDF 最低分数阈值（低于此分数的文章不送 AI 分析）
-  qualityThreshold?: number  // Phase 6: AI 分析质量阈值（进入推荐池的最低分数）
-  batchSize?: number  // Phase 6: 批次大小（每次处理的文章数量）
+  tfidfThreshold?: number // TF-IDF 最低分数阈值（低于此分数的文章不送 AI 分析）
+  qualityThreshold?: number // AI 分析质量阈值（进入推荐池的最低分数）
+  batchSize?: number // 批次大小（每次处理的文章数量）
 }
 
 /**
@@ -41,7 +40,7 @@ export interface RecommendationOptions {
  */
 export interface RecommendationResult {
   articles: RecommendedArticle[]
-  algorithm: 'tfidf' | 'ai' | 'hybrid' | 'reasoning-ai'
+  algorithm: "tfidf" | "ai" | "hybrid" | "reasoning-ai"
   stats: RecommendationStats
   timestamp: number
 }
@@ -53,7 +52,7 @@ export interface RecommendedArticle {
   id: string
   title: string
   url: string
-  feedId?: string  // Phase 6: RSS 源 ID，用于准确匹配统计
+  feedId?: string // RSS 源 ID，用于准确匹配统计
   score: number
   reason: string
   confidence: number
@@ -98,7 +97,15 @@ export interface RecommendationStats {
  * 管道进度
  */
 export interface PipelineProgress {
-  stage: 'idle' | 'fetching' | 'fullContent' | 'tfidf' | 'ai' | 'finalizing' | 'complete' | 'error'
+  stage:
+    | "idle"
+    | "fetching"
+    | "fullContent"
+    | "tfidf"
+    | "ai"
+    | "finalizing"
+    | "complete"
+    | "error"
   progress: number
   message: string
   currentArticle?: number
@@ -124,7 +131,11 @@ export interface ProcessingContext {
   userProfile: any
   stats: any
   abortSignal: AbortSignal
-  onProgress: (stage: PipelineProgress['stage'], progress: number, message: string) => void
+  onProgress: (
+    stage: PipelineProgress["stage"],
+    progress: number,
+    message: string
+  ) => void
   onError: (error: ProcessingError) => void
 }
 

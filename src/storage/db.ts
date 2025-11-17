@@ -15,13 +15,14 @@ import type { Table } from 'dexie'
 import type {
   PendingVisit,
   ConfirmedVisit,
-  UserSettings,
   Statistics,
   Recommendation,
-  InterestSnapshot
-} from './types'
-import type { UserProfile } from '../core/profile/types'
-import type { DiscoveredFeed, FeedArticle } from '../core/rss/types'
+  RecommendationStats,
+  StorageStats
+} from "@/types/database"
+import type { UserSettings } from "@/types/config"
+import type { InterestSnapshot, UserProfile } from "@/types/profile"
+import type { DiscoveredFeed, FeedArticle } from "@/types/rss"
 import { logger } from '@/utils/logger'
 
 // 创建数据库专用日志器
@@ -390,7 +391,7 @@ export async function getPageCount(): Promise<number> {
  * 
  * @param days - 统计最近 N 天的数据（默认 7 天）
  */
-export async function getRecommendationStats(days: number = 7) {
+export async function getRecommendationStats(days: number = 7): Promise<RecommendationStats> {
   const cutoffTime = Date.now() - days * 24 * 60 * 60 * 1000
   
   // 查询最近 N 天的推荐记录
@@ -456,7 +457,7 @@ export async function getRecommendationStats(days: number = 7) {
  * 获取存储统计数据
  * Phase 2.7: 设置页面展示
  */
-export async function getStorageStats(): Promise<import('./types').StorageStats> {
+export async function getStorageStats(): Promise<StorageStats> {
   const pendingCount = await db.pendingVisits.count()
   const confirmedCount = await db.confirmedVisits.count()
   const recommendationCount = await db.recommendations.count()

@@ -4,7 +4,7 @@ import { FeedManager } from "@/core/rss/managers/FeedManager"
 import { RSSValidator } from "@/core/rss/RSSValidator"
 import { RSSFetcher, type FeedItem } from "@/core/rss/RSSFetcher"
 import { OPMLImporter } from "@/core/rss/OPMLImporter"
-import type { DiscoveredFeed } from "@/core/rss/types"
+import type { DiscoveredFeed } from "@/types/rss"
 import { logger } from "@/utils/logger"
 
 const rssManagerLogger = logger.withTag("RSSManager")
