@@ -4,7 +4,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { AIStrategyExecutorImpl } from './ai-strategy-executor'
-import type { AnalysisContext } from '../ai/strategy-types'
+import type { AnalysisContext } from '@/types/ai-strategy'
 
 // Mock依赖
 vi.mock('@/core/ai/AICapabilityManager', () => ({

@@ -22,9 +22,9 @@ import type {
   ScoredArticle,
   PipelineConfig,
   RecommendationPipeline
-} from './types'
+} from '@/types/recommendation'
 
-import type { FeedArticle } from '../rss/types'
+import type { FeedArticle } from '@/types/rss'
 import { convertFeedArticlesToArticleData, convertUserProfileToUserInterests } from './data-adapters'
 import { RuleBasedRecommender } from './RuleBasedRecommender'
 import { aiManager } from '../ai/AICapabilityManager'

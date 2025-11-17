@@ -1,7 +1,8 @@
 {
   "extends": "plasmo/templates/tsconfig.base",
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "docs/**/*.ts"
   ],
   "include": [
     ".plasmo/index.d.ts",
@@ -15,6 +16,9 @@
       ],
       "@/*": [
         "./src/*"
+      ],
+      "@vitejs/plugin-react": [
+        "./src/types/stubs/vite-plugin-react"
       ]
     },
     "baseUrl": ".",

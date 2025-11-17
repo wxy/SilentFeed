@@ -1,4 +1,4 @@
-import type { Keyword, Language, TextAnalysisOptions, TokenizeResult } from "./types"
+import type { Keyword, Language, TextAnalysisOptions, TokenizeResult } from "@/types/analyzer"
 
 /**
  * 停用词列表

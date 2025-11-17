@@ -1,15 +1,18 @@
-import { BadgeManager } from './core/badge/BadgeManager'
 import { ProfileUpdateScheduler } from './core/profile/ProfileUpdateScheduler'
 import { initializeDatabase, getPageCount, getUnreadRecommendations, db } from './storage/db'
-import type { ConfirmedVisit } from './storage/types'
+import type { ConfirmedVisit } from '@/types/database'
 import { FeedManager } from './core/rss/managers/FeedManager'
 import { RSSValidator } from './core/rss/RSSValidator'
 import { feedScheduler, fetchFeed } from './background/feed-scheduler'
 import { IconManager } from './utils/IconManager'
 import { evaluateAndAdjust } from './core/recommender/adaptive-count'
 import { setupNotificationListeners, testNotification } from './core/recommender/notification'
+import { logger } from '@/utils/logger'
+import { LEARNING_COMPLETE_PAGES } from '@/constants/progress'
 
-console.log('FeedAIMuter Background Service Worker 已启动')
+const bgLogger = logger.withTag('Background')
+
+bgLogger.info('FeedAIMuter Background Service Worker 已启动')
 
 // Phase 5.2: 初始化图标管理器
 let iconManager: IconManager | null = null
@@ -17,9 +20,9 @@ let iconManager: IconManager | null = null
 // 开发环境下加载调试工具
 if (process.env.NODE_ENV === 'development') {
   import('./debug/generate-interest-changes').then(() => {
-    console.log('🔧 开发调试工具已加载')
+    bgLogger.info('🔧 开发调试工具已加载')
   }).catch(error => {
-    console.error('❌ 加载调试工具失败:', error)
+    bgLogger.error('❌ 加载调试工具失败:', error)
   })
 }
 
@@ -36,15 +39,15 @@ let rssDiscoveryViewed = false
  * 
  * 优先级：
  * 1. RSS 发现（未查看） - 图标动画
- * 2. 学习阶段（< 1000 页） - 图标进度遮罩
- * 3. 推荐阶段（≥ 1000 页） - 图标波纹点亮
+ * 2. 学习阶段（< 100 页） - 图标进度遮罩
+ * 3. 推荐阶段（≥ 100 页） - 图标波纹点亮
  */
 async function updateBadge(): Promise<void> {
   try {
-    // Phase 5.2: 如果图标管理器未初始化,跳过图标更新
+    // Phase 5.2: 如果图标管理器未初始化,记录警告但不阻塞
     if (!iconManager) {
-      console.log('[Background] ⏳ 图标管理器未初始化,使用旧徽章系统')
-      return updateLegacyBadge()
+      bgLogger.warn('⚠️ 图标管理器未初始化')
+      return
     }
     
     // 1. 检查是否有未查看的 RSS 发现
@@ -54,7 +57,7 @@ async function updateBadge(): Promise<void> {
     if (candidateFeeds.length > 0 && !rssDiscoveryViewed) {
       // 启动 RSS 发现动画
       iconManager.startDiscoverAnimation()
-      console.log(`[Background] 📡 启动 RSS 发现动画 (${candidateFeeds.length} 个源)`)
+      bgLogger.info(`📡 启动 RSS 发现动画 (${candidateFeeds.length} 个源)`)
       return
     }
     
@@ -64,54 +67,21 @@ async function updateBadge(): Promise<void> {
     // 2. 正常图标逻辑
     const pageCount = await getPageCount()
     
-    if (pageCount < 1000) {
+    if (pageCount < LEARNING_COMPLETE_PAGES) {
       // 学习阶段：显示进度遮罩
       iconManager.setLearningProgress(pageCount)
       iconManager.setRecommendCount(0)  // 清除推荐
-      console.log(`[Background] 学习进度：${pageCount}/1000 页`)
+      bgLogger.debug(`学习进度：${pageCount}/${LEARNING_COMPLETE_PAGES} 页`)
     } else {
       // 推荐阶段：显示推荐波纹
       const unreadRecs = await getUnreadRecommendations(50)
       const unreadCount = Math.min(unreadRecs.length, 3)  // 最多3条波纹
       iconManager.setRecommendCount(unreadCount)
-      iconManager.setLearningProgress(1000)  // 学习完成
-      console.log(`[Background] 未读推荐：${unreadCount}`)
+      iconManager.setLearningProgress(LEARNING_COMPLETE_PAGES)  // 学习完成
+      bgLogger.debug(`未读推荐：${unreadCount}`)
     }
   } catch (error) {
-    console.error('[Background] ❌ 更新图标失败:', error)
-    // 降级到旧徽章系统
-    updateLegacyBadge().catch(e => console.error('[Background] 降级徽章更新也失败:', e))
-  }
-}
-
-/**
- * 旧的徽章系统(降级方案)
- */
-async function updateLegacyBadge(): Promise<void> {
-  try {
-    const feedManager = new FeedManager()
-    const candidateFeeds = await feedManager.getFeeds('candidate')
-    
-    if (candidateFeeds.length > 0 && !rssDiscoveryViewed) {
-      await chrome.action.setBadgeText({ text: '📡' })
-      await chrome.action.setBadgeBackgroundColor({ color: '#4CAF50' })
-      return
-    }
-    
-    const pageCount = await getPageCount()
-    
-    if (pageCount < 1000) {
-      const progress = Math.floor((pageCount / 1000) * 100)
-      await chrome.action.setBadgeText({ text: `${progress}%` })
-      await chrome.action.setBadgeBackgroundColor({ color: '#2196F3' })
-    } else {
-      const unreadRecs = await getUnreadRecommendations(50)
-      const unreadCount = unreadRecs.length
-      await chrome.action.setBadgeText({ text: unreadCount > 0 ? String(unreadCount) : '' })
-      await chrome.action.setBadgeBackgroundColor({ color: '#F44336' })
-    }
-  } catch (error) {
-    console.error('[Background] ❌ 更新旧徽章失败:', error)
+    bgLogger.error('❌ 更新图标失败:', error)
   }
 }
 
@@ -119,7 +89,7 @@ async function updateLegacyBadge(): Promise<void> {
  * 扩展安装或更新时初始化
  */
 chrome.runtime.onInstalled.addListener(async () => {
-  console.log('[Background] 扩展已安装/更新，开始初始化...')
+  bgLogger.info('扩展已安装/更新，开始初始化...')
   
   try {
     // 1. 初始化数据库
@@ -128,14 +98,12 @@ chrome.runtime.onInstalled.addListener(async () => {
     // 2. 更新徽章
     await updateBadge()
     
-    console.log('[Background] ✅ 初始化完成')
+    bgLogger.info('✅ 初始化完成')
   } catch (error) {
-    console.error('[Background] ❌ 初始化失败:')
-    console.error('  错误类型:', (error as any)?.constructor?.name || 'Unknown')
-    console.error('  错误消息:', (error as Error)?.message || String(error))
-    console.error('  完整错误:', error)
-    // 初始化失败时设置默认徽章
-    await BadgeManager.updateBadge(0)
+    bgLogger.error('❌ 初始化失败:')
+    bgLogger.error('  错误类型:', (error as any)?.constructor?.name || 'Unknown')
+    bgLogger.error('  错误消息:', (error as Error)?.message || String(error))
+    bgLogger.error('  完整错误:', error)
   }
 })
 
@@ -144,7 +112,7 @@ chrome.runtime.onInstalled.addListener(async () => {
  */
 ;(async () => {
   try {
-    console.log('[Background] Service Worker 启动...')
+    bgLogger.info('Service Worker 启动...')
     
     // Phase 5.2: 初始化图标管理器
     try {
@@ -152,36 +120,37 @@ chrome.runtime.onInstalled.addListener(async () => {
       // 开发模式下强制重新加载图片(防止缓存)
       const forceReload = process.env.NODE_ENV === 'development'
       await iconManager.initialize(forceReload)
-      console.log('[Background] ✅ 图标管理器初始化成功', forceReload ? '(强制重新加载)' : '')
+      bgLogger.info(`✅ 图标管理器初始化成功${forceReload ? ' (强制重新加载)' : ''}`)
     } catch (error) {
-      console.error('[Background] ❌ 图标管理器初始化失败,使用旧徽章系统:', error)
+      bgLogger.error('❌ 图标管理器初始化失败,使用旧徽章系统:', error)
       iconManager = null
     }
     
     await updateBadge()
     
     // Phase 5 Sprint 3: 启动 RSS 定时调度器
-    console.log('[Background] 启动 RSS 定时调度器...')
+    bgLogger.info('启动 RSS 定时调度器...')
     feedScheduler.start(30) // 每 30 分钟检查一次
     
     // Phase 6: 启动推荐数量定期评估
-    console.log('[Background] 创建推荐数量评估定时器（每周一次）...')
+    bgLogger.info('创建推荐数量评估定时器（每周一次）...')
     chrome.alarms.create('evaluate-recommendations', {
       periodInMinutes: 7 * 24 * 60 // 每 7 天（1 周）
     })
     
+    // Phase 6: 启动推荐生成定时任务
+    bgLogger.info('创建推荐生成定时器（每 20 分钟生成 1 条）...')
+    chrome.alarms.create('generate-recommendation', {
+      periodInMinutes: 20 // 每 20 分钟生成一次推荐
+    })
+    
     // Phase 6: 设置通知监听器
-    console.log('[Background] 设置推荐通知监听器...')
+    bgLogger.info('设置推荐通知监听器...')
     setupNotificationListeners()
     
-    console.log('[Background] ✅ Service Worker 启动完成')
+    bgLogger.info('✅ Service Worker 启动完成')
   } catch (error) {
-    console.error('[Background] ❌ Service Worker 启动失败:', error)
-    try {
-      await BadgeManager.updateBadge(0)
-    } catch (badgeError) {
-      console.error('[Background] ❌ 徽章更新也失败:', badgeError)
-    }
+    bgLogger.error('❌ Service Worker 启动失败:', error)
   }
 })()
 
@@ -189,7 +158,7 @@ chrome.runtime.onInstalled.addListener(async () => {
  * 监听来自其他组件的消息
  */
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('[Background] 收到消息:', message.type)
+  bgLogger.debug('收到消息:', message.type)
   
   ;(async () => {
     try {
@@ -200,11 +169,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             await db.confirmedVisits.add(visitData)
             await updateBadge()
             ProfileUpdateScheduler.checkAndScheduleUpdate().catch(error => {
-              console.error('[Background] 画像更新调度失败:', error)
+              bgLogger.error('画像更新调度失败:', error)
             })
             sendResponse({ success: true })
           } catch (dbError) {
-            console.error('[Background] ❌ 保存页面访问失败:', dbError)
+            bgLogger.error('❌ 保存页面访问失败:', dbError)
             sendResponse({ success: false, error: String(dbError) })
           }
           break
@@ -240,26 +209,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               const existing = await feedManager.getFeedByUrl(feed.url)
               if (existing) {
                 if (existing.status === 'ignored') {
-                  console.log('[Background] 跳过已忽略的源:', feed.url)
+                  bgLogger.debug('跳过已忽略的源:', feed.url)
                   continue
                 } else if (existing.status === 'candidate') {
                   // 已经在候选列表中，触发徽章更新
-                  console.log('[Background] 源已在候选列表中:', feed.url)
+                  bgLogger.debug('源已在候选列表中:', feed.url)
                   addedCount++
                   continue
                 } else {
                   // 已订阅或推荐状态，跳过
-                  console.log('[Background] 源已存在（状态: ' + existing.status + '）:', feed.url)
+                  bgLogger.debug(`源已存在（状态: ${existing.status}）:`, feed.url)
                   continue
                 }
               }
               
               // 2. 使用 RSSValidator 验证并获取元数据
-              console.log('[Background] 验证 RSS 源:', feed.url)
+              bgLogger.debug('验证 RSS 源:', feed.url)
               const result = await RSSValidator.validateURL(feed.url)
               
               if (!result.valid || !result.metadata) {
-                console.log('[Background] ❌ 验证失败，跳过:', feed.url, result.error)
+                bgLogger.debug('❌ 验证失败，跳过:', { url: feed.url, error: result.error })
                 continue
               }
               
@@ -267,7 +236,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               const sourceDomain = new URL(sourceURL).hostname
               
               // 3. 添加到候选列表（使用 RSS 标题 + 域名）
-              console.log('[Background] 添加到候选列表:', metadata.title)
+              bgLogger.info('添加到候选列表:', metadata.title)
               const feedId = await feedManager.addCandidate({
                 url: feed.url,
                 title: `${metadata.title} - ${sourceDomain}`,
@@ -287,48 +256,48 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             
             // 只有真正添加了新源才重置查看状态并触发质量分析
             if (addedCount > 0) {
-              console.log(`[Background] 成功添加 ${addedCount} 个有效 RSS 源`)
+              bgLogger.info(`成功添加 ${addedCount} 个有效 RSS 源`)
               rssDiscoveryViewed = false
               await updateBadge()
               
               // 4. 后台异步触发质量分析（不阻塞响应）
               if (newFeedIds.length > 0) {
-                console.log('[Background] 开始后台质量分析...')
+                bgLogger.info('开始后台质量分析...')
                 Promise.all(
                   newFeedIds.map(feedId => 
                     feedManager.analyzeFeed(feedId)
                       .then(quality => {
                         if (quality) {
-                          console.log(`[Background] ✅ 质量分析完成: ${feedId}, 评分: ${quality.score}`)
+                          bgLogger.info(`✅ 质量分析完成: ${feedId}, 评分: ${quality.score}`)
                           
                           // 如果质量分析失败（评分为0且有错误），自动删除
                           if (quality.score === 0 && quality.error) {
-                            console.log(`[Background] ⚠️ 质量分析发现错误，自动删除: ${feedId}`)
+                            bgLogger.warn(`⚠️ 质量分析发现错误，自动删除: ${feedId}`)
                             feedManager.delete(feedId).catch((err: Error) => {
-                              console.error(`[Background] 自动删除失败: ${feedId}`, err)
+                              bgLogger.error(`自动删除失败: ${feedId}`, err)
                             })
                           }
                         }
                       })
                       .catch((error: Error) => {
-                        console.error(`[Background] ❌ 质量分析失败: ${feedId}`, error)
+                        bgLogger.error(`❌ 质量分析失败: ${feedId}`, error)
                         // 分析失败也自动删除
                         feedManager.delete(feedId).catch((err: Error) => {
-                          console.error(`[Background] 自动删除失败: ${feedId}`, err)
+                          bgLogger.error(`自动删除失败: ${feedId}`, err)
                         })
                       })
                   )
                 ).then(() => {
-                  console.log('[Background] 所有质量分析完成')
+                  bgLogger.info('所有质量分析完成')
                 }).catch(error => {
-                  console.error('[Background] 批量质量分析失败:', error)
+                  bgLogger.error('批量质量分析失败:', error)
                 })
               }
             }
             
             sendResponse({ success: true })
           } catch (error) {
-            console.error('[Background] ❌ 处理 RSS 检测失败:', error)
+            bgLogger.error('❌ 处理 RSS 检测失败:', error)
             sendResponse({ success: false, error: String(error) })
           }
           break
@@ -347,7 +316,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         case 'MANUAL_FETCH_FEEDS':
           // Phase 5 Sprint 3: 手动触发所有RSS抓取
           try {
-            console.log('[Background] 手动触发 RSS 抓取...')
+            bgLogger.info('手动触发 RSS 抓取...')
             
             // Phase 5.2: 启动后台抓取动画
             if (iconManager) {
@@ -365,7 +334,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             
             sendResponse({ success: true, data: result })
           } catch (error) {
-            console.error('[Background] ❌ 手动抓取失败:', error)
+            bgLogger.error('❌ 手动抓取失败:', error)
             
             // 停止动画
             if (iconManager) {
@@ -380,7 +349,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           // 手动触发单个RSS源抓取
           try {
             const { feedId } = message.payload as { feedId: string }
-            console.log('[Background] 手动触发单个RSS源抓取:', feedId)
+            bgLogger.info('手动触发单个RSS源抓取:', feedId)
             
             // Phase 5.2: 启动后台抓取动画
             if (iconManager) {
@@ -426,7 +395,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             }
             
           } catch (error) {
-            console.error('[Background] ❌ 单个RSS源抓取失败:', error)
+            bgLogger.error('❌ 单个RSS源抓取失败:', error)
             
             // 停止动画
             if (iconManager) {
@@ -520,11 +489,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         // Phase 6: 测试推荐通知
         case 'TEST_NOTIFICATION':
           try {
-            console.log('[Background] 触发测试通知...')
+            bgLogger.info('触发测试通知...')
             await testNotification()
             sendResponse({ success: true })
           } catch (error) {
-            console.error('[Background] ❌ 测试通知失败:', error)
+            bgLogger.error('❌ 测试通知失败:', error)
             sendResponse({ success: false, error: String(error) })
           }
           break
@@ -533,7 +502,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sendResponse({ success: false, error: 'Unknown message type' })
       }
     } catch (error) {
-      console.error('[Background] 处理消息失败:', error)
+      bgLogger.error('处理消息失败:', error)
       sendResponse({ success: false, error: String(error) })
     }
   })()
@@ -543,20 +512,44 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 /**
  * Phase 6: 定时器事件监听器
- * 处理推荐数量定期评估
+ * 处理推荐数量定期评估和推荐生成
  */
 chrome.alarms.onAlarm.addListener(async (alarm) => {
-  console.log('[Background] 定时器触发:', alarm.name)
+  bgLogger.debug('定时器触发:', alarm.name)
   
   try {
     if (alarm.name === 'evaluate-recommendations') {
-      console.log('[Background] 开始评估推荐数量...')
+      bgLogger.info('开始评估推荐数量...')
       const newCount = await evaluateAndAdjust()
-      console.log(`[Background] ✅ 推荐数量已调整为: ${newCount} 条`)
+      bgLogger.info(`✅ 推荐数量已调整为: ${newCount} 条`)
+    } else if (alarm.name === 'generate-recommendation') {
+      // 检查是否达到学习阈值
+      const pageCount = await getPageCount()
+      if (pageCount < LEARNING_COMPLETE_PAGES) {
+        bgLogger.debug(`跳过推荐生成：当前 ${pageCount} 页，需要 ${LEARNING_COMPLETE_PAGES} 页`)
+        return
+      }
+      
+      bgLogger.info('开始自动生成推荐（每次 1 条）...')
+      
+      // 动态导入以避免循环依赖
+      const { recommendationService } = await import('./core/recommender/RecommendationService')
+      
+      const result = await recommendationService.generateRecommendations(
+        1, // 每次只生成 1 条
+        'subscribed', // 只从订阅源
+        10 // 批次大小
+      )
+      
+      if (result.stats.recommendedCount > 0) {
+        bgLogger.info(`✅ 自动推荐生成完成: ${result.stats.recommendedCount} 条`)
+        // 更新徽章显示新推荐
+        await updateBadge()
+      } else {
+        bgLogger.info('暂无新推荐')
+      }
     }
   } catch (error) {
-    console.error('[Background] ❌ 定时器处理失败:', error)
+    bgLogger.error('❌ 定时器处理失败:', error)
   }
 })
-
-export { BadgeManager, ProgressStage } from './core/badge/BadgeManager'

@@ -6,6 +6,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { IconManager } from './IconManager'
+import { LEARNING_COMPLETE_PAGES } from '@/constants/progress'
 
 // Mock Chrome API
 global.chrome = {
@@ -144,8 +145,8 @@ describe('IconManager', () => {
       expect(chrome.action.setIcon).toHaveBeenCalledTimes(1)
     })
     
-    it('进度 1000 页应该显示静态图标', () => {
-      manager.setLearningProgress(1000)
+    it('进度达到阈值应该显示静态图标', () => {
+      manager.setLearningProgress(LEARNING_COMPLETE_PAGES)
       
       expect(chrome.action.setIcon).toHaveBeenCalledTimes(1)
     })

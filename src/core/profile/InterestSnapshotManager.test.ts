@@ -5,8 +5,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { InterestSnapshotManager } from "./InterestSnapshotManager"
 import { Topic } from "./topics"
-import type { UserProfile } from "./types"
-import type { InterestSnapshot } from "@/storage/types"
+import type { UserProfile } from "@/types/profile"
+import type { InterestSnapshot } from "@/types/profile"
 
 // Mock storage
 const mockSaveInterestSnapshot = vi.fn()

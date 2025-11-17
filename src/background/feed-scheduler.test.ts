@@ -13,7 +13,7 @@ import {
   fetchFeed,
   FeedScheduler
 } from './feed-scheduler'
-import type { DiscoveredFeed, FeedArticle } from '../core/rss/types'
+import type { DiscoveredFeed, FeedArticle } from '@/types/rss'
 import { db } from '../storage/db'
 import { RSSFetcher } from '../core/rss/RSSFetcher'
 

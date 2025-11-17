@@ -19,7 +19,10 @@ import type {
   DeepSeekRequest,
   DeepSeekResponse,
   AIAnalysisOutput
-} from "../types"
+} from "@/types/ai"
+import { logger } from "../../../utils/logger"
+
+const deepSeekLogger = logger.withTag("DeepSeekProvider")
 
 export class DeepSeekProvider implements AIProvider {
   readonly name = "DeepSeek"
@@ -50,19 +53,19 @@ export class DeepSeekProvider implements AIProvider {
     try {
       // 检查 API Key
       if (!this.config.apiKey || this.config.apiKey.length < 20) {
-        console.warn("[DeepSeekProvider] Invalid API Key")
+        deepSeekLogger.warn("Invalid API Key")
         return false
       }
       
       // 检查网络（简单验证）
       if (!navigator.onLine) {
-        console.warn("[DeepSeekProvider] No network connection")
+        deepSeekLogger.warn("No network connection")
         return false
       }
       
       return true
     } catch (error) {
-      console.error("[DeepSeekProvider] isAvailable check failed:", error)
+      deepSeekLogger.error("isAvailable check failed:", error)
       return false
     }
   }
@@ -111,7 +114,7 @@ export class DeepSeekProvider implements AIProvider {
         }
       }
     } catch (error) {
-      console.error("[DeepSeekProvider] analyzeContent failed:", error)
+      deepSeekLogger.error("analyzeContent failed:", error)
       throw error
     }
   }
@@ -280,8 +283,8 @@ ${content}
       
       return { topics }
     } catch (error) {
-      console.error("[DeepSeekProvider] Failed to parse response:", error)
-      console.error("Response:", response)
+      deepSeekLogger.error("Failed to parse response:", error)
+      deepSeekLogger.error("Response:", response)
       throw new Error(`解析 AI 响应失败: ${error instanceof Error ? error.message : String(error)}`)
     }
   }

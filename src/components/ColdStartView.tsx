@@ -1,6 +1,6 @@
 /**
  * 冷启动阶段组件
- * 0-1000 页：显示学习进度和鼓励信息
+ * 0-100 页：显示学习进度和鼓励信息
  * 
  * Phase 5.1: 当有 RSS 发现时，临时用雷达图标替换小树
  */
@@ -9,6 +9,16 @@ import { useState, useEffect } from "react"
 import { useI18n } from "@/i18n/helpers"
 import type { UIStyle } from "@/storage/ui-config"
 import { FeedManager } from "@/core/rss/managers/FeedManager"
+import { logger } from "@/utils/logger"
+import { LEARNING_COMPLETE_PAGES } from "@/constants/progress"
+
+const STAGE_THRESHOLDS = [
+  { ratio: 0.25, icon: "🌱", name: "explorer" },
+  { ratio: 0.6, icon: "🌿", name: "learner" },
+  { ratio: 1, icon: "🌳", name: "grower" }
+]
+
+const coldStartLogger = logger.withTag("ColdStartView")
 
 interface ColdStartViewProps {
   pageCount: number
@@ -19,14 +29,15 @@ interface ColdStartViewProps {
 /**
  * 根据页面数确定成长阶段
  */
-const getGrowthStage = (pageCount: number) => {
-  if (pageCount < 250) return { icon: "🌱", name: "explorer" }
-  if (pageCount < 600) return { icon: "🌿", name: "learner" }
-  if (pageCount < 1000) return { icon: "🌳", name: "grower" }
+const getGrowthStage = (pageCount: number, totalPages: number) => {
+  const denominator = totalPages > 0 ? totalPages : LEARNING_COMPLETE_PAGES
+  const ratio = pageCount / denominator
+  const stage = STAGE_THRESHOLDS.find(({ ratio: threshold }) => ratio < threshold)
+  if (stage) return stage
   return { icon: "🌲", name: "master" }
 }
 
-export function ColdStartView({ pageCount, totalPages = 1000, uiStyle = "sketchy" }: ColdStartViewProps) {
+export function ColdStartView({ pageCount, totalPages = LEARNING_COMPLETE_PAGES, uiStyle = "sketchy" }: ColdStartViewProps) {
   const { _ } = useI18n()
   const [hasRSSDiscovery, setHasRSSDiscovery] = useState(false)
   
@@ -38,7 +49,7 @@ export function ColdStartView({ pageCount, totalPages = 1000, uiStyle = "sketchy
         const candidateFeeds = await feedManager.getFeeds('candidate')
         setHasRSSDiscovery(candidateFeeds.length > 0)
       } catch (error) {
-        console.error('[ColdStartView] 检查 RSS 发现失败:', error)
+        coldStartLogger.error('检查 RSS 发现失败:', error)
       }
     }
     
@@ -61,8 +72,9 @@ export function ColdStartView({ pageCount, totalPages = 1000, uiStyle = "sketchy
     }
   }, [])
   
-  const progress = Math.min((pageCount / totalPages) * 100, 100)
-  const stage = getGrowthStage(pageCount)
+  const denominator = totalPages > 0 ? totalPages : LEARNING_COMPLETE_PAGES
+  const progress = Math.min((pageCount / denominator) * 100, 100)
+  const stage = getGrowthStage(pageCount, denominator)
   const isSketchyStyle = uiStyle === "sketchy"
   
   // 如果有 RSS 发现，用雷达替换成长树

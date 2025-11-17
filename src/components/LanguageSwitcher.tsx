@@ -1,4 +1,7 @@
 import { useI18n } from "@/i18n/helpers"
+import { logger } from "@/utils/logger"
+
+const i18nLogger = logger.withTag("LanguageSwitcher")
 
 /**
  * 语言切换组件
@@ -13,7 +16,7 @@ export function LanguageSwitcher() {
   ]
   
   const changeLanguage = (lng: string) => {
-    console.log(`切换语言到: ${lng}`)
+    i18nLogger.info(`切换语言到: ${lng}`)
     i18n.changeLanguage(lng)
     localStorage.setItem("i18nextLng", lng)
   }

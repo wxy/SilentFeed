@@ -10,9 +10,8 @@
 
 import { TOPIC_NAMES, Topic } from '@/core/profile/topics'
 import { saveInterestSnapshot, getInterestHistory } from '@/storage/db'
-import type { UserProfile } from '@/core/profile/types'
+import type { UserProfile, InterestSnapshot } from "@/types/profile"
 import type { TopicDistribution } from '@/core/profile/TopicClassifier'
-import type { InterestSnapshot } from '@/storage/types'
 
 export class InterestSnapshotManager {
   /**

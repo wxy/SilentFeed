@@ -7,6 +7,11 @@
  * 3. 提供类型安全的接口
  */
 
+import { logger } from "@/utils/logger"
+import { withErrorHandling, withErrorHandlingSync } from "@/utils/error-handler"
+
+const configLogger = logger.withTag('AIConfig')
+
 export type AIProviderType = "openai" | "anthropic" | "deepseek"
 
 /**
@@ -33,70 +38,85 @@ const DEFAULT_CONFIG: AIConfig = {
  * 获取 AI 配置
  */
 export async function getAIConfig(): Promise<AIConfig> {
-  try {
-    // 检查 chrome.storage 是否可用
-    if (!chrome?.storage?.sync) {
-      console.warn("[AIConfig] chrome.storage.sync not available, using default config")
-      return DEFAULT_CONFIG
-    }
-    
-    const result = await chrome.storage.sync.get("aiConfig")
-    
-    if (result.aiConfig) {
-      // 解密 API Key（如果需要）
-      const config = result.aiConfig as AIConfig
-      return {
-        ...DEFAULT_CONFIG,
-        ...config,
-        apiKey: decryptApiKey(config.apiKey)
+  return withErrorHandling(
+    async () => {
+      // 检查 chrome.storage 是否可用
+      if (!chrome?.storage?.sync) {
+        configLogger.warn('chrome.storage.sync not available, using default config')
+        return DEFAULT_CONFIG
       }
+      
+      const result = await chrome.storage.sync.get("aiConfig")
+      
+      if (result.aiConfig) {
+        // 解密 API Key（如果需要）
+        const config = result.aiConfig as AIConfig
+        return {
+          ...DEFAULT_CONFIG,
+          ...config,
+          apiKey: decryptApiKey(config.apiKey)
+        }
+      }
+      
+      return DEFAULT_CONFIG
+    },
+    {
+      tag: 'AIConfig.getAIConfig',
+      fallback: DEFAULT_CONFIG,
+      errorCode: 'AI_CONFIG_LOAD_ERROR',
+      userMessage: '加载 AI 配置失败'
     }
-    
-    return DEFAULT_CONFIG
-  } catch (error) {
-    console.error("[AIConfig] Failed to load config:", error)
-    return DEFAULT_CONFIG
-  }
+  ) as Promise<AIConfig>
 }
 
 /**
  * 保存 AI 配置
  */
 export async function saveAIConfig(config: AIConfig): Promise<void> {
-  try {
-    // 检查 chrome.storage 是否可用
-    if (!chrome?.storage?.sync) {
-      throw new Error("chrome.storage.sync not available")
+  return withErrorHandling(
+    async () => {
+      // 检查 chrome.storage 是否可用
+      if (!chrome?.storage?.sync) {
+        throw new Error("chrome.storage.sync not available")
+      }
+      
+      // 加密 API Key（如果需要）
+      const encryptedConfig = {
+        ...config,
+        apiKey: encryptApiKey(config.apiKey)
+      }
+      
+      await chrome.storage.sync.set({ aiConfig: encryptedConfig })
+    },
+    {
+      tag: 'AIConfig.saveAIConfig',
+      rethrow: true,
+      errorCode: 'AI_CONFIG_SAVE_ERROR',
+      userMessage: '保存 AI 配置失败'
     }
-    
-    // 加密 API Key（如果需要）
-    const encryptedConfig = {
-      ...config,
-      apiKey: encryptApiKey(config.apiKey)
-    }
-    
-    await chrome.storage.sync.set({ aiConfig: encryptedConfig })
-  } catch (error) {
-    console.error("[AIConfig] Failed to save config:", error)
-    throw error
-  }
+  ) as Promise<void>
 }
 
 /**
  * 删除 AI 配置
  */
 export async function deleteAIConfig(): Promise<void> {
-  try {
-    // 检查 chrome.storage 是否可用
-    if (!chrome?.storage?.sync) {
-      throw new Error("chrome.storage.sync not available")
+  return withErrorHandling(
+    async () => {
+      // 检查 chrome.storage 是否可用
+      if (!chrome?.storage?.sync) {
+        throw new Error("chrome.storage.sync not available")
+      }
+      
+      await chrome.storage.sync.remove("aiConfig")
+    },
+    {
+      tag: 'AIConfig.deleteAIConfig',
+      rethrow: true,
+      errorCode: 'AI_CONFIG_DELETE_ERROR',
+      userMessage: '删除 AI 配置失败'
     }
-    
-    await chrome.storage.sync.remove("aiConfig")
-  } catch (error) {
-    console.error("[AIConfig] Failed to delete config:", error)
-    throw error
-  }
+  ) as Promise<void>
 }
 
 /**
@@ -116,19 +136,23 @@ export async function isAIConfigured(): Promise<boolean> {
 function encryptApiKey(apiKey: string): string {
   if (!apiKey) return ""
   
-  try {
-    // 使用 TextEncoder 处理 Unicode
-    const encoder = new TextEncoder()
-    const data = encoder.encode(apiKey)
-    
-    // 转换为 Base64
-    const base64 = btoa(String.fromCharCode(...data))
-    return base64
-  } catch (error) {
-    console.error("[AIConfig] Failed to encrypt API key:", error)
-    // 加密失败时返回原始值（总比丢失好）
-    return apiKey
-  }
+  return withErrorHandlingSync(
+    () => {
+      // 使用 TextEncoder 处理 Unicode
+      const encoder = new TextEncoder()
+      const data = encoder.encode(apiKey)
+      
+      // 转换为 Base64
+      const base64 = btoa(String.fromCharCode(...data))
+      return base64
+    },
+    {
+      tag: 'AIConfig.encryptApiKey',
+      fallback: apiKey, // 加密失败时返回原始值（总比丢失好）
+      errorCode: 'API_KEY_ENCRYPT_ERROR',
+      userMessage: 'API Key 加密失败'
+    }
+  ) as string
 }
 
 /**
@@ -137,21 +161,28 @@ function encryptApiKey(apiKey: string): string {
 function decryptApiKey(encryptedKey: string): string {
   if (!encryptedKey) return ""
   
-  try {
-    // 从 Base64 解码
-    const decoded = atob(encryptedKey)
-    
-    // 转换回 Uint8Array
-    const data = new Uint8Array(decoded.split('').map(c => c.charCodeAt(0)))
-    
-    // 使用 TextDecoder 处理 Unicode
-    const decoder = new TextDecoder()
-    return decoder.decode(data)
-  } catch (error) {
-    // 如果解密失败，可能是未加密的旧数据或新数据
-    console.warn("[AIConfig] Failed to decrypt API key, using as-is")
-    return encryptedKey
-  }
+  return withErrorHandlingSync(
+    () => {
+      // 从 Base64 解码
+      const decoded = atob(encryptedKey)
+      
+      // 转换回 Uint8Array
+      const data = new Uint8Array(decoded.split('').map(c => c.charCodeAt(0)))
+      
+      // 使用 TextDecoder 处理 Unicode
+      const decoder = new TextDecoder()
+      return decoder.decode(data)
+    },
+    {
+      tag: 'AIConfig.decryptApiKey',
+      fallback: encryptedKey, // 如果解密失败，可能是未加密的旧数据或新数据
+      errorCode: 'API_KEY_DECRYPT_ERROR',
+      userMessage: 'API Key 解密失败',
+      onError: () => {
+        configLogger.warn('Failed to decrypt API key, using as-is')
+      }
+    }
+  ) as string
 }
 
 /**

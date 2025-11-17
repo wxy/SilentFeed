@@ -4,8 +4,9 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { db, initializeDatabase, getSettings, updateSettings, getPageCount, getRecommendationStats, getStorageStats, markAsRead, dismissRecommendations, getUnreadRecommendations } from './db'
-import type { UserSettings, ConfirmedVisit, Recommendation, InterestSnapshot } from './types'
-import type { UserProfile } from '@/core/profile/types'
+import type { ConfirmedVisit, Recommendation } from "@/types/database"
+import type { UserSettings } from "@/types/config"
+import type { InterestSnapshot, UserProfile } from "@/types/profile"
 
 describe('数据库初始化', () => {
   beforeEach(async () => {

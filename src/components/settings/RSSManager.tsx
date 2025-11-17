@@ -4,7 +4,10 @@ import { FeedManager } from "@/core/rss/managers/FeedManager"
 import { RSSValidator } from "@/core/rss/RSSValidator"
 import { RSSFetcher, type FeedItem } from "@/core/rss/RSSFetcher"
 import { OPMLImporter } from "@/core/rss/OPMLImporter"
-import type { DiscoveredFeed } from "@/core/rss/types"
+import type { DiscoveredFeed } from "@/types/rss"
+import { logger } from "@/utils/logger"
+
+const rssManagerLogger = logger.withTag("RSSManager")
 
 /**
  * 解码 HTML 实体（如 &#xxxx;）
@@ -68,7 +71,7 @@ export function RSSManager() {
       setSubscribedFeeds(subscribed)
       setIgnoredFeeds(ignored)
     } catch (error) {
-      console.error('[RSSManager] 加载候选源失败:', error)
+      rssManagerLogger.error('加载候选源失败:', error)
     } finally {
       setLoading(false)
     }
@@ -81,14 +84,14 @@ export function RSSManager() {
     setIsFetchingAll(true)
     setFetchCompleted(prev => ({ ...prev, all: false }))
     try {
-      console.log('[RSSManager] 手动触发全部RSS读取...')
+      rssManagerLogger.info('手动触发全部RSS读取...')
       
       const response = await chrome.runtime.sendMessage({
         type: 'MANUAL_FETCH_FEEDS'
       })
       
       if (response.success) {
-        console.log('[RSSManager] 全部RSS读取完成:', response.data)
+        rssManagerLogger.info('全部RSS读取完成:', response.data)
         
         // 显示完成反馈
         setFetchCompleted(prev => ({ ...prev, all: true }))
@@ -104,7 +107,7 @@ export function RSSManager() {
         throw new Error(response.error || '读取失败')
       }
     } catch (error) {
-      console.error('[RSSManager] 全部RSS读取失败:', error)
+      rssManagerLogger.error('全部RSS读取失败:', error)
       alert('RSS读取失败: ' + (error instanceof Error ? error.message : String(error)))
     } finally {
       setIsFetchingAll(false)
@@ -120,7 +123,7 @@ export function RSSManager() {
     try {
       const feed = subscribedFeeds.find(f => f.id === feedId)
       const feedTitle = feed?.title || 'Unknown Feed'
-      console.log(`[RSSManager] 手动读取RSS: ${feedTitle}`)
+      rssManagerLogger.info(`手动读取RSS: ${feedTitle}`)
       
       // 使用新的单个源读取API
       const response = await chrome.runtime.sendMessage({
@@ -129,7 +132,7 @@ export function RSSManager() {
       })
       
       if (response.success) {
-        console.log(`[RSSManager] ${feedTitle} 读取完成:`, response.data)
+        rssManagerLogger.info(`${feedTitle} 读取完成:`, response.data)
         
         // 显示完成反馈
         setFetchCompleted(prev => ({ ...prev, single: feedId }))
@@ -144,7 +147,7 @@ export function RSSManager() {
         throw new Error(response.error || '读取失败')
       }
     } catch (error) {
-      console.error(`[RSSManager] 读取失败:`, error)
+      rssManagerLogger.error(`读取失败:`, error)
       alert(`读取失败: ` + (error instanceof Error ? error.message : String(error)))
     } finally {
       setIsFetchingSingle(null)
@@ -180,7 +183,7 @@ export function RSSManager() {
           [feedId]: result.items.slice(0, 5)
         }))
       } else {
-        console.error('[RSSManager] 加载预览失败:', result.error)
+        rssManagerLogger.error('加载预览失败:', result.error)
         // 加载失败，仍然展开显示错误
         setPreviewArticles(prev => ({
           ...prev,
@@ -188,7 +191,7 @@ export function RSSManager() {
         }))
       }
     } catch (error) {
-      console.error('[RSSManager] 加载预览失败:', error)
+      rssManagerLogger.error('加载预览失败:', error)
       setPreviewArticles(prev => ({
         ...prev,
         [feedId]: []
@@ -214,7 +217,7 @@ export function RSSManager() {
       // 通知 background 更新徽章
       chrome.runtime.sendMessage({ type: 'RSS_IGNORED' })
     } catch (error) {
-      console.error('[RSSManager] 忽略源失败:', error)
+      rssManagerLogger.error('忽略源失败:', error)
     }
   }
 
@@ -236,9 +239,9 @@ export function RSSManager() {
         }])
       }
       
-      console.log('[RSSManager] 已订阅源:', feedId)
+      rssManagerLogger.info('已订阅源:', feedId)
     } catch (error) {
-      console.error('[RSSManager] 订阅源失败:', error)
+      rssManagerLogger.error('订阅源失败:', error)
     }
   }
   
@@ -260,9 +263,9 @@ export function RSSManager() {
         }])
       }
       
-      console.log('[RSSManager] 已取消订阅（移到忽略列表）:', feedId)
+      rssManagerLogger.info('已取消订阅（移到忽略列表）:', feedId)
     } catch (error) {
-      console.error('[RSSManager] 取消订阅失败:', error)
+      rssManagerLogger.error('取消订阅失败:', error)
     }
   }
   
@@ -300,9 +303,9 @@ export function RSSManager() {
         checkQuality()
       }
       
-      console.log('[RSSManager] 已从忽略列表订阅:', feedId)
+      rssManagerLogger.info('已从忽略列表订阅:', feedId)
     } catch (error) {
-      console.error('[RSSManager] 从忽略列表订阅失败:', error)
+      rssManagerLogger.error('从忽略列表订阅失败:', error)
       // 验证失败，源已被删除，刷新列表并提示用户
       await loadFeeds()
       alert(_(error instanceof Error ? error.message : 'options.rssManager.errors.revalidationFailed'))
@@ -320,9 +323,9 @@ export function RSSManager() {
       setCandidateFeeds(prev => prev.filter(f => f.id !== feedId))
       setSubscribedFeeds(prev => prev.filter(f => f.id !== feedId))
       
-      console.log('[RSSManager] 已删除源:', feedId)
+      rssManagerLogger.info('已删除源:', feedId)
     } catch (error) {
-      console.error('[RSSManager] 删除源失败:', error)
+      rssManagerLogger.error('删除源失败:', error)
     }
   }
 
@@ -337,9 +340,9 @@ export function RSSManager() {
         feed.id === feedId ? { ...feed, isActive: newState } : feed
       ))
       
-      console.log('[RSSManager] 已切换源状态:', feedId, newState)
+  rssManagerLogger.info('已切换源状态:', { feedId, newState })
     } catch (error) {
-      console.error('[RSSManager] 切换源状态失败:', error)
+      rssManagerLogger.error('切换源状态失败:', error)
     }
   }
 
@@ -480,7 +483,7 @@ export function RSSManager() {
       
       // 6. 触发质量分析（异步，不阻塞 UI）
       feedManager.analyzeFeed(id, true).catch(error => {
-        console.error('[RSSManager] 手动订阅源质量分析失败:', error)
+        rssManagerLogger.error('手动订阅源质量分析失败:', error)
       })
       
       // 7. 轮询检查质量分析完成
@@ -503,10 +506,10 @@ export function RSSManager() {
       
       // 9. 清空输入
       setManualUrl('')
-      console.log('[RSSManager] 手动订阅成功:', id)
+      rssManagerLogger.info('手动订阅成功:', id)
     } catch (error) {
       setManualError(error instanceof Error ? error.message : _('options.rssManager.errors.subscribeFailed'))
-      console.error('[RSSManager] 手动订阅失败:', error)
+      rssManagerLogger.error('手动订阅失败:', error)
     } finally {
       setIsManualAdding(false)
     }
@@ -522,8 +525,8 @@ export function RSSManager() {
     
     try {
       // 1. 解析 OPML 文件
-      const opmlFeeds = await OPMLImporter.fromFile(file)
-      console.log('[RSSManager] 解析 OPML 成功:', opmlFeeds.length, '个源')
+  const opmlFeeds = await OPMLImporter.fromFile(file)
+  rssManagerLogger.info('解析 OPML 成功:', { count: opmlFeeds.length })
       
       // 2. 批量验证并添加
       const feedManager = new FeedManager()
@@ -558,15 +561,15 @@ export function RSSManager() {
           successCount++
         } catch (error) {
           failCount++
-          console.error('[RSSManager] 导入源失败:', opmlFeed.xmlUrl, error)
+          rssManagerLogger.error('导入源失败:', { feedUrl: opmlFeed.xmlUrl, error })
         }
       }
       
       // 3. 批量触发质量分析（异步，不阻塞 UI）
       if (importedIds.length > 0) {
-        console.log(`[RSSManager] 开始分析 ${importedIds.length} 个导入的源...`)
+        rssManagerLogger.info(`开始分析 ${importedIds.length} 个导入的源...`)
         feedManager.analyzeCandidates(importedIds.length).catch(error => {
-          console.error('[RSSManager] OPML 导入源质量分析失败:', error)
+          rssManagerLogger.error('OPML 导入源质量分析失败:', error)
         })
       }
       
@@ -574,7 +577,7 @@ export function RSSManager() {
       await loadFeeds()
       
       // 5. 显示结果
-      console.log(`[RSSManager] OPML 导入完成: 成功 ${successCount}, 跳过 ${skipCount}, 失败 ${failCount}`)
+      rssManagerLogger.info(`OPML 导入完成: 成功 ${successCount}, 跳过 ${skipCount}, 失败 ${failCount}`)
       if (failCount > 0) {
         setImportError(_('options.rssManager.success.importedWithErrors', { successCount, skipCount, failCount }))
       }
@@ -585,7 +588,7 @@ export function RSSManager() {
       }
     } catch (error) {
       setImportError(error instanceof Error ? error.message : _('options.rssManager.errors.importFailed'))
-      console.error('[RSSManager] OPML 导入失败:', error)
+      rssManagerLogger.error('OPML 导入失败:', error)
     } finally {
       setIsImporting(false)
     }

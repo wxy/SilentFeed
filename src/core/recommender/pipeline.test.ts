@@ -4,9 +4,9 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { RecommendationPipelineImpl, createRecommendationPipeline } from './pipeline'
-import type { RecommendationInput, RecommendationResult } from './types'
-import type { FeedArticle } from '../rss/types'
-import type { UserProfile } from '../profile/types'
+import type { RecommendationInput, RecommendationResult } from '@/types/recommendation'
+import type { FeedArticle } from '@/types/rss'
+import type { UserProfile } from '@/types/profile'
 import { Topic } from '../profile/topics'
 
 // Mock依赖

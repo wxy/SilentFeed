@@ -20,6 +20,7 @@
  */
 
 import { IconComposer, type IconState } from './IconComposer'
+import { LEARNING_COMPLETE_PAGES } from '@/constants/progress'
 
 /**
  * 图标状态管理器
@@ -71,7 +72,7 @@ export class IconManager {
    * 更新学习进度
    */
   setLearningProgress(pages: number): void {
-    this.learningProgress = pages
+    this.learningProgress = Math.max(0, Math.min(pages, LEARNING_COMPLETE_PAGES))
     this.updateIcon()
   }
   
@@ -291,7 +292,7 @@ export class IconManager {
       }
     }
     // 优先级 6: 学习进度
-    else if (this.learningProgress < 1000) {
+    else if (this.learningProgress < LEARNING_COMPLETE_PAGES) {
       state = {
         type: 'learning',
         learningProgress: this.learningProgress,

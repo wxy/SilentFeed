@@ -5,6 +5,9 @@
  */
 
 import { XMLParser } from 'fast-xml-parser'
+import { logger } from '@/utils/logger'
+
+const fetchLogger = logger.withTag('RSSFetcher')
 
 export interface FeedItem {
   title: string
@@ -56,7 +59,7 @@ export class RSSFetcher {
    */
   async fetch(url: string): Promise<FetchResult> {
     try {
-      console.log(`开始抓取 RSS: ${url}`)
+      fetchLogger.info(`开始抓取 RSS: ${url}`)
 
       // 使用 AbortController 实现超时
       const controller = new AbortController()
@@ -100,11 +103,11 @@ export class RSSFetcher {
       const isAtom = parsed.feed !== undefined
       const result = isAtom ? this.parseAtom(parsed, url) : this.parseRSS(parsed, url)
 
-      console.log(`抓取成功: ${result.feedInfo.title}, ${result.items.length} 篇文章`)
+      fetchLogger.info(`抓取成功: ${result.feedInfo.title}, ${result.items.length} 篇文章`)
       return result
 
     } catch (error) {
-      console.error('抓取失败:', error)
+      fetchLogger.error('抓取失败:', error)
       return {
         success: false,
         items: [],

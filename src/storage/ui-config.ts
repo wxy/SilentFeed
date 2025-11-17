@@ -4,6 +4,10 @@
  * 颜色主题自动跟随系统
  */
 
+import { logger } from "@/utils/logger"
+
+const uiLogger = logger.withTag('UIConfig')
+
 export type UIStyle = "sketchy" | "normal"
 
 const UI_STYLE_KEY = "ui_style"
@@ -23,7 +27,7 @@ export async function getUIStyle(): Promise<UIStyle> {
  */
 export async function setUIStyle(style: UIStyle): Promise<void> {
   await chrome.storage.sync.set({ [UI_STYLE_KEY]: style })
-  console.log(`[UI Config] UI 风格已设置为: ${style}`)
+  uiLogger.debug(`UI 风格已设置为: ${style}`)
 }
 
 /**

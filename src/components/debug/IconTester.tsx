@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { LEARNING_COMPLETE_PAGES } from "@/constants/progress"
 
 /**
  * 图标测试组件 - 开发环境专用
@@ -7,14 +8,14 @@ import { useState } from "react"
 export function IconTester() {
   const [status, setStatus] = useState<string>("")
 
-  // 测试学习进度(0-1000页)
+  // 测试学习进度(0-100页)
   const testLearning = async (pages: number) => {
     try {
       const response = await chrome.runtime.sendMessage({
         type: 'DEBUG_SET_LEARNING',
         pages
       })
-      setStatus(`✅ 学习进度已设置: ${pages}/1000 页`)
+      setStatus(`✅ 学习进度已设置: ${pages}/${LEARNING_COMPLETE_PAGES} 页`)
     } catch (error) {
       setStatus(`❌ 错误: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`)
     }
@@ -118,7 +119,7 @@ export function IconTester() {
 
       {/* 学习进度 */}
       <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-        <h4 className="font-medium mb-3">📚 学习进度 (0-1000页)</h4>
+  <h4 className="font-medium mb-3">📚 学习进度 (0-100页)</h4>
         <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
           从上往下的圆角遮罩,逐渐揭开图标
         </p>
@@ -130,28 +131,28 @@ export function IconTester() {
             0 页
           </button>
           <button
-            onClick={() => testLearning(250)}
+            onClick={() => testLearning(25)}
             className="px-3 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
           >
-            250 页
+            25 页
           </button>
           <button
-            onClick={() => testLearning(500)}
+            onClick={() => testLearning(50)}
             className="px-3 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
           >
-            500 页
+            50 页
           </button>
           <button
-            onClick={() => testLearning(750)}
+            onClick={() => testLearning(75)}
             className="px-3 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
           >
-            750 页
+            75 页
           </button>
           <button
-            onClick={() => testLearning(1000)}
+            onClick={() => testLearning(LEARNING_COMPLETE_PAGES)}
             className="px-3 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
           >
-            1000 页 (完成)
+            {LEARNING_COMPLETE_PAGES} 页 (完成)
           </button>
         </div>
       </div>

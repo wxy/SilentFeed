@@ -7,7 +7,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest"
 import { db } from "./db"
-import type { DiscoveredFeed } from "../core/rss/types"
+import type { DiscoveredFeed } from "@/types/rss"
 import { Topic } from "../core/profile/topics"
 
 describe("RSS 数据模型", () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest"
 import { DeepSeekReasonerProvider } from "./DeepSeekReasonerProvider"
-import type { DeepSeekResponse } from "../types"
+import type { DeepSeekResponse } from "@/types/ai"
 
 // Mock fetch
 global.fetch = vi.fn()

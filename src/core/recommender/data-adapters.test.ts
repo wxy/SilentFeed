@@ -3,8 +3,8 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Topic } from '../profile/topics'
-import type { FeedArticle } from '../rss/types'
-import type { UserProfile } from '../profile/types'
+import type { FeedArticle } from '@/types/rss'
+import type { UserProfile } from '@/types/profile'
 import type { ArticleContent } from '../rss/article-fetcher'
 import {
   convertFeedArticlesToArticleData,

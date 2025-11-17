@@ -4,8 +4,8 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { Topic } from "./topics"
-import type { UserProfile } from "./types"
-import type { ConfirmedVisit } from "@/storage/types"
+import type { UserProfile } from "@/types/profile"
+import type { ConfirmedVisit } from "@/types/database"
 
 // Mock dependencies
 vi.mock("@/storage/db")

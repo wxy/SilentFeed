@@ -68,12 +68,10 @@ describe("ui-config", () => {
   describe("setUIStyle", () => {
     it("应该保存 UI 风格", async () => {
       const setSpy = vi.spyOn(chrome.storage.sync, "set").mockImplementation(() => Promise.resolve())
-      const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {})
 
       await setUIStyle("normal")
 
       expect(setSpy).toHaveBeenCalledWith({ ui_style: "normal" })
-      expect(consoleSpy).toHaveBeenCalledWith("[UI Config] UI 风格已设置为: normal")
     })
 
     it("应该支持所有有效的 UI 风格", async () => {
@@ -81,7 +79,6 @@ describe("ui-config", () => {
       
       for (const style of validStyles) {
         vi.spyOn(chrome.storage.sync, "set").mockImplementation(() => Promise.resolve())
-        vi.spyOn(console, "log").mockImplementation(() => {})
 
         await expect(setUIStyle(style)).resolves.toBeUndefined()
       }

@@ -4,7 +4,7 @@
  */
 
 import { create } from 'zustand'
-import type { Recommendation } from '@/storage/types'
+import type { Recommendation } from '@/types/database'
 import { getRecommendationConfig } from '@/storage/recommendation-config'
 import {
   getUnreadRecommendations,

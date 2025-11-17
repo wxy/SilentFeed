@@ -368,16 +368,16 @@
     },
     "options.rss.disabled": {
       "zh-CN": {
-        "value": "将在完成 1000 页面后启用",
-        "hash": "b6ee2f08",
-        "lastModified": "2025-11-02T11:02:54.070Z",
-        "status": "verified"
+        "value": "将在完成 100 页面后启用",
+        "hash": "",
+        "lastModified": "2025-11-17T00:00:00.000Z",
+        "status": "needs-review"
       },
       "en": {
-        "value": "Will be enabled after completing 1000 pages",
-        "hash": "6dcecd85",
-        "lastModified": "2025-11-02T11:02:54.070Z",
-        "status": "ai-translated"
+        "value": "Will be enabled after completing 100 pages",
+        "hash": "",
+        "lastModified": "2025-11-17T00:00:00.000Z",
+        "status": "needs-review"
       }
     },
     "options.ai.title": {
@@ -396,16 +396,16 @@
     },
     "options.ai.disabled": {
       "zh-CN": {
-        "value": "将在完成 1000 页面后启用",
-        "hash": "b6ee2f08",
-        "lastModified": "2025-11-02T11:02:58.066Z",
-        "status": "verified"
+        "value": "将在完成 100 页面后启用",
+        "hash": "",
+        "lastModified": "2025-11-17T00:00:00.000Z",
+        "status": "needs-review"
       },
       "en": {
-        "value": "Will be enabled after completing 1000 pages",
-        "hash": "6dcecd85",
-        "lastModified": "2025-11-02T11:02:58.066Z",
-        "status": "ai-translated"
+        "value": "Will be enabled after completing 100 pages",
+        "hash": "",
+        "lastModified": "2025-11-17T00:00:00.000Z",
+        "status": "needs-review"
       }
     },
     "options.privacy.title": {
@@ -424,16 +424,16 @@
     },
     "options.privacy.disabled": {
       "zh-CN": {
-        "value": "将在完成 1000 页面后启用",
-        "hash": "b6ee2f08",
-        "lastModified": "2025-11-02T11:03:02.384Z",
-        "status": "verified"
+        "value": "将在完成 100 页面后启用",
+        "hash": "",
+        "lastModified": "2025-11-17T00:00:00.000Z",
+        "status": "needs-review"
       },
       "en": {
-        "value": "Will be enabled after completing 1000 pages",
-        "hash": "6dcecd85",
-        "lastModified": "2025-11-02T11:03:02.385Z",
-        "status": "ai-translated"
+        "value": "Will be enabled after completing 100 pages",
+        "hash": "",
+        "lastModified": "2025-11-17T00:00:00.000Z",
+        "status": "needs-review"
       }
     },
     "options.tabs.general": {
@@ -2538,16 +2538,16 @@
     },
     "options.userProfile.noData.tip": {
       "zh-CN": {
-        "value": "💡 不需要等到1000页，有几条有效记录就可以生成画像",
-        "hash": "f20b8ac7",
-        "lastModified": "2025-11-09T13:55:59.633Z",
-        "status": "verified"
+        "value": "💡 不需要等到100页，有几条有效记录就可以生成画像",
+        "hash": "",
+        "lastModified": "2025-11-17T00:00:00.000Z",
+        "status": "needs-review"
       },
       "en": {
-        "value": "💡 No need to wait for 1000 pages - just a few valid records are enough to generate a profile.",
-        "hash": "aebc4a2d",
-        "lastModified": "2025-11-09T13:55:59.633Z",
-        "status": "ai-translated"
+        "value": "💡 No need to wait for 100 pages - just a few valid records are enough to generate a profile.",
+        "hash": "",
+        "lastModified": "2025-11-17T00:00:00.000Z",
+        "status": "needs-review"
       }
     },
     "options.userProfile.lastUpdated.justNow": {

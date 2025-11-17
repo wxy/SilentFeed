@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import IndexPopup from "./popup"
-import { BadgeManager } from "@/core/badge/BadgeManager"
+import { LEARNING_COMPLETE_PAGES } from "@/constants/progress"
 
 // Mock i18n
 vi.mock("@/i18n/helpers", () => ({
@@ -14,7 +14,8 @@ vi.mock("@/i18n/helpers", () => ({
         "app.shortName": () => "RSS 静音器",
         "popup.welcome": () => "欢迎使用智能 RSS 阅读器",
         "popup.learning": () => "正在学习你的兴趣...",
-        "popup.progress": (opt) => `${opt?.current || 0}/${opt?.total || 1000} 页`,
+        "popup.progress": (opt) =>
+          `${opt?.current || 0}/${opt?.total || LEARNING_COMPLETE_PAGES} 页`,
         "popup.stage.explorer": () => "探索者阶段",
         "popup.stage.learner": () => "学习者阶段",
         "popup.stage.grower": () => "成长者阶段",
@@ -27,32 +28,6 @@ vi.mock("@/i18n/helpers", () => ({
     }
   })
 }))
-
-describe("BadgeManager.getStage 函数（用于确定成长阶段）", () => {
-  it("当页面数 0-250 时应该返回探索者", () => {
-    expect(BadgeManager.getStage(0)).toBe("explorer")
-    expect(BadgeManager.getStage(100)).toBe("explorer")
-    expect(BadgeManager.getStage(250)).toBe("explorer") // 250 是 explorer 的最大值
-  })
-
-  it("当页面数 251-600 时应该返回学习者", () => {
-    expect(BadgeManager.getStage(251)).toBe("learner") // 251 开始是 learner
-    expect(BadgeManager.getStage(400)).toBe("learner")
-    expect(BadgeManager.getStage(600)).toBe("learner") // 600 是 learner 的最大值
-  })
-
-  it("当页面数 601-1000 时应该返回成长者", () => {
-    expect(BadgeManager.getStage(601)).toBe("grower") // 601 开始是 grower
-    expect(BadgeManager.getStage(800)).toBe("grower")
-    expect(BadgeManager.getStage(1000)).toBe("grower")
-  })
-
-  it("当页面数 > 1000 时应该返回大师", () => {
-    expect(BadgeManager.getStage(1001)).toBe("master")
-    expect(BadgeManager.getStage(1500)).toBe("master")
-    expect(BadgeManager.getStage(2000)).toBe("master")
-  })
-})
 
 describe("IndexPopup 组件", () => {
   beforeEach(() => {
@@ -91,7 +66,8 @@ describe("IndexPopup 组件", () => {
     // 等待加载完成
     // Phase 6: 临时改为 100 页阈值
     await waitFor(() => {
-      expect(screen.getByText(/0\/100 页/)).toBeInTheDocument()
+      const expected = `0/${LEARNING_COMPLETE_PAGES} 页`
+      expect(screen.getByText(expected)).toBeInTheDocument()
     })
   })
 

@@ -1,3 +1,5 @@
+import { getLearningProgressRatio } from '@/constants/progress'
+
 /**
  * IconComposer - 扩展图标组合引擎
  * 
@@ -24,7 +26,7 @@ export interface IconState {
   /** 状态类型 */
   type: 'static' | 'learning' | 'recommend' | 'fetching' | 'discover' | 'error' | 'paused'
   
-  /** 学习进度(0-1000页) */
+  /** 学习进度(0-100页) */
   learningProgress?: number
   
   /** 推荐条目数(1-3) */
@@ -165,8 +167,6 @@ export class IconComposer {
     
     // 6. 绘制学习进度垂直遮罩(学习状态)
     if (state.type === 'learning' && state.learningProgress !== undefined) {
-      const progress = state.learningProgress / 1000
-      const maskHeight = this.canvas.height * (1 - progress)
       this.drawLearningMask(state.learningProgress)
     }
     
@@ -250,13 +250,13 @@ export class IconComposer {
   
   /**
    * 绘制学习进度垂直遮罩
-   * 进度: 0页(全遮蔽) → 1000页(完全清晰)
+  * 进度: 0页(全遮蔽) → 100页(完全清晰)
    * 方向: 从底部向上逐渐揭开
    * 
    * 使用圆角遮罩 PNG(32×32),裁剪上半部分来实现进度
    */
   private drawLearningMask(pages: number): void {
-    const progress = Math.min(pages / 1000, 1)  // 0-1
+  const progress = getLearningProgressRatio(pages)
     const maskHeight = this.canvas.height * (1 - progress)  // 32px → 0px
     
     if (maskHeight <= 0) return  // 学习完成,无需遮罩

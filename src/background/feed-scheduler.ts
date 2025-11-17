@@ -12,7 +12,7 @@
 
 import { db } from '../storage/db'
 import { RSSFetcher } from '../core/rss/RSSFetcher'
-import type { DiscoveredFeed, FeedArticle } from '../core/rss/types'
+import type { DiscoveredFeed, FeedArticle } from '@/types/rss'
 
 /**
  * 计算下次抓取间隔（毫秒）

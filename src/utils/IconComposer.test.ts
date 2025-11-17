@@ -6,6 +6,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { IconComposer, type IconState } from './IconComposer'
+import { LEARNING_COMPLETE_PAGES } from '@/constants/progress'
 
 // Mock Chrome API
 global.chrome = {
@@ -313,34 +314,34 @@ describe('IconComposer', () => {
       expect(spy).toHaveBeenCalled()
     })
     
-    it('500页应该绘制半高遮罩', () => {
+    it('半程进度应该绘制半高遮罩', () => {
       const ctx = (composer as any).ctx
       const spy = vi.spyOn(ctx, 'drawImage')
       const method = (composer as any).drawLearningMask.bind(composer)
       
-      method(500)
+      method(LEARNING_COMPLETE_PAGES / 2)
       
       // 应该绘制学习遮罩图层(裁剪到一半高度)
       expect(spy).toHaveBeenCalled()
     })
     
-    it('1000页应该不绘制遮罩', () => {
+    it('达到阈值应该不绘制遮罩', () => {
       const ctx = (composer as any).ctx
       const spy = vi.spyOn(ctx, 'drawImage')
       const method = (composer as any).drawLearningMask.bind(composer)
       
-      method(1000)
+      method(LEARNING_COMPLETE_PAGES)
       
       // 不应该调用 drawImage(不绘制遮罩)
       expect(spy).not.toHaveBeenCalled()
     })
     
-    it('超过1000页应该不绘制遮罩', () => {
+    it('超过阈值应该不绘制遮罩', () => {
       const ctx = (composer as any).ctx
       const spy = vi.spyOn(ctx, 'drawImage')
       const method = (composer as any).drawLearningMask.bind(composer)
       
-      method(1500)
+      method(LEARNING_COMPLETE_PAGES + 50)
       
       expect(spy).not.toHaveBeenCalled()
     })
