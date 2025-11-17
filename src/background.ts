@@ -162,11 +162,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             await db.confirmedVisits.add(visitData)
             await updateBadge()
             ProfileUpdateScheduler.checkAndScheduleUpdate().catch(error => {
-              console.error('[Background] 画像更新调度失败:', error)
+              bgLogger.error('画像更新调度失败:', error)
             })
             sendResponse({ success: true })
           } catch (dbError) {
-            console.error('[Background] ❌ 保存页面访问失败:', dbError)
+            bgLogger.error('❌ 保存页面访问失败:', dbError)
             sendResponse({ success: false, error: String(dbError) })
           }
           break
@@ -202,26 +202,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               const existing = await feedManager.getFeedByUrl(feed.url)
               if (existing) {
                 if (existing.status === 'ignored') {
-                  console.log('[Background] 跳过已忽略的源:', feed.url)
+                  bgLogger.debug('跳过已忽略的源:', feed.url)
                   continue
                 } else if (existing.status === 'candidate') {
                   // 已经在候选列表中，触发徽章更新
-                  console.log('[Background] 源已在候选列表中:', feed.url)
+                  bgLogger.debug('源已在候选列表中:', feed.url)
                   addedCount++
                   continue
                 } else {
                   // 已订阅或推荐状态，跳过
-                  console.log('[Background] 源已存在（状态: ' + existing.status + '）:', feed.url)
+                  bgLogger.debug(`源已存在（状态: ${existing.status}）:`, feed.url)
                   continue
                 }
               }
               
               // 2. 使用 RSSValidator 验证并获取元数据
-              console.log('[Background] 验证 RSS 源:', feed.url)
+              bgLogger.debug('验证 RSS 源:', feed.url)
               const result = await RSSValidator.validateURL(feed.url)
               
               if (!result.valid || !result.metadata) {
-                console.log('[Background] ❌ 验证失败，跳过:', feed.url, result.error)
+                bgLogger.debug('❌ 验证失败，跳过:', { url: feed.url, error: result.error })
                 continue
               }
               
@@ -229,7 +229,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               const sourceDomain = new URL(sourceURL).hostname
               
               // 3. 添加到候选列表（使用 RSS 标题 + 域名）
-              console.log('[Background] 添加到候选列表:', metadata.title)
+              bgLogger.info('添加到候选列表:', metadata.title)
               const feedId = await feedManager.addCandidate({
                 url: feed.url,
                 title: `${metadata.title} - ${sourceDomain}`,
@@ -249,48 +249,48 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             
             // 只有真正添加了新源才重置查看状态并触发质量分析
             if (addedCount > 0) {
-              console.log(`[Background] 成功添加 ${addedCount} 个有效 RSS 源`)
+              bgLogger.info(`成功添加 ${addedCount} 个有效 RSS 源`)
               rssDiscoveryViewed = false
               await updateBadge()
               
               // 4. 后台异步触发质量分析（不阻塞响应）
               if (newFeedIds.length > 0) {
-                console.log('[Background] 开始后台质量分析...')
+                bgLogger.info('开始后台质量分析...')
                 Promise.all(
                   newFeedIds.map(feedId => 
                     feedManager.analyzeFeed(feedId)
                       .then(quality => {
                         if (quality) {
-                          console.log(`[Background] ✅ 质量分析完成: ${feedId}, 评分: ${quality.score}`)
+                          bgLogger.info(`✅ 质量分析完成: ${feedId}, 评分: ${quality.score}`)
                           
                           // 如果质量分析失败（评分为0且有错误），自动删除
                           if (quality.score === 0 && quality.error) {
-                            console.log(`[Background] ⚠️ 质量分析发现错误，自动删除: ${feedId}`)
+                            bgLogger.warn(`⚠️ 质量分析发现错误，自动删除: ${feedId}`)
                             feedManager.delete(feedId).catch((err: Error) => {
-                              console.error(`[Background] 自动删除失败: ${feedId}`, err)
+                              bgLogger.error(`自动删除失败: ${feedId}`, err)
                             })
                           }
                         }
                       })
                       .catch((error: Error) => {
-                        console.error(`[Background] ❌ 质量分析失败: ${feedId}`, error)
+                        bgLogger.error(`❌ 质量分析失败: ${feedId}`, error)
                         // 分析失败也自动删除
                         feedManager.delete(feedId).catch((err: Error) => {
-                          console.error(`[Background] 自动删除失败: ${feedId}`, err)
+                          bgLogger.error(`自动删除失败: ${feedId}`, err)
                         })
                       })
                   )
                 ).then(() => {
-                  console.log('[Background] 所有质量分析完成')
+                  bgLogger.info('所有质量分析完成')
                 }).catch(error => {
-                  console.error('[Background] 批量质量分析失败:', error)
+                  bgLogger.error('批量质量分析失败:', error)
                 })
               }
             }
             
             sendResponse({ success: true })
           } catch (error) {
-            console.error('[Background] ❌ 处理 RSS 检测失败:', error)
+            bgLogger.error('❌ 处理 RSS 检测失败:', error)
             sendResponse({ success: false, error: String(error) })
           }
           break
@@ -309,7 +309,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         case 'MANUAL_FETCH_FEEDS':
           // Phase 5 Sprint 3: 手动触发所有RSS抓取
           try {
-            console.log('[Background] 手动触发 RSS 抓取...')
+            bgLogger.info('手动触发 RSS 抓取...')
             
             // Phase 5.2: 启动后台抓取动画
             if (iconManager) {
@@ -327,7 +327,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             
             sendResponse({ success: true, data: result })
           } catch (error) {
-            console.error('[Background] ❌ 手动抓取失败:', error)
+            bgLogger.error('❌ 手动抓取失败:', error)
             
             // 停止动画
             if (iconManager) {
@@ -342,7 +342,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           // 手动触发单个RSS源抓取
           try {
             const { feedId } = message.payload as { feedId: string }
-            console.log('[Background] 手动触发单个RSS源抓取:', feedId)
+            bgLogger.info('手动触发单个RSS源抓取:', feedId)
             
             // Phase 5.2: 启动后台抓取动画
             if (iconManager) {
@@ -388,7 +388,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             }
             
           } catch (error) {
-            console.error('[Background] ❌ 单个RSS源抓取失败:', error)
+            bgLogger.error('❌ 单个RSS源抓取失败:', error)
             
             // 停止动画
             if (iconManager) {
@@ -482,11 +482,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         // Phase 6: 测试推荐通知
         case 'TEST_NOTIFICATION':
           try {
-            console.log('[Background] 触发测试通知...')
+            bgLogger.info('触发测试通知...')
             await testNotification()
             sendResponse({ success: true })
           } catch (error) {
-            console.error('[Background] ❌ 测试通知失败:', error)
+            bgLogger.error('❌ 测试通知失败:', error)
             sendResponse({ success: false, error: String(error) })
           }
           break
@@ -495,7 +495,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sendResponse({ success: false, error: 'Unknown message type' })
       }
     } catch (error) {
-      console.error('[Background] 处理消息失败:', error)
+      bgLogger.error('处理消息失败:', error)
       sendResponse({ success: false, error: String(error) })
     }
   })()
@@ -508,15 +508,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
  * 处理推荐数量定期评估
  */
 chrome.alarms.onAlarm.addListener(async (alarm) => {
-  console.log('[Background] 定时器触发:', alarm.name)
+  bgLogger.debug('定时器触发:', alarm.name)
   
   try {
     if (alarm.name === 'evaluate-recommendations') {
-      console.log('[Background] 开始评估推荐数量...')
+      bgLogger.info('开始评估推荐数量...')
       const newCount = await evaluateAndAdjust()
-      console.log(`[Background] ✅ 推荐数量已调整为: ${newCount} 条`)
+      bgLogger.info(`✅ 推荐数量已调整为: ${newCount} 条`)
     }
   } catch (error) {
-    console.error('[Background] ❌ 定时器处理失败:', error)
+    bgLogger.error('❌ 定时器处理失败:', error)
   }
 })
