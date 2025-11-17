@@ -7,6 +7,10 @@
  * 3. 提供类型安全的接口
  */
 
+import { logger } from "@/utils/logger"
+
+const configLogger = logger.withTag('AIConfig')
+
 export type AIProviderType = "openai" | "anthropic" | "deepseek"
 
 /**
@@ -36,7 +40,7 @@ export async function getAIConfig(): Promise<AIConfig> {
   try {
     // 检查 chrome.storage 是否可用
     if (!chrome?.storage?.sync) {
-      console.warn("[AIConfig] chrome.storage.sync not available, using default config")
+      configLogger.warn('chrome.storage.sync not available, using default config')
       return DEFAULT_CONFIG
     }
     
@@ -54,7 +58,7 @@ export async function getAIConfig(): Promise<AIConfig> {
     
     return DEFAULT_CONFIG
   } catch (error) {
-    console.error("[AIConfig] Failed to load config:", error)
+    configLogger.error('Failed to load config:', error)
     return DEFAULT_CONFIG
   }
 }
@@ -77,7 +81,7 @@ export async function saveAIConfig(config: AIConfig): Promise<void> {
     
     await chrome.storage.sync.set({ aiConfig: encryptedConfig })
   } catch (error) {
-    console.error("[AIConfig] Failed to save config:", error)
+    configLogger.error('Failed to save config:', error)
     throw error
   }
 }
@@ -94,7 +98,7 @@ export async function deleteAIConfig(): Promise<void> {
     
     await chrome.storage.sync.remove("aiConfig")
   } catch (error) {
-    console.error("[AIConfig] Failed to delete config:", error)
+    configLogger.error('Failed to delete config:', error)
     throw error
   }
 }
@@ -125,7 +129,7 @@ function encryptApiKey(apiKey: string): string {
     const base64 = btoa(String.fromCharCode(...data))
     return base64
   } catch (error) {
-    console.error("[AIConfig] Failed to encrypt API key:", error)
+    configLogger.error('Failed to encrypt API key:', error)
     // 加密失败时返回原始值（总比丢失好）
     return apiKey
   }
@@ -149,7 +153,7 @@ function decryptApiKey(encryptedKey: string): string {
     return decoder.decode(data)
   } catch (error) {
     // 如果解密失败，可能是未加密的旧数据或新数据
-    console.warn("[AIConfig] Failed to decrypt API key, using as-is")
+    configLogger.warn('Failed to decrypt API key, using as-is')
     return encryptedKey
   }
 }
