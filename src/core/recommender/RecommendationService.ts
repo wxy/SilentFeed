@@ -14,6 +14,10 @@ import type { FeedArticle } from '../rss/types'
 import type { RecommendationInput, RecommendedArticle, RecommendationResult, RecommendationConfig } from './types'
 import { trackRecommendationGenerated } from './adaptive-count'
 import { sendRecommendationNotification } from './notification'
+import { logger } from '../../utils/logger'
+
+// 创建带标签的 logger
+const recLogger = logger.withTag('RecommendationService')
 
 /**
  * 推荐生成结果
@@ -59,7 +63,7 @@ export class RecommendationService {
       // 获取推荐配置
       const recommendationConfig = await getRecommendationConfig()
       
-      console.log('[RecommendationService] 开始生成推荐...', {
+      recLogger.info(' 开始生成推荐...', {
         maxRecommendations,
         sources,
         batchSize,
@@ -79,7 +83,7 @@ export class RecommendationService {
         throw new Error('没有可用的RSS文章数据，请先订阅一些RSS源')
       }
 
-      console.log('[RecommendationService] 收集到文章:', articles.length, '篇（批次大小：', batchSize, '）')
+      recLogger.info(`收集到文章: ${articles.length} 篇（批次大小：${batchSize}）`)
 
       // 3. 构建推荐输入
       const config: RecommendationConfig = {
@@ -91,7 +95,7 @@ export class RecommendationService {
         tfidfThreshold: recommendationConfig.tfidfThreshold
       }
       
-      console.log('[RecommendationService] 推荐配置:', {
+      recLogger.info(' 推荐配置:', {
         qualityThreshold: config.qualityThreshold,
         tfidfThreshold: config.tfidfThreshold,
         batchSize: config.batchSize,
@@ -115,13 +119,13 @@ export class RecommendationService {
       const highQualityArticles = result.articles.filter(article => {
         const isHighQuality = article.score >= qualityThreshold
         if (!isHighQuality) {
-          console.log(`[RecommendationService] ⚠️ 文章质量不达标 (${article.score.toFixed(2)} < ${qualityThreshold}):`, article.title)
+          recLogger.info(` ⚠️ 文章质量不达标 (${article.score.toFixed(2)} < ${qualityThreshold}):`, article.title)
         }
         return isHighQuality
       })
       
       if (highQualityArticles.length === 0 && result.articles.length > 0) {
-        console.warn(`[RecommendationService] ⚠️ 所有文章都未达到质量阈值 ${qualityThreshold}，本次不生成推荐`)
+        recLogger.warn(` ⚠️ 所有文章都未达到质量阈值 ${qualityThreshold}，本次不生成推荐`)
       }
       
       // 6. 转换为存储格式并保存（仅保存高质量文章）
@@ -137,7 +141,7 @@ export class RecommendationService {
 
       // 推荐方式总结日志
       const algorithmUsed = this.getAlgorithmDisplayName(result.algorithm)
-      console.log(`[RecommendationService] 🎯 推荐生成完成 - 使用方式：${algorithmUsed}`, {
+      recLogger.info(` 🎯 推荐生成完成 - 使用方式：${algorithmUsed}`, {
         '总文章数': stats.totalArticles,
         '推荐数量': stats.recommendedCount,
         '处理时长': `${stats.processingTimeMs}ms`,
@@ -167,7 +171,7 @@ export class RecommendationService {
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
-      console.error('[RecommendationService] ❌ 推荐生成失败:', errorMessage)
+      recLogger.error(' ❌ 推荐生成失败:', errorMessage)
       
       return {
         recommendations: [],
@@ -199,7 +203,7 @@ export class RecommendationService {
       ? await feedManager.getFeeds() 
       : await feedManager.getFeeds('subscribed')
 
-    console.log('[RecommendationService] 找到RSS源:', feeds.length, '个')
+    recLogger.info(`找到RSS源: ${feeds.length} 个`)
 
     const allArticles: FeedArticle[] = []
 
@@ -218,7 +222,7 @@ export class RecommendationService {
         
         allArticles.push(...unanalyzedArticles)
         
-        console.log(`[RecommendationService] 从 ${feed.title} 收集文章:`, {
+        recLogger.info(` 从 ${feed.title} 收集文章:`, {
           '总数': totalArticles,
           '未分析': unanalyzedArticles.length,
           '已分析': analyzedArticles,
@@ -232,7 +236,7 @@ export class RecommendationService {
 
     // Phase 6: 返回所有未经 AI 分析的文章供 TF-IDF 初筛
     // （部分文章可能因 TF-IDF 分数太低而在 pipeline 中被跳过）
-    console.log(`[RecommendationService] 收集未分析文章（待TF-IDF筛选）: ${sortedArticles.length} 篇`)
+    recLogger.info(` 收集未分析文章（待TF-IDF筛选）: ${sortedArticles.length} 篇`)
     return sortedArticles
   }
 
@@ -258,7 +262,7 @@ export class RecommendationService {
       .toArray()
     
     const maxSize = config.maxRecommendations || 3
-    console.log('[RecommendationService] 当前推荐池:', currentPool.length, '条（容量:', maxSize, '）')
+    recLogger.info(`当前推荐池: ${currentPool.length} 条（容量: ${maxSize}）`)
 
     // 获取最近7天的推荐URL，用于去重
     try {
@@ -268,15 +272,15 @@ export class RecommendationService {
         .toArray()
       
       recentRecommendations.forEach(rec => existingUrls.add(rec.url))
-      console.log('[RecommendationService] 最近7天已有推荐:', existingUrls.size, '条，用于去重')
+      recLogger.info(`最近7天已有推荐: ${existingUrls.size} 条，用于去重`)
     } catch (error) {
-      console.warn('[RecommendationService] 获取历史推荐失败:', error)
+      recLogger.warn(' 获取历史推荐失败:', error)
     }
 
     for (const [index, article] of recommendedArticles.entries()) {
       // 检查是否重复
       if (existingUrls.has(article.url)) {
-        console.log('[RecommendationService] 跳过重复推荐:', article.title, article.url)
+        recLogger.info(`跳过重复推荐: ${article.title} - ${article.url}`)
         continue
       }
 
@@ -286,18 +290,18 @@ export class RecommendationService {
       
       // 规则 1: 如果池未满，直接加入（已经通过质量阈值筛选）
       if (poolSize < maxSize) {
-        console.log(`[RecommendationService] ✅ 池未满 (${poolSize}/${maxSize})，直接加入: ${article.title} (${article.score.toFixed(2)})`)
+        recLogger.info(` ✅ 池未满 (${poolSize}/${maxSize})，直接加入: ${article.title} (${article.score.toFixed(2)})`)
       } 
       // 规则 2: 如果池已满，检查是否能替换最低分
       else {
         const lowestInPool = currentPool.sort((a, b) => a.score - b.score)[0]
         if (article.score > lowestInPool.score) {
-          console.log(`[RecommendationService] 🔄 替换低分推荐: ${article.score.toFixed(2)} > ${lowestInPool.score.toFixed(2)}`)
+          recLogger.info(` 🔄 替换低分推荐: ${article.score.toFixed(2)} > ${lowestInPool.score.toFixed(2)}`)
           // 删除最低分的推荐
           await db.recommendations.delete(lowestInPool.id)
           currentPool.shift() // 从数组中移除
         } else {
-          console.log(`[RecommendationService] ❌ 池已满且分数不够高: ${article.score.toFixed(2)} <= ${lowestInPool.score.toFixed(2)}，跳过: ${article.title}`)
+          recLogger.info(` ❌ 池已满且分数不够高: ${article.score.toFixed(2)} <= ${lowestInPool.score.toFixed(2)}，跳过: ${article.title}`)
           continue // 不够格，跳过
         }
       }
@@ -311,7 +315,7 @@ export class RecommendationService {
             feedUrl = feed.url
           }
         } catch (error) {
-          console.warn('[RecommendationService] 获取 RSS 源失败:', article.feedId, error)
+          recLogger.warn(`获取 RSS 源失败: ${article.feedId}`, error)
         }
       }
       
@@ -339,14 +343,14 @@ export class RecommendationService {
     }
 
     if (recommendations.length === 0) {
-      console.log('[RecommendationService] ⚠️ 所有推荐都是重复的，没有新推荐可保存')
+      recLogger.info(' ⚠️ 所有推荐都是重复的，没有新推荐可保存')
       return []
     }
 
     // 批量保存到数据库
     await db.recommendations.bulkAdd(recommendations)
     
-    console.log('[RecommendationService] 保存推荐到数据库:', recommendations.length, '条（去重后）')
+    recLogger.info(`保存推荐到数据库: ${recommendations.length} 条（去重后）`)
 
     // Phase 6: 标记进入推荐池的文章
     // 通过 recommendedArticles 找到对应的 feedId 和 articleId，更新 recommended 字段
@@ -368,16 +372,16 @@ export class RecommendationService {
           })
         }
       } catch (error) {
-        console.warn('[RecommendationService] 标记文章推荐状态失败:', article.feedId, error)
+        recLogger.warn(`标记文章推荐状态失败: ${article.feedId}`, error)
       }
     }
     
-    console.log('[RecommendationService] 已标记进入推荐池的文章')
+    recLogger.info(' 已标记进入推荐池的文章')
 
     // Phase 6: 更新 RSS 源的推荐数统计
     // 异步更新，不阻塞返回
     updateAllFeedStats().catch((error: Error) => {
-      console.error('[RecommendationService] 更新 RSS 源统计失败:', error)
+      recLogger.error(' 更新 RSS 源统计失败:', error)
     })
 
     return recommendations

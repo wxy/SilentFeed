@@ -228,6 +228,22 @@ export class FeedAIMuterDB extends Dexie {
       discoveredFeeds: 'id, url, status, discoveredAt, subscribedAt, discoveredFrom, isActive, lastFetchedAt, [status+discoveredAt], [isActive+lastFetchedAt]',
       feedArticles: null  // 删除表
     })
+
+    // 版本 10: 索引优化（Phase 7.1 - 性能优化）
+    // 根据查询模式优化索引，提升查询性能
+    this.version(10).stores({
+      pendingVisits: 'id, url, startTime, expiresAt',
+      // confirmedVisits: 添加 visitTime 单独索引（高频查询：orderBy('visitTime')）
+      confirmedVisits: 'id, visitTime, domain, *analysis.keywords, [visitTime+domain]',
+      settings: 'id',
+      statistics: 'id, type, timestamp',
+      // recommendations: 添加复合索引优化未读查询（高频：where('isRead').equals(false)）
+      recommendations: 'id, recommendedAt, isRead, source, sourceUrl, [isRead+recommendedAt], [isRead+source]',
+      userProfile: 'id, lastUpdated',
+      interestSnapshots: 'id, timestamp, primaryTopic, trigger, [primaryTopic+timestamp]',
+      // discoveredFeeds: 添加 url 索引（高频：where('url').equals()）
+      discoveredFeeds: 'id, url, status, discoveredAt, subscribedAt, discoveredFrom, isActive, lastFetchedAt, [status+discoveredAt], [isActive+lastFetchedAt]',
+    })
   }
 }
 
@@ -247,9 +263,9 @@ async function checkDatabaseVersion(): Promise<void> {
     const existingDB = dbs.find(d => d.name === 'FeedAIMuterDB')
     
     if (existingDB && existingDB.version) {
-      console.log(`[DB] 现有数据库版本: ${existingDB.version}, 代码版本: 8`)
+      console.log(`[DB] 现有数据库版本: ${existingDB.version}, 代码版本: 10`)
       
-      if (existingDB.version > 8) {
+      if (existingDB.version > 10) {
         console.warn('[DB] ⚠️ 浏览器中的数据库版本较高，Dexie 将自动处理')
       }
     }
@@ -272,7 +288,7 @@ export async function initializeDatabase(): Promise<void> {
     if (!db.isOpen()) {
       console.log('[DB] 正在打开数据库...')
       await db.open()
-      console.log('[DB] ✅ 数据库已打开（版本 8）')
+      console.log('[DB] ✅ 数据库已打开（版本 10）')
     }
     
     // ✅ 关键修复：使用 count() 检查是否已有设置，而不是 get()
