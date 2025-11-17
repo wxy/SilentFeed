@@ -59,29 +59,37 @@ export class DataMigrator {
         const batch = needAnalysis.slice(i, i + batchSize)
         console.log(`[DataMigrator] 处理批次 ${Math.floor(i / batchSize) + 1}/${Math.ceil(needAnalysis.length / batchSize)}`)
 
+        // ✅ 优化：收集批量更新，而不是逐条更新
+        const updates: Array<{ key: string; changes: Partial<ConfirmedVisit> }> = []
+
         for (const visit of batch) {
           try {
             // 尝试重新访问页面进行分析（如果内容还存在的话）
             const analysis = await this.analyzeVisitFromStoredContent(visit)
             
             if (analysis) {
-              // 更新访问记录，确保完整更新
-              await db.confirmedVisits.update(visit.id, { 
-                analysis: {
-                  keywords: analysis.keywords || [],
-                  topics: analysis.topics || [],
-                  language: analysis.language || 'other'
+              updates.push({
+                key: visit.id,
+                changes: {
+                  analysis: {
+                    keywords: analysis.keywords || [],
+                    topics: analysis.topics || [],
+                    language: analysis.language || 'other'
+                  }
                 }
               })
               updated++
               console.log(`[DataMigrator] 更新记录: ${visit.title} (${analysis.keywords?.length || 0} 关键词)`)
             } else {
               // 如果分析失败，至少设置一个空的有效分析结果
-              await db.confirmedVisits.update(visit.id, { 
-                analysis: {
-                  keywords: [],
-                  topics: [],
-                  language: 'other'
+              updates.push({
+                key: visit.id,
+                changes: {
+                  analysis: {
+                    keywords: [],
+                    topics: [],
+                    language: 'other'
+                  }
                 }
               })
               console.log(`[DataMigrator] 设置空分析结果: ${visit.title}`)
@@ -92,6 +100,17 @@ export class DataMigrator {
             console.error(`[DataMigrator] 分析失败: ${visit.title}`, error)
             failed++
           }
+        }
+
+        // ✅ 批量更新数据库
+        if (updates.length > 0) {
+          // 使用 Promise.all 并行执行所有更新（性能优化）
+          await Promise.all(
+            updates.map(({ key, changes }) => 
+              db.confirmedVisits.update(key, changes)
+            )
+          )
+          console.log(`[DataMigrator] 批量更新完成: ${updates.length} 条记录`)
         }
 
         // 避免阻塞，每批次之间稍作延迟

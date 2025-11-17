@@ -353,30 +353,45 @@ export class RecommendationService {
     recLogger.info(`保存推荐到数据库: ${recommendations.length} 条（去重后）`)
 
     // Phase 6: 标记进入推荐池的文章
-    // 通过 recommendedArticles 找到对应的 feedId 和 articleId，更新 recommended 字段
+    // ✅ 优化：收集需要更新的 feeds，批量更新
+    const feedUpdates = new Map<string, { latestArticles: any[] }>()
+    
     for (const article of recommendedArticles) {
       if (!article.feedId) continue
       
       try {
-        const feed = await db.discoveredFeeds.get(article.feedId)
-        if (!feed || !feed.latestArticles) continue
+        // 如果已经在更新列表中，使用缓存的数据
+        let feedData = feedUpdates.get(article.feedId)
+        
+        if (!feedData) {
+          const feed = await db.discoveredFeeds.get(article.feedId)
+          if (!feed || !feed.latestArticles) continue
+          
+          // 缓存 feed 数据
+          feedData = { latestArticles: [...feed.latestArticles] }
+          feedUpdates.set(article.feedId, feedData)
+        }
         
         // 找到对应的文章并标记
-        const targetArticle = feed.latestArticles.find(a => a.link === article.url)
+        const targetArticle = feedData.latestArticles.find(a => a.link === article.url)
         if (targetArticle && !targetArticle.recommended) {
           targetArticle.recommended = true
-          
-          // 更新到数据库
-          await db.discoveredFeeds.update(feed.id, {
-            latestArticles: feed.latestArticles
-          })
         }
       } catch (error) {
         recLogger.warn(`标记文章推荐状态失败: ${article.feedId}`, error)
       }
     }
     
-    recLogger.info(' 已标记进入推荐池的文章')
+    // ✅ 批量更新所有受影响的 feeds
+    if (feedUpdates.size > 0) {
+      // 使用 Promise.all 并行执行所有更新（性能优化）
+      await Promise.all(
+        Array.from(feedUpdates.entries()).map(([feedId, updates]) =>
+          db.discoveredFeeds.update(feedId, updates)
+        )
+      )
+      recLogger.info(`已标记进入推荐池的文章: ${feedUpdates.size} 个 feeds`)
+    }
 
     // Phase 6: 更新 RSS 源的推荐数统计
     // 异步更新，不阻塞返回
