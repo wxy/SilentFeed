@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import IndexPopup from "./popup"
-import { BadgeManager } from "@/core/badge/BadgeManager"
 
 // Mock i18n
 vi.mock("@/i18n/helpers", () => ({
@@ -27,32 +26,6 @@ vi.mock("@/i18n/helpers", () => ({
     }
   })
 }))
-
-describe("BadgeManager.getStage 函数（用于确定成长阶段）", () => {
-  it("当页面数 0-250 时应该返回探索者", () => {
-    expect(BadgeManager.getStage(0)).toBe("explorer")
-    expect(BadgeManager.getStage(100)).toBe("explorer")
-    expect(BadgeManager.getStage(250)).toBe("explorer") // 250 是 explorer 的最大值
-  })
-
-  it("当页面数 251-600 时应该返回学习者", () => {
-    expect(BadgeManager.getStage(251)).toBe("learner") // 251 开始是 learner
-    expect(BadgeManager.getStage(400)).toBe("learner")
-    expect(BadgeManager.getStage(600)).toBe("learner") // 600 是 learner 的最大值
-  })
-
-  it("当页面数 601-1000 时应该返回成长者", () => {
-    expect(BadgeManager.getStage(601)).toBe("grower") // 601 开始是 grower
-    expect(BadgeManager.getStage(800)).toBe("grower")
-    expect(BadgeManager.getStage(1000)).toBe("grower")
-  })
-
-  it("当页面数 > 1000 时应该返回大师", () => {
-    expect(BadgeManager.getStage(1001)).toBe("master")
-    expect(BadgeManager.getStage(1500)).toBe("master")
-    expect(BadgeManager.getStage(2000)).toBe("master")
-  })
-})
 
 describe("IndexPopup 组件", () => {
   beforeEach(() => {

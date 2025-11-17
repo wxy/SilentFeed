@@ -1,4 +1,3 @@
-import { BadgeManager } from './core/badge/BadgeManager'
 import { ProfileUpdateScheduler } from './core/profile/ProfileUpdateScheduler'
 import { initializeDatabase, getPageCount, getUnreadRecommendations, db } from './storage/db'
 import type { ConfirmedVisit } from './storage/types'
@@ -41,10 +40,10 @@ let rssDiscoveryViewed = false
  */
 async function updateBadge(): Promise<void> {
   try {
-    // Phase 5.2: 如果图标管理器未初始化,跳过图标更新
+    // Phase 5.2: 如果图标管理器未初始化,记录警告但不阻塞
     if (!iconManager) {
-      console.log('[Background] ⏳ 图标管理器未初始化,使用旧徽章系统')
-      return updateLegacyBadge()
+      console.warn('[Background] ⚠️ 图标管理器未初始化')
+      return
     }
     
     // 1. 检查是否有未查看的 RSS 发现
@@ -79,39 +78,6 @@ async function updateBadge(): Promise<void> {
     }
   } catch (error) {
     console.error('[Background] ❌ 更新图标失败:', error)
-    // 降级到旧徽章系统
-    updateLegacyBadge().catch(e => console.error('[Background] 降级徽章更新也失败:', e))
-  }
-}
-
-/**
- * 旧的徽章系统(降级方案)
- */
-async function updateLegacyBadge(): Promise<void> {
-  try {
-    const feedManager = new FeedManager()
-    const candidateFeeds = await feedManager.getFeeds('candidate')
-    
-    if (candidateFeeds.length > 0 && !rssDiscoveryViewed) {
-      await chrome.action.setBadgeText({ text: '📡' })
-      await chrome.action.setBadgeBackgroundColor({ color: '#4CAF50' })
-      return
-    }
-    
-    const pageCount = await getPageCount()
-    
-    if (pageCount < 1000) {
-      const progress = Math.floor((pageCount / 1000) * 100)
-      await chrome.action.setBadgeText({ text: `${progress}%` })
-      await chrome.action.setBadgeBackgroundColor({ color: '#2196F3' })
-    } else {
-      const unreadRecs = await getUnreadRecommendations(50)
-      const unreadCount = unreadRecs.length
-      await chrome.action.setBadgeText({ text: unreadCount > 0 ? String(unreadCount) : '' })
-      await chrome.action.setBadgeBackgroundColor({ color: '#F44336' })
-    }
-  } catch (error) {
-    console.error('[Background] ❌ 更新旧徽章失败:', error)
   }
 }
 
@@ -134,8 +100,6 @@ chrome.runtime.onInstalled.addListener(async () => {
     console.error('  错误类型:', (error as any)?.constructor?.name || 'Unknown')
     console.error('  错误消息:', (error as Error)?.message || String(error))
     console.error('  完整错误:', error)
-    // 初始化失败时设置默认徽章
-    await BadgeManager.updateBadge(0)
   }
 })
 
@@ -177,11 +141,6 @@ chrome.runtime.onInstalled.addListener(async () => {
     console.log('[Background] ✅ Service Worker 启动完成')
   } catch (error) {
     console.error('[Background] ❌ Service Worker 启动失败:', error)
-    try {
-      await BadgeManager.updateBadge(0)
-    } catch (badgeError) {
-      console.error('[Background] ❌ 徽章更新也失败:', badgeError)
-    }
   }
 })()
 
@@ -558,5 +517,3 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     console.error('[Background] ❌ 定时器处理失败:', error)
   }
 })
-
-export { BadgeManager, ProgressStage } from './core/badge/BadgeManager'
