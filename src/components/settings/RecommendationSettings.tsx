@@ -14,6 +14,9 @@ import {
 import { getAdaptiveMetrics, type AdaptiveMetrics } from "@/core/recommender/adaptive-count"
 import type { NotificationConfig } from "@/core/recommender/notification"
 import { useRecommendationStore } from "@/stores/recommendationStore"
+import { logger } from "@/utils/logger"
+
+const recSettingsLogger = logger.withTag("RecommendationSettings")
 
 export function RecommendationSettings() {
   const { generateRecommendations, isLoading: isGenerating } = useRecommendationStore()
@@ -52,7 +55,7 @@ export function RecommendationSettings() {
       const loaded = await getRecommendationConfig()
       setConfig(loaded)
     } catch (error) {
-      console.error("[推荐设置] 加载配置失败:", error)
+      recSettingsLogger.error("加载配置失败:", error)
     }
   }
 
@@ -63,7 +66,7 @@ export function RecommendationSettings() {
         setNotificationConfig(result["notification-config"])
       }
     } catch (error) {
-      console.error("[推荐设置] 加载通知配置失败:", error)
+      recSettingsLogger.error("加载通知配置失败:", error)
     }
   }
 
@@ -72,7 +75,7 @@ export function RecommendationSettings() {
       const loaded = await getAdaptiveMetrics()
       setMetrics(loaded)
     } catch (error) {
-      console.error("[推荐设置] 加载指标失败:", error)
+      recSettingsLogger.error("加载指标失败:", error)
     }
   }
 
@@ -84,7 +87,7 @@ export function RecommendationSettings() {
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 2000)
     } catch (error) {
-      console.error("[推荐设置] 保存失败:", error)
+      recSettingsLogger.error("保存失败:", error)
       alert("保存失败，请重试")
     } finally {
       setIsSaving(false)
@@ -95,24 +98,24 @@ export function RecommendationSettings() {
     try {
       await generateRecommendations()
     } catch (error) {
-      console.error("[推荐设置] 生成推荐失败:", error)
+      recSettingsLogger.error("生成推荐失败:", error)
     }
   }
 
   const handleTestNotification = async () => {
     try {
-      console.log("[推荐设置] 触发测试通知...")
+      recSettingsLogger.info("触发测试通知...")
       const response = await chrome.runtime.sendMessage({ type: "TEST_NOTIFICATION" })
       
       if (response.success) {
-        console.log("[推荐设置] ✅ 测试通知已发送")
+        recSettingsLogger.info("✅ 测试通知已发送")
         alert("✅ 测试通知已发送！请检查系统通知中心")
       } else {
-        console.error("[推荐设置] ❌ 测试通知失败:", response.error)
+        recSettingsLogger.error("❌ 测试通知失败:", response.error)
         alert("❌ 测试通知失败，请查看控制台")
       }
     } catch (error) {
-      console.error("[推荐设置] 测试通知异常:", error)
+      recSettingsLogger.error("测试通知异常:", error)
       alert("❌ 测试通知失败: " + String(error))
     }
   }
@@ -131,7 +134,7 @@ export function RecommendationSettings() {
       
       alert("✅ 推荐数据已重置")
     } catch (error) {
-      console.error("[推荐设置] 重置推荐数据失败:", error)
+      recSettingsLogger.error("重置推荐数据失败:", error)
       alert("❌ 重置失败: " + String(error))
     }
   }

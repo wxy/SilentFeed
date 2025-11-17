@@ -9,6 +9,9 @@ import { useState, useEffect } from "react"
 import { useI18n } from "@/i18n/helpers"
 import type { UIStyle } from "@/storage/ui-config"
 import { FeedManager } from "@/core/rss/managers/FeedManager"
+import { logger } from "@/utils/logger"
+
+const coldStartLogger = logger.withTag("ColdStartView")
 
 interface ColdStartViewProps {
   pageCount: number
@@ -38,7 +41,7 @@ export function ColdStartView({ pageCount, totalPages = 1000, uiStyle = "sketchy
         const candidateFeeds = await feedManager.getFeeds('candidate')
         setHasRSSDiscovery(candidateFeeds.length > 0)
       } catch (error) {
-        console.error('[ColdStartView] 检查 RSS 发现失败:', error)
+        coldStartLogger.error('检查 RSS 发现失败:', error)
       }
     }
     

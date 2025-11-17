@@ -7,6 +7,9 @@ import { useState, useEffect } from "react"
 import { useI18n } from "@/i18n/helpers"
 import { getRecommendationStats } from "@/storage/db"
 import type { RecommendationStats } from "@/storage/types"
+import { logger } from "@/utils/logger"
+
+const statsLogger = logger.withTag("RecommendationStats")
 
 export function RecommendationStats() {
   const { _ } = useI18n()
@@ -19,7 +22,7 @@ export function RecommendationStats() {
         const data = await getRecommendationStats()
         setStats(data)
       } catch (error) {
-        console.error('[RecommendationStats] 加载统计失败:', error)
+        statsLogger.error('加载统计失败:', error)
       } finally {
         setIsLoading(false)
       }

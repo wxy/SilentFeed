@@ -18,6 +18,9 @@ import {
 } from "@/core/recommender/adaptive-count"
 import { sanitizeHtml } from "@/utils/html"
 import type { Recommendation } from "@/storage/types"
+import { logger } from "@/utils/logger"
+
+const recViewLogger = logger.withTag("RecommendationView")
 
 /**
  * 获取推荐引擎标志
@@ -69,7 +72,7 @@ export function RecommendationView() {
         const candidateFeeds = await feedManager.getFeeds('candidate')
         setHasRSSFeeds(candidateFeeds.length > 0)
       } catch (error) {
-        console.error('[RecommendationView] 检查RSS源失败:', error)
+        recViewLogger.error('检查RSS源失败:', error)
       }
     }
     checkRSSFeeds()
@@ -82,7 +85,7 @@ export function RecommendationView() {
 
   const handleItemClick = async (rec: Recommendation, event: React.MouseEvent) => {
     try {
-      console.log('[RecommendationView] 点击推荐条目:', rec.id, rec.title)
+      recViewLogger.debug(`点击推荐条目: ${rec.id} - ${rec.title}`)
       
       // 立即添加视觉反馈：降低透明度，表示正在处理
       const element = event.currentTarget as HTMLElement
@@ -96,12 +99,12 @@ export function RecommendationView() {
       await chrome.tabs.create({ url: rec.url })
       
       // 标记为已读（这会立即从列表中移除该条目）
-      console.log('[RecommendationView] 开始标记为已读:', rec.id)
+      recViewLogger.debug(`开始标记为已读: ${rec.id}`)
       await markAsRead(rec.id)
-      console.log('[RecommendationView] ✅ 标记已读完成，条目已从列表移除:', rec.id)
+      recViewLogger.info(`✅ 标记已读完成，条目已从列表移除: ${rec.id}`)
       
     } catch (error) {
-      console.error('[RecommendationView] ❌ 处理点击失败:', error)
+      recViewLogger.error('❌ 处理点击失败:', error)
       
       // 恢复视觉状态（如果操作失败）
       const element = event.currentTarget as HTMLElement
@@ -114,18 +117,18 @@ export function RecommendationView() {
     event.stopPropagation() // 阻止点击事件冒泡
     
     try {
-      console.log('[RecommendationView] 点击不想读:', recId)
+      recViewLogger.debug(`点击不想读: ${recId}`)
       
       // Phase 6: 跟踪单个不想读
       await trackDismiss()
       
       // 调用store的dismissSelected方法来真正删除推荐
-      console.log('[RecommendationView] 开始标记为不想读:', recId)
+      recViewLogger.debug(`开始标记为不想读: ${recId}`)
       await dismissSelected([recId])
-      console.log('[RecommendationView] ✅ 标记不想读完成:', recId)
+      recViewLogger.info(`✅ 标记不想读完成: ${recId}`)
       
     } catch (error) {
-      console.error('[RecommendationView] ❌ 标记不想读失败:', error)
+      recViewLogger.error('❌ 标记不想读失败:', error)
       
       // 如果删除失败，给用户提示
       const element = event.currentTarget.closest('[data-recommendation-id]')

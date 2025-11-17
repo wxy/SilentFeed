@@ -27,6 +27,18 @@ vi.mock("@/i18n/helpers", () => ({
   }),
 }))
 
+// Mock logger
+vi.mock("@/utils/logger", () => ({
+  logger: {
+    withTag: () => ({
+      info: vi.fn(),
+      debug: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    }),
+  },
+}))
+
 // Mock localStorage
 const mockLocalStorage = (() => {
   let store: Record<string, string> = {}
@@ -45,9 +57,6 @@ const mockLocalStorage = (() => {
 Object.defineProperty(window, "localStorage", {
   value: mockLocalStorage,
 })
-
-// Mock console.log
-const consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {})
 
 describe("LanguageSwitcher 组件", () => {
   beforeEach(() => {
@@ -118,16 +127,6 @@ describe("LanguageSwitcher 组件", () => {
       await user.selectOptions(select, "en")
 
       expect(mockLocalStorage.getItem("i18nextLng")).toBe("en")
-    })
-
-    it("应该输出切换日志", async () => {
-      const user = userEvent.setup()
-      render(<LanguageSwitcher />)
-
-      const select = screen.getByRole("combobox")
-      await user.selectOptions(select, "en")
-
-      expect(consoleLogSpy).toHaveBeenCalledWith("切换语言到: en")
     })
   })
 

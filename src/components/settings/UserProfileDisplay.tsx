@@ -16,6 +16,9 @@ import { profileManager } from "@/core/profile/ProfileManager"
 import { InterestSnapshotManager } from "@/core/profile/InterestSnapshotManager"
 import { getAIConfig, getProviderDisplayName } from "@/storage/ai-config"
 import type { UserProfile } from "@/core/profile/types"
+import { logger } from "@/utils/logger"
+
+const profileDisplayLogger = logger.withTag("UserProfileDisplay")
 
 /**
  * 获取主题名称的国际化文本
@@ -79,7 +82,7 @@ export function UserProfileDisplay() {
         setAiConfigured(aiConfig.enabled && aiConfig.provider !== null)
         setAiProvider(getProviderDisplayName(aiConfig.provider))
       } catch (error) {
-        console.error("[UserProfileDisplay] 加载用户画像失败:", error)
+        profileDisplayLogger.error("加载用户画像失败:", error)
       } finally {
         setIsLoading(false)
       }
@@ -103,7 +106,7 @@ export function UserProfileDisplay() {
       // 简单的成功提示
       alert(_("options.userProfile.alerts.rebuildSuccess"))
     } catch (error) {
-      console.error("[UserProfileDisplay] 重建用户画像失败:", error)
+      profileDisplayLogger.error("重建用户画像失败:", error)
       alert(_("options.userProfile.alerts.rebuildFailed"))
     } finally {
       setIsRebuilding(false)

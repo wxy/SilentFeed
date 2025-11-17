@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react"
 import { FeedManager } from "@/core/rss/managers/FeedManager"
+import { logger } from "@/utils/logger"
+
+const discoveryLogger = logger.withTag("RSSDiscoveryHint")
 
 /**
  * RSS 发现提示组件
@@ -21,7 +24,7 @@ export function RSSDiscoveryHint() {
       const candidateFeeds = await feedManager.getFeeds('candidate')
       setFeedCount(candidateFeeds.length)
     } catch (error) {
-      console.error('[RSSDiscoveryHint] 加载候选源数量失败:', error)
+      discoveryLogger.error('加载候选源数量失败:', error)
     } finally {
       setLoading(false)
     }

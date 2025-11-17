@@ -2,6 +2,9 @@ import { useState, useEffect } from "react"
 import { useI18n } from "@/i18n/helpers"
 import { FeedManager } from "@/core/rss/managers/FeedManager"
 import type { DiscoveredFeed } from "@/core/rss/types"
+import { logger } from "@/utils/logger"
+
+const feedsCardLogger = logger.withTag("DiscoveredFeedsCard")
 
 /**
  * 发现的 RSS 源卡片
@@ -23,7 +26,7 @@ export function DiscoveredFeedsCard() {
       const candidateFeeds = await feedManager.getFeeds('candidate')
       setFeeds(candidateFeeds)
     } catch (error) {
-      console.error('[DiscoveredFeedsCard] 加载候选源失败:', error)
+      feedsCardLogger.error('加载候选源失败:', error)
     } finally {
       setLoading(false)
     }
@@ -41,7 +44,7 @@ export function DiscoveredFeedsCard() {
       // 更新徽章
       chrome.runtime.sendMessage({ type: 'RSS_IGNORED' })
     } catch (error) {
-      console.error('[DiscoveredFeedsCard] 忽略源失败:', error)
+      feedsCardLogger.error('忽略源失败:', error)
     }
   }
 
