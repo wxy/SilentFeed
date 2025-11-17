@@ -7,8 +7,11 @@ import { feedScheduler, fetchFeed } from './background/feed-scheduler'
 import { IconManager } from './utils/IconManager'
 import { evaluateAndAdjust } from './core/recommender/adaptive-count'
 import { setupNotificationListeners, testNotification } from './core/recommender/notification'
+import { logger } from '@/utils/logger'
 
-console.log('FeedAIMuter Background Service Worker 已启动')
+const bgLogger = logger.withTag('Background')
+
+bgLogger.info('FeedAIMuter Background Service Worker 已启动')
 
 // Phase 5.2: 初始化图标管理器
 let iconManager: IconManager | null = null
@@ -16,9 +19,9 @@ let iconManager: IconManager | null = null
 // 开发环境下加载调试工具
 if (process.env.NODE_ENV === 'development') {
   import('./debug/generate-interest-changes').then(() => {
-    console.log('🔧 开发调试工具已加载')
+    bgLogger.info('🔧 开发调试工具已加载')
   }).catch(error => {
-    console.error('❌ 加载调试工具失败:', error)
+    bgLogger.error('❌ 加载调试工具失败:', error)
   })
 }
 
@@ -42,7 +45,7 @@ async function updateBadge(): Promise<void> {
   try {
     // Phase 5.2: 如果图标管理器未初始化,记录警告但不阻塞
     if (!iconManager) {
-      console.warn('[Background] ⚠️ 图标管理器未初始化')
+      bgLogger.warn('⚠️ 图标管理器未初始化')
       return
     }
     
@@ -53,7 +56,7 @@ async function updateBadge(): Promise<void> {
     if (candidateFeeds.length > 0 && !rssDiscoveryViewed) {
       // 启动 RSS 发现动画
       iconManager.startDiscoverAnimation()
-      console.log(`[Background] 📡 启动 RSS 发现动画 (${candidateFeeds.length} 个源)`)
+      bgLogger.info(`📡 启动 RSS 发现动画 (${candidateFeeds.length} 个源)`)
       return
     }
     
@@ -67,17 +70,17 @@ async function updateBadge(): Promise<void> {
       // 学习阶段：显示进度遮罩
       iconManager.setLearningProgress(pageCount)
       iconManager.setRecommendCount(0)  // 清除推荐
-      console.log(`[Background] 学习进度：${pageCount}/1000 页`)
+      bgLogger.debug(`学习进度：${pageCount}/1000 页`)
     } else {
       // 推荐阶段：显示推荐波纹
       const unreadRecs = await getUnreadRecommendations(50)
       const unreadCount = Math.min(unreadRecs.length, 3)  // 最多3条波纹
       iconManager.setRecommendCount(unreadCount)
       iconManager.setLearningProgress(1000)  // 学习完成
-      console.log(`[Background] 未读推荐：${unreadCount}`)
+      bgLogger.debug(`未读推荐：${unreadCount}`)
     }
   } catch (error) {
-    console.error('[Background] ❌ 更新图标失败:', error)
+    bgLogger.error('❌ 更新图标失败:', error)
   }
 }
 
@@ -85,7 +88,7 @@ async function updateBadge(): Promise<void> {
  * 扩展安装或更新时初始化
  */
 chrome.runtime.onInstalled.addListener(async () => {
-  console.log('[Background] 扩展已安装/更新，开始初始化...')
+  bgLogger.info('扩展已安装/更新，开始初始化...')
   
   try {
     // 1. 初始化数据库
@@ -94,12 +97,12 @@ chrome.runtime.onInstalled.addListener(async () => {
     // 2. 更新徽章
     await updateBadge()
     
-    console.log('[Background] ✅ 初始化完成')
+    bgLogger.info('✅ 初始化完成')
   } catch (error) {
-    console.error('[Background] ❌ 初始化失败:')
-    console.error('  错误类型:', (error as any)?.constructor?.name || 'Unknown')
-    console.error('  错误消息:', (error as Error)?.message || String(error))
-    console.error('  完整错误:', error)
+    bgLogger.error('❌ 初始化失败:')
+    bgLogger.error('  错误类型:', (error as any)?.constructor?.name || 'Unknown')
+    bgLogger.error('  错误消息:', (error as Error)?.message || String(error))
+    bgLogger.error('  完整错误:', error)
   }
 })
 
@@ -108,7 +111,7 @@ chrome.runtime.onInstalled.addListener(async () => {
  */
 ;(async () => {
   try {
-    console.log('[Background] Service Worker 启动...')
+    bgLogger.info('Service Worker 启动...')
     
     // Phase 5.2: 初始化图标管理器
     try {
@@ -116,31 +119,31 @@ chrome.runtime.onInstalled.addListener(async () => {
       // 开发模式下强制重新加载图片(防止缓存)
       const forceReload = process.env.NODE_ENV === 'development'
       await iconManager.initialize(forceReload)
-      console.log('[Background] ✅ 图标管理器初始化成功', forceReload ? '(强制重新加载)' : '')
+      bgLogger.info(`✅ 图标管理器初始化成功${forceReload ? ' (强制重新加载)' : ''}`)
     } catch (error) {
-      console.error('[Background] ❌ 图标管理器初始化失败,使用旧徽章系统:', error)
+      bgLogger.error('❌ 图标管理器初始化失败,使用旧徽章系统:', error)
       iconManager = null
     }
     
     await updateBadge()
     
     // Phase 5 Sprint 3: 启动 RSS 定时调度器
-    console.log('[Background] 启动 RSS 定时调度器...')
+    bgLogger.info('启动 RSS 定时调度器...')
     feedScheduler.start(30) // 每 30 分钟检查一次
     
     // Phase 6: 启动推荐数量定期评估
-    console.log('[Background] 创建推荐数量评估定时器（每周一次）...')
+    bgLogger.info('创建推荐数量评估定时器（每周一次）...')
     chrome.alarms.create('evaluate-recommendations', {
       periodInMinutes: 7 * 24 * 60 // 每 7 天（1 周）
     })
     
     // Phase 6: 设置通知监听器
-    console.log('[Background] 设置推荐通知监听器...')
+    bgLogger.info('设置推荐通知监听器...')
     setupNotificationListeners()
     
-    console.log('[Background] ✅ Service Worker 启动完成')
+    bgLogger.info('✅ Service Worker 启动完成')
   } catch (error) {
-    console.error('[Background] ❌ Service Worker 启动失败:', error)
+    bgLogger.error('❌ Service Worker 启动失败:', error)
   }
 })()
 
@@ -148,7 +151,7 @@ chrome.runtime.onInstalled.addListener(async () => {
  * 监听来自其他组件的消息
  */
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('[Background] 收到消息:', message.type)
+  bgLogger.debug('收到消息:', message.type)
   
   ;(async () => {
     try {
