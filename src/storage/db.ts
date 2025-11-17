@@ -22,6 +22,11 @@ import type {
 } from './types'
 import type { UserProfile } from '../core/profile/types'
 import type { DiscoveredFeed, FeedArticle } from '../core/rss/types'
+import { logger } from '@/utils/logger'
+
+// 创建数据库专用日志器
+const dbLogger = logger.withTag('DB')
+const statsLogger = logger.withTag('AnalysisStats')
 
 /**
  * 数据库类
@@ -263,14 +268,14 @@ async function checkDatabaseVersion(): Promise<void> {
     const existingDB = dbs.find(d => d.name === 'FeedAIMuterDB')
     
     if (existingDB && existingDB.version) {
-      console.log(`[DB] 现有数据库版本: ${existingDB.version}, 代码版本: 10`)
+      dbLogger.info(`现有数据库版本: ${existingDB.version}, 代码版本: 10`)
       
       if (existingDB.version > 10) {
-        console.warn('[DB] ⚠️ 浏览器中的数据库版本较高，Dexie 将自动处理')
+        dbLogger.warn('⚠️ 浏览器中的数据库版本较高，Dexie 将自动处理')
       }
     }
   } catch (error) {
-    console.debug('[DB] 无法检查版本（可能是首次运行）:', error)
+    dbLogger.debug('无法检查版本（可能是首次运行）:', error)
   }
 }
 
@@ -286,9 +291,9 @@ export async function initializeDatabase(): Promise<void> {
     
     // 打开数据库（如果未打开）
     if (!db.isOpen()) {
-      console.log('[DB] 正在打开数据库...')
+      dbLogger.info('正在打开数据库...')
       await db.open()
-      console.log('[DB] ✅ 数据库已打开（版本 10）')
+      dbLogger.info('✅ 数据库已打开（版本 10）')
     }
     
     // ✅ 关键修复：使用 count() 检查是否已有设置，而不是 get()
@@ -297,7 +302,7 @@ export async function initializeDatabase(): Promise<void> {
     
     if (settingsCount === 0) {
       // 只有在没有设置时才创建
-      console.log('[DB] 未找到设置，创建默认设置...')
+      dbLogger.info('未找到设置，创建默认设置...')
       await db.settings.add({
         id: 'singleton',
         dwellTime: {
@@ -317,18 +322,18 @@ export async function initializeDatabase(): Promise<void> {
           statisticsDays: 365
         }
       })
-      console.log('[DB] ✅ 已创建默认设置')
+      dbLogger.info('✅ 已创建默认设置')
     } else {
-      console.log('[DB] ✅ 设置已存在，跳过创建')
+      dbLogger.info('✅ 设置已存在，跳过创建')
     }
     
-    console.log('[DB] ✅ 数据库初始化完成')
+    dbLogger.info('✅ 数据库初始化完成')
   } catch (error) {
     // 输出详细的错误信息
-    console.error('[DB] ❌ 数据库初始化失败:')
-    console.error('  错误类型:', (error as any)?.constructor?.name || 'Unknown')
-    console.error('  错误消息:', (error as Error)?.message || String(error))
-    console.error('  完整错误:', error)
+    dbLogger.error('❌ 数据库初始化失败:')
+    dbLogger.error('  错误类型:', (error as any)?.constructor?.name || 'Unknown')
+    dbLogger.error('  错误消息:', (error as Error)?.message || String(error))
+    dbLogger.error('  完整错误:', error)
     throw error
   }
 }
@@ -362,15 +367,15 @@ export async function getPageCount(): Promise<number> {
   try {
     // 确保数据库已打开
     if (!db.isOpen()) {
-      console.log('[DB] 数据库未打开，尝试打开...')
+      dbLogger.debug('数据库未打开，尝试打开...')
       await db.open()
     }
     
     const count = await db.confirmedVisits.count()
-    console.log('[DB] 页面计数:', count)
+    dbLogger.debug('页面计数:', count)
     return count
   } catch (error) {
-    console.warn('[DB] ⚠️ 获取页面计数失败，返回 0:', error)
+    dbLogger.warn('⚠️ 获取页面计数失败，返回 0:', error)
     // 数据库未初始化或出错时返回 0
     return 0
   }
@@ -503,15 +508,15 @@ export async function markAsRead(
   readDuration?: number,
   scrollDepth?: number
 ): Promise<void> {
-  console.log('[DB] markAsRead 开始:', { id, readDuration, scrollDepth })
+  dbLogger.debug('markAsRead 开始:', { id, readDuration, scrollDepth })
   
   const recommendation = await db.recommendations.get(id)
   if (!recommendation) {
-    console.error('[DB] ❌ 推荐记录不存在:', id)
+    dbLogger.error('❌ 推荐记录不存在:', id)
     throw new Error(`推荐记录不存在: ${id}`)
   }
   
-  console.log('[DB] 找到推荐记录:', {
+  dbLogger.debug('找到推荐记录:', {
     id: recommendation.id,
     title: recommendation.title,
     isRead: recommendation.isRead,
@@ -520,7 +525,7 @@ export async function markAsRead(
   
   // 🔧 防重复：如果已经标记为已读，直接返回
   if (recommendation.isRead) {
-    console.log('[DB] ⚠️ 推荐已经是已读状态，跳过重复标记:', id)
+    dbLogger.debug('⚠️ 推荐已经是已读状态，跳过重复标记:', id)
     return
   }
   
@@ -544,7 +549,7 @@ export async function markAsRead(
   }
   
   const updateCount = await db.recommendations.update(id, updates)
-  console.log('[DB] ✅ markAsRead 完成:', {
+  dbLogger.debug('✅ markAsRead 完成:', {
     id,
     updateCount,
     updates
@@ -552,7 +557,7 @@ export async function markAsRead(
   
   // 验证更新结果
   const updated = await db.recommendations.get(id)
-  console.log('[DB] 验证更新结果:', {
+  dbLogger.debug('验证更新结果:', {
     id,
     isRead: updated?.isRead,
     clickedAt: updated?.clickedAt
@@ -560,9 +565,9 @@ export async function markAsRead(
   
   // 🔧 关键修复：立即更新 RSS 源统计
   if (recommendation.sourceUrl) {
-    console.log('[DB] 开始更新 RSS 源统计:', recommendation.sourceUrl)
+    dbLogger.debug('开始更新 RSS 源统计:', recommendation.sourceUrl)
     await updateFeedStats(recommendation.sourceUrl)
-    console.log('[DB] ✅ RSS 源统计已更新')
+    dbLogger.debug('✅ RSS 源统计已更新')
   }
 }
 
@@ -634,7 +639,7 @@ export async function getAnalysisStats(): Promise<{
   const confirmedVisits = await db.confirmedVisits.toArray()
   
   // 添加调试信息
-  console.log('[AnalysisStats] 数据库调试信息:', {
+  statsLogger.debug('数据库调试信息:', {
     总访问记录: confirmedVisits.length,
     有analysis字段: confirmedVisits.filter(v => v.analysis).length,
     有keywords字段: confirmedVisits.filter(v => v.analysis?.keywords).length,
@@ -644,7 +649,7 @@ export async function getAnalysisStats(): Promise<{
   // 详细检查每个记录
   confirmedVisits.forEach((visit, index) => {
     if (index < 5) { // 只显示前5个记录的详情
-      console.log(`[AnalysisStats] 记录 ${index + 1}:`, {
+      statsLogger.debug(`记录 ${index + 1}:`, {
         url: visit.url?.substring(0, 50) + '...',
         hasAnalysis: !!visit.analysis,
         keywords: visit.analysis?.keywords?.length || 0,
@@ -663,7 +668,7 @@ export async function getAnalysisStats(): Promise<{
     return true
   })
 
-  console.log('[AnalysisStats] 过滤后有效记录:', analyzedVisits.length)
+  statsLogger.debug('过滤后有效记录:', analyzedVisits.length)
 
   // 计算关键词统计
   const keywordFrequency = new Map<string, number>()
@@ -894,7 +899,7 @@ export async function updateFeedStats(feedUrl: string): Promise<void> {
     // 1. 找到对应的 RSS 源
     const feed = await db.discoveredFeeds.where('url').equals(feedUrl).first()
     if (!feed) {
-      console.warn('[DB] 未找到 RSS 源:', feedUrl)
+      dbLogger.warn('未找到 RSS 源:', feedUrl)
       return
     }
     
@@ -917,14 +922,14 @@ export async function updateFeedStats(feedUrl: string): Promise<void> {
       recommendedReadCount: readCount  // Phase 6: 保存推荐已读数
     })
     
-    console.log('[DB] 更新 RSS 源统计:', {
+    dbLogger.debug('更新 RSS 源统计:', {
       feedUrl,
       feedTitle: feed.title,
       recommendedCount,
       readCount
     })
   } catch (error) {
-    console.error('[DB] 更新 RSS 源统计失败:', error)
+    dbLogger.error('更新 RSS 源统计失败:', error)
   }
 }
 
@@ -944,9 +949,9 @@ export async function updateAllFeedStats(): Promise<void> {
       await updateFeedStats(feed.url)
     }
     
-    console.log('[DB] 批量更新完成，共', subscribedFeeds.length, '个源')
+    dbLogger.info(`批量更新完成，共 ${subscribedFeeds.length} 个源`)
   } catch (error) {
-    console.error('[DB] 批量更新 RSS 源统计失败:', error)
+    dbLogger.error('批量更新 RSS 源统计失败:', error)
   }
 }
 
@@ -958,7 +963,7 @@ export async function resetRecommendationData(): Promise<void> {
   try {
     // 1. 清空推荐池
     await db.recommendations.clear()
-    console.log('[DB] 清空推荐池')
+    dbLogger.info('清空推荐池')
     
     // 2. 重置所有 RSS 源的推荐数为 0，并清除所有文章的评分和分析数据
     const allFeeds = await db.discoveredFeeds.toArray()
@@ -980,16 +985,16 @@ export async function resetRecommendationData(): Promise<void> {
         latestArticles: feed.latestArticles || []
       })
     }
-    console.log('[DB] 重置 RSS 源推荐数:', allFeeds.length, '个源')
-    console.log('[DB] 清除文章评分和分析数据:', totalArticlesCleared, '篇文章')
+    dbLogger.info(`重置 RSS 源推荐数: ${allFeeds.length} 个源`)
+    dbLogger.info(`清除文章评分和分析数据: ${totalArticlesCleared} 篇文章`)
     
     // 3. 清空自适应指标（推荐相关的统计）
     await chrome.storage.local.remove('adaptive-metrics')
-    console.log('[DB] 清空自适应指标')
+    dbLogger.info('清空自适应指标')
     
-    console.log('[DB] ✅ 推荐数据重置完成')
+    dbLogger.info('✅ 推荐数据重置完成')
   } catch (error) {
-    console.error('[DB] ❌ 重置推荐数据失败:', error)
+    dbLogger.error('❌ 重置推荐数据失败:', error)
     throw error
   }
 }
