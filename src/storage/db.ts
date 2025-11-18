@@ -677,6 +677,7 @@ export async function markAsRead(
  */
 export async function dismissRecommendations(ids: string[]): Promise<void> {
   const now = Date.now()
+  const sourceUrls = new Set<string>()
   
   await db.transaction('rw', db.recommendations, db.feedArticles, async () => {
     for (const id of ids) {
@@ -704,9 +705,9 @@ export async function dismissRecommendations(ids: string[]): Promise<void> {
             dbLogger.warn('⚠️ 未找到匹配的文章:', recommendation.url)
           }
           
-          // 3. 更新统计
+          // 3. 收集需要更新统计的源 URL
           if (recommendation.sourceUrl) {
-            await updateFeedStats(recommendation.sourceUrl)
+            sourceUrls.add(recommendation.sourceUrl)
           }
         } catch (error) {
           dbLogger.warn('同步更新文章不想读状态失败:', error)
@@ -714,6 +715,11 @@ export async function dismissRecommendations(ids: string[]): Promise<void> {
       }
     }
   })
+  
+  // 4. 事务外更新统计（确保能看到事务提交后的数据）
+  for (const sourceUrl of sourceUrls) {
+    await updateFeedStats(sourceUrl)
+  }
 }
 
 /**
