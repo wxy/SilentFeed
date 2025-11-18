@@ -212,21 +212,28 @@ export class RecommendationService {
 
     const allArticles: FeedArticle[] = []
 
+    // Phase 7: 从 feedArticles 表查询（性能优化）
     for (const feed of feeds) {
-      if (feed.latestArticles && feed.latestArticles.length > 0) {
-        // Phase 6: 只取未分析过的文章用于推荐
-        const unanalyzedArticles = feed.latestArticles.filter(article => 
-          !article.analysis  // 未分析（用户是否阅读不影响 AI 分析）
-        )
-        
-        const totalArticles = feed.latestArticles.length
-        const analyzedArticles = totalArticles - unanalyzedArticles.length
-        const tfidfSkippedArticles = feed.latestArticles.filter(a => 
-          a.analysis?.provider === 'tfidf-skipped'  // 修复：provider 在顶层，不在 metadata 中
-        ).length
-        
-        allArticles.push(...unanalyzedArticles)
-        
+      // 查询该 Feed 的所有未分析文章
+      // 使用复合索引 [feedId+published] 优化查询
+      const feedArticles = await db.feedArticles
+        .where('feedId').equals(feed.id)
+        .reverse()  // 按发布时间倒序（最新的优先）
+        .sortBy('published')
+      
+      // 筛选未分析的文章
+      const unanalyzedArticles = feedArticles.filter(article => !article.analysis)
+      
+      // 统计信息
+      const totalArticles = feedArticles.length
+      const analyzedArticles = totalArticles - unanalyzedArticles.length
+      const tfidfSkippedArticles = feedArticles.filter(a => 
+        a.analysis?.provider === 'tfidf-skipped'
+      ).length
+      
+      allArticles.push(...unanalyzedArticles)
+      
+      if (totalArticles > 0) {
         recLogger.info(` 从 ${feed.title} 收集文章:`, {
           '总数': totalArticles,
           '未分析': unanalyzedArticles.length,
@@ -236,13 +243,9 @@ export class RecommendationService {
       }
     }
 
-    // Phase 6: 按发布时间倒序排序（新文章优先）
-    const sortedArticles = allArticles.sort((a, b) => b.published - a.published)
-
-    // Phase 6: 返回所有未经 AI 分析的文章供 TF-IDF 初筛
-    // （部分文章可能因 TF-IDF 分数太低而在 pipeline 中被跳过）
-    recLogger.info(` 收集未分析文章（待TF-IDF筛选）: ${sortedArticles.length} 篇`)
-    return sortedArticles
+    // 已经按发布时间倒序排序（查询时已处理）
+    recLogger.info(` 收集未分析文章（待TF-IDF筛选）: ${allArticles.length} 篇`)
+    return allArticles
   }
 
   /**
@@ -361,45 +364,33 @@ export class RecommendationService {
     
     recLogger.info(`保存推荐到数据库: ${recommendations.length} 条（去重后）`)
 
-    // Phase 6: 标记进入推荐池的文章
-    // ✅ 优化：收集需要更新的 feeds，批量更新
-    const feedUpdates = new Map<string, { latestArticles: any[] }>()
+    // Phase 7: 标记进入推荐池的文章（使用 feedArticles 表）
+    // ✅ 优化：批量更新，使用事务保证一致性
+    const articleIdsToMark: string[] = []
     
     for (const article of recommendedArticles) {
-      if (!article.feedId) continue
-      
+      // 通过 URL 查找文章 ID
       try {
-        // 如果已经在更新列表中，使用缓存的数据
-        let feedData = feedUpdates.get(article.feedId)
+        const feedArticle = await db.feedArticles
+          .where('link').equals(article.url)
+          .first()
         
-        if (!feedData) {
-          const feed = await db.discoveredFeeds.get(article.feedId)
-          if (!feed || !feed.latestArticles) continue
-          
-          // 缓存 feed 数据
-          feedData = { latestArticles: [...feed.latestArticles] }
-          feedUpdates.set(article.feedId, feedData)
-        }
-        
-        // 找到对应的文章并标记
-        const targetArticle = feedData.latestArticles.find(a => a.link === article.url)
-        if (targetArticle && !targetArticle.recommended) {
-          targetArticle.recommended = true
+        if (feedArticle && !feedArticle.recommended) {
+          articleIdsToMark.push(feedArticle.id)
         }
       } catch (error) {
-        recLogger.warn(`标记文章推荐状态失败: ${article.feedId}`, error)
+        recLogger.warn(`查找文章失败: ${article.url}`, error)
       }
     }
     
-    // ✅ 批量更新所有受影响的 feeds
-    if (feedUpdates.size > 0) {
-      // 使用 Promise.all 并行执行所有更新（性能优化）
-      await Promise.all(
-        Array.from(feedUpdates.entries()).map(([feedId, updates]) =>
-          db.discoveredFeeds.update(feedId, updates)
-        )
-      )
-      recLogger.info(`已标记进入推荐池的文章: ${feedUpdates.size} 个 feeds`)
+    // ✅ 批量更新文章的 recommended 状态
+    if (articleIdsToMark.length > 0) {
+      await db.transaction('rw', [db.feedArticles], async () => {
+        for (const articleId of articleIdsToMark) {
+          await db.feedArticles.update(articleId, { recommended: true })
+        }
+      })
+      recLogger.info(`已标记进入推荐池的文章: ${articleIdsToMark.length} 篇`)
     }
 
     // Phase 6: 更新 RSS 源的推荐数统计

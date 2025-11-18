@@ -630,8 +630,8 @@ describe('Phase 2.7 推荐功能', () => {
       expect(dismissed2?.effectiveness).toBe('ineffective')
     })
     
-    it('应该同步更新 latestArticles 中的文章不想读状态', async () => {
-      // 1. 创建 RSS 源和文章
+    it('应该同步更新 feedArticles 表中的文章不想读状态', async () => {
+      // 1. 创建 RSS 源
       const feedId = await db.discoveredFeeds.add({
         id: 'feed-2',
         url: 'https://test.com/feed2',
@@ -642,20 +642,22 @@ describe('Phase 2.7 推荐功能', () => {
         isActive: true,
         articleCount: 1,
         recommendedCount: 1,
-        unreadCount: 1,
-        latestArticles: [{
-          id: 'article-2',
-          feedId: 'feed-2',
-          title: '测试文章2',
-          link: 'https://example.com/article2',
-          published: Date.now(),
-          fetched: Date.now(),
-          read: false,
-          starred: false
-        }]
+        unreadCount: 1
       })
       
-      // 2. 创建推荐
+      // 2. Phase 7: 在 feedArticles 表中添加文章
+      await db.feedArticles.add({
+        id: 'article-2',
+        feedId: 'feed-2',
+        title: '测试文章2',
+        link: 'https://example.com/article2',
+        published: Date.now(),
+        fetched: Date.now(),
+        read: false,
+        starred: false
+      })
+      
+      // 3. 创建推荐
       await db.recommendations.add({
         id: 'rec-2',
         url: 'https://example.com/article2',
@@ -668,18 +670,19 @@ describe('Phase 2.7 推荐功能', () => {
         isRead: false
       })
       
-      // 3. 标记为不想读
+      // 4. 标记为不想读
       await dismissRecommendations(['rec-2'])
       
-      // 4. 验证推荐表已更新
+      // 5. 验证推荐表已更新
       const recommendation = await db.recommendations.get('rec-2')
       expect(recommendation?.feedback).toBe('dismissed')
       
-      // 5. 验证 latestArticles 中的文章也被标记为不想读
-      const feed = await db.discoveredFeeds.get(feedId)
-      expect(feed?.latestArticles?.[0].disliked).toBe(true)
+      // 6. Phase 7: 验证 feedArticles 表中的文章被标记为不想读
+      const article = await db.feedArticles.get('article-2')
+      expect(article?.disliked).toBe(true)
       
-      // 6. 验证统计已更新
+      // 7. 验证统计已更新
+      const feed = await db.discoveredFeeds.get(feedId)
       expect(feed?.dislikedCount).toBe(1)
     })
 

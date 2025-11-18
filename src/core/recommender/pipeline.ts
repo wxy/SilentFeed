@@ -902,6 +902,7 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
 
   /**
    * Phase 6: 保存文章的 AI 分析结果到数据库
+   * Phase 7: 使用 feedArticles 表（性能优化）
    * 
    * @param articleId - 文章 ID
    * @param analysis - AI 分析结果
@@ -912,32 +913,16 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
     analysis: { topicProbabilities: any; metadata?: any }
   ): Promise<void> {
     try {
-      // Phase 6: 更新 discoveredFeeds.latestArticles 数组中的文章
-      const feed = await db.discoveredFeeds.get(feedId)
-      if (!feed || !feed.latestArticles) {
-        console.warn(`[Pipeline] ⚠️ 找不到 feed 或文章列表: ${feedId}`)
-        return
-      }
-      
-      // 找到对应的文章并更新 analysis 字段
-      const article = feed.latestArticles.find(a => a.id === articleId)
-      if (!article) {
-        console.warn(`[Pipeline] ⚠️ 找不到文章: ${articleId}`)
-        return
-      }
-      
-      article.analysis = {
-        topicProbabilities: analysis.topicProbabilities,
-        confidence: 0.8, // 默认置信度
-        provider: analysis.metadata?.provider || 'unknown'
-      }
-      
-      // 更新到数据库
-      await db.discoveredFeeds.update(feedId, {
-        latestArticles: feed.latestArticles
+      // Phase 7: 直接更新 feedArticles 表
+      await db.feedArticles.update(articleId, {
+        analysis: {
+          topicProbabilities: analysis.topicProbabilities,
+          confidence: 0.8, // 默认置信度
+          provider: analysis.metadata?.provider || 'unknown'
+        }
       })
       
-      console.log(`[Pipeline] 💾 已保存文章分析结果: ${articleId}, provider: ${article.analysis.provider}`)
+      console.log(`[Pipeline] 💾 已保存文章分析结果: ${articleId}, provider: ${analysis.metadata?.provider || 'unknown'}`)
     } catch (error) {
       console.warn(`[Pipeline] ⚠️ 保存文章分析失败: ${articleId}`, error)
       // 不抛出错误，保存失败不影响推荐流程
@@ -946,6 +931,7 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
 
   /**
    * Phase 6: 保存文章的 TF-IDF 分数到数据库（缓存）
+   * Phase 7: 使用 feedArticles 表（性能优化）
    * 
    * @param articleId - 文章 ID
    * @param feedId - RSS 源 ID
@@ -957,24 +943,9 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
     tfidfScore: number
   ): Promise<void> {
     try {
-      const feed = await db.discoveredFeeds.get(feedId)
-      if (!feed || !feed.latestArticles) {
-        console.warn(`[Pipeline] ⚠️ 保存 TF-IDF 分数失败 - 找不到 feed: ${feedId}`)
-        return
-      }
-      
-      const article = feed.latestArticles.find(a => a.id === articleId)
-      if (!article) {
-        console.warn(`[Pipeline] ⚠️ 保存 TF-IDF 分数失败 - 找不到文章: ${articleId}`)
-        return
-      }
-      
-      // 保存 TF-IDF 分数
-      article.tfidfScore = tfidfScore
-      
-      // 更新到数据库
-      await db.discoveredFeeds.update(feedId, {
-        latestArticles: feed.latestArticles
+      // Phase 7: 直接更新 feedArticles 表
+      await db.feedArticles.update(articleId, {
+        tfidfScore
       })
       
       console.log(`[Pipeline] 💾 已保存 TF-IDF 分数: ${articleId}, score: ${tfidfScore.toFixed(4)}`)

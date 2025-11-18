@@ -43,7 +43,19 @@ vi.mock('../storage/db', () => ({
           toArray: vi.fn().mockResolvedValue([])
         }))
       }))
-    }
+    },
+    feedArticles: {
+      where: vi.fn(() => ({
+        equals: vi.fn(() => ({
+          delete: vi.fn().mockResolvedValue(undefined)
+        }))
+      })),
+      bulkAdd: vi.fn().mockResolvedValue(undefined)
+    },
+    transaction: vi.fn((mode, tables, callback) => {
+      // 简单模拟事务：直接执行回调
+      return callback()
+    })
   },
   updateFeedStats: vi.fn()  // Phase 7: mock updateFeedStats 函数
 }))

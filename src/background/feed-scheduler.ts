@@ -219,16 +219,30 @@ export async function fetchFeed(feed: DiscoveredFeed): Promise<boolean> {
       updateFrequency: `${updateFrequency.toFixed(1)} 篇/周`
     })
     
-    // 8. 更新数据库
-    await db.discoveredFeeds.update(feed.id, {
-      lastFetchedAt: now,
-      nextScheduledFetch,  // ✅ 修复：设置下次抓取时间
-      updateFrequency,     // ✅ 修复：更新频率字段
-      lastError: undefined,
-      latestArticles: latest,
-      articleCount: totalCount,
-      unreadCount
-      // 注意：不在这里更新 recommendedCount，它由 updateFeedStats() 统计
+    // 8. 更新数据库（使用事务保证数据一致性）
+    await db.transaction('rw', [db.discoveredFeeds, db.feedArticles], async () => {
+      // 8.1 更新 Feed 基本信息
+      await db.discoveredFeeds.update(feed.id, {
+        lastFetchedAt: now,
+        nextScheduledFetch,
+        updateFrequency,
+        lastError: undefined,
+        latestArticles: latest,  // 保留以兼容旧代码
+        articleCount: totalCount,
+        unreadCount
+      })
+      
+      // 8.2 更新 feedArticles 表（Phase 7: 数据库规范化）
+      // 策略：完全替换该 Feed 的所有文章（删除旧的，插入新的）
+      // 这样可以确保数据一致性，同时清理过期文章
+      
+      // 删除该 Feed 的所有旧文章
+      await db.feedArticles.where('feedId').equals(feed.id).delete()
+      
+      // 批量插入最新文章
+      if (latest.length > 0) {
+        await db.feedArticles.bulkAdd(latest)
+      }
     })
     
     // Phase 7: 更新详细统计（分析、推荐、阅读、不想读）
