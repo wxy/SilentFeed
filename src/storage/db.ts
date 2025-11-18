@@ -2,12 +2,12 @@
  * IndexedDB 数据库定义（使用 Dexie.js）
  * 
  * 数据库名称: FeedAIMuterDB
- * 当前版本: 11
+ * 当前版本: 12
  * 
  * ⚠️ 版本管理说明：
  * - 开发过程中如果遇到版本冲突，请删除旧数据库
  * - 生产环境版本号应该只增不减
- * - 版本 11（Phase 7: 重建 feedArticles 表，数据库规范化重构）
+ * - 版本 12（Phase 7: 持续优化 - 移除 statistics 表，使用内存缓存）
  */
 
 import Dexie from 'dexie'
@@ -15,7 +15,6 @@ import type { Table } from 'dexie'
 import type {
   PendingVisit,
   ConfirmedVisit,
-  Statistics,
   Recommendation,
   RecommendationStats,
   StorageStats
@@ -46,10 +45,7 @@ export class FeedAIMuterDB extends Dexie {
   // 表 3: 用户设置
   settings!: Table<UserSettings, string>
   
-  // 表 4: 统计缓存
-  statistics!: Table<Statistics, string>
-  
-  // 表 5: 推荐记录（Phase 2.7）
+  // 表 4: 推荐记录（Phase 2.7）
   recommendations!: Table<Recommendation, string>
 
   // 表 6: 用户画像（Phase 3.3）
@@ -336,6 +332,20 @@ export class FeedAIMuterDB extends Dexie {
         totalArticlesMigrated
       })
     })
+
+    // 版本 12: 移除 statistics 表（Phase 7 - 持续优化）
+    // 使用内存缓存 (statsCache) 代替数据库缓存
+    this.version(12).stores({
+      pendingVisits: 'id, url, startTime, expiresAt',
+      confirmedVisits: 'id, visitTime, domain, *analysis.keywords, [visitTime+domain]',
+      settings: 'id',
+      statistics: null,  // 删除 statistics 表
+      recommendations: 'id, recommendedAt, isRead, source, sourceUrl, [isRead+recommendedAt], [isRead+source]',
+      userProfile: 'id, lastUpdated',
+      interestSnapshots: 'id, timestamp, primaryTopic, trigger, [primaryTopic+timestamp]',
+      discoveredFeeds: 'id, url, status, discoveredAt, subscribedAt, discoveredFrom, isActive, lastFetchedAt, [status+discoveredAt], [isActive+lastFetchedAt]',
+      feedArticles: 'id, feedId, link, published, recommended, read, [feedId+published], [recommended+published], [read+published]'
+    })
   }
 }
 
@@ -355,9 +365,9 @@ async function checkDatabaseVersion(): Promise<void> {
     const existingDB = dbs.find(d => d.name === 'FeedAIMuterDB')
     
     if (existingDB && existingDB.version) {
-      dbLogger.info(`现有数据库版本: ${existingDB.version}, 代码版本: 10`)
+      dbLogger.info(`现有数据库版本: ${existingDB.version}, 代码版本: 12`)
       
-      if (existingDB.version > 10) {
+      if (existingDB.version > 12) {
         dbLogger.warn('⚠️ 浏览器中的数据库版本较高，Dexie 将自动处理')
       }
     }
@@ -380,7 +390,7 @@ export async function initializeDatabase(): Promise<void> {
     if (!db.isOpen()) {
       dbLogger.info('正在打开数据库...')
       await db.open()
-      dbLogger.info('✅ 数据库已打开（版本 10）')
+      dbLogger.info('✅ 数据库已打开（版本 12）')
     }
     
     // ✅ 关键修复：使用 count() 检查是否已有设置，而不是 get()

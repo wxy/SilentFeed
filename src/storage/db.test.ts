@@ -41,8 +41,9 @@ describe('数据库初始化', () => {
     expect(db.pendingVisits).toBeDefined()
     expect(db.confirmedVisits).toBeDefined()
     expect(db.settings).toBeDefined()
-    expect(db.statistics).toBeDefined()
+    // statistics 表已在版本 12 中删除（使用内存缓存代替）
     expect(db.recommendations).toBeDefined() // Phase 2.7
+    expect(db.feedArticles).toBeDefined() // Phase 7
   })
 
   it('应该在初始化时创建默认设置', async () => {
