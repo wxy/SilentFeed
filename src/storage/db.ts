@@ -678,7 +678,7 @@ export async function markAsRead(
 export async function dismissRecommendations(ids: string[]): Promise<void> {
   const now = Date.now()
   
-  await db.transaction('rw', db.recommendations, db.discoveredFeeds, async () => {
+  await db.transaction('rw', db.recommendations, db.feedArticles, async () => {
     for (const id of ids) {
       // 1. 更新推荐表
       await db.recommendations.update(id, {
@@ -687,33 +687,27 @@ export async function dismissRecommendations(ids: string[]): Promise<void> {
         effectiveness: 'ineffective'
       })
       
-      // Phase 7: 2. 同步更新 latestArticles 中的文章状态
+      // Phase 7: 2. 同步更新 feedArticles 表中的文章状态
       const recommendation = await db.recommendations.get(id)
-      if (recommendation?.sourceUrl) {
+      if (recommendation?.url) {
         try {
-          const feed = await db.discoveredFeeds.where('url').equals(recommendation.sourceUrl).first()
-          if (!feed) {
-            dbLogger.warn('⚠️ 未找到对应的 RSS 源:', recommendation.sourceUrl)
-          } else if (!feed.latestArticles || feed.latestArticles.length === 0) {
-            dbLogger.warn('⚠️ RSS 源没有文章:', feed.title)
+          // 通过 URL 查找文章
+          const article = await db.feedArticles
+            .where('link').equals(recommendation.url)
+            .first()
+          
+          if (article) {
+            // 标记文章为不想读
+            await db.feedArticles.update(article.id, { disliked: true })
+            dbLogger.debug('✅ 已同步标记文章为不想读:', article.title)
           } else {
-            const article = feed.latestArticles.find(a => a.link === recommendation.url)
-            if (!article) {
-              dbLogger.warn('⚠️ 在 latestArticles 中未找到匹配文章 (disliked):', {
-                recommendationUrl: recommendation.url,
-                feedTitle: feed.title
-              })
-            } else {
-              article.disliked = true
-              await db.discoveredFeeds.update(feed.id, {
-                latestArticles: feed.latestArticles
-              })
-              dbLogger.debug('✅ 已同步标记文章为不想读:', article.title)
-            }
+            dbLogger.warn('⚠️ 未找到匹配的文章:', recommendation.url)
           }
           
           // 3. 更新统计
-          await updateFeedStats(recommendation.sourceUrl)
+          if (recommendation.sourceUrl) {
+            await updateFeedStats(recommendation.sourceUrl)
+          }
         } catch (error) {
           dbLogger.warn('同步更新文章不想读状态失败:', error)
         }
@@ -1023,16 +1017,16 @@ export async function cleanOldSnapshots(monthsToKeep: number = 6): Promise<numbe
 /**
  * 更新 RSS 源的推荐数和已读数统计
  * Phase 6: 基于推荐池中的数据统计
- * Phase 7: 增强统计字段
+ * Phase 7: 从 feedArticles 表聚合统计（性能优化）
  * 
  * @param feedUrl - RSS 源的 URL（用于匹配推荐来源）
  * 
  * 统计字段说明：
- * - articleCount: latestArticles 总数
+ * - articleCount: feedArticles 总数
  * - analyzedCount: 已 AI 分析的文章数（有 analysis 字段）
  * - recommendedCount: 进入过推荐池的文章数（有 recommended 标记）
- * - readCount: latestArticles 中标记为已读的文章数（已废弃，保留兼容性）
- * - dislikedCount: latestArticles 中标记为不想读的文章数
+ * - readCount: feedArticles 中标记为已读的文章数
+ * - dislikedCount: feedArticles 中标记为不想读的文章数
  * - recommendedReadCount: 推荐池中被阅读的推荐数（核心指标）
  */
 export async function updateFeedStats(feedUrl: string): Promise<void> {
@@ -1044,10 +1038,13 @@ export async function updateFeedStats(feedUrl: string): Promise<void> {
       return
     }
     
-    // 2. 从 latestArticles 中统计各种状态
-    const articles = feed.latestArticles || []
+    // Phase 7: 从 feedArticles 表聚合统计（性能优化）
+    // 2. 获取该 Feed 的所有文章
+    const articles = await db.feedArticles
+      .where('feedId').equals(feed.id)
+      .toArray()
     
-    // Phase 7: 计算详细统计
+    // 3. 计算详细统计
     const totalCount = articles.length
     const analyzedCount = articles.filter(a => a.analysis).length
     const recommendedCount = articles.filter(a => a.recommended).length
@@ -1055,14 +1052,14 @@ export async function updateFeedStats(feedUrl: string): Promise<void> {
     const dislikedCount = articles.filter(a => a.disliked).length
     const unreadCount = articles.filter(a => !a.read).length
     
-    // 3. 统计推荐池中来自该源的已读数（历史累计）
+    // 4. 统计推荐池中来自该源的已读数（历史累计）
     const recommendedReadCount = await db.recommendations
       .where('sourceUrl')
       .equals(feedUrl)
       .and(rec => rec.isRead === true)
       .count()
     
-    // 4. 更新 RSS 源统计
+    // 5. 更新 RSS 源统计
     await db.discoveredFeeds.update(feed.id, {
       articleCount: totalCount,
       analyzedCount,
