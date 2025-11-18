@@ -261,17 +261,17 @@ export class RecommendationService {
     const now = Date.now()
     const existingUrls = new Set<string>()
 
-    // Phase 6: 获取当前推荐池（未读的推荐）
+    // Phase 6: 获取当前推荐池（未读且未被标记为不想读的推荐）
     // ✅ 优化：使用复合索引 [isRead+recommendedAt]
     // Dexie 的 boolean 索引需要使用 filter，但我们可以减少扫描范围
     const currentPool = await db.recommendations
       .orderBy('recommendedAt')
       .reverse()
-      .filter(rec => !rec.isRead)
+      .filter(rec => !rec.isRead && rec.feedback !== 'dismissed')
       .toArray()
     
     const maxSize = config.maxRecommendations || 3
-    recLogger.info(`当前推荐池: ${currentPool.length} 条（容量: ${maxSize}）`)
+    recLogger.info(`当前推荐池: ${currentPool.length} 条（容量: ${maxSize}，排除已标记为不想读的推荐）`)
 
     // 获取最近7天的推荐URL，用于去重
     try {

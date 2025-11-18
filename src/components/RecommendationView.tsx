@@ -18,31 +18,45 @@ import {
 } from "@/core/recommender/adaptive-count"
 import { sanitizeHtml } from "@/utils/html"
 import { getFaviconUrl, handleFaviconError } from "@/utils/favicon"
+import { formatRecommendationReason } from "@/utils/formatReason"
 import type { Recommendation } from "@/types/database"
 import { logger } from "@/utils/logger"
 
 const recViewLogger = logger.withTag("RecommendationView")
 
 /**
- * 获取推荐引擎标志
+ * 获取推荐引擎标志（基于结构化数据或字符串）
  */
 function getEngineLabel(recommendation: Recommendation, t: (key: string) => string): { emoji: string; text: string } {
-  const reason = recommendation.reason || ""
+  const reason = recommendation.reason
   
-  if (reason.includes("推理AI")) {
+  // 如果是结构化数据
+  if (typeof reason === 'object' && reason !== null) {
+    const { provider, isReasoning } = reason
+    if (provider === 'deepseek' && isReasoning) {
+      return { emoji: "🧠", text: t("popup.engine.reasoningAI") }
+    } else if (provider === 'keyword') {
+      return { emoji: "🔍", text: t("popup.engine.algorithm") }
+    } else {
+      return { emoji: "🤖", text: t("popup.engine.ai") }
+    }
+  }
+  
+  // 兼容旧版本字符串数据
+  const reasonStr = typeof reason === 'string' ? reason : ""
+  if (reasonStr.includes("推理AI")) {
     return { emoji: "🧠", text: t("popup.engine.reasoningAI") }
-  } else if (reason.includes("AI")) {
+  } else if (reasonStr.includes("AI")) {
     return { emoji: "🤖", text: t("popup.engine.ai") }
-  } else if (reason.includes("算法")) {
+  } else if (reasonStr.includes("算法")) {
     return { emoji: "🔍", text: t("popup.engine.algorithm") }
   } else {
-    // 默认情况，可能是关键词匹配
     return { emoji: "🔍", text: t("popup.engine.algorithm") }
   }
 }
 
 export function RecommendationView() {
-  const { _ } = useI18n()
+  const { _, t } = useI18n()
   const {
     recommendations,
     isLoading,
@@ -312,7 +326,7 @@ interface RecommendationItemProps {
 }
 
 function RecommendationItem({ recommendation, isTopItem, onClick, onDismiss }: RecommendationItemProps) {
-  const { _ } = useI18n()
+  const { _, t } = useI18n()
   
   // 第一条显示摘要，需要更大的高度（但限制最大高度避免溢出）
   if (isTopItem) {
@@ -347,7 +361,7 @@ function RecommendationItem({ recommendation, isTopItem, onClick, onDismiss }: R
         {recommendation.reason && (
           <div className="mb-1.5">
             <p className="text-xs text-blue-700 dark:text-blue-300 italic line-clamp-1">
-              💡 {sanitizeHtml(recommendation.reason)}
+              💡 {sanitizeHtml(formatRecommendationReason(recommendation.reason, t))}
             </p>
           </div>
         )}

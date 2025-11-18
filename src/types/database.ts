@@ -2,6 +2,8 @@
  * 数据库存储相关类型
  */
 
+import type { RecommendationReason } from "./recommendation-reason"
+
 /**
  * 临时访问记录（PendingVisit）
  */
@@ -97,7 +99,8 @@ export interface Recommendation {
   sourceUrl: string
   recommendedAt: number
   score: number
-  reason?: string
+  /** 推荐理由（支持字符串或结构化数据） */
+  reason?: RecommendationReason
   wordCount?: number
   readingTime?: number
   excerpt?: string

@@ -119,6 +119,12 @@ function IndexPopup() {
 
   const isColdStart = pageCount !== null && pageCount < COLD_START_THRESHOLD
 
+  // 调试日志
+  console.log('[Popup] 页面计数:', pageCount)
+  console.log('[Popup] 冷启动阈值:', COLD_START_THRESHOLD)
+  console.log('[Popup] 是否冷启动:', isColdStart)
+  console.log('[Popup] 将显示组件:', isColdStart ? 'ColdStartView' : 'RecommendationView')
+
   return (
     <ErrorBoundary>
       <div className={containerClass} lang={currentLang}>

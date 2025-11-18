@@ -25,6 +25,7 @@ import type {
 } from '@/types/recommendation'
 
 import type { FeedArticle } from '@/types/rss'
+import type { ReasonData, AIProvider, ReasonType } from '@/types/recommendation-reason'
 import { convertFeedArticlesToArticleData, convertUserProfileToUserInterests } from './data-adapters'
 import { RuleBasedRecommender } from './RuleBasedRecommender'
 import { aiManager } from '../ai/AICapabilityManager'
@@ -711,14 +712,14 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
   }
 
   /**
-   * 生成推荐理由
+   * 生成推荐理由（结构化数据）
    */
   private generateRecommendationReason(
     analysis: any,
     userInterests: { keywords: Array<{word: string, weight: number}> },
     score: number,
     config?: any
-  ): string {
+  ): ReasonData {
     const matchedTopics = Object.entries(analysis.topicProbabilities || {})
       .filter(([_, prob]) => (prob as number) > 0.2)
       .map(([topic, _]) => topic)
@@ -728,30 +729,29 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
       .slice(0, 2)
       .map(k => k.word)
     
-    // 根据分析provider类型生成不同的推荐理由
-    const provider = analysis.metadata?.provider || "keyword"
+    // 根据分析provider类型确定AI提供商
+    const provider = (analysis.metadata?.provider || "keyword") as AIProvider
     const isReasoning = config?.useReasoning || false
     
-    let baseReason = ""
+    // 确定推荐理由类型
+    let type: ReasonType
     if (matchedTopics.length > 0) {
-      baseReason = `与您关注的"${matchedTopics.join('、')}"主题高度相关`
+      type = 'topic-match'
     } else if (topInterests.length > 0) {
-      baseReason = `基于您的兴趣"${topInterests.join('、')}"`
+      type = 'interest-match'
     } else {
-      baseReason = "内容质量较高"
+      type = 'high-quality'
     }
     
-    // 根据AI类型添加不同的描述
-    let sourceLabel = ""
-    if (provider === "keyword") {
-      sourceLabel = "算法推荐"
-    } else if (provider === "deepseek") {
-      sourceLabel = isReasoning ? "推理AI推荐" : "AI智能推荐"
-    } else {
-      sourceLabel = "AI推荐"
+    // 返回结构化数据
+    return {
+      type,
+      provider,
+      isReasoning,
+      score,
+      topics: matchedTopics.length > 0 ? matchedTopics : undefined,
+      interests: topInterests.length > 0 ? topInterests : undefined
     }
-    
-    return `${baseReason}，${sourceLabel}匹配度${(score * 100).toFixed(0)}%`
   }
 
   /**

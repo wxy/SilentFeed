@@ -40,6 +40,25 @@
       "algorithm": "Algorithm"
     }
   },
+  "recommendation": {
+    "reason": {
+      "unknown": "Unknown reason",
+      "topicMatch": "Highly relevant to your \"{{topics}}\" topics of interest",
+      "interestMatch": "Based on your interests in \"{{interests}}\"",
+      "highQuality": "High-quality content",
+      "browsingHistory": "Based on your browsing history",
+      "trending": "Trending recommendation",
+      "topicSeparator": ", ",
+      "template": "{{baseReason}}, {{sourceLabel}} {{matchPercent}}% match"
+    },
+    "source": {
+      "algorithm": "Algorithm",
+      "reasoningAI": "Reasoning AI",
+      "smartAI": "Smart AI",
+      "ai": "AI",
+      "chromeAI": "Chrome AI"
+    }
+  },
   "common": {
     "loading": "Loading...",
     "error": "Error",

@@ -39,6 +39,25 @@
       "algorithm": "算法"
     }
   },
+  "recommendation": {
+    "reason": {
+      "unknown": "推荐理由未知",
+      "topicMatch": "与您关注的\"{{topics}}\"主题高度相关",
+      "interestMatch": "基于您的兴趣\"{{interests}}\"",
+      "highQuality": "内容质量较高",
+      "browsingHistory": "基于您的浏览历史",
+      "trending": "热门推荐",
+      "topicSeparator": "、",
+      "template": "{{baseReason}}，{{sourceLabel}}匹配度{{matchPercent}}%"
+    },
+    "source": {
+      "algorithm": "算法推荐",
+      "reasoningAI": "推理AI推荐",
+      "smartAI": "AI智能推荐",
+      "ai": "AI推荐",
+      "chromeAI": "Chrome AI推荐"
+    }
+  },
   "options": {
     "title": "设置",
     "tabs": {
