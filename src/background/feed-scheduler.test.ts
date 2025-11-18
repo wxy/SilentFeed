@@ -37,13 +37,15 @@ vi.mock('../storage/db', () => ({
   db: {
     discoveredFeeds: {
       update: vi.fn(),
+      get: vi.fn(),  // Phase 7: 添加 get 方法用于获取更新后的数据
       where: vi.fn(() => ({
         equals: vi.fn(() => ({
           toArray: vi.fn().mockResolvedValue([])
         }))
       }))
     }
-  }
+  },
+  updateFeedStats: vi.fn()  // Phase 7: mock updateFeedStats 函数
 }))
 
 describe('feed-scheduler', () => {
@@ -480,6 +482,17 @@ describe('feed-scheduler', () => {
         recommendedCount: 0
       }
       
+      // Mock db.discoveredFeeds.get 返回更新后的 feed
+      vi.mocked(db.discoveredFeeds.get).mockResolvedValue({
+        ...feed,
+        articleCount: 1,
+        analyzedCount: 0,
+        recommendedCount: 0,
+        readCount: 0,
+        dislikedCount: 0,
+        unreadCount: 1
+      })
+      
       // 获取 mock 函数并设置返回值
       const RSSFetcherModule = await import('../core/rss/RSSFetcher')
       const mockFetch = (RSSFetcherModule as any).__getMockFetch()
@@ -506,10 +519,12 @@ describe('feed-scheduler', () => {
         feed.id,
         expect.objectContaining({
           lastFetchedAt: expect.any(Number),
+          nextScheduledFetch: expect.any(Number),  // ✅ 新增字段
+          updateFrequency: expect.any(Number),     // ✅ 新增字段
           lastError: undefined,
           articleCount: 1,
-          unreadCount: 1,
-          recommendedCount: 0
+          unreadCount: 1
+          // 注意：不再检查 recommendedCount，它由 updateFeedStats() 统计
         })
       )
     })

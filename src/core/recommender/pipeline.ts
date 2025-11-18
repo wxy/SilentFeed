@@ -25,9 +25,11 @@ import type {
 } from '@/types/recommendation'
 
 import type { FeedArticle } from '@/types/rss'
+import type { ReasonData, AIProvider, ReasonType } from '@/types/recommendation-reason'
 import { convertFeedArticlesToArticleData, convertUserProfileToUserInterests } from './data-adapters'
 import { RuleBasedRecommender } from './RuleBasedRecommender'
 import { aiManager } from '../ai/AICapabilityManager'
+import { db } from '@/storage/db'  // Phase 7: 静态导入，避免 Service Worker 动态导入错误
 
 /**
  * 默认管道配置
@@ -710,14 +712,14 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
   }
 
   /**
-   * 生成推荐理由
+   * 生成推荐理由（结构化数据）
    */
   private generateRecommendationReason(
     analysis: any,
     userInterests: { keywords: Array<{word: string, weight: number}> },
     score: number,
     config?: any
-  ): string {
+  ): ReasonData {
     const matchedTopics = Object.entries(analysis.topicProbabilities || {})
       .filter(([_, prob]) => (prob as number) > 0.2)
       .map(([topic, _]) => topic)
@@ -727,30 +729,29 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
       .slice(0, 2)
       .map(k => k.word)
     
-    // 根据分析provider类型生成不同的推荐理由
-    const provider = analysis.metadata?.provider || "keyword"
+    // 根据分析provider类型确定AI提供商
+    const provider = (analysis.metadata?.provider || "keyword") as AIProvider
     const isReasoning = config?.useReasoning || false
     
-    let baseReason = ""
+    // 确定推荐理由类型
+    let type: ReasonType
     if (matchedTopics.length > 0) {
-      baseReason = `与您关注的"${matchedTopics.join('、')}"主题高度相关`
+      type = 'topic-match'
     } else if (topInterests.length > 0) {
-      baseReason = `基于您的兴趣"${topInterests.join('、')}"`
+      type = 'interest-match'
     } else {
-      baseReason = "内容质量较高"
+      type = 'high-quality'
     }
     
-    // 根据AI类型添加不同的描述
-    let sourceLabel = ""
-    if (provider === "keyword") {
-      sourceLabel = "算法推荐"
-    } else if (provider === "deepseek") {
-      sourceLabel = isReasoning ? "推理AI推荐" : "AI智能推荐"
-    } else {
-      sourceLabel = "AI推荐"
+    // 返回结构化数据
+    return {
+      type,
+      provider,
+      isReasoning,
+      score,
+      topics: matchedTopics.length > 0 ? matchedTopics : undefined,
+      interests: topInterests.length > 0 ? topInterests : undefined
     }
-    
-    return `${baseReason}，${sourceLabel}匹配度${(score * 100).toFixed(0)}%`
   }
 
   /**
@@ -791,15 +792,7 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
       points.push(article.title)
     }
     
-    // 添加AI分析的主题
-    if (analysis.topicProbabilities) {
-      const topTopics = Object.entries(analysis.topicProbabilities)
-        .sort(([,a], [,b]) => (b as number) - (a as number))
-        .slice(0, 2)
-        .map(([topic, _]) => `主题: ${topic}`)
-      
-      points.push(...topTopics)
-    }
+    // 不再添加主题信息到关键点（避免在推荐理由中显示多余的主题）
     
     // 添加描述（如果有）
     if (article.description && points.length < 3) {
@@ -919,8 +912,6 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
     analysis: { topicProbabilities: any; metadata?: any }
   ): Promise<void> {
     try {
-      const { db } = await import('../../storage/db')
-      
       // Phase 6: 更新 discoveredFeeds.latestArticles 数组中的文章
       const feed = await db.discoveredFeeds.get(feedId)
       if (!feed || !feed.latestArticles) {
@@ -966,8 +957,6 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
     tfidfScore: number
   ): Promise<void> {
     try {
-      const { db } = await import('../../storage/db')
-      
       const feed = await db.discoveredFeeds.get(feedId)
       if (!feed || !feed.latestArticles) {
         console.warn(`[Pipeline] ⚠️ 保存 TF-IDF 分数失败 - 找不到 feed: ${feedId}`)

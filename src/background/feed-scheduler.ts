@@ -10,7 +10,7 @@
  * - 跳过暂停的源
  */
 
-import { db } from '../storage/db'
+import { db, updateFeedStats } from '../storage/db'
 import { RSSFetcher } from '../core/rss/RSSFetcher'
 import type { DiscoveredFeed, FeedArticle } from '@/types/rss'
 
@@ -192,29 +192,60 @@ export async function fetchFeed(feed: DiscoveredFeed): Promise<boolean> {
     const unreadCount = latest.filter(a => !a.read).length
     const readCount = totalCount - unreadCount
     
-    // Phase 6: 统计推荐数量（基于 AI 分析结果）
-    // 如果文章有 AI 分析结果且置信度 >= 0.6，视为推荐
-    const recommendedCount = latest.filter(a => {
-      if (!a.analysis) return false
-      return a.analysis.confidence >= 0.6
-    }).length
+    // Phase 6: 统计推荐数量（基于文章的推荐标记）
+    // 注意：这里不再统计 recommendedCount，因为它应该由 updateFeedStats 统计推荐池中的真实推荐数
+    // 这里只统计文章的 recommended 标记（表示进入过推荐池）
+    const articlesInPool = latest.filter(a => a.recommended).length
     
-    // 6. 更新数据库
+    // 6. 计算下次抓取时间
+    const now = Date.now()
+    const fetchInterval = calculateNextFetchInterval(feed)
+    const nextScheduledFetch = now + fetchInterval
+    
+    // 7. 更新源的更新频率（基于实际抓取的文章数）
+    // 如果有 quality 数据，使用 quality.updateFrequency
+    // 否则根据新文章数量估算
+    let updateFrequency = feed.quality?.updateFrequency || 0
+    if (!updateFrequency && newArticles.length > 0) {
+      // 粗略估算：假设本次抓取到的新文章代表一天的更新量
+      // 转换为篇/周
+      updateFrequency = (newArticles.length / latest.length) * 7
+    }
+    
+    console.log('[FeedScheduler] 📅 调度信息:', {
+      feed: feed.title,
+      fetchInterval: `${(fetchInterval / (60 * 60 * 1000)).toFixed(1)} 小时`,
+      nextScheduledFetch: new Date(nextScheduledFetch).toLocaleString(),
+      updateFrequency: `${updateFrequency.toFixed(1)} 篇/周`
+    })
+    
+    // 8. 更新数据库
     await db.discoveredFeeds.update(feed.id, {
-      lastFetchedAt: Date.now(),
+      lastFetchedAt: now,
+      nextScheduledFetch,  // ✅ 修复：设置下次抓取时间
+      updateFrequency,     // ✅ 修复：更新频率字段
       lastError: undefined,
       latestArticles: latest,
       articleCount: totalCount,
-      unreadCount,
-      recommendedCount
+      unreadCount
+      // 注意：不在这里更新 recommendedCount，它由 updateFeedStats() 统计
     })
+    
+    // Phase 7: 更新详细统计（分析、推荐、阅读、不想读）
+    await updateFeedStats(feed.url)
+    
+    // 重新获取更新后的 feed 数据以显示完整统计
+    const updatedFeed = await db.discoveredFeeds.get(feed.id)
     
     console.log('[FeedScheduler] ✅ 抓取成功:', {
       feed: feed.title,
       newArticles: newArticles.length,
-      totalArticles: totalCount,
-      unreadCount,
-      readCount,
+      totalArticles: updatedFeed?.articleCount || totalCount,
+      analyzedCount: updatedFeed?.analyzedCount || 0,
+      recommendedCount: updatedFeed?.recommendedCount || 0,
+      readCount: updatedFeed?.readCount || 0,
+      dislikedCount: updatedFeed?.dislikedCount || 0,
+      unreadCount: updatedFeed?.unreadCount || unreadCount,
       keepCount
     })
     

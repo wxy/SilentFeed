@@ -3,10 +3,23 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { db, initializeDatabase, getSettings, updateSettings, getPageCount, getRecommendationStats, getStorageStats, markAsRead, dismissRecommendations, getUnreadRecommendations } from './db'
+import { 
+  db, 
+  initializeDatabase, 
+  getSettings, 
+  updateSettings, 
+  getPageCount, 
+  getRecommendationStats, 
+  getStorageStats, 
+  markAsRead, 
+  dismissRecommendations, 
+  getUnreadRecommendations,
+  getUnrecommendedArticleCount 
+} from './db'
 import type { ConfirmedVisit, Recommendation } from "@/types/database"
 import type { UserSettings } from "@/types/config"
 import type { InterestSnapshot, UserProfile } from "@/types/profile"
+import { Topic } from "@/core/profile/topics"
 
 describe('数据库初始化', () => {
   beforeEach(async () => {
@@ -331,6 +344,9 @@ describe('Phase 2.7 推荐功能', () => {
   })
 
   afterEach(async () => {
+    // 清理缓存避免测试间污染
+    const { statsCache } = await import('./db')
+    statsCache.clear()
     await db.close()
   })
 
@@ -495,6 +511,56 @@ describe('Phase 2.7 推荐功能', () => {
       expect(updated?.scrollDepth).toBe(0.8)
       expect(updated?.effectiveness).toBe('effective')
     })
+    
+    it('应该更新 recommendedReadCount 统计', async () => {
+      // 1. 创建 RSS 源
+      const feedId = await db.discoveredFeeds.add({
+        id: 'feed-1',
+        url: 'https://test.com/feed',
+        title: '测试源',
+        status: 'subscribed',
+        discoveredFrom: 'manual',
+        discoveredAt: Date.now(),
+        isActive: true,
+        articleCount: 1,
+        recommendedCount: 1,
+        unreadCount: 1,
+        latestArticles: [{
+          id: 'article-1',
+          feedId: 'feed-1',
+          title: '测试文章',
+          link: 'https://example.com/article',
+          published: Date.now(),
+          fetched: Date.now(),
+          read: false,
+          starred: false
+        }]
+      })
+      
+      // 2. 创建推荐
+      await db.recommendations.add({
+        id: 'rec-1',
+        url: 'https://example.com/article',
+        title: '测试推荐',
+        summary: '摘要',
+        source: '测试源',
+        sourceUrl: 'https://test.com/feed',
+        recommendedAt: Date.now(),
+        score: 0.9,
+        isRead: false
+      })
+      
+      // 3. 标记推荐为已读
+      await markAsRead('rec-1')
+      
+      // 4. 验证推荐表已更新
+      const recommendation = await db.recommendations.get('rec-1')
+      expect(recommendation?.isRead).toBe(true)
+      
+      // 5. 验证 recommendedReadCount 已更新（推荐池中的已读数）
+      const feed = await db.discoveredFeeds.get(feedId)
+      expect(feed?.recommendedReadCount).toBe(1)
+    })
 
     it('应该正确评估浅度阅读', async () => {
       await db.recommendations.add({
@@ -562,6 +628,59 @@ describe('Phase 2.7 推荐功能', () => {
       
       expect(dismissed2?.feedback).toBe('dismissed')
       expect(dismissed2?.effectiveness).toBe('ineffective')
+    })
+    
+    it('应该同步更新 latestArticles 中的文章不想读状态', async () => {
+      // 1. 创建 RSS 源和文章
+      const feedId = await db.discoveredFeeds.add({
+        id: 'feed-2',
+        url: 'https://test.com/feed2',
+        title: '测试源2',
+        status: 'subscribed',
+        discoveredFrom: 'manual',
+        discoveredAt: Date.now(),
+        isActive: true,
+        articleCount: 1,
+        recommendedCount: 1,
+        unreadCount: 1,
+        latestArticles: [{
+          id: 'article-2',
+          feedId: 'feed-2',
+          title: '测试文章2',
+          link: 'https://example.com/article2',
+          published: Date.now(),
+          fetched: Date.now(),
+          read: false,
+          starred: false
+        }]
+      })
+      
+      // 2. 创建推荐
+      await db.recommendations.add({
+        id: 'rec-2',
+        url: 'https://example.com/article2',
+        title: '测试推荐2',
+        summary: '摘要',
+        source: '测试源2',
+        sourceUrl: 'https://test.com/feed2',
+        recommendedAt: Date.now(),
+        score: 0.9,
+        isRead: false
+      })
+      
+      // 3. 标记为不想读
+      await dismissRecommendations(['rec-2'])
+      
+      // 4. 验证推荐表已更新
+      const recommendation = await db.recommendations.get('rec-2')
+      expect(recommendation?.feedback).toBe('dismissed')
+      
+      // 5. 验证 latestArticles 中的文章也被标记为不想读
+      const feed = await db.discoveredFeeds.get(feedId)
+      expect(feed?.latestArticles?.[0].disliked).toBe(true)
+      
+      // 6. 验证统计已更新
+      expect(feed?.dislikedCount).toBe(1)
     })
 
     it('应该支持批量操作', async () => {
@@ -1022,6 +1141,345 @@ describe('兴趣快照管理', () => {
       expect(afterClean).toHaveLength(1)
       expect(afterClean[0].id).toBe('new-snapshot')
     })
+  })
+})
+
+/**
+ * Phase 7: 动态推荐频率测试
+ */
+describe('getUnrecommendedArticleCount', () => {
+  beforeEach(async () => {
+    await db.delete()
+    await db.open()
+  })
+
+  afterEach(async () => {
+    await db.close()
+  })
+
+  it('应该在没有订阅源时返回 0', async () => {
+    const count = await getUnrecommendedArticleCount('subscribed')
+    expect(count).toBe(0)
+  })
+
+  it('应该正确统计订阅源中未分析的文章', async () => {
+    const now = Date.now()
+    
+    // 添加一个订阅源，包含 3 篇文章（2 篇未分析，1 篇已分析）
+    await db.discoveredFeeds.add({
+      id: 'feed-1',
+      url: 'https://example.com/feed',
+      title: 'Test Feed',
+      status: 'subscribed',
+      discoveredFrom: 'manual',
+      discoveredAt: now,
+      isActive: true,
+      articleCount: 3,
+      unreadCount: 2,
+      recommendedCount: 0,
+      latestArticles: [
+        {
+          id: 'article-1',
+          feedId: 'feed-1',
+          title: 'Article 1',
+          link: 'https://example.com/1',
+          published: now,
+          fetched: now,
+          read: false,
+          starred: false
+          // 没有 analysis 字段 → 未分析
+        },
+        {
+          id: 'article-2',
+          feedId: 'feed-1',
+          title: 'Article 2',
+          link: 'https://example.com/2',
+          published: now,
+          fetched: now,
+          read: false,
+          starred: false
+          // 没有 analysis 字段 → 未分析
+        },
+        {
+          id: 'article-3',
+          feedId: 'feed-1',
+          title: 'Article 3',
+          link: 'https://example.com/3',
+          published: now,
+          fetched: now,
+          read: false,
+          starred: false,
+          analysis: {  // 已分析
+            topicProbabilities: {
+              [Topic.TECHNOLOGY]: 0.8,
+              [Topic.SCIENCE]: 0.1,
+              [Topic.BUSINESS]: 0,
+              [Topic.DESIGN]: 0,
+              [Topic.ARTS]: 0,
+              [Topic.HEALTH]: 0,
+              [Topic.SPORTS]: 0,
+              [Topic.ENTERTAINMENT]: 0,
+              [Topic.NEWS]: 0,
+              [Topic.EDUCATION]: 0.1,
+              [Topic.OTHER]: 0
+            },
+            confidence: 0.8,
+            provider: 'openai'
+          }
+        }
+      ]
+    })
+
+    const count = await getUnrecommendedArticleCount('subscribed')
+    expect(count).toBe(2)  // 只有 article-1 和 article-2 未分析
+  })
+
+  it('应该只统计已订阅源（source=subscribed）', async () => {
+    const now = Date.now()
+    
+    // 订阅源：2 篇未分析
+    await db.discoveredFeeds.add({
+      id: 'feed-1',
+      url: 'https://example.com/feed1',
+      title: 'Subscribed Feed',
+      status: 'subscribed',
+      discoveredFrom: 'manual',
+      discoveredAt: now,
+      isActive: true,
+      articleCount: 2,
+      unreadCount: 2,
+      recommendedCount: 0,
+      latestArticles: [
+        {
+          id: 'a1',
+          feedId: 'feed-1',
+          title: 'A1',
+          link: 'https://example.com/a1',
+          published: now,
+          fetched: now,
+          read: false,
+          starred: false
+        },
+        {
+          id: 'a2',
+          feedId: 'feed-1',
+          title: 'A2',
+          link: 'https://example.com/a2',
+          published: now,
+          fetched: now,
+          read: false,
+          starred: false
+        }
+      ]
+    })
+
+    // 候选源：3 篇未分析（不应该统计）
+    await db.discoveredFeeds.add({
+      id: 'feed-2',
+      url: 'https://example.com/feed2',
+      title: 'Candidate Feed',
+      status: 'candidate',
+      discoveredFrom: 'manual',
+      discoveredAt: now,
+      isActive: true,
+      articleCount: 3,
+      unreadCount: 3,
+      recommendedCount: 0,
+      latestArticles: [
+        {
+          id: 'b1',
+          feedId: 'feed-2',
+          title: 'B1',
+          link: 'https://example.com/b1',
+          published: now,
+          fetched: now,
+          read: false,
+          starred: false
+        },
+        {
+          id: 'b2',
+          feedId: 'feed-2',
+          title: 'B2',
+          link: 'https://example.com/b2',
+          published: now,
+          fetched: now,
+          read: false,
+          starred: false
+        },
+        {
+          id: 'b3',
+          feedId: 'feed-2',
+          title: 'B3',
+          link: 'https://example.com/b3',
+          published: now,
+          fetched: now,
+          read: false,
+          starred: false
+        }
+      ]
+    })
+
+    const count = await getUnrecommendedArticleCount('subscribed')
+    expect(count).toBe(2)  // 只统计订阅源
+  })
+
+  it('应该统计所有源（source=all）', async () => {
+    const now = Date.now()
+    
+    // 订阅源：2 篇
+    await db.discoveredFeeds.add({
+      id: 'feed-1',
+      url: 'https://example.com/feed1',
+      title: 'Subscribed Feed',
+      status: 'subscribed',
+      discoveredFrom: 'manual',
+      discoveredAt: now,
+      isActive: true,
+      articleCount: 2,
+      unreadCount: 2,
+      recommendedCount: 0,
+      latestArticles: [
+        {
+          id: 'a1',
+          feedId: 'feed-1',
+          title: 'A1',
+          link: 'https://example.com/a1',
+          published: now,
+          fetched: now,
+          read: false,
+          starred: false
+        },
+        {
+          id: 'a2',
+          feedId: 'feed-1',
+          title: 'A2',
+          link: 'https://example.com/a2',
+          published: now,
+          fetched: now,
+          read: false,
+          starred: false
+        }
+      ]
+    })
+
+    // 候选源：3 篇
+    await db.discoveredFeeds.add({
+      id: 'feed-2',
+      url: 'https://example.com/feed2',
+      title: 'Candidate Feed',
+      status: 'candidate',
+      discoveredFrom: 'manual',
+      discoveredAt: now,
+      isActive: true,
+      articleCount: 3,
+      unreadCount: 3,
+      recommendedCount: 0,
+      latestArticles: [
+        {
+          id: 'b1',
+          feedId: 'feed-2',
+          title: 'B1',
+          link: 'https://example.com/b1',
+          published: now,
+          fetched: now,
+          read: false,
+          starred: false
+        },
+        {
+          id: 'b2',
+          feedId: 'feed-2',
+          title: 'B2',
+          link: 'https://example.com/b2',
+          published: now,
+          fetched: now,
+          read: false,
+          starred: false
+        },
+        {
+          id: 'b3',
+          feedId: 'feed-2',
+          title: 'B3',
+          link: 'https://example.com/b3',
+          published: now,
+          fetched: now,
+          read: false,
+          starred: false
+        }
+      ]
+    })
+
+    const count = await getUnrecommendedArticleCount('all')
+    expect(count).toBe(5)  // 统计所有源
+  })
+
+  it('应该忽略没有文章的源', async () => {
+    const now = Date.now()
+    
+    // 有文章的源
+    await db.discoveredFeeds.add({
+      id: 'feed-1',
+      url: 'https://example.com/feed1',
+      title: 'Feed with Articles',
+      status: 'subscribed',
+      discoveredFrom: 'manual',
+      discoveredAt: now,
+      isActive: true,
+      articleCount: 1,
+      unreadCount: 1,
+      recommendedCount: 0,
+      latestArticles: [
+        {
+          id: 'a1',
+          feedId: 'feed-1',
+          title: 'A1',
+          link: 'https://example.com/a1',
+          published: now,
+          fetched: now,
+          read: false,
+          starred: false
+        }
+      ]
+    })
+
+    // 空文章数组
+    await db.discoveredFeeds.add({
+      id: 'feed-2',
+      url: 'https://example.com/feed2',
+      title: 'Empty Feed',
+      status: 'subscribed',
+      discoveredFrom: 'manual',
+      discoveredAt: now,
+      isActive: true,
+      articleCount: 0,
+      unreadCount: 0,
+      recommendedCount: 0,
+      latestArticles: []
+    })
+
+    // undefined latestArticles
+    await db.discoveredFeeds.add({
+      id: 'feed-3',
+      url: 'https://example.com/feed3',
+      title: 'No Articles Feed',
+      status: 'subscribed',
+      discoveredFrom: 'manual',
+      discoveredAt: now,
+      isActive: true,
+      articleCount: 0,
+      unreadCount: 0,
+      recommendedCount: 0
+    })
+
+    const count = await getUnrecommendedArticleCount('subscribed')
+    expect(count).toBe(1)  // 只统计 feed-1 的 1 篇
+  })
+
+  it('应该在数据库错误时返回 0', async () => {
+    // 关闭数据库模拟错误
+    await db.close()
+
+    const count = await getUnrecommendedArticleCount('subscribed')
+    expect(count).toBe(0)  // 错误时返回 0
   })
 })
 

@@ -396,6 +396,10 @@ describe('RecommendationStore', () => {
     })
 
     it('应该在 refreshStats 失败时静默处理', async () => {
+      // 清理缓存确保数据库调用会触发
+      const { statsCache } = await import('@/storage/db')
+      statsCache.clear()
+      
       // Mock 数据库错误
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
       const spy = vi.spyOn(db.recommendations, 'where').mockImplementation(() => {

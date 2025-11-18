@@ -67,10 +67,15 @@ export interface DiscoveredFeed {
   subscribedAt?: number
   isActive: boolean
   lastFetchedAt?: number
+  nextScheduledFetch?: number  // Phase 7: 下次计划抓取时间
+  updateFrequency?: number     // Phase 7: 更新频率（篇/周）
   lastError?: string
-  articleCount: number
+  articleCount: number         // 总文章数
+  analyzedCount?: number       // Phase 7: 已分析数量（有 analysis 字段）
+  recommendedCount: number     // 被推荐数量（已推荐）
+  readCount?: number           // Phase 7: 已阅读数量（read=true）
+  dislikedCount?: number       // Phase 7: 不想读数量（disliked=true）
   unreadCount: number
-  recommendedCount: number
   recommendedReadCount?: number
   latestArticles?: FeedArticle[]
 }
@@ -96,6 +101,7 @@ export interface FeedArticle {
   tfidfScore?: number
   recommended?: boolean
   read: boolean
+  disliked?: boolean  // Phase 7: 标记不想读
   starred: boolean
 }
 

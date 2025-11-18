@@ -48,13 +48,16 @@ export interface RecommendationResult {
 /**
  * 推荐的文章
  */
+import type { RecommendationReason } from './recommendation-reason'
+
 export interface RecommendedArticle {
   id: string
   title: string
   url: string
   feedId?: string // RSS 源 ID，用于准确匹配统计
   score: number
-  reason: string
+  /** 推荐理由（支持字符串或结构化数据） */
+  reason: RecommendationReason
   confidence: number
   matchedInterests: string[]
   keyPoints?: string[]

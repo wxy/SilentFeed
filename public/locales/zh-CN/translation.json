@@ -19,7 +19,7 @@
     "retry": "重试",
     "recommendations": "为你推荐",
     "recommendationCount": "共 {{count}} 条",
-    "dismissAll": "全部不想读",
+    "dismissAll": "不想读",
     "confirmDismissAll": "确定要标记所有 {{count}} 条推荐为「不想读」吗？",
     "noRecommendations": "暂无推荐",
     "checkBackLater": "稍后回来查看新推荐",
@@ -28,7 +28,35 @@
     "readLater": "稍后阅读", 
     "notInterested": "不感兴趣",
     "rssFeeds": "RSS源",
-    "manageRSSFeeds": "管理RSS订阅源"
+    "manageRSSFeeds": "管理RSS订阅源",
+    "generateNow": "马上推荐",
+    "generating": "生成中...",
+    "generateNowTitle": "立即生成推荐",
+    "reason": "理由",
+    "engine": {
+      "reasoningAI": "推理AI",
+      "ai": "AI",
+      "algorithm": "算法"
+    }
+  },
+  "recommendation": {
+    "reason": {
+      "unknown": "推荐理由未知",
+      "topicMatch": "与您关注的\"{{topics}}\"主题高度相关",
+      "interestMatch": "基于您的兴趣\"{{interests}}\"",
+      "highQuality": "内容质量较高",
+      "browsingHistory": "基于您的浏览历史",
+      "trending": "热门推荐",
+      "topicSeparator": "、",
+      "template": "{{baseReason}}，{{sourceLabel}}匹配度{{matchPercent}}%"
+    },
+    "source": {
+      "algorithm": "算法推荐",
+      "reasoningAI": "推理AI推荐",
+      "smartAI": "AI智能推荐",
+      "ai": "AI推荐",
+      "chromeAI": "Chrome AI推荐"
+    }
   },
   "options": {
     "title": "设置",
@@ -94,7 +122,13 @@
         "unsubscribe": "取消订阅",
         "delete": "删除",
         "pause": "暂停",
-        "resume": "恢复"
+        "resume": "恢复",
+        "fetch": "📡 读取",
+        "fetching": "📡 读取中...",
+        "fetchCompleted": "✅ 读取完成",
+        "fetchAll": "📡 全部读取",
+        "fetchingAll": "📡 读取中...",
+        "fetchAllCompleted": "✅ 读取完成"
       },
       "metadata": {
         "items": "{{count}} 条",
@@ -172,6 +206,48 @@
       "title": "AI 配置",
   "disabled": "将在完成 100 页面后启用",
       "description": "配置 AI 推荐引擎"
+    },
+    "recommendation": {
+      "title": "推荐设置",
+      "currentMode": "当前模式",
+      "reasoningAI": "🧠 推理AI推荐",
+      "standardAI": "🤖 标准AI推荐",
+      "enableReasoning": "🧠 启用推理AI模式",
+      "reasoningDesc": "使用 DeepSeek-R1 等推理型AI模型，生成更深入的分析（成本 2-5倍，默认使用标准AI）",
+      "useLocalAI": "🔒 使用本地 AI",
+      "localAIDesc": "使用 Ollama 或 Chrome AI，隐私保护但占用性能",
+      "smartCount": "智能推荐数量",
+      "currentCount": "当前推荐数量",
+      "countItems": "{{count}} 条",
+      "countHint": "系统根据点击率、不想读率和弹窗打开频率自动调整（1-5条）",
+      "notification": "推荐通知",
+      "enableNotification": "🔔 启用推荐通知",
+      "notificationDesc": "当有新推荐时发送系统通知（克制设计，不会过度打扰）",
+      "notificationHint": "💡 Chrome 扩展通知无需额外授权。如果看不到通知，请检查系统通知设置（macOS 用户需打开通知中心侧边栏）",
+      "quietHours": "🌙 静默时段",
+      "quietStart": "开始时间",
+      "quietEnd": "结束时间",
+      "quietHint": "在此时段不发送通知（24小时制）",
+      "testNotification": "🔔 测试通知",
+      "testNotificationTitle": "测试推荐通知功能",
+      "testNotificationSuccess": "✅ 测试通知已发送！请检查系统通知中心",
+      "testNotificationFailed": "❌ 测试通知失败，请查看控制台",
+      "testNotificationError": "❌ 测试通知失败: {{error}}",
+      "stats": "推荐统计",
+      "resetData": "🗑️ 重置数据",
+      "resetDataTitle": "清空推荐池和统计数据",
+      "totalRecommendations": "推荐总数",
+      "readCount": "阅读数",
+      "dismissCount": "不想读",
+      "saving": "保存中...",
+      "save": "保存设置",
+      "saveSuccess": "✓ 保存成功",
+      "generating": "生成中...",
+      "generateNow": "🔮 马上推荐",
+      "resetConfirm": "⚠️ 确定要重置所有推荐数据吗？\n\n这将清空：\n- 推荐池中的所有推荐\n- RSS 源的推荐数统计\n- 所有文章的 AI 评分和分析数据（可重新分析）\n- 所有文章的 TF-IDF 评分缓存（可重新计算）\n- 推荐相关的统计数据\n\n⚠️ 注意：已抓取的全文内容会保留\n\n此操作不可恢复！",
+      "resetSuccess": "✅ 推荐数据已重置",
+      "resetFailed": "❌ 重置失败: {{error}}",
+      "saveFailed": "保存失败，请重试"
     },
     "stats": {
       "noData": "暂无数据",

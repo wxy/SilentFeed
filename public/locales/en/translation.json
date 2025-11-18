@@ -19,7 +19,7 @@
     "retry": "Retry",
     "recommendations": "Recommended for You",
     "recommendationCount": "Total {{count}} items",
-    "dismissAll": "Don't want to read any",
+    "dismissAll": "Dismiss",
     "confirmDismiss": "Are you sure you want to mark all {{count}} recommendations as \"Not interested\"?",
     "noRecommendations": "No recommendations yet",
     "checkBackLater": "Come back later for new recommendations",
@@ -29,7 +29,35 @@
     "readLater": "Read Later",
     "notInterested": "Not interested",
     "rssFeeds": "RSS Feed",
-    "manageRSSFeeds": "Manage RSS Feeds"
+    "manageRSSFeeds": "Manage RSS Feeds",
+    "generateNow": "Generate Now",
+    "generating": "Generating...",
+    "generateNowTitle": "Generate recommendations immediately",
+    "reason": "Reason",
+    "engine": {
+      "reasoningAI": "Reasoning AI",
+      "ai": "AI",
+      "algorithm": "Algorithm"
+    }
+  },
+  "recommendation": {
+    "reason": {
+      "unknown": "Unknown reason",
+      "topicMatch": "Highly relevant to your \"{{topics}}\" topics of interest",
+      "interestMatch": "Based on your interests in \"{{interests}}\"",
+      "highQuality": "High-quality content",
+      "browsingHistory": "Based on your browsing history",
+      "trending": "Trending recommendation",
+      "topicSeparator": ", ",
+      "template": "{{baseReason}}, {{sourceLabel}} {{matchPercent}}% match"
+    },
+    "source": {
+      "algorithm": "Algorithm",
+      "reasoningAI": "Reasoning AI",
+      "smartAI": "Smart AI",
+      "ai": "AI",
+      "chromeAI": "Chrome AI"
+    }
   },
   "common": {
     "loading": "Loading...",
@@ -107,6 +135,48 @@
       "title": "AI Configuration",
   "disabled": "Will be enabled after completing 100 pages",
       "description": "Configure AI Recommendation Engine"
+    },
+    "recommendation": {
+      "title": "Recommendation Settings",
+      "currentMode": "Current mode",
+      "reasoningAI": "🧠 Reasoning AI Recommendations",
+      "standardAI": "🤖 Standard AI Recommendations",
+      "enableReasoning": "🧠 Enable Reasoning AI Mode",
+      "reasoningDesc": "Use reasoning AI models like DeepSeek-R1 for deeper analysis (2-5x cost, standard AI by default)",
+      "useLocalAI": "🔒 Use Local AI",
+      "localAIDesc": "Use Ollama or Chrome AI for privacy protection but with performance impact",
+      "smartCount": "Smart Recommendation Count",
+      "currentCount": "Current recommendation count",
+      "countItems": "{{count}} items",
+      "countHint": "System automatically adjusts (1-5 items) based on click rate, dismiss rate, and popup frequency",
+      "notification": "Recommendation Notifications",
+      "enableNotification": "🔔 Enable Recommendation Notifications",
+      "notificationDesc": "Send system notifications for new recommendations (restrained design, won't be intrusive)",
+      "notificationHint": "💡 Chrome extension notifications don't require extra permissions. If you can't see notifications, check system notification settings (macOS users need to open Notification Center sidebar)",
+      "quietHours": "🌙 Quiet Hours",
+      "quietStart": "Start time",
+      "quietEnd": "End time",
+      "quietHint": "No notifications during this period (24-hour format)",
+      "testNotification": "🔔 Test Notification",
+      "testNotificationTitle": "Test recommendation notification feature",
+      "testNotificationSuccess": "✅ Test notification sent! Please check system notification center",
+      "testNotificationFailed": "❌ Test notification failed, please check console",
+      "testNotificationError": "❌ Test notification failed: {{error}}",
+      "stats": "Recommendation Statistics",
+      "resetData": "🗑️ Reset Data",
+      "resetDataTitle": "Clear recommendation pool and statistics",
+      "totalRecommendations": "Total recommendations",
+      "readCount": "Read count",
+      "dismissCount": "Don't want to read",
+      "saving": "Saving...",
+      "save": "Save Settings",
+      "saveSuccess": "✓ Saved successfully",
+      "generating": "Generating...",
+      "generateNow": "🔮 Generate Now",
+      "resetConfirm": "⚠️ Are you sure you want to reset all recommendation data?\n\nThis will clear:\n- All recommendations in the pool\n- RSS feed recommendation statistics\n- AI scores and analysis data for all articles (can be reanalyzed)\n- TF-IDF score cache for all articles (can be recalculated)\n- Recommendation-related statistics\n\n⚠️ Note: Fetched full-text content will be retained\n\nThis action cannot be undone!",
+      "resetSuccess": "✅ Recommendation data has been reset",
+      "resetFailed": "❌ Reset failed: {{error}}",
+      "saveFailed": "Save failed, please try again"
     },
     "privacy": {
       "title": "Data and Privacy",
@@ -428,7 +498,13 @@
         "unsubscribe": "Unsubscribe",
         "delete": "Delete",
         "pause": "Pause",
-        "resume": "Restore"
+        "resume": "Restore",
+        "fetch": "📡 Fetch",
+        "fetching": "📡 Fetching...",
+        "fetchCompleted": "✅ Fetch completed",
+        "fetchAll": "📡 Fetch All",
+        "fetchingAll": "📡 Fetching...",
+        "fetchAllCompleted": "✅ Fetch completed"
       },
       "metadata": {
         "items": "{{count}} items",

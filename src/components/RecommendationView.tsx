@@ -17,31 +17,46 @@ import {
   trackDismissAll
 } from "@/core/recommender/adaptive-count"
 import { sanitizeHtml } from "@/utils/html"
+import { getFaviconUrl, handleFaviconError } from "@/utils/favicon"
+import { formatRecommendationReason } from "@/utils/formatReason"
 import type { Recommendation } from "@/types/database"
 import { logger } from "@/utils/logger"
 
 const recViewLogger = logger.withTag("RecommendationView")
 
 /**
- * 获取推荐引擎标志
+ * 获取推荐引擎标志（基于结构化数据或字符串）
  */
-function getEngineLabel(recommendation: Recommendation): { emoji: string; text: string } {
-  const reason = recommendation.reason || ""
+function getEngineLabel(recommendation: Recommendation, t: (key: string) => string): { emoji: string; text: string } {
+  const reason = recommendation.reason
   
-  if (reason.includes("推理AI")) {
-    return { emoji: "🧠", text: "推理AI" }
-  } else if (reason.includes("AI")) {
-    return { emoji: "🤖", text: "AI" }
-  } else if (reason.includes("算法")) {
-    return { emoji: "🔍", text: "算法" }
+  // 如果是结构化数据
+  if (typeof reason === 'object' && reason !== null) {
+    const { provider, isReasoning } = reason
+    if (provider === 'deepseek' && isReasoning) {
+      return { emoji: "🧠", text: t("popup.engine.reasoningAI") }
+    } else if (provider === 'keyword') {
+      return { emoji: "🔍", text: t("popup.engine.algorithm") }
+    } else {
+      return { emoji: "🤖", text: t("popup.engine.ai") }
+    }
+  }
+  
+  // 兼容旧版本字符串数据
+  const reasonStr = typeof reason === 'string' ? reason : ""
+  if (reasonStr.includes("推理AI")) {
+    return { emoji: "🧠", text: t("popup.engine.reasoningAI") }
+  } else if (reasonStr.includes("AI")) {
+    return { emoji: "🤖", text: t("popup.engine.ai") }
+  } else if (reasonStr.includes("算法")) {
+    return { emoji: "🔍", text: t("popup.engine.algorithm") }
   } else {
-    // 默认情况，可能是关键词匹配
-    return { emoji: "🔍", text: "算法" }
+    return { emoji: "🔍", text: t("popup.engine.algorithm") }
   }
 }
 
 export function RecommendationView() {
-  const { _ } = useI18n()
+  const { _, t } = useI18n()
   const {
     recommendations,
     isLoading,
@@ -238,7 +253,7 @@ export function RecommendationView() {
               className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded-lg transition-colors mb-3"
               disabled={isLoading}
             >
-              {isLoading ? "生成中..." : "🤖 手动推荐"}
+              {isLoading ? _("popup.generating") : `🤖 ${_("popup.generateNow")}`}
             </button>
             <p className="text-xs text-gray-500 dark:text-gray-500">
               {_("popup.checkBackLater")}
@@ -270,19 +285,6 @@ export function RecommendationView() {
               <span>{_("popup.rssFeeds")}</span>
             </button>
           )}
-          
-          <button
-            onClick={async () => {
-              const { generateRecommendations } = useRecommendationStore.getState()
-              await generateRecommendations()
-              await loadRecommendations()
-            }}
-            className="text-xs text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
-            disabled={isLoading}
-            title="手动生成推荐"
-          >
-            🤖 {isLoading ? "生成中..." : "手动推荐"}
-          </button>
         </div>
         
         <button
@@ -324,7 +326,7 @@ interface RecommendationItemProps {
 }
 
 function RecommendationItem({ recommendation, isTopItem, onClick, onDismiss }: RecommendationItemProps) {
-  const { _ } = useI18n()
+  const { _, t } = useI18n()
   
   // 第一条显示摘要，需要更大的高度（但限制最大高度避免溢出）
   if (isTopItem) {
@@ -359,7 +361,7 @@ function RecommendationItem({ recommendation, isTopItem, onClick, onDismiss }: R
         {recommendation.reason && (
           <div className="mb-1.5">
             <p className="text-xs text-blue-700 dark:text-blue-300 italic line-clamp-1">
-              💡 {sanitizeHtml(recommendation.reason)}
+              💡 {sanitizeHtml(formatRecommendationReason(recommendation.reason, t))}
             </p>
           </div>
         )}
@@ -367,8 +369,14 @@ function RecommendationItem({ recommendation, isTopItem, onClick, onDismiss }: R
         {/* 底部信息栏 */}
         <div className="flex items-center justify-between text-xs">
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <span className="text-gray-500 dark:text-gray-500 truncate">
-              📡 {recommendation.source}
+            <span className="flex items-center gap-1 text-gray-500 dark:text-gray-500 truncate">
+              <img 
+                src={getFaviconUrl(recommendation.sourceUrl || recommendation.url)} 
+                alt="" 
+                className="w-4 h-4 flex-shrink-0"
+                onError={handleFaviconError}
+              />
+              <span className="truncate">{recommendation.source}</span>
             </span>
             
             {recommendation.wordCount && (
@@ -392,7 +400,7 @@ function RecommendationItem({ recommendation, isTopItem, onClick, onDismiss }: R
             {/* 推荐引擎标志 */}
             <span className="text-xs text-gray-500 dark:text-gray-500 flex-shrink-0 ml-1">
               {(() => {
-                const { emoji, text } = getEngineLabel(recommendation)
+                const { emoji, text } = getEngineLabel(recommendation, _)
                 return `${emoji} ${text}`
               })()}
             </span>
@@ -429,8 +437,14 @@ function RecommendationItem({ recommendation, isTopItem, onClick, onDismiss }: R
       {/* 底部信息栏 */}
       <div className="flex items-center justify-between text-xs">
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          <span className="text-gray-500 dark:text-gray-500 truncate">
-            📡 {recommendation.source}
+          <span className="flex items-center gap-1 text-gray-500 dark:text-gray-500 truncate">
+            <img 
+              src={getFaviconUrl(recommendation.sourceUrl || recommendation.url)} 
+              alt="" 
+              className="w-4 h-4 flex-shrink-0"
+              onError={handleFaviconError}
+            />
+            <span className="truncate">{recommendation.source}</span>
           </span>
           
           {recommendation.wordCount && (
@@ -454,7 +468,7 @@ function RecommendationItem({ recommendation, isTopItem, onClick, onDismiss }: R
           {/* 推荐引擎标志 */}
           <span className="text-xs text-gray-500 dark:text-gray-500 flex-shrink-0 ml-1">
             {(() => {
-              const { emoji, text } = getEngineLabel(recommendation)
+              const { emoji, text } = getEngineLabel(recommendation, _)
               return `${emoji} ${text}`
             })()}
           </span>

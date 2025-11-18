@@ -3,7 +3,8 @@ import { initializeDatabase, getPageCount, getUnreadRecommendations, db } from '
 import type { ConfirmedVisit } from '@/types/database'
 import { FeedManager } from './core/rss/managers/FeedManager'
 import { RSSValidator } from './core/rss/RSSValidator'
-import { feedScheduler, fetchFeed } from './background/feed-scheduler'
+import { fetchFeed } from './background/feed-scheduler'
+import { startAllSchedulers, feedScheduler, recommendationScheduler } from './background/index'
 import { IconManager } from './utils/IconManager'
 import { evaluateAndAdjust } from './core/recommender/adaptive-count'
 import { setupNotificationListeners, testNotification } from './core/recommender/notification'
@@ -128,20 +129,13 @@ chrome.runtime.onInstalled.addListener(async () => {
     
     await updateBadge()
     
-    // Phase 5 Sprint 3: 启动 RSS 定时调度器
-    bgLogger.info('启动 RSS 定时调度器...')
-    feedScheduler.start(30) // 每 30 分钟检查一次
+    // Phase 7: 启动所有后台调度器
+    await startAllSchedulers()
     
     // Phase 6: 启动推荐数量定期评估
     bgLogger.info('创建推荐数量评估定时器（每周一次）...')
     chrome.alarms.create('evaluate-recommendations', {
       periodInMinutes: 7 * 24 * 60 // 每 7 天（1 周）
-    })
-    
-    // Phase 6: 启动推荐生成定时任务
-    bgLogger.info('创建推荐生成定时器（每 20 分钟生成 1 条）...')
-    chrome.alarms.create('generate-recommendation', {
-      periodInMinutes: 20 // 每 20 分钟生成一次推荐
     })
     
     // Phase 6: 设置通知监听器
@@ -511,7 +505,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 })
 
 /**
- * Phase 6: 定时器事件监听器
+ * Phase 6/7: 定时器事件监听器
  * 处理推荐数量定期评估和推荐生成
  */
 chrome.alarms.onAlarm.addListener(async (alarm) => {
@@ -523,31 +517,10 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       const newCount = await evaluateAndAdjust()
       bgLogger.info(`✅ 推荐数量已调整为: ${newCount} 条`)
     } else if (alarm.name === 'generate-recommendation') {
-      // 检查是否达到学习阈值
-      const pageCount = await getPageCount()
-      if (pageCount < LEARNING_COMPLETE_PAGES) {
-        bgLogger.debug(`跳过推荐生成：当前 ${pageCount} 页，需要 ${LEARNING_COMPLETE_PAGES} 页`)
-        return
-      }
-      
-      bgLogger.info('开始自动生成推荐（每次 1 条）...')
-      
-      // 动态导入以避免循环依赖
-      const { recommendationService } = await import('./core/recommender/RecommendationService')
-      
-      const result = await recommendationService.generateRecommendations(
-        1, // 每次只生成 1 条
-        'subscribed', // 只从订阅源
-        10 // 批次大小
-      )
-      
-      if (result.stats.recommendedCount > 0) {
-        bgLogger.info(`✅ 自动推荐生成完成: ${result.stats.recommendedCount} 条`)
-        // 更新徽章显示新推荐
-        await updateBadge()
-      } else {
-        bgLogger.info('暂无新推荐')
-      }
+      // Phase 7: 委托给 recommendationScheduler 处理
+      await recommendationScheduler.handleAlarm()
+      // 更新徽章显示新推荐
+      await updateBadge()
     }
   } catch (error) {
     bgLogger.error('❌ 定时器处理失败:', error)
