@@ -8,6 +8,44 @@ import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { RecommendationSettings } from "./RecommendationSettings"
 
+// Mock react-i18next
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string, params?: any) => {
+      const translations: Record<string, string> = {
+        "options.recommendation.title": "Recommendation Settings",
+        "options.recommendation.currentMode": "Current mode",
+        "options.recommendation.reasoningAI": "🧠 Reasoning AI Recommendations",
+        "options.recommendation.standardAI": "🤖 Standard AI Recommendations",
+        "options.recommendation.enableReasoning": "🧠 Enable Reasoning AI Mode",
+        "options.recommendation.smartCount": "Smart Recommendation Count",
+        "options.recommendation.currentCount": "Current recommendation count",
+        "options.recommendation.countItems": params?.count ? `${params.count} items` : "{{count}} items",
+        "options.recommendation.notification": "Recommendation Notifications",
+        "options.recommendation.enableNotification": "🔔 Enable Recommendation Notifications",
+        "options.recommendation.quietHours": "🌙 Quiet Hours",
+        "options.recommendation.quietStart": "Start time",
+        "options.recommendation.quietEnd": "End time",
+        "options.recommendation.stats": "Recommendation Statistics",
+        "options.recommendation.totalRecommendations": "Total recommendations",
+        "options.recommendation.readCount": "Read count",
+        "options.recommendation.dismissCount": "Don't want to read",
+        "options.recommendation.save": "Save Settings",
+        "options.recommendation.saving": "Saving...",
+        "options.recommendation.saveSuccess": "✓ Saved successfully",
+        "options.recommendation.generateNow": "🔮 Generate Now",
+        "options.recommendation.generating": "Generating...",
+        "options.recommendation.resetData": "🗑️ Reset Data",
+        "options.recommendation.resetSuccess": "✅ Recommendation data has been reset",
+        "options.recommendation.useLocalAI": "🔒 Use Local AI",
+        "options.recommendation.testNotification": "🔔 Test Notification",
+        "options.recommendation.testNotificationSuccess": "✅ Test notification sent! Please check system notification center"
+      }
+      return translations[key] || key
+    }
+  })
+}))
+
 // Mock dependencies
 vi.mock("@/storage/recommendation-config", () => ({
   getRecommendationConfig: vi.fn().mockResolvedValue({
@@ -79,7 +117,7 @@ describe("RecommendationSettings 组件", () => {
       render(<RecommendationSettings />)
       
       await waitFor(() => {
-        expect(screen.getByText("推荐设置")).toBeInTheDocument()
+        expect(screen.getByText("Recommendation Settings")).toBeInTheDocument()
       })
     })
 
@@ -87,8 +125,8 @@ describe("RecommendationSettings 组件", () => {
       render(<RecommendationSettings />)
       
       await waitFor(() => {
-        expect(screen.getByText(/当前模式:/)).toBeInTheDocument()
-        expect(screen.getByText(/标准AI推荐/)).toBeInTheDocument()
+        expect(screen.getByText(/Current mode/)).toBeInTheDocument()
+        expect(screen.getByText(/Standard AI/)).toBeInTheDocument()
       })
     })
 
@@ -96,8 +134,8 @@ describe("RecommendationSettings 组件", () => {
       render(<RecommendationSettings />)
       
       await waitFor(() => {
-        expect(screen.getByText(/智能推荐数量/)).toBeInTheDocument()
-        expect(screen.getByText(/3 条/)).toBeInTheDocument()
+        expect(screen.getByText(/Smart Recommendation Count/)).toBeInTheDocument()
+        expect(screen.getByText(/3 items/)).toBeInTheDocument()
       })
     })
 
@@ -105,7 +143,7 @@ describe("RecommendationSettings 组件", () => {
       render(<RecommendationSettings />)
       
       await waitFor(() => {
-        expect(screen.getByText("推荐统计")).toBeInTheDocument()
+        expect(screen.getByText("Recommendation Statistics")).toBeInTheDocument()
         expect(screen.getByText("10")).toBeInTheDocument() // 推荐总数
         expect(screen.getByText("5")).toBeInTheDocument() // 阅读数
         expect(screen.getByText("2")).toBeInTheDocument() // 不想读
@@ -116,8 +154,8 @@ describe("RecommendationSettings 组件", () => {
       render(<RecommendationSettings />)
       
       await waitFor(() => {
-        expect(screen.getByText("推荐通知")).toBeInTheDocument()
-        expect(screen.getByText(/启用推荐通知/)).toBeInTheDocument()
+        expect(screen.getByText("Recommendation Notifications")).toBeInTheDocument()
+        expect(screen.getByText(/Enable Recommendation Notifications/)).toBeInTheDocument()
       })
     })
   })
@@ -128,10 +166,10 @@ describe("RecommendationSettings 组件", () => {
       render(<RecommendationSettings />)
       
       await waitFor(() => {
-        expect(screen.getByText(/启用推理AI模式/)).toBeInTheDocument()
+        expect(screen.getByText(/Enable Reasoning AI Mode/)).toBeInTheDocument()
       })
       
-      const checkbox = screen.getByRole("checkbox", { name: /启用推理AI模式/ })
+      const checkbox = screen.getByRole("checkbox", { name: /Enable Reasoning AI Mode/ })
       await user.click(checkbox)
       
       expect(checkbox).toBeChecked()
@@ -142,10 +180,10 @@ describe("RecommendationSettings 组件", () => {
       render(<RecommendationSettings />)
       
       await waitFor(() => {
-        expect(screen.getByText(/使用本地 AI/)).toBeInTheDocument()
+        expect(screen.getByText(/Use Local AI/)).toBeInTheDocument()
       })
       
-      const checkbox = screen.getByRole("checkbox", { name: /使用本地 AI/ })
+      const checkbox = screen.getByRole("checkbox", { name: /Use Local AI/ })
       await user.click(checkbox)
       
       expect(checkbox).toBeChecked()
@@ -156,10 +194,10 @@ describe("RecommendationSettings 组件", () => {
       render(<RecommendationSettings />)
       
       await waitFor(() => {
-        expect(screen.getByText(/启用推荐通知/)).toBeInTheDocument()
+        expect(screen.getByText(/Enable Recommendation Notifications/)).toBeInTheDocument()
       })
       
-      const checkbox = screen.getByRole("checkbox", { name: /启用推荐通知/ })
+      const checkbox = screen.getByRole("checkbox", { name: /Enable Recommendation Notifications/ })
       // 默认应该是选中的
       expect(checkbox).toBeChecked()
       
@@ -174,16 +212,16 @@ describe("RecommendationSettings 组件", () => {
       render(<RecommendationSettings />)
       
       await waitFor(() => {
-        expect(screen.getByText("保存设置")).toBeInTheDocument()
+        expect(screen.getByText("Save Settings")).toBeInTheDocument()
       })
       
-      const saveButton = screen.getByText("保存设置")
+      const saveButton = screen.getByText("Save Settings")
       await user.click(saveButton)
       
       await waitFor(() => {
         expect(saveRecommendationConfig).toHaveBeenCalled()
         expect(mockChromeStorage.local.set).toHaveBeenCalled()
-        expect(screen.getByText("✓ 保存成功")).toBeInTheDocument()
+        expect(screen.getByText("✓ Saved successfully")).toBeInTheDocument()
       })
     })
 
@@ -200,10 +238,10 @@ describe("RecommendationSettings 组件", () => {
       render(<RecommendationSettings />)
       
       await waitFor(() => {
-        expect(screen.getByText(/马上推荐/)).toBeInTheDocument()
+        expect(screen.getByText(/Generate Now/)).toBeInTheDocument()
       })
       
-      const generateButton = screen.getByText(/马上推荐/)
+      const generateButton = screen.getByText(/Generate Now/)
       await user.click(generateButton)
       
       await waitFor(() => {
@@ -220,10 +258,10 @@ describe("RecommendationSettings 组件", () => {
       render(<RecommendationSettings />)
       
       await waitFor(() => {
-        expect(screen.getByText(/测试通知/)).toBeInTheDocument()
+        expect(screen.getByText(/Test Notification/)).toBeInTheDocument()
       })
       
-      const testButton = screen.getByText(/测试通知/)
+      const testButton = screen.getByText(/Test Notification/)
       await user.click(testButton)
       
       await waitFor(() => {
@@ -231,7 +269,7 @@ describe("RecommendationSettings 组件", () => {
           type: "TEST_NOTIFICATION"
         })
         expect(global.alert).toHaveBeenCalledWith(
-          expect.stringContaining("测试通知已发送")
+          expect.stringContaining("Test notification sent")
         )
       })
     })
@@ -240,9 +278,9 @@ describe("RecommendationSettings 组件", () => {
       render(<RecommendationSettings />)
       
       await waitFor(() => {
-        expect(screen.getByText(/静默时段/)).toBeInTheDocument()
-        expect(screen.getByText("开始时间")).toBeInTheDocument()
-        expect(screen.getByText("结束时间")).toBeInTheDocument()
+        expect(screen.getByText(/Quiet Hours/)).toBeInTheDocument()
+        expect(screen.getByText("Start time")).toBeInTheDocument()
+        expect(screen.getByText("End time")).toBeInTheDocument()
       })
     })
 
@@ -251,13 +289,13 @@ describe("RecommendationSettings 组件", () => {
       render(<RecommendationSettings />)
       
       await waitFor(() => {
-        expect(screen.getByText(/启用推荐通知/)).toBeInTheDocument()
+        expect(screen.getByText(/Enable Recommendation Notifications/)).toBeInTheDocument()
       })
       
-      const checkbox = screen.getByRole("checkbox", { name: /启用推荐通知/ })
+      const checkbox = screen.getByRole("checkbox", { name: /Enable Recommendation Notifications/ })
       await user.click(checkbox)
       
-      expect(screen.queryByText(/静默时段/)).not.toBeInTheDocument()
+      expect(screen.queryByText(/Quiet Hours/)).not.toBeInTheDocument()
     })
   })
 
@@ -272,16 +310,16 @@ describe("RecommendationSettings 组件", () => {
       render(<RecommendationSettings />)
       
       await waitFor(() => {
-        expect(screen.getByText(/重置数据/)).toBeInTheDocument()
+        expect(screen.getByText(/Reset Data/)).toBeInTheDocument()
       })
       
-      const resetButton = screen.getByText(/重置数据/)
+      const resetButton = screen.getByText(/Reset Data/)
       await user.click(resetButton)
       
       await waitFor(() => {
         expect(global.confirm).toHaveBeenCalled()
         expect(resetRecommendationData).toHaveBeenCalled()
-        expect(global.alert).toHaveBeenCalledWith("✅ 推荐数据已重置")
+        expect(global.alert).toHaveBeenCalledWith("✅ Recommendation data has been reset")
       })
     })
 
@@ -294,10 +332,10 @@ describe("RecommendationSettings 组件", () => {
       render(<RecommendationSettings />)
       
       await waitFor(() => {
-        expect(screen.getByText(/重置数据/)).toBeInTheDocument()
+        expect(screen.getByText(/Reset Data/)).toBeInTheDocument()
       })
       
-      const resetButton = screen.getByText(/重置数据/)
+      const resetButton = screen.getByText(/Reset Data/)
       await user.click(resetButton)
       
       expect(global.confirm).toHaveBeenCalled()
@@ -311,14 +349,14 @@ describe("RecommendationSettings 组件", () => {
       render(<RecommendationSettings />)
       
       await waitFor(() => {
-        expect(screen.getByText(/启用推理AI模式/)).toBeInTheDocument()
+        expect(screen.getByText(/Enable Reasoning AI Mode/)).toBeInTheDocument()
       })
       
-      const checkbox = screen.getByRole("checkbox", { name: /启用推理AI模式/ })
+      const checkbox = screen.getByRole("checkbox", { name: /Enable Reasoning AI Mode/ })
       await user.click(checkbox)
       
       await waitFor(() => {
-        expect(screen.getByText(/推理AI推荐/)).toBeInTheDocument()
+        expect(screen.getByText("🧠 Reasoning AI Recommendations")).toBeInTheDocument()
       })
     })
 
@@ -334,14 +372,14 @@ describe("RecommendationSettings 组件", () => {
       render(<RecommendationSettings />)
       
       await waitFor(() => {
-        expect(screen.getByText("保存设置")).toBeInTheDocument()
+        expect(screen.getByText("Save Settings")).toBeInTheDocument()
       })
       
-      const saveButton = screen.getByText("保存设置")
+      const saveButton = screen.getByText("Save Settings")
       await user.click(saveButton)
       
       // 保存中时按钮文字应该变化
-      expect(screen.getByText("保存中...")).toBeInTheDocument()
+      expect(screen.getByText("Saving...")).toBeInTheDocument()
     })
   })
 })

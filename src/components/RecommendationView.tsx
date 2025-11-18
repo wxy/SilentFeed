@@ -26,18 +26,18 @@ const recViewLogger = logger.withTag("RecommendationView")
 /**
  * 获取推荐引擎标志
  */
-function getEngineLabel(recommendation: Recommendation): { emoji: string; text: string } {
+function getEngineLabel(recommendation: Recommendation, t: (key: string) => string): { emoji: string; text: string } {
   const reason = recommendation.reason || ""
   
   if (reason.includes("推理AI")) {
-    return { emoji: "🧠", text: "推理AI" }
+    return { emoji: "🧠", text: t("popup.engine.reasoningAI") }
   } else if (reason.includes("AI")) {
-    return { emoji: "🤖", text: "AI" }
+    return { emoji: "🤖", text: t("popup.engine.ai") }
   } else if (reason.includes("算法")) {
-    return { emoji: "🔍", text: "算法" }
+    return { emoji: "🔍", text: t("popup.engine.algorithm") }
   } else {
     // 默认情况，可能是关键词匹配
-    return { emoji: "🔍", text: "算法" }
+    return { emoji: "🔍", text: t("popup.engine.algorithm") }
   }
 }
 
@@ -280,9 +280,9 @@ export function RecommendationView() {
             }}
             className="text-xs text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
             disabled={isLoading}
-            title="手动生成推荐"
+            title={_("popup.generateNowTitle")}
           >
-            🤖 {isLoading ? "生成中..." : "手动推荐"}
+            🤖 {isLoading ? _("popup.generating") : _("popup.generateNow")}
           </button>
         </div>
         
@@ -399,7 +399,7 @@ function RecommendationItem({ recommendation, isTopItem, onClick, onDismiss }: R
             {/* 推荐引擎标志 */}
             <span className="text-xs text-gray-500 dark:text-gray-500 flex-shrink-0 ml-1">
               {(() => {
-                const { emoji, text } = getEngineLabel(recommendation)
+                const { emoji, text } = getEngineLabel(recommendation, _)
                 return `${emoji} ${text}`
               })()}
             </span>
@@ -467,7 +467,7 @@ function RecommendationItem({ recommendation, isTopItem, onClick, onDismiss }: R
           {/* 推荐引擎标志 */}
           <span className="text-xs text-gray-500 dark:text-gray-500 flex-shrink-0 ml-1">
             {(() => {
-              const { emoji, text } = getEngineLabel(recommendation)
+              const { emoji, text } = getEngineLabel(recommendation, _)
               return `${emoji} ${text}`
             })()}
           </span>

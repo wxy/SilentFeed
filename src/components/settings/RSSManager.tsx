@@ -664,32 +664,10 @@ export function RSSManager() {
       >
         {/* 第一行：RSS 本身属性 */}
         <div className="flex items-center gap-2 text-sm">
-          {/* XML/RSS 图标 */}
-          <a 
-            href={feed.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center px-1.5 py-0.5 text-white text-xs font-mono font-bold rounded flex-shrink-0 hover:opacity-80 transition-opacity"
-            style={{ backgroundColor: '#FF6600' }}
-            title={_('options.rssManager.openXML')}
-          >
-            {getFormatBadge(feed.url)}
-          </a>
-          
-          {/* 语言文本图标 */}
-          {feed.language && (
-            <span 
-              className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded text-[10px] font-mono font-bold uppercase"
-              title={formatLanguage(feed.language)}
-            >
-              {feed.language}
-            </span>
-          )}
-          
-          {/* 标题（带 favicon） */}
+          {/* 标题（带 favicon）- 放在最左边 */}
           <button
             onClick={() => loadPreviewArticles(feed.id, feed.url)}
-            className="font-medium text-blue-600 dark:text-blue-400 hover:underline flex-1 truncate text-left flex items-center gap-1.5"
+            className="font-medium text-blue-600 dark:text-blue-400 hover:underline flex-1 truncate text-left flex items-center gap-1.5 min-w-0"
           >
             <img 
               src={getFaviconUrl(feed.link || feed.url)} 
@@ -703,7 +681,7 @@ export function RSSManager() {
           {/* 质量文本图标 */}
           {feed.quality && (
             <span 
-              className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+              className={`px-1.5 py-0.5 rounded text-[10px] font-bold flex-shrink-0 ${
                 feed.quality.score >= 70 
                   ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
                   : feed.quality.score >= 50 
@@ -719,12 +697,34 @@ export function RSSManager() {
           {/* 类别文本图标 */}
           {feed.category && (
             <span 
-              className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded text-[10px] font-medium"
+              className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded text-[10px] font-medium flex-shrink-0"
               title={_('options.rssManager.category')}
             >
               {feed.category}
             </span>
           )}
+          
+          {/* 语言标签 - 右侧对齐 */}
+          {feed.language && (
+            <span 
+              className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded text-[10px] font-mono font-bold uppercase flex-shrink-0"
+              title={formatLanguage(feed.language)}
+            >
+              {feed.language}
+            </span>
+          )}
+          
+          {/* RSS/ATOM 徽章 - 右侧对齐，固定宽度 */}
+          <a 
+            href={feed.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center w-12 px-1.5 py-0.5 text-white text-xs font-mono font-bold rounded flex-shrink-0 hover:opacity-80 transition-opacity"
+            style={{ backgroundColor: '#FF6600' }}
+            title={_('options.rssManager.openXML')}
+          >
+            {getFormatBadge(feed.url)}
+          </a>
         </div>
         
         {/* 第二行：订阅/发现信息 + 操作按钮 */}
@@ -1141,7 +1141,11 @@ export function RSSManager() {
               disabled={isFetchingAll || fetchCompleted.all}
               className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white text-sm rounded-lg transition-colors"
             >
-              {isFetchingAll ? '📡 读取中...' : fetchCompleted.all ? '✅ 读取完成' : '📡 全部读取'}
+              {isFetchingAll 
+                ? _('options.rssManager.actions.fetchingAll') 
+                : fetchCompleted.all 
+                ? _('options.rssManager.actions.fetchAllCompleted') 
+                : _('options.rssManager.actions.fetchAll')}
             </button>
           </div>
 
@@ -1150,10 +1154,10 @@ export function RSSManager() {
               // 第二行：读取 + 暂停/恢复 + 取消订阅
               {
                 label: isFetchingSingle === feed.id 
-                  ? '📡 读取中...' 
+                  ? _('options.rssManager.actions.fetching')
                   : fetchCompleted.single === feed.id 
-                  ? '✅ 读取完成'
-                  : '📡 读取',
+                  ? _('options.rssManager.actions.fetchCompleted')
+                  : _('options.rssManager.actions.fetch'),
                 onClick: () => handleFetchSingleFeed(feed.id),
                 className: 'bg-green-500 hover:bg-green-600 disabled:bg-gray-400',
                 disabled: isFetchingSingle === feed.id || fetchCompleted.single === feed.id,

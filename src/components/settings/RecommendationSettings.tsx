@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect } from "react"
+import { useTranslation } from "react-i18next"
 import {
   getRecommendationConfig,
   saveRecommendationConfig,
@@ -19,6 +20,7 @@ import { logger } from "@/utils/logger"
 const recSettingsLogger = logger.withTag("RecommendationSettings")
 
 export function RecommendationSettings() {
+  const { t: _ } = useTranslation()
   const { generateRecommendations, isLoading: isGenerating } = useRecommendationStore()
   const [config, setConfig] = useState<RecommendationConfig>({
     useReasoning: false,
@@ -109,19 +111,19 @@ export function RecommendationSettings() {
       
       if (response.success) {
         recSettingsLogger.info("✅ 测试通知已发送")
-        alert("✅ 测试通知已发送！请检查系统通知中心")
+        alert(_("options.recommendation.testNotificationSuccess"))
       } else {
         recSettingsLogger.error("❌ 测试通知失败:", response.error)
-        alert("❌ 测试通知失败，请查看控制台")
+        alert(_("options.recommendation.testNotificationFailed"))
       }
     } catch (error) {
       recSettingsLogger.error("测试通知异常:", error)
-      alert("❌ 测试通知失败: " + String(error))
+      alert(_("options.recommendation.testNotificationError", { error: String(error) }))
     }
   }
 
   const handleResetRecommendations = async () => {
-    if (!confirm("⚠️ 确定要重置所有推荐数据吗？\n\n这将清空：\n- 推荐池中的所有推荐\n- RSS 源的推荐数统计\n- 所有文章的 AI 评分和分析数据（可重新分析）\n- 所有文章的 TF-IDF 评分缓存（可重新计算）\n- 推荐相关的统计数据\n\n⚠️ 注意：已抓取的全文内容会保留\n\n此操作不可恢复！")) {
+    if (!confirm(_("options.recommendation.resetConfirm"))) {
       return
     }
 
@@ -132,10 +134,10 @@ export function RecommendationSettings() {
       // 重新加载统计数据
       await loadMetrics()
       
-      alert("✅ 推荐数据已重置")
+      alert(_("options.recommendation.resetSuccess"))
     } catch (error) {
       recSettingsLogger.error("重置推荐数据失败:", error)
-      alert("❌ 重置失败: " + String(error))
+      alert(_("options.recommendation.resetFailed", { error: String(error) }))
     }
   }
 
@@ -144,18 +146,18 @@ export function RecommendationSettings() {
       {/* 推荐设置 */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium">推荐设置</h3>
+          <h3 className="text-lg font-medium">{_("options.recommendation.title")}</h3>
           
           {/* 当前推荐模式指示 */}
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600 dark:text-gray-400">当前模式:</span>
+            <span className="text-sm text-gray-600 dark:text-gray-400">{_("options.recommendation.currentMode")}</span>
             {config.useReasoning ? (
               <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded text-sm font-medium">
-                🧠 推理AI推荐
+                {_("options.recommendation.reasoningAI")}
               </span>
             ) : (
               <span className="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded text-sm font-medium">
-                🤖 标准AI推荐
+                {_("options.recommendation.standardAI")}
               </span>
             )}
           </div>
@@ -172,9 +174,9 @@ export function RecommendationSettings() {
               // disabled={!hasAIConfig} // TODO: Phase 6.2 - 未配置AI时禁用
             />
             <div className="flex-1">
-              <div className="font-medium">🧠 启用推理AI模式</div>
+              <div className="font-medium">{_("options.recommendation.enableReasoning")}</div>
               <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                使用 DeepSeek-R1 等推理型AI模型，生成更深入的分析（成本 2-5倍，默认使用标准AI）
+                {_("options.recommendation.reasoningDesc")}
               </div>
               {/* TODO: Phase 6.2 - 显示未配置提示
               {!hasAIConfig && (
@@ -196,9 +198,9 @@ export function RecommendationSettings() {
               // disabled={!hasLocalAI} // TODO: Phase 6.2 - 未检测到本地AI时禁用
             />
             <div className="flex-1">
-              <div className="font-medium">🔒 使用本地 AI</div>
+              <div className="font-medium">{_("options.recommendation.useLocalAI")}</div>
               <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                使用 Ollama 或 Chrome AI，隐私保护但占用性能
+                {_("options.recommendation.localAIDesc")}
               </div>
               {/* TODO: Phase 6.2 - 显示未检测到提示
               {!hasLocalAI && (
@@ -214,23 +216,23 @@ export function RecommendationSettings() {
 
       {/* 智能推荐数量 */}
       <div>
-        <h3 className="text-lg font-medium mb-3">智能推荐数量</h3>
+        <h3 className="text-lg font-medium mb-3">{_("options.recommendation.smartCount")}</h3>
         <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600 dark:text-gray-400">当前推荐数量</span>
+            <span className="text-sm text-gray-600 dark:text-gray-400">{_("options.recommendation.currentCount")}</span>
             <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-              {config.maxRecommendations} 条
+              {_("options.recommendation.countItems", { count: config.maxRecommendations })}
             </span>
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
-            系统根据点击率、不想读率和弹窗打开频率自动调整（1-5条）
+            {_("options.recommendation.countHint")}
           </p>
         </div>
       </div>
 
       {/* 通知设置 */}
       <div>
-        <h3 className="text-lg font-medium mb-4">推荐通知</h3>
+        <h3 className="text-lg font-medium mb-4">{_("options.recommendation.notification")}</h3>
         
         <div className="space-y-3">
           {/* 启用通知 */}
@@ -242,12 +244,12 @@ export function RecommendationSettings() {
               className="mt-1"
             />
             <div className="flex-1">
-              <div className="font-medium">🔔 启用推荐通知</div>
+              <div className="font-medium">{_("options.recommendation.enableNotification")}</div>
               <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                当有新推荐时发送系统通知（克制设计，不会过度打扰）
+                {_("options.recommendation.notificationDesc")}
               </div>
               <div className="text-xs text-blue-600 dark:text-blue-400 mt-2">
-                💡 Chrome 扩展通知无需额外授权。如果看不到通知，请检查系统通知设置（macOS 用户需打开通知中心侧边栏）
+                {_("options.recommendation.notificationHint")}
               </div>
             </div>
           </label>
@@ -255,10 +257,10 @@ export function RecommendationSettings() {
           {/* 静默时段 */}
           {notificationConfig.enabled && (
             <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800">
-              <div className="font-medium mb-3">🌙 静默时段</div>
+              <div className="font-medium mb-3">{_("options.recommendation.quietHours")}</div>
               <div className="flex items-center gap-4">
                 <div className="flex-1">
-                  <label className="text-sm text-gray-600 dark:text-gray-400 block mb-1">开始时间</label>
+                  <label className="text-sm text-gray-600 dark:text-gray-400 block mb-1">{_("options.recommendation.quietStart")}</label>
                   <input
                     type="number"
                     min="0"
@@ -275,7 +277,7 @@ export function RecommendationSettings() {
                   />
                 </div>
                 <div className="flex-1">
-                  <label className="text-sm text-gray-600 dark:text-gray-400 block mb-1">结束时间</label>
+                  <label className="text-sm text-gray-600 dark:text-gray-400 block mb-1">{_("options.recommendation.quietEnd")}</label>
                   <input
                     type="number"
                     min="0"
@@ -293,7 +295,7 @@ export function RecommendationSettings() {
                 </div>
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
-                在此时段不发送通知（24小时制）
+                {_("options.recommendation.quietHint")}
               </p>
             </div>
           )}
@@ -303,9 +305,9 @@ export function RecommendationSettings() {
             <button
               onClick={handleTestNotification}
               className="w-full px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors text-sm"
-              title="测试推荐通知功能"
+              title={_("options.recommendation.testNotificationTitle")}
             >
-              🔔 测试通知
+              {_("options.recommendation.testNotification")}
             </button>
           )}
         </div>
@@ -315,13 +317,13 @@ export function RecommendationSettings() {
       {metrics && (
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-medium">推荐统计</h3>
+            <h3 className="text-lg font-medium">{_("options.recommendation.stats")}</h3>
             <button
               onClick={handleResetRecommendations}
               className="px-3 py-1 text-sm bg-red-500 hover:bg-red-600 text-white rounded transition-colors"
-              title="清空推荐池和统计数据"
+              title={_("options.recommendation.resetDataTitle")}
             >
-              🗑️ 重置数据
+              {_("options.recommendation.resetData")}
             </button>
           </div>
           <div className="grid grid-cols-3 gap-4">
@@ -330,7 +332,7 @@ export function RecommendationSettings() {
                 {metrics.totalRecommendations}
               </div>
               <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                推荐总数
+                {_("options.recommendation.totalRecommendations")}
               </div>
             </div>
             
@@ -339,7 +341,7 @@ export function RecommendationSettings() {
                 {metrics.clickCount}
               </div>
               <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                阅读数
+                {_("options.recommendation.readCount")}
               </div>
             </div>
             
@@ -348,7 +350,7 @@ export function RecommendationSettings() {
                 {metrics.dismissCount}
               </div>
               <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                不想读
+                {_("options.recommendation.dismissCount")}
               </div>
             </div>
           </div>
@@ -362,7 +364,7 @@ export function RecommendationSettings() {
           disabled={isSaving}
           className="px-6 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white rounded-lg transition-colors"
         >
-          {isSaving ? "保存中..." : "保存设置"}
+          {isSaving ? _("options.recommendation.saving") : _("options.recommendation.save")}
         </button>
 
         <button
@@ -370,12 +372,12 @@ export function RecommendationSettings() {
           disabled={isGenerating}
           className="px-6 py-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white rounded-lg transition-colors"
         >
-          {isGenerating ? "生成中..." : "🔮 马上推荐"}
+          {isGenerating ? _("options.recommendation.generating") : _("options.recommendation.generateNow")}
         </button>
 
         {saveSuccess && (
           <span className="text-green-600 dark:text-green-400 text-sm">
-            ✓ 保存成功
+            {_("options.recommendation.saveSuccess")}
           </span>
         )}
       </div>
