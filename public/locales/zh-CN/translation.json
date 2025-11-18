@@ -93,10 +93,13 @@
       "manualPlaceholder": "https://example.com/feed.xml",
       "subscribing": "验证中...",
       "subscribe": "订阅",
-      "importOPML": "批量导入（OPML 文件）",
+      "importExportOPML": "批量导入/导出（OPML 文件）",
+      "importOPML": "导入 OPML",
+      "exportOPML": "导出 OPML",
       "selectOPML": "选择 OPML 文件",
       "importing": "导入中...",
-      "opmlHint": "支持从其他 RSS 阅读器导出的订阅列表",
+      "opmlHint": "支持从其他 RSS 阅读器导入/导出订阅列表",
+      "noSubscribedFeeds": "暂无已订阅的源",
       "loading": "加载中...",
       "noFeeds": "暂无发现的 RSS 源",
       "noFeedsHint": "浏览包含 RSS 订阅的网站时，我们会自动发现并在这里显示",
@@ -194,6 +197,7 @@
         "networkError": "网络错误，请检查连接",
         "parseError": "OPML 文件解析失败",
         "importFailed": "OPML 导入失败",
+        "exportFailed": "OPML 导出失败",
         "revalidationFailed": "RSS 源重新验证失败，已删除"
       },
       "success": {

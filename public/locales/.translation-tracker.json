@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-11-12T10:08:06.831Z",
+  "lastUpdate": "2025-11-18T15:48:44.182Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -369,15 +369,15 @@
     "options.rss.disabled": {
       "zh-CN": {
         "value": "将在完成 100 页面后启用",
-        "hash": "",
-        "lastModified": "2025-11-17T00:00:00.000Z",
-        "status": "needs-review"
+        "hash": "b14c4b9c",
+        "lastModified": "2025-11-18T15:47:00.150Z",
+        "status": "verified"
       },
       "en": {
         "value": "Will be enabled after completing 100 pages",
-        "hash": "",
-        "lastModified": "2025-11-17T00:00:00.000Z",
-        "status": "needs-review"
+        "hash": "1cb492de",
+        "lastModified": "2025-11-18T15:47:00.150Z",
+        "status": "ai-translated"
       }
     },
     "options.ai.title": {
@@ -397,15 +397,15 @@
     "options.ai.disabled": {
       "zh-CN": {
         "value": "将在完成 100 页面后启用",
-        "hash": "",
-        "lastModified": "2025-11-17T00:00:00.000Z",
-        "status": "needs-review"
+        "hash": "b14c4b9c",
+        "lastModified": "2025-11-18T15:47:28.104Z",
+        "status": "verified"
       },
       "en": {
         "value": "Will be enabled after completing 100 pages",
-        "hash": "",
-        "lastModified": "2025-11-17T00:00:00.000Z",
-        "status": "needs-review"
+        "hash": "1cb492de",
+        "lastModified": "2025-11-18T15:47:28.104Z",
+        "status": "ai-translated"
       }
     },
     "options.privacy.title": {
@@ -634,15 +634,15 @@
     },
     "popup.dismissAll": {
       "zh-CN": {
-        "value": "全部不想读",
-        "hash": "8c576e47",
-        "lastModified": "2025-11-12T10:07:45.809Z",
+        "value": "不想读",
+        "hash": "68c2a967",
+        "lastModified": "2025-11-18T15:46:21.000Z",
         "status": "verified"
       },
       "en": {
-        "value": "Don't want to read any",
-        "hash": "67835c31",
-        "lastModified": "2025-11-12T10:07:45.810Z",
+        "value": "Don't want to read",
+        "hash": "5425d4b7",
+        "lastModified": "2025-11-18T15:46:21.002Z",
         "status": "ai-translated"
       }
     },
@@ -2539,15 +2539,15 @@
     "options.userProfile.noData.tip": {
       "zh-CN": {
         "value": "💡 不需要等到100页，有几条有效记录就可以生成画像",
-        "hash": "",
-        "lastModified": "2025-11-17T00:00:00.000Z",
-        "status": "needs-review"
+        "hash": "1ceed2f9",
+        "lastModified": "2025-11-18T15:48:43.676Z",
+        "status": "verified"
       },
       "en": {
-        "value": "💡 No need to wait for 100 pages - just a few valid records are enough to generate a profile.",
-        "hash": "",
-        "lastModified": "2025-11-17T00:00:00.000Z",
-        "status": "needs-review"
+        "value": "💡 No need to wait for 100 pages, just a few valid records are enough to generate a profile.",
+        "hash": "3f17b607",
+        "lastModified": "2025-11-18T15:48:43.676Z",
+        "status": "ai-translated"
       }
     },
     "options.userProfile.lastUpdated.justNow": {
@@ -4582,15 +4582,15 @@
     },
     "options.rssManager.importOPML": {
       "zh-CN": {
-        "value": "批量导入（OPML 文件）",
-        "hash": "7c8b1f98",
-        "lastModified": "2025-11-10T15:49:26.744Z",
+        "value": "导入 OPML",
+        "hash": "51553bce",
+        "lastModified": "2025-11-18T15:47:05.064Z",
         "status": "verified"
       },
       "en": {
-        "value": "Batch Import (OPML File)",
-        "hash": "cc393e72",
-        "lastModified": "2025-11-10T15:49:26.744Z",
+        "value": "Import OPML",
+        "hash": "1d4576c7",
+        "lastModified": "2025-11-18T15:47:05.064Z",
         "status": "ai-translated"
       }
     },
@@ -5142,15 +5142,15 @@
     },
     "options.rssManager.opmlHint": {
       "zh-CN": {
-        "value": "支持从其他 RSS 阅读器导出的订阅列表",
-        "hash": "380bd51e",
-        "lastModified": "2025-11-10T15:59:56.730Z",
+        "value": "支持从其他 RSS 阅读器导入/导出订阅列表",
+        "hash": "f244deaf",
+        "lastModified": "2025-11-18T15:47:08.649Z",
         "status": "verified"
       },
       "en": {
-        "value": "Supports subscription lists exported from other RSS readers",
-        "hash": "409857f6",
-        "lastModified": "2025-11-10T15:59:56.730Z",
+        "value": "Support import/export subscription lists from other RSS readers",
+        "hash": "863e6ed9",
+        "lastModified": "2025-11-18T15:47:08.649Z",
         "status": "ai-translated"
       }
     },
@@ -5991,6 +5991,1014 @@
         "value": "Discovered in",
         "hash": "6b6ca23e",
         "lastModified": "2025-11-12T10:08:06.321Z",
+        "status": "ai-translated"
+      }
+    },
+    "popup.generateNow": {
+      "zh-CN": {
+        "value": "马上推荐",
+        "hash": "161272c3",
+        "lastModified": "2025-11-18T15:46:22.686Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Recommend immediately",
+        "hash": "52f2ede2",
+        "lastModified": "2025-11-18T15:46:22.686Z",
+        "status": "ai-translated"
+      }
+    },
+    "popup.generating": {
+      "zh-CN": {
+        "value": "生成中...",
+        "hash": "4d020ba3",
+        "lastModified": "2025-11-18T15:46:24.477Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Generating...",
+        "hash": "530a6ed4",
+        "lastModified": "2025-11-18T15:46:24.477Z",
+        "status": "ai-translated"
+      }
+    },
+    "popup.generateNowTitle": {
+      "zh-CN": {
+        "value": "立即生成推荐",
+        "hash": "a3468dc9",
+        "lastModified": "2025-11-18T15:46:26.667Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Generate recommendations instantly",
+        "hash": "b6d30b36",
+        "lastModified": "2025-11-18T15:46:26.667Z",
+        "status": "ai-translated"
+      }
+    },
+    "popup.reason": {
+      "zh-CN": {
+        "value": "理由",
+        "hash": "bc3482c2",
+        "lastModified": "2025-11-18T15:46:28.507Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Reason",
+        "hash": "fffcb4d1",
+        "lastModified": "2025-11-18T15:46:28.507Z",
+        "status": "ai-translated"
+      }
+    },
+    "popup.engine.reasoningAI": {
+      "zh-CN": {
+        "value": "推理AI",
+        "hash": "98790fdb",
+        "lastModified": "2025-11-18T15:46:30.297Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Inference AI",
+        "hash": "4544ef16",
+        "lastModified": "2025-11-18T15:46:30.297Z",
+        "status": "ai-translated"
+      }
+    },
+    "popup.engine.ai": {
+      "zh-CN": {
+        "value": "AI",
+        "hash": "0a40e3c9",
+        "lastModified": "2025-11-18T15:46:32.089Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "AI",
+        "hash": "0a40e3c9",
+        "lastModified": "2025-11-18T15:46:32.089Z",
+        "status": "ai-translated"
+      }
+    },
+    "popup.engine.algorithm": {
+      "zh-CN": {
+        "value": "算法",
+        "hash": "046a899e",
+        "lastModified": "2025-11-18T15:46:33.525Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Algorithm",
+        "hash": "4afa80e7",
+        "lastModified": "2025-11-18T15:46:33.525Z",
+        "status": "ai-translated"
+      }
+    },
+    "recommendation.reason.unknown": {
+      "zh-CN": {
+        "value": "推荐理由未知",
+        "hash": "98595694",
+        "lastModified": "2025-11-18T15:46:35.075Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Recommended reason unknown",
+        "hash": "9df65826",
+        "lastModified": "2025-11-18T15:46:35.075Z",
+        "status": "ai-translated"
+      }
+    },
+    "recommendation.reason.topicMatch": {
+      "zh-CN": {
+        "value": "与您关注的\"{{topics}}\"主题高度相关",
+        "hash": "cb2d3131",
+        "lastModified": "2025-11-18T15:46:37.024Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Highly relevant to the \"{{topics}}\" topics you follow",
+        "hash": "3999c0c8",
+        "lastModified": "2025-11-18T15:46:37.024Z",
+        "status": "ai-translated"
+      }
+    },
+    "recommendation.reason.interestMatch": {
+      "zh-CN": {
+        "value": "基于您的兴趣\"{{interests}}\"",
+        "hash": "5882b757",
+        "lastModified": "2025-11-18T15:46:39.771Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Based on your interests \"{{interests}}\"",
+        "hash": "0e1f5937",
+        "lastModified": "2025-11-18T15:46:39.771Z",
+        "status": "ai-translated"
+      }
+    },
+    "recommendation.reason.highQuality": {
+      "zh-CN": {
+        "value": "内容质量较高",
+        "hash": "3d6c36a1",
+        "lastModified": "2025-11-18T15:46:41.840Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Content quality is relatively high.",
+        "hash": "274756f7",
+        "lastModified": "2025-11-18T15:46:41.840Z",
+        "status": "ai-translated"
+      }
+    },
+    "recommendation.reason.browsingHistory": {
+      "zh-CN": {
+        "value": "基于您的浏览历史",
+        "hash": "fc3a56ef",
+        "lastModified": "2025-11-18T15:46:43.763Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Based on your browsing history",
+        "hash": "8b2c1ab1",
+        "lastModified": "2025-11-18T15:46:43.763Z",
+        "status": "ai-translated"
+      }
+    },
+    "recommendation.reason.trending": {
+      "zh-CN": {
+        "value": "热门推荐",
+        "hash": "9223a76e",
+        "lastModified": "2025-11-18T15:46:46.017Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Hot Recommendations",
+        "hash": "df4ffb03",
+        "lastModified": "2025-11-18T15:46:46.017Z",
+        "status": "ai-translated"
+      }
+    },
+    "recommendation.reason.topicSeparator": {
+      "zh-CN": {
+        "value": "、",
+        "hash": "b505660a",
+        "lastModified": "2025-11-18T15:46:47.450Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": ",",
+        "hash": "c0cb5f0f",
+        "lastModified": "2025-11-18T15:46:47.450Z",
+        "status": "ai-translated"
+      }
+    },
+    "recommendation.reason.template": {
+      "zh-CN": {
+        "value": "{{baseReason}}，{{sourceLabel}}匹配度{{matchPercent}}%",
+        "hash": "e2164272",
+        "lastModified": "2025-11-18T15:46:49.520Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{baseReason}}, {{sourceLabel}} match rate {{matchPercent}}%",
+        "hash": "8d87528e",
+        "lastModified": "2025-11-18T15:46:49.520Z",
+        "status": "ai-translated"
+      }
+    },
+    "recommendation.source.algorithm": {
+      "zh-CN": {
+        "value": "算法推荐",
+        "hash": "4a058221",
+        "lastModified": "2025-11-18T15:46:51.141Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Algorithm recommendation",
+        "hash": "c3b1a178",
+        "lastModified": "2025-11-18T15:46:51.141Z",
+        "status": "ai-translated"
+      }
+    },
+    "recommendation.source.reasoningAI": {
+      "zh-CN": {
+        "value": "推理AI推荐",
+        "hash": "81ee9cb6",
+        "lastModified": "2025-11-18T15:46:52.982Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Inference AI Recommendations",
+        "hash": "d9e49ac3",
+        "lastModified": "2025-11-18T15:46:52.982Z",
+        "status": "ai-translated"
+      }
+    },
+    "recommendation.source.smartAI": {
+      "zh-CN": {
+        "value": "AI智能推荐",
+        "hash": "3f54d68c",
+        "lastModified": "2025-11-18T15:46:54.520Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "AI Smart Recommendation",
+        "hash": "22e81b43",
+        "lastModified": "2025-11-18T15:46:54.520Z",
+        "status": "ai-translated"
+      }
+    },
+    "recommendation.source.ai": {
+      "zh-CN": {
+        "value": "AI推荐",
+        "hash": "5899b2fb",
+        "lastModified": "2025-11-18T15:46:56.358Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "AI Recommendations",
+        "hash": "96fc9b42",
+        "lastModified": "2025-11-18T15:46:56.358Z",
+        "status": "ai-translated"
+      }
+    },
+    "recommendation.source.chromeAI": {
+      "zh-CN": {
+        "value": "Chrome AI推荐",
+        "hash": "57bea05f",
+        "lastModified": "2025-11-18T15:46:58.306Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Chrome AI Recommendations",
+        "hash": "34072a41",
+        "lastModified": "2025-11-18T15:46:58.306Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.importExportOPML": {
+      "zh-CN": {
+        "value": "批量导入/导出（OPML 文件）",
+        "hash": "35deb71c",
+        "lastModified": "2025-11-18T15:47:03.269Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Batch Import/Export (OPML File)",
+        "hash": "b47a3749",
+        "lastModified": "2025-11-18T15:47:03.269Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.exportOPML": {
+      "zh-CN": {
+        "value": "导出 OPML",
+        "hash": "7d1a3f3b",
+        "lastModified": "2025-11-18T15:47:06.501Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Export OPML",
+        "hash": "31835c19",
+        "lastModified": "2025-11-18T15:47:06.501Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.noSubscribedFeeds": {
+      "zh-CN": {
+        "value": "暂无已订阅的源",
+        "hash": "fa0caa0e",
+        "lastModified": "2025-11-18T15:47:10.594Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "No subscribed sources yet",
+        "hash": "6daaad01",
+        "lastModified": "2025-11-18T15:47:10.594Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.actions.fetch": {
+      "zh-CN": {
+        "value": "📡 读取",
+        "hash": "ca867539",
+        "lastModified": "2025-11-18T15:47:12.037Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "📡 Reading",
+        "hash": "0a10ed1c",
+        "lastModified": "2025-11-18T15:47:12.037Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.actions.fetching": {
+      "zh-CN": {
+        "value": "📡 读取中...",
+        "hash": "5e20ab99",
+        "lastModified": "2025-11-18T15:47:13.563Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "📡 Reading...",
+        "hash": "69452a8a",
+        "lastModified": "2025-11-18T15:47:13.563Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.actions.fetchCompleted": {
+      "zh-CN": {
+        "value": "✅ 读取完成",
+        "hash": "d3487b29",
+        "lastModified": "2025-11-18T15:47:15.730Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "✅ Read completed",
+        "hash": "97186c6f",
+        "lastModified": "2025-11-18T15:47:15.730Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.actions.fetchAll": {
+      "zh-CN": {
+        "value": "📡 全部读取",
+        "hash": "97b971c3",
+        "lastModified": "2025-11-18T15:47:17.375Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "📡 Read All",
+        "hash": "b94d1f20",
+        "lastModified": "2025-11-18T15:47:17.376Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.actions.fetchingAll": {
+      "zh-CN": {
+        "value": "📡 读取中...",
+        "hash": "5e20ab99",
+        "lastModified": "2025-11-18T15:47:18.955Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "📡 Reading...",
+        "hash": "69452a8a",
+        "lastModified": "2025-11-18T15:47:18.955Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.actions.fetchAllCompleted": {
+      "zh-CN": {
+        "value": "✅ 读取完成",
+        "hash": "d3487b29",
+        "lastModified": "2025-11-18T15:47:20.543Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "✅ Read completed",
+        "hash": "97186c6f",
+        "lastModified": "2025-11-18T15:47:20.543Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.fetch.recommended": {
+      "zh-CN": {
+        "value": "推荐",
+        "hash": "3f981012",
+        "lastModified": "2025-11-18T15:47:22.727Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Recommend",
+        "hash": "cab1fe09",
+        "lastModified": "2025-11-18T15:47:22.727Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.fetch.read": {
+      "zh-CN": {
+        "value": "已读",
+        "hash": "8ad629e5",
+        "lastModified": "2025-11-18T15:47:24.112Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Read",
+        "hash": "7a1a5f3e",
+        "lastModified": "2025-11-18T15:47:24.112Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.errors.exportFailed": {
+      "zh-CN": {
+        "value": "OPML 导出失败",
+        "hash": "44d926cf",
+        "lastModified": "2025-11-18T15:47:25.646Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "OPML Export Failed",
+        "hash": "9e40dd57",
+        "lastModified": "2025-11-18T15:47:25.646Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.title": {
+      "zh-CN": {
+        "value": "推荐设置",
+        "hash": "5a9004b5",
+        "lastModified": "2025-11-18T15:47:29.555Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Recommended Settings",
+        "hash": "21a58bde",
+        "lastModified": "2025-11-18T15:47:29.555Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.currentMode": {
+      "zh-CN": {
+        "value": "当前模式",
+        "hash": "a78ca558",
+        "lastModified": "2025-11-18T15:47:31.383Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Current mode",
+        "hash": "2e96143f",
+        "lastModified": "2025-11-18T15:47:31.383Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.reasoningAI": {
+      "zh-CN": {
+        "value": "🧠 推理AI推荐",
+        "hash": "0609e0a6",
+        "lastModified": "2025-11-18T15:47:32.929Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "🧠 Reasoning AI Recommendations",
+        "hash": "3341dc17",
+        "lastModified": "2025-11-18T15:47:32.929Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.standardAI": {
+      "zh-CN": {
+        "value": "🤖 标准AI推荐",
+        "hash": "713697c9",
+        "lastModified": "2025-11-18T15:47:34.790Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "🤖 Standard AI Recommendations",
+        "hash": "9b981e65",
+        "lastModified": "2025-11-18T15:47:34.790Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.enableReasoning": {
+      "zh-CN": {
+        "value": "🧠 启用推理AI模式",
+        "hash": "fe331b91",
+        "lastModified": "2025-11-18T15:47:36.642Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "🧠 Enable Reasoning AI Mode",
+        "hash": "9882c708",
+        "lastModified": "2025-11-18T15:47:36.643Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.reasoningDesc": {
+      "zh-CN": {
+        "value": "使用 DeepSeek-R1 等推理型AI模型，生成更深入的分析（成本 2-5倍，默认使用标准AI）",
+        "hash": "eac7dd4a",
+        "lastModified": "2025-11-18T15:47:39.167Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Using reasoning AI models like DeepSeek-R1 to generate deeper analysis (cost 2-5x, standard AI used by default)",
+        "hash": "4f88dfe3",
+        "lastModified": "2025-11-18T15:47:39.167Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.useLocalAI": {
+      "zh-CN": {
+        "value": "🔒 使用本地 AI",
+        "hash": "a127b44f",
+        "lastModified": "2025-11-18T15:47:40.701Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "🔒 Use Local AI",
+        "hash": "1abe9dcf",
+        "lastModified": "2025-11-18T15:47:40.701Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.localAIDesc": {
+      "zh-CN": {
+        "value": "使用 Ollama 或 Chrome AI，隐私保护但占用性能",
+        "hash": "9540011a",
+        "lastModified": "2025-11-18T15:47:42.746Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Using Ollama or Chrome AI, privacy-protected but performance-intensive.",
+        "hash": "ffaf06b8",
+        "lastModified": "2025-11-18T15:47:42.746Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.smartCount": {
+      "zh-CN": {
+        "value": "智能推荐数量",
+        "hash": "5694ba42",
+        "lastModified": "2025-11-18T15:47:44.497Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Intelligent Recommendation Quantity",
+        "hash": "2f345113",
+        "lastModified": "2025-11-18T15:47:44.497Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.currentCount": {
+      "zh-CN": {
+        "value": "当前推荐数量",
+        "hash": "355df337",
+        "lastModified": "2025-11-18T15:47:45.892Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Current number of recommendations",
+        "hash": "a02c147e",
+        "lastModified": "2025-11-18T15:47:45.892Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.countItems": {
+      "zh-CN": {
+        "value": "{{count}} 条",
+        "hash": "0495d382",
+        "lastModified": "2025-11-18T15:47:47.368Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{count}} items",
+        "hash": "39d76132",
+        "lastModified": "2025-11-18T15:47:47.368Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.countHint": {
+      "zh-CN": {
+        "value": "系统根据点击率、不想读率和弹窗打开频率自动调整（1-5条）",
+        "hash": "dbb2e29b",
+        "lastModified": "2025-11-18T15:47:49.816Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "The system automatically adjusts (1-5 items) based on click-through rate, dislike rate, and pop-up opening frequency.",
+        "hash": "7652df6c",
+        "lastModified": "2025-11-18T15:47:49.816Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.notification": {
+      "zh-CN": {
+        "value": "推荐通知",
+        "hash": "1452d51a",
+        "lastModified": "2025-11-18T15:47:51.454Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Recommended Notifications",
+        "hash": "725e78e2",
+        "lastModified": "2025-11-18T15:47:51.454Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.enableNotification": {
+      "zh-CN": {
+        "value": "🔔 启用推荐通知",
+        "hash": "a43c257a",
+        "lastModified": "2025-11-18T15:47:53.294Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "🔔 Enable Recommended Notifications",
+        "hash": "a57a6294",
+        "lastModified": "2025-11-18T15:47:53.294Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.notificationDesc": {
+      "zh-CN": {
+        "value": "当有新推荐时发送系统通知（克制设计，不会过度打扰）",
+        "hash": "4ca718f5",
+        "lastModified": "2025-11-18T15:47:55.549Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Send system notifications when there are new recommendations (restrained design to avoid excessive disturbance)",
+        "hash": "4f81f3af",
+        "lastModified": "2025-11-18T15:47:55.549Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.notificationHint": {
+      "zh-CN": {
+        "value": "💡 Chrome 扩展通知无需额外授权。如果看不到通知，请检查系统通知设置（macOS 用户需打开通知中心侧边栏）",
+        "hash": "459aef56",
+        "lastModified": "2025-11-18T15:47:58.017Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "💡 Chrome extension notifications do not require additional permissions. If you can't see notifications, check your system notification settings (macOS users need to open the Notification Center sidebar).",
+        "hash": "36609656",
+        "lastModified": "2025-11-18T15:47:58.017Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.quietHours": {
+      "zh-CN": {
+        "value": "🌙 静默时段",
+        "hash": "06eeae5f",
+        "lastModified": "2025-11-18T15:47:59.572Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "🌙 Quiet Hours",
+        "hash": "570fee82",
+        "lastModified": "2025-11-18T15:47:59.572Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.quietStart": {
+      "zh-CN": {
+        "value": "开始时间",
+        "hash": "592c5958",
+        "lastModified": "2025-11-18T15:48:01.179Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Start time",
+        "hash": "664b1331",
+        "lastModified": "2025-11-18T15:48:01.179Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.quietEnd": {
+      "zh-CN": {
+        "value": "结束时间",
+        "hash": "f782779e",
+        "lastModified": "2025-11-18T15:48:03.075Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "End time",
+        "hash": "6cb12740",
+        "lastModified": "2025-11-18T15:48:03.075Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.quietHint": {
+      "zh-CN": {
+        "value": "在此时段不发送通知（24小时制）",
+        "hash": "05f088d6",
+        "lastModified": "2025-11-18T15:48:04.866Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Do not send notifications during this period (24-hour format)",
+        "hash": "e487d595",
+        "lastModified": "2025-11-18T15:48:04.867Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.testNotification": {
+      "zh-CN": {
+        "value": "🔔 测试通知",
+        "hash": "c9b38de1",
+        "lastModified": "2025-11-18T15:48:06.301Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "🔔 Test Notification",
+        "hash": "2964321b",
+        "lastModified": "2025-11-18T15:48:06.302Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.testNotificationTitle": {
+      "zh-CN": {
+        "value": "测试推荐通知功能",
+        "hash": "393706b8",
+        "lastModified": "2025-11-18T15:48:08.040Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Testing the recommended notification feature",
+        "hash": "f4fc0a28",
+        "lastModified": "2025-11-18T15:48:08.040Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.testNotificationSuccess": {
+      "zh-CN": {
+        "value": "✅ 测试通知已发送！请检查系统通知中心",
+        "hash": "a9dc7e7e",
+        "lastModified": "2025-11-18T15:48:09.710Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "✅ Test notification sent! Please check the system notification center.",
+        "hash": "c92103c6",
+        "lastModified": "2025-11-18T15:48:09.710Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.testNotificationFailed": {
+      "zh-CN": {
+        "value": "❌ 测试通知失败，请查看控制台",
+        "hash": "872eddf4",
+        "lastModified": "2025-11-18T15:48:11.625Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "❌ Test notification failed, please check the console",
+        "hash": "4c6cf19e",
+        "lastModified": "2025-11-18T15:48:11.625Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.testNotificationError": {
+      "zh-CN": {
+        "value": "❌ 测试通知失败: {{error}}",
+        "hash": "16a92771",
+        "lastModified": "2025-11-18T15:48:13.193Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "❌ Test notification failed: {{error}}",
+        "hash": "243e0d6b",
+        "lastModified": "2025-11-18T15:48:13.193Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.stats": {
+      "zh-CN": {
+        "value": "推荐统计",
+        "hash": "cf3a5f33",
+        "lastModified": "2025-11-18T15:48:14.805Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Recommendation Statistics",
+        "hash": "7d994b58",
+        "lastModified": "2025-11-18T15:48:14.805Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.resetData": {
+      "zh-CN": {
+        "value": "🗑️ 重置数据",
+        "hash": "016d6fe9",
+        "lastModified": "2025-11-18T15:48:16.630Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "🗑️ Reset Data",
+        "hash": "4629aae3",
+        "lastModified": "2025-11-18T15:48:16.630Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.resetDataTitle": {
+      "zh-CN": {
+        "value": "清空推荐池和统计数据",
+        "hash": "497b66f0",
+        "lastModified": "2025-11-18T15:48:18.214Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Clear the recommendation pool and statistical data",
+        "hash": "7652c8b3",
+        "lastModified": "2025-11-18T15:48:18.214Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.totalRecommendations": {
+      "zh-CN": {
+        "value": "推荐总数",
+        "hash": "5e965f12",
+        "lastModified": "2025-11-18T15:48:19.622Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Total Recommendations",
+        "hash": "8db411d2",
+        "lastModified": "2025-11-18T15:48:19.622Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.readCount": {
+      "zh-CN": {
+        "value": "阅读数",
+        "hash": "eeb70ad3",
+        "lastModified": "2025-11-18T15:48:21.351Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Read count",
+        "hash": "2ff9e2d7",
+        "lastModified": "2025-11-18T15:48:21.351Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.dismissCount": {
+      "zh-CN": {
+        "value": "不想读",
+        "hash": "68c2a967",
+        "lastModified": "2025-11-18T15:48:22.968Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Don't want to read",
+        "hash": "5425d4b7",
+        "lastModified": "2025-11-18T15:48:22.968Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.saving": {
+      "zh-CN": {
+        "value": "保存中...",
+        "hash": "2a33020e",
+        "lastModified": "2025-11-18T15:48:24.845Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Saving...",
+        "hash": "575f5f86",
+        "lastModified": "2025-11-18T15:48:24.845Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.save": {
+      "zh-CN": {
+        "value": "保存设置",
+        "hash": "4323be72",
+        "lastModified": "2025-11-18T15:48:26.374Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Save Settings",
+        "hash": "9daf1fb7",
+        "lastModified": "2025-11-18T15:48:26.374Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.saveSuccess": {
+      "zh-CN": {
+        "value": "✓ 保存成功",
+        "hash": "21e7c829",
+        "lastModified": "2025-11-18T15:48:28.011Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "✓ Successfully saved",
+        "hash": "d79c2f55",
+        "lastModified": "2025-11-18T15:48:28.011Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.generating": {
+      "zh-CN": {
+        "value": "生成中...",
+        "hash": "4d020ba3",
+        "lastModified": "2025-11-18T15:48:29.541Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Generating...",
+        "hash": "530a6ed4",
+        "lastModified": "2025-11-18T15:48:29.541Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.generateNow": {
+      "zh-CN": {
+        "value": "🔮 马上推荐",
+        "hash": "c996bd57",
+        "lastModified": "2025-11-18T15:48:31.406Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "🔮 Recommend Now",
+        "hash": "d30e72de",
+        "lastModified": "2025-11-18T15:48:31.406Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.resetConfirm": {
+      "zh-CN": {
+        "value": "⚠️ 确定要重置所有推荐数据吗？\n\n这将清空：\n- 推荐池中的所有推荐\n- RSS 源的推荐数统计\n- 所有文章的 AI 评分和分析数据（可重新分析）\n- 所有文章的 TF-IDF 评分缓存（可重新计算）\n- 推荐相关的统计数据\n\n⚠️ 注意：已抓取的全文内容会保留\n\n此操作不可恢复！",
+        "hash": "959df80a",
+        "lastModified": "2025-11-18T15:48:35.899Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "⚠️ Are you sure you want to reset all recommendation data?\n\nThis will clear:\n- All recommendations in the recommendation pool\n- Recommendation count statistics for RSS feeds\n- AI scoring and analysis data for all articles (can be re-analyzed)\n- TF-IDF score cache for all articles (can be recalculated)\n- Recommendation-related statistics\n\n⚠️ Note: Fully crawled article content will be preserved\n\nThis action cannot be undone!",
+        "hash": "b748e569",
+        "lastModified": "2025-11-18T15:48:35.900Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.resetSuccess": {
+      "zh-CN": {
+        "value": "✅ 推荐数据已重置",
+        "hash": "24fc12b2",
+        "lastModified": "2025-11-18T15:48:37.748Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "✅ Recommended data has been reset",
+        "hash": "bf425d6a",
+        "lastModified": "2025-11-18T15:48:37.748Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.resetFailed": {
+      "zh-CN": {
+        "value": "❌ 重置失败: {{error}}",
+        "hash": "25a37f86",
+        "lastModified": "2025-11-18T15:48:39.787Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "❌ Reset failed: {{error}}",
+        "hash": "077e2b8b",
+        "lastModified": "2025-11-18T15:48:39.787Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.saveFailed": {
+      "zh-CN": {
+        "value": "保存失败，请重试",
+        "hash": "0ff01a96",
+        "lastModified": "2025-11-18T15:48:41.368Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Save failed, please try again",
+        "hash": "ab553c66",
+        "lastModified": "2025-11-18T15:48:41.368Z",
         "status": "ai-translated"
       }
     }

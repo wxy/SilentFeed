@@ -19,7 +19,7 @@
     "retry": "Retry",
     "recommendations": "Recommended for You",
     "recommendationCount": "Total {{count}} items",
-    "dismissAll": "Dismiss",
+    "dismissAll": "Don't want to read",
     "confirmDismiss": "Are you sure you want to mark all {{count}} recommendations as \"Not interested\"?",
     "noRecommendations": "No recommendations yet",
     "checkBackLater": "Come back later for new recommendations",
@@ -30,33 +30,33 @@
     "notInterested": "Not interested",
     "rssFeeds": "RSS Feed",
     "manageRSSFeeds": "Manage RSS Feeds",
-    "generateNow": "Generate Now",
+    "generateNow": "Recommend immediately",
     "generating": "Generating...",
-    "generateNowTitle": "Generate recommendations immediately",
+    "generateNowTitle": "Generate recommendations instantly",
     "reason": "Reason",
     "engine": {
-      "reasoningAI": "Reasoning AI",
+      "reasoningAI": "Inference AI",
       "ai": "AI",
       "algorithm": "Algorithm"
     }
   },
   "recommendation": {
     "reason": {
-      "unknown": "Unknown reason",
-      "topicMatch": "Highly relevant to your \"{{topics}}\" topics of interest",
-      "interestMatch": "Based on your interests in \"{{interests}}\"",
-      "highQuality": "High-quality content",
+      "unknown": "Recommended reason unknown",
+      "topicMatch": "Highly relevant to the \"{{topics}}\" topics you follow",
+      "interestMatch": "Based on your interests \"{{interests}}\"",
+      "highQuality": "Content quality is relatively high.",
       "browsingHistory": "Based on your browsing history",
-      "trending": "Trending recommendation",
-      "topicSeparator": ", ",
-      "template": "{{baseReason}}, {{sourceLabel}} {{matchPercent}}% match"
+      "trending": "Hot Recommendations",
+      "topicSeparator": ",",
+      "template": "{{baseReason}}, {{sourceLabel}} match rate {{matchPercent}}%"
     },
     "source": {
-      "algorithm": "Algorithm",
-      "reasoningAI": "Reasoning AI",
-      "smartAI": "Smart AI",
-      "ai": "AI",
-      "chromeAI": "Chrome AI"
+      "algorithm": "Algorithm recommendation",
+      "reasoningAI": "Inference AI Recommendations",
+      "smartAI": "AI Smart Recommendation",
+      "ai": "AI Recommendations",
+      "chromeAI": "Chrome AI Recommendations"
     }
   },
   "common": {
@@ -128,59 +128,59 @@
     },
     "rss": {
       "title": "RSS Feed Management",
-  "disabled": "Will be enabled after completing 100 pages",
+      "disabled": "Will be enabled after completing 100 pages",
       "description": "Manage your RSS feeds"
     },
     "ai": {
       "title": "AI Configuration",
-  "disabled": "Will be enabled after completing 100 pages",
+      "disabled": "Will be enabled after completing 100 pages",
       "description": "Configure AI Recommendation Engine"
     },
     "recommendation": {
-      "title": "Recommendation Settings",
+      "title": "Recommended Settings",
       "currentMode": "Current mode",
       "reasoningAI": "🧠 Reasoning AI Recommendations",
       "standardAI": "🤖 Standard AI Recommendations",
       "enableReasoning": "🧠 Enable Reasoning AI Mode",
-      "reasoningDesc": "Use reasoning AI models like DeepSeek-R1 for deeper analysis (2-5x cost, standard AI by default)",
+      "reasoningDesc": "Using reasoning AI models like DeepSeek-R1 to generate deeper analysis (cost 2-5x, standard AI used by default)",
       "useLocalAI": "🔒 Use Local AI",
-      "localAIDesc": "Use Ollama or Chrome AI for privacy protection but with performance impact",
-      "smartCount": "Smart Recommendation Count",
-      "currentCount": "Current recommendation count",
+      "localAIDesc": "Using Ollama or Chrome AI, privacy-protected but performance-intensive.",
+      "smartCount": "Intelligent Recommendation Quantity",
+      "currentCount": "Current number of recommendations",
       "countItems": "{{count}} items",
-      "countHint": "System automatically adjusts (1-5 items) based on click rate, dismiss rate, and popup frequency",
-      "notification": "Recommendation Notifications",
-      "enableNotification": "🔔 Enable Recommendation Notifications",
-      "notificationDesc": "Send system notifications for new recommendations (restrained design, won't be intrusive)",
-      "notificationHint": "💡 Chrome extension notifications don't require extra permissions. If you can't see notifications, check system notification settings (macOS users need to open Notification Center sidebar)",
+      "countHint": "The system automatically adjusts (1-5 items) based on click-through rate, dislike rate, and pop-up opening frequency.",
+      "notification": "Recommended Notifications",
+      "enableNotification": "🔔 Enable Recommended Notifications",
+      "notificationDesc": "Send system notifications when there are new recommendations (restrained design to avoid excessive disturbance)",
+      "notificationHint": "💡 Chrome extension notifications do not require additional permissions. If you can't see notifications, check your system notification settings (macOS users need to open the Notification Center sidebar).",
       "quietHours": "🌙 Quiet Hours",
       "quietStart": "Start time",
       "quietEnd": "End time",
-      "quietHint": "No notifications during this period (24-hour format)",
+      "quietHint": "Do not send notifications during this period (24-hour format)",
       "testNotification": "🔔 Test Notification",
-      "testNotificationTitle": "Test recommendation notification feature",
-      "testNotificationSuccess": "✅ Test notification sent! Please check system notification center",
-      "testNotificationFailed": "❌ Test notification failed, please check console",
+      "testNotificationTitle": "Testing the recommended notification feature",
+      "testNotificationSuccess": "✅ Test notification sent! Please check the system notification center.",
+      "testNotificationFailed": "❌ Test notification failed, please check the console",
       "testNotificationError": "❌ Test notification failed: {{error}}",
       "stats": "Recommendation Statistics",
       "resetData": "🗑️ Reset Data",
-      "resetDataTitle": "Clear recommendation pool and statistics",
-      "totalRecommendations": "Total recommendations",
+      "resetDataTitle": "Clear the recommendation pool and statistical data",
+      "totalRecommendations": "Total Recommendations",
       "readCount": "Read count",
       "dismissCount": "Don't want to read",
       "saving": "Saving...",
       "save": "Save Settings",
-      "saveSuccess": "✓ Saved successfully",
+      "saveSuccess": "✓ Successfully saved",
       "generating": "Generating...",
-      "generateNow": "🔮 Generate Now",
-      "resetConfirm": "⚠️ Are you sure you want to reset all recommendation data?\n\nThis will clear:\n- All recommendations in the pool\n- RSS feed recommendation statistics\n- AI scores and analysis data for all articles (can be reanalyzed)\n- TF-IDF score cache for all articles (can be recalculated)\n- Recommendation-related statistics\n\n⚠️ Note: Fetched full-text content will be retained\n\nThis action cannot be undone!",
-      "resetSuccess": "✅ Recommendation data has been reset",
+      "generateNow": "🔮 Recommend Now",
+      "resetConfirm": "⚠️ Are you sure you want to reset all recommendation data?\n\nThis will clear:\n- All recommendations in the recommendation pool\n- Recommendation count statistics for RSS feeds\n- AI scoring and analysis data for all articles (can be re-analyzed)\n- TF-IDF score cache for all articles (can be recalculated)\n- Recommendation-related statistics\n\n⚠️ Note: Fully crawled article content will be preserved\n\nThis action cannot be undone!",
+      "resetSuccess": "✅ Recommended data has been reset",
       "resetFailed": "❌ Reset failed: {{error}}",
       "saveFailed": "Save failed, please try again"
     },
     "privacy": {
       "title": "Data and Privacy",
-  "disabled": "Will be enabled after completing 100 pages",
+      "disabled": "Will be enabled after completing 100 pages",
       "description": "Manage your data and privacy settings"
     },
     "tabs": {
@@ -315,7 +315,7 @@
       "noData": {
         "message": "There is not enough browsing data to build a user profile.",
         "hint": "Continue browsing content of interest, and the system will automatically analyze your preferences.",
-  "tip": "💡 No need to wait for 100 pages - just a few valid records are enough to generate a profile."
+        "tip": "💡 No need to wait for 100 pages, just a few valid records are enough to generate a profile."
       },
       "lastUpdated": {
         "justNow": "Just updated",
@@ -475,7 +475,7 @@
       "manualPlaceholder": "https://example.com/feed.xml",
       "subscribing": "Verifying...",
       "subscribe": "Subscribe",
-      "importOPML": "Batch Import (OPML File)",
+      "importOPML": "Import OPML",
       "selectOPML": "Select OPML file",
       "importing": "Importing...",
       "importHint": "Supports subscription lists exported from other RSS readers",
@@ -499,12 +499,12 @@
         "delete": "Delete",
         "pause": "Pause",
         "resume": "Restore",
-        "fetch": "📡 Fetch",
-        "fetching": "📡 Fetching...",
-        "fetchCompleted": "✅ Fetch completed",
-        "fetchAll": "📡 Fetch All",
-        "fetchingAll": "📡 Fetching...",
-        "fetchAllCompleted": "✅ Fetch completed"
+        "fetch": "📡 Reading",
+        "fetching": "📡 Reading...",
+        "fetchCompleted": "✅ Read completed",
+        "fetchAll": "📡 Read All",
+        "fetchingAll": "📡 Reading...",
+        "fetchAllCompleted": "✅ Read completed"
       },
       "metadata": {
         "items": "{{count}} items",
@@ -536,14 +536,15 @@
         "validationFailed": "RSS verification failed",
         "subscribeFailed": "Subscription failed",
         "importFailed": "OPML Import Failed",
-        "revalidationFailed": "RSS feed revalidation failed, has been deleted"
+        "revalidationFailed": "RSS feed revalidation failed, has been deleted",
+        "exportFailed": "OPML Export Failed"
       },
       "success": {
         "subscribed": "Subscription successful!",
         "imported": "Import successful! {{count}} feeds imported in total.",
         "importedWithErrors": "Import completed: Success {{successCount}}, Skipped {{skipCount}}, Failed {{failCount}}"
       },
-      "opmlHint": "Supports subscription lists exported from other RSS readers",
+      "opmlHint": "Support import/export subscription lists from other RSS readers",
       "loading": "Loading...",
       "discoveredFrom": "From",
       "discoveredAt": "Discovered in",
@@ -577,8 +578,8 @@
         "lastFetched": "Last crawl",
         "articles": "articles",
         "unread": "unread",
-        "recommended": "recommended",
-        "read": "read",
+        "recommended": "Recommend",
+        "read": "Read",
         "last": "Last",
         "perWeek": "per week"
       },
@@ -595,7 +596,10 @@
       },
       "status": {
         "paused": "Paused"
-      }
+      },
+      "importExportOPML": "Batch Import/Export (OPML File)",
+      "exportOPML": "Export OPML",
+      "noSubscribedFeeds": "No subscribed sources yet"
     }
   }
 }
