@@ -506,10 +506,12 @@ describe('feed-scheduler', () => {
         feed.id,
         expect.objectContaining({
           lastFetchedAt: expect.any(Number),
+          nextScheduledFetch: expect.any(Number),  // ✅ 新增字段
+          updateFrequency: expect.any(Number),     // ✅ 新增字段
           lastError: undefined,
           articleCount: 1,
-          unreadCount: 1,
-          recommendedCount: 0
+          unreadCount: 1
+          // 注意：不再检查 recommendedCount，它由 updateFeedStats() 统计
         })
       )
     })

@@ -24,6 +24,10 @@ import type { UserSettings } from "@/types/config"
 import type { InterestSnapshot, UserProfile } from "@/types/profile"
 import type { DiscoveredFeed, FeedArticle } from "@/types/rss"
 import { logger } from '@/utils/logger'
+import { statsCache } from '@/utils/cache'
+
+// 导出 statsCache 用于测试清理
+export { statsCache }
 
 // 创建数据库专用日志器
 const dbLogger = logger.withTag('DB')
@@ -389,65 +393,73 @@ export async function getPageCount(): Promise<number> {
 /**
  * 获取推荐统计数据
  * 
+ * ✅ 优化：使用缓存减少重复计算（5 分钟 TTL）
+ * 
  * @param days - 统计最近 N 天的数据（默认 7 天）
  */
 export async function getRecommendationStats(days: number = 7): Promise<RecommendationStats> {
-  const cutoffTime = Date.now() - days * 24 * 60 * 60 * 1000
-  
-  // 查询最近 N 天的推荐记录
-  const recentRecommendations = await db.recommendations
-    .where('recommendedAt')
-    .above(cutoffTime)
-    .toArray()
-  
-  const total = recentRecommendations.length
-  const read = recentRecommendations.filter(r => r.isRead).length
-  const dismissed = recentRecommendations.filter(r => r.feedback === 'dismissed').length
-  
-  // 计算有效性
-  const effective = recentRecommendations.filter(
-    r => r.effectiveness === 'effective'
-  ).length
-  const neutral = recentRecommendations.filter(
-    r => r.effectiveness === 'neutral'
-  ).length
-  const ineffective = recentRecommendations.filter(
-    r => r.effectiveness === 'ineffective'
-  ).length
-  
-  // 计算平均阅读时长
-  const readItems = recentRecommendations.filter(r => r.isRead && r.readDuration)
-  const avgReadDuration = readItems.length > 0
-    ? readItems.reduce((sum, r) => sum + (r.readDuration || 0), 0) / readItems.length
-    : 0
-  
-  // 统计来源
-  const sourceMap = new Map<string, { count: number; read: number }>()
-  recentRecommendations.forEach(r => {
-    const stats = sourceMap.get(r.source) || { count: 0, read: 0 }
-    stats.count++
-    if (r.isRead) stats.read++
-    sourceMap.set(r.source, stats)
-  })
-  
-  const topSources = Array.from(sourceMap.entries())
-    .map(([source, stats]) => ({
-      source,
-      count: stats.count,
-      readRate: stats.count > 0 ? (stats.read / stats.count) * 100 : 0
-    }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 5)
-  
-  return {
-    totalCount: total,
-    readCount: read,
-    unreadCount: total - read,
-    readLaterCount: recentRecommendations.filter(r => r.feedback === 'later').length,
-    dismissedCount: dismissed,
-    avgReadDuration,
-    topSources
-  }
+  return statsCache.get(
+    `rec-stats-${days}d`,
+    async () => {
+      const cutoffTime = Date.now() - days * 24 * 60 * 60 * 1000
+      
+      // 查询最近 N 天的推荐记录
+      const recentRecommendations = await db.recommendations
+        .where('recommendedAt')
+        .above(cutoffTime)
+        .toArray()
+      
+      const total = recentRecommendations.length
+      const read = recentRecommendations.filter(r => r.isRead).length
+      const dismissed = recentRecommendations.filter(r => r.feedback === 'dismissed').length
+      
+      // 计算有效性
+      const effective = recentRecommendations.filter(
+        r => r.effectiveness === 'effective'
+      ).length
+      const neutral = recentRecommendations.filter(
+        r => r.effectiveness === 'neutral'
+      ).length
+      const ineffective = recentRecommendations.filter(
+        r => r.effectiveness === 'ineffective'
+      ).length
+      
+      // 计算平均阅读时长
+      const readItems = recentRecommendations.filter(r => r.isRead && r.readDuration)
+      const avgReadDuration = readItems.length > 0
+        ? readItems.reduce((sum, r) => sum + (r.readDuration || 0), 0) / readItems.length
+        : 0
+      
+      // 统计来源
+      const sourceMap = new Map<string, { count: number; read: number }>()
+      recentRecommendations.forEach(r => {
+        const stats = sourceMap.get(r.source) || { count: 0, read: 0 }
+        stats.count++
+        if (r.isRead) stats.read++
+        sourceMap.set(r.source, stats)
+      })
+      
+      const topSources = Array.from(sourceMap.entries())
+        .map(([source, stats]) => ({
+          source,
+          count: stats.count,
+          readRate: stats.count > 0 ? (stats.read / stats.count) * 100 : 0
+        }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5)
+      
+      return {
+        totalCount: total,
+        readCount: read,
+        unreadCount: total - read,
+        readLaterCount: recentRecommendations.filter(r => r.feedback === 'later').length,
+        dismissedCount: dismissed,
+        avgReadDuration,
+        topSources
+      }
+    },
+    300  // 5 分钟缓存
+  )
 }
 
 /**
@@ -555,6 +567,9 @@ export async function markAsRead(
     updateCount,
     updates
   })
+  
+  // ✅ 清除统计缓存
+  statsCache.invalidate('rec-stats-7d')
   
   // 验证更新结果
   const updated = await db.recommendations.get(id)

@@ -7,6 +7,7 @@ import { feedScheduler, fetchFeed } from './background/feed-scheduler'
 import { IconManager } from './utils/IconManager'
 import { evaluateAndAdjust } from './core/recommender/adaptive-count'
 import { setupNotificationListeners, testNotification } from './core/recommender/notification'
+import { recommendationService } from './core/recommender/RecommendationService'
 import { logger } from '@/utils/logger'
 import { LEARNING_COMPLETE_PAGES } from '@/constants/progress'
 
@@ -532,14 +533,23 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       
       bgLogger.info('开始自动生成推荐（每次 1 条）...')
       
-      // 动态导入以避免循环依赖
-      const { recommendationService } = await import('./core/recommender/RecommendationService')
-      
       const result = await recommendationService.generateRecommendations(
         1, // 每次只生成 1 条
         'subscribed', // 只从订阅源
         10 // 批次大小
       )
+      
+      bgLogger.info('推荐生成结果:', {
+        生成数量: result.stats.recommendedCount,
+        处理文章: result.stats.processedArticles,
+        总文章数: result.stats.totalArticles,
+        耗时: `${result.stats.processingTimeMs}ms`,
+        推荐详情: result.recommendations.map(r => ({
+          标题: r.title,
+          评分: r.score,
+          来源: r.source
+        }))
+      })
       
       if (result.stats.recommendedCount > 0) {
         bgLogger.info(`✅ 自动推荐生成完成: ${result.stats.recommendedCount} 条`)

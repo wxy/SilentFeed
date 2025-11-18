@@ -67,6 +67,8 @@ export interface DiscoveredFeed {
   subscribedAt?: number
   isActive: boolean
   lastFetchedAt?: number
+  nextScheduledFetch?: number  // ✅ 新增：下次计划抓取时间
+  updateFrequency?: number     // ✅ 新增：更新频率（篇/周）
   lastError?: string
   articleCount: number
   unreadCount: number

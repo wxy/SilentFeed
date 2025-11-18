@@ -331,6 +331,9 @@ describe('Phase 2.7 推荐功能', () => {
   })
 
   afterEach(async () => {
+    // 清理缓存避免测试间污染
+    const { statsCache } = await import('./db')
+    statsCache.clear()
     await db.close()
   })
 

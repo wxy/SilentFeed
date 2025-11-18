@@ -384,12 +384,20 @@ export function RSSManager() {
   }
 
   // Phase 5 Sprint 3: 计算下次抓取时间
+  // Phase 7.1: 修复 - 直接使用数据库中的 nextScheduledFetch 字段
   const calculateNextFetchTime = (feed: DiscoveredFeed): number | null => {
-    if (!feed.quality || !feed.lastFetchedAt || !feed.isActive) {
+    // 优先使用数据库中已经计算好的 nextScheduledFetch
+    if (feed.nextScheduledFetch) {
+      return feed.nextScheduledFetch
+    }
+    
+    // 降级方案：如果没有 nextScheduledFetch，尝试计算
+    if (!feed.lastFetchedAt || !feed.isActive) {
       return null
     }
 
-    const frequency = feed.quality.updateFrequency // 篇/周
+    // 使用 feed.updateFrequency（优先）或 feed.quality.updateFrequency（降级）
+    const frequency = feed.updateFrequency || feed.quality?.updateFrequency || 0
     let intervalMs = 0
 
     if (frequency >= 7) {
@@ -398,8 +406,10 @@ export function RSSManager() {
       intervalMs = 12 * 60 * 60 * 1000 // 12 小时
     } else if (frequency >= 1) {
       intervalMs = 24 * 60 * 60 * 1000 // 24 小时
+    } else if (frequency >= 0.25) {
+      intervalMs = 48 * 60 * 60 * 1000 // 48 小时（低频源）
     } else {
-      return null // 低频源不自动抓取
+      intervalMs = 7 * 24 * 60 * 60 * 1000 // 7 天（超低频源）
     }
 
     return feed.lastFetchedAt + intervalMs
@@ -829,12 +839,17 @@ export function RSSManager() {
                 )}
                 
                 {/* 平均每周文章数 */}
-                {feed.quality && feed.quality.updateFrequency > 0 && (
+                {/* Phase 7.1: 优先使用 feed.updateFrequency */}
+                {((feed.updateFrequency && feed.updateFrequency > 0) || 
+                  (feed.quality && feed.quality.updateFrequency > 0)) && (
                   <>
                     <span>•</span>
                     <span className="flex items-center gap-1">
                       <span>📊</span>
-                      <span>{feed.quality.updateFrequency.toFixed(1)} {_('options.rssManager.fetch.perWeek')}</span>
+                      <span>
+                        {(feed.updateFrequency || feed.quality?.updateFrequency || 0).toFixed(1)}{' '}
+                        {_('options.rssManager.fetch.perWeek')}
+                      </span>
                     </span>
                   </>
                 )}
