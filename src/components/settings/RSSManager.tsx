@@ -605,6 +605,41 @@ export function RSSManager() {
     }
   }
   
+  // OPML 导出
+  const handleExportOPML = async () => {
+    try {
+      rssManagerLogger.info('开始导出 OPML...')
+      
+      // 转换为 OPML 格式
+      const opmlFeeds = subscribedFeeds.map(feed => ({
+        title: feed.title,
+        xmlUrl: feed.url,
+        htmlUrl: feed.link,
+        description: feed.description,
+        category: feed.category,
+      }))
+      
+      // 生成 OPML XML
+      const opmlContent = OPMLImporter.generate(opmlFeeds)
+      
+      // 创建下载
+      const blob = new Blob([opmlContent], { type: 'application/xml' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `feedaimuter-subscriptions-${new Date().toISOString().split('T')[0]}.opml`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+      
+      rssManagerLogger.info('OPML 导出成功:', { count: opmlFeeds.length })
+    } catch (error) {
+      rssManagerLogger.error('OPML 导出失败:', error)
+      alert(_('options.rssManager.errors.exportFailed'))
+    }
+  }
+  
   // 格式化语言显示
   const formatLanguage = (lang?: string) => {
     if (!lang) return _('options.rssManager.languages.unknown')
@@ -1051,10 +1086,10 @@ export function RSSManager() {
           )}
         </div>
         
-        {/* OPML 导入 */}
+        {/* OPML 导入/导出 */}
         <div>
           <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2">
-            {_('options.rssManager.importOPML')}
+            {_('options.rssManager.importExportOPML')}
           </label>
           <div className="flex gap-2">
             <input
@@ -1075,11 +1110,22 @@ export function RSSManager() {
               ) : (
                 <>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                   </svg>
-                  {_('options.rssManager.selectOPML')}
+                  {_('options.rssManager.importOPML')}
                 </>
               )}
+            </button>
+            <button
+              onClick={handleExportOPML}
+              disabled={subscribedFeeds.length === 0}
+              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded-md transition-colors flex items-center gap-1"
+              title={subscribedFeeds.length === 0 ? _('options.rssManager.noSubscribedFeeds') : ''}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              {_('options.rssManager.exportOPML')}
             </button>
             <p className="text-xs text-gray-500 dark:text-gray-400 self-center">
               {_('options.rssManager.opmlHint')}
