@@ -19,7 +19,7 @@
     "retry": "Retry",
     "recommendations": "Recommended for You",
     "recommendationCount": "Total {{count}} items",
-    "dismissAll": "Don't want to read any",
+    "dismissAll": "Dismiss",
     "confirmDismiss": "Are you sure you want to mark all {{count}} recommendations as \"Not interested\"?",
     "noRecommendations": "No recommendations yet",
     "checkBackLater": "Come back later for new recommendations",

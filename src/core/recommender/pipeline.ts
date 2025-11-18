@@ -792,15 +792,7 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
       points.push(article.title)
     }
     
-    // 添加AI分析的主题
-    if (analysis.topicProbabilities) {
-      const topTopics = Object.entries(analysis.topicProbabilities)
-        .sort(([,a], [,b]) => (b as number) - (a as number))
-        .slice(0, 2)
-        .map(([topic, _]) => `主题: ${topic}`)
-      
-      points.push(...topTopics)
-    }
+    // 不再添加主题信息到关键点（避免在推荐理由中显示多余的主题）
     
     // 添加描述（如果有）
     if (article.description && points.length < 3) {

@@ -19,7 +19,7 @@
     "retry": "重试",
     "recommendations": "为你推荐",
     "recommendationCount": "共 {{count}} 条",
-    "dismissAll": "全部不想读",
+    "dismissAll": "不想读",
     "confirmDismissAll": "确定要标记所有 {{count}} 条推荐为「不想读」吗？",
     "noRecommendations": "暂无推荐",
     "checkBackLater": "稍后回来查看新推荐",

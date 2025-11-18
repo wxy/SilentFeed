@@ -239,7 +239,7 @@ export function RecommendationView() {
               className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded-lg transition-colors mb-3"
               disabled={isLoading}
             >
-              {isLoading ? "生成中..." : "🤖 手动推荐"}
+              {isLoading ? _("popup.generating") : `🤖 ${_("popup.generateNow")}`}
             </button>
             <p className="text-xs text-gray-500 dark:text-gray-500">
               {_("popup.checkBackLater")}
@@ -271,19 +271,6 @@ export function RecommendationView() {
               <span>{_("popup.rssFeeds")}</span>
             </button>
           )}
-          
-          <button
-            onClick={async () => {
-              const { generateRecommendations } = useRecommendationStore.getState()
-              await generateRecommendations()
-              await loadRecommendations()
-            }}
-            className="text-xs text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
-            disabled={isLoading}
-            title={_("popup.generateNowTitle")}
-          >
-            🤖 {isLoading ? _("popup.generating") : _("popup.generateNow")}
-          </button>
         </div>
         
         <button
