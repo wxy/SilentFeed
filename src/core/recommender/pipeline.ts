@@ -28,6 +28,7 @@ import type { FeedArticle } from '@/types/rss'
 import { convertFeedArticlesToArticleData, convertUserProfileToUserInterests } from './data-adapters'
 import { RuleBasedRecommender } from './RuleBasedRecommender'
 import { aiManager } from '../ai/AICapabilityManager'
+import { db } from '@/storage/db'  // Phase 7: 静态导入，避免 Service Worker 动态导入错误
 
 /**
  * 默认管道配置
@@ -919,8 +920,6 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
     analysis: { topicProbabilities: any; metadata?: any }
   ): Promise<void> {
     try {
-      const { db } = await import('../../storage/db')
-      
       // Phase 6: 更新 discoveredFeeds.latestArticles 数组中的文章
       const feed = await db.discoveredFeeds.get(feedId)
       if (!feed || !feed.latestArticles) {
@@ -966,8 +965,6 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
     tfidfScore: number
   ): Promise<void> {
     try {
-      const { db } = await import('../../storage/db')
-      
       const feed = await db.discoveredFeeds.get(feedId)
       if (!feed || !feed.latestArticles) {
         console.warn(`[Pipeline] ⚠️ 保存 TF-IDF 分数失败 - 找不到 feed: ${feedId}`)

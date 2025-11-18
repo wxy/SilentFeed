@@ -17,6 +17,7 @@ import {
   trackDismissAll
 } from "@/core/recommender/adaptive-count"
 import { sanitizeHtml } from "@/utils/html"
+import { getFaviconUrl, handleFaviconError } from "@/utils/favicon"
 import type { Recommendation } from "@/types/database"
 import { logger } from "@/utils/logger"
 
@@ -367,8 +368,14 @@ function RecommendationItem({ recommendation, isTopItem, onClick, onDismiss }: R
         {/* 底部信息栏 */}
         <div className="flex items-center justify-between text-xs">
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <span className="text-gray-500 dark:text-gray-500 truncate">
-              📡 {recommendation.source}
+            <span className="flex items-center gap-1 text-gray-500 dark:text-gray-500 truncate">
+              <img 
+                src={getFaviconUrl(recommendation.sourceUrl || recommendation.url)} 
+                alt="" 
+                className="w-4 h-4 flex-shrink-0"
+                onError={handleFaviconError}
+              />
+              <span className="truncate">{recommendation.source}</span>
             </span>
             
             {recommendation.wordCount && (
@@ -429,8 +436,14 @@ function RecommendationItem({ recommendation, isTopItem, onClick, onDismiss }: R
       {/* 底部信息栏 */}
       <div className="flex items-center justify-between text-xs">
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          <span className="text-gray-500 dark:text-gray-500 truncate">
-            📡 {recommendation.source}
+          <span className="flex items-center gap-1 text-gray-500 dark:text-gray-500 truncate">
+            <img 
+              src={getFaviconUrl(recommendation.sourceUrl || recommendation.url)} 
+              alt="" 
+              className="w-4 h-4 flex-shrink-0"
+              onError={handleFaviconError}
+            />
+            <span className="truncate">{recommendation.source}</span>
           </span>
           
           {recommendation.wordCount && (

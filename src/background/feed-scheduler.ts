@@ -10,7 +10,7 @@
  * - 跳过暂停的源
  */
 
-import { db } from '../storage/db'
+import { db, updateFeedStats } from '../storage/db'
 import { RSSFetcher } from '../core/rss/RSSFetcher'
 import type { DiscoveredFeed, FeedArticle } from '@/types/rss'
 
@@ -231,12 +231,21 @@ export async function fetchFeed(feed: DiscoveredFeed): Promise<boolean> {
       // 注意：不在这里更新 recommendedCount，它由 updateFeedStats() 统计
     })
     
+    // Phase 7: 更新详细统计（分析、推荐、阅读、不想读）
+    await updateFeedStats(feed.url)
+    
+    // 重新获取更新后的 feed 数据以显示完整统计
+    const updatedFeed = await db.discoveredFeeds.get(feed.id)
+    
     console.log('[FeedScheduler] ✅ 抓取成功:', {
       feed: feed.title,
       newArticles: newArticles.length,
-      totalArticles: totalCount,
-      unreadCount,
-      readCount,
+      totalArticles: updatedFeed?.articleCount || totalCount,
+      analyzedCount: updatedFeed?.analyzedCount || 0,
+      recommendedCount: updatedFeed?.recommendedCount || 0,
+      readCount: updatedFeed?.readCount || 0,
+      dislikedCount: updatedFeed?.dislikedCount || 0,
+      unreadCount: updatedFeed?.unreadCount || unreadCount,
       keepCount
     })
     

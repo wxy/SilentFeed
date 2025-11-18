@@ -4,6 +4,7 @@ import { FeedManager } from "@/core/rss/managers/FeedManager"
 import { RSSValidator } from "@/core/rss/RSSValidator"
 import { RSSFetcher, type FeedItem } from "@/core/rss/RSSFetcher"
 import { OPMLImporter } from "@/core/rss/OPMLImporter"
+import { getFaviconUrl, handleFaviconError } from "@/utils/favicon"
 import type { DiscoveredFeed } from "@/types/rss"
 import { logger } from "@/utils/logger"
 
@@ -685,12 +686,18 @@ export function RSSManager() {
             </span>
           )}
           
-          {/* 标题 */}
+          {/* 标题（带 favicon） */}
           <button
             onClick={() => loadPreviewArticles(feed.id, feed.url)}
-            className="font-medium text-blue-600 dark:text-blue-400 hover:underline flex-1 truncate text-left"
+            className="font-medium text-blue-600 dark:text-blue-400 hover:underline flex-1 truncate text-left flex items-center gap-1.5"
           >
-            {feed.title}
+            <img 
+              src={getFaviconUrl(feed.link || feed.url)} 
+              alt="" 
+              className="w-4 h-4 flex-shrink-0"
+              onError={handleFaviconError}
+            />
+            <span className="truncate">{feed.title}</span>
           </button>
           
           {/* 质量文本图标 */}
@@ -805,16 +812,34 @@ export function RSSManager() {
             {/* 已订阅源：抓取统计 */}
             {feed.status === 'subscribed' && (
               <>
-                {/* 文章统计：总数/推荐数/阅读数 */}
+                {/* 文章统计：总数 / 已分析 / 已推荐 / 推荐已读 / 不想读 */}
                 {feed.articleCount > 0 && (
                   <span className="flex items-center gap-1">
                     <span>📰</span>
-                    <span>
-                      {feed.articleCount} {_('options.rssManager.fetch.articles')}
-                      {/* 显示推荐数和推荐已读数 */}
-                      <span className="ml-1 text-gray-600 dark:text-gray-300">
-                        / {getRecommendedCountForFeed(feed)} {_('options.rssManager.fetch.recommended')}
-                        / {feed.recommendedReadCount || 0} {_('options.rssManager.fetch.read')}
+                    <span className="text-sm">
+                      <span className="font-medium">{feed.articleCount}</span>
+                      <span className="text-gray-500 dark:text-gray-400 ml-1">
+                        (
+                        {/* 已分析 */}
+                        <span className="text-blue-600 dark:text-blue-400">
+                          ✓{feed.analyzedCount || 0}
+                        </span>
+                        {/* 已推荐 */}
+                        <span className="mx-1">/</span>
+                        <span className="text-green-600 dark:text-green-400">
+                          ⭐{feed.recommendedCount || 0}
+                        </span>
+                        {/* 推荐已读（推荐池中被阅读的数量）*/}
+                        <span className="mx-1">/</span>
+                        <span className="text-gray-600 dark:text-gray-300">
+                          👁{feed.recommendedReadCount || 0}
+                        </span>
+                        {/* 不想读 */}
+                        <span className="mx-1">/</span>
+                        <span className="text-red-600 dark:text-red-400">
+                          👎{feed.dislikedCount || 0}
+                        </span>
+                        )
                       </span>
                     </span>
                   </span>
