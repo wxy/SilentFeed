@@ -2,7 +2,8 @@
 
 **分支**: `feature/phase-7-db-refactor`  
 **开始日期**: 2025-11-18  
-**状态**: 进行中 🚧
+**状态**: 核心代码完成 ✅，待测试 🚧  
+**提交数**: 5 commits (d00fb92, efe6b18, 9f00823, 052ecb0, fe60bc7)
 
 ## 📋 目标
 
@@ -43,97 +44,48 @@
 - ✅ 采用完全替换策略（简化逻辑，避免增量更新复杂性）
 - ✅ 保留 `latestArticles` 字段兼容旧代码
 
-## 🚧 进行中
-
 ### 3. 推荐服务更新
 
 **文件**: `src/core/recommender/RecommendationService.ts`  
-**当前状态**: 未开始
+**提交**: 9f00823
 
-**需要修改的地方** (38 处 `latestArticles` 引用):
-1. **生成推荐时查询文章** (第 216-224 行):
-   ```typescript
-   // 当前：从 feed.latestArticles 筛选未分析文章
-   const unanalyzedArticles = feed.latestArticles.filter(...)
-   
-   // 改为：从 feedArticles 表查询
-   const unanalyzedArticles = await db.feedArticles
-     .where('feedId').equals(feed.id)
-     .and(article => !article.analysis)
-     .toArray()
-   ```
+- ✅ `collectArticles()` - 从 feedArticles 表查询未分析文章
+- ✅ `saveRecommendations()` - 批量更新文章推荐状态
+- ✅ 代码净减少: 42 insertions(+), 51 deletions(-) = -9 lines
 
-2. **保存推荐时更新文章状态** (第 366-385 行):
-   ```typescript
-   // 当前：更新 latestArticles 数组中的文章
-   const feedUpdates = new Map<string, { latestArticles: any[] }>()
-   
-   // 改为：直接更新 feedArticles 表
-   await db.feedArticles.update(articleId, { recommended: true })
-   ```
-
-**预计工作量**: 2-3 小时
-
-### 4. Pipeline 更新
+### 4. 分析流程更新
 
 **文件**: `src/core/recommender/pipeline.ts`  
-**当前状态**: 未开始
+**提交**: 052ecb0
 
-**需要修改的地方** (19 处 `latestArticles` 引用):
-1. **markArticleAsAnalyzed()** (第 915-937 行):
-   ```typescript
-   // 当前：更新 latestArticles 数组
-   const article = feed.latestArticles.find(a => a.id === articleId)
-   article.analysis = analysisResult
-   await db.discoveredFeeds.update(feedId, { latestArticles })
-   
-   // 改为：直接更新 feedArticles 表
-   await db.feedArticles.update(articleId, { analysis: analysisResult })
-   ```
-
-2. **markArticleAsRecommended()** (第 961-977 行):
-   - 类似修改
-
-**预计工作量**: 1-2 小时
+- ✅ `saveArticleAnalysis()` - 直接更新 feedArticles 记录
+- ✅ `saveTFIDFScore()` - 直接更新 feedArticles 记录  
+- ✅ 代码净减少: 13 insertions(+), 42 deletions(-) = -29 lines
 
 ### 5. 数据库统计函数更新
 
 **文件**: `src/storage/db.ts`  
-**当前状态**: 未开始
+**提交**: fe60bc7
 
-**需要修改的地方**:
-1. **getFeedStatistics()** (第 949-1000 行):
-   ```typescript
-   // 当前：从 latestArticles 数组统计
-   const articles = feed.latestArticles || []
-   const analyzedCount = articles.filter(a => a.analysis).length
-   
-   // 改为：从 feedArticles 表聚合统计
-   const analyzedCount = await db.feedArticles
-     .where('feedId').equals(feedId)
-     .and(a => !!a.analysis)
-     .count()
-   ```
+- ✅ `updateFeedStats()` - 使用并行聚合查询（6个并发 count）
+- ✅ `dismissRecommendations()` - 事务更新 feedArticles 表
+- ✅ `markAsRead()` - 已在 Phase 6 优化，无需修改
+- ✅ 代码净减少: 28 insertions(+), 31 deletions(-) = -3 lines
 
-2. **markAsDisliked()** (第 608-627 行):
-   ```typescript
-   // 当前：查找并更新 latestArticles 中的文章
-   const article = feed.latestArticles.find(a => a.link === recommendation.url)
-   article.disliked = true
-   
-   // 改为：直接更新 feedArticles 表
-   const article = await db.feedArticles.where('link').equals(url).first()
-   await db.feedArticles.update(article.id, { disliked: true })
-   ```
+## 🚧 进行中
 
-3. **getStorageStats()** - 清理逻辑 (第 1058-1100 行):
-   - 从 `feedArticles` 表统计和清理
-
-**预计工作量**: 2-3 小时
+无
 
 ## ⏳ 待完成
 
-### 6. 测试更新
+### 优先级 1: 核心功能测试 ✅ 已完成核心代码，待测试
+
+**已完成的核心代码更新**:
+- ✅ RecommendationService.ts - 推荐服务 (commit: 9f00823)
+- ✅ pipeline.ts - 分析流程 (commit: 052ecb0)  
+- ✅ db.ts 统计函数 (commit: fe60bc7)
+
+### 优先级 2: 测试更新
 
 **文件**: 
 - `src/storage/db.test.ts` (10+ 处引用)
