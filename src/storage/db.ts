@@ -2,12 +2,12 @@
  * IndexedDB 数据库定义（使用 Dexie.js）
  * 
  * 数据库名称: FeedAIMuterDB
- * 当前版本: 9
+ * 当前版本: 11
  * 
  * ⚠️ 版本管理说明：
  * - 开发过程中如果遇到版本冲突，请删除旧数据库
  * - 生产环境版本号应该只增不减
- * - 当前固定为版本 9（Phase 6: 删除 feedArticles 表，统一使用 latestArticles 数组）
+ * - 版本 11（Phase 7: 重建 feedArticles 表，数据库规范化重构）
  */
 
 import Dexie from 'dexie'
@@ -60,6 +60,9 @@ export class FeedAIMuterDB extends Dexie {
 
   // 表 8: 发现的 RSS 源（Phase 5.1）
   discoveredFeeds!: Table<DiscoveredFeed, string>
+
+  // 表 9: RSS 文章（Phase 7 - 数据库规范化）
+  feedArticles!: Table<FeedArticle, string>
 
   constructor() {
     super('FeedAIMuterDB')
@@ -253,6 +256,85 @@ export class FeedAIMuterDB extends Dexie {
       interestSnapshots: 'id, timestamp, primaryTopic, trigger, [primaryTopic+timestamp]',
       // discoveredFeeds: 添加 url 索引（高频：where('url').equals()）
       discoveredFeeds: 'id, url, status, discoveredAt, subscribedAt, discoveredFrom, isActive, lastFetchedAt, [status+discoveredAt], [isActive+lastFetchedAt]',
+    })
+
+    // 版本 11: 重建 feedArticles 表（Phase 7 - 数据库规范化）
+    // 将嵌入式文章数据提取为独立表，符合数据库范式
+    this.version(11).stores({
+      pendingVisits: 'id, url, startTime, expiresAt',
+      confirmedVisits: 'id, visitTime, domain, *analysis.keywords, [visitTime+domain]',
+      settings: 'id',
+      statistics: 'id, type, timestamp',
+      recommendations: 'id, recommendedAt, isRead, source, sourceUrl, [isRead+recommendedAt], [isRead+source]',
+      userProfile: 'id, lastUpdated',
+      interestSnapshots: 'id, timestamp, primaryTopic, trigger, [primaryTopic+timestamp]',
+      discoveredFeeds: 'id, url, status, discoveredAt, subscribedAt, discoveredFrom, isActive, lastFetchedAt, [status+discoveredAt], [isActive+lastFetchedAt]',
+      
+      // RSS 文章表（独立存储）
+      // 索引说明：
+      // - id: 主键
+      // - feedId: 所属 Feed（高频：where('feedId').equals()）
+      // - link: 文章链接（去重：where('link').equals()）
+      // - published: 发布时间（排序：orderBy('published')）
+      // - recommended: 是否已推荐（筛选：where('recommended').equals()）
+      // - read: 是否已读（筛选：where('read').equals()）
+      // - [feedId+published]: 复合索引（按 Feed 查询最新文章）
+      // - [recommended+published]: 复合索引（查询推荐文章时间线）
+      // - [read+published]: 复合索引（查询未读文章）
+      feedArticles: 'id, feedId, link, published, recommended, read, [feedId+published], [recommended+published], [read+published]'
+    }).upgrade(async (tx) => {
+      // 数据迁移：从 discoveredFeeds.latestArticles 迁移到 feedArticles 表
+      dbLogger.info('🔄 开始数据库迁移: latestArticles → feedArticles')
+      
+      const feeds = await tx.table('discoveredFeeds').toArray()
+      let totalArticlesMigrated = 0
+      let feedsWithArticles = 0
+      
+      for (const feed of feeds) {
+        if (feed.latestArticles && feed.latestArticles.length > 0) {
+          feedsWithArticles++
+          
+          // 为每篇文章生成 id（如果没有的话）并添加 feedId
+          const articles: FeedArticle[] = feed.latestArticles.map((article: FeedArticle) => ({
+            ...article,
+            id: article.id || `${feed.id}_${article.link}_${article.published}`,
+            feedId: feed.id
+          }))
+          
+          // 批量插入文章
+          try {
+            await tx.table('feedArticles').bulkAdd(articles)
+            totalArticlesMigrated += articles.length
+          } catch (error) {
+            // 忽略重复键错误（可能是重复的 link）
+            dbLogger.warn('⚠️ 迁移文章时出现错误:', {
+              feedId: feed.id,
+              feedTitle: feed.title,
+              articleCount: articles.length,
+              error
+            })
+            
+            // 尝试逐个插入，跳过重复项
+            for (const article of articles) {
+              try {
+                await tx.table('feedArticles').add(article)
+                totalArticlesMigrated++
+              } catch (err) {
+                // 跳过重复或错误的文章
+              }
+            }
+          }
+          
+          // 保留 latestArticles 字段以支持旧版本代码读取
+          // 未来版本可以移除此字段
+        }
+      }
+      
+      dbLogger.info('✅ 数据库迁移完成', {
+        totalFeeds: feeds.length,
+        feedsWithArticles,
+        totalArticlesMigrated
+      })
     })
   }
 }
