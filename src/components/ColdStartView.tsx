@@ -146,9 +146,6 @@ export function ColdStartView({ pageCount, totalPages = LEARNING_COMPLETE_PAGES,
           <h2 className="sketchy-title text-xl text-center mb-2">
             {_("popup.welcome")}
           </h2>
-          <p className="sketchy-text text-sm text-center mb-4 max-w-xs">
-            {_("popup.learning")}
-          </p>
 
           {/* 进度条 - 手绘风格 */}
           <div className="w-full mb-3">

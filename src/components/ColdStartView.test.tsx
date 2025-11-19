@@ -36,7 +36,7 @@ describe("ColdStartView 组件", () => {
       render(<ColdStartView pageCount={0} />)
 
       expect(screen.getByText("开始你的阅读之旅")).toBeInTheDocument()
-      expect(screen.getByText("正在学习你的兴趣...")).toBeInTheDocument()
+      // 移除副标题，不再检查 "正在学习你的兴趣..."
     })
 
     it("应该显示进度信息", () => {
