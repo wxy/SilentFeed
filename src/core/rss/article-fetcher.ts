@@ -7,7 +7,7 @@
  * - 提取正文，去除广告和无关内容
  * - 计算文章长度和预估阅读时长
  * 
- * TODO: 后续可集成 @mozilla/readability 提升提取质量
+ * 未来优化: 可集成 @mozilla/readability 提升提取质量
  */
 
 /**

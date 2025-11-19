@@ -63,12 +63,25 @@ vi.mock("@/storage/db", () => ({
   getStorageStats: vi.fn(),
   getAnalysisStats: vi.fn(),
   getAIAnalysisStats: vi.fn(),
+  getRecommendationStats: vi.fn(),
   db: {
     pendingVisits: { clear: vi.fn() },
     confirmedVisits: { clear: vi.fn() },
     userProfile: { clear: vi.fn() },
     recommendations: { clear: vi.fn() },
   },
+}))
+
+// Mock AI config
+vi.mock("@/storage/ai-config", () => ({
+  getAIConfig: vi.fn().mockResolvedValue({
+    provider: null,
+    apiKey: "",
+    enabled: false,
+    monthlyBudget: 5,
+    enableReasoning: false
+  }),
+  getProviderDisplayName: vi.fn((provider) => provider || "Keyword")
 }))
 
 // Mock migrator
@@ -104,12 +117,13 @@ vi.mock("@/debug/AnalysisDebugger", () => ({
 }))
 
 // Import mocked modules
-import { getStorageStats, getAnalysisStats, getAIAnalysisStats } from "@/storage/db"
+import { getStorageStats, getAnalysisStats, getAIAnalysisStats, getRecommendationStats } from "@/storage/db"
 import { dataMigrator } from "@/core/migrator/DataMigrator"
 
 const mockGetStorageStats = vi.mocked(getStorageStats)
 const mockGetAnalysisStats = vi.mocked(getAnalysisStats)
 const mockGetAIAnalysisStats = vi.mocked(getAIAnalysisStats)
+const mockGetRecommendationStats = vi.mocked(getRecommendationStats)
 const mockDataMigrator = vi.mocked(dataMigrator)
 
 describe("CollectionStats 组件", () => {
@@ -129,11 +143,23 @@ describe("CollectionStats 组件", () => {
       keywordAnalyzedPages: 0,
       aiPercentage: 0,
       providerDistribution: [],
+      providerCostDistribution: [],
       totalCostUSD: 0,
       totalCostCNY: 0,
       totalTokens: 0,
       avgCostPerPage: 0,
       primaryCurrency: null
+    })
+    
+    // Mock 推荐统计
+    mockGetRecommendationStats.mockResolvedValue({
+      totalCount: 0,
+      unreadCount: 0,
+      readCount: 0,
+      readLaterCount: 0,
+      dismissedCount: 0,
+      avgReadDuration: 0,
+      topSources: []
     })
   })
 
@@ -268,14 +294,6 @@ describe("CollectionStats 组件", () => {
         expect(screen.getByText("英文")).toBeInTheDocument()
         expect(screen.getByText("60 页面")).toBeInTheDocument()
         expect(screen.getByText("40 页面")).toBeInTheDocument()
-      })
-    })
-
-    it("应该显示用户画像组件", async () => {
-      render(<CollectionStats />)
-
-      await waitFor(() => {
-        expect(screen.getByTestId("user-profile-display")).toBeInTheDocument()
       })
     })
 

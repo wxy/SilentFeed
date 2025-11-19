@@ -41,8 +41,8 @@ describe('RuleBasedRecommender', () => {
       {
         id: '4',
         title: '老文章测试',
-        content: '这是一篇很老的文章，应该被时间过滤掉。虽然内容足够长，但是由于发布时间超过了7天的限制，它不应该出现在推荐列表中。这个测试用例用来验证时间过滤功能是否正常工作。',
-        publishDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // 10天前
+        content: '这是一篇很老的文章，应该被时间过滤掉。虽然内容足够长，但是由于发布时间超过了30天的限制，它不应该出现在推荐列表中。这个测试用例用来验证时间过滤功能是否正常工作。',
+        publishDate: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000), // 40天前
         feedId: 'old-feed',
         url: 'https://example.com/old'
       },
@@ -155,7 +155,7 @@ describe('RuleBasedRecommender', () => {
         mockUserInterests
       )
 
-      // 10天前的文章应该被过滤掉
+      // 40天前的文章应该被过滤掉（30天限制）
       const oldArticle = recommendations.find(r => r.articleId === '4')
       expect(oldArticle).toBeUndefined()
     })

@@ -42,6 +42,7 @@ describe("ai-config", () => {
         provider: null,
         apiKey: "",
         enabled: false,
+        enableReasoning: false,
         monthlyBudget: 5
       })
     })

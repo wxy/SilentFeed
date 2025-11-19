@@ -12,6 +12,7 @@ import { getAIConfig, isAIConfigured, type AIProviderType } from './ai-config'
 import { aiManager } from '../core/ai/AICapabilityManager'
 import { logger } from '@/utils/logger'
 import type { RecommendationAnalysisEngine, FeedAnalysisEngine } from '@/types/analysis-engine'
+import { getAIAnalysisStats } from './db'
 
 const configLogger = logger.withTag('RecommendationConfig')
 const localAILogger = logger.withTag('LocalAI')
@@ -252,6 +253,16 @@ export async function checkAIConfigStatus(): Promise<AIConfigStatus> {
     const aiConfig = await getAIConfig()
     const isConfigured = await isAIConfigured()
     
+    // 获取使用统计
+    const aiStats = await getAIAnalysisStats()
+    
+    // 根据配置的提供商选择对应的成本
+    let usedAmount = 0
+    if (aiConfig.provider) {
+      // DeepSeek 使用 CNY，其他使用 USD
+      usedAmount = aiConfig.provider === 'deepseek' ? aiStats.totalCostCNY : aiStats.totalCostUSD
+    }
+    
     // 基础状态
     const status: AIConfigStatus = {
       isConfigured,
@@ -261,9 +272,9 @@ export async function checkAIConfigStatus(): Promise<AIConfigStatus> {
       hasLocalAI: false,
       budgetStatus: {
         monthlyBudget: aiConfig.monthlyBudget,
-        usedAmount: 0, // TODO: 从使用统计中获取
-        isOverBudget: false,
-        usageRate: 0
+        usedAmount,
+        isOverBudget: usedAmount > aiConfig.monthlyBudget,
+        usageRate: usedAmount / aiConfig.monthlyBudget
       },
       lastChecked: Date.now()
     }
@@ -296,12 +307,6 @@ export async function checkAIConfigStatus(): Promise<AIConfigStatus> {
     // 检查本地AI可用性
     const localAIStatus = await checkLocalAIStatus()
     status.hasLocalAI = localAIStatus.availableServices.length > 0
-    
-    // TODO: 计算预算使用情况
-    // const usageStats = await getAIUsageStats()
-    // status.budgetStatus.usedAmount = usageStats.totalCost
-    // status.budgetStatus.isOverBudget = usageStats.totalCost > aiConfig.monthlyBudget
-    // status.budgetStatus.usageRate = usageStats.totalCost / aiConfig.monthlyBudget
     
     return status
     

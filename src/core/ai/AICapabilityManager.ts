@@ -131,11 +131,11 @@ export class AICapabilityManager {
         return new DeepSeekReasonerProvider({ apiKey })
       
       case "openai":
-        // TODO: 实现 OpenAIProvider (Sprint 6)
+        // 未来支持: OpenAI Provider
         throw new Error("OpenAI provider not implemented yet")
       
       case "anthropic":
-        // TODO: 实现 AnthropicProvider (Sprint 6)
+        // 未来支持: Anthropic Provider
         throw new Error("Anthropic provider not implemented yet")
       
       default:
@@ -216,7 +216,7 @@ export class AICapabilityManager {
     try {
       const { metadata } = result
       
-      // TODO: Sprint 5 - 持久化成本追踪
+      // 成本已持久化到数据库中的 confirmedVisits.analysis.aiAnalysis
       if (metadata.cost) {
         // Phase 6: 修复日志显示，分别展示输入和输出 token 数
         const promptTokens = metadata.tokensUsed?.prompt || 0

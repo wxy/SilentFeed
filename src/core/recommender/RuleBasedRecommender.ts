@@ -128,7 +128,7 @@ export class RuleBasedRecommender {
   private readonly RELEVANCE_WEIGHT = 0.7
   private readonly FRESHNESS_WEIGHT = 0.3
   private readonly MIN_ARTICLE_LENGTH = 100
-  private readonly DAYS_LIMIT = 7
+  private readonly DAYS_LIMIT = 30 // 过滤超过30天的老文章
 
   /**
    * 生成推荐列表

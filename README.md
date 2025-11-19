@@ -156,21 +156,29 @@ npm run build
 
 ### 📝 开发路线图
 
-**MVP（1 个月）**
+**MVP - 已完成 ✅**
 - [x] 项目初始化
-- [ ] 浏览历史收集
-- [ ] 用户画像构建
-- [ ] RSS 自动发现
-- [ ] 基础推荐引擎
-- [ ] 弹窗 UI
+- [x] 浏览历史收集
+- [x] 用户画像构建
+- [x] RSS 自动发现
+- [x] AI 智能推荐（DeepSeek/关键词）
+- [x] 弹窗 UI
+- [x] 数据统计与管理
+
+**V1.0 - 准备发布中 🚀**
+- [x] 分析引擎选择（推荐/订阅源）
+- [x] 推理模式（o1-like 思考链）
+- [x] AI 成本追踪
+- [x] RSS 文章质量评分
+- [x] 国际化支持（中英文）
 - [ ] Chrome Web Store 发布
 
-**V2（2-3 个月）**
-- [ ] 云端 AI 服务
-- [ ] 高级推荐算法
+**V2.0 - 未来计划 📋**
+- [ ] OpenAI/Anthropic 支持
+- [ ] 老文章过滤（>30天）
+- [ ] 本地 AI (Ollama/Chrome AI)
 - [ ] 数据可视化仪表板
 - [ ] 移动应用同步
-- [ ] 团队协作功能
 
 ### 🤝 贡献
 
@@ -264,21 +272,29 @@ src/
 
 ### 📝 Development Roadmap
 
-**MVP (1 month)**
+**MVP - Completed ✅**
 - [x] Project initialization
-- [ ] Browsing history collection
-- [ ] User profile building
-- [ ] RSS auto-discovery
-- [ ] Basic recommendation engine
-- [ ] Popup UI
+- [x] Browsing history collection
+- [x] User profile building
+- [x] RSS auto-discovery
+- [x] AI recommendations (DeepSeek/Keyword)
+- [x] Popup UI
+- [x] Data stats and management
+
+**V1.0 - Preparing Release 🚀**
+- [x] Analysis engine selection (Recommendations/Feeds)
+- [x] Reasoning mode (o1-like chain of thought)
+- [x] AI cost tracking
+- [x] RSS article quality scoring
+- [x] Internationalization (English/Chinese)
 - [ ] Chrome Web Store release
 
-**V2 (2-3 months)**
-- [ ] Cloud AI service
-- [ ] Advanced recommendation algorithms
+**V2.0 - Future Plans 📋**
+- [ ] OpenAI/Anthropic support
+- [ ] Old article filtering (>30 days)
+- [ ] Local AI (Ollama/Chrome AI)
 - [ ] Data visualization dashboard
-- [ ] Mobile app sync
-- [ ] Team collaboration features
+- [ ] Mobile app synchronization
 
 ### 🤝 Contributing
 
