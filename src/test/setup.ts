@@ -1,9 +1,13 @@
 import '@testing-library/jest-dom';
 import { cleanup } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
+import fs from 'fs';
+import path from 'path';
 
-// Mock i18n with actual translations
-const translations = require('../../public/locales/en/translation.json')
+// Load translations dynamically without Node.js cache
+const translationsPath = path.resolve(__dirname, '../../public/locales/en/translation.json');
+const translationsContent = fs.readFileSync(translationsPath, 'utf-8');
+const translations = JSON.parse(translationsContent);
 
 // Helper to get nested value from object using dot notation
 function getNestedValue(obj: any, path: string): string {

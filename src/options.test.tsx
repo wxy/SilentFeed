@@ -19,8 +19,8 @@ vi.mock("@/i18n/helpers", () => ({
   useI18n: () => ({
     _: (key: string, params?: any) => {
       const translations: Record<string, string> = {
-        "app.name": "Feed AI Muter",
-        "app.shortName": "RSS 静音器",
+        "app.name": "Silent Feed",
+        "app.shortName": "Silent Feed",
         "options.title": "设置",
         // Phase 8: 新标签名称
         "options.tabs.preferences": "偏好",
@@ -81,7 +81,7 @@ describe("IndexOptions 组件", () => {
   describe("基本渲染", () => {
     it("应该正确渲染标题", () => {
       render(<IndexOptions />)
-      expect(screen.getByText("Feed AI Muter")).toBeInTheDocument()
+      expect(screen.getByText("Silent Feed")).toBeInTheDocument()
       expect(screen.getByText("设置")).toBeInTheDocument()
     })
 
@@ -329,8 +329,7 @@ describe("IndexOptions 组件", () => {
       const footer = screen.getByText((content, element) => {
         return (
           element?.tagName === "P" &&
-          content.includes("Feed AI Muter") &&
-          content.includes("RSS 静音器")
+          content.includes("Silent Feed")
         )
       })
       expect(footer).toBeInTheDocument()

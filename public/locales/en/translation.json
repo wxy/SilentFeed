@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Quiet Reading",
+    "name": "Silent Feed",
     "shortName": "Silent Feed",
     "slogan": "Quiet the feed"
   },
@@ -592,7 +592,7 @@
       "scenarioRecommendation": "Recommendation Generation - Content Matching, Recommendation Reasons",
       "scenarioSummary": "Article Summary (Planned)",
       "scenarioQA": "Intelligent Q&A (Planned)",
-      "scenariosIntro": "The AI engine provides intelligent services for Feed AI Muter across multiple scenarios:",
+      "scenariosIntro": "The AI engine provides intelligent services for Silent Feed across multiple scenarios:",
       "scenarios": {
         "analysis": "Content Analysis",
         "analysisDesc": "Topic Classification, Keyword Extraction, Summary Generation",

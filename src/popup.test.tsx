@@ -10,8 +10,8 @@ vi.mock("@/i18n/helpers", () => ({
     _: (key: string, options?: any) => {
       // 简单的测试翻译函数，直接返回 key 的最后一部分
       const translations: Record<string, (options?: any) => string> = {
-        "app.name": () => "Feed AI Muter",
-        "app.shortName": () => "RSS 静音器",
+        "app.name": () => "Silent Feed",
+        "app.shortName": () => "Silent Feed",
         "app.slogan": () => "让信息流安静下来",
         "popup.welcome": () => "开始你的阅读之旅",
         "popup.learning": () => "我会在后台学习你的兴趣",
@@ -50,11 +50,10 @@ describe("IndexPopup 组件", () => {
       expect(screen.queryByText("⏳")).not.toBeInTheDocument()
     })
 
-    // 检查标题（支持中英文，兼容旧名称）
+    // 检查标题（支持中英文）
     await waitFor(() => {
       const title = screen.queryByText("静阅") || 
-                   screen.queryByText("Quiet Reading") ||
-                   screen.queryByText("Feed AI Muter") // 兼容旧名称
+                   screen.queryByText("Silent Feed")
       expect(title).toBeTruthy()
     })
     
