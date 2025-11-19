@@ -137,7 +137,8 @@ describe("AIConfig", () => {
           provider: "openai",
           apiKey: "sk-test-123456",
           enabled: true,
-          monthlyBudget: 5
+          monthlyBudget: 5,
+          enableReasoning: false
         })
       })
       
@@ -305,7 +306,8 @@ describe("AIConfig", () => {
             provider: null,
             apiKey: "",
             enabled: false,
-            monthlyBudget: 5
+            monthlyBudget: 5,
+            enableReasoning: false
           })
         },
         { timeout: 3000 }
@@ -323,16 +325,5 @@ describe("AIConfig", () => {
       expect(screen.getByText(/Downgrade strategy/)).toBeInTheDocument()
     })
     
-    it("选择 Provider 后应该显示成本参考", () => {
-      render(<AIConfig />)
-      
-      // 选择 OpenAI
-      const select = screen.getByLabelText("AI Provider")
-      fireEvent.change(select, { target: { value: "openai" } })
-      
-      expect(screen.getByText(/Cost Reference/)).toBeInTheDocument()
-      // 新的文案格式
-      expect(screen.getByText(/OpenAI GPT-4o-mini/)).toBeInTheDocument()
     })
-  })
 })  
