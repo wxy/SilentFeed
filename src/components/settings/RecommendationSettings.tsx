@@ -13,7 +13,6 @@ import {
   type RecommendationConfig
 } from "@/storage/recommendation-config"
 import { getAdaptiveMetrics, type AdaptiveMetrics } from "@/core/recommender/adaptive-count"
-import type { NotificationConfig } from "@/core/recommender/notification"
 import { useRecommendationStore } from "@/stores/recommendationStore"
 import { logger } from "@/utils/logger"
 
@@ -30,14 +29,6 @@ export function RecommendationSettings() {
     qualityThreshold: 0.6,
     tfidfThreshold: 0.1
   })
-  const [notificationConfig, setNotificationConfig] = useState<NotificationConfig>({
-    enabled: true,
-    quietHours: {
-      start: 22,
-      end: 8
-    },
-    minInterval: 60
-  })
   const [metrics, setMetrics] = useState<AdaptiveMetrics | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
@@ -49,7 +40,6 @@ export function RecommendationSettings() {
   useEffect(() => {
     loadConfig()
     loadMetrics()
-    loadNotificationConfig()
   }, [])
 
   const loadConfig = async () => {
@@ -58,17 +48,6 @@ export function RecommendationSettings() {
       setConfig(loaded)
     } catch (error) {
       recSettingsLogger.error("加载配置失败:", error)
-    }
-  }
-
-  const loadNotificationConfig = async () => {
-    try {
-      const result = await chrome.storage.local.get("notification-config")
-      if (result["notification-config"]) {
-        setNotificationConfig(result["notification-config"])
-      }
-    } catch (error) {
-      recSettingsLogger.error("加载通知配置失败:", error)
     }
   }
 
@@ -85,7 +64,6 @@ export function RecommendationSettings() {
     try {
       setIsSaving(true)
       await saveRecommendationConfig(config)
-      await chrome.storage.local.set({ "notification-config": notificationConfig })
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 2000)
     } catch (error) {
@@ -101,24 +79,6 @@ export function RecommendationSettings() {
       await generateRecommendations()
     } catch (error) {
       recSettingsLogger.error("生成推荐失败:", error)
-    }
-  }
-
-  const handleTestNotification = async () => {
-    try {
-      recSettingsLogger.info("触发测试通知...")
-      const response = await chrome.runtime.sendMessage({ type: "TEST_NOTIFICATION" })
-      
-      if (response.success) {
-        recSettingsLogger.info("✅ 测试通知已发送")
-        alert(_("options.recommendation.testNotificationSuccess"))
-      } else {
-        recSettingsLogger.error("❌ 测试通知失败:", response.error)
-        alert(_("options.recommendation.testNotificationFailed"))
-      }
-    } catch (error) {
-      recSettingsLogger.error("测试通知异常:", error)
-      alert(_("options.recommendation.testNotificationError", { error: String(error) }))
     }
   }
 
@@ -227,89 +187,6 @@ export function RecommendationSettings() {
           <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
             {_("options.recommendation.countHint")}
           </p>
-        </div>
-      </div>
-
-      {/* 通知设置 */}
-      <div>
-        <h3 className="text-lg font-medium mb-4">{_("options.recommendation.notification")}</h3>
-        
-        <div className="space-y-3">
-          {/* 启用通知 */}
-          <label className="flex items-start gap-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer">
-            <input
-              type="checkbox"
-              checked={notificationConfig.enabled}
-              onChange={(e) => setNotificationConfig({ ...notificationConfig, enabled: e.target.checked })}
-              className="mt-1"
-            />
-            <div className="flex-1">
-              <div className="font-medium">{_("options.recommendation.enableNotification")}</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                {_("options.recommendation.notificationDesc")}
-              </div>
-              <div className="text-xs text-blue-600 dark:text-blue-400 mt-2">
-                {_("options.recommendation.notificationHint")}
-              </div>
-            </div>
-          </label>
-
-          {/* 静默时段 */}
-          {notificationConfig.enabled && (
-            <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800">
-              <div className="font-medium mb-3">{_("options.recommendation.quietHours")}</div>
-              <div className="flex items-center gap-4">
-                <div className="flex-1">
-                  <label className="text-sm text-gray-600 dark:text-gray-400 block mb-1">{_("options.recommendation.quietStart")}</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="23"
-                    value={notificationConfig.quietHours?.start || 22}
-                    onChange={(e) => setNotificationConfig({
-                      ...notificationConfig,
-                      quietHours: {
-                        ...notificationConfig.quietHours!,
-                        start: parseInt(e.target.value)
-                      }
-                    })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className="text-sm text-gray-600 dark:text-gray-400 block mb-1">{_("options.recommendation.quietEnd")}</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="23"
-                    value={notificationConfig.quietHours?.end || 8}
-                    onChange={(e) => setNotificationConfig({
-                      ...notificationConfig,
-                      quietHours: {
-                        ...notificationConfig.quietHours!,
-                        end: parseInt(e.target.value)
-                      }
-                    })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
-                  />
-                </div>
-              </div>
-              <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
-                {_("options.recommendation.quietHint")}
-              </p>
-            </div>
-          )}
-
-          {/* 测试通知按钮 */}
-          {notificationConfig.enabled && (
-            <button
-              onClick={handleTestNotification}
-              className="w-full px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors text-sm"
-              title={_("options.recommendation.testNotificationTitle")}
-            >
-              {_("options.recommendation.testNotification")}
-            </button>
-          )}
         </div>
       </div>
 

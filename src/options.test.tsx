@@ -22,23 +22,32 @@ vi.mock("@/i18n/helpers", () => ({
         "app.name": "Feed AI Muter",
         "app.shortName": "RSS 静音器",
         "options.title": "设置",
+        // Phase 8: 新标签名称
+        "options.tabs.preferences": "偏好",
+        "options.tabs.feeds": "订阅源",
+        "options.tabs.aiEngine": "AI 引擎",
+        "options.tabs.recommendations": "推荐系统",
+        "options.tabs.myData": "我的数据",
+        // 旧标签名称（向后兼容）
         "options.tabs.general": "常规",
         "options.tabs.rss": "RSS 源",
         "options.tabs.ai": "AI",
-        "options.tabs.recommendation": "推荐", // Phase 6: 单数形式
-        "options.tabs.data": "采集统计", // Phase 6: 更新为正确的翻译
+        "options.tabs.recommendation": "推荐",
+        "options.tabs.data": "采集统计",
         "options.general.title": "常规设置",
+        "options.general.preferencesTitle": "偏好设置",
         "options.general.language": "语言",
         "options.general.languageAuto": "跟随浏览器",
         "options.general.languageZh": "简体中文",
         "options.general.languageEn": "English",
         "options.general.languageDescription": "选择界面显示语言",
+        "options.general.notifications": "通知设置",
         "options.rss.title": "RSS 源管理",
         "options.rss.description": "管理你的 RSS 订阅源",
-  "options.rss.disabled": "将在完成 100 页面后启用",
+        "options.rss.disabled": "将在完成 100 页面后启用",
         "options.ai.title": "AI 配置",
         "options.ai.description": "配置 AI 推荐引擎",
-  "options.ai.disabled": "将在完成 100 页面后启用",
+        "options.ai.disabled": "将在完成 100 页面后启用",
         "options.recommendations.title": "推荐效果统计",
         "options.data.title": "数据管理",
       }
@@ -78,18 +87,17 @@ describe("IndexOptions 组件", () => {
 
     it("应该显示五个标签按钮", () => {
       render(<IndexOptions />)
-      expect(screen.getByText("常规")).toBeInTheDocument()
-      expect(screen.getByText("RSS 源")).toBeInTheDocument()
-      expect(screen.getByText("AI")).toBeInTheDocument()
-      // Phase 6: "推荐效果" 改为 "推荐"
-      expect(screen.getByText("推荐")).toBeInTheDocument()
-      // Phase 6: "数据管理" 改为 "采集统计"
-      expect(screen.getByText("采集统计")).toBeInTheDocument()
+      // Phase 8: 新标签名称
+      expect(screen.getByText("偏好")).toBeInTheDocument()
+      expect(screen.getByText("订阅源")).toBeInTheDocument()
+      expect(screen.getByText("AI 引擎")).toBeInTheDocument()
+      expect(screen.getByText("推荐系统")).toBeInTheDocument()
+      expect(screen.getByText("我的数据")).toBeInTheDocument()
     })
 
-    it("默认应该显示常规设置页面", () => {
+    it("默认应该显示偏好设置页面", () => {
       render(<IndexOptions />)
-      expect(screen.getByText("常规设置")).toBeInTheDocument()
+      expect(screen.getByText("偏好设置")).toBeInTheDocument()
       expect(screen.getByText("选择界面显示语言")).toBeInTheDocument()
     })
 
@@ -97,9 +105,9 @@ describe("IndexOptions 组件", () => {
       const user = userEvent.setup()
       render(<IndexOptions />)
       
-      // 确保在常规标签页
-      const generalTab = screen.getByText("常规")
-      await user.click(generalTab)
+      // Phase 8: 确保在偏好标签页
+      const preferencesTab = screen.getByText("偏好")
+      await user.click(preferencesTab)
       
       const select = screen.getByLabelText("语言")
       expect(select).toBeInTheDocument()
@@ -108,22 +116,24 @@ describe("IndexOptions 组件", () => {
   })
 
   describe("标签切换", () => {
-    it("点击 RSS 标签应该切换到 RSS 页面", async () => {
+    it("点击订阅源标签应该切换到订阅源页面", async () => {
       const user = userEvent.setup()
       render(<IndexOptions />)
 
-      const rssTab = screen.getByText("RSS 源")
-      await user.click(rssTab)
+      // Phase 8: "RSS 源" → "订阅源"
+      const feedsTab = screen.getByText("订阅源")
+      await user.click(feedsTab)
 
       // RSS Manager 已被 mock，检查 mock 组件是否渲染
       expect(screen.getByText("RSS Manager Loaded")).toBeInTheDocument()
     })
 
-    it("点击 AI 标签应该切换到 AI 页面", async () => {
+    it("点击 AI 引擎标签应该切换到 AI 引擎页面", async () => {
       const user = userEvent.setup()
       const { container } = render(<IndexOptions />)
 
-      const aiTab = screen.getByText("AI")
+      // Phase 8: "AI" → "AI 引擎"
+      const aiTab = screen.getByText("AI 引擎")
       await user.click(aiTab)
 
       // 验证 AI 标签已激活 (通过 URL 或 DOM 变化确认切换成功)
@@ -134,57 +144,58 @@ describe("IndexOptions 组件", () => {
       })
     })
 
-    it("点击数据标签应该切换到数据管理页面", async () => {
+    it("点击我的数据标签应该切换到我的数据页面", async () => {
       const user = userEvent.setup()
       render(<IndexOptions />)
 
-      // Phase 6: 标签文字改为 "采集统计"
-      const dataTab = screen.getByText("采集统计")
+      // Phase 8: "采集统计" → "我的数据"
+      const dataTab = screen.getByText("我的数据")
       await user.click(dataTab)
 
       // Phase 6: CollectionStats 组件不再显示标题，检查组件已渲染
       // 通过查找该组件独有的元素来验证
       await waitFor(() => {
-        expect(screen.queryByText("常规设置")).not.toBeInTheDocument()
+        expect(screen.queryByText("偏好设置")).not.toBeInTheDocument()
       })
     })
 
-    it("切换标签后常规设置应该消失", async () => {
+    it("切换标签后偏好设置应该消失", async () => {
       const user = userEvent.setup()
       render(<IndexOptions />)
 
-      // 先切换到常规标签，确保它是激活状态
-      const generalTab = screen.getByText("常规")
-      await user.click(generalTab)
+      // Phase 8: 先切换到偏好标签，确保它是激活状态
+      const preferencesTab = screen.getByText("偏好")
+      await user.click(preferencesTab)
       
-      expect(screen.getByText("常规设置")).toBeInTheDocument()
+      expect(screen.getByText("偏好设置")).toBeInTheDocument()
 
-      // 然后切换到 RSS 标签
-      const rssTab = screen.getByText("RSS 源")
-      await user.click(rssTab)
+      // Phase 8: 然后切换到订阅源标签
+      const feedsTab = screen.getByText("订阅源")
+      await user.click(feedsTab)
 
-      expect(screen.queryByText("常规设置")).not.toBeInTheDocument()
+      expect(screen.queryByText("偏好设置")).not.toBeInTheDocument()
     })
 
     it("激活的标签应该有不同的样式", async () => {
       const user = userEvent.setup()
       render(<IndexOptions />)
 
-      const generalTab = screen.getByText("常规")
-      const rssTab = screen.getByText("RSS 源")
+      // Phase 8: 使用新标签名
+      const preferencesTab = screen.getByText("偏好")
+      const feedsTab = screen.getByText("订阅源")
 
-      // 先点击常规标签确保激活
-      await user.click(generalTab)
+      // 先点击偏好标签确保激活
+      await user.click(preferencesTab)
       
-      // 常规标签应该是激活状态（手绘风格使用不同的类名）
-      expect(generalTab.closest("button")?.className).toContain("bg-green")
+      // Phase 8: 偏好标签应该是激活状态（手绘风格使用不同的类名）
+      expect(preferencesTab.closest("button")?.className).toContain("bg-green")
 
-      // 点击 RSS 标签
-      await user.click(rssTab)
+      // Phase 8: 点击订阅源标签
+      await user.click(feedsTab)
 
-      // RSS 标签应该变为激活状态，常规标签应该不再激活
-      expect(rssTab.closest("button")?.className).toContain("bg-green")
-      expect(generalTab.closest("button")?.className).not.toContain("bg-green")
+      // Phase 8: 订阅源标签应该变为激活状态，偏好标签应该不再激活
+      expect(feedsTab.closest("button")?.className).toContain("bg-green")
+      expect(preferencesTab.closest("button")?.className).not.toContain("bg-green")
     })
   })
 
@@ -193,9 +204,9 @@ describe("IndexOptions 组件", () => {
       const user = userEvent.setup()
       render(<IndexOptions />)
       
-      // 确保在常规标签页
-      const generalTab = screen.getByText("常规")
-      await user.click(generalTab)
+      // Phase 8: 确保在偏好标签页
+      const preferencesTab = screen.getByText("偏好")
+      await user.click(preferencesTab)
       
       const select = screen.getByLabelText("语言") as HTMLSelectElement
       expect(select.value).toBe("auto")
@@ -205,9 +216,9 @@ describe("IndexOptions 组件", () => {
       const user = userEvent.setup()
       render(<IndexOptions />)
       
-      // 确保在常规标签页
-      const generalTab = screen.getByText("常规")
-      await user.click(generalTab)
+      // Phase 8: 确保在偏好标签页
+      const preferencesTab = screen.getByText("偏好")
+      await user.click(preferencesTab)
       
       // 通过 labelText 获取语言 select
       const languageSelect = screen.getByLabelText("语言")
@@ -224,9 +235,9 @@ describe("IndexOptions 组件", () => {
 
       render(<IndexOptions />)
       
-      // 确保在常规标签页
-      const generalTab = screen.getByText("常规")
-      await user.click(generalTab)
+      // Phase 8: 确保在偏好标签页
+      const preferencesTab = screen.getByText("偏好")
+      await user.click(preferencesTab)
       
       const select = screen.getByLabelText("语言")
 
@@ -241,9 +252,9 @@ describe("IndexOptions 组件", () => {
 
       render(<IndexOptions />)
       
-      // 确保在常规标签页
-      const generalTab = screen.getByText("常规")
-      await user.click(generalTab)
+      // Phase 8: 确保在偏好标签页
+      const preferencesTab = screen.getByText("偏好")
+      await user.click(preferencesTab)
       
       const select = screen.getByLabelText("语言")
 
@@ -258,9 +269,9 @@ describe("IndexOptions 组件", () => {
 
       render(<IndexOptions />)
       
-      // 确保在常规标签页
-      const generalTab = screen.getByText("常规")
-      await user.click(generalTab)
+      // Phase 8: 确保在偏好标签页
+      const preferencesTab = screen.getByText("偏好")
+      await user.click(preferencesTab)
       
       const select = screen.getByLabelText("语言")
 
@@ -275,9 +286,9 @@ describe("IndexOptions 组件", () => {
 
       render(<IndexOptions />)
       
-      // 确保在常规标签页
-      const generalTab = screen.getByText("常规")
-      await user.click(generalTab)
+      // Phase 8: 确保在偏好标签页
+      const preferencesTab = screen.getByText("偏好")
+      await user.click(preferencesTab)
       
       const select = screen.getByLabelText("语言") as HTMLSelectElement
 
@@ -286,21 +297,23 @@ describe("IndexOptions 组件", () => {
   })
 
   describe("预留区域", () => {
-    it("RSS 页面应该显示 RSS 管理器", async () => {
+    it("订阅源页面应该显示 RSS 管理器", async () => {
       const user = userEvent.setup()
       render(<IndexOptions />)
 
-      await user.click(screen.getByText("RSS 源"))
+      // Phase 8: "RSS 源" → "订阅源"
+      await user.click(screen.getByText("订阅源"))
 
       // RSS Manager 已被 mock
       expect(screen.getByText("RSS Manager Loaded")).toBeInTheDocument()
     })
 
-    it("AI 页面应该显示配置说明", async () => {
+    it("AI 引擎页面应该显示配置说明", async () => {
       const user = userEvent.setup()
       const { container } = render(<IndexOptions />)
 
-      await user.click(screen.getByText("AI"))
+      // Phase 8: "AI" → "AI 引擎"
+      await user.click(screen.getByText("AI 引擎"))
 
       // 验证 AI 页面已加载 (检查容器变化)
       await waitFor(() => {

@@ -352,6 +352,86 @@ export function AIConfig() {
           {_("options.aiConfig.cost.note")}
         </p>
       </div>
+
+      {/* AI 使用场景说明 */}
+      <div className="mt-8 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+        <h3 className="font-semibold mb-2">🎯 {_("options.aiConfig.usageScenarios")}</h3>
+        <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+          {_("options.aiConfig.scenariosIntro")}
+        </p>
+        <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+          <li>
+            <strong className="text-purple-600 dark:text-purple-400">{_("options.aiConfig.scenarios.analysis")}</strong>
+            <span className="ml-2">{_("options.aiConfig.scenarios.analysisDesc")}</span>
+          </li>
+          <li>
+            <strong className="text-purple-600 dark:text-purple-400">{_("options.aiConfig.scenarios.profile")}</strong>
+            <span className="ml-2">{_("options.aiConfig.scenarios.profileDesc")}</span>
+          </li>
+          <li>
+            <strong className="text-purple-600 dark:text-purple-400">{_("options.aiConfig.scenarios.recommendation")}</strong>
+            <span className="ml-2">{_("options.aiConfig.scenarios.recommendationDesc")}</span>
+          </li>
+        </ul>
+      </div>
+
+      {/* 本地 AI 配置说明 */}
+      <div className="mt-8 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+        <h3 className="font-semibold mb-2">🔒 {_("options.aiConfig.localAI")}</h3>
+        <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+          {_("options.aiConfig.localAIHint")}
+        </p>
+        <div className="space-y-3 text-sm">
+          <div>
+            <div className="font-semibold text-gray-800 dark:text-gray-200">
+              Ollama（推荐）
+            </div>
+            <ul className="ml-4 mt-1 space-y-1 text-gray-700 dark:text-gray-300">
+              <li>• {_("options.aiConfig.localAIDetails.ollama.feature1")}</li>
+              <li>• {_("options.aiConfig.localAIDetails.ollama.feature2")}</li>
+              <li>• {_("options.aiConfig.localAIDetails.ollama.feature3")}</li>
+            </ul>
+          </div>
+          <div>
+            <div className="font-semibold text-gray-800 dark:text-gray-200">
+              Chrome AI（实验性）
+            </div>
+            <ul className="ml-4 mt-1 space-y-1 text-gray-700 dark:text-gray-300">
+              <li>• {_("options.aiConfig.localAIDetails.chromeAI.feature1")}</li>
+              <li>• {_("options.aiConfig.localAIDetails.chromeAI.feature2")}</li>
+              <li>• {_("options.aiConfig.localAIDetails.chromeAI.feature3")}</li>
+            </ul>
+          </div>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+            💡 {_("options.aiConfig.localAIDetails.hint")}
+          </p>
+        </div>
+      </div>
+
+      {/* TF-IDF 算法引擎说明 */}
+      <div className="mt-8 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+        <h3 className="font-semibold mb-2">📊 {_("options.aiConfig.algorithmEngine")}</h3>
+        <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+          {_("options.aiConfig.tfidf.intro")}
+        </p>
+        <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+          <li>
+            <strong className="text-gray-800 dark:text-gray-200">{_("options.aiConfig.tfidf.advantage1")}</strong>
+            <span className="ml-2">{_("options.aiConfig.tfidf.advantage1Desc")}</span>
+          </li>
+          <li>
+            <strong className="text-gray-800 dark:text-gray-200">{_("options.aiConfig.tfidf.advantage2")}</strong>
+            <span className="ml-2">{_("options.aiConfig.tfidf.advantage2Desc")}</span>
+          </li>
+          <li>
+            <strong className="text-gray-800 dark:text-gray-200">{_("options.aiConfig.tfidf.advantage3")}</strong>
+            <span className="ml-2">{_("options.aiConfig.tfidf.advantage3Desc")}</span>
+          </li>
+        </ul>
+        <p className="text-xs text-gray-600 dark:text-gray-400 mt-3">
+          💡 {_("options.aiConfig.tfidf.note")}
+        </p>
+      </div>
     </div>
   )
 }
