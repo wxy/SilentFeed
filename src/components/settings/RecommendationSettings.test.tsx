@@ -149,15 +149,6 @@ describe("RecommendationSettings 组件", () => {
         expect(screen.getByText("2")).toBeInTheDocument() // 不想读
       })
     })
-
-    it("应该显示通知设置", async () => {
-      render(<RecommendationSettings />)
-      
-      await waitFor(() => {
-        expect(screen.getByText("Recommendation Notifications")).toBeInTheDocument()
-        expect(screen.getByText(/Enable Recommendation Notifications/)).toBeInTheDocument()
-      })
-    })
   })
 
   describe("配置交互", () => {
@@ -189,22 +180,6 @@ describe("RecommendationSettings 组件", () => {
       expect(checkbox).toBeChecked()
     })
 
-    it("应该能够切换通知开关", async () => {
-      const user = userEvent.setup()
-      render(<RecommendationSettings />)
-      
-      await waitFor(() => {
-        expect(screen.getByText(/Enable Recommendation Notifications/)).toBeInTheDocument()
-      })
-      
-      const checkbox = screen.getByRole("checkbox", { name: /Enable Recommendation Notifications/ })
-      // 默认应该是选中的
-      expect(checkbox).toBeChecked()
-      
-      await user.click(checkbox)
-      expect(checkbox).not.toBeChecked()
-    })
-
     it("应该能够保存设置", async () => {
       const user = userEvent.setup()
       const { saveRecommendationConfig } = await import("@/storage/recommendation-config")
@@ -220,7 +195,6 @@ describe("RecommendationSettings 组件", () => {
       
       await waitFor(() => {
         expect(saveRecommendationConfig).toHaveBeenCalled()
-        expect(mockChromeStorage.local.set).toHaveBeenCalled()
         expect(screen.getByText("✓ Saved successfully")).toBeInTheDocument()
       })
     })
@@ -247,55 +221,6 @@ describe("RecommendationSettings 组件", () => {
       await waitFor(() => {
         expect(mockGenerate).toHaveBeenCalled()
       })
-    })
-  })
-
-  describe("通知功能", () => {
-    it("应该能够测试通知", async () => {
-      const user = userEvent.setup()
-      global.alert = vi.fn()
-      
-      render(<RecommendationSettings />)
-      
-      await waitFor(() => {
-        expect(screen.getByText(/Test Notification/)).toBeInTheDocument()
-      })
-      
-      const testButton = screen.getByText(/Test Notification/)
-      await user.click(testButton)
-      
-      await waitFor(() => {
-        expect(mockChromeRuntime.sendMessage).toHaveBeenCalledWith({
-          type: "TEST_NOTIFICATION"
-        })
-        expect(global.alert).toHaveBeenCalledWith(
-          expect.stringContaining("Test notification sent")
-        )
-      })
-    })
-
-    it("通知开启时应该显示静默时段设置", async () => {
-      render(<RecommendationSettings />)
-      
-      await waitFor(() => {
-        expect(screen.getByText(/Quiet Hours/)).toBeInTheDocument()
-        expect(screen.getByText("Start time")).toBeInTheDocument()
-        expect(screen.getByText("End time")).toBeInTheDocument()
-      })
-    })
-
-    it("通知关闭时不应该显示静默时段设置", async () => {
-      const user = userEvent.setup()
-      render(<RecommendationSettings />)
-      
-      await waitFor(() => {
-        expect(screen.getByText(/Enable Recommendation Notifications/)).toBeInTheDocument()
-      })
-      
-      const checkbox = screen.getByRole("checkbox", { name: /Enable Recommendation Notifications/ })
-      await user.click(checkbox)
-      
-      expect(screen.queryByText(/Quiet Hours/)).not.toBeInTheDocument()
     })
   })
 

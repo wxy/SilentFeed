@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-11-18T15:48:44.182Z",
+  "lastUpdate": "2025-11-19T06:01:30.687Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -690,15 +690,15 @@
     },
     "options.tabs.recommendations": {
       "zh-CN": {
-        "value": "推荐统计",
-        "hash": "cf3a5f33",
-        "lastModified": "2025-11-03T11:21:44.150Z",
+        "value": "推荐系统",
+        "hash": "b89d9a90",
+        "lastModified": "2025-11-18T16:19:11.332Z",
         "status": "verified"
       },
       "en": {
-        "value": "Recommended Statistics",
-        "hash": "67328892",
-        "lastModified": "2025-11-03T11:21:44.152Z",
+        "value": "Recommendation System",
+        "hash": "0b35d755",
+        "lastModified": "2025-11-18T16:19:11.332Z",
         "status": "ai-translated"
       }
     },
@@ -6999,6 +6999,1014 @@
         "value": "Save failed, please try again",
         "hash": "ab553c66",
         "lastModified": "2025-11-18T15:48:41.368Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.tabs.preferences": {
+      "zh-CN": {
+        "value": "偏好",
+        "hash": "43b9ff4c",
+        "lastModified": "2025-11-18T16:19:05.595Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Preferences",
+        "hash": "d0834fce",
+        "lastModified": "2025-11-18T16:19:05.596Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.tabs.feeds": {
+      "zh-CN": {
+        "value": "订阅源",
+        "hash": "0c7d604b",
+        "lastModified": "2025-11-18T16:19:07.740Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Feed",
+        "hash": "a8042547",
+        "lastModified": "2025-11-18T16:19:07.741Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.tabs.aiEngine": {
+      "zh-CN": {
+        "value": "AI 引擎",
+        "hash": "d19eaa88",
+        "lastModified": "2025-11-18T16:19:09.485Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "AI Engine",
+        "hash": "0df40f55",
+        "lastModified": "2025-11-18T16:19:09.485Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.tabs.myData": {
+      "zh-CN": {
+        "value": "我的数据",
+        "hash": "6feeabc2",
+        "lastModified": "2025-11-18T16:19:13.151Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "My data",
+        "hash": "1d4ed6b0",
+        "lastModified": "2025-11-18T16:19:13.151Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.preferencesTitle": {
+      "zh-CN": {
+        "value": "偏好设置",
+        "hash": "074629c0",
+        "lastModified": "2025-11-18T16:19:14.874Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Preferences",
+        "hash": "d0834fce",
+        "lastModified": "2025-11-18T16:19:14.874Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.notifications": {
+      "zh-CN": {
+        "value": "通知设置",
+        "hash": "748a4837",
+        "lastModified": "2025-11-18T16:19:16.649Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Notification Settings",
+        "hash": "76d8f3c0",
+        "lastModified": "2025-11-18T16:19:16.649Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.enableNotifications": {
+      "zh-CN": {
+        "value": "启用推荐通知",
+        "hash": "8c5dff6b",
+        "lastModified": "2025-11-18T16:19:18.284Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Enable recommended notifications",
+        "hash": "4d688df4",
+        "lastModified": "2025-11-18T16:19:18.284Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.notificationsDesc": {
+      "zh-CN": {
+        "value": "当有新推荐时发送系统通知（克制设计，不会过度打扰）",
+        "hash": "4ca718f5",
+        "lastModified": "2025-11-18T16:19:21.219Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Send system notifications when there are new recommendations (restrained design to avoid excessive disturbance)",
+        "hash": "4f81f3af",
+        "lastModified": "2025-11-18T16:19:21.219Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.notificationsHint": {
+      "zh-CN": {
+        "value": "💡 Chrome 扩展通知无需额外授权。如果看不到通知，请检查系统通知设置（macOS 用户需打开通知中心侧边栏）",
+        "hash": "459aef56",
+        "lastModified": "2025-11-18T16:19:24.051Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "💡 Chrome extension notifications do not require additional permissions. If you can't see notifications, check your system notification settings (macOS users need to open the Notification Center sidebar).",
+        "hash": "36609656",
+        "lastModified": "2025-11-18T16:19:24.051Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.quietHours": {
+      "zh-CN": {
+        "value": "静默时段",
+        "hash": "3c3cdc2c",
+        "lastModified": "2025-11-18T16:19:25.552Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Quiet Hours",
+        "hash": "6465f38b",
+        "lastModified": "2025-11-18T16:19:25.552Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.quietStart": {
+      "zh-CN": {
+        "value": "开始时间",
+        "hash": "592c5958",
+        "lastModified": "2025-11-18T16:19:27.194Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Start time",
+        "hash": "664b1331",
+        "lastModified": "2025-11-18T16:19:27.194Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.quietEnd": {
+      "zh-CN": {
+        "value": "结束时间",
+        "hash": "f782779e",
+        "lastModified": "2025-11-18T16:19:28.736Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "End time",
+        "hash": "6cb12740",
+        "lastModified": "2025-11-18T16:19:28.736Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.quietHint": {
+      "zh-CN": {
+        "value": "在此时段不发送通知（24小时制）",
+        "hash": "05f088d6",
+        "lastModified": "2025-11-18T16:19:30.571Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Do not send notifications during this period (24-hour format)",
+        "hash": "e487d595",
+        "lastModified": "2025-11-18T16:19:30.572Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.testNotification": {
+      "zh-CN": {
+        "value": "测试通知",
+        "hash": "edb13707",
+        "lastModified": "2025-11-18T16:19:32.031Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Test Notification",
+        "hash": "b1c75016",
+        "lastModified": "2025-11-18T16:19:32.031Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.testNotificationTitle": {
+      "zh-CN": {
+        "value": "测试推荐通知功能",
+        "hash": "393706b8",
+        "lastModified": "2025-11-18T16:19:33.646Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Testing the recommended notification feature",
+        "hash": "f4fc0a28",
+        "lastModified": "2025-11-18T16:19:33.646Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.testNotificationSuccess": {
+      "zh-CN": {
+        "value": "✅ 测试通知已发送！请检查系统通知中心",
+        "hash": "a9dc7e7e",
+        "lastModified": "2025-11-18T16:19:35.432Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "✅ Test notification sent! Please check the system notification center.",
+        "hash": "c92103c6",
+        "lastModified": "2025-11-18T16:19:35.432Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.testNotificationFailed": {
+      "zh-CN": {
+        "value": "❌ 测试通知失败，请查看控制台",
+        "hash": "872eddf4",
+        "lastModified": "2025-11-18T16:19:37.440Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "❌ Test notification failed, please check the console",
+        "hash": "4c6cf19e",
+        "lastModified": "2025-11-18T16:19:37.440Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.testNotificationError": {
+      "zh-CN": {
+        "value": "❌ 测试通知失败: {{error}}",
+        "hash": "16a92771",
+        "lastModified": "2025-11-18T16:19:39.178Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "❌ Test notification failed: {{error}}",
+        "hash": "243e0d6b",
+        "lastModified": "2025-11-18T16:19:39.178Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.engineTitle": {
+      "zh-CN": {
+        "value": "AI 引擎配置",
+        "hash": "a1e0bdcc",
+        "lastModified": "2025-11-18T16:19:40.576Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "AI Engine Configuration",
+        "hash": "b63e187a",
+        "lastModified": "2025-11-18T16:19:40.576Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.remoteAI": {
+      "zh-CN": {
+        "value": "远程 AI 服务商",
+        "hash": "2b7a4f1d",
+        "lastModified": "2025-11-18T16:19:43.172Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Remote AI Service Provider",
+        "hash": "76f833df",
+        "lastModified": "2025-11-18T16:19:43.172Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.localAI": {
+      "zh-CN": {
+        "value": "本地 AI（可选）",
+        "hash": "e6547057",
+        "lastModified": "2025-11-18T16:19:44.914Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Local AI (Optional)",
+        "hash": "0375594d",
+        "lastModified": "2025-11-18T16:19:44.914Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.algorithmEngine": {
+      "zh-CN": {
+        "value": "算法引擎",
+        "hash": "2c96a7ee",
+        "lastModified": "2025-11-18T16:19:46.342Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Algorithm Engine",
+        "hash": "5b9563e5",
+        "lastModified": "2025-11-18T16:19:46.342Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.costManagement": {
+      "zh-CN": {
+        "value": "成本与配额管理",
+        "hash": "7261e028",
+        "lastModified": "2025-11-18T16:19:48.290Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Cost and Quota Management",
+        "hash": "d728180a",
+        "lastModified": "2025-11-18T16:19:48.290Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.usageScenarios": {
+      "zh-CN": {
+        "value": "AI 使用场景",
+        "hash": "34a42b58",
+        "lastModified": "2025-11-18T16:19:50.132Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "AI Usage Scenarios",
+        "hash": "96c10f79",
+        "lastModified": "2025-11-18T16:19:50.132Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.enableOllama": {
+      "zh-CN": {
+        "value": "启用 Ollama",
+        "hash": "35edfad1",
+        "lastModified": "2025-11-18T16:19:51.666Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Enable Ollama",
+        "hash": "64451ffe",
+        "lastModified": "2025-11-18T16:19:51.666Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.ollamaAddress": {
+      "zh-CN": {
+        "value": "服务地址",
+        "hash": "f562f75c",
+        "lastModified": "2025-11-18T16:19:53.312Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Service Address",
+        "hash": "23cde1e0",
+        "lastModified": "2025-11-18T16:19:53.313Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.ollamaStatus": {
+      "zh-CN": {
+        "value": "状态",
+        "hash": "3fea7ca7",
+        "lastModified": "2025-11-18T16:19:55.060Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Status",
+        "hash": "ec53a8c4",
+        "lastModified": "2025-11-18T16:19:55.060Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.ollamaDisconnected": {
+      "zh-CN": {
+        "value": "未连接",
+        "hash": "7f3a55b2",
+        "lastModified": "2025-11-18T16:19:56.788Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Not connected",
+        "hash": "7b277018",
+        "lastModified": "2025-11-18T16:19:56.789Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.enableChromeAI": {
+      "zh-CN": {
+        "value": "启用 Chrome 内置 AI",
+        "hash": "ce20a9d4",
+        "lastModified": "2025-11-18T16:19:58.456Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Enable Chrome's built-in AI",
+        "hash": "bd575e77",
+        "lastModified": "2025-11-18T16:19:58.457Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.chromeAIUnsupported": {
+      "zh-CN": {
+        "value": "浏览器不支持",
+        "hash": "e537859f",
+        "lastModified": "2025-11-18T16:19:59.963Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Browser not supported",
+        "hash": "b1ecae55",
+        "lastModified": "2025-11-18T16:19:59.963Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.localAIHint": {
+      "zh-CN": {
+        "value": "💡 本地 AI 完全离线，保护隐私",
+        "hash": "24371ccb",
+        "lastModified": "2025-11-18T16:20:01.807Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "💡 Local AI runs completely offline, protecting your privacy.",
+        "hash": "7596bcc2",
+        "lastModified": "2025-11-18T16:20:01.807Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.tfidfAnalysis": {
+      "zh-CN": {
+        "value": "TF-IDF 文本分析",
+        "hash": "c57bc35e",
+        "lastModified": "2025-11-18T16:20:03.348Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "TF-IDF Text Analysis",
+        "hash": "2075ce12",
+        "lastModified": "2025-11-18T16:20:03.348Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.tfidfPurpose": {
+      "zh-CN": {
+        "value": "用途: AI 不可用时的回退方案",
+        "hash": "dd73d419",
+        "lastModified": "2025-11-18T16:20:04.980Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Purpose: Fallback solution when AI is unavailable",
+        "hash": "b3f1582b",
+        "lastModified": "2025-11-18T16:20:04.980Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.tfidfPerformance": {
+      "zh-CN": {
+        "value": "性能: 快速，无成本",
+        "hash": "48d33b93",
+        "lastModified": "2025-11-18T16:20:06.826Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Performance: Fast, cost-free",
+        "hash": "7a11c7ac",
+        "lastModified": "2025-11-18T16:20:06.826Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.keywordExtraction": {
+      "zh-CN": {
+        "value": "关键词提取算法",
+        "hash": "8ef5274d",
+        "lastModified": "2025-11-18T16:20:08.408Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Keyword extraction algorithm",
+        "hash": "f5fe203c",
+        "lastModified": "2025-11-18T16:20:08.408Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.keywordFeature1": {
+      "zh-CN": {
+        "value": "基于词频和重要性",
+        "hash": "02534efc",
+        "lastModified": "2025-11-18T16:20:10.413Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Based on word frequency and importance",
+        "hash": "aed30959",
+        "lastModified": "2025-11-18T16:20:10.413Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.keywordFeature2": {
+      "zh-CN": {
+        "value": "支持中英文分词",
+        "hash": "cd55573b",
+        "lastModified": "2025-11-18T16:20:12.146Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Supports Chinese and English word segmentation",
+        "hash": "e369e4f0",
+        "lastModified": "2025-11-18T16:20:12.147Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.monthlyBudget": {
+      "zh-CN": {
+        "value": "月度预算",
+        "hash": "ca6d227c",
+        "lastModified": "2025-11-18T16:20:13.995Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Monthly Budget",
+        "hash": "e1bccb88",
+        "lastModified": "2025-11-18T16:20:13.995Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.monthlyUsage": {
+      "zh-CN": {
+        "value": "本月消费",
+        "hash": "bd96c2e3",
+        "lastModified": "2025-11-18T16:20:15.545Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Spending this month",
+        "hash": "ad9f72cb",
+        "lastModified": "2025-11-18T16:20:15.545Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.totalCost": {
+      "zh-CN": {
+        "value": "累计消费",
+        "hash": "5c9bc81a",
+        "lastModified": "2025-11-18T16:20:17.064Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Cumulative spending",
+        "hash": "6673ca0d",
+        "lastModified": "2025-11-18T16:20:17.064Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.tokenUsage": {
+      "zh-CN": {
+        "value": "Token 使用",
+        "hash": "94535ba2",
+        "lastModified": "2025-11-18T16:20:18.496Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Token Usage",
+        "hash": "5a7d7793",
+        "lastModified": "2025-11-18T16:20:18.496Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.contentAnalysisTokens": {
+      "zh-CN": {
+        "value": "内容分析",
+        "hash": "37e7ac50",
+        "lastModified": "2025-11-18T16:20:20.345Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Content Analysis",
+        "hash": "b3f58d39",
+        "lastModified": "2025-11-18T16:20:20.346Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.recommendationTokens": {
+      "zh-CN": {
+        "value": "推荐生成",
+        "hash": "d47f91e7",
+        "lastModified": "2025-11-18T16:20:21.851Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Recommendation Generation",
+        "hash": "0d32f7e9",
+        "lastModified": "2025-11-18T16:20:21.851Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.profileTokens": {
+      "zh-CN": {
+        "value": "用户画像",
+        "hash": "8857b829",
+        "lastModified": "2025-11-18T16:20:23.724Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "User Profile",
+        "hash": "90b1f665",
+        "lastModified": "2025-11-18T16:20:23.724Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.viewDetailedBilling": {
+      "zh-CN": {
+        "value": "查看详细账单",
+        "hash": "e6f712f6",
+        "lastModified": "2025-11-18T16:20:25.767Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "View detailed bill",
+        "hash": "bbe904fc",
+        "lastModified": "2025-11-18T16:20:25.768Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.scenarioContentAnalysis": {
+      "zh-CN": {
+        "value": "内容分析 - 主题分类、关键词提取",
+        "hash": "7e60e717",
+        "lastModified": "2025-11-18T16:20:27.816Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Content Analysis - Topic Classification, Keyword Extraction",
+        "hash": "6a8046d6",
+        "lastModified": "2025-11-18T16:20:27.816Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.scenarioUserProfile": {
+      "zh-CN": {
+        "value": "用户画像 - 兴趣建模、偏好预测",
+        "hash": "2b30f982",
+        "lastModified": "2025-11-18T16:20:29.453Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "User Profile - Interest Modeling, Preference Prediction",
+        "hash": "f5860e0b",
+        "lastModified": "2025-11-18T16:20:29.453Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.scenarioRecommendation": {
+      "zh-CN": {
+        "value": "推荐生成 - 内容匹配、推荐理由",
+        "hash": "773f809b",
+        "lastModified": "2025-11-18T16:20:31.300Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Recommendation Generation - Content Matching, Recommendation Reasons",
+        "hash": "b22c8e02",
+        "lastModified": "2025-11-18T16:20:31.300Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.scenarioSummary": {
+      "zh-CN": {
+        "value": "文章摘要 (规划中)",
+        "hash": "92300c16",
+        "lastModified": "2025-11-18T16:20:33.142Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Article Summary (Planned)",
+        "hash": "db249531",
+        "lastModified": "2025-11-18T16:20:33.142Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.scenarioQA": {
+      "zh-CN": {
+        "value": "智能问答 (规划中)",
+        "hash": "22fd73c5",
+        "lastModified": "2025-11-18T16:20:34.984Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Intelligent Q&A (Planned)",
+        "hash": "57d3db99",
+        "lastModified": "2025-11-18T16:20:34.984Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.scenariosIntro": {
+      "zh-CN": {
+        "value": "AI 引擎为 FeedAIMuter 提供多场景智能服务：",
+        "hash": "cab4a3b8",
+        "lastModified": "2025-11-19T06:00:52.767Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "AI engine provides multi-scenario intelligent services for FeedAIMuter:",
+        "hash": "3dc210e8",
+        "lastModified": "2025-11-19T06:00:52.768Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.scenarios.analysis": {
+      "zh-CN": {
+        "value": "内容分析",
+        "hash": "37e7ac50",
+        "lastModified": "2025-11-19T06:00:54.168Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Content Analysis",
+        "hash": "b3f58d39",
+        "lastModified": "2025-11-19T06:00:54.168Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.scenarios.analysisDesc": {
+      "zh-CN": {
+        "value": "主题分类、关键词提取、摘要生成",
+        "hash": "fe5cf549",
+        "lastModified": "2025-11-19T06:00:56.021Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Topic Classification, Keyword Extraction, Summary Generation",
+        "hash": "a3ccfdd8",
+        "lastModified": "2025-11-19T06:00:56.021Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.scenarios.profile": {
+      "zh-CN": {
+        "value": "用户画像",
+        "hash": "8857b829",
+        "lastModified": "2025-11-19T06:00:57.722Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "User Profile",
+        "hash": "90b1f665",
+        "lastModified": "2025-11-19T06:00:57.722Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.scenarios.profileDesc": {
+      "zh-CN": {
+        "value": "兴趣建模、偏好预测、行为分析",
+        "hash": "b62a5f23",
+        "lastModified": "2025-11-19T06:00:59.434Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Interest Modeling, Preference Prediction, Behavior Analysis",
+        "hash": "553fc87e",
+        "lastModified": "2025-11-19T06:00:59.434Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.scenarios.recommendation": {
+      "zh-CN": {
+        "value": "推荐生成",
+        "hash": "d47f91e7",
+        "lastModified": "2025-11-19T06:01:01.103Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Recommendation Generation",
+        "hash": "0d32f7e9",
+        "lastModified": "2025-11-19T06:01:01.103Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.scenarios.recommendationDesc": {
+      "zh-CN": {
+        "value": "内容匹配、推荐理由、个性化排序",
+        "hash": "9b66c354",
+        "lastModified": "2025-11-19T06:01:02.849Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Content Matching, Recommendation Reasons, Personalized Sorting",
+        "hash": "2ae0b70a",
+        "lastModified": "2025-11-19T06:01:02.850Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.localAIDetails.ollama.feature1": {
+      "zh-CN": {
+        "value": "支持多种开源模型（Llama、Qwen、Gemma 等）",
+        "hash": "227276c9",
+        "lastModified": "2025-11-19T06:01:04.896Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Supports multiple open-source models (Llama, Qwen, Gemma, etc.)",
+        "hash": "8df9bbcd",
+        "lastModified": "2025-11-19T06:01:04.896Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.localAIDetails.ollama.feature2": {
+      "zh-CN": {
+        "value": "数据完全本地处理，隐私保护",
+        "hash": "7528c32b",
+        "lastModified": "2025-11-19T06:01:06.837Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Data is processed entirely locally, ensuring privacy protection.",
+        "hash": "1f7acab2",
+        "lastModified": "2025-11-19T06:01:06.837Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.localAIDetails.ollama.feature3": {
+      "zh-CN": {
+        "value": "需要自行安装 Ollama 服务（ollama.com）",
+        "hash": "23f46e37",
+        "lastModified": "2025-11-19T06:01:08.650Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "You need to install the Ollama service (ollama.com) yourself.",
+        "hash": "c2a51afd",
+        "lastModified": "2025-11-19T06:01:08.650Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.localAIDetails.chromeAI.feature1": {
+      "zh-CN": {
+        "value": "Chrome 内置 Gemini Nano 模型",
+        "hash": "9ca235f8",
+        "lastModified": "2025-11-19T06:01:10.421Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Chrome has a built-in Gemini Nano model",
+        "hash": "3341075a",
+        "lastModified": "2025-11-19T06:01:10.421Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.localAIDetails.chromeAI.feature2": {
+      "zh-CN": {
+        "value": "无需额外安装，开箱即用",
+        "hash": "728cf56f",
+        "lastModified": "2025-11-19T06:01:12.498Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "No additional installation required, ready to use out of the box.",
+        "hash": "3a864131",
+        "lastModified": "2025-11-19T06:01:12.498Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.localAIDetails.chromeAI.feature3": {
+      "zh-CN": {
+        "value": "仅支持 Chrome 128+ 且需启用实验特性",
+        "hash": "8f41f8fb",
+        "lastModified": "2025-11-19T06:01:14.410Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Only supports Chrome 128+ and requires experimental features to be enabled",
+        "hash": "4e6c5de6",
+        "lastModified": "2025-11-19T06:01:14.410Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.localAIDetails.hint": {
+      "zh-CN": {
+        "value": "本地 AI 性能受设备配置影响，建议仅在无远程 AI 配置时使用",
+        "hash": "71303270",
+        "lastModified": "2025-11-19T06:01:16.584Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Local AI performance is affected by device configuration. It is recommended to use only when no remote AI configuration is available.",
+        "hash": "557cbc8d",
+        "lastModified": "2025-11-19T06:01:16.584Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.tfidf.intro": {
+      "zh-CN": {
+        "value": "TF-IDF 是一种经典的文本分析算法，作为 AI 的回退方案：",
+        "hash": "3200c1b3",
+        "lastModified": "2025-11-19T06:01:18.611Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "TF-IDF is a classic text analysis algorithm used as a fallback solution for AI:",
+        "hash": "d0655b34",
+        "lastModified": "2025-11-19T06:01:18.612Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.tfidf.advantage1": {
+      "zh-CN": {
+        "value": "零成本",
+        "hash": "2186a286",
+        "lastModified": "2025-11-19T06:01:20.557Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Zero cost",
+        "hash": "09a62938",
+        "lastModified": "2025-11-19T06:01:20.557Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.tfidf.advantage1Desc": {
+      "zh-CN": {
+        "value": "无需 API，完全本地计算",
+        "hash": "78856d46",
+        "lastModified": "2025-11-19T06:01:22.168Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "No API required, fully local computation",
+        "hash": "a24174d5",
+        "lastModified": "2025-11-19T06:01:22.168Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.tfidf.advantage2": {
+      "zh-CN": {
+        "value": "快速响应",
+        "hash": "34225e5f",
+        "lastModified": "2025-11-19T06:01:23.650Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Quick response",
+        "hash": "3f9dcc85",
+        "lastModified": "2025-11-19T06:01:23.650Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.tfidf.advantage2Desc": {
+      "zh-CN": {
+        "value": "毫秒级分析速度",
+        "hash": "d2cff9f3",
+        "lastModified": "2025-11-19T06:01:25.270Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Millisecond-level analysis speed",
+        "hash": "2a9fc015",
+        "lastModified": "2025-11-19T06:01:25.270Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.tfidf.advantage3": {
+      "zh-CN": {
+        "value": "隐私保护",
+        "hash": "15be7f0f",
+        "lastModified": "2025-11-19T06:01:26.906Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Privacy Protection",
+        "hash": "6b71ac4f",
+        "lastModified": "2025-11-19T06:01:26.906Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.tfidf.advantage3Desc": {
+      "zh-CN": {
+        "value": "数据不离开设备",
+        "hash": "d0a7106f",
+        "lastModified": "2025-11-19T06:01:28.344Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Data stays on the device",
+        "hash": "c6fa8a0a",
+        "lastModified": "2025-11-19T06:01:28.344Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.tfidf.note": {
+      "zh-CN": {
+        "value": "TF-IDF 准确性略低于 AI，适合日常轻量使用",
+        "hash": "3dda17a7",
+        "lastModified": "2025-11-19T06:01:30.179Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "TF-IDF accuracy is slightly lower than AI, suitable for daily lightweight use.",
+        "hash": "29e1d756",
+        "lastModified": "2025-11-19T06:01:30.179Z",
         "status": "ai-translated"
       }
     }

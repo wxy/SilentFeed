@@ -7,34 +7,42 @@ import { CollectionStats } from "@/components/settings/CollectionStats"
 import { AIConfig } from "@/components/settings/AIConfig"
 import { RSSManager } from "@/components/settings/RSSManager"
 import { RecommendationSettings } from "@/components/settings/RecommendationSettings"
+import { NotificationSettings } from "@/components/settings/NotificationSettings"
 import { getUIStyle, setUIStyle, watchUIStyle, type UIStyle } from "@/storage/ui-config"
 import { useTheme } from "@/hooks/useTheme"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
 import "@/styles/global.css"
 import "@/styles/sketchy.css"
 
-type TabKey = "general" | "rss" | "ai" | "recommendation" | "data"
+type TabKey = "preferences" | "feeds" | "aiEngine" | "recommendations" | "myData"
 
 /**
  * Feed AI Muter - 设置页面
  * 使用标签页布局，支持语言下拉选择，支持 URL 状态保持
+ * 
+ * Phase 8: 设置页重组
+ * - preferences: 偏好设置（语言、UI风格、通知）
+ * - feeds: 订阅源管理
+ * - aiEngine: AI 引擎配置（基础设施层）
+ * - recommendations: 推荐系统设置
+ * - myData: 我的数据（用户画像、统计）
  */
 function IndexOptions() {
   const { _ } = useI18n()
   useTheme() // 自动跟随系统主题
   
-  // 从 URL 参数或 hash 获取初始标签，默认为 general
+  // 从 URL 参数或 hash 获取初始标签，默认为 preferences
   const getInitialTab = (): TabKey => {
     // 优先从 hash 读取（支持 #rss 这种格式）
     const hash = window.location.hash.slice(1) as TabKey
-    if (['general', 'rss', 'ai', 'recommendation', 'data'].includes(hash)) {
+    if (['preferences', 'feeds', 'aiEngine', 'recommendations', 'myData'].includes(hash)) {
       return hash
     }
     
     // 其次从 URL 参数读取
     const urlParams = new URLSearchParams(window.location.search)
     const tab = urlParams.get('tab') as TabKey
-    return ['general', 'rss', 'ai', 'recommendation', 'data'].includes(tab) ? tab : 'general'
+    return ['preferences', 'feeds', 'aiEngine', 'recommendations', 'myData'].includes(tab) ? tab : 'preferences'
   }
 
   const [activeTab, setActiveTab] = useState<TabKey>(getInitialTab)
@@ -99,11 +107,11 @@ function IndexOptions() {
 
   // 标签配置
   const tabs: { key: TabKey; icon: string }[] = [
-    { key: "general", icon: "⚙️" },
-    { key: "rss", icon: "📡" },
-    { key: "ai", icon: "🤖" },
-    { key: "recommendation", icon: "🎯" },
-    { key: "data", icon: "📈" }
+    { key: "preferences", icon: "⚙️" },
+    { key: "feeds", icon: "📡" },
+    { key: "aiEngine", icon: "🤖" },
+    { key: "recommendations", icon: "🎯" },
+    { key: "myData", icon: "�" }
   ]
 
   const isSketchyStyle = uiStyle === "sketchy"
@@ -173,17 +181,17 @@ function IndexOptions() {
 
             {/* 右侧内容区域 */}
             <div className="flex-1">
-              {/* 常规设置 */}
-              {activeTab === "general" && (
+              {/* 偏好设置 - Phase 8 */}
+              {activeTab === "preferences" && (
                 <div className={isSketchyStyle ? "sketchy-card p-6" : "bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6"}>
                   <h2 className={isSketchyStyle ? "sketchy-title text-xl mb-2" : "text-lg font-semibold mb-2"}>
-                    {_("options.general.title")}
+                    {_("options.general.preferencesTitle")}
                   </h2>
                   <p className={isSketchyStyle ? "sketchy-text mb-6" : "text-sm text-gray-600 dark:text-gray-400 mb-6"}>
                     {_("options.general.languageDescription")}
                   </p>
 
-                  <div className="space-y-6">
+                  <div className="space-y-8">
                     {/* 语言选择下拉框 */}
                     <div>
                       <label
@@ -238,36 +246,47 @@ function IndexOptions() {
                         {_("options.general.uiStyleDescription")}
                       </p>
                     </div>
+
+                    {/* 分隔线 */}
+                    <div className="border-t border-gray-200 dark:border-gray-700 my-6"></div>
+
+                    {/* 通知设置 - Phase 8: 新增 */}
+                    <div>
+                      <h3 className="text-sm font-medium mb-4">
+                        {_("options.general.notifications")}
+                      </h3>
+                      <NotificationSettings />
+                    </div>
                   </div>
                 </div>
               )}
 
-              {/* RSS 源管理 - Phase 5.1 */}
-              {activeTab === "rss" && (
+              {/* 订阅源管理 - Phase 5.1 */}
+              {activeTab === "feeds" && (
                 <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
                   <RSSManager />
                 </div>
               )}
 
-              {/* AI 配置 - Phase 4.1 */}
-              {activeTab === "ai" && (
+              {/* AI 引擎配置 - Phase 4.1 + Phase 8 扩展 */}
+              {activeTab === "aiEngine" && (
                 <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                   <AIConfig />
                 </div>
               )}
 
-              {/* 推荐设置 - Phase 6 */}
-              {activeTab === "recommendation" && (
+              {/* 推荐系统设置 - Phase 6 + Phase 8 简化 */}
+              {activeTab === "recommendations" && (
                 <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
                   <h2 className="text-lg font-semibold mb-4">
-                    {_("options.tabs.recommendation")}
+                    {_("options.tabs.recommendations")}
                   </h2>
                   <RecommendationSettings />
                 </div>
               )}
 
-              {/* 采集统计 - Phase 2.7+ */}
-              {activeTab === "data" && <CollectionStats />}
+              {/* 我的数据 - Phase 2.7+ */}
+              {activeTab === "myData" && <CollectionStats />}
             </div>
           </div>
         </div>

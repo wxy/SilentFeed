@@ -124,7 +124,21 @@
       "uiStyle": "Interface style",
       "uiStyleSketchy": "🎨 Hand-drawn Style",
       "uiStyleNormal": "📱 Standard Style",
-      "uiStyleDescription": "Choose the interface appearance style for the extension"
+      "uiStyleDescription": "Choose the interface appearance style for the extension",
+      "preferencesTitle": "Preferences",
+      "notifications": "Notification Settings",
+      "enableNotifications": "Enable recommended notifications",
+      "notificationsDesc": "Send system notifications when there are new recommendations (restrained design to avoid excessive disturbance)",
+      "notificationsHint": "💡 Chrome extension notifications do not require additional permissions. If you can't see notifications, check your system notification settings (macOS users need to open the Notification Center sidebar).",
+      "quietHours": "Quiet Hours",
+      "quietStart": "Start time",
+      "quietEnd": "End time",
+      "quietHint": "Do not send notifications during this period (24-hour format)",
+      "testNotification": "Test Notification",
+      "testNotificationTitle": "Testing the recommended notification feature",
+      "testNotificationSuccess": "✅ Test notification sent! Please check the system notification center.",
+      "testNotificationFailed": "❌ Test notification failed, please check the console",
+      "testNotificationError": "❌ Test notification failed: {{error}}"
     },
     "rss": {
       "title": "RSS Feed Management",
@@ -188,11 +202,15 @@
       "rss": "RSS feed",
       "ai": "AI",
       "privacy": "Privacy",
-      "recommendations": "Recommended Statistics",
+      "recommendations": "Recommendation System",
       "data": "Collection Statistics",
       "recommendation": "Recommend",
       "stats": "Recommendation Statistics",
-      "debug": "Debugging tools"
+      "debug": "Debugging tools",
+      "preferences": "Preferences",
+      "feeds": "Feed",
+      "aiEngine": "AI Engine",
+      "myData": "My data"
     },
     "stats": {
       "noData": "No data available",
@@ -467,6 +485,70 @@
       },
       "hints": {
         "apiKey": "The API Key will be encrypted and stored locally in the browser, and will not be uploaded to the server."
+      },
+      "engineTitle": "AI Engine Configuration",
+      "remoteAI": "Remote AI Service Provider",
+      "localAI": "Local AI (Optional)",
+      "algorithmEngine": "Algorithm Engine",
+      "costManagement": "Cost and Quota Management",
+      "usageScenarios": "AI Usage Scenarios",
+      "enableOllama": "Enable Ollama",
+      "ollamaAddress": "Service Address",
+      "ollamaStatus": "Status",
+      "ollamaDisconnected": "Not connected",
+      "enableChromeAI": "Enable Chrome's built-in AI",
+      "chromeAIUnsupported": "Browser not supported",
+      "localAIHint": "💡 Local AI runs completely offline, protecting your privacy.",
+      "tfidfAnalysis": "TF-IDF Text Analysis",
+      "tfidfPurpose": "Purpose: Fallback solution when AI is unavailable",
+      "tfidfPerformance": "Performance: Fast, cost-free",
+      "keywordExtraction": "Keyword extraction algorithm",
+      "keywordFeature1": "Based on word frequency and importance",
+      "keywordFeature2": "Supports Chinese and English word segmentation",
+      "monthlyBudget": "Monthly Budget",
+      "monthlyUsage": "Spending this month",
+      "totalCost": "Cumulative spending",
+      "tokenUsage": "Token Usage",
+      "contentAnalysisTokens": "Content Analysis",
+      "recommendationTokens": "Recommendation Generation",
+      "profileTokens": "User Profile",
+      "viewDetailedBilling": "View detailed bill",
+      "scenarioContentAnalysis": "Content Analysis - Topic Classification, Keyword Extraction",
+      "scenarioUserProfile": "User Profile - Interest Modeling, Preference Prediction",
+      "scenarioRecommendation": "Recommendation Generation - Content Matching, Recommendation Reasons",
+      "scenarioSummary": "Article Summary (Planned)",
+      "scenarioQA": "Intelligent Q&A (Planned)",
+      "scenariosIntro": "AI engine provides multi-scenario intelligent services for FeedAIMuter:",
+      "scenarios": {
+        "analysis": "Content Analysis",
+        "analysisDesc": "Topic Classification, Keyword Extraction, Summary Generation",
+        "profile": "User Profile",
+        "profileDesc": "Interest Modeling, Preference Prediction, Behavior Analysis",
+        "recommendation": "Recommendation Generation",
+        "recommendationDesc": "Content Matching, Recommendation Reasons, Personalized Sorting"
+      },
+      "localAIDetails": {
+        "ollama": {
+          "feature1": "Supports multiple open-source models (Llama, Qwen, Gemma, etc.)",
+          "feature2": "Data is processed entirely locally, ensuring privacy protection.",
+          "feature3": "You need to install the Ollama service (ollama.com) yourself."
+        },
+        "chromeAI": {
+          "feature1": "Chrome has a built-in Gemini Nano model",
+          "feature2": "No additional installation required, ready to use out of the box.",
+          "feature3": "Only supports Chrome 128+ and requires experimental features to be enabled"
+        },
+        "hint": "Local AI performance is affected by device configuration. It is recommended to use only when no remote AI configuration is available."
+      },
+      "tfidf": {
+        "intro": "TF-IDF is a classic text analysis algorithm used as a fallback solution for AI:",
+        "advantage1": "Zero cost",
+        "advantage1Desc": "No API required, fully local computation",
+        "advantage2": "Quick response",
+        "advantage2Desc": "Millisecond-level analysis speed",
+        "advantage3": "Privacy Protection",
+        "advantage3Desc": "Data stays on the device",
+        "note": "TF-IDF accuracy is slightly lower than AI, suitable for daily lightweight use."
       }
     },
     "rssManager": {
