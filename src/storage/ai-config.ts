@@ -22,6 +22,9 @@ export interface AIConfig {
   apiKey: string
   enabled: boolean
   monthlyBudget: number // 月度预算（美元或人民币），必须设置，最小 $1 或 ¥10
+  
+  /** Phase 9: 是否启用推理能力（DeepSeek-R1，成本约10倍但质量更好） */
+  enableReasoning?: boolean
 }
 
 /**
@@ -31,7 +34,8 @@ const DEFAULT_CONFIG: AIConfig = {
   provider: null,
   apiKey: "",
   enabled: false,
-  monthlyBudget: 5 // 默认 $5/月
+  monthlyBudget: 5, // 默认 $5/月
+  enableReasoning: false // Phase 9: 默认不启用推理（成本考虑）
 }
 
 /**

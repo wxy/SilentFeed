@@ -111,6 +111,25 @@ export interface Recommendation {
   feedback?: "later" | "dismissed"
   feedbackAt?: number
   effectiveness?: "effective" | "neutral" | "ineffective"
+  
+  /** 
+   * Phase 7: 推荐状态（软删除机制）
+   * - active: 当前活跃的推荐（在推荐池中）
+   * - replaced: 被更高分推荐替换（淘汰但保留历史）
+   * - dismissed: 用户标记为不想读
+   * - expired: 过期推荐（可选，用于定期清理）
+   */
+  status?: 'active' | 'replaced' | 'dismissed' | 'expired'
+  
+  /**
+   * Phase 7: 替换时间（被淘汰的时间戳）
+   */
+  replacedAt?: number
+  
+  /**
+   * Phase 7: 替换者ID（被哪个推荐替换）
+   */
+  replacedBy?: string
 }
 
 /**

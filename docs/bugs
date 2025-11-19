@@ -9,3 +9,4 @@
   - 分析结论：职责不同，不需要合并
     - `storage/`: IndexedDB 数据库层 (Dexie) + 配置持久化 (chrome.storage)
     - `stores/`: React UI 状态管理 (Zustand)
+- [ ] 推荐文章时，如果该文章太老，就不需要分析和推荐，以防有些 RSS 会将很老的文章也列入

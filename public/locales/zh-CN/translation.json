@@ -68,10 +68,60 @@
       "ai": "AI",
       "aiEngine": "AI 引擎",
       "recommendation": "推荐",
-      "recommendations": "推荐系统",
+      "recommendations": "分析配置",
+      "profile": "用户画像",
       "data": "采集统计",
-      "myData": "我的数据",
+      "myData": "系统数据",
       "debug": "调试工具"
+    },
+    "analysisEngine": {
+      "label": "分析引擎",
+      "title": "分析引擎选择",
+      "recommendation": "推荐系统分析引擎",
+      "feed": "订阅源分析引擎",
+      "options": {
+        "remoteAI": "远程 AI（标准）",
+        "remoteAIWithReasoning": "远程 AI（推理模式）",
+        "localAI": "本地 AI",
+        "keyword": "纯关键字"
+      },
+      "desc": {
+        "remoteAI": "使用远程 AI 服务，平衡成本和质量",
+        "remoteAIWithReasoning": "使用推理型 AI（DeepSeek-R1），成本约 10 倍但质量更好",
+        "localAI": "使用本地 AI（Ollama/Chrome AI），隐私保护但占用性能",
+        "keyword": "使用 TF-IDF 关键字算法，最快且无成本"
+      },
+      "unavailable": {
+        "remoteAI": "未配置 AI API，请前往 AI 配置页面设置",
+        "remoteAIWithReasoning": "需要 DeepSeek API 并启用推理能力",
+        "localAI": "未检测到本地 AI（需要安装 Ollama 或使用支持 Chrome AI 的浏览器）",
+        "keyword": "始终可用"
+      },
+      "descriptions": {
+        "remoteAI": "使用远程 AI 服务，平衡成本和质量",
+        "remoteAIWithReasoning": "使用推理型 AI（DeepSeek-R1），成本约 10 倍但质量更好",
+        "localAI": "使用本地 AI（Ollama/Chrome AI），隐私保护但占用性能",
+        "keyword": "使用 TF-IDF 关键字算法，最快且无成本"
+      },
+      "capability": {
+        "available": "✅ 可用",
+        "unavailable": "❌ 不可用",
+        "checking": "检测中...",
+        "notConfigured": "未配置 AI API",
+        "needDeepSeek": "需要 DeepSeek API",
+        "needEnableReasoning": "需要在 AI 引擎设置中启用推理能力",
+        "noLocalAI": "未检测到本地 AI（需要安装 Ollama 或使用支持 Chrome AI 的浏览器）",
+        "alwaysAvailable": "始终可用"
+      },
+      "recommendedLabel": "推荐",
+      "currentLabel": "当前",
+      "hint": {
+        "recommendation": "💡 推荐系统支持 4 种引擎：远程 AI、推理 AI、本地 AI、纯关键字",
+        "feed": "💡 订阅源分析支持 3 种引擎：远程 AI、本地 AI、纯关键字（不支持推理模式，成本和速度考虑）"
+      },
+      "recommendationTitle": "文章推荐引擎",
+      "feedTitle": "文章分析引擎",
+      "feedDescription": "选择所有订阅源统一使用的分析引擎（不支持推理模式以控制成本）"
     },
     "general": {
       "title": "常规设置",
@@ -339,6 +389,8 @@
       "avgTokensPerPage": "均 {{tokens}} tokens/页",
       "providerDistributionTitle": "提供商分布",
       "providerDistributionCount": "{{count}} 页 ({{percentage}}%)",
+      "providerCostDistributionTitle": "AI 成本分布",
+      "providerTokens": "{{tokens}}K tokens",
       "aiConfigPromptTitle": "想要更准确的内容分析？",
       "aiConfigPromptDesc": "配置 AI 提供商（OpenAI、Anthropic、DeepSeek），获得更精准的语义理解和主题分类。",
       "aiConfigPromptLink": "前往配置",
@@ -350,6 +402,19 @@
       "avgKeywordsLabel": "平均每页关键词",
       "languageDistributionTitle": "语言分布",
       "languagePages": "{{count}} 页面",
+      "recommendationStats": "推荐统计",
+      "recommendationStatsNoData": "暂无推荐数据",
+      "recommendationStatsHint": "系统将根据您的兴趣推荐优质内容",
+      "totalRecommendationsLabel": "总推荐数",
+      "unreadRecommendationsLabel": "未读推荐",
+      "unreadPercentage": "未读占比 {{percentage}}%",
+      "readRecommendationsLabel": "已读推荐",
+      "readRate": "阅读率 {{rate}}%",
+      "dismissedRecommendationsLabel": "不想读",
+      "dismissedRate": "不想读占比 {{rate}}%",
+      "avgReadDurationLabel": "平均阅读时长",
+      "topSourcesTitle": "热门来源",
+      "sourceStats": "{{count}} 条 • 阅读率 {{readRate}}%",
       "dataManagement": "数据管理",
       "rebuildProfile": "重建用户画像",
       "rebuildingProfile": "重建画像中...",
@@ -461,13 +526,29 @@
       "algorithmEngine": "算法引擎",
       "costManagement": "成本与配额管理",
       "usageScenarios": "AI 使用场景",
+      "enableReasoning": "启用推理能力",
+      "reasoningHint": "💡 推理模式提供更深入的思考过程，成本约为标准模式 10 倍",
+      "reasoningWarning": "⚠️ 推理模式会显著增加成本，建议仅在需要深度分析时使用",
+      "reasoningAvailableDeepSeek": "DeepSeek-R1 推理模式可用",
+      "reasoningFutureSupport": "{{provider}} 暂不支持推理模式，未来版本可能会支持",
       "enableOllama": "启用 Ollama",
       "ollamaAddress": "服务地址",
       "ollamaStatus": "状态",
       "ollamaDisconnected": "未连接",
       "enableChromeAI": "启用 Chrome 内置 AI",
       "chromeAIUnsupported": "浏览器不支持",
+      "localAITitle": "本地 AI（可选）",
       "localAIHint": "💡 本地 AI 完全离线，保护隐私",
+      "localAIControl": {
+        "choiceTitle": "选择本地 AI",
+        "none": "❌ 不使用本地 AI（默认）",
+        "chromeAI": "Chrome AI",
+        "ollama": "Ollama",
+        "available": "可用",
+        "howToEnable": "如何启用？",
+        "installOllama": "安装 Ollama",
+        "hint": "选择后，在分析引擎中可使用对应的本地 AI 选项。"
+      },
       "tfidfAnalysis": "TF-IDF 文本分析",
       "tfidfPurpose": "用途: AI 不可用时的回退方案",
       "tfidfPerformance": "性能: 快速，无成本",
@@ -608,8 +689,55 @@
           "input": "输入: $0.25/M tokens",
           "output": "输出: $1.25/M tokens",
           "estimate": "约 $0.23 / 月"
-        }
+        },
+        "reference": "成本参考"
+      },
+      "chromeAI": {
+        "title": "如何启用 Chrome AI",
+        "description": "Chrome AI 是 Google 在 Chrome 浏览器中内置的 Gemini Nano 模型，完全离线运行，保护隐私。",
+        "howToEnable": "如何启用",
+        "urlCopied": "已复制到剪贴板！请粘贴到地址栏打开",
+        "clickToCopy": "点击复制",
+        "step1": {
+          "title": "检查浏览器版本",
+          "content": "确保你的 Chrome 版本 ≥ 128（访问 chrome://version 查看）"
+        },
+        "step2": {
+          "title": "开启实验特性",
+          "content": "访问以下地址并设置为 Enabled："
+        },
+        "step3": {
+          "title": "重启浏览器",
+          "content": "点击 Relaunch 按钮重启 Chrome"
+        },
+        "step4": {
+          "title": "验证可用性",
+          "content": "返回此页面，检查 Chrome AI 状态是否变为\"可用\""
+        },
+        "note": "💡 首次使用时，Chrome 会下载模型文件（约 1.5GB），请耐心等待"
       }
+    },
+    "profile": {
+      "title": "用户画像",
+      "description": "基于你的浏览历史构建的兴趣画像",
+      "noData": "暂无画像数据",
+      "noDataHint": "继续浏览，系统会自动学习你的兴趣偏好",
+      "rebuild": "重建画像",
+      "rebuilding": "重建中...",
+      "rebuildFailed": "重建失败，请重试",
+      "totalPages": "分析页面数",
+      "keywords": "关键词数量",
+      "domains": "常访问域名",
+      "topicDistribution": "主题分布",
+      "primaryTopic": "主导兴趣",
+      "weight": "权重",
+      "topKeywords": "关键词云",
+      "topDomains": "常访问域名",
+      "visitCount": "访问次数",
+      "avgDwellTime": "平均停留",
+      "evolutionHistory": "兴趣演化历程",
+      "basedOnPages": "基于 {{count}} 页",
+      "lastUpdated": "最后更新"
     }
   },
   "common": {

@@ -309,9 +309,17 @@ export class RecommendationService {
         const lowestInPool = currentPool.sort((a, b) => a.score - b.score)[0]
         if (article.score > lowestInPool.score) {
           recLogger.info(` 🔄 替换低分推荐: ${article.score.toFixed(2)} > ${lowestInPool.score.toFixed(2)}`)
-          // 删除最低分的推荐
-          await db.recommendations.delete(lowestInPool.id)
-          currentPool.shift() // 从数组中移除
+          
+          // Phase 7: 软删除 - 更新状态而不是删除记录
+          const replacedAt = Date.now()
+          await db.recommendations.update(lowestInPool.id, {
+            status: 'replaced',
+            replacedAt: replacedAt,
+            replacedBy: `rec-${now}-${index}` // 记录被谁替换
+          })
+          recLogger.debug(` 📝 已标记推荐为 replaced: ${lowestInPool.title}`)
+          
+          currentPool.shift() // 从内存数组中移除
         } else {
           recLogger.info(` ❌ 池已满且分数不够高: ${article.score.toFixed(2)} <= ${lowestInPool.score.toFixed(2)}，跳过: ${article.title}`)
           continue // 不够格，跳过
@@ -346,7 +354,8 @@ export class RecommendationService {
         recommendedAt: now,
         score: article.score,
         reason: article.reason,
-        isRead: false
+        isRead: false,
+        status: 'active'  // Phase 7: 新推荐默认为活跃状态
       }
 
       recommendations.push(recommendation)

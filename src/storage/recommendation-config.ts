@@ -11,6 +11,7 @@
 import { getAIConfig, isAIConfigured, type AIProviderType } from './ai-config'
 import { aiManager } from '../core/ai/AICapabilityManager'
 import { logger } from '@/utils/logger'
+import type { RecommendationAnalysisEngine, FeedAnalysisEngine } from '@/types/analysis-engine'
 
 const configLogger = logger.withTag('RecommendationConfig')
 const localAILogger = logger.withTag('LocalAI')
@@ -21,10 +22,27 @@ const STORAGE_KEY = "recommendation-config"
  * 推荐配置接口
  */
 export interface RecommendationConfig {
-  /** 是否使用推理模式（DeepSeek-R1等推理型AI，成本更高但质量更好，默认使用标准AI） */
+  /** 
+   * Phase 9: 推荐系统分析引擎选择
+   * - remoteAI: 远程 AI（标准模式，平衡成本和质量）
+   * - remoteAIWithReasoning: 远程 AI 推理模式（成本更高但质量更好）
+   * - localAI: 本地 AI（隐私保护但消耗性能）
+   * - keyword: 纯关键字（最快，无成本）
+   */
+  analysisEngine: RecommendationAnalysisEngine
+  
+  /**
+   * Phase 9: 订阅源分析引擎选择（不包含推理模式）
+   * - remoteAI: 远程 AI（标准模式）
+   * - localAI: 本地 AI
+   * - keyword: 纯关键字
+   */
+  feedAnalysisEngine: FeedAnalysisEngine
+  
+  /** @deprecated Phase 9: 使用 analysisEngine 替代 */
   useReasoning: boolean
   
-  /** 是否使用本地AI（Ollama/Chrome AI，隐私保护但消耗性能） */
+  /** @deprecated Phase 9: 使用 analysisEngine 替代 */
   useLocalAI: boolean
   
   /** 
@@ -132,8 +150,10 @@ export interface LocalAIStatus {
  * 默认配置
  */
 const DEFAULT_CONFIG: RecommendationConfig = {
-  useReasoning: false, // 默认不使用推理模式（成本考虑）
-  useLocalAI: false,   // 默认不使用本地AI（性能考虑）
+  analysisEngine: 'remoteAI', // Phase 9: 推荐系统默认使用远程 AI 标准模式
+  feedAnalysisEngine: 'remoteAI', // Phase 9: 订阅源默认使用远程 AI
+  useReasoning: false, // @deprecated 向后兼容
+  useLocalAI: false,   // @deprecated 向后兼容
   maxRecommendations: 3, // 初始值3条，后续自动调整
   batchSize: 1, // Phase 6: 默认每次处理 1 篇文章（避免超时）
   qualityThreshold: 0.6, // Phase 6: 根据实际评分分布调整（观察最高分 0.65）
@@ -153,8 +173,23 @@ export async function getRecommendationConfig(): Promise<RecommendationConfig> {
       ...config
     }
     
-    // Phase 6: 强制更新旧配置（兼容性迁移）
+    // Phase 9: 数据迁移 - 从旧字段迁移到 analysisEngine
     let needsUpdate = false
+    
+    // 如果没有 analysisEngine 字段，根据旧字段推导
+    if (!merged.analysisEngine) {
+      if (merged.useLocalAI) {
+        merged.analysisEngine = 'localAI'
+      } else if (merged.useReasoning) {
+        merged.analysisEngine = 'remoteAIWithReasoning'
+      } else {
+        merged.analysisEngine = 'remoteAI'
+      }
+      configLogger.info(`数据迁移: useLocalAI=${merged.useLocalAI}, useReasoning=${merged.useReasoning} → analysisEngine=${merged.analysisEngine}`)
+      needsUpdate = true
+    }
+    
+    // Phase 6: 强制更新旧配置（兼容性迁移）
     
     // 如果 qualityThreshold 是旧的默认值 0.8，更新为新的 0.6
     if (merged.qualityThreshold === 0.8) {

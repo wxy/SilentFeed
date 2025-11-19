@@ -3,6 +3,7 @@
  */
 
 import type { Topic } from "@/core/profile/topics"
+import type { FeedAnalysisEngine } from "./analysis-engine"
 
 /**
  * RSS 源状态
@@ -78,6 +79,9 @@ export interface DiscoveredFeed {
   unreadCount: number
   recommendedReadCount?: number
   latestArticles?: FeedArticle[]
+  
+  /** Phase 9: 分析引擎选择（默认 remoteAI） */
+  analysisEngine?: FeedAnalysisEngine
 }
 
 /**

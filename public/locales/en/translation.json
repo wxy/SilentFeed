@@ -202,7 +202,7 @@
       "rss": "RSS feed",
       "ai": "AI",
       "privacy": "Privacy",
-      "recommendations": "Recommendation System",
+      "recommendations": "Analyze Configuration",
       "data": "Collection Statistics",
       "recommendation": "Recommend",
       "stats": "Recommendation Statistics",
@@ -210,7 +210,57 @@
       "preferences": "Preferences",
       "feeds": "Feed",
       "aiEngine": "AI Engine",
-      "myData": "My data"
+      "profile": "User Profile",
+      "myData": "System Data"
+    },
+    "analysisEngine": {
+      "title": "Analysis Engine Selection",
+      "recommendation": "Recommendation System Analysis Engine",
+      "feed": "Feed Analysis Engine",
+      "options": {
+        "remoteAI": "Remote AI (Standard)",
+        "remoteAIWithReasoning": "Remote AI (Inference Mode)",
+        "localAI": "Local AI",
+        "keyword": "Pure keywords"
+      },
+      "descriptions": {
+        "remoteAI": "Using remote AI services to balance cost and quality.",
+        "remoteAIWithReasoning": "Using reasoning AI (DeepSeek-R1), costs about 10 times more but delivers better quality.",
+        "localAI": "Using local AI (Ollama/Chrome AI), privacy-protected but performance-intensive",
+        "keyword": "Using the TF-IDF keyword algorithm, fastest and cost-free."
+      },
+      "capability": {
+        "available": "✅ Available",
+        "unavailable": "❌ Not available",
+        "checking": "Detecting...",
+        "notConfigured": "AI API not configured",
+        "needDeepSeek": "Need DeepSeek API",
+        "needEnableReasoning": "Enable reasoning capability in the AI engine settings.",
+        "noLocalAI": "No local AI detected (requires installing Ollama or using a Chrome AI-supported browser)",
+        "alwaysAvailable": "Always available"
+      },
+      "recommendedLabel": "Recommend",
+      "currentLabel": "Currently",
+      "hint": {
+        "recommendation": "💡 The recommendation system supports 4 types of engines: Remote AI, Inference AI, Local AI, and Pure Keywords.",
+        "feed": "💡 Feed analysis supports 3 types of engines: Remote AI, Local AI, and Pure Keywords (does not support inference mode, considering cost and speed factors)"
+      },
+      "label": "Analytical Engine",
+      "desc": {
+        "remoteAI": "Using remote AI services to balance cost and quality.",
+        "remoteAIWithReasoning": "Using reasoning AI (DeepSeek-R1), costs about 10 times more but delivers better quality.",
+        "localAI": "Using local AI (Ollama/Chrome AI), protects privacy but consumes performance",
+        "keyword": "Using the TF-IDF keyword algorithm, fastest and cost-free."
+      },
+      "unavailable": {
+        "remoteAI": "AI API is not configured, please go to the AI configuration page to set it up.",
+        "remoteAIWithReasoning": "Requires DeepSeek API with inference capability enabled",
+        "localAI": "No local AI detected (requires installation of Ollama or a browser with Chrome AI support)",
+        "keyword": "Always available"
+      },
+      "feedTitle": "Article Analysis Engine",
+      "feedDescription": "Select the analysis engine to be used uniformly for all feeds (reasoning mode is not supported to control costs).",
+      "recommendationTitle": "Article Recommendation Engine"
     },
     "stats": {
       "noData": "No data available",
@@ -323,7 +373,22 @@
         "clearAllFinalConfirm": "Final confirmation: Are you sure you want to clear all data?  \nAfter clearing, it will return to the initial state, and data collection will need to start over.",
         "clearAllSuccess": "All data cleared successfully!  \nThe extension has been restored to its initial state.",
         "clearAllFailed": "Clear failed, please try again later."
-      }
+      },
+      "recommendationStats": "Recommendation Statistics",
+      "recommendationStatsNoData": "No recommended data available",
+      "recommendationStatsHint": "The system will recommend high-quality content based on your interests.",
+      "totalRecommendationsLabel": "Total number of recommendations",
+      "unreadRecommendationsLabel": "Unread Recommendations",
+      "unreadPercentage": "Unread proportion {{percentage}}%",
+      "readRecommendationsLabel": "Read recommendations",
+      "readRate": "Read rate {{rate}}%",
+      "avgReadDurationLabel": "Average reading time",
+      "topSourcesTitle": "Popular Sources",
+      "sourceStats": "{{count}} items • Read rate {{readRate}}%",
+      "providerCostDistributionTitle": "AI Cost Distribution",
+      "providerTokens": "{{tokens}}K tokens",
+      "dismissedRecommendationsLabel": "Don't want to read",
+      "dismissedRate": "Don't want to read {{rate}}%"
     },
     "userProfile": {
       "alerts": {
@@ -474,7 +539,8 @@
           "input": "Input: $0.25/M tokens",
           "output": "Output: $1.25/M tokens",
           "estimate": "About $0.23 / month"
-        }
+        },
+        "reference": "Cost Reference"
       },
       "labels": {
         "provider": "AI Provider",
@@ -549,6 +615,50 @@
         "advantage3": "Privacy Protection",
         "advantage3Desc": "Data stays on the device",
         "note": "TF-IDF accuracy is slightly lower than AI, suitable for daily lightweight use."
+      },
+      "enableReasoning": "Enable reasoning capability",
+      "reasoningHint": "💡 Reasoning Mode offers a more in-depth thinking process, costing approximately 10 times more than Standard Mode.",
+      "reasoningWarning": "⚠️ Reasoning mode significantly increases costs and is recommended only when deep analysis is needed.",
+      "reasoningUnavailable": "❌ The current provider does not support inference mode (only DeepSeek supports it).",
+      "reasoningAvailableDeepSeek": "DeepSeek-R1 inference mode is available.",
+      "reasoningFutureSupport": "{{provider}} does not currently support inference mode, which may be available in future versions.",
+      "chromeAI": {
+        "title": "How to enable Chrome AI",
+        "description": "Chrome AI is Google's built-in Gemini Nano model in the Chrome browser, running entirely offline to protect privacy.",
+        "howToEnable": "How to enable",
+        "step1": {
+          "title": "Check browser version",
+          "content": "Ensure your Chrome version is ≥ 128 (visit chrome://version to check)"
+        },
+        "step2": {
+          "title": "Enable experimental features",
+          "content": "Visit the following address and set it to Enabled:"
+        },
+        "step3": {
+          "title": "Restart the browser",
+          "content": "Click the Relaunch button to restart Chrome"
+        },
+        "step4": {
+          "title": "Verify availability",
+          "content": "Return to this page and check if the Chrome AI status changes to \"Available\"."
+        },
+        "note": "💡 On first use, Chrome will download the model file (about 1.5GB), please be patient.",
+        "urlCopied": "Copied to clipboard! Please paste it into the address bar to open.",
+        "clickToCopy": "Click to copy"
+      },
+      "localAITitle": "Local AI (Optional)",
+      "localAIControl": {
+        "enableTitle": "Enable local AI",
+        "enable": "✅ Enable Local AI (Ollama/Chrome AI)",
+        "disable": "❌ Not using local AI",
+        "hint": "After selection, the corresponding local AI option becomes available in the analysis engine.",
+        "choiceTitle": "Select Local AI",
+        "none": "❌ Do not use local AI (Default)",
+        "chromeAI": "Chrome AI",
+        "ollama": "Ollama",
+        "available": "Available",
+        "howToEnable": "How to enable?",
+        "installOllama": "Install Ollama"
       }
     },
     "rssManager": {
@@ -682,6 +792,28 @@
       "importExportOPML": "Batch Import/Export (OPML File)",
       "exportOPML": "Export OPML",
       "noSubscribedFeeds": "No subscribed sources yet"
+    },
+    "profile": {
+      "title": "User Profile",
+      "description": "Interest profile built based on your browsing history",
+      "noData": "No image data available",
+      "noDataHint": "Continue browsing, and the system will automatically learn your interests and preferences.",
+      "rebuild": "Rebuilding Profile",
+      "rebuilding": "Rebuilding...",
+      "rebuildFailed": "Rebuild failed, please try again",
+      "totalPages": "Number of pages analyzed",
+      "keywords": "Number of keywords",
+      "domains": "Frequently visited domains",
+      "topicDistribution": "Topic Distribution",
+      "primaryTopic": "Dominant Interest",
+      "weight": "Weight",
+      "topKeywords": "Keyword Cloud",
+      "topDomains": "Frequently visited domains",
+      "visitCount": "Visits",
+      "avgDwellTime": "Average Dwell Time",
+      "evolutionHistory": "Evolution of Interests",
+      "basedOnPages": "Based on {{count}} pages",
+      "lastUpdated": "Last updated"
     }
   }
 }
