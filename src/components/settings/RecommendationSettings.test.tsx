@@ -13,33 +13,38 @@ vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string, params?: any) => {
       const translations: Record<string, string> = {
-        "options.recommendation.title": "Recommendation Settings",
+        // Analysis Engine
+        "options.analysisEngine.recommendationTitle": "Article Recommendation Engine",
+        "options.analysisEngine.feedTitle": "Article Analysis Engine",
+        "options.analysisEngine.feedDescription": "Select the analysis engine to be used uniformly for all feeds (reasoning mode is not supported to control costs).",
+        "options.analysisEngine.options.remoteAI": "Remote AI (Standard)",
+        "options.analysisEngine.options.remoteAIWithReasoning": "Remote AI (Inference Mode)",
+        "options.analysisEngine.options.localAI": "Local AI",
+        "options.analysisEngine.options.keyword": "Pure keywords",
+        "options.analysisEngine.desc.remoteAI": "Using remote AI services to balance cost and quality.",
+        "options.analysisEngine.desc.remoteAIWithReasoning": "Using reasoning AI (DeepSeek-R1), costs about 10 times more but delivers better quality.",
+        "options.analysisEngine.desc.localAI": "Using local AI (Ollama/Chrome AI), protects privacy but consumes performance",
+        "options.analysisEngine.desc.keyword": "Using the TF-IDF keyword algorithm, fastest and cost-free.",
+        "options.analysisEngine.unavailable.remoteAI": "AI API is not configured, please go to the AI configuration page to set it up.",
+        "options.analysisEngine.unavailable.remoteAIWithReasoning": "Requires DeepSeek API with inference capability enabled",
+        "options.analysisEngine.unavailable.localAI": "No local AI detected (requires installation of Ollama or a browser with Chrome AI support)",
+        "options.analysisEngine.unavailable.keyword": "Always available",
+        "options.analysisEngine.hint.recommendation": "� The recommendation system supports 4 types of engines: Remote AI, Inference AI, Local AI, and Pure Keywords.",
+        "options.analysisEngine.hint.feed": "💡 Feed analysis supports 3 types of engines: Remote AI, Local AI, and Pure Keywords (does not support inference mode, considering cost and speed factors)",
+        // Recommendation Settings
         "options.recommendation.currentMode": "Current mode",
-        "options.recommendation.reasoningAI": "🧠 Reasoning AI Recommendations",
-        "options.recommendation.standardAI": "🤖 Standard AI Recommendations",
-        "options.recommendation.enableReasoning": "🧠 Enable Reasoning AI Mode",
-        "options.recommendation.smartCount": "Smart Recommendation Count",
-        "options.recommendation.currentCount": "Current recommendation count",
+        "options.recommendation.smartCount": "Intelligent Recommendation Quantity",
+        "options.recommendation.currentCount": "Current number of recommendations",
         "options.recommendation.countItems": params?.count ? `${params.count} items` : "{{count}} items",
-        "options.recommendation.notification": "Recommendation Notifications",
-        "options.recommendation.enableNotification": "🔔 Enable Recommendation Notifications",
-        "options.recommendation.quietHours": "🌙 Quiet Hours",
-        "options.recommendation.quietStart": "Start time",
-        "options.recommendation.quietEnd": "End time",
-        "options.recommendation.stats": "Recommendation Statistics",
-        "options.recommendation.totalRecommendations": "Total recommendations",
-        "options.recommendation.readCount": "Read count",
-        "options.recommendation.dismissCount": "Don't want to read",
+        "options.recommendation.countHint": "The system automatically adjusts (1-5 items) based on click-through rate, dislike rate, and pop-up opening frequency.",
         "options.recommendation.save": "Save Settings",
         "options.recommendation.saving": "Saving...",
-        "options.recommendation.saveSuccess": "✓ Saved successfully",
-        "options.recommendation.generateNow": "🔮 Generate Now",
+        "options.recommendation.saveSuccess": "✓ Successfully saved",
+        "options.recommendation.generateNow": "🔮 Recommend Now",
         "options.recommendation.generating": "Generating...",
-        "options.recommendation.resetData": "🗑️ Reset Data",
-        "options.recommendation.resetSuccess": "✅ Recommendation data has been reset",
-        "options.recommendation.useLocalAI": "🔒 Use Local AI",
-        "options.recommendation.testNotification": "🔔 Test Notification",
-        "options.recommendation.testNotificationSuccess": "✅ Test notification sent! Please check system notification center"
+        "options.recommendation.resetConfirm": "⚠️ Are you sure you want to reset all recommendation data?\n\nThis will clear:\n- All recommendations in the recommendation pool\n- Recommendation count statistics for RSS feeds\n- AI scoring and analysis data for all articles (can be re-analyzed)\n- TF-IDF score cache for all articles (can be recalculated)\n- Recommendation-related statistics\n\n⚠️ Note: Fully crawled article content will be preserved\n\nThis action cannot be undone!",
+        "options.recommendation.resetSuccess": "✅ Recommended data has been reset",
+        "options.recommendation.resetFailed": "❌ Reset failed: {{error}}"
       }
       return translations[key] || key
     }
@@ -117,7 +122,7 @@ describe("RecommendationSettings 组件", () => {
       render(<RecommendationSettings />)
       
       await waitFor(() => {
-        expect(screen.getByText("Recommendation Settings")).toBeInTheDocument()
+        expect(screen.getByText("Article Recommendation Engine")).toBeInTheDocument()
       })
     })
 
