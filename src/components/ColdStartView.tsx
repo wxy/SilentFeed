@@ -133,10 +133,10 @@ export function ColdStartView({ pageCount, totalPages = LEARNING_COMPLETE_PAGES,
       ) : (
         /* 手绘风格：保持原有设计 */
         <>
-          {/* 成长阶段图标 - 手绘风格放大显示 */}
+          {/* 成长阶段图标 - 手绘风格放大显示 + 浮动效果 */}
           {/* 雷达图标可点击 */}
           <div 
-            className={`sketchy-emoji text-7xl mb-4 ${hasRSSDiscovery ? 'cursor-pointer hover:scale-110 transition-transform' : ''}`}
+            className={`sketchy-emoji text-7xl mb-4 ${hasRSSDiscovery ? 'cursor-pointer hover:scale-110 transition-transform sketchy-pulse-attention' : 'sketchy-wiggle'}`}
             onClick={handleIconClick}
           >
             {displayIcon}
@@ -153,7 +153,7 @@ export function ColdStartView({ pageCount, totalPages = LEARNING_COMPLETE_PAGES,
           {/* 进度条 - 手绘风格 */}
           <div className="w-full mb-3">
             <div className="flex justify-between items-center mb-2">
-              <span className="sketchy-badge">
+              <span className="sketchy-badge sketchy-shimmer">
                 {_(`popup.stage.${stage.name}`)}
               </span>
               <span className="sketchy-text text-sm font-medium">
@@ -169,7 +169,7 @@ export function ColdStartView({ pageCount, totalPages = LEARNING_COMPLETE_PAGES,
           </div>
 
           {/* 提示信息 - 手绘风格 */}
-          <div className="sketchy-card mt-4 w-full">
+          <div className="sketchy-card mt-4 w-full sketchy-float-hover">
             <p className="sketchy-text text-sm text-center flex items-center justify-center gap-2">
               <span className="sketchy-emoji">📖</span>
               <span>{_("popup.hint")}</span>
