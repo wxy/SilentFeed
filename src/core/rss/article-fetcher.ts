@@ -45,7 +45,7 @@ export async function fetchArticleContent(
     // 1. 获取网页内容
     const response = await fetch(url, {
       headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; FeedAIMuter/1.0; +https://github.com/wxy/FeedAIMuter)"
+        "User-Agent": "Mozilla/5.0 (compatible; SilentFeed/1.0; +https://github.com/wxy/SilentFeed)"
       }
     })
     

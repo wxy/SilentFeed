@@ -13,7 +13,7 @@ import { LEARNING_COMPLETE_PAGES } from '@/constants/progress'
 
 const bgLogger = logger.withTag('Background')
 
-bgLogger.info('FeedAIMuter Background Service Worker 已启动')
+bgLogger.info('Silent Feed Background Service Worker 已启动')
 
 // Phase 5.2: 初始化图标管理器
 let iconManager: IconManager | null = null

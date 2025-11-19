@@ -3,7 +3,7 @@
 applyTo: "**"
 ---
 
-# FeedAIMuter - Chrome Extension Project
+# Silent Feed - Chrome Extension Project
 
 ## 角色与对话风格
 
@@ -101,9 +101,9 @@ rm temp_part*.ts
 
 ## Project Overview
 
-FeedAIMuter 是一个 AI 驱动的 RSS 阅读器浏览器扩展，基于用户浏览行为智能推荐内容，静音信息噪音。
+Silent Feed（静阅）是一个 AI 驱动的 RSS 阅读器浏览器扩展，基于用户浏览行为智能推荐内容，让信息流安静下来。
 
-**命名含义**: Feed (RSS 订阅源) + AI (人工智能推荐) + Muter (静音器)
+**命名含义**: Silent (沉默/安静) + Feed (信息流/RSS 订阅源)，传达克制、专注的阅读体验
 
 **技术栈**:
 - Framework: Plasmo (Chrome Extension MV3)

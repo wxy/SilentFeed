@@ -1,7 +1,7 @@
 {
   "app": {
-    "name": "Feed AI Muter",
-    "shortName": "RSS 静音器"
+    "name": "静阅",
+    "shortName": "静阅"
   },
   "popup": {
     "welcome": "欢迎使用智能 RSS 阅读器",
@@ -568,7 +568,7 @@
       "scenarioRecommendation": "推荐生成 - 内容匹配、推荐理由",
       "scenarioSummary": "文章摘要 (规划中)",
       "scenarioQA": "智能问答 (规划中)",
-      "scenariosIntro": "AI 引擎为 FeedAIMuter 提供多场景智能服务：",
+      "scenariosIntro": "AI 引擎为静阅提供多场景智能服务：",
       "scenarios": {
         "analysis": "内容分析",
         "analysisDesc": "主题分类、关键词提取、摘要生成",

@@ -34,7 +34,7 @@ describe('数据库初始化', () => {
 
   it('应该成功创建数据库', async () => {
     expect(db.isOpen()).toBe(true)
-    expect(db.name).toBe('FeedAIMuterDB')
+    expect(db.name).toBe('SilentFeedDB')
   })
 
   it('应该包含所有必需的表', () => {

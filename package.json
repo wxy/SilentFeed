@@ -1,8 +1,8 @@
 {
-  "name": "feedaimuter",
-  "displayName": "FeedAIMuter",
+  "name": "silentfeed",
+  "displayName": "Silent Feed",
   "version": "0.1.0",
-  "description": "The AI that reads RSS for you - intelligently muting the noise.",
+  "description": "An AI-powered RSS reader that brings you quiet, focused reading experience.",
   "author": "xingyu.wang@gmail.com",
   "scripts": {
     "dev": "plasmo dev",

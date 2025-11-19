@@ -1,7 +1,7 @@
 {
   "app": {
-    "name": "Feed AI Muter",
-    "shortName": "RSS Muter"
+    "name": "Silent Feed",
+    "shortName": "Silent Feed"
   },
   "popup": {
     "welcome": "Welcome to the Smart RSS Reader",

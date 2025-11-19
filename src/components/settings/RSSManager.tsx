@@ -627,7 +627,7 @@ export function RSSManager() {
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `feedaimuter-subscriptions-${new Date().toISOString().split('T')[0]}.opml`
+      link.download = `silentfeed-subscriptions-${new Date().toISOString().split('T')[0]}.opml`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
