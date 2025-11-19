@@ -1,11 +1,12 @@
 {
   "app": {
     "name": "Silent Feed",
-    "shortName": "Silent Feed"
+    "shortName": "静阅",
+    "slogan": "Quiet Your Feed"
   },
   "popup": {
-    "welcome": "Welcome to the Smart RSS Reader",
-    "learning": "Learning your interests...",
+    "welcome": "Start Your Reading Journey",
+    "learning": "I'll learn your interests in the background",
     "progress": "{{current}}/{{total}} pages",
     "stage": {
       "explorer": "Explorer Stage",
@@ -13,7 +14,7 @@
       "grower": "Growth Stage",
       "master": "Master Stage"
     },
-    "hint": "Start browsing, and I'll automatically learn your interests.",
+    "hint": "Browse freely, I'll learn your interests",
     "settings": "Settings",
     "loading": "Loading recommendations...",
     "retry": "Retry",

@@ -12,8 +12,9 @@ vi.mock("@/i18n/helpers", () => ({
       const translations: Record<string, (options?: any) => string> = {
         "app.name": () => "Feed AI Muter",
         "app.shortName": () => "RSS 静音器",
-        "popup.welcome": () => "欢迎使用智能 RSS 阅读器",
-        "popup.learning": () => "正在学习你的兴趣...",
+        "app.slogan": () => "让信息流安静下来",
+        "popup.welcome": () => "开始你的阅读之旅",
+        "popup.learning": () => "我会在后台学习你的兴趣",
         "popup.progress": (opt) =>
           `${opt?.current || 0}/${opt?.total || LEARNING_COMPLETE_PAGES} 页`,
         "popup.stage.explorer": () => "探索者阶段",
@@ -53,11 +54,10 @@ describe("IndexPopup 组件", () => {
     await waitFor(() => {
       expect(screen.getByText("Feed AI Muter")).toBeInTheDocument()
     })
-    expect(screen.getByText("RSS 静音器")).toBeInTheDocument()
+    expect(screen.getByText("开始你的阅读之旅")).toBeInTheDocument()
 
-    // 检查欢迎信息
-    expect(screen.getByText("欢迎使用智能 RSS 阅读器")).toBeInTheDocument()
-    expect(screen.getByText("正在学习你的兴趣...")).toBeInTheDocument()
+    // 检查学习提示
+    expect(screen.getByText("我会在后台学习你的兴趣")).toBeInTheDocument()
   })
 
   it("应该显示初始化进度 0/100", async () => {

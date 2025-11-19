@@ -303,7 +303,7 @@ function IndexOptions() {
         {/* 页脚 */}
         <div className="max-w-6xl mx-auto px-6 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
           <p>
-            {_("app.name")} - {_("app.shortName")}
+            {_("app.shortName")} ({_("app.name")})
           </p>
         </div>
       </div>

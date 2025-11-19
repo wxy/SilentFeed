@@ -47,6 +47,27 @@
     --primary-hover: 61 171 133;
   }
 
+  /* 自定义动画关键帧 */
+  @keyframes pulse-glow {
+    0%, 100% {
+      opacity: 0.6;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.8;
+      transform: scale(1.05);
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
   /* 基础元素样式 */
   body {
     @apply bg-bg-base text-text-primary;
@@ -70,5 +91,27 @@
 
   .card:hover {
     @apply shadow-lg border-[rgb(var(--border-hover))];
+  }
+
+  /* 脉冲光晕动画 */
+  .animate-pulse-glow {
+    animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  /* 进度条光泽效果 */
+  .progress-shimmer::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.4) 50%,
+      transparent 100%
+    );
+    animation: shimmer 2s infinite;
   }
 }
