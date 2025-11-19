@@ -14,14 +14,13 @@ vi.mock("@/i18n/helpers", () => ({
         "app.shortName": () => "Silent Feed",
         "app.slogan": () => "让信息流安静下来",
         "popup.welcome": () => "开始你的阅读之旅",
-        "popup.learning": () => "我会在后台学习你的兴趣",
         "popup.progress": (opt) =>
           `${opt?.current || 0}/${opt?.total || LEARNING_COMPLETE_PAGES} 页`,
         "popup.stage.explorer": () => "探索者阶段",
         "popup.stage.learner": () => "学习者阶段",
         "popup.stage.grower": () => "成长者阶段",
         "popup.stage.master": () => "大师阶段",
-        "popup.hint": () => "开始浏览，我会自动学习你的兴趣",
+        "popup.hint": () => "开始浏览，自动学习你的兴趣",
         "popup.settings": () => "设置"
       }
       const fn = translations[key]
@@ -98,7 +97,7 @@ describe("IndexPopup 组件", () => {
     // 等待加载完成
     await waitFor(() => {
       expect(
-        screen.getByText("开始浏览，我会自动学习你的兴趣")
+        screen.getByText("开始浏览，自动学习你的兴趣")
       ).toBeInTheDocument()
     })
   })
