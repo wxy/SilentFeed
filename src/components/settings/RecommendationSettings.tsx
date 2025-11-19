@@ -1,8 +1,10 @@
 /**
- * 推荐设置组件
- * Phase 6: 推荐引擎配置界面
+ * 分析配置组件
+ * Phase 9: 统一管理推荐系统和订阅源的分析引擎配置
  * 
- * 设计理念：简洁实用，合并统计信息
+ * 设计理念：
+ * - AI 引擎（AIConfig）：定义 AI 能力（API、本地AI、推理）
+ * - 分析配置（本组件）：选择如何使用 AI（推荐用什么、订阅源用什么）
  */
 
 import { useState, useEffect } from "react"
@@ -12,18 +14,22 @@ import {
   saveRecommendationConfig,
   type RecommendationConfig
 } from "@/storage/recommendation-config"
+import type { RecommendationAnalysisEngine, FeedAnalysisEngine } from "@/types/analysis-engine"
+import { checkEngineCapability } from "@/utils/analysis-engine-capability"
 import { getAdaptiveMetrics, type AdaptiveMetrics } from "@/core/recommender/adaptive-count"
 import { useRecommendationStore } from "@/stores/recommendationStore"
 import { logger } from "@/utils/logger"
 
-const recSettingsLogger = logger.withTag("RecommendationSettings")
+const recSettingsLogger = logger.withTag("AnalysisConfig")
 
 export function RecommendationSettings() {
   const { t: _ } = useTranslation()
   const { generateRecommendations, isLoading: isGenerating } = useRecommendationStore()
   const [config, setConfig] = useState<RecommendationConfig>({
-    useReasoning: false,
-    useLocalAI: false,
+    analysisEngine: 'remoteAI',
+    feedAnalysisEngine: 'remoteAI', // Phase 9: 订阅源分析引擎
+    useReasoning: false, // deprecated, 保留向后兼容
+    useLocalAI: false,   // deprecated, 保留向后兼容
     maxRecommendations: 3,
     batchSize: 1,
     qualityThreshold: 0.6,
@@ -33,19 +39,46 @@ export function RecommendationSettings() {
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
   
-  // TODO: Phase 6.2 - 检查AI配置状态
-  // const [hasAIConfig, setHasAIConfig] = useState(false)
-  // const [hasLocalAI, setHasLocalAI] = useState(false)
+  // Phase 9: 订阅源的默认分析引擎
+  const [feedAnalysisEngine, setFeedAnalysisEngine] = useState<FeedAnalysisEngine>('remoteAI')
+  
+  // Phase 9: 引擎可用性状态
+  const [engineAvailability, setEngineAvailability] = useState<Record<RecommendationAnalysisEngine, boolean>>({
+    remoteAI: false,
+    remoteAIWithReasoning: false,
+    localAI: false,
+    keyword: true // 关键词总是可用
+  })
 
   useEffect(() => {
     loadConfig()
     loadMetrics()
+    checkEngineAvailability()
   }, [])
+  
+  /**
+   * Phase 9: 检测各引擎的可用性
+   */
+  const checkEngineAvailability = async () => {
+    const results = await Promise.all([
+      checkEngineCapability('remoteAI'),
+      checkEngineCapability('remoteAIWithReasoning'),
+      checkEngineCapability('localAI')
+    ])
+    
+    setEngineAvailability({
+      remoteAI: results[0].available,
+      remoteAIWithReasoning: results[1].available,
+      localAI: results[2].available,
+      keyword: true
+    })
+  }
 
   const loadConfig = async () => {
     try {
       const loaded = await getRecommendationConfig()
       setConfig(loaded)
+      setFeedAnalysisEngine(loaded.feedAnalysisEngine || 'remoteAI')
     } catch (error) {
       recSettingsLogger.error("加载配置失败:", error)
     }
@@ -63,7 +96,10 @@ export function RecommendationSettings() {
   const handleSave = async () => {
     try {
       setIsSaving(true)
-      await saveRecommendationConfig(config)
+      await saveRecommendationConfig({
+        ...config,
+        feedAnalysisEngine
+      })
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 2000)
     } catch (error) {
@@ -103,75 +139,274 @@ export function RecommendationSettings() {
 
   return (
     <div className="space-y-6">
-      {/* 推荐设置 */}
+      {/* 文章推荐引擎 */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium">{_("options.recommendation.title")}</h3>
+          <h3 className="text-lg font-medium">{_("options.analysisEngine.recommendationTitle")}</h3>
           
-          {/* 当前推荐模式指示 */}
+          {/* 当前推荐引擎指示 */}
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-600 dark:text-gray-400">{_("options.recommendation.currentMode")}</span>
-            {config.useReasoning ? (
-              <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded text-sm font-medium">
-                {_("options.recommendation.reasoningAI")}
-              </span>
-            ) : (
-              <span className="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded text-sm font-medium">
-                {_("options.recommendation.standardAI")}
-              </span>
-            )}
+            <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded text-sm font-medium">
+              {_(`options.analysisEngine.options.${config.analysisEngine}`)}
+            </span>
           </div>
         </div>
         
+        {/* Phase 9: 分析引擎选择（4选1单选） */}
         <div className="space-y-3">
-          {/* 推理模式 - TODO: 检查AI配置后启用禁用逻辑 */}
-          <label className="flex items-start gap-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer">
+          {/* 远程 AI（标准） */}
+          <label className={`flex items-start gap-4 p-4 border-2 rounded-lg transition-all cursor-pointer ${
+            config.analysisEngine === 'remoteAI'
+              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-md'
+              : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+          } ${!engineAvailability.remoteAI ? 'opacity-50 cursor-not-allowed' : ''}`}>
             <input
-              type="checkbox"
-              checked={config.useReasoning}
-              onChange={(e) => setConfig({ ...config, useReasoning: e.target.checked })}
-              className="mt-1"
-              // disabled={!hasAIConfig} // TODO: Phase 6.2 - 未配置AI时禁用
+              type="radio"
+              name="analysisEngine"
+              value="remoteAI"
+              checked={config.analysisEngine === 'remoteAI'}
+              onChange={(e) => setConfig({ ...config, analysisEngine: e.target.value as RecommendationAnalysisEngine })}
+              disabled={!engineAvailability.remoteAI}
+              className="mt-1 w-4 h-4"
             />
             <div className="flex-1">
-              <div className="font-medium">{_("options.recommendation.enableReasoning")}</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                {_("options.recommendation.reasoningDesc")}
+              <div className="font-semibold text-gray-900 dark:text-gray-100">
+                {_("options.analysisEngine.options.remoteAI")}
+                {config.analysisEngine === 'remoteAI' && (
+                  <span className="ml-2 text-xs px-2 py-0.5 bg-blue-500 text-white rounded">当前</span>
+                )}
               </div>
-              {/* TODO: Phase 6.2 - 显示未配置提示
-              {!hasAIConfig && (
-                <div className="text-xs text-orange-600 dark:text-orange-400 mt-1">
-                  ⚠️ 需要先在 AI 设置中配置 API
+              <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                {_("options.analysisEngine.desc.remoteAI")}
+              </div>
+              {!engineAvailability.remoteAI && (
+                <div className="text-xs text-orange-600 dark:text-orange-400 mt-2 flex items-start gap-1">
+                  <span>⚠️</span>
+                  <span>{_("options.analysisEngine.unavailable.remoteAI")}</span>
                 </div>
               )}
-              */}
             </div>
           </label>
 
-          {/* 本地 AI - TODO: 检查本地AI能力后启用禁用逻辑 */}
-          <label className="flex items-start gap-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer">
+          {/* 远程 AI（推理模式） */}
+          <label className={`flex items-start gap-4 p-4 border-2 rounded-lg transition-all cursor-pointer ${
+            config.analysisEngine === 'remoteAIWithReasoning'
+              ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20 shadow-md'
+              : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+          } ${!engineAvailability.remoteAIWithReasoning ? 'opacity-50 cursor-not-allowed' : ''}`}>
             <input
-              type="checkbox"
-              checked={config.useLocalAI}
-              onChange={(e) => setConfig({ ...config, useLocalAI: e.target.checked })}
-              className="mt-1"
-              // disabled={!hasLocalAI} // TODO: Phase 6.2 - 未检测到本地AI时禁用
+              type="radio"
+              name="analysisEngine"
+              value="remoteAIWithReasoning"
+              checked={config.analysisEngine === 'remoteAIWithReasoning'}
+              onChange={(e) => setConfig({ ...config, analysisEngine: e.target.value as RecommendationAnalysisEngine })}
+              disabled={!engineAvailability.remoteAIWithReasoning}
+              className="mt-1 w-4 h-4"
             />
             <div className="flex-1">
-              <div className="font-medium">{_("options.recommendation.useLocalAI")}</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                {_("options.recommendation.localAIDesc")}
+              <div className="font-semibold text-gray-900 dark:text-gray-100">
+                {_("options.analysisEngine.options.remoteAIWithReasoning")}
+                {config.analysisEngine === 'remoteAIWithReasoning' && (
+                  <span className="ml-2 text-xs px-2 py-0.5 bg-purple-500 text-white rounded">当前</span>
+                )}
               </div>
-              {/* TODO: Phase 6.2 - 显示未检测到提示
-              {!hasLocalAI && (
-                <div className="text-xs text-orange-600 dark:text-orange-400 mt-1">
-                  ⚠️ 未检测到本地 AI 服务
+              <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                {_("options.analysisEngine.desc.remoteAIWithReasoning")}
+              </div>
+              {!engineAvailability.remoteAIWithReasoning && (
+                <div className="text-xs text-orange-600 dark:text-orange-400 mt-2 flex items-start gap-1">
+                  <span>⚠️</span>
+                  <span>{_("options.analysisEngine.unavailable.remoteAIWithReasoning")}</span>
                 </div>
               )}
-              */}
+            </div>
+          </label>
+
+          {/* 本地 AI */}
+          <label className={`flex items-start gap-4 p-4 border-2 rounded-lg transition-all cursor-pointer ${
+            config.analysisEngine === 'localAI'
+              ? 'border-green-500 bg-green-50 dark:bg-green-900/20 shadow-md'
+              : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+          } ${!engineAvailability.localAI ? 'opacity-50 cursor-not-allowed' : ''}`}>
+            <input
+              type="radio"
+              name="analysisEngine"
+              value="localAI"
+              checked={config.analysisEngine === 'localAI'}
+              onChange={(e) => setConfig({ ...config, analysisEngine: e.target.value as RecommendationAnalysisEngine })}
+              disabled={!engineAvailability.localAI}
+              className="mt-1 w-4 h-4"
+            />
+            <div className="flex-1">
+              <div className="font-semibold text-gray-900 dark:text-gray-100">
+                {_("options.analysisEngine.options.localAI")}
+                {config.analysisEngine === 'localAI' && (
+                  <span className="ml-2 text-xs px-2 py-0.5 bg-green-500 text-white rounded">当前</span>
+                )}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                {_("options.analysisEngine.desc.localAI")}
+              </div>
+              {!engineAvailability.localAI && (
+                <div className="text-xs text-orange-600 dark:text-orange-400 mt-2 flex items-start gap-1">
+                  <span>⚠️</span>
+                  <span>{_("options.analysisEngine.unavailable.localAI")}</span>
+                </div>
+              )}
+            </div>
+          </label>
+
+          {/* 关键词分析（总是可用） */}
+          <label className={`flex items-start gap-4 p-4 border-2 rounded-lg transition-all cursor-pointer ${
+            config.analysisEngine === 'keyword'
+              ? 'border-gray-500 bg-gray-50 dark:bg-gray-700/20 shadow-md'
+              : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+          }`}>
+            <input
+              type="radio"
+              name="analysisEngine"
+              value="keyword"
+              checked={config.analysisEngine === 'keyword'}
+              onChange={(e) => setConfig({ ...config, analysisEngine: e.target.value as RecommendationAnalysisEngine })}
+              className="mt-1 w-4 h-4"
+            />
+            <div className="flex-1">
+              <div className="font-semibold text-gray-900 dark:text-gray-100">
+                {_("options.analysisEngine.options.keyword")}
+                {config.analysisEngine === 'keyword' && (
+                  <span className="ml-2 text-xs px-2 py-0.5 bg-gray-500 text-white rounded">当前</span>
+                )}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                {_("options.analysisEngine.desc.keyword")}
+              </div>
             </div>
           </label>
         </div>
+        
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+          {_("options.analysisEngine.hint.recommendation")}
+        </p>
+      </div>
+
+      {/* Phase 9: 文章分析引擎配置 */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-lg font-medium">{_("options.analysisEngine.feedTitle")}</h3>
+          
+          {/* 当前分析引擎指示 */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600 dark:text-gray-400">{_("options.recommendation.currentMode")}</span>
+            <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded text-sm font-medium">
+              {_(`options.analysisEngine.options.${feedAnalysisEngine}`)}
+            </span>
+          </div>
+        </div>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+          {_("options.analysisEngine.feedDescription")}
+        </p>
+        
+        <div className="space-y-3">
+          {/* 远程 AI */}
+          <label className={`flex items-start gap-4 p-4 border-2 rounded-lg transition-all cursor-pointer ${
+            feedAnalysisEngine === 'remoteAI'
+              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-md'
+              : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+          } ${!engineAvailability.remoteAI ? 'opacity-50 cursor-not-allowed' : ''}`}>
+            <input
+              type="radio"
+              name="feedAnalysisEngine"
+              value="remoteAI"
+              checked={feedAnalysisEngine === 'remoteAI'}
+              onChange={(e) => setFeedAnalysisEngine(e.target.value as FeedAnalysisEngine)}
+              disabled={!engineAvailability.remoteAI}
+              className="mt-1 w-4 h-4"
+            />
+            <div className="flex-1">
+              <div className="font-semibold text-gray-900 dark:text-gray-100">
+                {_("options.analysisEngine.options.remoteAI")}
+                {feedAnalysisEngine === 'remoteAI' && (
+                  <span className="ml-2 text-xs px-2 py-0.5 bg-blue-500 text-white rounded">当前</span>
+                )}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                {_("options.analysisEngine.desc.remoteAI")}
+              </div>
+              {!engineAvailability.remoteAI && (
+                <div className="text-xs text-orange-600 dark:text-orange-400 mt-2 flex items-start gap-1">
+                  <span>⚠️</span>
+                  <span>{_("options.analysisEngine.unavailable.remoteAI")}</span>
+                </div>
+              )}
+            </div>
+          </label>
+
+          {/* 本地 AI */}
+          <label className={`flex items-start gap-4 p-4 border-2 rounded-lg transition-all cursor-pointer ${
+            feedAnalysisEngine === 'localAI'
+              ? 'border-green-500 bg-green-50 dark:bg-green-900/20 shadow-md'
+              : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+          } ${!engineAvailability.localAI ? 'opacity-50 cursor-not-allowed' : ''}`}>
+            <input
+              type="radio"
+              name="feedAnalysisEngine"
+              value="localAI"
+              checked={feedAnalysisEngine === 'localAI'}
+              onChange={(e) => setFeedAnalysisEngine(e.target.value as FeedAnalysisEngine)}
+              disabled={!engineAvailability.localAI}
+              className="mt-1 w-4 h-4"
+            />
+            <div className="flex-1">
+              <div className="font-semibold text-gray-900 dark:text-gray-100">
+                {_("options.analysisEngine.options.localAI")}
+                {feedAnalysisEngine === 'localAI' && (
+                  <span className="ml-2 text-xs px-2 py-0.5 bg-green-500 text-white rounded">当前</span>
+                )}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                {_("options.analysisEngine.desc.localAI")}
+              </div>
+              {!engineAvailability.localAI && (
+                <div className="text-xs text-orange-600 dark:text-orange-400 mt-2 flex items-start gap-1">
+                  <span>⚠️</span>
+                  <span>{_("options.analysisEngine.unavailable.localAI")}</span>
+                </div>
+              )}
+            </div>
+          </label>
+
+          {/* 关键词分析（总是可用） */}
+          <label className={`flex items-start gap-4 p-4 border-2 rounded-lg transition-all cursor-pointer ${
+            feedAnalysisEngine === 'keyword'
+              ? 'border-gray-500 bg-gray-50 dark:bg-gray-700/20 shadow-md'
+              : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+          }`}>
+            <input
+              type="radio"
+              name="feedAnalysisEngine"
+              value="keyword"
+              checked={feedAnalysisEngine === 'keyword'}
+              onChange={(e) => setFeedAnalysisEngine(e.target.value as FeedAnalysisEngine)}
+              className="mt-1 w-4 h-4"
+            />
+            <div className="flex-1">
+              <div className="font-semibold text-gray-900 dark:text-gray-100">
+                {_("options.analysisEngine.options.keyword")}
+                {feedAnalysisEngine === 'keyword' && (
+                  <span className="ml-2 text-xs px-2 py-0.5 bg-gray-500 text-white rounded">当前</span>
+                )}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                {_("options.analysisEngine.desc.keyword")}
+              </div>
+            </div>
+          </label>
+        </div>
+        
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+          {_("options.analysisEngine.hint.feed")}
+        </p>
       </div>
 
       {/* 智能推荐数量 */}
@@ -189,50 +424,6 @@ export function RecommendationSettings() {
           </p>
         </div>
       </div>
-
-      {/* 推荐统计 */}
-      {metrics && (
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-medium">{_("options.recommendation.stats")}</h3>
-            <button
-              onClick={handleResetRecommendations}
-              className="px-3 py-1 text-sm bg-red-500 hover:bg-red-600 text-white rounded transition-colors"
-              title={_("options.recommendation.resetDataTitle")}
-            >
-              {_("options.recommendation.resetData")}
-            </button>
-          </div>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                {metrics.totalRecommendations}
-              </div>
-              <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                {_("options.recommendation.totalRecommendations")}
-              </div>
-            </div>
-            
-            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                {metrics.clickCount}
-              </div>
-              <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                {_("options.recommendation.readCount")}
-              </div>
-            </div>
-            
-            <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700 rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                {metrics.dismissCount}
-              </div>
-              <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                {_("options.recommendation.dismissCount")}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 保存按钮 */}
       <div className="flex items-center gap-4">

@@ -872,6 +872,7 @@ export async function getAIAnalysisStats(): Promise<{
   keywordAnalyzedPages: number
   aiPercentage: number
   providerDistribution: Array<{ provider: string; count: number; percentage: number }>
+  providerCostDistribution: Array<{ provider: string; costUSD: number; costCNY: number; tokens: number }>
   totalCostUSD: number
   totalCostCNY: number
   totalTokens: number
@@ -887,11 +888,15 @@ export async function getAIAnalysisStats(): Promise<{
     return true
   })
 
-  // 统计 AI 分析的页面
-  const aiPages = analyzedVisits.filter(visit => visit.analysis.aiAnalysis)
+  // 统计 AI 分析的页面（只统计远程 AI）
+  const remoteAIProviders = ['openai', 'anthropic', 'deepseek']
+  const aiPages = analyzedVisits.filter(visit => {
+    if (!visit.analysis.aiAnalysis) return false
+    return remoteAIProviders.includes(visit.analysis.aiAnalysis.provider)
+  })
   const keywordPages = analyzedVisits.filter(visit => !visit.analysis.aiAnalysis)
 
-  // 提供商分布统计
+  // 提供商分布统计（只包含远程 AI）
   const providerCount = new Map<string, number>()
   aiPages.forEach(visit => {
     const provider = visit.analysis.aiAnalysis!.provider
@@ -916,22 +921,68 @@ export async function getAIAnalysisStats(): Promise<{
   let totalTokens = 0
   let currencyCount = { USD: 0, CNY: 0 }
   
+  // 定义每个提供商的标准货币
+  const providerStandardCurrency: Record<string, 'USD' | 'CNY'> = {
+    'openai': 'USD',
+    'anthropic': 'USD',
+    'deepseek': 'CNY'
+  }
+  
+  // 按提供商统计成本
+  const providerCostMap = new Map<string, { costUSD: number; costCNY: number; tokens: number }>()
+  
   aiPages.forEach(visit => {
     const aiAnalysis = visit.analysis.aiAnalysis
+    const provider = aiAnalysis!.provider
+    const standardCurrency = providerStandardCurrency[provider] || 'USD'
+    
+    // 初始化提供商统计
+    if (!providerCostMap.has(provider)) {
+      providerCostMap.set(provider, { costUSD: 0, costCNY: 0, tokens: 0 })
+    }
+    const providerStats = providerCostMap.get(provider)!
+    
     if (aiAnalysis?.cost) {
       const currency = aiAnalysis.currency || 'USD' // 默认美元
-      if (currency === 'CNY') {
-        totalCostCNY += aiAnalysis.cost
-        currencyCount.CNY++
-      } else {
-        totalCostUSD += aiAnalysis.cost
-        currencyCount.USD++
+      
+      // 只统计该提供商的标准货币
+      if (currency === standardCurrency) {
+        if (currency === 'CNY') {
+          totalCostCNY += aiAnalysis.cost
+          providerStats.costCNY += aiAnalysis.cost
+          currencyCount.CNY++
+        } else {
+          totalCostUSD += aiAnalysis.cost
+          providerStats.costUSD += aiAnalysis.cost
+          currencyCount.USD++
+        }
       }
     }
     if (aiAnalysis?.tokensUsed) {
-      totalTokens += aiAnalysis.tokensUsed.total
+      const tokens = aiAnalysis.tokensUsed.total
+      totalTokens += tokens
+      providerStats.tokens += tokens
     }
   })
+
+  // 转换为数组格式（只包含远程 AI 提供商）
+  const providerCostDistribution = Array.from(providerCostMap.entries())
+    .filter(([provider]) => remoteAIProviders.includes(provider))
+    .map(([provider, stats]) => ({
+      provider: provider === 'deepseek' ? 'DeepSeek' :
+                provider === 'openai' ? 'OpenAI' :
+                provider === 'anthropic' ? 'Anthropic' :
+                provider,
+      costUSD: stats.costUSD,
+      costCNY: stats.costCNY,
+      tokens: stats.tokens
+    }))
+    .sort((a, b) => {
+      // 按总成本排序（USD + CNY 换算）
+      const totalA = a.costUSD + a.costCNY / 7 // 简单换算，1 USD ≈ 7 CNY
+      const totalB = b.costUSD + b.costCNY / 7
+      return totalB - totalA
+    })
 
   // 确定主要货币（用于显示平均成本）
   const primaryCurrency = currencyCount.CNY > currencyCount.USD ? 'CNY' : 
@@ -944,6 +995,7 @@ export async function getAIAnalysisStats(): Promise<{
     keywordAnalyzedPages: keywordPages.length,
     aiPercentage: analyzedVisits.length > 0 ? (aiPages.length / analyzedVisits.length) * 100 : 0,
     providerDistribution,
+    providerCostDistribution,
     totalCostUSD,
     totalCostCNY,
     totalTokens,
@@ -1040,10 +1092,10 @@ export async function cleanOldSnapshots(monthsToKeep: number = 6): Promise<numbe
  * 统计字段说明：
  * - articleCount: feedArticles 总数
  * - analyzedCount: 已 AI 分析的文章数（有 analysis 字段）
- * - recommendedCount: 进入过推荐池的文章数（有 recommended 标记）
+ * - recommendedCount: 推荐池中来自该源的推荐数（与推荐统计一致）
  * - readCount: feedArticles 中标记为已读的文章数
- * - dislikedCount: feedArticles 中标记为不想读的文章数
- * - recommendedReadCount: 推荐池中被阅读的推荐数（核心指标）
+ * - dislikedCount: 推荐池中标记为不想读的推荐数（与推荐统计一致）
+ * - recommendedReadCount: 推荐池中被阅读的推荐数（与推荐统计一致）
  */
 export async function updateFeedStats(feedUrl: string): Promise<void> {
   try {
@@ -1054,36 +1106,37 @@ export async function updateFeedStats(feedUrl: string): Promise<void> {
       return
     }
     
-    // Phase 7: 从 feedArticles 表聚合统计（性能优化）
+    // Phase 7: 从 feedArticles 表聚合文章统计
     // 2. 获取该 Feed 的所有文章
     const articles = await db.feedArticles
       .where('feedId').equals(feed.id)
       .toArray()
     
-    // 3. 计算详细统计
+    // 3. 计算文章统计
     const totalCount = articles.length
     const analyzedCount = articles.filter(a => a.analysis).length
-    const recommendedCount = articles.filter(a => a.recommended).length
     const readCount = articles.filter(a => a.read).length
-    const dislikedCount = articles.filter(a => a.disliked).length
     const unreadCount = articles.filter(a => !a.read).length
     
-    // 4. 统计推荐池中来自该源的已读数（历史累计）
-    const recommendedReadCount = await db.recommendations
+    // 4. 从推荐池统计（确保与推荐统计一致）
+    const recommendationsFromThisFeed = await db.recommendations
       .where('sourceUrl')
       .equals(feedUrl)
-      .and(rec => rec.isRead === true)
-      .count()
+      .toArray()
+    
+    const recommendedCount = recommendationsFromThisFeed.length
+    const recommendedReadCount = recommendationsFromThisFeed.filter(rec => rec.isRead === true).length
+    const dislikedCount = recommendationsFromThisFeed.filter(rec => rec.feedback === 'dismissed').length
     
     // 5. 更新 RSS 源统计
     await db.discoveredFeeds.update(feed.id, {
       articleCount: totalCount,
       analyzedCount,
-      recommendedCount,
+      recommendedCount,      // 来自推荐池
       readCount,
-      dislikedCount,
+      dislikedCount,         // 来自推荐池
       unreadCount,
-      recommendedReadCount  // 推荐池中的已读数（历史累计）
+      recommendedReadCount   // 来自推荐池
     })
     
     dbLogger.debug('更新 RSS 源统计:', {

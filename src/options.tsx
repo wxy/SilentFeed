@@ -8,13 +8,14 @@ import { AIConfig } from "@/components/settings/AIConfig"
 import { RSSManager } from "@/components/settings/RSSManager"
 import { RecommendationSettings } from "@/components/settings/RecommendationSettings"
 import { NotificationSettings } from "@/components/settings/NotificationSettings"
+import { ProfileView } from "@/components/settings/ProfileView"
 import { getUIStyle, setUIStyle, watchUIStyle, type UIStyle } from "@/storage/ui-config"
 import { useTheme } from "@/hooks/useTheme"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
 import "@/styles/global.css"
 import "@/styles/sketchy.css"
 
-type TabKey = "preferences" | "feeds" | "aiEngine" | "recommendations" | "myData"
+type TabKey = "preferences" | "feeds" | "aiEngine" | "recommendations" | "profile" | "myData"
 
 /**
  * Feed AI Muter - 设置页面
@@ -111,7 +112,8 @@ function IndexOptions() {
     { key: "feeds", icon: "📡" },
     { key: "aiEngine", icon: "🤖" },
     { key: "recommendations", icon: "🎯" },
-    { key: "myData", icon: "�" }
+    { key: "profile", icon: "👤" },
+    { key: "myData", icon: "📊" }
   ]
 
   const isSketchyStyle = uiStyle === "sketchy"
@@ -275,13 +277,20 @@ function IndexOptions() {
                 </div>
               )}
 
-              {/* 推荐系统设置 - Phase 6 + Phase 8 简化 */}
+              {/* 分析配置 - Phase 9: 推荐引擎 + 分析引擎 */}
               {activeTab === "recommendations" && (
                 <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
                   <h2 className="text-lg font-semibold mb-4">
                     {_("options.tabs.recommendations")}
                   </h2>
                   <RecommendationSettings />
+                </div>
+              )}
+
+              {/* 用户画像 - Phase 6 */}
+              {activeTab === "profile" && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                  <ProfileView />
                 </div>
               )}
 
