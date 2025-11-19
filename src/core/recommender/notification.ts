@@ -273,7 +273,7 @@ export function setupNotificationListeners(): void {
       // "不想看"按钮 - 仅关闭通知
       console.log("[Notification] 用户选择不想看")
       
-      // TODO: Phase 6.2 - 可以记录用户不感兴趣，优化推荐算法
+      // 未来优化: 可以记录用户不感兴趣，优化推荐算法
       
       // 清理存储
       await chrome.storage.local.remove(`notification-url-${notificationId}`)
