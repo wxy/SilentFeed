@@ -100,7 +100,7 @@ const formatTimeUntil = (timestamp: number) => {
 ### Step 1: 打开文件
 
 ```bash
-code /Users/xingyuwang/develop/FeedAIMuter/src/components/settings/RSSManager.tsx
+code /Users/xingyuwang/develop/SilentFeed/src/components/settings/RSSManager.tsx
 ```
 
 ### Step 2: 找到 `renderFeedItem` 函数

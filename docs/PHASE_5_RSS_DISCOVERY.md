@@ -20,7 +20,7 @@
 
 ### 核心理念：克制的智能助手
 
-FeedAIMuter 是一个**静音器（Muter）**，不是主动信息推送工具。RSS 功能应该遵循这一理念：
+SilentFeed 是一个**静音器（Muter）**，不是主动信息推送工具。RSS 功能应该遵循这一理念：
 
 - **不主动打扰**：自动发现在后台进行，不弹窗不通知
 - **用户掌控**：订阅决策完全由用户做出
@@ -332,7 +332,7 @@ export interface DiscoveredFeed {
 }
 
 // db.ts
-class FeedAIMuterDB extends Dexie {
+class SilentFeedDB extends Dexie {
   discoveredFeeds!: Table<DiscoveredFeed>
   feedArticles!: Table<FeedArticle>
   
@@ -708,7 +708,7 @@ matchScore = averageCosineSimilarity * qualityScore
 <?xml version="1.0" encoding="UTF-8"?>
 <opml version="2.0">
   <head>
-    <title>FeedAIMuter Subscriptions</title>
+    <title>SilentFeed Subscriptions</title>
   </head>
   <body>
     <outline

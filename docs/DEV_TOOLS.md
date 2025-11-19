@@ -17,7 +17,7 @@
 
 **步骤 1**: 打开 Service Worker 控制台
 - Chrome 扩展管理页面 (`chrome://extensions/`)
-- 找到 FeedAIMuter
+- 找到 SilentFeed
 - 点击 "Service Worker" 下的 "inspect"
 
 **步骤 2**: 在控制台中执行以下代码
@@ -28,7 +28,7 @@
 
 (async () => {
   // 使用全局的 Dexie 实例
-  const dbName = 'FeedAIMuterDB';
+  const dbName = 'SilentFeedDB';
   const idb = await indexedDB.databases();
   const hasDB = idb.some(db => db.name === dbName);
   
@@ -159,7 +159,7 @@ console.log('✅ 已触发 RSS 抓取任务');
 ```javascript
 // 使用 IndexedDB API 直接操作
 (async () => {
-  const dbName = 'FeedAIMuterDB';
+  const dbName = 'SilentFeedDB';
   const request = indexedDB.open(dbName);
   
   request.onsuccess = (event) => {
@@ -258,7 +258,7 @@ const recommendedReadCount = await db.recommendations
 ```javascript
 // 使用 IndexedDB API 查询
 (async () => {
-  const dbName = 'FeedAIMuterDB';
+  const dbName = 'SilentFeedDB';
   const request = indexedDB.open(dbName);
   
   request.onsuccess = (event) => {
@@ -317,7 +317,7 @@ const recommendedReadCount = await db.recommendations
 ```javascript
 // 使用 IndexedDB API 检查最新推荐的状态
 (async () => {
-  const dbName = 'FeedAIMuterDB';
+  const dbName = 'SilentFeedDB';
   const request = indexedDB.open(dbName);
   
   request.onsuccess = (event) => {
@@ -403,7 +403,7 @@ const recommendedReadCount = await db.recommendations
 ```javascript
 // 统计每个源的已读推荐数
 (async () => {
-  const dbName = 'FeedAIMuterDB';
+  const dbName = 'SilentFeedDB';
   const request = indexedDB.open(dbName);
   
   request.onsuccess = (event) => {

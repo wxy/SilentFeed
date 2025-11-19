@@ -788,4 +788,4 @@ logger.info('关键信息')  // 生产环境显示
 **Phase 2.7 状态**: ✅ **已完成，准备合并到 master**
 
 **最后更新**: 2025-11-02  
-**维护者**: FeedAIMuter Team
+**维护者**: SilentFeed Team

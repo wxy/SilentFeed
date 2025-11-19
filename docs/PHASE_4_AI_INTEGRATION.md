@@ -1444,7 +1444,7 @@ function CostStats() {
 
 import Dexie from 'dexie'
 
-export class FeedAIMuterDB extends Dexie {
+export class SilentFeedDB extends Dexie {
   // ... 现有表 ...
   
   // 新增：统一分析结果表
@@ -1454,7 +1454,7 @@ export class FeedAIMuterDB extends Dexie {
   aiUsageRecords!: Dexie.Table<AIUsageRecord, number>
   
   constructor() {
-    super('FeedAIMuterDB')
+    super('SilentFeedDB')
     
     this.version(4).stores({
       // ... 现有表 ...

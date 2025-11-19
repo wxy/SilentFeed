@@ -88,7 +88,7 @@
    - 弹窗显示所有页面检测到的源
 
 3. **数据库验证**:
-   - 打开 Chrome DevTools → Application → IndexedDB → FeedAIMuterDB → discoveredFeeds
+   - 打开 Chrome DevTools → Application → IndexedDB → SilentFeedDB → discoveredFeeds
    - ✅ **预期**: 看到所有检测到的源，status 为 "candidate"
 
 ### 场景 6：重复检测去重
@@ -104,7 +104,7 @@
 
 ## 数据库检查
 
-打开 Chrome DevTools → Application → IndexedDB → FeedAIMuterDB → discoveredFeeds
+打开 Chrome DevTools → Application → IndexedDB → SilentFeedDB → discoveredFeeds
 
 **字段验证**:
 - ✅ `url`: RSS 源 URL

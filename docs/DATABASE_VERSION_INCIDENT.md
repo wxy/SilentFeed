@@ -25,7 +25,7 @@
 async function checkAndFixDatabaseVersion(): Promise<void> {
   if (existingDB.version > 2) {
     // ❌ 主动删除旧数据库
-    await indexedDB.deleteDatabase('FeedAIMuterDB')
+    await indexedDB.deleteDatabase('SilentFeedDB')
   }
 }
 ```
@@ -96,9 +96,9 @@ async function checkDatabaseVersion(): Promise<void> {
 ### 3. 版本管理策略
 ```typescript
 // ✅ 正确的版本管理
-class FeedAIMuterDB extends Dexie {
+class SilentFeedDB extends Dexie {
   constructor() {
-    super('FeedAIMuterDB')
+    super('SilentFeedDB')
     
     // 版本只增不减
     this.version(1).stores({ ... })
@@ -135,14 +135,14 @@ class FeedAIMuterDB extends Dexie {
 // 示例：从旧数据库迁移到新数据库
 async function migrateFromV20ToV2() {
   // 1. 读取旧数据
-  const oldDB = await Dexie.open('FeedAIMuterDB_backup')
+  const oldDB = await Dexie.open('SilentFeedDB_backup')
   const oldData = await oldDB.confirmedVisits.toArray()
   
   // 2. 删除旧数据库
-  await Dexie.delete('FeedAIMuterDB')
+  await Dexie.delete('SilentFeedDB')
   
   // 3. 创建新数据库并导入
-  const newDB = new FeedAIMuterDB()
+  const newDB = new SilentFeedDB()
   await newDB.confirmedVisits.bulkAdd(oldData)
 }
 ```

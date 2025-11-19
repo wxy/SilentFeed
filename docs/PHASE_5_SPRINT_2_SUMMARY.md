@@ -247,4 +247,4 @@ Phase 5 Sprint 2 **圆满完成**！
 
 Sprint 2 为 RSS 智能推荐系统奠定了坚实基础，下一步可以开始 Sprint 3 的 UI 增强和自动化工作。
 
-**PR 链接**: [待创建 - feature/phase-5-sprint-2-fetcher](https://github.com/wxy/FeedAIMuter/pull/new/feature/phase-5-sprint-2-fetcher)
+**PR 链接**: [待创建 - feature/phase-5-sprint-2-fetcher](https://github.com/wxy/SilentFeed/pull/new/feature/phase-5-sprint-2-fetcher)

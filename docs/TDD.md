@@ -1,9 +1,9 @@
-# FeedAIMuter 技术设计文档 (TDD)
+# Silent Feed 技术设计文档 (TDD)
 
 **版本**: 1.1  
 **日期**: 2025-11-02  
 **状态**: Living Document  
-**作者**: FeedAIMuter Team
+**作者**: Silent Feed Team
 
 > 本文档会随着开发进展持续更新
 
@@ -313,14 +313,14 @@ interface UserSettings {
 
 import Dexie, { Table } from 'dexie'
 
-class FeedAIMuterDB extends Dexie {
+class SilentFeedDB extends Dexie {
   pageVisits!: Table<PageVisit>
   rssSources!: Table<RSSSource>
   rssItems!: Table<RSSItem>
   settings!: Table<UserSettings>
 
   constructor() {
-    super('FeedAIMuterDB')
+    super('SilentFeedDB')
     this.version(1).stores({
       pageVisits: 'id, domain, timestamp',
       rssSources: 'id, type, addedAt',
@@ -330,7 +330,7 @@ class FeedAIMuterDB extends Dexie {
   }
 }
 
-export const db = new FeedAIMuterDB()
+export const db = new SilentFeedDB()
 ```
 
 ---
@@ -740,7 +740,7 @@ class PrivacyGuard {
 
 **TDD 文档摘要**
 
-本文档详细定义了 FeedAIMuter 的技术架构，包括：
+本文档详细定义了 SilentFeed 的技术架构，包括：
 
 1. ✅ **系统架构**：MV3 扩展 + 核心业务逻辑分离
 2. ✅ **技术选型**：Plasmo + React + TypeScript + Dexie.js
@@ -972,7 +972,7 @@ npm run build
 
 # 打包扩展
 npm run package
-# → feedaimuter-1.0.0.zip
+# → silentfeed-1.0.0.zip
 ```
 
 ### 9.2 Chrome Web Store 发布

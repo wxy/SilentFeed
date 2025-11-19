@@ -2,7 +2,7 @@
 
 ## 权限列表
 
-FeedAIMuter 使用以下 Chrome 扩展权限：
+SilentFeed 使用以下 Chrome 扩展权限：
 
 ### 1. `storage` ✅
 **用途**: 数据存储
@@ -82,7 +82,7 @@ chrome.alarms.create('update-profile', {
 ```typescript
 // 有新推荐时通知用户
 chrome.notifications.create({
-  title: "📚 Feed AI Muter - 新推荐 (3)",
+  title: "📚 Silent Feed - 新推荐 (3)",
   message: "Vue.js Composition API 深度指南\n\n来自: Vue.js 官方博客"
 })
 ```

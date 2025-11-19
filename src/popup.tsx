@@ -15,7 +15,7 @@ import "@/styles/global.css"
 import "@/styles/sketchy.css" // 手绘风格样式
 
 /**
- * Feed AI Muter - Popup 主界面
+ * Silent Feed - Popup 主界面
  * Phase 2.7: 两阶段 UI（冷启动 + 推荐）
  * Phase 6: 添加弹窗打开跟踪，动态高度适应
  */

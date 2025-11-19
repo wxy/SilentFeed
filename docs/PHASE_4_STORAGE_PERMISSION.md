@@ -109,7 +109,7 @@ npm run build
 在 `chrome://extensions/` 中点击 🔄 重新加载。
 
 **首次加载时会提示**:
-> FeedAIMuter 需要以下权限：
+> SilentFeed 需要以下权限：
 > - 读取和修改你在所有网站上的数据 (host_permissions)
 > - **存储数据** (storage) ← 新增
 

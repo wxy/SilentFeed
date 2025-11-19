@@ -18,7 +18,7 @@ import "@/styles/sketchy.css"
 type TabKey = "preferences" | "feeds" | "aiEngine" | "recommendations" | "profile" | "myData"
 
 /**
- * Feed AI Muter - 设置页面
+ * Silent Feed - 设置页面
  * 使用标签页布局，支持语言下拉选择，支持 URL 状态保持
  * 
  * Phase 8: 设置页重组

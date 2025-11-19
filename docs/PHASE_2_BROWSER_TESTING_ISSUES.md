@@ -101,10 +101,10 @@ IndexedDB 是按**扩展作用域**隔离的：
 1. **通过扩展页面查看**（推荐）:
    ```
    1. 打开 chrome://extensions/
-   2. 找到 FeedAIMuter
+   2. 找到 SilentFeed
    3. 点击 "检查视图" → "service worker"（或 Popup）
    4. 在弹出的 DevTools 中：
-      - Application → Storage → IndexedDB → FeedAIMuterDB
+      - Application → Storage → IndexedDB → SilentFeedDB
    ```
 
 2. **使用调试脚本**:
@@ -195,7 +195,7 @@ export async function getPageCount(): Promise<number> {
 
 ```javascript
 // 查看扩展数据库的完整内容
-const dbName = 'FeedAIMuterDB';
+const dbName = 'SilentFeedDB';
 const request = indexedDB.open(dbName);
 
 request.onsuccess = function(event) {

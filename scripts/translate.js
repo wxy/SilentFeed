@@ -106,7 +106,7 @@ async function translateText(text, targetLang) {
             content: `你是一个专业的翻译助手。翻译时：
 1. 保持简洁、自然、符合目标语言习惯
 2. 保留 {{变量}} 格式的插值不翻译
-3. 保留产品名称（如 Feed AI Muter）不翻译
+3. 保留产品名称（如 Silent Feed）不翻译
 4. 只返回翻译结果，不要解释`
           },
           {
