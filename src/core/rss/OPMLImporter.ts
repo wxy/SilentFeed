@@ -109,7 +109,7 @@ export class OPMLImporter {
    * @param title - OPML 文件标题
    * @returns OPML XML 文本
    */
-  static generate(feeds: OPMLFeed[], title: string = "FeedAIMuter 订阅列表"): string {
+  static generate(feeds: OPMLFeed[], title: string = "Silent Feed 订阅列表"): string {
     const date = new Date().toUTCString()
     
     // 按分类分组

@@ -1,10 +1,10 @@
-# FeedAIMuter
+# Silent Feed
 
 <div align="center">
 
-**The AI that reads RSS for you - intelligently muting the noise.**
+**An AI-powered RSS reader that brings you quiet, focused reading experience.**
 
-*RSS 订阅源 + AI 智能 + 静音过滤 = 克制的信息管家*
+*静阅：让信息流安静下来*
 
 [English](#english) | [中文](#中文)
 
@@ -16,7 +16,7 @@
 
 ### 📖 项目简介
 
-FeedAIMuter 是一个 AI 驱动的 RSS 阅读器浏览器扩展，它会自动学习你的浏览习惯，从海量 RSS 订阅中为你筛选出真正感兴趣的内容，并以克制的方式提醒你。
+Silent Feed（静阅）是一个 AI 驱动的 RSS 阅读器浏览器扩展，它会自动学习你的浏览习惯，从海量 RSS 订阅中为你筛选出真正感兴趣的内容，并以克制的方式提醒你。
 
 **核心理念**：
 - 🤫 **静默学习**：在后台自动分析你的浏览行为，构建兴趣画像
@@ -194,7 +194,7 @@ npm run build
 
 ### 📖 About
 
-FeedAIMuter is an AI-powered RSS reader browser extension that intelligently recommends content based on your browsing behavior, muting the information noise.
+Silent Feed is an AI-powered RSS reader browser extension that intelligently recommends content based on your browsing behavior, bringing you quiet, focused reading experience.
 
 **Core Principles:**
 - 🤫 **Silent Learning**: Automatically analyze browsing behavior in background
@@ -308,9 +308,7 @@ Contributions welcome! Please read [Contributing Guide](CONTRIBUTING.md) first.
 
 <div align="center">
 
-Made with ❤️ by the FeedAIMuter Team
-
-**[Website](https://feedaimuter.com)** • **[Documentation](https://docs.feedaimuter.com)** • **[Discord](https://discord.gg/feedaimuter)**
+Made with ❤️ by the Silent Feed Team
 
 </div>
 

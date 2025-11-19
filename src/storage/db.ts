@@ -1,7 +1,7 @@
 /**
  * IndexedDB 数据库定义（使用 Dexie.js）
  * 
- * 数据库名称: FeedAIMuterDB
+ * 数据库名称: SilentFeedDB
  * 当前版本: 13
  * 
  * ⚠️ 版本管理说明：
@@ -35,7 +35,7 @@ const statsLogger = logger.withTag('AnalysisStats')
 /**
  * 数据库类
  */
-export class FeedAIMuterDB extends Dexie {
+export class SilentFeedDB extends Dexie {
   // 表 1: 临时访问记录
   pendingVisits!: Table<PendingVisit, string>
   
@@ -61,7 +61,7 @@ export class FeedAIMuterDB extends Dexie {
   feedArticles!: Table<FeedArticle, string>
 
   constructor() {
-    super('FeedAIMuterDB')
+    super('SilentFeedDB')
     
     // 版本 1: 原有表
     this.version(1).stores({
@@ -390,7 +390,7 @@ export class FeedAIMuterDB extends Dexie {
 /**
  * 数据库实例（单例）
  */
-export const db = new FeedAIMuterDB()
+export const db = new SilentFeedDB()
 
 /**
  * 检查数据库版本（仅用于调试日志）
@@ -400,7 +400,7 @@ export const db = new FeedAIMuterDB()
 async function checkDatabaseVersion(): Promise<void> {
   try {
     const dbs = await indexedDB.databases()
-    const existingDB = dbs.find(d => d.name === 'FeedAIMuterDB')
+    const existingDB = dbs.find(d => d.name === 'SilentFeedDB')
     
     if (existingDB && existingDB.version) {
       dbLogger.info(`现有数据库版本: ${existingDB.version}, 代码版本: 13`)

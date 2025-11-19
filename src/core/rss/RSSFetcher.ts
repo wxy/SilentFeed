@@ -68,7 +68,7 @@ export class RSSFetcher {
       const response = await fetch(url, {
         signal: controller.signal,
         headers: {
-          'User-Agent': 'FeedAIMuter/1.0',
+          'User-Agent': 'SilentFeed/1.0',
           'Accept': 'application/rss+xml, application/atom+xml, application/xml, text/xml',
         },
       })

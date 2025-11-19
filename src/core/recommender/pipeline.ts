@@ -326,7 +326,7 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
       const response = await fetch(article.link, {
         signal: context.abortSignal,
         headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; FeedAIMuter/1.0)'
+          'User-Agent': 'Mozilla/5.0 (compatible; SilentFeed/1.0)'
         }
       })
       
