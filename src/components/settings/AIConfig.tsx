@@ -71,7 +71,6 @@ export function AIConfig() {
           checking: false
         })
       } catch (error) {
-        console.error('本地 AI 检测失败:', error)
         setLocalAIStatus({ hasChromeAI: false, hasOllama: false, checking: false })
       }
     }
