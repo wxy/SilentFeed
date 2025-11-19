@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-11-19T15:20:45.038Z",
+  "lastUpdate": "2025-11-19T15:25:21.115Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -9533,6 +9533,48 @@
         "value": "Not recommended during the exploration phase, focusing on learning your interests.",
         "hash": "6a1927fb",
         "lastModified": "2025-11-19T15:20:42.075Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.learningStageTitle": {
+      "zh-CN": {
+        "value": "探索学习阶段",
+        "hash": "ef99216a",
+        "lastModified": "2025-11-19T15:25:16.852Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Exploration Learning Phase",
+        "hash": "9157e849",
+        "lastModified": "2025-11-19T15:25:16.853Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.learningStageHint": {
+      "zh-CN": {
+        "value": "当前已浏览 {{current}}/{{total}} 页",
+        "hash": "db020509",
+        "lastModified": "2025-11-19T15:25:18.844Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Currently viewed {{current}}/{{total}} pages",
+        "hash": "4048751f",
+        "lastModified": "2025-11-19T15:25:18.844Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.learningStageNote": {
+      "zh-CN": {
+        "value": "在探索阶段暂不推荐，专注于学习您的兴趣",
+        "hash": "7fb3e670",
+        "lastModified": "2025-11-19T15:25:20.608Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Not recommended during the exploration phase, focusing on learning your interests.",
+        "hash": "6a1927fb",
+        "lastModified": "2025-11-19T15:25:20.608Z",
         "status": "ai-translated"
       }
     }

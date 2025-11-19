@@ -123,21 +123,10 @@ export function ColdStartView({ pageCount, totalPages = LEARNING_COMPLETE_PAGES,
             </span>
           </div>
 
-          {/* 欢迎卡片 - 玻璃拟态 */}
-          <GlassCard variant="primary" className="w-full">
-            <h2 className="text-base font-semibold text-center mb-1.5 text-gray-900 dark:text-gray-100">
-              {_("popup.welcome")}
-            </h2>
-            <p className="text-xs text-center text-gray-600 dark:text-gray-400">
-              {_("popup.learning")}
-            </p>
-          </GlassCard>
-
           {/* 提示卡片 - 玻璃拟态 */}
-          <GlassCard variant="info" hover className="w-full">
-            <p className="text-xs text-center flex items-center justify-center gap-1.5 text-blue-800 dark:text-blue-200">
-              <span className="text-sm">📖</span>
-              <span>{_("popup.hint")}</span>
+          <GlassCard variant="primary" className="w-full">
+            <p className="text-xs text-center text-gray-700 dark:text-gray-300">
+              {_("popup.hint")}
             </p>
           </GlassCard>
         </>
