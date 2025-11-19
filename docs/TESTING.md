@@ -1,4 +1,4 @@
-# FeedAIMuter 测试指南
+# Silent Feed 测试指南
 
 ## 快速开始
 

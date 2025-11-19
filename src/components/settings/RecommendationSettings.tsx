@@ -19,6 +19,8 @@ import { checkEngineCapability } from "@/utils/analysis-engine-capability"
 import { getAdaptiveMetrics, type AdaptiveMetrics } from "@/core/recommender/adaptive-count"
 import { useRecommendationStore } from "@/stores/recommendationStore"
 import { logger } from "@/utils/logger"
+import { getPageCount } from "@/storage/db"
+import { LEARNING_COMPLETE_PAGES } from "@/constants/progress"
 
 const recSettingsLogger = logger.withTag("AnalysisConfig")
 
@@ -38,6 +40,8 @@ export function RecommendationSettings() {
   const [metrics, setMetrics] = useState<AdaptiveMetrics | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [isLearningStage, setIsLearningStage] = useState(false)
+  const [pageCount, setPageCount] = useState(0)
   
   // Phase 9: 订阅源的默认分析引擎
   const [feedAnalysisEngine, setFeedAnalysisEngine] = useState<FeedAnalysisEngine>('remoteAI')
@@ -54,8 +58,22 @@ export function RecommendationSettings() {
     loadConfig()
     loadMetrics()
     checkEngineAvailability()
+    checkLearningStage()
   }, [])
   
+  /**
+   * 检查是否处于学习阶段
+   */
+  const checkLearningStage = async () => {
+    try {
+      const currentPageCount = await getPageCount()
+      setPageCount(currentPageCount)
+      setIsLearningStage(currentPageCount < LEARNING_COMPLETE_PAGES)
+    } catch (error) {
+      recSettingsLogger.error('检查学习阶段失败:', error)
+    }
+  }
+
   /**
    * Phase 9: 检测各引擎的可用性
    */
@@ -412,17 +430,39 @@ export function RecommendationSettings() {
       {/* 智能推荐数量 */}
       <div>
         <h3 className="text-lg font-medium mb-3">{_("options.recommendation.smartCount")}</h3>
-        <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600 dark:text-gray-400">{_("options.recommendation.currentCount")}</span>
-            <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-              {_("options.recommendation.countItems", { count: config.maxRecommendations })}
-            </span>
+        {isLearningStage ? (
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">📚</span>
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                    {_("options.recommendation.learningStageTitle")}
+                  </span>
+                  <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">0</span>
+                </div>
+                <p className="text-xs text-blue-700 dark:text-blue-300 mb-2">
+                  {_("options.recommendation.learningStageHint", { current: pageCount, total: LEARNING_COMPLETE_PAGES })}
+                </p>
+                <p className="text-xs text-blue-600 dark:text-blue-400">
+                  {_("options.recommendation.learningStageNote")}
+                </p>
+              </div>
+            </div>
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
-            {_("options.recommendation.countHint")}
-          </p>
-        </div>
+        ) : (
+          <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600 dark:text-gray-400">{_("options.recommendation.currentCount")}</span>
+              <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                {_("options.recommendation.countItems", { count: config.maxRecommendations })}
+              </span>
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
+              {_("options.recommendation.countHint")}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* 保存按钮 */}

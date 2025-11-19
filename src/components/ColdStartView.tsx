@@ -11,6 +11,9 @@ import type { UIStyle } from "@/storage/ui-config"
 import { FeedManager } from "@/core/rss/managers/FeedManager"
 import { logger } from "@/utils/logger"
 import { LEARNING_COMPLETE_PAGES } from "@/constants/progress"
+import { CircularProgress } from "./CircularProgress"
+import { IconContainer } from "./IconContainer"
+import { GlassCard } from "./GlassCard"
 
 const STAGE_THRESHOLDS = [
   { ratio: 0.25, icon: "🌱", name: "explorer" },
@@ -89,57 +92,88 @@ export function ColdStartView({ pageCount, totalPages = LEARNING_COMPLETE_PAGES,
       // 标记为已查看
       chrome.runtime.sendMessage({ type: 'RSS_DISCOVERY_VIEWED' })
       
-      // 打开设置页 RSS 标签
+      // 打开设置页 RSS 标签（feeds）
       chrome.tabs.create({ 
-        url: chrome.runtime.getURL('options.html#rss')
+        url: chrome.runtime.getURL('options.html#feeds')
       })
     }
   }
 
   return (
-    <div className={isSketchyStyle ? "flex-1 flex flex-col items-center justify-center px-6 py-4" : "flex-1 flex flex-col items-center justify-center px-4 py-6"}>
-      {/* 成长阶段图标 - 手绘风格放大显示 */}
-      {/* 雷达图标可点击 */}
-      <div 
-        className={`${isSketchyStyle ? 'sketchy-emoji text-7xl' : 'text-8xl'} mb-4 ${hasRSSDiscovery ? 'cursor-pointer hover:scale-110 transition-transform' : ''}`}
-        onClick={handleIconClick}
-      >
-        {displayIcon}
-      </div>
+    <div className={isSketchyStyle ? "flex-1 flex flex-col items-center justify-center px-6 py-4" : "flex-1 flex flex-col items-center justify-center px-4 py-6 gap-4"}>
+      
+      {/* 标准风格：使用环形进度条 + 图标容器 + 玻璃拟态卡片 */}
+      {!isSketchyStyle ? (
+        <>
+          {/* 环形进度条容器 */}
+          <div className="mb-2">
+            <CircularProgress
+              progress={progress}
+              icon={displayIcon}
+              current={pageCount}
+              total={totalPages}
+              size={140}
+            />
+          </div>
 
-      {/* 欢迎信息 - 手绘风格 */}
-      <h2 className={isSketchyStyle ? "sketchy-title text-xl text-center mb-2" : "text-2xl font-bold text-center mb-3"}>
-        {_("popup.welcome")}
-      </h2>
-      <p className={isSketchyStyle ? "sketchy-text text-sm text-center mb-4 max-w-xs" : "text-sm text-gray-600 dark:text-gray-400 text-center mb-6 max-w-xs"}>
-        {_("popup.learning")}
-      </p>
+          {/* 阶段徽章 - 玻璃拟态 */}
+          <div className="px-4 py-1.5 rounded-full bg-gradient-to-r from-indigo-500/10 to-green-500/10 backdrop-blur-sm border border-indigo-200/50 dark:border-indigo-700/30">
+            <span className="text-sm font-semibold bg-gradient-to-r from-indigo-600 to-green-600 dark:from-indigo-400 dark:to-green-400 bg-clip-text text-transparent">
+              {_(`popup.stage.${stage.name}`)}
+            </span>
+          </div>
 
-      {/* 进度条 - 手绘风格 */}
-      <div className="w-full mb-3">
-        <div className={`flex justify-between items-center ${isSketchyStyle ? 'mb-2' : 'mb-3'}`}>
-          <span className={isSketchyStyle ? "sketchy-badge" : "px-2 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded text-sm font-semibold"}>
-            {_(`popup.stage.${stage.name}`)}
-          </span>
-          <span className={isSketchyStyle ? "sketchy-text text-sm font-medium" : "text-sm font-medium"}>
-            {_("popup.progress", { current: pageCount, total: totalPages })}
-          </span>
-        </div>
-        <div className={isSketchyStyle ? "sketchy-progress" : "w-full h-4 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden"}>
-          <div
-            className={isSketchyStyle ? "sketchy-progress-bar" : "h-full bg-green-500 transition-all duration-500"}
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-      </div>
+          {/* 提示卡片 - 玻璃拟态 */}
+          <GlassCard variant="primary" className="w-full">
+            <p className="text-xs text-center text-gray-700 dark:text-gray-300">
+              {_("popup.hint")}
+            </p>
+          </GlassCard>
+        </>
+      ) : (
+        /* 手绘风格：保持原有设计 */
+        <>
+          {/* 成长阶段图标 - 手绘风格放大显示 + 浮动效果 */}
+          {/* 雷达图标可点击 */}
+          <div 
+            className={`sketchy-emoji text-7xl mb-4 ${hasRSSDiscovery ? 'cursor-pointer hover:scale-110 transition-transform sketchy-pulse-attention' : 'sketchy-wiggle'}`}
+            onClick={handleIconClick}
+          >
+            {displayIcon}
+          </div>
 
-      {/* 提示信息 - 手绘风格 */}
-      <div className={isSketchyStyle ? "sketchy-card mt-4 w-full" : "mt-6 w-full p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800"}>
-        <p className={isSketchyStyle ? "sketchy-text text-sm text-center flex items-center justify-center gap-2" : "text-sm text-center flex items-center justify-center gap-2 text-blue-800 dark:text-blue-200"}>
-          <span className={isSketchyStyle ? "sketchy-emoji" : ""}>📖</span>
-          <span>{_("popup.hint")}</span>
-        </p>
-      </div>
+          {/* 欢迎信息 - 手绘风格 */}
+          <h2 className="sketchy-title text-xl text-center mb-2">
+            {_("popup.welcome")}
+          </h2>
+
+          {/* 进度条 - 手绘风格 */}
+          <div className="w-full mb-3">
+            <div className="flex justify-between items-center mb-2">
+              <span className="sketchy-badge sketchy-shimmer">
+                {_(`popup.stage.${stage.name}`)}
+              </span>
+              <span className="sketchy-text text-sm font-medium">
+                {_("popup.progress", { current: pageCount, total: totalPages })}
+              </span>
+            </div>
+            <div className="sketchy-progress">
+              <div
+                className="sketchy-progress-bar"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+
+          {/* 提示信息 - 手绘风格 */}
+          <div className="sketchy-card mt-4 w-full sketchy-float-hover">
+            <p className="sketchy-text text-sm text-center flex items-center justify-center gap-2">
+              <span className="sketchy-emoji">📖</span>
+              <span>{_("popup.hint")}</span>
+            </p>
+          </div>
+        </>
+      )}
     </div>
   )
 }

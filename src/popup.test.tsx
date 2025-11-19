@@ -10,17 +10,17 @@ vi.mock("@/i18n/helpers", () => ({
     _: (key: string, options?: any) => {
       // 简单的测试翻译函数，直接返回 key 的最后一部分
       const translations: Record<string, (options?: any) => string> = {
-        "app.name": () => "Feed AI Muter",
-        "app.shortName": () => "RSS 静音器",
-        "popup.welcome": () => "欢迎使用智能 RSS 阅读器",
-        "popup.learning": () => "正在学习你的兴趣...",
+        "app.name": () => "Silent Feed",
+        "app.shortName": () => "Silent Feed",
+        "app.slogan": () => "让信息流安静下来",
+        "popup.welcome": () => "开始你的阅读之旅",
         "popup.progress": (opt) =>
           `${opt?.current || 0}/${opt?.total || LEARNING_COMPLETE_PAGES} 页`,
         "popup.stage.explorer": () => "探索者阶段",
         "popup.stage.learner": () => "学习者阶段",
         "popup.stage.grower": () => "成长者阶段",
         "popup.stage.master": () => "大师阶段",
-        "popup.hint": () => "开始浏览，我会自动学习你的兴趣",
+        "popup.hint": () => "开始浏览，自动学习你的兴趣",
         "popup.settings": () => "设置"
       }
       const fn = translations[key]
@@ -49,15 +49,21 @@ describe("IndexPopup 组件", () => {
       expect(screen.queryByText("⏳")).not.toBeInTheDocument()
     })
 
-    // 检查标题
+    // 检查标题（支持中英文）
     await waitFor(() => {
-      expect(screen.getByText("Feed AI Muter")).toBeInTheDocument()
+      const title = screen.queryByText("静阅") || 
+                   screen.queryByText("Silent Feed")
+      expect(title).toBeTruthy()
     })
-    expect(screen.getByText("RSS 静音器")).toBeInTheDocument()
+    
+    // 检查欢迎信息（支持中英文）
+    const welcomeText = screen.queryByText("开始你的阅读之旅") ||
+                       screen.queryByText("Start your reading journey")
+    expect(welcomeText).toBeTruthy()
 
-    // 检查欢迎信息
-    expect(screen.getByText("欢迎使用智能 RSS 阅读器")).toBeInTheDocument()
-    expect(screen.getByText("正在学习你的兴趣...")).toBeInTheDocument()
+    // 检查学习提示（检查是否有相关文本）
+    const hintElement = screen.getByText(/学习.*兴趣|learn.*interest/i)
+    expect(hintElement).toBeInTheDocument()
   })
 
   it("应该显示初始化进度 0/100", async () => {
@@ -91,7 +97,7 @@ describe("IndexPopup 组件", () => {
     // 等待加载完成
     await waitFor(() => {
       expect(
-        screen.getByText("开始浏览，我会自动学习你的兴趣")
+        screen.getByText("开始浏览，自动学习你的兴趣")
       ).toBeInTheDocument()
     })
   })

@@ -196,7 +196,7 @@ case 'SAVE_PAGE_VISIT':
 // 在 Service Worker DevTools 中运行
 const dbs = await indexedDB.databases()
 console.log('数据库列表:', dbs)
-// 应该看到 FeedAIMuterDB
+// 应该看到 SilentFeedDB
 ```
 
 ### 2. 验证数据写入
@@ -212,10 +212,10 @@ console.log('记录数:', count)
 
 ```
 chrome://extensions/ 
-→ FeedAIMuter 
+→ SilentFeed 
 → "检查视图" → "service worker"
 → DevTools → Application → IndexedDB
-→ 应该看到 FeedAIMuterDB（版本 2）
+→ 应该看到 SilentFeedDB（版本 2）
 ```
 
 ---

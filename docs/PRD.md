@@ -1,9 +1,9 @@
-# FeedAIMuter 产品需求文档 (PRD)
+# Silent Feed 产品需求文档 (PRD)
 
 **版本**: 1.0  
 **日期**: 2025-11-02  
 **状态**: Draft  
-**作者**: FeedAIMuter Team
+**作者**: Silent Feed Team
 
 ---
 
@@ -27,7 +27,7 @@
 ## 1. 产品概述
 
 ### 1.1 产品名称
-**FeedAIMuter** (Feed + AI + Muter)
+**SilentFeed** (Feed + AI + Muter)
 
 **命名含义**：
 - **Feed**: RSS 订阅源
@@ -53,7 +53,7 @@
 
 ### 1.5 核心价值主张
 
-| 维度 | 传统 RSS 阅读器 | FeedAIMuter |
+| 维度 | 传统 RSS 阅读器 | SilentFeed |
 |------|----------------|-------------|
 | **信息过滤** | 手动分类和过滤 | AI 自动筛选 |
 | **个性化** | 基于用户设置 | 基于实际行为 |
@@ -167,7 +167,7 @@ AI 自动筛选出最相关的 3-5 条，其余静默处理
 ```
           被动    ←→    主动
            ↑
-    AI驱动 │  [FeedAIMuter]     Feedly AI
+    AI驱动 │  [SilentFeed]     Feedly AI
            │         
            │  SmartNews       传统RSS阅读器
 规则引擎   │                 (NetNewsWire)

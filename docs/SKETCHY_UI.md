@@ -2,7 +2,7 @@
 
 ## 概述
 
-Sketchy UI 是一个轻量级的手绘风格设计系统，为 FeedAIMuter 提供更温暖、更有亲和力的视觉体验。
+Sketchy UI 是一个轻量级的手绘风格设计系统，为 SilentFeed 提供更温暖、更有亲和力的视觉体验。
 
 ## 设计理念
 
@@ -57,7 +57,7 @@ font-family: var(--sketchy-font-en), -apple-system, "PingFang SC", "Microsoft Ya
 
 #### 2. 标题 (Title)
 ```tsx
-<h1 className="sketchy-title">Feed AI Muter</h1>
+<h1 className="sketchy-title">Silent Feed</h1>
 ```
 - 手写字体（仅英文）
 - 下划线装饰效果

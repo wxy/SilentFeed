@@ -1,60 +1,60 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-11-19T10:43:28.019Z",
+  "lastUpdate": "2025-11-19T15:25:21.115Z",
   "translations": {
     "app.name": {
       "zh-CN": {
-        "value": "Feed AI Muter",
-        "hash": "2b124b47",
-        "lastModified": "2025-11-02T10:28:06.963Z",
+        "value": "静阅",
+        "hash": "b57de46c",
+        "lastModified": "2025-11-19T15:20:25.695Z",
         "status": "verified"
       },
       "en": {
-        "value": "Feed AI Muter",
-        "hash": "2b124b47",
-        "lastModified": "2025-11-02T10:28:06.964Z",
+        "value": "Quiet Reading",
+        "hash": "f66c1084",
+        "lastModified": "2025-11-19T15:20:25.696Z",
         "status": "ai-translated"
       }
     },
     "app.shortName": {
       "zh-CN": {
-        "value": "RSS 静音器",
-        "hash": "3f994fee",
-        "lastModified": "2025-11-02T10:28:08.905Z",
+        "value": "Silent Feed",
+        "hash": "3c0c6b59",
+        "lastModified": "2025-11-19T15:20:27.454Z",
         "status": "verified"
       },
       "en": {
-        "value": "RSS Muter",
-        "hash": "bcd9028e",
-        "lastModified": "2025-11-02T10:28:08.905Z",
+        "value": "Silent Feed",
+        "hash": "3c0c6b59",
+        "lastModified": "2025-11-19T15:20:27.454Z",
         "status": "ai-translated"
       }
     },
     "popup.welcome": {
       "zh-CN": {
-        "value": "欢迎使用智能 RSS 阅读器",
-        "hash": "b73bfb91",
-        "lastModified": "2025-11-02T10:28:10.737Z",
+        "value": "开始你的阅读之旅",
+        "hash": "0a9a7f3a",
+        "lastModified": "2025-11-19T15:20:30.743Z",
         "status": "verified"
       },
       "en": {
-        "value": "Welcome to the Smart RSS Reader",
-        "hash": "7b07f100",
-        "lastModified": "2025-11-02T10:28:10.737Z",
+        "value": "Start your reading journey",
+        "hash": "940cf89e",
+        "lastModified": "2025-11-19T15:20:30.743Z",
         "status": "ai-translated"
       }
     },
     "popup.learning": {
       "zh-CN": {
-        "value": "正在学习你的兴趣...",
-        "hash": "9a5ebc83",
-        "lastModified": "2025-11-02T10:28:13.371Z",
+        "value": "我会在后台学习你的兴趣",
+        "hash": "d1474954",
+        "lastModified": "2025-11-19T15:20:32.756Z",
         "status": "verified"
       },
       "en": {
-        "value": "Learning your interests...",
-        "hash": "8f4f239d",
-        "lastModified": "2025-11-02T10:28:13.371Z",
+        "value": "I will learn your interests in the background.",
+        "hash": "f1222e00",
+        "lastModified": "2025-11-19T15:20:32.756Z",
         "status": "ai-translated"
       }
     },
@@ -130,15 +130,15 @@
     },
     "popup.hint": {
       "zh-CN": {
-        "value": "开始浏览，我会自动学习你的兴趣",
-        "hash": "445cea73",
-        "lastModified": "2025-11-02T10:28:23.995Z",
+        "value": "开始浏览，自动学习你的兴趣",
+        "hash": "6187f18a",
+        "lastModified": "2025-11-19T15:20:34.404Z",
         "status": "verified"
       },
       "en": {
-        "value": "Start browsing, and I'll automatically learn your interests.",
-        "hash": "7689a15d",
-        "lastModified": "2025-11-02T10:28:23.995Z",
+        "value": "Start browsing, automatically learn your interests",
+        "hash": "243468c3",
+        "lastModified": "2025-11-19T15:20:34.404Z",
         "status": "ai-translated"
       }
     },
@@ -7704,15 +7704,15 @@
     },
     "options.aiConfig.scenariosIntro": {
       "zh-CN": {
-        "value": "AI 引擎为 FeedAIMuter 提供多场景智能服务：",
-        "hash": "cab4a3b8",
-        "lastModified": "2025-11-19T06:00:52.767Z",
+        "value": "AI 引擎为静阅提供多场景智能服务：",
+        "hash": "36ffcd5f",
+        "lastModified": "2025-11-19T15:20:44.530Z",
         "status": "verified"
       },
       "en": {
-        "value": "AI engine provides multi-scenario intelligent services for FeedAIMuter:",
-        "hash": "3dc210e8",
-        "lastModified": "2025-11-19T06:00:52.768Z",
+        "value": "The AI engine provides intelligent services for Silent Feed across multiple scenarios:",
+        "hash": "d48381f0",
+        "lastModified": "2025-11-19T15:20:44.530Z",
         "status": "ai-translated"
       }
     },
@@ -9463,6 +9463,118 @@
         "value": "Don't want to read {{rate}}%",
         "hash": "f6cabffc",
         "lastModified": "2025-11-19T10:43:27.515Z",
+        "status": "ai-translated"
+      }
+    },
+    "app.slogan": {
+      "zh-CN": {
+        "value": "让信息流安静下来",
+        "hash": "538ebb91",
+        "lastModified": "2025-11-19T15:20:29.217Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Quiet the feed",
+        "hash": "695cfc35",
+        "lastModified": "2025-11-19T15:20:29.217Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.learningStageTitle": {
+      "zh-CN": {
+        "value": "探索学习阶段",
+        "hash": "ef99216a",
+        "lastModified": "2025-11-19T15:20:36.340Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Exploration Learning Phase",
+        "hash": "9157e849",
+        "lastModified": "2025-11-19T15:20:36.340Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.learningStageHint": {
+      "zh-CN": {
+        "value": "当前已浏览 {{current}}/{{total}} 页，继续浏览以完成兴趣学习",
+        "hash": "fbbc461a",
+        "lastModified": "2025-11-19T15:20:38.471Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Currently viewed {{current}}/{{total}} pages, continue browsing to complete interest learning",
+        "hash": "e9a225ba",
+        "lastModified": "2025-11-19T15:20:38.471Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.recommendationCount": {
+      "zh-CN": {
+        "value": "智能推荐数量",
+        "hash": "5694ba42",
+        "lastModified": "2025-11-19T15:20:40.127Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Intelligent Recommendation Quantity",
+        "hash": "2f345113",
+        "lastModified": "2025-11-19T15:20:40.127Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.learningStageNote": {
+      "zh-CN": {
+        "value": "在探索阶段暂不推荐，专注于学习您的兴趣",
+        "hash": "7fb3e670",
+        "lastModified": "2025-11-19T15:20:42.075Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Not recommended during the exploration phase, focusing on learning your interests.",
+        "hash": "6a1927fb",
+        "lastModified": "2025-11-19T15:20:42.075Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.learningStageTitle": {
+      "zh-CN": {
+        "value": "探索学习阶段",
+        "hash": "ef99216a",
+        "lastModified": "2025-11-19T15:25:16.852Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Exploration Learning Phase",
+        "hash": "9157e849",
+        "lastModified": "2025-11-19T15:25:16.853Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.learningStageHint": {
+      "zh-CN": {
+        "value": "当前已浏览 {{current}}/{{total}} 页",
+        "hash": "db020509",
+        "lastModified": "2025-11-19T15:25:18.844Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Currently viewed {{current}}/{{total}} pages",
+        "hash": "4048751f",
+        "lastModified": "2025-11-19T15:25:18.844Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.recommendation.learningStageNote": {
+      "zh-CN": {
+        "value": "在探索阶段暂不推荐，专注于学习您的兴趣",
+        "hash": "7fb3e670",
+        "lastModified": "2025-11-19T15:25:20.608Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Not recommended during the exploration phase, focusing on learning your interests.",
+        "hash": "6a1927fb",
+        "lastModified": "2025-11-19T15:25:20.608Z",
         "status": "ai-translated"
       }
     }

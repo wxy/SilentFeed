@@ -16,7 +16,7 @@
 ```javascript
 (async () => {
   // 直接打开 IndexedDB
-  const dbRequest = indexedDB.open('FeedAIMuterDB');
+  const dbRequest = indexedDB.open('SilentFeedDB');
   const db = await new Promise((resolve, reject) => {
     dbRequest.onsuccess = () => resolve(dbRequest.result);
     dbRequest.onerror = () => reject(dbRequest.error);

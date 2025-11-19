@@ -222,7 +222,7 @@ if (process.env.NODE_ENV === 'development') {
 
 ### 当前数据库状态
 
-**数据库**: FeedAIMuterDB  
+**数据库**: SilentFeedDB  
 **版本**: 9 (2025-11-17)  
 **ORM**: Dexie.js v4.x
 

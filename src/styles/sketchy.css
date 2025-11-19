@@ -33,13 +33,15 @@ svg.sketchy-svg-filters {
    */
   --sketchy-font-zh: 'STXingkaiSC-Light', 'Xingkai SC', 'STKaiti-SC-Regular', 'STKaiti', 'Kaiti-SC', 'KaiTi', serif;
   
-  /* 手绘颜色 - 更柔和的笔触感 */
+  /* 手绘颜色 - 更柔和的笔触感，使用温暖的墨水色 */
   --sketchy-ink: #2c3e50;
   --sketchy-ink-light: #34495e;
   --sketchy-paper: #fffef9;
   --sketchy-paper-dark: #f8f7f2;
   --sketchy-accent: #e74c3c;
   --sketchy-accent-light: #ff6b6b;
+  --sketchy-accent-green: #27ae60;
+  --sketchy-accent-blue: #3498db;
   
   /* 暗色模式 */
   --sketchy-ink-dark: #ecf0f1;
@@ -219,7 +221,7 @@ svg.sketchy-svg-filters {
     1px 1px 0 rgba(255, 255, 255, 0.1);
 }
 
-/* 手绘卡片 - 手绘笔触边框 */
+/* 手绘卡片 - 手绘笔触边框 + 微妙阴影 */
 .sketchy-card {
   background: var(--sketchy-paper);
   border: 2.5px solid transparent;
@@ -228,9 +230,10 @@ svg.sketchy-svg-filters {
   margin: 0.75rem 0;
   box-shadow: 
     3px 3px 0 rgba(0,0,0,0.1),
-    -1px -1px 0 rgba(0,0,0,0.05);
+    -1px -1px 0 rgba(0,0,0,0.05),
+    0 4px 12px rgba(0,0,0,0.08);
   transform: rotate(-0.3deg);
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
 }
 
@@ -245,8 +248,20 @@ svg.sketchy-svg-filters {
   opacity: 0.9;
 }
 
+.sketchy-card:hover {
+  transform: rotate(0deg) translateY(-2px);
+  box-shadow: 
+    4px 4px 0 rgba(0,0,0,0.12),
+    -1px -1px 0 rgba(0,0,0,0.06),
+    0 8px 16px rgba(0,0,0,0.12);
+}
+
 .sketchy-card:nth-child(even) {
   transform: rotate(0.3deg);
+}
+
+.sketchy-card:nth-child(even):hover {
+  transform: rotate(0deg) translateY(-2px);
 }
 
 .dark .sketchy-card {
@@ -641,3 +656,148 @@ svg.sketchy-svg-filters {
   stroke-dasharray: 100;
   animation: sketch-draw 1s ease-out forwards;
 }
+
+/* 手绘摇晃动画 - 模拟手写抖动 */
+@keyframes sketchy-wiggle {
+  0%, 100% { transform: rotate(-0.5deg); }
+  25% { transform: rotate(0.5deg); }
+  50% { transform: rotate(-0.3deg); }
+  75% { transform: rotate(0.3deg); }
+}
+
+.sketchy-wiggle {
+  animation: sketchy-wiggle 3s ease-in-out infinite;
+}
+
+/* 手绘浮起效果 - 用于交互元素 */
+@keyframes sketchy-float {
+  0%, 100% { 
+    transform: translateY(0) rotate(-0.5deg); 
+  }
+  50% { 
+    transform: translateY(-4px) rotate(0.5deg);
+    box-shadow: 
+      4px 6px 0 rgba(0,0,0,0.1),
+      0 8px 16px rgba(0,0,0,0.1);
+  }
+}
+
+/* 手绘脉冲效果 - 用于强调元素 */
+@keyframes sketchy-pulse {
+  0%, 100% {
+    transform: scale(1) rotate(-0.5deg);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05) rotate(0.5deg);
+    opacity: 0.9;
+  }
+}
+
+/* 手绘闪烁效果 - 模拟墨水干燥 */
+@keyframes sketchy-shimmer {
+  0% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.8;
+  }
+}
+
+/* 应用动画的辅助类 */
+.sketchy-float-hover:hover {
+  animation: sketchy-float 2s ease-in-out infinite;
+}
+
+.sketchy-pulse-attention {
+  animation: sketchy-pulse 2s ease-in-out infinite;
+}
+
+.sketchy-shimmer {
+  animation: sketchy-shimmer 3s ease-in-out infinite;
+}
+
+/* 手绘高亮标记 - 模拟荧光笔效果 */
+.sketchy-highlight {
+  position: relative;
+  display: inline;
+  padding: 0 0.25rem;
+}
+
+.sketchy-highlight::after {
+  content: '';
+  position: absolute;
+  left: -0.1rem;
+  right: -0.1rem;
+  bottom: 0.1rem;
+  height: 0.5rem;
+  background: var(--sketchy-accent-light);
+  opacity: 0.3;
+  z-index: -1;
+  transform: rotate(-0.5deg);
+  border-radius: 2px;
+}
+
+.sketchy-highlight-green::after {
+  background: var(--sketchy-accent-green);
+}
+
+.sketchy-highlight-blue::after {
+  background: var(--sketchy-accent-blue);
+}
+
+/* 手绘便签效果 - 用于重要提示 */
+.sketchy-note {
+  position: relative;
+  background: #fef9c3;
+  border: 2px solid var(--sketchy-ink);
+  border-radius: 4px;
+  padding: 1rem;
+  margin: 1rem 0;
+  box-shadow: 
+    2px 2px 0 rgba(0,0,0,0.1),
+    0 4px 8px rgba(0,0,0,0.08);
+  transform: rotate(-1deg);
+}
+
+.sketchy-note::before {
+  content: '📌';
+  position: absolute;
+  top: -0.5rem;
+  right: 1rem;
+  font-size: 1.5rem;
+  transform: rotate(15deg);
+  filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.2));
+}
+
+.dark .sketchy-note {
+  background: #4a4a2a;
+}
+
+/* 手绘涂鸦装饰 - 用于点缀 */
+.sketchy-doodle {
+  position: relative;
+  display: inline-block;
+}
+
+.sketchy-doodle::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  bottom: -4px;
+  left: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--sketchy-ink) 0,
+    var(--sketchy-ink) 4px,
+    transparent 4px,
+    transparent 8px
+  );
+  opacity: 0.4;
+  transform: scaleX(1.1) rotate(-0.5deg);
+}
+

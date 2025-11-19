@@ -988,8 +988,8 @@ const profile = await getUserProfile()  // ✅ 简洁
 - `docs/PHASE_7_DB_OPTIMIZATION.md` - 数据库优化详情
 
 ### PR 文档
-- [PR #20](https://github.com/wxy/FeedAIMuter/pull/20) - 数据库规范化重构
-- [PR #21](https://github.com/wxy/FeedAIMuter/pull/21) - 数据库持续优化
+- [PR #20](https://github.com/wxy/SilentFeed/pull/20) - 数据库规范化重构
+- [PR #21](https://github.com/wxy/SilentFeed/pull/21) - 数据库持续优化
 
 ### 代码文档
 - `src/storage/README.md` - 存储层文档（如果有）

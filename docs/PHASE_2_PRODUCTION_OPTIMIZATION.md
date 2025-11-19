@@ -198,7 +198,7 @@ logger.error('❌ [PageTracker] 保存失败', error)
    ```
 
 5. **验证数据记录**：
-   - DevTools → Application → IndexedDB → FeedAIMuterDB
+   - DevTools → Application → IndexedDB → SilentFeedDB
    - confirmedVisits 表应该有新记录
    - 证明功能正常，只是日志被隐藏
 

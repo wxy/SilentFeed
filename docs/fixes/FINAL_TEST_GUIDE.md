@@ -7,7 +7,7 @@
 
 ### 1. 重新加载扩展
 ```
-chrome://extensions/ → FeedAIMuter → 刷新按钮
+chrome://extensions/ → SilentFeed → 刷新按钮
 ```
 
 ### 2. 重置数据（可选，推荐）

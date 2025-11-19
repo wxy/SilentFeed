@@ -34,7 +34,7 @@
 ```
 方法 1: 刷新扩展
 1. chrome://extensions/
-2. 找到 FeedAIMuter
+2. 找到 SilentFeed
 3. 点击 "刷新" 按钮 (🔄)
 
 方法 2: 重新加载
@@ -58,7 +58,7 @@
 
 ```
 1. chrome://extensions/
-2. FeedAIMuter → "检查视图" → "service worker"
+2. SilentFeed → "检查视图" → "service worker"
 3. 查看控制台应该有：
    ✅ [Background] 扩展已安装/更新，开始初始化...
    ✅ [DB] 数据库已打开（版本 2）
@@ -91,7 +91,7 @@
 **验证数据库**:
 在任意页面控制台运行：
 ```javascript
-const request = indexedDB.open('FeedAIMuterDB');
+const request = indexedDB.open('SilentFeedDB');
 request.onsuccess = (e) => {
   const db = e.target.result;
   const tx = db.transaction('confirmedVisits', 'readonly');
@@ -140,7 +140,7 @@ setTimeout(async () => {
 }, 1000);
 
 // 方法 2: 直接查询 IndexedDB
-const request = indexedDB.open('FeedAIMuterDB');
+const request = indexedDB.open('SilentFeedDB');
 request.onsuccess = (e) => {
   const db = e.target.result;
   const tx = db.transaction('confirmedVisits', 'readonly');
@@ -265,7 +265,7 @@ request.onsuccess = (e) => {
 
 **查看数据**:
 ```javascript
-const request = indexedDB.open('FeedAIMuterDB');
+const request = indexedDB.open('SilentFeedDB');
 request.onsuccess = (e) => {
   const db = e.target.result;
   const tx = db.transaction('confirmedVisits', 'readonly');

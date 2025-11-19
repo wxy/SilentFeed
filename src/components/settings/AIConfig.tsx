@@ -112,7 +112,10 @@ export function AIConfig() {
         enableReasoning // Phase 9
       })
 
-      // 3. 测试连接
+      // 3. 重新初始化 aiManager 以加载新配置
+      await aiManager.initialize()
+
+      // 4. 测试连接
       const startTime = Date.now()
       const result = await aiManager.testConnection()
       const latency = Date.now() - startTime

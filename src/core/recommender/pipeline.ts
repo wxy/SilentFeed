@@ -148,6 +148,25 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
       // 2. 找到高分文章就立即 AI 分析，无需等待全部抓取
       // 3. 达到 batchSize 后提前退出，节省时间
       
+      // 预过滤：移除超过 30 天的老文章
+      const DAYS_LIMIT = 30
+      const cutoffDate = new Date()
+      cutoffDate.setDate(cutoffDate.getDate() - DAYS_LIMIT)
+      
+      const filteredArticles = articles.filter(article => {
+        const publishDate = article.pubDate ? new Date(article.pubDate) : new Date()
+        if (publishDate < cutoffDate) {
+          console.log(`[Pipeline] ⏭️  跳过过旧文章 (发布于 ${publishDate.toLocaleDateString()}): ${article.title}`)
+          return false
+        }
+        return true
+      })
+      
+      const skippedOldArticles = articles.length - filteredArticles.length
+      if (skippedOldArticles > 0) {
+        console.log(`[Pipeline] 📅 已过滤 ${skippedOldArticles} 篇超过 ${DAYS_LIMIT} 天的文章`)
+      }
+      
       this.updateProgress('tfidf', 0.1, '开始逐篇抓取和评分...')
       
       const userInterests = convertUserProfileToUserInterests(context.userProfile)
@@ -156,8 +175,8 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
       let skippedLowScore = 0  // 跳过的低分文章数
       let processedCount = 0   // 已处理（抓取+评分）的文章数
       
-      for (let i = 0; i < articles.length && aiAnalyzedCount < batchSize; i++) {
-        const article = articles[i]
+      for (let i = 0; i < filteredArticles.length && aiAnalyzedCount < batchSize; i++) {
+        const article = filteredArticles[i]
         
         // 1. 检查是否已有 TF-IDF 分数（避免重复计算）
         let tfidfScore = article.tfidfScore
@@ -181,7 +200,7 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
         }
         
         // 更新进度
-        const progress = 0.1 + (processedCount / Math.min(articles.length, 20)) * 0.2
+        const progress = 0.1 + (processedCount / Math.min(filteredArticles.length, 20)) * 0.2
         this.updateProgress('tfidf', progress, `已评分 ${processedCount} 篇文章...`)
         
         // 4. 检查 TF-IDF 分数

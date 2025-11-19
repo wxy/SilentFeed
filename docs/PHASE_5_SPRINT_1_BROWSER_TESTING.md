@@ -66,7 +66,7 @@ npm run build
 
 #### 验证数据存储
 
-1. 打开 DevTools → Application → IndexedDB → FeedAIMuterDB → discoveredFeeds
+1. 打开 DevTools → Application → IndexedDB → SilentFeedDB → discoveredFeeds
 2. 检查是否有新记录
 3. 验证字段：
    - `url`: RSS 链接

@@ -16,7 +16,7 @@ vi.mock("@/i18n/helpers", () => ({
   useI18n: () => ({
     _: (key: string, params?: any) => {
       const translations: Record<string, string> = {
-        "popup.welcome": "欢迎使用智能 RSS 阅读器",
+        "popup.welcome": "开始你的阅读之旅",
         "popup.learning": "正在学习你的兴趣...",
         "popup.progress": translateProgress(params),
         "popup.stage.explorer": "探索者阶段",
@@ -35,8 +35,8 @@ describe("ColdStartView 组件", () => {
     it("应该显示欢迎信息", () => {
       render(<ColdStartView pageCount={0} />)
 
-      expect(screen.getByText("欢迎使用智能 RSS 阅读器")).toBeInTheDocument()
-      expect(screen.getByText("正在学习你的兴趣...")).toBeInTheDocument()
+      expect(screen.getByText("开始你的阅读之旅")).toBeInTheDocument()
+      // 移除副标题，不再检查 "正在学习你的兴趣..."
     })
 
     it("应该显示进度信息", () => {

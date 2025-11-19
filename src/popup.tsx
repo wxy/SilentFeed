@@ -15,7 +15,7 @@ import "@/styles/global.css"
 import "@/styles/sketchy.css" // 手绘风格样式
 
 /**
- * Feed AI Muter - Popup 主界面
+ * Silent Feed - Popup 主界面
  * Phase 2.7: 两阶段 UI（冷启动 + 推荐）
  * Phase 6: 添加弹窗打开跟踪，动态高度适应
  */
@@ -141,12 +141,9 @@ function IndexPopup() {
           </svg>
         )}
         
-        {/* 头部 - 手绘风格 */}
-        <div className={isSketchyStyle ? "px-6 pt-3 pb-2" : "mb-3"}>
-          <h1 className={isSketchyStyle ? "sketchy-title text-lg mb-0.5" : "text-xl font-bold mb-1"}>{_("app.name")}</h1>
-          <p className={isSketchyStyle ? "sketchy-text text-xs mt-0.5" : "text-sm text-gray-600 dark:text-gray-400"}>
-            {_("app.shortName")}
-          </p>
+        {/* 头部 - 精简设计，只显示应用名 */}
+        <div className={isSketchyStyle ? "px-6 pt-4 pb-3" : "p-4"}>
+          <h1 className={isSketchyStyle ? "sketchy-title text-xl text-center" : "text-xl font-bold text-center"}>{_("app.name")}</h1>
           {isSketchyStyle && <div className="sketchy-divider mt-2"></div>}
         </div>
 

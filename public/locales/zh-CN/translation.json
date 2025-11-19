@@ -1,11 +1,12 @@
 {
   "app": {
     "name": "静阅",
-    "shortName": "静阅"
+    "shortName": "Silent Feed",
+    "slogan": "让信息流安静下来"
   },
   "popup": {
-    "welcome": "欢迎使用智能 RSS 阅读器",
-    "learning": "正在学习你的兴趣...",
+    "welcome": "开始你的阅读之旅",
+    "learning": "我会在后台学习你的兴趣",
     "progress": "{{current}}/{{total}} 页",
     "stage": {
       "explorer": "探索者阶段",
@@ -13,7 +14,7 @@
       "grower": "成长者阶段",
       "master": "大师阶段"
     },
-    "hint": "开始浏览，我会自动学习你的兴趣",
+    "hint": "开始浏览，自动学习你的兴趣",
     "settings": "设置",
     "loading": "加载推荐中...",
     "retry": "重试",
@@ -291,6 +292,9 @@
       "localAIDesc": "使用 Ollama 或 Chrome AI，隐私保护但占用性能",
       "smartCount": "智能推荐数量",
       "currentCount": "当前推荐数量",
+      "learningStageTitle": "探索学习阶段",
+      "learningStageHint": "当前已浏览 {{current}}/{{total}} 页",
+      "learningStageNote": "在探索阶段暂不推荐，专注于学习您的兴趣",
       "countItems": "{{count}} 条",
       "countHint": "系统根据点击率、不想读率和弹窗打开频率自动调整（1-5条）",
       "notification": "推荐通知",
@@ -405,6 +409,10 @@
       "recommendationStats": "推荐统计",
       "recommendationStatsNoData": "暂无推荐数据",
       "recommendationStatsHint": "系统将根据您的兴趣推荐优质内容",
+      "learningStageTitle": "探索学习阶段",
+      "learningStageHint": "当前已浏览 {{current}}/{{total}} 页，继续浏览以完成兴趣学习",
+      "recommendationCount": "智能推荐数量",
+      "learningStageNote": "在探索阶段暂不推荐，专注于学习您的兴趣",
       "totalRecommendationsLabel": "总推荐数",
       "unreadRecommendationsLabel": "未读推荐",
       "unreadPercentage": "未读占比 {{percentage}}%",

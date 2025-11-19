@@ -1,11 +1,12 @@
 {
   "app": {
     "name": "Silent Feed",
-    "shortName": "Silent Feed"
+    "shortName": "Silent Feed",
+    "slogan": "Quiet the feed"
   },
   "popup": {
-    "welcome": "Welcome to the Smart RSS Reader",
-    "learning": "Learning your interests...",
+    "welcome": "Start your reading journey",
+    "learning": "I will learn your interests in the background.",
     "progress": "{{current}}/{{total}} pages",
     "stage": {
       "explorer": "Explorer Stage",
@@ -13,7 +14,7 @@
       "grower": "Growth Stage",
       "master": "Master Stage"
     },
-    "hint": "Start browsing, and I'll automatically learn your interests.",
+    "hint": "Start browsing, automatically learn your interests",
     "settings": "Settings",
     "loading": "Loading recommendations...",
     "retry": "Retry",
@@ -190,7 +191,10 @@
       "resetConfirm": "⚠️ Are you sure you want to reset all recommendation data?\n\nThis will clear:\n- All recommendations in the recommendation pool\n- Recommendation count statistics for RSS feeds\n- AI scoring and analysis data for all articles (can be re-analyzed)\n- TF-IDF score cache for all articles (can be recalculated)\n- Recommendation-related statistics\n\n⚠️ Note: Fully crawled article content will be preserved\n\nThis action cannot be undone!",
       "resetSuccess": "✅ Recommended data has been reset",
       "resetFailed": "❌ Reset failed: {{error}}",
-      "saveFailed": "Save failed, please try again"
+      "saveFailed": "Save failed, please try again",
+      "learningStageTitle": "Exploration Learning Phase",
+      "learningStageHint": "Currently viewed {{current}}/{{total}} pages",
+      "learningStageNote": "Not recommended during the exploration phase, focusing on learning your interests."
     },
     "privacy": {
       "title": "Data and Privacy",
@@ -388,7 +392,11 @@
       "providerCostDistributionTitle": "AI Cost Distribution",
       "providerTokens": "{{tokens}}K tokens",
       "dismissedRecommendationsLabel": "Don't want to read",
-      "dismissedRate": "Don't want to read {{rate}}%"
+      "dismissedRate": "Don't want to read {{rate}}%",
+      "learningStageTitle": "Exploration Learning Phase",
+      "learningStageHint": "Currently viewed {{current}}/{{total}} pages, continue browsing to complete interest learning",
+      "recommendationCount": "Intelligent Recommendation Quantity",
+      "learningStageNote": "Not recommended during the exploration phase, focusing on learning your interests."
     },
     "userProfile": {
       "alerts": {
@@ -584,7 +592,7 @@
       "scenarioRecommendation": "Recommendation Generation - Content Matching, Recommendation Reasons",
       "scenarioSummary": "Article Summary (Planned)",
       "scenarioQA": "Intelligent Q&A (Planned)",
-      "scenariosIntro": "AI engine provides multi-scenario intelligent services for FeedAIMuter:",
+      "scenariosIntro": "The AI engine provides intelligent services for Silent Feed across multiple scenarios:",
       "scenarios": {
         "analysis": "Content Analysis",
         "analysisDesc": "Topic Classification, Keyword Extraction, Summary Generation",

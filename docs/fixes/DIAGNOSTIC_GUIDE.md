@@ -7,7 +7,7 @@
 
 ### 1. 重新加载扩展
 - 打开 `chrome://extensions/`
-- 点击刷新按钮重新加载 FeedAIMuter
+- 点击刷新按钮重新加载 SilentFeed
 
 ### 2. 打开开发者工具
 - 右键点击扩展图标 → 检查弹出内容
