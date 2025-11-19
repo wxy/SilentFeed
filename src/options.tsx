@@ -121,7 +121,7 @@ function IndexOptions() {
 
   return (
     <ErrorBoundary>
-      <div className={isSketchyStyle ? "min-h-screen sketchy-container sketchy-paper-texture text-gray-900 dark:text-gray-100" : "min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100"} lang={currentLang}>
+      <div className={isSketchyStyle ? "min-h-screen sketchy-container sketchy-paper-texture text-gray-900 dark:text-gray-100" : "min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/20 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900 text-gray-900 dark:text-gray-100"} lang={currentLang}>
         {/* SVG 滤镜定义 */}
         {isSketchyStyle && (
           <svg className="sketchy-svg-filters" xmlns="http://www.w3.org/2000/svg">
@@ -141,10 +141,10 @@ function IndexOptions() {
         )}
         
         {/* 头部 */}
-        <div className={isSketchyStyle ? "border-b border-gray-200 dark:border-gray-700 px-6 py-4" : "bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700"}>
+        <div className={isSketchyStyle ? "border-b border-gray-200 dark:border-gray-700 px-6 py-4" : "bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-700/50 shadow-sm"}>
           <div className="max-w-6xl mx-auto px-6 py-6">
-            <h1 className={isSketchyStyle ? "sketchy-title text-3xl" : "text-2xl font-bold"}>{_("app.name")}</h1>
-            <p className={isSketchyStyle ? "sketchy-text mt-2" : "text-sm text-gray-600 dark:text-gray-400 mt-1"}>
+            <h1 className={isSketchyStyle ? "sketchy-title text-3xl" : "text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent"}>{_("app.name")}</h1>
+            <p className={isSketchyStyle ? "sketchy-text mt-2" : "text-sm text-gray-600 dark:text-gray-400 mt-2"}>
               {_("options.title")}
             </p>
             {isSketchyStyle && <div className="sketchy-divider mt-4"></div>}
@@ -155,16 +155,16 @@ function IndexOptions() {
           <div className="flex gap-8">
             {/* 左侧标签导航 */}
             <nav className="w-48 flex-shrink-0">
-              <div className={isSketchyStyle ? "sketchy-card" : "bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden"}>
+              <div className={isSketchyStyle ? "sketchy-card" : "bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-gray-700/50 overflow-hidden shadow-lg"}>
                 {tabs.map((tab) => {
                   const isActive = activeTab === tab.key
-                  const baseClass = "w-full px-4 py-3 text-left text-sm font-medium transition-colors flex items-center gap-3"
+                  const baseClass = "w-full px-4 py-3 text-left text-sm font-medium transition-all duration-200 flex items-center gap-3"
                   const activeClass = isSketchyStyle 
                     ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200" 
-                    : "bg-green-500 text-white dark:bg-green-600"
+                    : "bg-gradient-to-r from-indigo-500 to-purple-500 text-white dark:from-indigo-600 dark:to-purple-600 shadow-md"
                   const inactiveClass = isSketchyStyle
                     ? "hover:bg-gray-50 dark:hover:bg-gray-800 border-b border-gray-200 dark:border-gray-700 last:border-b-0"
-                    : "hover:bg-gray-100 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 last:border-b-0"
+                    : "hover:bg-gray-100/80 dark:hover:bg-gray-700/80 border-b border-gray-200/30 dark:border-gray-700/30 last:border-b-0"
                   const sketchyClass = isSketchyStyle && isActive ? "sketchy-text font-semibold" : ""
                   
                   return (
@@ -185,8 +185,8 @@ function IndexOptions() {
             <div className="flex-1">
               {/* 偏好设置 - Phase 8 */}
               {activeTab === "preferences" && (
-                <div className={isSketchyStyle ? "sketchy-card p-6" : "bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6"}>
-                  <h2 className={isSketchyStyle ? "sketchy-title text-xl mb-2" : "text-lg font-semibold mb-2"}>
+                <div className={isSketchyStyle ? "sketchy-card p-6" : "bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg"}>
+                  <h2 className={isSketchyStyle ? "sketchy-title text-xl mb-2" : "text-lg font-semibold mb-2 bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent"}>
                     {_("options.general.preferencesTitle")}
                   </h2>
                   <p className={isSketchyStyle ? "sketchy-text mb-6" : "text-sm text-gray-600 dark:text-gray-400 mb-6"}>
@@ -206,7 +206,7 @@ function IndexOptions() {
                         id="language-select"
                         value={currentLanguage}
                         onChange={handleLanguageChange}
-                        className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
+                        className="w-full px-4 py-2 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border border-gray-300/50 dark:border-gray-600/50 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all shadow-sm"
                       >
                         <option value="auto">
                           {_("options.general.languageAuto")}
@@ -235,7 +235,7 @@ function IndexOptions() {
                         id="ui-style-select"
                         value={uiStyle}
                         onChange={handleUIStyleChange}
-                        className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
+                        className="w-full px-4 py-2 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border border-gray-300/50 dark:border-gray-600/50 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all shadow-sm"
                       >
                         <option value="sketchy">
                           {_("options.general.uiStyleSketchy")}
@@ -265,22 +265,22 @@ function IndexOptions() {
 
               {/* 订阅源管理 - Phase 5.1 */}
               {activeTab === "feeds" && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                <div className={isSketchyStyle ? "sketchy-card p-6" : "bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg"}>
                   <RSSManager />
                 </div>
               )}
 
               {/* AI 引擎配置 - Phase 4.1 + Phase 8 扩展 */}
               {activeTab === "aiEngine" && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                <div className={isSketchyStyle ? "sketchy-card" : "bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg"}>
                   <AIConfig />
                 </div>
               )}
 
               {/* 分析配置 - Phase 9: 推荐引擎 + 分析引擎 */}
               {activeTab === "recommendations" && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-                  <h2 className="text-lg font-semibold mb-4">
+                <div className={isSketchyStyle ? "sketchy-card p-6" : "bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg"}>
+                  <h2 className="text-lg font-semibold mb-4 bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent">
                     {_("options.tabs.recommendations")}
                   </h2>
                   <RecommendationSettings />
@@ -289,7 +289,7 @@ function IndexOptions() {
 
               {/* 用户画像 - Phase 6 */}
               {activeTab === "profile" && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                <div className={isSketchyStyle ? "sketchy-card p-6" : "bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg"}>
                   <ProfileView />
                 </div>
               )}
