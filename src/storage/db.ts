@@ -2,12 +2,12 @@
  * IndexedDB 数据库定义（使用 Dexie.js）
  * 
  * 数据库名称: FeedAIMuterDB
- * 当前版本: 12
+ * 当前版本: 13
  * 
  * ⚠️ 版本管理说明：
  * - 开发过程中如果遇到版本冲突，请删除旧数据库
  * - 生产环境版本号应该只增不减
- * - 版本 12（Phase 7: 持续优化 - 移除 statistics 表，使用内存缓存）
+ * - 版本 13（Phase 7: 推荐软删除机制 - 添加 status 字段，保留历史记录）
  */
 
 import Dexie from 'dexie'
@@ -346,6 +346,44 @@ export class FeedAIMuterDB extends Dexie {
       discoveredFeeds: 'id, url, status, discoveredAt, subscribedAt, discoveredFrom, isActive, lastFetchedAt, [status+discoveredAt], [isActive+lastFetchedAt]',
       feedArticles: 'id, feedId, link, published, recommended, read, [feedId+published], [recommended+published], [read+published]'
     })
+    
+    // 版本 13: 推荐软删除机制（Phase 7）
+    // 添加 status 字段和索引，保留被淘汰的推荐历史
+    this.version(13).stores({
+      pendingVisits: 'id, url, startTime, expiresAt',
+      confirmedVisits: 'id, visitTime, domain, *analysis.keywords, [visitTime+domain]',
+      settings: 'id',
+      recommendations: 'id, recommendedAt, isRead, source, sourceUrl, status, replacedAt, [isRead+recommendedAt], [isRead+source], [status+recommendedAt]',
+      userProfile: 'id, lastUpdated',
+      interestSnapshots: 'id, timestamp, primaryTopic, trigger, [primaryTopic+timestamp]',
+      discoveredFeeds: 'id, url, status, discoveredAt, subscribedAt, discoveredFrom, isActive, lastFetchedAt, [status+discoveredAt], [isActive+lastFetchedAt]',
+      feedArticles: 'id, feedId, link, published, recommended, read, [feedId+published], [recommended+published], [read+published]'
+    }).upgrade(async tx => {
+      // 数据迁移：为现有推荐记录设置默认状态
+      dbLogger.info('迁移推荐记录：添加 status 字段...')
+      
+      const recommendations = await tx.table('recommendations').toArray()
+      const updates: Promise<any>[] = []
+      
+      for (const rec of recommendations) {
+        // 根据现有字段判断状态
+        let status: 'active' | 'dismissed' = 'active'
+        
+        if (rec.feedback === 'dismissed') {
+          status = 'dismissed'
+        }
+        
+        updates.push(
+          tx.table('recommendations').update(rec.id, {
+            status,
+            replacedAt: rec.feedback === 'dismissed' ? rec.feedbackAt : undefined
+          })
+        )
+      }
+      
+      await Promise.all(updates)
+      dbLogger.info(`已迁移 ${updates.length} 条推荐记录`)
+    })
   }
 }
 
@@ -365,9 +403,9 @@ async function checkDatabaseVersion(): Promise<void> {
     const existingDB = dbs.find(d => d.name === 'FeedAIMuterDB')
     
     if (existingDB && existingDB.version) {
-      dbLogger.info(`现有数据库版本: ${existingDB.version}, 代码版本: 12`)
+      dbLogger.info(`现有数据库版本: ${existingDB.version}, 代码版本: 13`)
       
-      if (existingDB.version > 12) {
+      if (existingDB.version > 13) {
         dbLogger.warn('⚠️ 浏览器中的数据库版本较高，Dexie 将自动处理')
       }
     }
@@ -487,23 +525,38 @@ export async function getPageCount(): Promise<number> {
  * 
  * ✅ 优化：使用缓存减少重复计算（5 分钟 TTL）
  * 
+ * Phase 7: 支持选择统计范围
+ * 
  * @param days - 统计最近 N 天的数据（默认 7 天）
+ * @param onlyActive - 是否只统计活跃推荐（默认 false，统计所有历史）
  */
-export async function getRecommendationStats(days: number = 7): Promise<RecommendationStats> {
+export async function getRecommendationStats(
+  days: number = 7, 
+  onlyActive: boolean = false
+): Promise<RecommendationStats> {
   return statsCache.get(
-    `rec-stats-${days}d`,
+    `rec-stats-${days}d-${onlyActive ? 'active' : 'all'}`,
     async () => {
       const cutoffTime = Date.now() - days * 24 * 60 * 60 * 1000
       
       // 查询最近 N 天的推荐记录
-      const recentRecommendations = await db.recommendations
+      let recentRecommendations = await db.recommendations
         .where('recommendedAt')
         .above(cutoffTime)
         .toArray()
       
+      // Phase 7: 如果只统计活跃推荐，过滤掉非活跃状态
+      if (onlyActive) {
+        recentRecommendations = recentRecommendations.filter(r => 
+          !r.status || r.status === 'active'
+        )
+      }
+      
       const total = recentRecommendations.length
       const read = recentRecommendations.filter(r => r.isRead).length
-      const dismissed = recentRecommendations.filter(r => r.feedback === 'dismissed').length
+      const dismissed = recentRecommendations.filter(r => 
+        r.feedback === 'dismissed' || r.status === 'dismissed'
+      ).length
       
       // 计算有效性
       const effective = recentRecommendations.filter(
@@ -683,6 +736,8 @@ export async function markAsRead(
 /**
  * 标记推荐为"不想读"
  * 
+ * Phase 7: 使用软删除，更新 status 为 dismissed
+ * 
  * @param ids - 推荐记录 ID 数组
  */
 export async function dismissRecommendations(ids: string[]): Promise<void> {
@@ -691,11 +746,13 @@ export async function dismissRecommendations(ids: string[]): Promise<void> {
   
   await db.transaction('rw', db.recommendations, db.feedArticles, async () => {
     for (const id of ids) {
-      // 1. 更新推荐表
+      // 1. 更新推荐表（Phase 7: 添加 status 字段）
       await db.recommendations.update(id, {
         feedback: 'dismissed',
         feedbackAt: now,
-        effectiveness: 'ineffective'
+        effectiveness: 'ineffective',
+        status: 'dismissed',  // Phase 7: 软删除标记
+        replacedAt: now       // Phase 7: 记录标记时间
       })
       
       // Phase 7: 2. 同步更新 feedArticles 表中的文章状态
@@ -735,14 +792,22 @@ export async function dismissRecommendations(ids: string[]): Promise<void> {
 /**
  * 获取未读推荐（按时间倒序）
  * 
+ * Phase 7: 只返回 active 状态的推荐
+ * 
  * @param limit - 数量限制（默认 50）
  */
 export async function getUnreadRecommendations(limit: number = 50): Promise<Recommendation[]> {
-  // 过滤掉已读和已忽略的推荐
+  // Phase 7: 过滤掉已读、已忽略和非活跃的推荐
   return await db.recommendations
     .orderBy('recommendedAt')
     .reverse() // 倒序（最新在前）
-    .filter(r => !r.isRead && r.feedback !== 'dismissed')
+    .filter(r => {
+      // 必须是活跃状态
+      const isActive = !r.status || r.status === 'active'
+      // 未读且未被忽略
+      const isUnreadAndNotDismissed = !r.isRead && r.feedback !== 'dismissed'
+      return isActive && isUnreadAndNotDismissed
+    })
     .limit(limit)
     .toArray()
 }
@@ -1085,17 +1150,17 @@ export async function cleanOldSnapshots(monthsToKeep: number = 6): Promise<numbe
 /**
  * 更新 RSS 源的推荐数和已读数统计
  * Phase 6: 基于推荐池中的数据统计
- * Phase 7: 从 feedArticles 表聚合统计（性能优化）
+ * Phase 7: 从 feedArticles 表聚合统计（性能优化）+ 软删除支持
  * 
  * @param feedUrl - RSS 源的 URL（用于匹配推荐来源）
  * 
  * 统计字段说明：
  * - articleCount: feedArticles 总数
  * - analyzedCount: 已 AI 分析的文章数（有 analysis 字段）
- * - recommendedCount: 推荐池中来自该源的推荐数（与推荐统计一致）
+ * - recommendedCount: 该源的所有推荐数（包括历史，与推荐统计一致）
  * - readCount: feedArticles 中标记为已读的文章数
- * - dislikedCount: 推荐池中标记为不想读的推荐数（与推荐统计一致）
- * - recommendedReadCount: 推荐池中被阅读的推荐数（与推荐统计一致）
+ * - dislikedCount: 该源的不想读数（包括历史，与推荐统计一致）
+ * - recommendedReadCount: 该源推荐被阅读数（包括历史，与推荐统计一致）
  */
 export async function updateFeedStats(feedUrl: string): Promise<void> {
   try {
@@ -1118,25 +1183,28 @@ export async function updateFeedStats(feedUrl: string): Promise<void> {
     const readCount = articles.filter(a => a.read).length
     const unreadCount = articles.filter(a => !a.read).length
     
-    // 4. 从推荐池统计（确保与推荐统计一致）
+    // 4. 从推荐池统计（Phase 7: 统计所有历史，不过滤 status）
     const recommendationsFromThisFeed = await db.recommendations
       .where('sourceUrl')
       .equals(feedUrl)
       .toArray()
     
+    // Phase 7: 统计所有历史记录（不过滤 status），确保数据完整准确
     const recommendedCount = recommendationsFromThisFeed.length
     const recommendedReadCount = recommendationsFromThisFeed.filter(rec => rec.isRead === true).length
-    const dislikedCount = recommendationsFromThisFeed.filter(rec => rec.feedback === 'dismissed').length
+    const dislikedCount = recommendationsFromThisFeed.filter(rec => 
+      rec.feedback === 'dismissed' || rec.status === 'dismissed'
+    ).length
     
     // 5. 更新 RSS 源统计
     await db.discoveredFeeds.update(feed.id, {
       articleCount: totalCount,
       analyzedCount,
-      recommendedCount,      // 来自推荐池
+      recommendedCount,      // 所有历史推荐（包括被替换的）
       readCount,
-      dislikedCount,         // 来自推荐池
+      dislikedCount,         // 所有历史不想读（包括被替换的）
       unreadCount,
-      recommendedReadCount   // 来自推荐池
+      recommendedReadCount   // 所有历史已读推荐
     })
     
     dbLogger.debug('更新 RSS 源统计:', {
