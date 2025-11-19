@@ -64,6 +64,7 @@ vi.mock("@/storage/db", () => ({
   getAnalysisStats: vi.fn(),
   getAIAnalysisStats: vi.fn(),
   getRecommendationStats: vi.fn(),
+  getPageCount: vi.fn().mockResolvedValue(100), // Mock 页面计数为 100（已完成学习）
   db: {
     pendingVisits: { clear: vi.fn() },
     confirmedVisits: { clear: vi.fn() },

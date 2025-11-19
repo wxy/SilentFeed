@@ -1,12 +1,12 @@
 {
   "app": {
-    "name": "Silent Feed",
-    "shortName": "静阅",
-    "slogan": "Quiet Your Feed"
+    "name": "Quiet Reading",
+    "shortName": "Silent Feed",
+    "slogan": "Quiet the feed"
   },
   "popup": {
-    "welcome": "Start Your Reading Journey",
-    "learning": "I'll learn your interests in the background",
+    "welcome": "Start your reading journey",
+    "learning": "I will learn your interests in the background.",
     "progress": "{{current}}/{{total}} pages",
     "stage": {
       "explorer": "Explorer Stage",
@@ -14,7 +14,7 @@
       "grower": "Growth Stage",
       "master": "Master Stage"
     },
-    "hint": "Browse freely, I'll learn your interests",
+    "hint": "Start browsing, automatically learn your interests",
     "settings": "Settings",
     "loading": "Loading recommendations...",
     "retry": "Retry",
@@ -389,7 +389,11 @@
       "providerCostDistributionTitle": "AI Cost Distribution",
       "providerTokens": "{{tokens}}K tokens",
       "dismissedRecommendationsLabel": "Don't want to read",
-      "dismissedRate": "Don't want to read {{rate}}%"
+      "dismissedRate": "Don't want to read {{rate}}%",
+      "learningStageTitle": "Exploration Learning Phase",
+      "learningStageHint": "Currently viewed {{current}}/{{total}} pages, continue browsing to complete interest learning",
+      "recommendationCount": "Intelligent Recommendation Quantity",
+      "learningStageNote": "Not recommended during the exploration phase, focusing on learning your interests."
     },
     "userProfile": {
       "alerts": {
@@ -585,7 +589,7 @@
       "scenarioRecommendation": "Recommendation Generation - Content Matching, Recommendation Reasons",
       "scenarioSummary": "Article Summary (Planned)",
       "scenarioQA": "Intelligent Q&A (Planned)",
-      "scenariosIntro": "AI engine provides multi-scenario intelligent services for FeedAIMuter:",
+      "scenariosIntro": "The AI engine provides intelligent services for Feed AI Muter across multiple scenarios:",
       "scenarios": {
         "analysis": "Content Analysis",
         "analysisDesc": "Topic Classification, Keyword Extraction, Summary Generation",

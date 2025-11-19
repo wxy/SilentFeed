@@ -12,12 +12,13 @@
 
 import React, { useEffect, useState } from "react"
 import { useI18n } from "@/i18n/helpers"
-import { getStorageStats, getAnalysisStats, getAIAnalysisStats, getRecommendationStats, db } from "@/storage/db"
+import { getStorageStats, getAnalysisStats, getAIAnalysisStats, getRecommendationStats, db, getPageCount } from "@/storage/db"
 import { dataMigrator } from "@/core/migrator/DataMigrator"
 import { ProfileUpdateScheduler } from "@/core/profile/ProfileUpdateScheduler"
 import type { StorageStats, RecommendationStats } from "@/types/database"
 import { AnalysisDebugger } from "@/debug/AnalysisDebugger"
 import { profileManager } from "@/core/profile/ProfileManager"
+import { LEARNING_COMPLETE_PAGES } from "@/constants/progress"
 import { getAIConfig, getProviderDisplayName } from "@/storage/ai-config"
 import { logger } from "@/utils/logger"
 
@@ -72,23 +73,28 @@ export function CollectionStats() {
     provider: "",
     configured: false
   })
+  const [pageCount, setPageCount] = useState<number>(0)
+  const [isLearningStage, setIsLearningStage] = useState<boolean>(false)
 
   useEffect(() => {
     const loadStats = async () => {
       try {
-        const [storageData, analysisData, aiQualityData, migrationData, aiConfig, recommendationData] = await Promise.all([
+        const [storageData, analysisData, aiQualityData, migrationData, aiConfig, recommendationData, currentPageCount] = await Promise.all([
           getStorageStats(),
           getAnalysisStats(),
           getAIAnalysisStats(),
           dataMigrator.getMigrationStats(),
           getAIConfig(),
-          getRecommendationStats(999999) // 获取所有推荐统计（传入足够大的天数）
+          getRecommendationStats(999999), // 获取所有推荐统计（传入足够大的天数）
+          getPageCount() // 获取当前页面计数
         ])
         setStats(storageData)
         setAnalysisStats(analysisData)
         setAiQualityStats(aiQualityData)
         setMigrationStats(migrationData)
         setRecommendationStats(recommendationData)
+        setPageCount(currentPageCount)
+        setIsLearningStage(currentPageCount < LEARNING_COMPLETE_PAGES)
         
         // 设置 AI 配置状态
         setAiConfigStatus({
@@ -648,7 +654,36 @@ export function CollectionStats() {
           <span>{_("options.collectionStats.recommendationStats")}</span>
         </h2>
 
-        {!recommendationStats || recommendationStats.totalCount === 0 ? (
+        {/* 学习阶段提示 */}
+        {isLearningStage ? (
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border-2 border-dashed border-blue-300 dark:border-blue-700">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">📚</span>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
+                  {_("options.collectionStats.learningStageTitle")}
+                </p>
+                <p className="text-sm text-blue-700 dark:text-blue-300 mb-2">
+                  {_("options.collectionStats.learningStageHint", { 
+                    current: pageCount, 
+                    total: LEARNING_COMPLETE_PAGES 
+                  })}
+                </p>
+                <div className="bg-blue-100 dark:bg-blue-900/40 rounded p-3 mt-2">
+                  <div className="text-xs text-blue-800 dark:text-blue-200">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-medium">{_("options.collectionStats.recommendationCount")}:</span>
+                      <span className="font-bold text-lg">0</span>
+                    </div>
+                    <p className="mt-1 text-blue-600 dark:text-blue-300">
+                      {_("options.collectionStats.learningStageNote")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : !recommendationStats || recommendationStats.totalCount === 0 ? (
           <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border-2 border-dashed border-gray-300 dark:border-gray-600">
             <p className="text-center text-gray-500 dark:text-gray-400 text-sm">
               {_("options.collectionStats.recommendationStatsNoData")}

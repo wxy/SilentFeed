@@ -92,9 +92,9 @@ export function ColdStartView({ pageCount, totalPages = LEARNING_COMPLETE_PAGES,
       // 标记为已查看
       chrome.runtime.sendMessage({ type: 'RSS_DISCOVERY_VIEWED' })
       
-      // 打开设置页 RSS 标签
+      // 打开设置页 RSS 标签（feeds）
       chrome.tabs.create({ 
-        url: chrome.runtime.getURL('options.html#rss')
+        url: chrome.runtime.getURL('options.html#feeds')
       })
     }
   }
