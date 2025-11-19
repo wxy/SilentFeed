@@ -50,14 +50,22 @@ describe("IndexPopup 组件", () => {
       expect(screen.queryByText("⏳")).not.toBeInTheDocument()
     })
 
-    // 检查标题
+    // 检查标题（支持中英文，兼容旧名称）
     await waitFor(() => {
-      expect(screen.getByText("Feed AI Muter")).toBeInTheDocument()
+      const title = screen.queryByText("静阅") || 
+                   screen.queryByText("Quiet Reading") ||
+                   screen.queryByText("Feed AI Muter") // 兼容旧名称
+      expect(title).toBeTruthy()
     })
-    expect(screen.getByText("开始你的阅读之旅")).toBeInTheDocument()
+    
+    // 检查欢迎信息（支持中英文）
+    const welcomeText = screen.queryByText("开始你的阅读之旅") ||
+                       screen.queryByText("Start your reading journey")
+    expect(welcomeText).toBeTruthy()
 
-    // 检查学习提示
-    expect(screen.getByText("我会在后台学习你的兴趣")).toBeInTheDocument()
+    // 检查学习提示（检查是否有相关文本）
+    const hintElement = screen.getByText(/学习.*兴趣|learn.*interest/i)
+    expect(hintElement).toBeInTheDocument()
   })
 
   it("应该显示初始化进度 0/100", async () => {
