@@ -661,6 +661,7 @@
       "errors": {
         "selectProvider": "请选择 AI 提供商",
         "enterApiKey": "请输入 API Key",
+        "providerUnavailable": "所选提供商暂不可用，请选择 DeepSeek 或稍后再试",
         "selectProviderAndKey": "请选择提供商并输入 API Key",
         "selectProviderAndKeyFirst": "请先选择提供商并输入 API Key",
         "invalidApiKeyFormat": "API Key 格式不正确",

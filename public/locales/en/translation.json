@@ -511,6 +511,7 @@
       "errors": {
         "selectProviderAndKey": "Please select a provider and enter the API Key",
         "selectProviderAndKeyFirst": "请先选择提供商并输入 API Key",
+        "providerUnavailable": "Selected provider is temporarily unavailable, please choose DeepSeek or try later",
         "invalidApiKeyFormat": "The API Key format is incorrect.",
         "saveFailed": "Save failed: {{error}}",
         "testFailed": "Test failed: {{error}}",

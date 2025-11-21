@@ -91,6 +91,12 @@ export function AIConfig() {
       setMessage({ type: "error", text: _("options.aiConfig.errors.selectProvider") })
       return
     }
+    // 禁用的 provider 不允许测试
+    const providerMeta = getProviderOptions().find(p => p.value === provider)
+    if (providerMeta?.disabled) {
+      setMessage({ type: "error", text: _("options.aiConfig.errors.providerUnavailable") })
+      return
+    }
     if (!apiKey) {
       setMessage({ type: "error", text: _("options.aiConfig.errors.enterApiKey") })
       return
@@ -153,6 +159,12 @@ export function AIConfig() {
   const handleSave = async () => {
     if (!provider) {
       setMessage({ type: "error", text: _("options.aiConfig.errors.selectProviderAndKey") })
+      return
+    }
+    // 禁用的 provider 不允许保存
+    const providerMeta = getProviderOptions().find(p => p.value === provider)
+    if (providerMeta?.disabled) {
+      setMessage({ type: "error", text: _("options.aiConfig.errors.providerUnavailable") })
       return
     }
     if (!apiKey) {

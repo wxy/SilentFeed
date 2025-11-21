@@ -84,8 +84,8 @@ describe("AIConfig", () => {
       // 初始状态：不显示 API Key 输入
       expect(screen.queryByLabelText("API Key")).not.toBeInTheDocument()
       
-      // 选择 OpenAI
-      fireEvent.change(select, { target: { value: "openai" } })
+      // 选择 DeepSeek（可用）
+      fireEvent.change(select, { target: { value: "deepseek" } })
       
       // 应该显示 API Key 输入框
       expect(screen.getByLabelText("API Key")).toBeInTheDocument()
@@ -97,8 +97,8 @@ describe("AIConfig", () => {
       
       const select = screen.getByLabelText("AI Provider")
       
-      // 选择 OpenAI
-      fireEvent.change(select, { target: { value: "openai" } })
+      // 选择 DeepSeek
+      fireEvent.change(select, { target: { value: "deepseek" } })
       
       expect(screen.getByText(/Fast, accurate/)).toBeInTheDocument()
     })
@@ -108,8 +108,8 @@ describe("AIConfig", () => {
       
       const select = screen.getByLabelText("AI Provider")
       
-      // 选择 OpenAI
-      fireEvent.change(select, { target: { value: "openai" } })
+      // 选择 DeepSeek
+      fireEvent.change(select, { target: { value: "deepseek" } })
       
       expect(screen.getByLabelText(/Monthly budget limit/)).toBeInTheDocument()
     })
@@ -119,9 +119,9 @@ describe("AIConfig", () => {
     it("应该保存配置到 chrome.storage.sync", async () => {
       render(<AIConfig />)
       
-      // 选择 OpenAI
+      // 选择 DeepSeek
       const select = screen.getByLabelText("AI Provider")
-      fireEvent.change(select, { target: { value: "openai" } })
+      fireEvent.change(select, { target: { value: "deepseek" } })
       
       // 输入 API Key
       const apiKeyInput = screen.getByLabelText("API Key")
@@ -213,9 +213,9 @@ describe("AIConfig", () => {
       
       render(<AIConfig />)
       
-      // 选择 Anthropic
+      // 选择 DeepSeek（Anthropic 暂不可用）
       const select = screen.getByLabelText("AI Provider")
-      fireEvent.change(select, { target: { value: "anthropic" } })
+      fireEvent.change(select, { target: { value: "deepseek" } })
       
       // 输入正确格式的 API Key
       const apiKeyInput = screen.getByLabelText("API Key")
@@ -234,9 +234,9 @@ describe("AIConfig", () => {
     it("API Key 格式错误时应该提示", async () => {
       render(<AIConfig />)
       
-      // 选择 OpenAI
+      // 选择 DeepSeek
       const select = screen.getByLabelText("AI Provider")
-      fireEvent.change(select, { target: { value: "openai" } })
+      fireEvent.change(select, { target: { value: "deepseek" } })
       
       // 输入错误格式的 API Key（不以 sk- 开头）
       const apiKeyInput = screen.getByLabelText("API Key")
@@ -256,7 +256,7 @@ describe("AIConfig", () => {
   describe("加载配置", () => {
     it("应该加载已保存的配置", async () => {
       vi.mocked(aiConfigModule.getAIConfig).mockResolvedValue({
-        provider: "openai",
+        provider: "deepseek",
         apiKey: "sk-saved-key",
         enabled: true,
         monthlyBudget: 10
@@ -282,7 +282,7 @@ describe("AIConfig", () => {
   describe("禁用 AI", () => {
     it("应该禁用已配置的 AI", async () => {
       vi.mocked(aiConfigModule.getAIConfig).mockResolvedValue({
-        provider: "openai",
+        provider: "deepseek",
         apiKey: "sk-saved-key",
         enabled: true,
         monthlyBudget: 10
