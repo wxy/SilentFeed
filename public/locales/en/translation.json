@@ -244,7 +244,7 @@
         "alwaysAvailable": "Always available"
       },
       "recommendedLabel": "Recommend",
-      "currentLabel": "Currently",
+      "currentLabel": "Current",
       "hint": {
         "recommendation": "💡 The recommendation system supports 4 types of engines: Remote AI, Inference AI, Local AI, and Pure Keywords.",
         "feed": "💡 Feed analysis supports 3 types of engines: Remote AI, Local AI, and Pure Keywords (does not support inference mode, considering cost and speed factors)"
