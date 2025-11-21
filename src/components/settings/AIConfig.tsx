@@ -37,10 +37,18 @@ export function AIConfig() {
   const [showChromeAIHelp, setShowChromeAIHelp] = useState(false) // Phase 9: Chrome AI 帮助浮层
 
   // 动态获取本地化的提供商选项
-  const getProviderOptions = (): Array<{ value: AIProviderType | ""; label: string; description: string }> => [
+  // 标记未实现的 provider 为 disabled，但仍在列表中展示（带提示）
+  const getProviderOptions = (): Array<{
+    value: AIProviderType | ""
+    label: string
+    description: string
+    disabled?: boolean
+  }> => [
     { value: "", label: _("options.aiConfig.providers.none.label"), description: _("options.aiConfig.providers.none.description") },
-    { value: "openai", label: _("options.aiConfig.providers.openai.label"), description: _("options.aiConfig.providers.openai.description") },
-    { value: "anthropic", label: _("options.aiConfig.providers.anthropic.label"), description: _("options.aiConfig.providers.anthropic.description") },
+    // OpenAI 与 Anthropic 暂未实现，列出但禁用，提示“暂不可用”
+    { value: "openai", label: `${_("options.aiConfig.providers.openai.label")}（暂不可用）`, description: _("options.aiConfig.providers.openai.description"), disabled: true },
+    { value: "anthropic", label: `${_("options.aiConfig.providers.anthropic.label")}（暂不可用）`, description: _("options.aiConfig.providers.anthropic.description"), disabled: true },
+    // DeepSeek 已实现，保持可用
     { value: "deepseek", label: _("options.aiConfig.providers.deepseek.label"), description: _("options.aiConfig.providers.deepseek.description") }
   ]
 
@@ -236,7 +244,7 @@ export function AIConfig() {
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
           {getProviderOptions().map((option) => (
-            <option key={option.value} value={option.value}>
+            <option key={String(option.value)} value={option.value} disabled={option.disabled}>
               {option.label}
             </option>
           ))}
