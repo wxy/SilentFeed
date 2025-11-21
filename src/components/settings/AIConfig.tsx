@@ -45,9 +45,9 @@ export function AIConfig() {
     disabled?: boolean
   }> => [
     { value: "", label: _("options.aiConfig.providers.none.label"), description: _("options.aiConfig.providers.none.description") },
-    // OpenAI 与 Anthropic 暂未实现，列出但禁用，提示“暂不可用”
-    { value: "openai", label: `${_("options.aiConfig.providers.openai.label")}（暂不可用）`, description: _("options.aiConfig.providers.openai.description"), disabled: true },
-    { value: "anthropic", label: `${_("options.aiConfig.providers.anthropic.label")}（暂不可用）`, description: _("options.aiConfig.providers.anthropic.description"), disabled: true },
+    // OpenAI 与 Anthropic 暂未实现，列出但禁用（翻译文件已包含“暂不可用”文案）
+    { value: "openai", label: _("options.aiConfig.providers.openai.label"), description: _("options.aiConfig.providers.openai.description"), disabled: true },
+    { value: "anthropic", label: _("options.aiConfig.providers.anthropic.label"), description: _("options.aiConfig.providers.anthropic.description"), disabled: true },
     // DeepSeek 已实现，保持可用
     { value: "deepseek", label: _("options.aiConfig.providers.deepseek.label"), description: _("options.aiConfig.providers.deepseek.description") }
   ]

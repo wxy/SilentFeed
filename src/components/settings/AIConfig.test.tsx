@@ -99,8 +99,9 @@ describe("AIConfig", () => {
       
       // 选择 DeepSeek
       fireEvent.change(select, { target: { value: "deepseek" } })
-      
-      expect(screen.getByText(/Fast, accurate/)).toBeInTheDocument()
+
+      // DeepSeek 的说明使用人民币计价，包含 "Domestically friendly" 文案
+      expect(screen.getByText(/Domestically friendly/)).toBeInTheDocument()
     })
     
     it("选择 Provider 后应该显示预算控制", () => {
@@ -134,7 +135,7 @@ describe("AIConfig", () => {
       // 等待保存完成
       await waitFor(() => {
         expect(aiConfigModule.saveAIConfig).toHaveBeenCalledWith({
-          provider: "openai",
+          provider: "deepseek",
           apiKey: "sk-test-123456",
           enabled: true,
           monthlyBudget: 5,
@@ -149,9 +150,9 @@ describe("AIConfig", () => {
     it("API Key 为空时保存按钮应该被禁用", async () => {
       render(<AIConfig />)
       
-      // 选择 OpenAI
+      // 选择 DeepSeek
       const select = screen.getByLabelText("AI Provider")
-      fireEvent.change(select, { target: { value: "openai" } })
+      fireEvent.change(select, { target: { value: "deepseek" } })
       
       // 不输入 API Key
       const saveButton = screen.getByText("Save Configuration")
@@ -180,24 +181,22 @@ describe("AIConfig", () => {
       
       render(<AIConfig />)
       
-      // 选择 OpenAI
+      // 选择 OpenAI（已被标为暂不可用）
       const select = screen.getByLabelText("AI Provider")
       fireEvent.change(select, { target: { value: "openai" } })
-      
-      // 输入正确格式的 API Key
+
+      // 输入正确格式的 API Key（但 provider 已禁用，无法测试）
       const apiKeyInput = screen.getByLabelText("API Key")
       fireEvent.change(apiKeyInput, { target: { value: "sk-test-123456" } })
-      
+
       // 点击测试连接
       const testButton = screen.getByText("Test connection")
       fireEvent.click(testButton)
-      
-      // 应该显示连接成功
+
+      // 应该显示提供商暂不可用的错误信息（完整提示文本）
       await waitFor(() => {
-        expect(screen.getByText(/Connection successful!/)).toBeInTheDocument()
+        expect(screen.getByText(/Selected provider is temporarily unavailable/)).toBeInTheDocument()
       })
-      // 检查延迟信息（mock环境中可能是0ms）
-      expect(screen.getByText(/\d+ms/)).toBeInTheDocument()
     })
     
     it("应该验证 Anthropic API Key 格式", async () => {
@@ -267,7 +266,7 @@ describe("AIConfig", () => {
       // 等待配置加载
       await waitFor(() => {
         const select = screen.getByLabelText("AI Provider") as HTMLSelectElement
-        expect(select.value).toBe("openai")
+        expect(select.value).toBe("deepseek")
       })
       
       // 检查 API Key（password 类型看不到值，但输入框应该存在）
