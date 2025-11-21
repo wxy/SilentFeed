@@ -633,11 +633,11 @@
           "description": "仅使用关键词分析，不调用 AI 接口"
         },
         "openai": {
-          "label": "OpenAI (GPT-4o-mini)",
+          "label": "OpenAI (GPT-4o-mini)（暂不可用）",
           "description": "快速、准确、成本适中（$0.15/M 输入, $0.6/M 输出）"
         },
         "anthropic": {
-          "label": "Anthropic (Claude-3-Haiku)",
+          "label": "Anthropic (Claude-3-Haiku)（暂不可用）",
           "description": "高质量、稍贵（$0.25/M 输入, $1.25/M 输出）"
         },
         "deepseek": {

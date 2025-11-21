@@ -483,11 +483,11 @@
           "description": "Only use keyword analysis, without calling AI interfaces."
         },
         "openai": {
-          "label": "OpenAI (GPT-4o-mini)",
+          "label": "OpenAI (GPT-4o-mini) (temporarily unavailable)",
           "description": "Fast, accurate, and cost-effective ($0.15/M input, $0.6/M output)"
         },
         "anthropic": {
-          "label": "Anthropic (Claude-3-Haiku)",
+          "label": "Anthropic (Claude-3-Haiku) (temporarily unavailable)",
           "description": "High quality, slightly expensive ($0.25/M input, $1.25/M output)"
         },
         "deepseek": {
