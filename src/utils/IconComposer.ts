@@ -228,8 +228,8 @@ export class IconComposer {
    */
   private drawRecommendBadge(count: number): void {
     const size = this.canvas.width  // 128px
-    const badgeSize = size * 0.35    // 徽章直径 44.8px (约占图标 1/3)
-    const padding = size * 0.05      // 边距 6.4px
+    const badgeSize = size * 0.42    // 徽章直径 53.76px (增大到 42%)
+    const padding = size * 0.02      // 边距 2.56px (减少边距，向右下偏移)
     const centerX = size - padding - badgeSize / 2
     const centerY = size - padding - badgeSize / 2
     

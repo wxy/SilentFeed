@@ -262,6 +262,14 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
       
       // 刷新统计
       await get().refreshStats()
+      
+      // 通知背景脚本更新图标（更新推荐数字徽章）
+      try {
+        await chrome.runtime.sendMessage({ type: 'RECOMMENDATIONS_DISMISSED' })
+        console.log('[RecommendationStore] 已通知背景脚本更新图标')
+      } catch (messageError) {
+        console.warn('[RecommendationStore] 无法通知背景脚本:', messageError)
+      }
     } catch (error) {
       console.error('[RecommendationStore] 标记不想读失败:', ids, error)
       set({
