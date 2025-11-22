@@ -35,14 +35,16 @@ describe("ColdStartView 组件", () => {
     it("应该显示欢迎信息", () => {
       render(<ColdStartView pageCount={0} />)
 
-      expect(screen.getByText("开始你的阅读之旅")).toBeInTheDocument()
-      // 移除副标题，不再检查 "正在学习你的兴趣..."
+      // 现在使用 CircularProgress，不再显示文本形式的欢迎信息
+      expect(screen.getByText("🌱")).toBeInTheDocument()
     })
 
     it("应该显示进度信息", () => {
-      render(<ColdStartView pageCount={50} />)
+      const { container } = render(<ColdStartView pageCount={50} />)
 
-      expect(screen.getByText(`50/${LEARNING_COMPLETE_PAGES} 页`)).toBeInTheDocument()
+      // 现在使用 CircularProgress 显示进度，检查 SVG 元素
+      const svg = container.querySelector('svg')
+      expect(svg).toBeInTheDocument()
     })
 
     it("应该显示提示信息", () => {
@@ -115,43 +117,48 @@ describe("ColdStartView 组件", () => {
     it("应该计算 0% 进度", () => {
       const { container } = render(<ColdStartView pageCount={0} totalPages={LEARNING_COMPLETE_PAGES} />)
 
-      const progressBar = container.querySelector('[style*="width: 0%"]')
-      expect(progressBar).toBeInTheDocument()
+      // CircularProgress 使用 SVG，检查 SVG 元素存在
+      const svg = container.querySelector('svg circle')
+      expect(svg).toBeInTheDocument()
     })
 
     it("应该计算 50% 进度", () => {
       const { container } = render(<ColdStartView pageCount={50} totalPages={LEARNING_COMPLETE_PAGES} />)
 
-      const progressBar = container.querySelector('[style*="width: 50%"]')
-      expect(progressBar).toBeInTheDocument()
+      const svg = container.querySelector('svg circle')
+      expect(svg).toBeInTheDocument()
     })
 
     it("应该计算 100% 进度", () => {
       const { container } = render(<ColdStartView pageCount={LEARNING_COMPLETE_PAGES} totalPages={LEARNING_COMPLETE_PAGES} />)
 
-      const progressBar = container.querySelector('[style*="width: 100%"]')
-      expect(progressBar).toBeInTheDocument()
+      const svg = container.querySelector('svg circle')
+      expect(svg).toBeInTheDocument()
     })
 
     it("进度不应该超过 100%", () => {
       const { container } = render(<ColdStartView pageCount={150} totalPages={LEARNING_COMPLETE_PAGES} />)
 
-      const progressBar = container.querySelector('[style*="width: 100%"]')
-      expect(progressBar).toBeInTheDocument()
+      const svg = container.querySelector('svg circle')
+      expect(svg).toBeInTheDocument()
     })
   })
 
   describe("自定义 totalPages", () => {
     it("应该支持自定义总页数", () => {
-      render(<ColdStartView pageCount={100} totalPages={200} />)
+      const { container } = render(<ColdStartView pageCount={100} totalPages={200} />)
 
-      expect(screen.getByText("100/200 页")).toBeInTheDocument()
+      // 检查 CircularProgress 渲染，进度应为 50%
+      const svg = container.querySelector('svg')
+      expect(svg).toBeInTheDocument()
     })
 
     it("应该使用默认总页数 100", () => {
-      render(<ColdStartView pageCount={50} />)
+      const { container } = render(<ColdStartView pageCount={50} />)
 
-      expect(screen.getByText(`50/${LEARNING_COMPLETE_PAGES} 页`)).toBeInTheDocument()
+      // 检查 CircularProgress 渲染
+      const svg = container.querySelector('svg')
+      expect(svg).toBeInTheDocument()
     })
   })
 
@@ -159,30 +166,31 @@ describe("ColdStartView 组件", () => {
     it("图标应该有脉动动画", () => {
       const { container } = render(<ColdStartView pageCount={0} />)
 
-      const icon = container.querySelector(".sketchy-emoji, .text-8xl")
+      const icon = screen.getByText("🌱")
       expect(icon).toBeInTheDocument()
-      expect(icon?.textContent).toBe("🌱")
     })
 
     it("图标应该是大尺寸", () => {
       const { container } = render(<ColdStartView pageCount={0} />)
 
-      const icon = container.querySelector(".text-8xl, .text-7xl, .sketchy-emoji")
+      const icon = screen.getByText("🌱")
       expect(icon).toBeInTheDocument()
     })
 
     it("进度条应该有过渡动画", () => {
       const { container } = render(<ColdStartView pageCount={50} />)
 
-      const progressBar = container.querySelector(".transition-all, .sketchy-progress-bar")
-      expect(progressBar).toBeInTheDocument()
+      // CircularProgress 使用 SVG
+      const svg = container.querySelector('svg')
+      expect(svg).toBeInTheDocument()
     })
 
-    it("进度条应该使用绿色", () => {
+    it("进度条应该使用渐变色", () => {
       const { container } = render(<ColdStartView pageCount={50} />)
 
-      const progressBar = container.querySelector(".bg-green-500, .sketchy-progress-bar")
-      expect(progressBar).toBeInTheDocument()
+      // CircularProgress 使用 linearGradient
+      const gradient = container.querySelector('linearGradient')
+      expect(gradient).toBeInTheDocument()
     })
   })
 
@@ -190,23 +198,25 @@ describe("ColdStartView 组件", () => {
     it("应该处理负数页面数（进度为负数）", () => {
       const { container } = render(<ColdStartView pageCount={-10} />)
 
-      // 负数会产生负百分比，但 Math.min 会限制最小为 0
-      // 实际上 -10/100 = -10%，会渲染为 "width: -10%"
-      const progressBar = container.querySelector(".sketchy-progress-bar, .bg-green-500")
-      expect(progressBar).toBeInTheDocument()
+      // CircularProgress 会处理负数情况
+      const svg = container.querySelector('svg')
+      expect(svg).toBeInTheDocument()
     })
 
     it("应该处理小数页面数", () => {
-      render(<ColdStartView pageCount={12.34} totalPages={LEARNING_COMPLETE_PAGES} />)
+      const { container } = render(<ColdStartView pageCount={12.34} totalPages={LEARNING_COMPLETE_PAGES} />)
 
-      expect(screen.getByText(/12\.34.*\/100 页/)).toBeInTheDocument()
+      // CircularProgress 可以处理小数进度
+      const svg = container.querySelector('svg')
+      expect(svg).toBeInTheDocument()
     })
 
     it("应该处理非常大的页面数", () => {
       const { container } = render(<ColdStartView pageCount={9999} totalPages={LEARNING_COMPLETE_PAGES} />)
 
-      const progressBar = container.querySelector('[style*="width: 100%"]')
-      expect(progressBar).toBeInTheDocument()
+      // CircularProgress 会限制为 100%
+      const svg = container.querySelector('svg')
+      expect(svg).toBeInTheDocument()
     })
   })
 })

@@ -76,6 +76,10 @@ vi.mock("@/core/recommender/adaptive-count", () => ({
   })
 }))
 
+vi.mock("@/storage/db", () => ({
+  getPageCount: vi.fn().mockResolvedValue(50)
+}))
+
 vi.mock("@/utils/analysis-engine-capability", () => ({
   checkEngineCapability: vi.fn().mockImplementation((engine: string) => {
     return Promise.resolve({
