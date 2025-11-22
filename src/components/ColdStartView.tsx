@@ -122,8 +122,8 @@ export function ColdStartView({ pageCount, totalPages = LEARNING_COMPLETE_PAGES,
           {_(`popup.stage.${stage.name}`)}
         </span>
       ) : (
-        <div className="px-4 py-1.5 rounded-full bg-gradient-to-r from-indigo-500/10 to-green-500/10 backdrop-blur-sm border border-indigo-200/50 dark:border-indigo-700/30">
-          <span className="text-sm font-semibold bg-gradient-to-r from-indigo-600 to-green-600 dark:from-indigo-400 dark:to-green-400 bg-clip-text text-transparent">
+        <div className="px-4 py-1.5 rounded-full bg-gradient-to-r from-indigo-500/10 to-cyan-500/10 backdrop-blur-sm border border-indigo-200/50 dark:border-indigo-700/30">
+          <span className="text-sm font-semibold bg-gradient-to-r from-indigo-600 to-cyan-600 dark:from-indigo-400 dark:to-cyan-400 bg-clip-text text-transparent">
             {_(`popup.stage.${stage.name}`)}
           </span>
         </div>

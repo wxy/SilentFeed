@@ -2,7 +2,7 @@
  * 环形进度条组件
  * 
  * 特点：
- * - 渐变色进度圈（靛蓝→翠绿）
+ * - 渐变色进度圈（靛青→青色）
  * - 中心显示图标和数字
  * - 平滑动画过渡
  * - 支持深色模式
@@ -43,12 +43,12 @@ export function CircularProgress({
         width={size}
         height={size}
       >
-        {/* 渐变定义 */}
+        {/* 渐变定义 - 靛青到青色 */}
         <defs>
           <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" className="text-indigo-500" stopColor="currentColor" />
-            <stop offset="50%" className="text-purple-500" stopColor="currentColor" />
-            <stop offset="100%" className="text-green-500" stopColor="currentColor" />
+            <stop offset="50%" className="text-cyan-500" stopColor="currentColor" />
+            <stop offset="100%" className="text-teal-400" stopColor="currentColor" />
           </linearGradient>
           
           {/* 发光滤镜 */}

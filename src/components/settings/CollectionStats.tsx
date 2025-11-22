@@ -434,7 +434,7 @@ export function CollectionStats() {
             <div className="text-sm text-indigo-600 dark:text-indigo-400 mb-1">
               {_("options.collectionStats.totalCostLabel")}
             </div>
-            <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">
+            <div className="text-2xl font-bold text-indigo-900 dark:text-indigo-100">
               {aiQualityStats ? (
                 <div className="space-y-0.5">
                   {aiQualityStats.totalCostUSD > 0 && (
@@ -512,7 +512,7 @@ export function CollectionStats() {
 
         {/* AI 成本按提供商分布（仅在有成本数据时显示） */}
         {aiQualityStats && aiQualityStats.providerCostDistribution && aiQualityStats.providerCostDistribution.length > 0 && (
-          <div className="mt-4 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-4 border border-indigo-200 dark:border-indigo-700">
+          <div className="mt-4 bg-gradient-to-br from-indigo-50/80 to-cyan-50/80 dark:from-indigo-900/20 dark:to-cyan-900/20 rounded-lg p-4 border border-indigo-200 dark:border-indigo-700">
             <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
               <span>💰</span>
               <span>{_("options.collectionStats.providerCostDistributionTitle")}</span>
@@ -763,7 +763,7 @@ export function CollectionStats() {
                         </div>
                         <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
                           <div
-                            className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full transition-all"
+                            className="bg-gradient-to-r from-indigo-500 to-cyan-500 h-2 rounded-full transition-all"
                             style={{ width: `${Math.min(100, item.readRate)}%` }}
                           />
                         </div>

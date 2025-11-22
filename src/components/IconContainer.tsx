@@ -34,12 +34,12 @@ export function IconContainer({
   
   return (
     <div className={`relative ${className}`}>
-      {/* 背景光晕 - 双层渐变 */}
+      {/* 背景光晕 - 双层渐变（靛青→青色） */}
       <div 
         className={`
           absolute inset-0 
-          bg-gradient-to-br from-indigo-200 via-purple-200 to-green-200
-          dark:from-indigo-900/40 dark:via-purple-900/40 dark:to-green-900/40
+          bg-gradient-to-br from-indigo-200 via-cyan-200 to-teal-200
+          dark:from-indigo-900/40 dark:via-cyan-900/40 dark:to-teal-900/40
           rounded-3xl blur-2xl opacity-60
           ${pulse ? 'animate-pulse-glow' : ''}
         `}
@@ -47,7 +47,7 @@ export function IconContainer({
       
       {/* 外层光环（脉冲动画） */}
       {pulse && (
-        <div className="absolute -inset-2 rounded-3xl bg-gradient-to-br from-indigo-400/30 to-green-400/30 animate-ping" />
+        <div className="absolute -inset-2 rounded-3xl bg-gradient-to-br from-indigo-400/30 to-cyan-400/30 animate-ping" />
       )}
       
       {/* 图标主体 - 玻璃拟态 */}
