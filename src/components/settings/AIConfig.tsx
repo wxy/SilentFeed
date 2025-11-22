@@ -353,7 +353,7 @@ export function AIConfig() {
             <button
               onClick={handleTest}
               disabled={!apiKey || isTesting || isSaving}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
               {isTesting ? _("options.aiConfig.buttons.testing") : _("options.aiConfig.buttons.test")}
             </button>

@@ -250,7 +250,7 @@ export function RecommendationView() {
                 await generateRecommendations()
                 await loadRecommendations()
               }}
-              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded-lg transition-colors mb-3"
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs rounded-lg transition-colors mb-3"
               disabled={isLoading}
             >
               {isLoading ? _("popup.generating") : `🤖 ${_("popup.generateNow")}`}

@@ -83,7 +83,7 @@ function IndexPopup() {
   // 弹窗高度根据内容动态计算，无固定高度，无滚动条
   const containerClass = isSketchyStyle 
     ? "sketchy-container sketchy-paper-texture w-80 flex flex-col"
-    : "w-80 flex flex-col p-4 bg-white dark:bg-gray-900"
+    : "w-80 flex flex-col p-4 bg-gradient-to-br from-slate-50/95 to-indigo-50/80 dark:from-gray-900 dark:to-indigo-950/30"
 
   // 加载中状态
   if (isLoading) {
@@ -159,7 +159,7 @@ function IndexPopup() {
           <div className={isSketchyStyle ? "px-6 pb-4" : "mt-4"}>
             <button
               onClick={openSettings}
-              className={isSketchyStyle ? "sketchy-button w-full" : "w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"}
+              className={isSketchyStyle ? "sketchy-button w-full" : "w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"}
             >
               ⚙️ {_("popup.settings")}
             </button>

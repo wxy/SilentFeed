@@ -122,7 +122,7 @@ function IndexOptions() {
 
   return (
     <ErrorBoundary>
-      <div className={isSketchyStyle ? "min-h-screen sketchy-container sketchy-paper-texture text-gray-900 dark:text-gray-100" : "min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/20 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900 text-gray-900 dark:text-gray-100"} lang={currentLang}>
+      <div className={isSketchyStyle ? "min-h-screen sketchy-container sketchy-paper-texture text-gray-900 dark:text-gray-100" : "min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/30 to-cyan-50/20 dark:from-gray-900 dark:via-indigo-950/20 dark:to-cyan-950/10 text-gray-900 dark:text-gray-100"} lang={currentLang}>
         {/* SVG 滤镜定义 */}
         {isSketchyStyle && (
           <svg className="sketchy-svg-filters" xmlns="http://www.w3.org/2000/svg">
@@ -144,7 +144,7 @@ function IndexOptions() {
         {/* 头部 */}
         <div className={isSketchyStyle ? "border-b border-gray-200 dark:border-gray-700 px-6 py-4" : "bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-700/50 shadow-sm"}>
           <div className="max-w-6xl mx-auto px-6 py-6">
-            <h1 className={isSketchyStyle ? "sketchy-title text-3xl" : "text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent"}>{_("app.name")}</h1>
+            <h1 className={isSketchyStyle ? "sketchy-title text-3xl" : "text-2xl font-bold bg-gradient-to-r from-indigo-600 to-cyan-600 dark:from-indigo-400 dark:to-cyan-400 bg-clip-text text-transparent"}>{_("app.name")}</h1>
             <p className={isSketchyStyle ? "sketchy-text mt-2" : "text-sm text-gray-600 dark:text-gray-400 mt-2"}>
               {_("options.title")}
             </p>
@@ -162,7 +162,7 @@ function IndexOptions() {
                   const baseClass = "w-full px-4 py-3 text-left text-sm font-medium transition-all duration-200 flex items-center gap-3"
                   const activeClass = isSketchyStyle 
                     ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200" 
-                    : "bg-gradient-to-r from-indigo-500 to-purple-500 text-white dark:from-indigo-600 dark:to-purple-600 shadow-md"
+                    : "bg-gradient-to-r from-indigo-500 to-cyan-500 text-white dark:from-indigo-600 dark:to-cyan-600 shadow-md"
                   const inactiveClass = isSketchyStyle
                     ? "hover:bg-gray-50 dark:hover:bg-gray-800 border-b border-gray-200 dark:border-gray-700 last:border-b-0"
                     : "hover:bg-gray-100/80 dark:hover:bg-gray-700/80 border-b border-gray-200/30 dark:border-gray-700/30 last:border-b-0"
@@ -187,7 +187,7 @@ function IndexOptions() {
               {/* 偏好设置 - Phase 8 */}
               {activeTab === "preferences" && (
                 <div className={isSketchyStyle ? "sketchy-card p-6" : "bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg"}>
-                  <h2 className={isSketchyStyle ? "sketchy-title text-xl mb-2" : "text-lg font-semibold mb-2 bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent"}>
+                  <h2 className={isSketchyStyle ? "sketchy-title text-xl mb-2" : "text-lg font-semibold mb-2 bg-gradient-to-r from-indigo-600 to-cyan-600 dark:from-indigo-400 dark:to-cyan-400 bg-clip-text text-transparent"}>
                     {_("options.general.preferencesTitle")}
                   </h2>
                   <p className={isSketchyStyle ? "sketchy-text mb-6" : "text-sm text-gray-600 dark:text-gray-400 mb-6"}>
@@ -281,7 +281,7 @@ function IndexOptions() {
               {/* 分析配置 - Phase 9: 推荐引擎 + 分析引擎 */}
               {activeTab === "analysis" && (
                 <div className={isSketchyStyle ? "sketchy-card p-6" : "bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg"}>
-                  <h2 className="text-lg font-semibold mb-4 bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent">
+                  <h2 className="text-lg font-semibold mb-4 bg-gradient-to-r from-indigo-600 to-cyan-600 dark:from-indigo-400 dark:to-cyan-400 bg-clip-text text-transparent">
                     {_("options.tabs.analysis")}
                   </h2>
                   <AnalysisSettings />

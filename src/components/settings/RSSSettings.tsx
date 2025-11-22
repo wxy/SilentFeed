@@ -1073,7 +1073,7 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
             <button
               onClick={handleManualAdd}
               disabled={isManualAdding || !manualUrl.trim()}
-              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded-md transition-colors"
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded-md transition-colors"
             >
               {isManualAdding ? _('options.rssManager.subscribing') : _('options.rssManager.subscribe')}
             </button>
@@ -1123,7 +1123,7 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
             <button
               onClick={handleExportOPML}
               disabled={subscribedFeeds.length === 0}
-              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded-md transition-colors flex items-center gap-1"
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded-md transition-colors flex items-center gap-1"
               title={subscribedFeeds.length === 0 ? _('options.rssManager.noSubscribedFeeds') : ''}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1189,7 +1189,7 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
             <button
               onClick={handleFetchAllFeeds}
               disabled={isFetchingAll || fetchCompleted.all}
-              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white text-sm rounded-lg transition-colors"
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white text-sm rounded-lg transition-colors"
             >
               {isFetchingAll 
                 ? _('options.rssManager.actions.fetchingAll') 
@@ -1218,7 +1218,7 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                 onClick: () => handleToggleActive(feed.id),
                 className: feed.isActive 
                   ? 'bg-gray-400 hover:bg-gray-500'
-                  : 'bg-blue-500 hover:bg-blue-600',
+                  : 'bg-indigo-600 hover:bg-indigo-700',
                 row: 2
               },
               {

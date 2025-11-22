@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Silent Feed - 主题配色预览</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    .theme-card {
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .theme-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 24px rgba(0,0,0,0.15);
+    }
+  </style>
+</head>
+<body class="bg-gray-100 p-8">
+  <div class="max-w-7xl mx-auto">
+    <h1 class="text-4xl font-bold text-gray-800 mb-2 text-center">🎨 Silent Feed 主题配色方案</h1>
+    <p class="text-gray-600 text-center mb-8">点击卡片可以全屏预览效果</p>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      
+      <!-- 1. 当前蓝绿 -->
+      <div class="theme-card bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer" onclick="showFullPreview('blue-green')">
+        <div class="h-32 bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/20 flex items-center justify-center">
+          <div class="text-center">
+            <div class="text-2xl mb-2">🌊</div>
+            <div class="text-sm font-medium text-gray-700">当前方案</div>
+          </div>
+        </div>
+        <div class="p-4">
+          <h3 class="font-bold text-lg mb-2">蓝绿渐变 (Blue-Green)</h3>
+          <p class="text-sm text-gray-600 mb-3">冷静、专注、科技感</p>
+          <div class="flex gap-2 mb-3">
+            <div class="flex-1 h-8 bg-blue-500 rounded"></div>
+            <div class="flex-1 h-8 bg-purple-600 rounded"></div>
+          </div>
+          <div class="flex gap-1">
+            <div class="w-8 h-8 bg-gray-50 rounded border"></div>
+            <div class="w-8 h-8 bg-blue-50 rounded border"></div>
+            <div class="w-8 h-8 bg-purple-50 rounded border"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. 紫粉渐变 -->
+      <div class="theme-card bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer" onclick="showFullPreview('purple-pink')">
+        <div class="h-32 bg-gradient-to-br from-purple-50 via-pink-50/30 to-purple-50/20 flex items-center justify-center">
+          <div class="text-center">
+            <div class="text-2xl mb-2">💜</div>
+            <div class="text-sm font-medium text-purple-700">优雅现代</div>
+          </div>
+        </div>
+        <div class="p-4">
+          <h3 class="font-bold text-lg mb-2">紫粉渐变 (Purple-Pink)</h3>
+          <p class="text-sm text-gray-600 mb-3">温暖优雅、创新想象</p>
+          <div class="flex gap-2 mb-3">
+            <div class="flex-1 h-8 bg-purple-500 rounded"></div>
+            <div class="flex-1 h-8 bg-pink-600 rounded"></div>
+          </div>
+          <div class="flex gap-1">
+            <div class="w-8 h-8 bg-purple-50 rounded border"></div>
+            <div class="w-8 h-8 bg-pink-50 rounded border"></div>
+            <div class="w-8 h-8 bg-purple-100 rounded border"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. 靛青-青色 -->
+      <div class="theme-card bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer" onclick="showFullPreview('indigo-cyan')">
+        <div class="h-32 bg-gradient-to-br from-slate-50 via-indigo-50/30 to-cyan-50/20 flex items-center justify-center">
+          <div class="text-center">
+            <div class="text-2xl mb-2">📘</div>
+            <div class="text-sm font-medium text-indigo-700">推荐</div>
+          </div>
+        </div>
+        <div class="p-4">
+          <h3 class="font-bold text-lg mb-2">靛青-青色 (Indigo-Cyan)</h3>
+          <p class="text-sm text-gray-600 mb-3">深邃智慧、书卷气息</p>
+          <div class="flex gap-2 mb-3">
+            <div class="flex-1 h-8 bg-indigo-600 rounded"></div>
+            <div class="flex-1 h-8 bg-cyan-600 rounded"></div>
+          </div>
+          <div class="flex gap-1">
+            <div class="w-8 h-8 bg-slate-50 rounded border"></div>
+            <div class="w-8 h-8 bg-indigo-50 rounded border"></div>
+            <div class="w-8 h-8 bg-cyan-50 rounded border"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. 薰衣草-紫罗兰 -->
+      <div class="theme-card bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer" onclick="showFullPreview('lavender-violet')">
+        <div class="h-32 bg-gradient-to-br from-violet-50/50 via-purple-50/30 to-violet-50/20 flex items-center justify-center">
+          <div class="text-center">
+            <div class="text-2xl mb-2">🌸</div>
+            <div class="text-sm font-medium text-violet-700">推荐</div>
+          </div>
+        </div>
+        <div class="p-4">
+          <h3 class="font-bold text-lg mb-2">薰衣草-紫罗兰 (Lavender-Violet)</h3>
+          <p class="text-sm text-gray-600 mb-3">柔和宁静、最护眼</p>
+          <div class="flex gap-2 mb-3">
+            <div class="flex-1 h-8 bg-violet-500 rounded"></div>
+            <div class="flex-1 h-8 bg-purple-500 rounded"></div>
+          </div>
+          <div class="flex gap-1">
+            <div class="w-8 h-8 bg-violet-50 rounded border"></div>
+            <div class="w-8 h-8 bg-purple-50 rounded border"></div>
+            <div class="w-8 h-8 bg-violet-100 rounded border"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. 翠绿-青绿 -->
+      <div class="theme-card bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer" onclick="showFullPreview('emerald-teal')">
+        <div class="h-32 bg-gradient-to-br from-emerald-50 via-teal-50/30 to-green-50/20 flex items-center justify-center">
+          <div class="text-center">
+            <div class="text-2xl mb-2">🌿</div>
+            <div class="text-sm font-medium text-emerald-700">推荐</div>
+          </div>
+        </div>
+        <div class="p-4">
+          <h3 class="font-bold text-lg mb-2">翠绿-青绿 (Emerald-Teal)</h3>
+          <p class="text-sm text-gray-600 mb-3">自然清新、护眼平静</p>
+          <div class="flex gap-2 mb-3">
+            <div class="flex-1 h-8 bg-emerald-500 rounded"></div>
+            <div class="flex-1 h-8 bg-teal-600 rounded"></div>
+          </div>
+          <div class="flex gap-1">
+            <div class="w-8 h-8 bg-emerald-50 rounded border"></div>
+            <div class="w-8 h-8 bg-teal-50 rounded border"></div>
+            <div class="w-8 h-8 bg-green-50 rounded border"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6. 琥珀-橙 -->
+      <div class="theme-card bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer" onclick="showFullPreview('amber-orange')">
+        <div class="h-32 bg-gradient-to-br from-amber-50 via-orange-50/30 to-yellow-50/20 flex items-center justify-center">
+          <div class="text-center">
+            <div class="text-2xl mb-2">🔆</div>
+            <div class="text-sm font-medium text-amber-700">温暖知性</div>
+          </div>
+        </div>
+        <div class="p-4">
+          <h3 class="font-bold text-lg mb-2">琥珀-橙 (Amber-Orange)</h3>
+          <p class="text-sm text-gray-600 mb-3">温暖知性、人文气息</p>
+          <div class="flex gap-2 mb-3">
+            <div class="flex-1 h-8 bg-amber-500 rounded"></div>
+            <div class="flex-1 h-8 bg-orange-600 rounded"></div>
+          </div>
+          <div class="flex gap-1">
+            <div class="w-8 h-8 bg-amber-50 rounded border"></div>
+            <div class="w-8 h-8 bg-orange-50 rounded border"></div>
+            <div class="w-8 h-8 bg-yellow-50 rounded border"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7. 石墨-灰 -->
+      <div class="theme-card bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer" onclick="showFullPreview('slate-gray')">
+        <div class="h-32 bg-gradient-to-br from-gray-50 via-slate-50/30 to-zinc-50/20 flex items-center justify-center">
+          <div class="text-center">
+            <div class="text-2xl mb-2">⚫</div>
+            <div class="text-sm font-medium text-gray-700">极简主义</div>
+          </div>
+        </div>
+        <div class="p-4">
+          <h3 class="font-bold text-lg mb-2">石墨-灰 (Slate-Gray)</h3>
+          <p class="text-sm text-gray-600 mb-3">中性克制、最不干扰</p>
+          <div class="flex gap-2 mb-3">
+            <div class="flex-1 h-8 bg-gray-700 rounded"></div>
+            <div class="flex-1 h-8 bg-slate-800 rounded"></div>
+          </div>
+          <div class="flex gap-1">
+            <div class="w-8 h-8 bg-gray-50 rounded border"></div>
+            <div class="w-8 h-8 bg-slate-50 rounded border"></div>
+            <div class="w-8 h-8 bg-zinc-50 rounded border"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 8. 海蓝-天蓝 -->
+      <div class="theme-card bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer" onclick="showFullPreview('sky-blue')">
+        <div class="h-32 bg-gradient-to-br from-sky-50 via-blue-50/30 to-cyan-50/20 flex items-center justify-center">
+          <div class="text-center">
+            <div class="text-2xl mb-2">☁️</div>
+            <div class="text-sm font-medium text-sky-700">清澈明朗</div>
+          </div>
+        </div>
+        <div class="p-4">
+          <h3 class="font-bold text-lg mb-2">海蓝-天蓝 (Sky-Blue)</h3>
+          <p class="text-sm text-gray-600 mb-3">清澈开阔、空间感强</p>
+          <div class="flex gap-2 mb-3">
+            <div class="flex-1 h-8 bg-sky-500 rounded"></div>
+            <div class="flex-1 h-8 bg-blue-600 rounded"></div>
+          </div>
+          <div class="flex gap-1">
+            <div class="w-8 h-8 bg-sky-50 rounded border"></div>
+            <div class="w-8 h-8 bg-blue-50 rounded border"></div>
+            <div class="w-8 h-8 bg-cyan-50 rounded border"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 全屏预览模态框 -->
+  <div id="fullPreview" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50" onclick="closeFullPreview()">
+    <div class="w-full h-full p-8" onclick="event.stopPropagation()">
+      <div class="relative h-full rounded-2xl shadow-2xl overflow-hidden" id="previewContent">
+        <!-- 动态内容将在这里插入 -->
+      </div>
+      <button onclick="closeFullPreview()" class="absolute top-12 right-12 text-white bg-black/30 hover:bg-black/50 rounded-full p-3 transition-colors">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const themes = {
+      'blue-green': {
+        bg: 'bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/20',
+        primary: 'bg-blue-500',
+        secondary: 'bg-purple-600',
+        name: '蓝绿渐变',
+        emoji: '🌊'
+      },
+      'purple-pink': {
+        bg: 'bg-gradient-to-br from-purple-50 via-pink-50/30 to-purple-50/20',
+        primary: 'bg-purple-500',
+        secondary: 'bg-pink-600',
+        name: '紫粉渐变',
+        emoji: '💜'
+      },
+      'indigo-cyan': {
+        bg: 'bg-gradient-to-br from-slate-50 via-indigo-50/30 to-cyan-50/20',
+        primary: 'bg-indigo-600',
+        secondary: 'bg-cyan-600',
+        name: '靛青-青色',
+        emoji: '📘'
+      },
+      'lavender-violet': {
+        bg: 'bg-gradient-to-br from-violet-50/50 via-purple-50/30 to-violet-50/20',
+        primary: 'bg-violet-500',
+        secondary: 'bg-purple-500',
+        name: '薰衣草-紫罗兰',
+        emoji: '🌸'
+      },
+      'emerald-teal': {
+        bg: 'bg-gradient-to-br from-emerald-50 via-teal-50/30 to-green-50/20',
+        primary: 'bg-emerald-500',
+        secondary: 'bg-teal-600',
+        name: '翠绿-青绿',
+        emoji: '🌿'
+      },
+      'amber-orange': {
+        bg: 'bg-gradient-to-br from-amber-50 via-orange-50/30 to-yellow-50/20',
+        primary: 'bg-amber-500',
+        secondary: 'bg-orange-600',
+        name: '琥珀-橙',
+        emoji: '🔆'
+      },
+      'slate-gray': {
+        bg: 'bg-gradient-to-br from-gray-50 via-slate-50/30 to-zinc-50/20',
+        primary: 'bg-gray-700',
+        secondary: 'bg-slate-800',
+        name: '石墨-灰',
+        emoji: '⚫'
+      },
+      'sky-blue': {
+        bg: 'bg-gradient-to-br from-sky-50 via-blue-50/30 to-cyan-50/20',
+        primary: 'bg-sky-500',
+        secondary: 'bg-blue-600',
+        name: '海蓝-天蓝',
+        emoji: '☁️'
+      }
+    };
+
+    function showFullPreview(themeKey) {
+      const theme = themes[themeKey];
+      const modal = document.getElementById('fullPreview');
+      const content = document.getElementById('previewContent');
+      
+      content.className = `relative h-full ${theme.bg}`;
+      content.innerHTML = `
+        <div class="h-full flex flex-col p-12">
+          <!-- 顶部导航栏 -->
+          <div class="flex items-center justify-between mb-8">
+            <div class="flex items-center gap-4">
+              <div class="text-4xl">${theme.emoji}</div>
+              <div>
+                <h1 class="text-3xl font-bold text-gray-800">Silent Feed</h1>
+                <p class="text-sm text-gray-600">${theme.name}</p>
+              </div>
+            </div>
+            <div class="flex gap-3">
+              <button class="${theme.primary} text-white px-6 py-2 rounded-lg shadow-md hover:opacity-90 transition-opacity">
+                主要按钮
+              </button>
+              <button class="${theme.secondary} text-white px-6 py-2 rounded-lg shadow-md hover:opacity-90 transition-opacity">
+                次要按钮
+              </button>
+            </div>
+          </div>
+
+          <!-- 主内容区域 -->
+          <div class="flex-1 grid grid-cols-3 gap-6 overflow-hidden">
+            <!-- 卡片1 -->
+            <div class="bg-white/60 backdrop-blur-md rounded-xl border border-gray-200/50 shadow-lg p-6">
+              <div class="flex items-center gap-3 mb-4">
+                <div class="${theme.primary} w-12 h-12 rounded-lg flex items-center justify-center text-white text-xl">
+                  📊
+                </div>
+                <div>
+                  <h3 class="font-bold text-lg">数据统计</h3>
+                  <p class="text-sm text-gray-600">实时更新</p>
+                </div>
+              </div>
+              <div class="space-y-3">
+                <div class="flex justify-between items-center">
+                  <span class="text-gray-600">已分析页面</span>
+                  <span class="font-bold text-gray-800">156</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                  <div class="${theme.primary} h-2 rounded-full" style="width: 75%"></div>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-gray-600">推荐命中率</span>
+                  <span class="font-bold text-gray-800">82%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                  <div class="${theme.secondary} h-2 rounded-full" style="width: 82%"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 卡片2 -->
+            <div class="bg-white/60 backdrop-blur-md rounded-xl border border-gray-200/50 shadow-lg p-6">
+              <h3 class="font-bold text-lg mb-4">推荐内容</h3>
+              <div class="space-y-3">
+                <div class="p-3 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+                  <div class="flex items-start gap-2">
+                    <div class="${theme.primary} w-2 h-2 rounded-full mt-2"></div>
+                    <div class="flex-1">
+                      <h4 class="font-medium text-sm text-gray-800 mb-1">精选文章标题示例</h4>
+                      <p class="text-xs text-gray-600">这是一段简短的摘要内容...</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="p-3 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+                  <div class="flex items-start gap-2">
+                    <div class="${theme.secondary} w-2 h-2 rounded-full mt-2"></div>
+                    <div class="flex-1">
+                      <h4 class="font-medium text-sm text-gray-800 mb-1">另一篇推荐内容</h4>
+                      <p class="text-xs text-gray-600">根据您的兴趣智能推荐...</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="p-3 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+                  <div class="flex items-start gap-2">
+                    <div class="${theme.primary} w-2 h-2 rounded-full mt-2"></div>
+                    <div class="flex-1">
+                      <h4 class="font-medium text-sm text-gray-800 mb-1">第三条推荐</h4>
+                      <p class="text-xs text-gray-600">深度学习匹配您的偏好...</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 卡片3 -->
+            <div class="bg-white/60 backdrop-blur-md rounded-xl border border-gray-200/50 shadow-lg p-6">
+              <h3 class="font-bold text-lg mb-4">兴趣画像</h3>
+              <div class="space-y-4">
+                <div>
+                  <div class="flex justify-between mb-1">
+                    <span class="text-sm text-gray-600">技术</span>
+                    <span class="text-sm font-medium">85%</span>
+                  </div>
+                  <div class="w-full bg-gray-200 rounded-full h-3">
+                    <div class="${theme.primary} h-3 rounded-full" style="width: 85%"></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="flex justify-between mb-1">
+                    <span class="text-sm text-gray-600">设计</span>
+                    <span class="text-sm font-medium">65%</span>
+                  </div>
+                  <div class="w-full bg-gray-200 rounded-full h-3">
+                    <div class="${theme.secondary} h-3 rounded-full" style="width: 65%"></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="flex justify-between mb-1">
+                    <span class="text-sm text-gray-600">商业</span>
+                    <span class="text-sm font-medium">45%</span>
+                  </div>
+                  <div class="w-full bg-gray-200 rounded-full h-3">
+                    <div class="${theme.primary} h-3 rounded-full" style="width: 45%"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-6 pt-4 border-t border-gray-200">
+                <div class="flex gap-2 flex-wrap">
+                  <span class="${theme.primary} text-white text-xs px-3 py-1 rounded-full">React</span>
+                  <span class="${theme.secondary} text-white text-xs px-3 py-1 rounded-full">TypeScript</span>
+                  <span class="${theme.primary} text-white text-xs px-3 py-1 rounded-full">UI/UX</span>
+                  <span class="${theme.secondary} text-white text-xs px-3 py-1 rounded-full">AI</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 底部信息 -->
+          <div class="mt-8 text-center">
+            <p class="text-gray-600 text-sm">点击空白处关闭预览 • 选择你喜欢的配色方案</p>
+          </div>
+        </div>
+      `;
+      
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeFullPreview() {
+      const modal = document.getElementById('fullPreview');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    // ESC键关闭
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeFullPreview();
+      }
+    });
+  </script>
+</body>
+</html>
