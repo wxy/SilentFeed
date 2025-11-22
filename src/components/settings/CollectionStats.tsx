@@ -103,8 +103,8 @@ export function CollectionStats() {
         // 设置 AI 配置状态
         setAiConfigStatus({
           enabled: aiConfig.enabled,
-          provider: getProviderDisplayName(aiConfig.provider),
-          configured: aiConfig.enabled && aiConfig.provider !== null && aiConfig.apiKey !== ""
+          provider: getProviderDisplayName(aiConfig.provider || null),
+          configured: aiConfig.enabled && aiConfig.provider !== null && Object.keys(aiConfig.apiKeys || {}).length > 0
         })
       } catch (error) {
         collectionLogger.error("加载统计失败:", error)

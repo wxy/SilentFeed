@@ -1,6 +1,6 @@
 /**
- * RSSSettings 组件测试
- * 测试 RSS 订阅源管理组件
+ * RSSSettings 组件测试 - 简化版
+ * 专注于核心功能测试以快速提升覆盖率
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest"
@@ -10,33 +10,28 @@ import { RSSSettings } from "./RSSSettings"
 // Mock react-i18next
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string, params?: any) => {
-      if (params) {
-        return key.replace(/\{\{(\w+)\}\}/g, (_, k) => params[k])
-      }
-      return key
-    },
+    t: (key: string) => key,
   }),
 }))
 
-// Mock storage/db
-vi.mock("@/storage/db", () => ({
-  db: {
-    rssFeeds: {
-      toArray: vi.fn().mockResolvedValue([]),
-      add: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn(),
-    },
-    rssCandidates: {
-      toArray: vi.fn().mockResolvedValue([]),
-    },
-    rssArticles: {
-      where: vi.fn(() => ({
-        count: vi.fn().mockResolvedValue(0),
-      })),
-    },
-  },
+// Mock FeedManager
+vi.mock("@/core/rss/FeedManager", () => ({
+  FeedManager: vi.fn(() => ({
+    getFeeds: vi.fn().mockResolvedValue([]),
+    getFeed: vi.fn(),
+    ignore: vi.fn(),
+    subscribe: vi.fn(),
+    unsubscribe: vi.fn(),
+    delete: vi.fn(),
+    toggleActive: vi.fn(),
+  })),
+}))
+
+// Mock RSSFetcher
+vi.mock("@/core/rss/RSSFetcher", () => ({
+  RSSFetcher: vi.fn(() => ({
+    fetch: vi.fn().mockResolvedValue({ success: true, items: [] }),
+  })),
 }))
 
 // Mock chrome runtime
@@ -52,23 +47,16 @@ describe("RSSSettings 组件", () => {
   })
 
   describe("基本渲染", () => {
-    it("应该正确渲染 RSS 管理界面", async () => {
+    it("应该显示加载状态", () => {
+      render(<RSSSettings />)
+      expect(screen.getByText("options.rssManager.loading")).toBeInTheDocument()
+    })
+
+    it("应该在无数据时显示空状态提示", async () => {
       render(<RSSSettings />)
       
       await waitFor(() => {
-        // 检查标题是否存在
-        expect(screen.getByText(/options.rssManager/)).toBeInTheDocument()
-      })
-    })
-  })
-
-  describe("订阅源列表", () => {
-    it("应该显示订阅源列表", async () => {
-      const { container } = render(<RSSSettings />)
-      
-      await waitFor(() => {
-        // 组件应该渲染
-        expect(container.firstChild).toBeTruthy()
+        expect(screen.getByText("options.rssManager.noFeeds")).toBeInTheDocument()
       })
     })
   })
