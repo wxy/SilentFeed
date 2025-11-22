@@ -17,9 +17,9 @@ interface GlassCardProps {
 
 const variantStyles = {
   primary: {
-    bg: 'from-indigo-50/90 to-purple-50/90 dark:from-indigo-900/20 dark:to-purple-900/20',
-    border: 'border-indigo-200/50 dark:border-indigo-700/30',
-    glow: 'from-indigo-500/10 to-purple-500/10'
+    bg: 'from-indigo-50/90 to-cyan-50/90 dark:from-indigo-900/20 dark:to-cyan-900/20',
+    border: 'border-indigo-200/50 dark:border-indigo-700/50',
+    glow: 'from-indigo-500/10 to-cyan-500/10'
   },
   secondary: {
     bg: 'from-green-50/90 to-emerald-50/90 dark:from-green-900/20 dark:to-emerald-900/20',

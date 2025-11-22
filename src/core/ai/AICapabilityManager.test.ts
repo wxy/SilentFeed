@@ -43,8 +43,8 @@ describe("AICapabilityManager", () => {
       await manager.initialize()
       
       expect(manager["primaryProvider"]).toBeDefined()
-      // Phase 6: 统一使用 DeepSeekReasonerProvider（支持动态模型切换）
-      expect(manager["primaryProvider"]?.constructor.name).toBe("DeepSeekReasonerProvider")
+      // Phase 6: 统一使用 DeepSeekProvider（支持动态模型切换）
+      expect(manager["primaryProvider"]?.constructor.name).toBe("DeepSeekProvider")
     })
     
     it("应该在 AI 不可用时回退到关键词", async () => {
@@ -58,9 +58,9 @@ describe("AICapabilityManager", () => {
       
       await manager.initialize()
       
-      // 会创建 DeepSeekReasonerProvider 但标记为不可用
+      // 会创建 DeepSeekProvider 但标记为不可用
       // 实际调用时会使用 fallback
-      expect(manager["primaryProvider"]?.constructor.name).toBe("DeepSeekReasonerProvider")
+      expect(manager["primaryProvider"]?.constructor.name).toBe("DeepSeekProvider")
       expect(await manager["primaryProvider"]!.isAvailable()).toBe(false)
     })
   })

@@ -26,19 +26,23 @@ const collectionLogger = logger.withTag("CollectionStats")
 
 /**
  * 获取语言名称的国际化文本
+ * 使用翻译键，根据当前界面语言显示对应的语言名称
+ * 例如：中文界面显示"中文""英文"，英文界面显示"Chinese""English"
  */
 function getLanguageName(langCode: string, _: (key: string) => string): string {
   const langMap: Record<string, string> = {
-    'zh-CN': _("common.languages.zhCN"),
-    'zh': _("common.languages.zhCN"),
-    'en': _("common.languages.en"),
-    'ja': _("common.languages.ja"),
-    'fr': _("common.languages.fr"),
-    'de': _("common.languages.de"),
-    'es': _("common.languages.es"),
-    'ko': _("common.languages.ko")
+    'zh-CN': _("options.collectionStats.languages.zhCN"),
+    'zh': _("options.collectionStats.languages.zh"),
+    'en': _("options.collectionStats.languages.en"),
+    'ja': _("options.collectionStats.languages.ja"),
+    'fr': _("options.collectionStats.languages.fr"),
+    'de': _("options.collectionStats.languages.de"),
+    'es': _("options.collectionStats.languages.es"),
+    'ko': _("options.collectionStats.languages.ko"),
+    'other': _("options.collectionStats.languages.other")
   }
-  return langMap[langCode] || langCode
+  // 如果找不到，使用 other 作为默认值
+  return langMap[langCode] || _("options.collectionStats.languages.other")
 }
 
 /**
@@ -99,8 +103,8 @@ export function CollectionStats() {
         // 设置 AI 配置状态
         setAiConfigStatus({
           enabled: aiConfig.enabled,
-          provider: getProviderDisplayName(aiConfig.provider),
-          configured: aiConfig.enabled && aiConfig.provider !== null && aiConfig.apiKey !== ""
+          provider: getProviderDisplayName(aiConfig.provider || null),
+          configured: aiConfig.enabled && aiConfig.provider !== null && Object.keys(aiConfig.apiKeys || {}).length > 0
         })
       } catch (error) {
         collectionLogger.error("加载统计失败:", error)
@@ -325,14 +329,14 @@ export function CollectionStats() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* 总页面数 */}
-          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-            <div className="text-sm text-blue-600 dark:text-blue-400 mb-1">
+          <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-4 border border-indigo-200 dark:border-indigo-800">
+            <div className="text-sm text-indigo-600 dark:text-indigo-400 mb-1">
               {_("options.collectionStats.totalPagesLabel")}
             </div>
-            <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">
+            <div className="text-3xl font-bold text-indigo-900 dark:text-indigo-100">
               {stats.pageCount}
             </div>
-            <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+            <div className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">
               {_("options.collectionStats.dwellTimeHint")}
             </div>
           </div>
@@ -351,14 +355,14 @@ export function CollectionStats() {
           </div>
 
           {/* 开始采集时间 */}
-          <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
-            <div className="text-sm text-purple-600 dark:text-purple-400 mb-1">
+          <div className="bg-cyan-50 dark:bg-cyan-900/20 rounded-lg p-4 border border-cyan-200 dark:border-cyan-800">
+            <div className="text-sm text-cyan-600 dark:text-cyan-400 mb-1">
               {_("options.collectionStats.firstCollectionLabel")}
             </div>
-            <div className="text-lg font-bold text-purple-900 dark:text-purple-100">
+            <div className="text-lg font-bold text-cyan-900 dark:text-cyan-100">
               {formatDate(stats.firstCollectionTime)}
             </div>
-            <div className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+            <div className="text-xs text-cyan-600 dark:text-cyan-400 mt-1">
               {_("options.collectionStats.avgDailyPages", { count: stats.avgDailyPages.toFixed(1) })}
             </div>
           </div>
@@ -413,24 +417,24 @@ export function CollectionStats() {
           </div>
 
           {/* AI 分析占比 */}
-          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-            <div className="text-sm text-blue-600 dark:text-blue-400 mb-1">
+          <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-4 border border-indigo-200 dark:border-indigo-800">
+            <div className="text-sm text-indigo-600 dark:text-indigo-400 mb-1">
               {_("options.collectionStats.aiPercentageLabel")}
             </div>
             <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
               {aiQualityStats ? _("options.collectionStats.aiPercentageValue", { percentage: aiQualityStats.aiPercentage.toFixed(1) }) : '--'}
             </div>
-            <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+            <div className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">
               {aiQualityStats ? _("options.collectionStats.aiPagesCount", { ai: aiQualityStats.aiAnalyzedPages, total: aiQualityStats.totalPages }) : _("options.collectionStats.noData")}
             </div>
           </div>
 
           {/* 累计费用 */}
-          <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
-            <div className="text-sm text-purple-600 dark:text-purple-400 mb-1">
+          <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-4 border border-indigo-200 dark:border-indigo-800">
+            <div className="text-sm text-indigo-600 dark:text-indigo-400 mb-1">
               {_("options.collectionStats.totalCostLabel")}
             </div>
-            <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">
+            <div className="text-2xl font-bold text-indigo-900 dark:text-indigo-100">
               {aiQualityStats ? (
                 <div className="space-y-0.5">
                   {aiQualityStats.totalCostUSD > 0 && (
@@ -447,7 +451,7 @@ export function CollectionStats() {
                 </div>
               ) : '$0'}
             </div>
-            <div className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+            <div className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">
               {aiQualityStats && aiQualityStats.aiAnalyzedPages > 0 && aiQualityStats.primaryCurrency
                 ? _("options.collectionStats.avgCostPerPage", { 
                     currency: aiQualityStats.primaryCurrency === 'CNY' ? '¥' : '$',
@@ -495,7 +499,7 @@ export function CollectionStats() {
                     </div>
                     <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
                       <div
-                        className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all"
+                        className="bg-gradient-to-r from-indigo-500 to-cyan-500 h-2 rounded-full transition-all"
                         style={{ width: `${item.percentage}%` }}
                       />
                     </div>
@@ -508,7 +512,7 @@ export function CollectionStats() {
 
         {/* AI 成本按提供商分布（仅在有成本数据时显示） */}
         {aiQualityStats && aiQualityStats.providerCostDistribution && aiQualityStats.providerCostDistribution.length > 0 && (
-          <div className="mt-4 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-700">
+          <div className="mt-4 bg-gradient-to-br from-indigo-50/80 to-cyan-50/80 dark:from-indigo-900/20 dark:to-cyan-900/20 rounded-lg p-4 border border-indigo-200 dark:border-indigo-700">
             <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
               <span>💰</span>
               <span>{_("options.collectionStats.providerCostDistributionTitle")}</span>
@@ -519,7 +523,7 @@ export function CollectionStats() {
                 const hasCostCNY = item.costCNY > 0
                 const hasCost = hasCostUSD || hasCostCNY
                 return (
-                  <div key={item.provider} className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-purple-100 dark:border-purple-800">
+                  <div key={item.provider} className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-purple-100 dark:border-indigo-800">
                     <div className="flex justify-between items-start mb-2">
                       <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
                         {getProviderName(item.provider, _)}
@@ -527,7 +531,7 @@ export function CollectionStats() {
                       {hasCost && (
                         <div className="text-right">
                           {hasCostUSD && (
-                            <div className="text-sm font-bold text-purple-600 dark:text-purple-400">
+                            <div className="text-sm font-bold text-indigo-600 dark:text-indigo-400">
                               ${item.costUSD.toFixed(4)}
                             </div>
                           )}
@@ -560,19 +564,19 @@ export function CollectionStats() {
 
         {/* 引导配置 AI（仅在未配置时显示） */}
         {!aiConfigStatus.configured && (
-          <div className="mt-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <div className="mt-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-4">
             <div className="flex items-start gap-3">
               <span className="text-xl">💡</span>
               <div className="flex-1">
                 <h3 className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">
                   {_("options.collectionStats.aiConfigPromptTitle")}
                 </h3>
-                <p className="text-xs text-blue-700 dark:text-blue-300 mb-2">
+                <p className="text-xs text-indigo-700 dark:text-indigo-300 mb-2">
                   {_("options.collectionStats.aiConfigPromptDesc")}
                 </p>
                 <a
                   href="/options.html?tab=ai"
-                  className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                  className="inline-flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 hover:underline">
                   <span>{_("options.collectionStats.aiConfigPromptLink")}</span>
                   <span>→</span>
                 </a>
@@ -656,26 +660,26 @@ export function CollectionStats() {
 
         {/* 学习阶段提示 */}
         {isLearningStage ? (
-          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border-2 border-dashed border-blue-300 dark:border-blue-700">
+          <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-4 border-2 border-dashed border-indigo-300 dark:border-indigo-700">
             <div className="flex items-start gap-3">
               <span className="text-2xl">📚</span>
               <div className="flex-1">
                 <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
                   {_("options.collectionStats.learningStageTitle")}
                 </p>
-                <p className="text-sm text-blue-700 dark:text-blue-300 mb-2">
+                <p className="text-sm text-indigo-700 dark:text-indigo-300 mb-2">
                   {_("options.collectionStats.learningStageHint", { 
                     current: pageCount, 
                     total: LEARNING_COMPLETE_PAGES 
                   })}
                 </p>
-                <div className="bg-blue-100 dark:bg-blue-900/40 rounded p-3 mt-2">
-                  <div className="text-xs text-blue-800 dark:text-blue-200">
+                <div className="bg-indigo-100 dark:bg-indigo-900/40 rounded p-3 mt-2">
+                  <div className="text-xs text-indigo-800 dark:text-blue-200">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-medium">{_("options.collectionStats.recommendationCount")}:</span>
                       <span className="font-bold text-lg">0</span>
                     </div>
-                    <p className="mt-1 text-blue-600 dark:text-blue-300">
+                    <p className="mt-1 text-indigo-600 dark:text-indigo-300">
                       {_("options.collectionStats.learningStageNote")}
                     </p>
                   </div>
@@ -696,8 +700,8 @@ export function CollectionStats() {
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* 总推荐数 */}
-              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-                <div className="text-sm text-blue-600 dark:text-blue-400 mb-1">
+              <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-4 border border-indigo-200 dark:border-indigo-800">
+                <div className="text-sm text-indigo-600 dark:text-indigo-400 mb-1">
                   {_("options.collectionStats.totalRecommendationsLabel")}
                 </div>
                 <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">
@@ -759,7 +763,7 @@ export function CollectionStats() {
                         </div>
                         <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
                           <div
-                            className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full transition-all"
+                            className="bg-gradient-to-r from-indigo-500 to-cyan-500 h-2 rounded-full transition-all"
                             style={{ width: `${Math.min(100, item.readRate)}%` }}
                           />
                         </div>
@@ -787,7 +791,7 @@ export function CollectionStats() {
             className={`w-full px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               isRebuildingProfile
                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500'
-                : 'bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50'
+                : 'bg-indigo-100 text-indigo-800 hover:bg-blue-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:hover:bg-blue-900/50'
             }`}
           >
             {isRebuildingProfile ? (
@@ -822,7 +826,7 @@ export function CollectionStats() {
           </ul>
           
           <div className="mt-3 pt-2 border-t border-gray-200 dark:border-gray-700">
-            <p className="text-xs text-blue-600 dark:text-blue-400 mb-1">
+            <p className="text-xs text-indigo-600 dark:text-indigo-400 mb-1">
               🤖 <strong>{_("options.collectionStats.autoUpdateStrategy")}</strong>
             </p>
             <ul className="text-xs text-gray-500 dark:text-gray-400 space-y-1">

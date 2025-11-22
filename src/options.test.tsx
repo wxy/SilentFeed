@@ -3,9 +3,9 @@ import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import IndexOptions from "./options"
 
-// Mock RSSManager 组件
-vi.mock("@/components/settings/RSSManager", () => ({
-  RSSManager: () => <div>RSS Manager Loaded</div>
+// Mock RSSSettings 组件
+vi.mock("@/components/settings/RSSSettings", () => ({
+  RSSSettings: () => <div>RSS Manager Loaded</div>
 }))
 
 // Mock i18n
@@ -22,18 +22,20 @@ vi.mock("@/i18n/helpers", () => ({
         "app.name": "Silent Feed",
         "app.shortName": "Silent Feed",
         "options.title": "设置",
-        // Phase 8: 新标签名称
+        // Phase 10: 新标签名称（使用新的 kebab-case 格式）
         "options.tabs.preferences": "偏好",
         "options.tabs.feeds": "订阅源",
-        "options.tabs.aiEngine": "AI 引擎",
-        "options.tabs.recommendations": "推荐系统",
-        "options.tabs.myData": "我的数据",
+        "options.tabs.ai-engine": "AI 引擎",
+        "options.tabs.analysis": "分析配置",
+        "options.tabs.profile": "用户画像",
+        "options.tabs.data": "采集统计",
         // 旧标签名称（向后兼容）
         "options.tabs.general": "常规",
         "options.tabs.rss": "RSS 源",
         "options.tabs.ai": "AI",
-        "options.tabs.recommendation": "推荐",
-        "options.tabs.data": "采集统计",
+        "options.tabs.aiEngine": "AI 引擎",
+        "options.tabs.recommendations": "推荐系统",
+        "options.tabs.myData": "我的数据",
         "options.general.title": "常规设置",
         "options.general.preferencesTitle": "偏好设置",
         "options.general.language": "语言",
@@ -91,8 +93,9 @@ describe("IndexOptions 组件", () => {
       expect(screen.getByText("偏好")).toBeInTheDocument()
       expect(screen.getByText("订阅源")).toBeInTheDocument()
       expect(screen.getByText("AI 引擎")).toBeInTheDocument()
-      expect(screen.getByText("推荐系统")).toBeInTheDocument()
-      expect(screen.getByText("我的数据")).toBeInTheDocument()
+      expect(screen.getByText("分析配置")).toBeInTheDocument()
+      expect(screen.getByText("用户画像")).toBeInTheDocument()
+      expect(screen.getByText("采集统计")).toBeInTheDocument()
     })
 
     it("默认应该显示偏好设置页面", () => {
@@ -144,12 +147,12 @@ describe("IndexOptions 组件", () => {
       })
     })
 
-    it("点击我的数据标签应该切换到我的数据页面", async () => {
+    it("点击采集统计标签应该切换到采集统计页面", async () => {
       const user = userEvent.setup()
       render(<IndexOptions />)
 
-      // Phase 8: "采集统计" → "我的数据"
-      const dataTab = screen.getByText("我的数据")
+      // Phase 10: "我的数据" → "采集统计" （恢复到实际翻译）
+      const dataTab = screen.getByText("采集统计")
       await user.click(dataTab)
 
       // Phase 6: CollectionStats 组件不再显示标题，检查组件已渲染

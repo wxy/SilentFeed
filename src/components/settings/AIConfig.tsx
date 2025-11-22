@@ -4,7 +4,9 @@ import {
   getAIConfig,
   saveAIConfig,
   validateApiKey,
-  type AIProviderType
+  type AIProviderType,
+  AVAILABLE_MODELS,
+  getProviderFromModel
 } from "@/storage/ai-config"
 import { aiManager } from "@/core/ai/AICapabilityManager"
 import { checkLocalAI } from "@/utils/analysis-engine-capability"
@@ -18,8 +20,13 @@ interface LocalAIStatus {
 
 export function AIConfig() {
   const { _ } = useI18n()
-  const [provider, setProvider] = useState<AIProviderType | null>(null)
-  const [apiKey, setApiKey] = useState("")
+  
+  // 状态管理
+  const [model, setModel] = useState<string>("")  // 模型选择（主要状态）
+  const [apiKeys, setApiKeys] = useState<Record<AIProviderType, string>>({
+    openai: "",
+    deepseek: ""
+  })  // 各提供商的 API Keys
   const [monthlyBudget, setMonthlyBudget] = useState<number>(5) // 默认 $5/月
   const [enableReasoning, setEnableReasoning] = useState(false) // Phase 9: 推理能力
   const [localAIChoice, setLocalAIChoice] = useState<'none' | 'chromeAI' | 'ollama'>('none') // Phase 9: 本地 AI 三选一
@@ -36,23 +43,45 @@ export function AIConfig() {
   const [showCostDetails, setShowCostDetails] = useState(false) // Phase 9: 成本详情浮层
   const [showChromeAIHelp, setShowChromeAIHelp] = useState(false) // Phase 9: Chrome AI 帮助浮层
 
-  // 动态获取本地化的提供商选项
-  const getProviderOptions = (): Array<{ value: AIProviderType | ""; label: string; description: string }> => [
-    { value: "", label: _("options.aiConfig.providers.none.label"), description: _("options.aiConfig.providers.none.description") },
-    { value: "openai", label: _("options.aiConfig.providers.openai.label"), description: _("options.aiConfig.providers.openai.description") },
-    { value: "anthropic", label: _("options.aiConfig.providers.anthropic.label"), description: _("options.aiConfig.providers.anthropic.description") },
-    { value: "deepseek", label: _("options.aiConfig.providers.deepseek.label"), description: _("options.aiConfig.providers.deepseek.description") }
-  ]
+  // 从模型推导当前 Provider
+  const currentProvider = model ? getProviderFromModel(model) : null
+  
+  // 获取当前 Provider 的 API Key
+  const currentApiKey = currentProvider ? apiKeys[currentProvider] : ""
+  
+  // 获取当前模型的货币符号
+  const getCurrencySymbol = () => {
+    if (!currentProvider) return "$"
+    return currentProvider === "deepseek" ? "¥" : "$"
+  }
+  
+  // 获取预算范围
+  const getBudgetRange = () => {
+    if (!currentProvider) return { min: 1, max: 100 }
+    return currentProvider === "deepseek" 
+      ? { min: 10, max: 500 }  // DeepSeek 用人民币
+      : { min: 1, max: 100 }   // OpenAI/Anthropic 用美元
+  }
 
   // 加载保存的配置
   useEffect(() => {
     getAIConfig().then((config) => {
-      if (config.provider) {
-        setProvider(config.provider)
-        setApiKey(config.apiKey)
-        setMonthlyBudget(config.monthlyBudget || 5)
-        setEnableReasoning(config.enableReasoning || false) // Phase 9
+      // 加载模型配置
+      if (config.model) {
+        setModel(config.model)
       }
+      
+      // 加载各 Provider 的 API Keys
+      if (config.apiKeys) {
+        setApiKeys({
+          openai: config.apiKeys.openai || "",
+          deepseek: config.apiKeys.deepseek || ""
+        })
+      }
+      
+      // 加载其他配置
+      setMonthlyBudget(config.monthlyBudget || 5)
+      setEnableReasoning(config.enableReasoning || false)
     })
   }, [])
 
@@ -79,11 +108,15 @@ export function AIConfig() {
 
   // 测试连接
   const handleTest = async () => {
-    if (!provider) {
-      setMessage({ type: "error", text: _("options.aiConfig.errors.selectProvider") })
+    if (!model) {
+      setMessage({ type: "error", text: _("options.aiConfig.errors.selectModel") })
       return
     }
-    if (!apiKey) {
+    if (!currentProvider) {
+      setMessage({ type: "error", text: _("options.aiConfig.errors.invalidModel") })
+      return
+    }
+    if (!currentApiKey) {
       setMessage({ type: "error", text: _("options.aiConfig.errors.enterApiKey") })
       return
     }
@@ -93,7 +126,7 @@ export function AIConfig() {
 
     try {
       // 1. 先验证格式
-      const isValid = validateApiKey(provider, apiKey)
+      const isValid = validateApiKey(currentProvider, currentApiKey)
       if (!isValid) {
         setMessage({
           type: "error",
@@ -105,11 +138,12 @@ export function AIConfig() {
 
       // 2. 临时保存配置（以便 aiManager 可以读取）
       await saveAIConfig({
-        provider,
-        apiKey: apiKey.trim(),
+        provider: currentProvider,
+        apiKeys,
         enabled: true,
         monthlyBudget,
-        enableReasoning // Phase 9
+        model,
+        enableReasoning
       })
 
       // 3. 重新初始化 aiManager 以加载新配置
@@ -143,12 +177,16 @@ export function AIConfig() {
 
   // 保存配置
   const handleSave = async () => {
-    if (!provider) {
-      setMessage({ type: "error", text: _("options.aiConfig.errors.selectProviderAndKey") })
+    if (!model) {
+      setMessage({ type: "error", text: _("options.aiConfig.errors.selectModel") })
       return
     }
-    if (!apiKey) {
-      setMessage({ type: "error", text: _("options.aiConfig.errors.selectProviderAndKey") })
+    if (!currentProvider) {
+      setMessage({ type: "error", text: _("options.aiConfig.errors.invalidModel") })
+      return
+    }
+    if (!currentApiKey) {
+      setMessage({ type: "error", text: _("options.aiConfig.errors.enterApiKey") })
       return
     }
 
@@ -157,11 +195,12 @@ export function AIConfig() {
 
     try {
       await saveAIConfig({
-        provider,
-        apiKey,
+        provider: currentProvider,
+        apiKeys,
         enabled: true,
         monthlyBudget,
-        enableReasoning // Phase 9
+        model,
+        enableReasoning
       })
       setMessage({ type: "success", text: _("options.aiConfig.messages.saveSuccess") })
     } catch (error) {
@@ -182,14 +221,15 @@ export function AIConfig() {
     try {
       await saveAIConfig({
         provider: null,
-        apiKey: "",
+        apiKeys: {},
         enabled: false,
         monthlyBudget: 5,
-        enableReasoning: false // Phase 9
+        model: undefined,
+        enableReasoning: false
       })
-      setProvider(null)
-      setApiKey("")
-      setEnableReasoning(false) // Phase 9
+      setModel("")
+      setApiKeys({ openai: "", deepseek: "" })
+      setEnableReasoning(false)
       setMessage({ type: "success", text: _("options.aiConfig.messages.disableSuccess") })
     } catch (error) {
       setMessage({
@@ -221,45 +261,53 @@ export function AIConfig() {
         </ul>
       </div>
 
-      {/* 提供商选择 */}
+      {/* 模型选择（合并了 Provider） */}
       <div>
-        <label htmlFor="ai-provider" className="block text-sm font-medium mb-2">
-          {_("options.aiConfig.labels.provider")}
+        <label htmlFor="ai-model" className="block text-sm font-medium mb-2">
+          {_("options.aiConfig.labels.modelAndProvider")}
         </label>
         <select
-          id="ai-provider"
-          value={provider || ""}
-          onChange={(e) => {
-            const value = e.target.value
-            setProvider(value === "" ? null : value as AIProviderType)
-          }}
+          id="ai-model"
+          value={model}
+          onChange={(e) => setModel(e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
-          {getProviderOptions().map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
+          <option value="">{_("options.aiConfig.placeholders.selectModel")}</option>
+          {Object.entries(AVAILABLE_MODELS).map(([providerKey, models]) => {
+            const label = providerKey.toUpperCase()
+            
+            return (
+              <optgroup key={providerKey} label={label}>
+                {models.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                    {m.costMultiplier && m.costMultiplier !== 1 && ` (${m.costMultiplier}x)`}
+                    {m.supportsReasoning && " ⚡"}
+                  </option>
+                ))}
+              </optgroup>
+            )
+          })}
         </select>
-        {provider && (
+        {model && currentProvider && AVAILABLE_MODELS[currentProvider]?.find(m => m.id === model) && (
           <p className="mt-1 text-sm text-gray-500">
-            {getProviderOptions().find(opt => opt.value === provider)?.description}
+            {AVAILABLE_MODELS[currentProvider].find(m => m.id === model)?.description}
           </p>
         )}
       </div>
 
       {/* API Key */}
-      {provider && (
+      {model && currentProvider && (
         <>
           <div>
             <label htmlFor="api-key" className="block text-sm font-medium mb-2">
-              {_("options.aiConfig.labels.apiKey")}
+              {_("options.aiConfig.labels.apiKey")} ({currentProvider.toUpperCase()})
             </label>
             <input
               id="api-key"
               type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
+              value={currentApiKey}
+              onChange={(e) => setApiKeys({ ...apiKeys, [currentProvider]: e.target.value })}
               placeholder={_("options.aiConfig.placeholders.apiKey")}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
@@ -285,16 +333,16 @@ export function AIConfig() {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-gray-600 dark:text-gray-400">
-                {provider === "deepseek" ? "¥" : "$"}
+                {getCurrencySymbol()}
               </span>
               <input
                 id="monthly-budget"
                 type="number"
-                min="1"
-                max={provider === "deepseek" ? "500" : "100"}
+                min={getBudgetRange().min}
+                max={getBudgetRange().max}
                 step="1"
                 value={monthlyBudget}
-                onChange={(e) => setMonthlyBudget(Math.max(1, Number(e.target.value)))}
+                onChange={(e) => setMonthlyBudget(Math.max(getBudgetRange().min, Number(e.target.value)))}
                 className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               <span className="text-sm text-gray-600 dark:text-gray-400">
@@ -306,7 +354,7 @@ export function AIConfig() {
             </p>
             <p className="mt-1 text-xs text-orange-600 dark:text-orange-400">
               {_("options.aiConfig.budgetWarning", {
-                range: provider === "deepseek" ? "¥10-50" : "$5-10"
+                range: currentProvider === "deepseek" ? "¥10-50" : "$5-10"
               })}
             </p>
           </div>
@@ -319,28 +367,42 @@ export function AIConfig() {
                 type="checkbox"
                 checked={enableReasoning}
                 onChange={(e) => setEnableReasoning(e.target.checked)}
-                className="mt-1 w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                disabled={!!(model && currentProvider && !AVAILABLE_MODELS[currentProvider]?.find(m => m.id === model)?.supportsReasoning)}
+                className="mt-1 w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
               />
               <div className="flex-1">
                 <label htmlFor="enable-reasoning" className="block text-sm font-medium">
-                  🧠 {_("options.aiConfig.enableReasoning")}
+                  ⚡ {_("options.aiConfig.enableReasoning")}
                 </label>
                 <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">
                   {_("options.aiConfig.reasoningHint")}
                 </p>
+                
+                {/* 显示当前模型的推理支持状态 */}
+                {model && currentProvider && AVAILABLE_MODELS[currentProvider]?.find(m => m.id === model) && (
+                  <>
+                    {AVAILABLE_MODELS[currentProvider].find(m => m.id === model)?.supportsReasoning ? (
+                      <p className="mt-1 text-xs text-green-600 dark:text-green-400">
+                        ✅ {_("options.aiConfig.reasoningSupported")}
+                        {enableReasoning && AVAILABLE_MODELS[currentProvider].find(m => m.id === model)?.reasoningCostMultiplier && (
+                          <span className="ml-1">
+                            ({_("options.aiConfig.reasoningCost", { 
+                              multiplier: AVAILABLE_MODELS[currentProvider].find(m => m.id === model)?.reasoningCostMultiplier 
+                            })})
+                          </span>
+                        )}
+                      </p>
+                    ) : (
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        💡 {_("options.aiConfig.reasoningNotSupported")}
+                      </p>
+                    )}
+                  </>
+                )}
+                
                 {enableReasoning && (
                   <p className="mt-1 text-xs text-orange-600 dark:text-orange-400 font-medium">
                     {_("options.aiConfig.reasoningWarning")}
-                  </p>
-                )}
-                {provider === 'deepseek' && (
-                  <p className="mt-1 text-xs text-green-600 dark:text-green-400">
-                    ✅ {_("options.aiConfig.reasoningAvailableDeepSeek")}
-                  </p>
-                )}
-                {provider && provider !== 'deepseek' && (
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    💡 {_("options.aiConfig.reasoningFutureSupport", { provider: provider.toUpperCase() })}
                   </p>
                 )}
               </div>
@@ -351,19 +413,19 @@ export function AIConfig() {
           <div className="flex gap-4">
             <button
               onClick={handleTest}
-              disabled={!apiKey || isTesting || isSaving}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              disabled={!currentApiKey || isTesting || isSaving}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
               {isTesting ? _("options.aiConfig.buttons.testing") : _("options.aiConfig.buttons.test")}
             </button>
             <button
               onClick={handleSave}
-              disabled={!apiKey || isTesting || isSaving}
+              disabled={!currentApiKey || isTesting || isSaving}
               className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
               {isSaving ? _("options.aiConfig.buttons.saving") : _("options.aiConfig.buttons.save")}
             </button>
-            {provider && (
+            {model && (
               <button
                 onClick={handleDisable}
                 disabled={isTesting || isSaving}
@@ -536,8 +598,10 @@ export function AIConfig() {
                   {_("options.aiConfig.cost.openai.title")}
                 </div>
                 <ul className="ml-4 mt-2 space-y-1 text-gray-700 dark:text-gray-300">
-                  <li>• {_("options.aiConfig.cost.openai.input")}</li>
-                  <li>• {_("options.aiConfig.cost.openai.output")}</li>
+                  <li>• GPT-5 Nano: {_("options.aiConfig.cost.openai.nano")}</li>
+                  <li>• GPT-5 Mini: {_("options.aiConfig.cost.openai.mini")}</li>
+                  <li>• GPT-5: {_("options.aiConfig.cost.openai.standard")}</li>
+                  <li>• o4-mini (推理): {_("options.aiConfig.cost.openai.o4mini")}</li>
                   <li className="font-medium text-green-600 dark:text-green-400 mt-2">
                     → {_("options.aiConfig.cost.openai.estimate")}
                   </li>

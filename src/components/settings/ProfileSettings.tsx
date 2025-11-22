@@ -60,7 +60,7 @@ function getTopicPersonality(topic: Topic | string, _: (key: string) => string):
   return personalityMap[topic.toLowerCase()] || topic
 }
 
-export function ProfileView() {
+export function ProfileSettings() {
   const { _ } = useI18n()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -257,17 +257,17 @@ export function ProfileView() {
 
         {/* AI 配置提示 */}
         {!aiConfigured && (
-          <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
+          <div className="bg-gradient-to-r from-indigo-50/80 to-cyan-50/80 dark:from-indigo-900/20 dark:to-cyan-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-4">
             <div className="flex items-start gap-3">
               <span className="text-2xl">🚀</span>
               <div className="flex-1">
-                <h3 className="text-sm font-medium text-purple-900 dark:text-purple-100 mb-1">
+                <h3 className="text-sm font-medium text-indigo-900 dark:text-indigo-100 mb-1">
                   {_("options.userProfile.aiPrompt.title")}
                 </h3>
-                <p className="text-xs text-purple-700 dark:text-purple-300 mb-2">
+                <p className="text-xs text-indigo-700 dark:text-indigo-300 mb-2">
                   {_("options.userProfile.aiPrompt.description")}
                 </p>
-                <ul className="text-xs text-purple-700 dark:text-purple-300 space-y-1 mb-3">
+                <ul className="text-xs text-indigo-700 dark:text-indigo-300 space-y-1 mb-3">
                   <li>{_("options.userProfile.aiPrompt.benefit1")}</li>
                   <li>{_("options.userProfile.aiPrompt.benefit2")}</li>
                   <li>{_("options.userProfile.aiPrompt.benefit3")}</li>

@@ -25,6 +25,7 @@ import { TextAnalyzer } from "~core/analyzer"
 import { logger } from "~utils/logger"
 import { aiManager } from "~core/ai/AICapabilityManager"
 import { extractKeywordsFromTopics, detectLanguage } from "~core/ai/helpers"
+import { getAIConfig } from "~storage/ai-config"
 
 // 配置：注入到所有 HTTP/HTTPS 页面
 export const config: PlasmoCSConfig = {
@@ -211,8 +212,13 @@ async function analyzePageContent() {
       const detectedLang = detectLanguage(fullText)
       language = detectedLang === 'zh' || detectedLang === 'en' ? detectedLang : 'other'
       
-      // 调用 AI 分析
-      const aiResult = await aiManager.analyzeContent(fullText)
+      // Phase 10: 从 AI 配置中获取推理模式设置
+      const aiConfig = await getAIConfig()
+      
+      // 调用 AI 分析（传递推理模式参数）
+      const aiResult = await aiManager.analyzeContent(fullText, {
+        useReasoning: aiConfig.enableReasoning
+      })
       
       logger.debug('🤖 [PageTracker] AI 分析完成', {
         provider: aiResult.metadata.provider,

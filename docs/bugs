@@ -24,9 +24,16 @@
 - [x] 在学习阶段，分析配置中的智能推荐数量，应该为 0，并说明在探索学习阶段不推荐（已修复 2025-11-19）
   - 在 CollectionStats.tsx 中添加学习阶段检测
   - 显示推荐数量为 0 并说明暂不推荐
-- [x] 发现 RSS 后，点击雷达图标应该直接进到设置页的订阅源标签（已修复 2025-11-19）
+- [x] 发现 RSS 后，点击雷达图标应该直接进到设置页的订阅源标签（已修复 2025-11-22）
+  - RSSDiscoveryHint.tsx 中的 URL 从 #rss 改为 #feeds
   - ColdStartView.tsx 中的 URL 从 #rss 改为 #feeds
-- [ ] 标准风格需要进一步精致化（详见 docs/UI_IMPROVEMENTS.md）
-  - 建议实施卡片化布局
-  - 添加渐变色和微交互
-  - 优化色彩系统
+- [x] 手绘风格下，RSS/ATOM 和语言标签字体未使用手绘风格（已修复 2025-11-22）
+  - RSSSettings 组件添加 isSketchyStyle prop 支持
+  - RSS/ATOM 徽章和语言标签根据主题动态应用 sketchy-text 类
+  - 统一标签尺寸为 text-xs（从 text-[10px] 改为 text-xs）
+- [x] 弹窗雷达图标点击问题和手绘风格布局拥挤（已修复 2025-11-22）
+  - 标准风格下雷达图标现在也可点击跳转到 Feeds 标签
+  - 统一手绘和标准风格使用相同的圆环进度布局
+  - CircularProgress 组件添加 isSketchyStyle、onIconClick、iconClickable 支持
+  - 移除手绘风格拥挤的旧布局，保留手绘视觉样式（sketchy-emoji、sketchy-text、sketchy-badge、sketchy-card）
+- [ ] 在学习阶段，扩展图标不能在显示了其它状态后恢复到阴影覆盖表示学习进度的样式

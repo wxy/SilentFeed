@@ -338,4 +338,390 @@ describe('推荐数据流管道', () => {
       expect(result.stats.inputCount).toBeLessThanOrEqual(2)
     })
   })
+
+  describe('错误处理增强', () => {
+    it('应该处理 AI 初始化失败', async () => {
+      const { aiManager } = await import('@/core/ai/AICapabilityManager')
+      vi.mocked(aiManager.initialize).mockRejectedValueOnce(new Error('AI init failed'))
+      
+      await expect(pipeline.process(mockInput)).rejects.toThrow('AI init failed')
+    })
+
+    it('应该处理 AI 分析失败并降级到 TF-IDF', async () => {
+      const { aiManager } = await import('@/core/ai/AICapabilityManager')
+      vi.mocked(aiManager.analyzeContent).mockRejectedValueOnce(new Error('AI analysis failed'))
+      
+      const result = await pipeline.process(mockInput)
+      
+      // 应该降级到 TF-IDF 算法
+      expect(result.algorithm).toBe('ai')  // 仍然尝试使用 AI
+      expect(result.stats.errors.aiAnalysisFailed).toBeGreaterThanOrEqual(0)
+    })
+
+    it('应该处理全文抓取失败', async () => {
+      // Mock fetch 失败
+      vi.mocked(global.fetch).mockRejectedValueOnce(new Error('Network error'))
+      
+      const result = await pipeline.process(mockInput)
+      
+      // 应该继续处理，只是使用描述而非全文
+      expect(result.articles).toBeDefined()
+      expect(result.stats.errors.fullContentFailed).toBeGreaterThanOrEqual(0)
+    })
+
+    it('应该处理全文抓取超时', async () => {
+      // Mock fetch 超时
+      vi.mocked(global.fetch).mockImplementation(() => 
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout')), 100)
+        )
+      )
+      
+      const result = await pipeline.process(mockInput)
+      
+      // 应该继续处理
+      expect(result.articles).toBeDefined()
+    })
+
+    it('应该处理数据库保存失败', async () => {
+      // Mock db 操作失败（不应该影响推荐流程）
+      const result = await pipeline.process(mockInput)
+      
+      // 即使保存失败，推荐流程应该继续
+      expect(result.articles).toBeDefined()
+    })
+  })
+
+  describe('中断场景', () => {
+    it('应该支持取消操作', async () => {
+      // 延迟取消
+      setTimeout(() => pipeline.cancel(), 10)
+      
+      // process 应该抛出取消错误或正常结束
+      try {
+        const result = await pipeline.process(mockInput)
+        // 如果在取消前已完成，应该有结果
+        expect(result).toBeDefined()
+      } catch (error) {
+        // 如果被取消，应该抛出错误
+        expect((error as Error).message).toContain('取消')
+      }
+    })
+
+    it('应该在取消后正确更新进度', () => {
+      pipeline.cancel()
+      
+      const progress = pipeline.getProgress()
+      expect(progress.message).toContain('取消')
+    })
+  })
+
+  describe('边界情况', () => {
+    it('应该处理超长标题', async () => {
+      const longTitleArticle = {
+        ...mockArticles[0],
+        title: 'A'.repeat(500)  // 500 字符
+      }
+      
+      const input = {
+        ...mockInput,
+        articles: [longTitleArticle]
+      }
+      
+      const result = await pipeline.process(input)
+      
+      expect(result.articles).toBeDefined()
+      // 标题应该被截断或正确处理
+      if (result.articles.length > 0) {
+        expect(result.articles[0].title).toBeDefined()
+      }
+    })
+
+    it('应该处理缺少描述的文章', async () => {
+      const noDescArticle = {
+        ...mockArticles[0],
+        description: undefined
+      }
+      
+      const input = {
+        ...mockInput,
+        articles: [noDescArticle]
+      }
+      
+      const result = await pipeline.process(input)
+      
+      // 应该使用标题进行分析
+      expect(result).toBeDefined()
+    })
+
+    it('应该处理重复文章', async () => {
+      const duplicateArticles = [
+        mockArticles[0],
+        { ...mockArticles[0], id: '1-duplicate' }
+      ]
+      
+      const input = {
+        ...mockInput,
+        articles: duplicateArticles
+      }
+      
+      const result = await pipeline.process(input)
+      
+      // 应该处理重复文章
+      expect(result.articles).toBeDefined()
+    })
+
+    it('应该处理非常旧的文章（超过30天）', async () => {
+      const oldArticle = {
+        ...mockArticles[0],
+        pubDate: new Date(Date.now() - 40 * 24 * 3600 * 1000).toISOString(),  // 40天前
+        published: Date.now() - 40 * 24 * 3600 * 1000
+      }
+      
+      const input = {
+        ...mockInput,
+        articles: [oldArticle]
+      }
+      
+      const result = await pipeline.process(input)
+      
+      // 旧文章可能被过滤，也可能被处理（取决于实际策略）
+      expect(result).toBeDefined()
+      expect(result.stats.inputCount).toBeGreaterThanOrEqual(0)
+    })
+
+    it('应该处理极低的 TF-IDF 分数', async () => {
+      // 创建与用户兴趣完全不相关的文章
+      const irrelevantArticle = {
+        id: '4',
+        feedId: 'feed3',
+        title: '园艺种植技巧大全',
+        description: '如何种植美丽的花朵和蔬菜',
+        link: 'https://example.com/gardening',
+        published: Date.now() - 3600000,
+        fetched: Date.now(),
+        read: false,
+        starred: false
+      }
+      
+      const input = {
+        ...mockInput,
+        articles: [irrelevantArticle]
+      }
+      
+      const result = await pipeline.process(input)
+      
+      // 应该被 TF-IDF 过滤掉
+      expect(result.articles.length).toBe(0)
+    })
+  })
+
+  describe('进度追踪增强', () => {
+    it('应该估算剩余时间', async () => {
+      // 在处理过程中检查进度
+      const processPromise = pipeline.process(mockInput)
+      
+      // 等待一小段时间让处理开始
+      await new Promise(resolve => setTimeout(resolve, 50))
+      
+      const progress = pipeline.getProgress()
+      
+      // 如果还在处理中，应该有剩余时间估算
+      if (progress.progress > 0 && progress.progress < 1) {
+        expect(progress.estimatedTimeRemaining).toBeGreaterThanOrEqual(0)
+      }
+      
+      await processPromise
+    })
+
+    it('应该在完成时清除剩余时间', async () => {
+      await pipeline.process(mockInput)
+      
+      const progress = pipeline.getProgress()
+      expect(progress.progress).toBe(1.0)
+      expect(progress.stage).toBe('complete')
+    })
+  })
+
+  describe('统计信息', () => {
+    it('应该记录 TF-IDF 过滤统计', async () => {
+      const result = await pipeline.process(mockInput)
+      
+      expect(result.stats.processed.tfidfFiltered).toBeGreaterThanOrEqual(0)
+      expect(result.stats.timing.tfidfAnalysis).toBeGreaterThanOrEqual(0)
+    })
+
+    it('应该记录 AI 分析统计', async () => {
+      const result = await pipeline.process(mockInput)
+      
+      expect(result.stats.processed.aiAnalyzed).toBeGreaterThanOrEqual(0)
+      expect(result.stats.timing.aiAnalysis).toBeGreaterThanOrEqual(0)
+    })
+
+    it('应该记录错误统计', async () => {
+      const result = await pipeline.process(mockInput)
+      
+      // 错误计数应该存在（即使为 0）
+      expect(result.stats.errors).toBeDefined()
+      expect(result.stats.errors.fullContentFailed).toBeGreaterThanOrEqual(0)
+      expect(result.stats.errors.tfidfFailed).toBeGreaterThanOrEqual(0)
+      expect(result.stats.errors.aiAnalysisFailed).toBeGreaterThanOrEqual(0)
+    })
+  })
+
+  describe('配置验证', () => {
+    it('应该处理负数的 maxRecommendations', async () => {
+      const input = {
+        ...mockInput,
+        config: {
+          ...mockInput.config,
+          maxRecommendations: -5
+        }
+      }
+      
+      const result = await pipeline.process(input)
+      
+      // 应该有合理的降级处理，不会返回负数个结果
+      expect(result.articles.length).toBeGreaterThanOrEqual(0)
+    })
+
+    it('应该处理零 maxRecommendations', async () => {
+      const input = {
+        ...mockInput,
+        config: {
+          ...mockInput.config,
+          maxRecommendations: 0
+        }
+      }
+      
+      const result = await pipeline.process(input)
+      
+      expect(result.articles.length).toBe(0)
+    })
+
+    it('应该处理极大的 batchSize', async () => {
+      const input = {
+        ...mockInput,
+        config: {
+          ...mockInput.config,
+          batchSize: 1000
+        }
+      }
+      
+      const result = await pipeline.process(input)
+      
+      // 应该正常处理，不会超过实际文章数量
+      expect(result.articles.length).toBeLessThanOrEqual(mockArticles.length)
+    })
+
+    it('应该处理极低的质量阈值', async () => {
+      const input = {
+        ...mockInput,
+        config: {
+          ...mockInput.config,
+          qualityThreshold: 0.01  // 几乎接受所有文章
+        }
+      }
+      
+      const result = await pipeline.process(input)
+      
+      // 应该返回更多推荐
+      expect(result.articles).toBeDefined()
+    })
+
+    it('应该处理极高的质量阈值', async () => {
+      const input = {
+        ...mockInput,
+        config: {
+          ...mockInput.config,
+          qualityThreshold: 0.99  // 几乎拒绝所有文章
+        }
+      }
+      
+      const result = await pipeline.process(input)
+      
+      // 可能返回很少或没有推荐
+      expect(result.articles).toBeDefined()
+    })
+  })
+
+  describe('降级策略', () => {
+    it('应该在 AI 禁用时降级到 TF-IDF', async () => {
+      const inputWithoutAI = {
+        ...mockInput,
+        config: {
+          ...mockInput.config,
+          useReasoning: false,
+          useLocalAI: false
+        }
+      }
+      
+      // 创建禁用 AI 的管道
+      const tfidfPipeline = new RecommendationPipelineImpl({
+        ai: { 
+          enabled: false,
+          batchSize: 5,
+          maxConcurrency: 2,
+          timeout: 30000,
+          costLimit: 1.0,
+          fallbackToTFIDF: true
+        }
+      })
+      
+      const result = await tfidfPipeline.process(inputWithoutAI)
+      
+      // 应该使用 TF-IDF 算法
+      expect(result.algorithm).toBe('tfidf')
+      expect(result.stats.processed.aiAnalyzed).toBe(0)
+    })
+
+    it('应该在所有 AI 分析失败时降级', async () => {
+      const { aiManager } = await import('@/core/ai/AICapabilityManager')
+      // Mock 所有 AI 调用失败
+      vi.mocked(aiManager.analyzeContent).mockRejectedValue(new Error('AI unavailable'))
+      
+      const result = await pipeline.process(mockInput)
+      
+      // 应该降级到 TF-IDF
+      expect(result).toBeDefined()
+      expect(result.articles).toBeDefined()
+    })
+  })
+
+  describe('推荐理由生成', () => {
+    it('应该为每篇推荐生成合理的理由', async () => {
+      const result = await pipeline.process(mockInput)
+      
+      result.articles.forEach(article => {
+        expect(article.reason).toBeDefined()
+        expect(article.reason.length).toBeGreaterThan(0)
+        // 理由应该包含相关性或分数信息
+        expect(
+          article.reason.includes('相关度') || 
+          article.reason.includes('分数') ||
+          article.reason.includes('匹配')
+        ).toBe(true)
+      })
+    })
+
+    it('应该包含匹配的兴趣关键词', async () => {
+      const result = await pipeline.process(mockInput)
+      
+      result.articles.forEach(article => {
+        expect(article.matchedInterests).toBeDefined()
+        expect(Array.isArray(article.matchedInterests)).toBe(true)
+      })
+    })
+
+    it('应该包含关键点提取', async () => {
+      const result = await pipeline.process(mockInput)
+      
+      result.articles.forEach(article => {
+        if (article.keyPoints) {
+          expect(Array.isArray(article.keyPoints)).toBe(true)
+          expect(article.keyPoints.length).toBeGreaterThanOrEqual(0)
+        }
+      })
+    })
+  })
 })

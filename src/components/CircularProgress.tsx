@@ -2,10 +2,12 @@
  * 环形进度条组件
  * 
  * 特点：
- * - 渐变色进度圈（靛蓝→翠绿）
+ * - 渐变色进度圈（靛青→青色）
  * - 中心显示图标和数字
  * - 平滑动画过渡
  * - 支持深色模式
+ * - 支持手绘风格
+ * - 支持图标点击
  */
 
 interface CircularProgressProps {
@@ -14,6 +16,9 @@ interface CircularProgressProps {
   current: number
   total: number
   size?: number // 直径（像素）
+  isSketchyStyle?: boolean // 是否使用手绘风格
+  onIconClick?: () => void // 图标点击事件
+  iconClickable?: boolean // 图标是否可点击（显示悬停效果）
 }
 
 export function CircularProgress({
@@ -21,7 +26,10 @@ export function CircularProgress({
   icon,
   current,
   total,
-  size = 128
+  size = 128,
+  isSketchyStyle = false,
+  onIconClick,
+  iconClickable = false
 }: CircularProgressProps) {
   const radius = (size - 16) / 2 // 留出边距
   const circumference = 2 * Math.PI * radius
@@ -35,12 +43,12 @@ export function CircularProgress({
         width={size}
         height={size}
       >
-        {/* 渐变定义 */}
+        {/* 渐变定义 - 靛青到青色 */}
         <defs>
           <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" className="text-indigo-500" stopColor="currentColor" />
-            <stop offset="50%" className="text-purple-500" stopColor="currentColor" />
-            <stop offset="100%" className="text-green-500" stopColor="currentColor" />
+            <stop offset="50%" className="text-cyan-500" stopColor="currentColor" />
+            <stop offset="100%" className="text-teal-400" stopColor="currentColor" />
           </linearGradient>
           
           {/* 发光滤镜 */}
@@ -82,8 +90,19 @@ export function CircularProgress({
       
       {/* 中心内容 */}
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <div className="text-5xl mb-1">{icon}</div>
-        <div className="text-sm font-semibold text-gray-600 dark:text-gray-400">
+        <div 
+          className={`text-5xl mb-1 ${
+            iconClickable ? 'cursor-pointer hover:scale-110 transition-transform' : ''
+          } ${
+            isSketchyStyle ? 'sketchy-emoji' : ''
+          }`}
+          onClick={onIconClick}
+        >
+          {icon}
+        </div>
+        <div className={`text-sm font-semibold ${
+          isSketchyStyle ? 'sketchy-text' : 'text-gray-600 dark:text-gray-400'
+        }`}>
           {current}/{total}
         </div>
       </div>

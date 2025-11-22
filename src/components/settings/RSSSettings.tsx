@@ -26,7 +26,7 @@ function decodeHtmlEntities(text: string): string {
  * - 精简显示：标题（链接）、来源、时间、格式徽章
  * - 右侧操作：收录、忽略
  */
-export function RSSManager() {
+export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boolean }) {
   const { t: _ } = useTranslation()
   const [candidateFeeds, setCandidateFeeds] = useState<DiscoveredFeed[]>([])
   const [subscribedFeeds, setSubscribedFeeds] = useState<DiscoveredFeed[]>([])
@@ -742,7 +742,9 @@ export function RSSManager() {
           {/* 语言标签 - 右侧对齐 */}
           {feed.language && (
             <span 
-              className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded text-[10px] font-mono font-bold uppercase flex-shrink-0"
+              className={`px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded text-xs uppercase flex-shrink-0 ${
+                isSketchyStyle ? 'sketchy-text font-semibold' : 'font-mono font-bold'
+              }`}
               title={formatLanguage(feed.language)}
             >
               {feed.language}
@@ -754,7 +756,9 @@ export function RSSManager() {
             href={feed.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center w-12 px-1.5 py-0.5 text-white text-xs font-mono font-bold rounded flex-shrink-0 hover:opacity-80 transition-opacity"
+            className={`inline-flex items-center justify-center w-12 px-1.5 py-0.5 text-white text-xs rounded flex-shrink-0 hover:opacity-80 transition-opacity ${
+              isSketchyStyle ? 'sketchy-text font-semibold' : 'font-mono font-bold'
+            }`}
             style={{ backgroundColor: '#FF6600' }}
             title={_('options.rssManager.openXML')}
           >
@@ -1069,7 +1073,7 @@ export function RSSManager() {
             <button
               onClick={handleManualAdd}
               disabled={isManualAdding || !manualUrl.trim()}
-              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded-md transition-colors"
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded-md transition-colors"
             >
               {isManualAdding ? _('options.rssManager.subscribing') : _('options.rssManager.subscribe')}
             </button>
@@ -1119,7 +1123,7 @@ export function RSSManager() {
             <button
               onClick={handleExportOPML}
               disabled={subscribedFeeds.length === 0}
-              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded-md transition-colors flex items-center gap-1"
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded-md transition-colors flex items-center gap-1"
               title={subscribedFeeds.length === 0 ? _('options.rssManager.noSubscribedFeeds') : ''}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1185,7 +1189,7 @@ export function RSSManager() {
             <button
               onClick={handleFetchAllFeeds}
               disabled={isFetchingAll || fetchCompleted.all}
-              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white text-sm rounded-lg transition-colors"
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white text-sm rounded-lg transition-colors"
             >
               {isFetchingAll 
                 ? _('options.rssManager.actions.fetchingAll') 
@@ -1214,7 +1218,7 @@ export function RSSManager() {
                 onClick: () => handleToggleActive(feed.id),
                 className: feed.isActive 
                   ? 'bg-gray-400 hover:bg-gray-500'
-                  : 'bg-blue-500 hover:bg-blue-600',
+                  : 'bg-indigo-600 hover:bg-indigo-700',
                 row: 2
               },
               {

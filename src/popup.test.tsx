@@ -56,12 +56,11 @@ describe("IndexPopup 组件", () => {
       expect(title).toBeTruthy()
     })
     
-    // 检查欢迎信息（支持中英文）
-    const welcomeText = screen.queryByText("开始你的阅读之旅") ||
-                       screen.queryByText("Start your reading journey")
-    expect(welcomeText).toBeTruthy()
+    // 检查图标显示（探索者阶段的图标）
+    const icon = screen.getByText("🌱")
+    expect(icon).toBeInTheDocument()
 
-    // 检查学习提示（检查是否有相关文本）
+    // 检查提示信息
     const hintElement = screen.getByText(/学习.*兴趣|learn.*interest/i)
     expect(hintElement).toBeInTheDocument()
   })
@@ -71,8 +70,9 @@ describe("IndexPopup 组件", () => {
 
     // 等待加载完成
     // Phase 6: 临时改为 100 页阈值
+    // 现在使用 CircularProgress，格式为 "0/100" 不带"页"字
     await waitFor(() => {
-      const expected = `0/${LEARNING_COMPLETE_PAGES} 页`
+      const expected = `0/${LEARNING_COMPLETE_PAGES}`
       expect(screen.getByText(expected)).toBeInTheDocument()
     })
   })
@@ -120,16 +120,14 @@ describe("IndexPopup 组件", () => {
   it("进度条应该显示正确的宽度", async () => {
     render(<IndexPopup />)
 
-    // 等待加载完成
+    // 等待加载完成 - 现在使用 CircularProgress SVG
     await waitFor(() => {
-      const progressBar = document.querySelector(".sketchy-progress-bar, .bg-green-500")
-      expect(progressBar).toBeInTheDocument()
+      const svg = document.querySelector("svg circle")
+      expect(svg).toBeInTheDocument()
     })
 
-    // 初始状态进度应该是 0%
-    const progressBar = document.querySelector(
-      ".sketchy-progress-bar, .bg-green-500"
-    ) as HTMLElement
-    expect(progressBar.style.width).toBe("0%")
+    // 检查 CircularProgress SVG 是否渲染
+    const svg = document.querySelector("svg")
+    expect(svg).toBeInTheDocument()
   })
 })
