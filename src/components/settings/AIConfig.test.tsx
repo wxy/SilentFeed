@@ -8,7 +8,24 @@ vi.mock("@/storage/ai-config", () => ({
   getAIConfig: vi.fn(),
   saveAIConfig: vi.fn(),
   validateApiKey: vi.fn(),
-  AIProviderType: {} as any
+  getProviderFromModel: vi.fn((modelId: string) => {
+    if (modelId.startsWith("deepseek")) return "deepseek"
+    if (modelId.startsWith("gpt-") || modelId.startsWith("o4-")) return "openai"
+    if (modelId.startsWith("claude")) return "anthropic"
+    return null
+  }),
+  AIProviderType: {} as any,
+  AVAILABLE_MODELS: {
+    deepseek: [
+      { id: "deepseek-chat", name: "DeepSeek", description: "国内友好，支持推理模式（R1）", supportsReasoning: true, reasoningCostMultiplier: 1, costMultiplier: 1 }
+    ],
+    openai: [
+      { id: "gpt-5-nano", name: "GPT-5 Nano", description: "最快最便宜，适合简单任务", supportsReasoning: false, costMultiplier: 0.2 },
+      { id: "gpt-5-mini", name: "GPT-5 Mini", description: "平衡性能和成本（推荐）", supportsReasoning: false, costMultiplier: 1 },
+      { id: "gpt-5", name: "GPT-5", description: "最强性能，成本较高", supportsReasoning: false, costMultiplier: 5 },
+      { id: "o4-mini", name: "o4-mini", description: "推理模型，擅长复杂推理任务", supportsReasoning: true, reasoningCostMultiplier: 16, costMultiplier: 4 }
+    ]
+  }
 }))
 
 // Mock aiManager
@@ -26,9 +43,11 @@ describe("AIConfig", () => {
     // 默认返回空配置
     vi.mocked(aiConfigModule.getAIConfig).mockResolvedValue({
       provider: null,
-      apiKey: "",
+      apiKeys: {},
       enabled: false,
-      monthlyBudget: 5
+      monthlyBudget: 5,
+      model: undefined,
+      enableReasoning: false
     })
     
     vi.mocked(aiConfigModule.saveAIConfig).mockResolvedValue(undefined)
@@ -54,7 +73,7 @@ describe("AIConfig", () => {
       render(<AIConfig />)
       
       expect(screen.getByText(/AI Configuration/)).toBeInTheDocument()
-      expect(screen.getByLabelText("AI Provider")).toBeInTheDocument()
+      expect(screen.getByLabelText("Select AI Model")).toBeInTheDocument()
     })
     
     it("应该显示所有提供商选项", async () => {
@@ -62,16 +81,18 @@ describe("AIConfig", () => {
       
       // 等待组件加载完成
       await waitFor(() => {
-        expect(screen.getByLabelText("AI Provider")).toBeInTheDocument()
+        expect(screen.getByLabelText("Select AI Model")).toBeInTheDocument()
       })
       
-      const select = screen.getByLabelText("AI Provider")
+      const select = screen.getByLabelText("Select AI Model")
       
-      // 检查选项（Phase 10: OpenAI 和 Anthropic 临时禁用）
-      expect(screen.getByRole("option", { name: /None \(AI Disabled\)/ })).toBeInTheDocument()
-      expect(screen.getByRole("option", { name: /OpenAI.*Temporarily Unavailable/ })).toBeInTheDocument()
-      expect(screen.getByRole("option", { name: /Anthropic.*Temporarily Unavailable/ })).toBeInTheDocument()
+      // 检查选项（现在是按模型分组）
+      expect(screen.getByRole("option", { name: /Please select/ })).toBeInTheDocument()
+      // DeepSeek 组
       expect(screen.getByRole("option", { name: /DeepSeek/ })).toBeInTheDocument()
+      // OpenAI 组（包含多个模型）
+      expect(screen.getByRole("option", { name: /GPT-5 Nano/ })).toBeInTheDocument()
+      expect(screen.getByRole("option", { name: /GPT-5 Mini/ })).toBeInTheDocument()
     })
   })
   
@@ -79,37 +100,40 @@ describe("AIConfig", () => {
     it("选择 Provider 后应该显示 API Key 输入框", async () => {
       render(<AIConfig />)
       
-      const select = screen.getByLabelText("AI Provider")
+      const select = screen.getByLabelText("Select AI Model")
       
       // 初始状态：不显示 API Key 输入
-      expect(screen.queryByLabelText("API Key")).not.toBeInTheDocument()
+      expect(screen.queryByLabelText(/API Key/)).not.toBeInTheDocument()
       
-      // 选择 DeepSeek
-      fireEvent.change(select, { target: { value: "deepseek" } })
+      // 选择 DeepSeek 模型
+      fireEvent.change(select, { target: { value: "deepseek-chat" } })
       
-      // 应该显示 API Key 输入框
-      expect(screen.getByLabelText("API Key")).toBeInTheDocument()
+      // 应该显示 API Key 输入框（需要等待）
+      await waitFor(() => {
+        expect(screen.getByLabelText(/API Key/)).toBeInTheDocument()
+      })
       expect(screen.getByPlaceholderText(/Enter your API Key/)).toBeInTheDocument()
     })
     
     it("选择 Provider 后应该显示提供商说明", () => {
       render(<AIConfig />)
       
-      const select = screen.getByLabelText("AI Provider")
+      const select = screen.getByLabelText("Select AI Model")
       
-      // 选择 DeepSeek
-      fireEvent.change(select, { target: { value: "deepseek" } })
+      // 选择 DeepSeek 模型
+      fireEvent.change(select, { target: { value: "deepseek-chat" } })
       
-      expect(screen.getByText(/Domestically friendly/)).toBeInTheDocument()
+      // 描述直接来自 AVAILABLE_MODELS 配置
+      expect(screen.getByText(/国内友好|支持推理模式/)).toBeInTheDocument()
     })
     
     it("选择 Provider 后应该显示预算控制", () => {
       render(<AIConfig />)
       
-      const select = screen.getByLabelText("AI Provider")
+      const select = screen.getByLabelText("Select AI Model")
       
-      // 选择 DeepSeek
-      fireEvent.change(select, { target: { value: "deepseek" } })
+      // 选择 DeepSeek 模型
+      fireEvent.change(select, { target: { value: "deepseek-chat" } })
       
       expect(screen.getByLabelText(/Monthly budget limit/)).toBeInTheDocument()
     })
@@ -119,12 +143,12 @@ describe("AIConfig", () => {
     it("应该保存配置到 chrome.storage.sync", async () => {
       render(<AIConfig />)
       
-      // 选择 DeepSeek
-      const select = screen.getByLabelText("AI Provider")
-      fireEvent.change(select, { target: { value: "deepseek" } })
+      // 选择 DeepSeek 模型
+      const select = screen.getByLabelText("Select AI Model")
+      fireEvent.change(select, { target: { value: "deepseek-chat" } })
       
-      // 输入 API Key
-      const apiKeyInput = screen.getByLabelText("API Key")
+      // 等待 API Key 输入框渲染
+      const apiKeyInput = await screen.findByLabelText(/API Key/)
       fireEvent.change(apiKeyInput, { target: { value: "sk-test-123456" } })
       
       // 点击保存
@@ -135,7 +159,11 @@ describe("AIConfig", () => {
       await waitFor(() => {
         expect(aiConfigModule.saveAIConfig).toHaveBeenCalledWith({
           provider: "deepseek",
-          apiKey: "sk-test-123456",
+          model: "deepseek-chat",
+          apiKeys: {
+            openai: "",
+            deepseek: "sk-test-123456"
+          },
           enabled: true,
           monthlyBudget: 5,
           enableReasoning: false
@@ -149,9 +177,12 @@ describe("AIConfig", () => {
     it("API Key 为空时保存按钮应该被禁用", async () => {
       render(<AIConfig />)
       
-      // 选择 DeepSeek
-      const select = screen.getByLabelText("AI Provider")
-      fireEvent.change(select, { target: { value: "deepseek" } })
+      // 选择 DeepSeek 模型
+      const select = screen.getByLabelText("Select AI Model")
+      fireEvent.change(select, { target: { value: "deepseek-chat" } })
+      
+      // 等待 UI 渲染
+      await screen.findByLabelText(/API Key/)
       
       // 不输入 API Key
       const saveButton = screen.getByText("Save Configuration")
@@ -180,12 +211,12 @@ describe("AIConfig", () => {
       
       render(<AIConfig />)
       
-      // 选择 DeepSeek
-      const select = screen.getByLabelText("AI Provider")
-      fireEvent.change(select, { target: { value: "deepseek" } })
+      // 选择 DeepSeek 模型
+      const select = screen.getByLabelText("Select AI Model")
+      fireEvent.change(select, { target: { value: "deepseek-chat" } })
       
       // 输入正确格式的 API Key
-      const apiKeyInput = screen.getByLabelText("API Key")
+      const apiKeyInput = await screen.findByLabelText(/API Key/)
       fireEvent.change(apiKeyInput, { target: { value: "sk-test-123456" } })
       
       // 点击测试连接
@@ -205,12 +236,12 @@ describe("AIConfig", () => {
     it("API Key 格式错误时应该提示", async () => {
       render(<AIConfig />)
       
-      // 选择 DeepSeek
-      const select = screen.getByLabelText("AI Provider")
-      fireEvent.change(select, { target: { value: "deepseek" } })
+      // 选择 DeepSeek 模型
+      const select = screen.getByLabelText("Select AI Model")
+      fireEvent.change(select, { target: { value: "deepseek-chat" } })
       
       // 输入错误格式的 API Key（不以 sk- 开头）
-      const apiKeyInput = screen.getByLabelText("API Key")
+      const apiKeyInput = await screen.findByLabelText(/API Key/)
       fireEvent.change(apiKeyInput, { target: { value: "wrong-key" } })
       
       // 点击测试连接
@@ -227,22 +258,27 @@ describe("AIConfig", () => {
   describe("加载配置", () => {
     it("应该加载已保存的配置", async () => {
       vi.mocked(aiConfigModule.getAIConfig).mockResolvedValue({
-        provider: "deepseek",
-        apiKey: "sk-saved-key",
+        model: "deepseek-chat",
+        apiKeys: {
+          deepseek: "sk-saved-key"
+        },
         enabled: true,
-        monthlyBudget: 10
+        monthlyBudget: 10,
+        enableReasoning: false
       })
       
       render(<AIConfig />)
       
-      // 等待配置加载
+      // 等待配置加载和 UI 渲染
       await waitFor(() => {
-        const select = screen.getByLabelText("AI Provider") as HTMLSelectElement
-        expect(select.value).toBe("deepseek")
+        const select = screen.getByLabelText("Select AI Model") as HTMLSelectElement
+        expect(select.value).toBe("deepseek-chat")
       })
       
       // 检查 API Key（password 类型看不到值，但输入框应该存在）
-      expect(screen.getByLabelText("API Key")).toBeInTheDocument()
+      await waitFor(() => {
+        expect(screen.getByLabelText(/API Key/)).toBeInTheDocument()
+      })
       
       // 检查预算
       const budgetInput = screen.getByLabelText(/Monthly budget limit/) as HTMLInputElement
@@ -253,8 +289,10 @@ describe("AIConfig", () => {
   describe("禁用 AI", () => {
     it("应该禁用已配置的 AI", async () => {
       vi.mocked(aiConfigModule.getAIConfig).mockResolvedValue({
-        provider: "deepseek",
-        apiKey: "sk-saved-key",
+        model: "deepseek-chat",
+        apiKeys: {
+          deepseek: "sk-saved-key"
+        },
         enabled: true,
         monthlyBudget: 10,
         enableReasoning: false
@@ -264,7 +302,7 @@ describe("AIConfig", () => {
       
       // 等待配置加载
       await waitFor(() => {
-        expect(screen.getByLabelText("API Key")).toBeInTheDocument()
+        expect(screen.getByLabelText(/API Key/)).toBeInTheDocument()
       })
       
       // 点击禁用 AI
@@ -276,7 +314,8 @@ describe("AIConfig", () => {
         () => {
           expect(aiConfigModule.saveAIConfig).toHaveBeenCalledWith({
             provider: null,
-            apiKey: "",
+            model: undefined,
+            apiKeys: {},
             enabled: false,
             monthlyBudget: 5,
             enableReasoning: false

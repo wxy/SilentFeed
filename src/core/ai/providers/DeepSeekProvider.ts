@@ -1,11 +1,13 @@
 /**
- * DeepSeek Provider
+ * DeepSeek Provider (Unified)
  * 
- * 使用 DeepSeek API 进行内容分析
+ * 统一的 DeepSeek Provider，支持根据 useReasoning 参数动态选择模型：
+ * - useReasoning=true: 使用 deepseek-reasoner（推理模型，输出推理链）
+ * - useReasoning=false: 使用 deepseek-chat（普通模型，速度快、成本低）
  * 
  * 特点：
  * - 国内访问友好
- * - 价格低：¥2/M 输入（缓存未命中）、¥0.2/M 输入（缓存命中）、¥3/M 输出
+ * - 价格：¥2/M 输入（缓存未命中）、¥0.2/M 输入（缓存命中）、¥3/M 输出
  * - OpenAI 兼容接口
  * 
  * 注：本实现假设 10% 缓存命中率进行成本估算
@@ -22,14 +24,14 @@ import type {
 } from "@/types/ai"
 import { logger } from "../../../utils/logger"
 
-const deepSeekLogger = logger.withTag("DeepSeekProvider")
+const deepseekLogger = logger.withTag("DeepSeekProvider")
 
 export class DeepSeekProvider implements AIProvider {
   readonly name = "DeepSeek"
   
   private config: AIProviderConfig
   private endpoint = "https://api.deepseek.com/v1/chat/completions"
-  private model = "deepseek-chat"
+  private model = "deepseek-reasoner"
   
   // 定价（每 1M tokens，人民币）
   private readonly PRICE_INPUT_CACHED = 0.2 // ¥0.2/M (缓存命中)
@@ -53,19 +55,19 @@ export class DeepSeekProvider implements AIProvider {
     try {
       // 检查 API Key
       if (!this.config.apiKey || this.config.apiKey.length < 20) {
-        deepSeekLogger.warn("Invalid API Key")
+        deepseekLogger.warn("Invalid API Key")
         return false
       }
       
       // 检查网络（简单验证）
       if (!navigator.onLine) {
-        deepSeekLogger.warn("No network connection")
+        deepseekLogger.warn("No network connection")
         return false
       }
       
       return true
     } catch (error) {
-      deepSeekLogger.error("isAvailable check failed:", error)
+      deepseekLogger.error("isAvailable check failed:", error)
       return false
     }
   }
@@ -114,7 +116,7 @@ export class DeepSeekProvider implements AIProvider {
         }
       }
     } catch (error) {
-      deepSeekLogger.error("analyzeContent failed:", error)
+      deepseekLogger.error("analyzeContent failed:", error)
       throw error
     }
   }
@@ -149,7 +151,7 @@ export class DeepSeekProvider implements AIProvider {
           "Authorization": `Bearer ${this.config.apiKey}`
         },
         body: JSON.stringify(request),
-        signal: AbortSignal.timeout(10000) // 10秒超时
+        signal: AbortSignal.timeout(20000) // 20秒超时（简单测试）
       })
       
       const latency = Date.now() - startTime
@@ -165,7 +167,7 @@ export class DeepSeekProvider implements AIProvider {
       
       return {
         success: true,
-        message: "连接成功！DeepSeek API 正常工作",
+        message: "连接成功！DeepSeek Reasoner API 正常工作",
         latency
       }
     } catch (error) {
@@ -195,24 +197,24 @@ export class DeepSeekProvider implements AIProvider {
    * 构建提示词
    */
   private buildPrompt(content: string): string {
-    return `你是一个内容分析专家。请分析以下文本的主题分布。
+    // JSON Mode 要求提示词中包含 "JSON" 和格式示例
+    return `分析以下文本的主题分布，输出 JSON 格式结果。
 
-文本内容：
+文本：
 ${content}
 
-请以 JSON 格式返回分析结果，包含主题及其概率（0-1之间的数字，总和为1）。
-主题应该是具体的、有意义的类别（如"技术"、"设计"、"商业"等）。
+请识别 3-5 个主要主题（如"技术"、"设计"、"商业"等），并给出每个主题的概率（0-1之间，总和为1）。
 
-返回格式示例：
+输出格式（JSON）：
 {
   "topics": {
-    "技术": 0.7,
-    "开源": 0.2,
+    "技术": 0.6,
+    "API": 0.3,
     "教程": 0.1
   }
 }
 
-只返回 JSON，不要其他解释。`
+只输出 JSON，不要其他内容。`
   }
   
   /**
@@ -222,20 +224,44 @@ ${content}
     prompt: string,
     options?: AnalyzeOptions
   ): Promise<DeepSeekResponse> {
+    // Phase 6: 根据 useReasoning 参数动态选择模型
+    // - useReasoning=true: 使用 deepseek-reasoner（推理模型，慢但更准确）
+    // - useReasoning=false: 使用 deepseek-chat（普通模型，快速且便宜）
+    const selectedModel = options?.useReasoning ? "deepseek-reasoner" : "deepseek-chat"
+    
+    deepseekLogger.debug(`Using model: ${selectedModel}, useReasoning: ${options?.useReasoning}`)
+    
     const request: DeepSeekRequest = {
-      model: this.model,
+      model: selectedModel,
       messages: [
         {
           role: "user",
           content: prompt
         }
       ],
-      temperature: 0.3, // 降低随机性，更稳定
-      max_tokens: 500,  // 主题分析不需要太多 tokens
+      // DeepSeek Reasoner 不支持 temperature，设置了也不生效
+      // temperature: 0.3,
+      
+      // 启用 JSON Mode，强制模型输出 JSON
+      // 这会大幅减少推理过程，直接输出结构化结果
+      response_format: {
+        type: "json_object"
+      },
+      
+      // max_tokens 包含思维链 + 最终答案
+      // 根据文档：模型单次回答的最大长度（含思维链输出），默认为 32K，最大为 64K
+      // 实测推理链约 2000 tokens，设置 4000 给予充足空间，避免截断
+      max_tokens: 4000,
       stream: false
     }
     
-    const timeout = options?.timeout || 30000 // 默认 30 秒
+    // Phase 6: 根据模型类型设置不同超时
+    // - Reasoner 推理模型较慢：120 秒（推理链可能很长）
+    // - Chat 普通模型：60 秒（给予充足时间处理复杂内容）
+    const defaultTimeout = selectedModel === "deepseek-reasoner" ? 120000 : 60000
+    const timeout = options?.timeout || defaultTimeout
+    
+    deepseekLogger.debug(`Timeout: ${timeout}ms for model ${selectedModel}`)
     
     const response = await fetch(this.endpoint, {
       method: "POST",
@@ -249,7 +275,7 @@ ${content}
     
     if (!response.ok) {
       const errorText = await response.text()
-      throw new Error(`DeepSeek API error: ${response.status} ${errorText}`)
+      throw new Error(`DeepSeek Reasoner API error: ${response.status} ${errorText}`)
     }
     
     return await response.json()
@@ -260,9 +286,51 @@ ${content}
    */
   private parseResponse(response: DeepSeekResponse): AIAnalysisOutput {
     try {
-      const content = response.choices[0]?.message?.content
-      if (!content) {
-        throw new Error("No content in response")
+      const message = response.choices[0]?.message
+      
+      // 根据 DeepSeek Reasoner 文档：
+      // - reasoning_content: 思维链内容（推理过程）
+      // - content: 最终回答内容（这才是我们需要的 JSON）
+      
+      const reasoningContent = (message as any)?.reasoning_content
+      const finalContent = message?.content
+      const finishReason = response.choices[0]?.finish_reason
+      
+      deepseekLogger.debug("Response structure:", {
+        hasReasoningContent: !!reasoningContent,
+        hasFinalContent: !!finalContent,
+        reasoningLength: reasoningContent?.length || 0,
+        finalLength: finalContent?.length || 0,
+        finishReason
+      })
+      
+      // 推理内容仅记录长度，不输出完整内容
+      if (reasoningContent) {
+        deepseekLogger.debug(`Reasoning content length: ${reasoningContent.length} chars`)
+      }
+      
+      // 如果 finish_reason 是 'length'，说明达到 max_tokens 限制
+      if (finishReason === 'length') {
+        deepseekLogger.warn("Response truncated due to max_tokens limit")
+        deepseekLogger.warn("Consider increasing max_tokens")
+      }
+      
+      // 优先使用最终回答（content）
+      let content = finalContent
+      
+      // 如果最终回答为空，说明 max_tokens 不够，模型只输出了推理过程
+      if (!content || content.trim().length === 0) {
+        deepseekLogger.warn("Final content is empty, model may have run out of tokens")
+        
+        // 尝试从推理内容中提取 JSON（作为降级方案）
+        if (reasoningContent && typeof reasoningContent === 'string') {
+          deepseekLogger.debug("Attempting to extract JSON from reasoning_content")
+          // 只显示最后 500 字符的长度，不输出内容
+          deepseekLogger.debug(`Analyzing last portion (${Math.min(500, reasoningContent.length)} chars)`)
+          content = reasoningContent
+        } else {
+          throw new Error("Both content and reasoning_content are empty")
+        }
       }
       
       // 提取 JSON（处理可能的 markdown 代码块）
@@ -283,8 +351,8 @@ ${content}
       
       return { topics }
     } catch (error) {
-      deepSeekLogger.error("Failed to parse response:", error)
-      deepSeekLogger.error("Response:", response)
+      deepseekLogger.error("Failed to parse response:", error)
+      deepseekLogger.error("Response:", response)
       throw new Error(`解析 AI 响应失败: ${error instanceof Error ? error.message : String(error)}`)
     }
   }

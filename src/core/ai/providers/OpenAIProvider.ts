@@ -1,14 +1,20 @@
 /**
- * DeepSeek Provider (Unified)
+ * OpenAI Provider (Unified)
  * 
- * 统一的 DeepSeek Provider，支持根据 useReasoning 参数动态选择模型：
- * - useReasoning=true: 使用 deepseek-reasoner（推理模型，输出推理链）
- * - useReasoning=false: 使用 deepseek-chat（普通模型，速度快、成本低）
+ * 统一的 OpenAI Provider，支持多种模型：
+ * 
+ * 标准模型（适合日常内容分析）：
+ * - gpt-5-nano: 最快最便宜 ($0.050 输入, $0.400 输出)
+ * - gpt-5-mini: 平衡性能和成本 ($0.250 输入, $2.0 输出)
+ * - gpt-5: 最强性能 ($1.25 输入, $10.0 输出)
+ * 
+ * 推理模型（适合复杂多步骤推理）：
+ * - o4-mini: 推理模型，会生成思维链 ($4.0 输入, $16.0 输出)
  * 
  * 特点：
- * - 国内访问友好
- * - 价格：¥2/M 输入（缓存未命中）、¥0.2/M 输入（缓存命中）、¥3/M 输出
+ * - 支持提示缓存（Prompt Caching），节省成本
  * - OpenAI 兼容接口
+ * - 自动根据 model 参数选择模型
  * 
  * 注：本实现假设 10% 缓存命中率进行成本估算
  */
@@ -24,27 +30,50 @@ import type {
 } from "@/types/ai"
 import { logger } from "../../../utils/logger"
 
-const reasonerLogger = logger.withTag("DeepSeekReasonerProvider")
+const openaiLogger = logger.withTag("OpenAIProvider")
 
-export class DeepSeekReasonerProvider implements AIProvider {
-  readonly name = "DeepSeek"
+// 模型定价（每 1M tokens，美元）
+// 数据来源：https://openai.com/api/pricing/ (2025-01)
+const MODEL_PRICING = {
+  "gpt-5-nano": {
+    input: 0.050,
+    inputCached: 0.005,
+    output: 0.400
+  },
+  "gpt-5-mini": {
+    input: 0.250,
+    inputCached: 0.025,
+    output: 2.0
+  },
+  "gpt-5": {
+    input: 1.25,
+    inputCached: 0.125,
+    output: 10.0
+  },
+  "o4-mini": {
+    // 推理模型
+    input: 4.0,
+    inputCached: 1.0,
+    output: 16.0
+  }
+} as const
+
+type OpenAIModel = keyof typeof MODEL_PRICING
+
+export class OpenAIProvider implements AIProvider {
+  readonly name = "OpenAI"
   
   private config: AIProviderConfig
-  private endpoint = "https://api.deepseek.com/v1/chat/completions"
-  private model = "deepseek-reasoner"
-  
-  // 定价（每 1M tokens，人民币）
-  private readonly PRICE_INPUT_CACHED = 0.2 // ¥0.2/M (缓存命中)
-  private readonly PRICE_INPUT_UNCACHED = 2.0 // ¥2/M (缓存未命中)
-  private readonly PRICE_OUTPUT = 3.0 // ¥3/M
+  private endpoint = "https://api.openai.com/v1/chat/completions"
+  private model: OpenAIModel = "gpt-5-mini"
   
   constructor(config: AIProviderConfig) {
     this.config = config
     if (config.endpoint) {
       this.endpoint = config.endpoint
     }
-    if (config.model) {
-      this.model = config.model
+    if (config.model && config.model in MODEL_PRICING) {
+      this.model = config.model as OpenAIModel
     }
   }
   
@@ -55,19 +84,19 @@ export class DeepSeekReasonerProvider implements AIProvider {
     try {
       // 检查 API Key
       if (!this.config.apiKey || this.config.apiKey.length < 20) {
-        reasonerLogger.warn("Invalid API Key")
+        openaiLogger.warn("Invalid API Key")
         return false
       }
       
       // 检查网络（简单验证）
       if (!navigator.onLine) {
-        reasonerLogger.warn("No network connection")
+        openaiLogger.warn("No network connection")
         return false
       }
       
       return true
     } catch (error) {
-      reasonerLogger.error("isAvailable check failed:", error)
+      openaiLogger.error("isAvailable check failed:", error)
       return false
     }
   }
@@ -88,7 +117,7 @@ export class DeepSeekReasonerProvider implements AIProvider {
       // 2. 构建提示词
       const prompt = this.buildPrompt(processedContent)
       
-      // 3. 调用 DeepSeek API
+      // 3. 调用 OpenAI API
       const response = await this.callAPI(prompt, options)
       
       // 4. 解析响应
@@ -104,7 +133,7 @@ export class DeepSeekReasonerProvider implements AIProvider {
       return {
         topicProbabilities: analysis.topics,
         metadata: {
-          provider: "deepseek",
+          provider: "openai",
           model: this.model,
           timestamp: Date.now(),
           tokensUsed: {
@@ -116,7 +145,7 @@ export class DeepSeekReasonerProvider implements AIProvider {
         }
       }
     } catch (error) {
-      reasonerLogger.error("analyzeContent failed:", error)
+      openaiLogger.error("analyzeContent failed:", error)
       throw error
     }
   }
@@ -151,7 +180,7 @@ export class DeepSeekReasonerProvider implements AIProvider {
           "Authorization": `Bearer ${this.config.apiKey}`
         },
         body: JSON.stringify(request),
-        signal: AbortSignal.timeout(20000) // 20秒超时（简单测试）
+        signal: AbortSignal.timeout(10000) // 10秒超时
       })
       
       const latency = Date.now() - startTime
@@ -167,7 +196,7 @@ export class DeepSeekReasonerProvider implements AIProvider {
       
       return {
         success: true,
-        message: "连接成功！DeepSeek Reasoner API 正常工作",
+        message: `连接成功！OpenAI ${this.model} API 正常工作`,
         latency
       }
     } catch (error) {
@@ -197,8 +226,37 @@ export class DeepSeekReasonerProvider implements AIProvider {
    * 构建提示词
    */
   private buildPrompt(content: string): string {
-    // JSON Mode 要求提示词中包含 "JSON" 和格式示例
-    return `分析以下文本的主题分布，输出 JSON 格式结果。
+    // 判断是否为推理模型
+    const isReasoningModel = this.model.startsWith("o")
+    
+    if (isReasoningModel) {
+      // 推理模型：更详细的提示，引导思考过程
+      return `你是一个内容分析专家。请深入分析以下文本的主题分布。
+
+文本内容：
+${content}
+
+请仔细思考：
+1. 这篇文本主要讨论什么话题？
+2. 有哪些次要主题？
+3. 每个主题占据多大比重？
+
+以 JSON 格式返回分析结果，包含主题及其概率（0-1之间的数字，总和为1）。
+主题应该是具体的、有意义的类别（如"技术"、"设计"、"商业"等）。
+
+返回格式示例：
+{
+  "topics": {
+    "技术": 0.7,
+    "开源": 0.2,
+    "教程": 0.1
+  }
+}
+
+只返回 JSON，不要其他解释。`
+    } else {
+      // 标准模型：简洁提示
+      return `分析以下文本的主题分布，输出 JSON 格式结果。
 
 文本：
 ${content}
@@ -215,21 +273,31 @@ ${content}
 }
 
 只输出 JSON，不要其他内容。`
+    }
   }
   
   /**
-   * 调用 DeepSeek API
+   * 调用 OpenAI API
    */
   private async callAPI(
     prompt: string,
     options?: AnalyzeOptions
   ): Promise<DeepSeekResponse> {
-    // Phase 6: 根据 useReasoning 参数动态选择模型
-    // - useReasoning=true: 使用 deepseek-reasoner（推理模型，慢但更准确）
-    // - useReasoning=false: 使用 deepseek-chat（普通模型，快速且便宜）
-    const selectedModel = options?.useReasoning ? "deepseek-reasoner" : "deepseek-chat"
+    // 根据配置或参数选择模型
+    let selectedModel: OpenAIModel = this.model // 使用实例的默认模型
     
-    reasonerLogger.debug(`Using model: ${selectedModel}, useReasoning: ${options?.useReasoning}`)
+    // 如果指定了 useReasoning，覆盖默认模型
+    if (options?.useReasoning !== undefined) {
+      if (options.useReasoning) {
+        // 使用推理模型
+        selectedModel = "o4-mini"
+      } else {
+        // 使用标准模型（如果当前是推理模型，切换到 gpt-5-mini）
+        selectedModel = this.model.startsWith("o") ? "gpt-5-mini" : this.model
+      }
+    }
+    
+    openaiLogger.debug(`Using model: ${selectedModel}, useReasoning: ${options?.useReasoning}`)
     
     const request: DeepSeekRequest = {
       model: selectedModel,
@@ -239,29 +307,25 @@ ${content}
           content: prompt
         }
       ],
-      // DeepSeek Reasoner 不支持 temperature，设置了也不生效
-      // temperature: 0.3,
       
-      // 启用 JSON Mode，强制模型输出 JSON
-      // 这会大幅减少推理过程，直接输出结构化结果
-      response_format: {
-        type: "json_object"
-      },
+      // 推理模型不支持 response_format
+      ...(selectedModel.startsWith("o") ? {} : {
+        // 启用 JSON Mode，强制模型输出 JSON
+        response_format: {
+          type: "json_object"
+        }
+      }),
       
-      // max_tokens 包含思维链 + 最终答案
-      // 根据文档：模型单次回答的最大长度（含思维链输出），默认为 32K，最大为 64K
-      // 实测推理链约 2000 tokens，设置 4000 给予充足空间，避免截断
-      max_tokens: 4000,
+      // max_tokens 根据模型类型调整
+      max_tokens: selectedModel.startsWith("o") ? 4000 : 500,
       stream: false
     }
     
-    // Phase 6: 根据模型类型设置不同超时
-    // - Reasoner 推理模型较慢：120 秒（推理链可能很长）
-    // - Chat 普通模型：60 秒（给予充足时间处理复杂内容）
-    const defaultTimeout = selectedModel === "deepseek-reasoner" ? 120000 : 60000
+    // 根据模型类型设置不同超时
+    const defaultTimeout = selectedModel.startsWith("o") ? 120000 : 60000
     const timeout = options?.timeout || defaultTimeout
     
-    reasonerLogger.debug(`Timeout: ${timeout}ms for model ${selectedModel}`)
+    openaiLogger.debug(`Timeout: ${timeout}ms for model ${selectedModel}`)
     
     const response = await fetch(this.endpoint, {
       method: "POST",
@@ -275,10 +339,15 @@ ${content}
     
     if (!response.ok) {
       const errorText = await response.text()
-      throw new Error(`DeepSeek Reasoner API error: ${response.status} ${errorText}`)
+      throw new Error(`OpenAI API error: ${response.status} ${errorText}`)
     }
     
-    return await response.json()
+    const result = await response.json()
+    
+    // 更新实际使用的模型（用于成本计算）
+    this.model = selectedModel as OpenAIModel
+    
+    return result
   }
   
   /**
@@ -288,15 +357,12 @@ ${content}
     try {
       const message = response.choices[0]?.message
       
-      // 根据 DeepSeek Reasoner 文档：
-      // - reasoning_content: 思维链内容（推理过程）
-      // - content: 最终回答内容（这才是我们需要的 JSON）
-      
+      // 推理模型可能有 reasoning_content（类似 DeepSeek）
       const reasoningContent = (message as any)?.reasoning_content
       const finalContent = message?.content
       const finishReason = response.choices[0]?.finish_reason
       
-      reasonerLogger.debug("Response structure:", {
+      openaiLogger.debug("Response structure:", {
         hasReasoningContent: !!reasoningContent,
         hasFinalContent: !!finalContent,
         reasoningLength: reasoningContent?.length || 0,
@@ -304,29 +370,25 @@ ${content}
         finishReason
       })
       
-      // 推理内容仅记录长度，不输出完整内容
+      // 推理内容仅记录长度
       if (reasoningContent) {
-        reasonerLogger.debug(`Reasoning content length: ${reasoningContent.length} chars`)
+        openaiLogger.debug(`Reasoning content length: ${reasoningContent.length} chars`)
       }
       
-      // 如果 finish_reason 是 'length'，说明达到 max_tokens 限制
+      // 检查是否截断
       if (finishReason === 'length') {
-        reasonerLogger.warn("Response truncated due to max_tokens limit")
-        reasonerLogger.warn("Consider increasing max_tokens")
+        openaiLogger.warn("Response truncated due to max_tokens limit")
       }
       
-      // 优先使用最终回答（content）
+      // 优先使用最终回答
       let content = finalContent
       
-      // 如果最终回答为空，说明 max_tokens 不够，模型只输出了推理过程
+      // 如果最终回答为空，尝试从推理内容提取
       if (!content || content.trim().length === 0) {
-        reasonerLogger.warn("Final content is empty, model may have run out of tokens")
+        openaiLogger.warn("Final content is empty")
         
-        // 尝试从推理内容中提取 JSON（作为降级方案）
         if (reasoningContent && typeof reasoningContent === 'string') {
-          reasonerLogger.debug("Attempting to extract JSON from reasoning_content")
-          // 只显示最后 500 字符的长度，不输出内容
-          reasonerLogger.debug(`Analyzing last portion (${Math.min(500, reasoningContent.length)} chars)`)
+          openaiLogger.debug("Attempting to extract JSON from reasoning_content")
           content = reasoningContent
         } else {
           throw new Error("Both content and reasoning_content are empty")
@@ -346,13 +408,13 @@ ${content}
         throw new Error("Invalid topics format")
       }
       
-      // 归一化概率（确保总和为 1）
+      // 归一化概率
       const topics = this.normalizeProbabilities(analysis.topics)
       
       return { topics }
     } catch (error) {
-      reasonerLogger.error("Failed to parse response:", error)
-      reasonerLogger.error("Response:", response)
+      openaiLogger.error("Failed to parse response:", error)
+      openaiLogger.error("Response:", response)
       throw new Error(`解析 AI 响应失败: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
@@ -364,29 +426,30 @@ ${content}
     const total = Object.values(topics).reduce((sum, prob) => sum + prob, 0)
     
     if (total === 0) {
-      // 如果所有概率为 0，平均分配
       const count = Object.keys(topics).length
       return Object.fromEntries(
         Object.keys(topics).map(key => [key, 1 / count])
       )
     }
     
-    // 归一化到 [0, 1]
     return Object.fromEntries(
       Object.entries(topics).map(([key, prob]) => [key, prob / total])
     )
   }
   
   /**
-   * 计算成本（考虑缓存，假设 10% 缓存命中率）
+   * 计算成本（USD → CNY，考虑缓存，假设 10% 缓存命中率）
    */
   private calculateCost(promptTokens: number, completionTokens: number): number {
-    const cacheHitRate = 0.1 // 假设 10% 缓存命中率
+    const cacheHitRate = 0.1
+    const pricing = MODEL_PRICING[this.model]
     
-    const inputCostCached = (promptTokens * cacheHitRate / 1_000_000) * this.PRICE_INPUT_CACHED
-    const inputCostUncached = (promptTokens * (1 - cacheHitRate) / 1_000_000) * this.PRICE_INPUT_UNCACHED
-    const outputCost = (completionTokens / 1_000_000) * this.PRICE_OUTPUT
+    const inputCostCached = (promptTokens * cacheHitRate / 1_000_000) * pricing.inputCached
+    const inputCostUncached = (promptTokens * (1 - cacheHitRate) / 1_000_000) * pricing.input
+    const outputCost = (completionTokens / 1_000_000) * pricing.output
     
-    return inputCostCached + inputCostUncached + outputCost
+    // USD → CNY（汇率 7.2）
+    const usdCost = inputCostCached + inputCostUncached + outputCost
+    return usdCost * 7.2
   }
 }

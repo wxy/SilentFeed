@@ -548,8 +548,11 @@
       "costManagement": "成本与配额管理",
       "usageScenarios": "AI 使用场景",
       "enableReasoning": "启用推理能力",
-      "reasoningHint": "💡 推理模式提供更深入的思考过程，成本约为标准模式 10 倍",
+      "reasoningHint": "💡 在推荐等复杂任务时使用推理模式，获得更深入的思考过程",
       "reasoningWarning": "⚠️ 推理模式会显著增加成本，建议仅在需要深度分析时使用",
+      "reasoningSupported": "当前模型支持推理模式",
+      "reasoningNotSupported": "当前模型不支持推理模式",
+      "reasoningCost": "成本约 {{multiplier}}x",
       "reasoningAvailableDeepSeek": "DeepSeek-R1 推理模式可用",
       "reasoningFutureSupport": "{{provider}} 暂不支持推理模式，未来版本可能会支持",
       "enableOllama": "启用 Ollama",
@@ -623,10 +626,14 @@
       },
       "labels": {
         "provider": "AI 提供商",
-        "apiKey": "API Key"
+        "apiKey": "API Key",
+        "model": "模型选择",
+        "modelAndProvider": "选择 AI 模型"
       },
       "placeholders": {
-        "apiKey": "输入你的 API Key"
+        "apiKey": "输入你的 API Key",
+        "model": "选择模型（可选，留空使用默认模型）",
+        "selectModel": "请选择 AI 模型"
       },
       "hints": {
         "apiKey": "API Key 将加密存储在浏览器本地，不会上传到服务器"
@@ -673,6 +680,8 @@
       },
       "errors": {
         "selectProvider": "请选择 AI 提供商",
+        "selectModel": "请选择 AI 模型",
+        "invalidModel": "无效的模型选择",
         "enterApiKey": "请输入 API Key",
         "selectProviderAndKey": "请选择提供商并输入 API Key",
         "selectProviderAndKeyFirst": "请先选择提供商并输入 API Key",
@@ -700,16 +709,12 @@
           "estimate": "约 ¥1.41/月 (≈ $0.20/月)"
         },
         "openai": {
-          "title": "OpenAI GPT-4o-mini（美元计价）",
-          "input": "输入: $0.15/M tokens",
-          "output": "输出: $0.60/M tokens",
-          "estimate": "约 $0.11 / 月"
-        },
-        "anthropic": {
-          "title": "Anthropic Claude 3 Haiku（美元计价）",
-          "input": "输入: $0.25/M tokens",
-          "output": "输出: $1.25/M tokens",
-          "estimate": "约 $0.23 / 月"
+          "title": "OpenAI（美元计价）",
+          "nano": "GPT-5 Nano: $0.05/M 输入, $0.40/M 输出（约 $0.07/月）",
+          "mini": "GPT-5 Mini: $0.25/M 输入, $2.0/M 输出（约 $0.33/月）",
+          "standard": "GPT-5: $1.25/M 输入, $10.0/M 输出（约 $1.66/月）",
+          "o4mini": "o4-mini: $4.0/M 输入, $16.0/M 输出（约 $6.20/月，推理模型）",
+          "estimate": "根据模型不同，每月约 $0.07-$6.20"
         },
         "reference": "成本参考"
       },

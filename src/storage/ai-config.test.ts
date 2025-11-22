@@ -40,7 +40,7 @@ describe("ai-config", () => {
       
       expect(config).toEqual({
         provider: null,
-        apiKey: "",
+        apiKeys: {},
         enabled: false,
         enableReasoning: false,
         monthlyBudget: 5
@@ -49,10 +49,13 @@ describe("ai-config", () => {
     
     it("应该读取已保存的配置", async () => {
       const savedConfig: AIConfig = {
-        provider: "openai",
-        apiKey: btoa("sk-test-123"), // 加密存储
+        model: "gpt-5-mini",
+        apiKeys: {
+          openai: btoa("sk-test-123") // 加密存储
+        },
         enabled: true,
-        monthlyBudget: 10
+        monthlyBudget: 10,
+        enableReasoning: false
       }
       
       mockChromeStorage.sync.get.mockResolvedValue({
@@ -61,8 +64,8 @@ describe("ai-config", () => {
       
       const config = await getAIConfig()
       
-      expect(config.provider).toBe("openai")
-      expect(config.apiKey).toBe("sk-test-123") // 应该解密
+      expect(config.model).toBe("gpt-5-mini")
+      expect(config.apiKeys.openai).toBe("sk-test-123") // 应该解密
       expect(config.enabled).toBe(true)
       expect(config.monthlyBudget).toBe(10)
     })
@@ -81,20 +84,26 @@ describe("ai-config", () => {
   describe("saveAIConfig", () => {
     it("应该保存配置并加密 API Key", async () => {
       const config: AIConfig = {
-        provider: "openai",
-        apiKey: "sk-test-123",
+        model: "gpt-5-mini",
+        apiKeys: {
+          openai: "sk-test-123"
+        },
         enabled: true,
-        monthlyBudget: 10
+        monthlyBudget: 10,
+        enableReasoning: false
       }
       
       await saveAIConfig(config)
       
       expect(mockChromeStorage.sync.set).toHaveBeenCalledWith({
         aiConfig: {
-          provider: "openai",
-          apiKey: btoa("sk-test-123"), // 应该加密
+          model: "gpt-5-mini",
+          apiKeys: {
+            openai: btoa("sk-test-123") // 应该加密
+          },
           enabled: true,
-          monthlyBudget: 10
+          monthlyBudget: 10,
+          enableReasoning: false
         }
       })
     })
@@ -103,10 +112,13 @@ describe("ai-config", () => {
       mockChromeStorage.sync.set.mockRejectedValue(new Error("Storage error"))
       
       const config: AIConfig = {
-        provider: "openai",
-        apiKey: "sk-test-123",
+        model: "gpt-5-mini",
+        apiKeys: {
+          openai: "sk-test-123"
+        },
         enabled: true,
-        monthlyBudget: 10
+        monthlyBudget: 10,
+        enableReasoning: false
       }
       
       await expect(saveAIConfig(config)).rejects.toThrow()

@@ -8,7 +8,7 @@
  * 2. AI 失败时自动降级到关键词分析
  * 3. 记录成本和使用情况
  * 
- * Phase 6: 使用统一的 DeepSeekReasonerProvider，根据 useReasoning 参数动态切换模型
+ * Phase 6: 使用统一的 DeepSeekProvider，根据 useReasoning 参数动态切换模型
  */
 
 import type {
@@ -18,7 +18,8 @@ import type {
   RecommendationReasonRequest,
   RecommendationReasonResult
 } from "@/types/ai"
-import { DeepSeekReasonerProvider } from "./providers/DeepSeekReasonerProvider"
+import { DeepSeekProvider } from "./providers/DeepSeekProvider"
+import { OpenAIProvider } from "./providers/OpenAIProvider"
 import { FallbackKeywordProvider } from "./providers/FallbackKeywordProvider"
 import { getAIConfig, type AIProviderType } from "@/storage/ai-config"
 import { logger } from '../../utils/logger'
@@ -47,8 +48,12 @@ export class AICapabilityManager {
         return
       }
       
-      // 创建对应的 Provider
-      this.primaryProvider = this.createProvider(config.provider, config.apiKey)
+      // 创建对应的 Provider（传递模型配置）
+      this.primaryProvider = this.createProvider(
+        config.provider, 
+        config.apiKey,
+        config.model // 可选模型配置
+      )
       
       // 检查可用性
       const available = await this.primaryProvider.isAvailable()
@@ -123,20 +128,21 @@ export class AICapabilityManager {
   /**
    * 创建 Provider 实例
    */
-  private createProvider(type: AIProviderType, apiKey: string): AIProvider {
+  private createProvider(type: AIProviderType, apiKey: string, model?: string): AIProvider {
     switch (type) {
       case "deepseek":
-        // Phase 6: 使用统一的 DeepSeekReasonerProvider
+        // Phase 6: 使用统一的 DeepSeekProvider
         // 它会根据 useReasoning 参数动态选择 deepseek-chat 或 deepseek-reasoner
-        return new DeepSeekReasonerProvider({ apiKey })
+        return new DeepSeekProvider({ 
+          apiKey,
+          model: model || "deepseek-chat" // 默认使用 chat 模型
+        })
       
       case "openai":
-        // 未来支持: OpenAI Provider
-        throw new Error("OpenAI provider not implemented yet")
-      
-      case "anthropic":
-        // 未来支持: Anthropic Provider
-        throw new Error("Anthropic provider not implemented yet")
+        return new OpenAIProvider({ 
+          apiKey,
+          model: model || "gpt-5-mini" // 默认使用 gpt-5-mini
+        })
       
       default:
         throw new Error(`Unknown provider type: ${type}`)

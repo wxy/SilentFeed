@@ -36,3 +36,4 @@
   - 统一手绘和标准风格使用相同的圆环进度布局
   - CircularProgress 组件添加 isSketchyStyle、onIconClick、iconClickable 支持
   - 移除手绘风格拥挤的旧布局，保留手绘视觉样式（sketchy-emoji、sketchy-text、sketchy-badge、sketchy-card）
+- [ ] 在学习阶段，扩展图标不能在显示了其它状态后恢复到阴影覆盖表示学习进度的样式
