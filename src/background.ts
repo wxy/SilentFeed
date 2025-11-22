@@ -55,29 +55,34 @@ async function updateBadge(): Promise<void> {
     const feedManager = new FeedManager()
     const candidateFeeds = await feedManager.getFeeds('candidate')
     
-    if (candidateFeeds.length > 0 && !rssDiscoveryViewed) {
-      // 启动 RSS 发现动画
-      iconManager.startDiscoverAnimation()
-      bgLogger.info(`📡 启动 RSS 发现动画 (${candidateFeeds.length} 个源)`)
-      return
-    }
+    bgLogger.info(`🔍 RSS 发现检查: candidateFeeds=${candidateFeeds.length}, viewed=${rssDiscoveryViewed}`)
     
-    // 停止发现动画(如果在播放)
-    iconManager.stopDiscoverAnimation()
-    
-    // 2. 正常图标逻辑
+    // 2. 正常图标逻辑（先设置基础状态）
     const pageCount = await getPageCount()
+    
+    bgLogger.info(`📊 updateBadge 检查: pageCount=${pageCount}, LEARNING_COMPLETE=${LEARNING_COMPLETE_PAGES}`)
     
     if (pageCount < LEARNING_COMPLETE_PAGES) {
       // 学习阶段：显示进度遮罩
       iconManager.setBadgeState(pageCount, 0)  // 批量更新：学习进度 + 清除推荐
-      bgLogger.debug(`学习进度：${pageCount}/${LEARNING_COMPLETE_PAGES} 页`)
+      bgLogger.debug(`📚 学习进度：${pageCount}/${LEARNING_COMPLETE_PAGES} 页`)
     } else {
       // 推荐阶段：显示推荐波纹
       const unreadRecs = await getUnreadRecommendations(50)
       const unreadCount = Math.min(unreadRecs.length, 3)  // 最多3条波纹
+      bgLogger.info(`🔔 推荐阶段: unreadRecs.length=${unreadRecs.length}, unreadCount=${unreadCount}`)
       iconManager.setBadgeState(LEARNING_COMPLETE_PAGES, unreadCount)  // 批量更新：学习完成 + 推荐数
-      bgLogger.debug(`未读推荐：${unreadCount}`)
+      bgLogger.debug(`📬 未读推荐：${unreadCount}`)
+    }
+    
+    // 3. RSS 发现动画（优先级最高，会覆盖上面的状态）
+    if (candidateFeeds.length > 0 && !rssDiscoveryViewed) {
+      // 启动 RSS 发现动画（会覆盖推荐/学习进度显示）
+      iconManager.startDiscoverAnimation()
+      bgLogger.info(`📡 启动 RSS 发现动画 (${candidateFeeds.length} 个源) - 覆盖基础状态`)
+    } else {
+      // 停止发现动画(如果在播放)
+      iconManager.stopDiscoverAnimation()
     }
   } catch (error) {
     bgLogger.error('❌ 更新图标失败:', error)

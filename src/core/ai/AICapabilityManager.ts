@@ -48,10 +48,19 @@ export class AICapabilityManager {
         return
       }
       
+      // 获取当前 Provider 的 API Key（从新的 apiKeys 字段）
+      const apiKey = config.apiKeys?.[config.provider] || config.apiKey || ""
+      
+      if (!apiKey) {
+        aiLogger.warn(` No API key for provider ${config.provider}`)
+        this.primaryProvider = null
+        return
+      }
+      
       // 创建对应的 Provider（传递模型配置）
       this.primaryProvider = this.createProvider(
         config.provider, 
-        config.apiKey,
+        apiKey,
         config.model // 可选模型配置
       )
       
