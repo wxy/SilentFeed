@@ -70,15 +70,13 @@ async function updateBadge(): Promise<void> {
     
     if (pageCount < LEARNING_COMPLETE_PAGES) {
       // 学习阶段：显示进度遮罩
-      iconManager.setLearningProgress(pageCount)
-      iconManager.setRecommendCount(0)  // 清除推荐
+      iconManager.setBadgeState(pageCount, 0)  // 批量更新：学习进度 + 清除推荐
       bgLogger.debug(`学习进度：${pageCount}/${LEARNING_COMPLETE_PAGES} 页`)
     } else {
       // 推荐阶段：显示推荐波纹
       const unreadRecs = await getUnreadRecommendations(50)
       const unreadCount = Math.min(unreadRecs.length, 3)  // 最多3条波纹
-      iconManager.setRecommendCount(unreadCount)
-      iconManager.setLearningProgress(LEARNING_COMPLETE_PAGES)  // 学习完成
+      iconManager.setBadgeState(LEARNING_COMPLETE_PAGES, unreadCount)  // 批量更新：学习完成 + 推荐数
       bgLogger.debug(`未读推荐：${unreadCount}`)
     }
   } catch (error) {

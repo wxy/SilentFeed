@@ -85,6 +85,15 @@ export class IconManager {
   }
   
   /**
+   * 批量更新学习进度和推荐数（避免多次触发 updateIcon）
+   */
+  setBadgeState(learningProgress: number, recommendCount: number): void {
+    this.learningProgress = Math.max(0, Math.min(learningProgress, LEARNING_COMPLETE_PAGES))
+    this.recommendCount = Math.min(Math.max(recommendCount, 0), 3)
+    this.updateIcon()
+  }
+  
+  /**
    * 开始 RSS 发现动画
    * 动画: 0帧(无波纹) → 1帧(1条) → 2帧(2条) → 3帧(3条)
    * 每帧 500ms, 循环 3 次, 总时长 6 秒
@@ -264,6 +273,14 @@ export class IconManager {
     // 优先级 1: 错误状态(叠加到任何状态上)
     const errorOverlay = this.hasError
     
+    console.log('[IconManager] updateIcon 调试:', {
+      learningProgress: this.learningProgress,
+      recommendCount: this.recommendCount,
+      currentStateType: this.currentState.type,
+      isPaused: this.isPaused,
+      hasError: this.hasError
+    })
+    
     // 优先级 2: RSS 发现动画(临时)
     if (this.currentState.type === 'discover') {
       state = {
@@ -271,6 +288,7 @@ export class IconManager {
         discoverFrame: this.currentState.discoverFrame,
         hasError: errorOverlay
       }
+      console.log('[IconManager] → 选择状态: discover')
     }
     // 优先级 3: 暂停状态
     else if (this.isPaused) {
@@ -278,6 +296,7 @@ export class IconManager {
         type: 'paused',
         hasError: errorOverlay
       }
+      console.log('[IconManager] → 选择状态: paused')
     }
     // 优先级 4: 后台抓取动画
     else if (this.currentState.type === 'fetching') {
@@ -286,6 +305,7 @@ export class IconManager {
         fetchingTimestamp: this.currentState.fetchingTimestamp,
         hasError: errorOverlay
       }
+      console.log('[IconManager] → 选择状态: fetching')
     }
     // 优先级 5: 学习进度（必须在学习阶段）
     else if (this.learningProgress < LEARNING_COMPLETE_PAGES) {
@@ -294,6 +314,7 @@ export class IconManager {
         learningProgress: this.learningProgress,
         hasError: errorOverlay
       }
+      console.log('[IconManager] → 选择状态: learning', this.learningProgress)
     }
     // 优先级 6: 推荐阅读（学习完成后）
     else if (this.recommendCount > 0) {
@@ -302,6 +323,7 @@ export class IconManager {
         recommendCount: this.recommendCount,
         hasError: errorOverlay
       }
+      console.log('[IconManager] → 选择状态: recommend', this.recommendCount)
     }
     // 默认: 静态（学习完成，无推荐）
     else {
@@ -309,6 +331,7 @@ export class IconManager {
         type: 'static',
         hasError: errorOverlay
       }
+      console.log('[IconManager] → 选择状态: static')
     }
     
     // 组合图标
