@@ -136,6 +136,8 @@ export class IconManager {
     if (this.discoverAnimationTimer !== null) {
       clearTimeout(this.discoverAnimationTimer)
       this.discoverAnimationTimer = null
+      // 重置状态，以便恢复到正常显示逻辑（学习进度/推荐/静态）
+      this.currentState = { type: 'static' }
     }
   }
   
@@ -173,6 +175,8 @@ export class IconManager {
     if (this.fetchingAnimationTimer !== null) {
       clearTimeout(this.fetchingAnimationTimer)
       this.fetchingAnimationTimer = null
+      // 重置状态，以便恢复到正常显示逻辑（学习进度/推荐/静态）
+      this.currentState = { type: 'static' }
     }
   }
   
