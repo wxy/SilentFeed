@@ -70,7 +70,8 @@ export class IconComposer {
   
   constructor(size: number = 128) {
     this.canvas = new OffscreenCanvas(size, size)
-    this.ctx = this.canvas.getContext('2d')!
+    // 设置 willReadFrequently 优化频繁的 getImageData 调用
+    this.ctx = this.canvas.getContext('2d', { willReadFrequently: true })!
   }
   
   /**
