@@ -36,4 +36,7 @@
   - 统一手绘和标准风格使用相同的圆环进度布局
   - CircularProgress 组件添加 isSketchyStyle、onIconClick、iconClickable 支持
   - 移除手绘风格拥挤的旧布局，保留手绘视觉样式（sketchy-emoji、sketchy-text、sketchy-badge、sketchy-card）
-- [ ] 在学习阶段，扩展图标不能在显示了其它状态后恢复到阴影覆盖表示学习进度的样式
+- [x] 在学习阶段，扩展图标不能在显示了其它状态后恢复到阴影覆盖表示学习进度的样式（已修复 2025-11-22）
+  - 修复 IconManager 在停止动画后未重置 currentState 的问题
+  - stopDiscoverAnimation() 和 stopFetchingAnimation() 现在会将状态重置为 'static'
+  - updateIcon() 能正确根据当前实际情况（学习进度/推荐数）显示对应状态

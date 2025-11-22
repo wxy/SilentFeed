@@ -98,8 +98,9 @@ async function checkRemoteAI(): Promise<AnalysisEngineCapability> {
     
     const aiConfig = await getAIConfig()
     
-    // 检查 API Key 格式
-    if (!aiConfig.apiKey) {
+    // 检查 API Key（新的 apiKeys 结构或旧的 apiKey 字段）
+    const apiKey = aiConfig.apiKeys?.[aiConfig.provider!] || aiConfig.apiKey || ""
+    if (!apiKey) {
       return {
         available: false,
         reason: 'API Key 未设置'

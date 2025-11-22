@@ -69,6 +69,14 @@ export function RecommendationView() {
   
   const [maxRecommendations, setMaxRecommendations] = useState(5)
   const [hasRSSFeeds, setHasRSSFeeds] = useState(false)
+  
+  // 🔍 调试：监控推荐列表变化
+  useEffect(() => {
+    recViewLogger.debug('🔍 组件渲染 - 推荐列表:', {
+      数量: recommendations.length,
+      列表: recommendations.map(r => ({ id: r.id, title: r.title.substring(0, 20) }))
+    })
+  }, [recommendations])
 
   // 加载推荐配置
   useEffect(() => {
@@ -175,7 +183,7 @@ export function RecommendationView() {
 
   const openRSSManagement = () => {
     chrome.tabs.create({ 
-      url: chrome.runtime.getURL('options.html#rss')
+      url: chrome.runtime.getURL('options.html#feeds')
     })
   }
 
@@ -253,7 +261,7 @@ export function RecommendationView() {
               className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs rounded-lg transition-colors mb-3"
               disabled={isLoading}
             >
-              {isLoading ? _("popup.generating") : `🤖 ${_("popup.generateNow")}`}
+              {isLoading ? _("popup.generating") : _("popup.generateNow")}
             </button>
             <p className="text-xs text-gray-500 dark:text-gray-500">
               {_("popup.checkBackLater")}

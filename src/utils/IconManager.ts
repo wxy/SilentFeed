@@ -9,12 +9,12 @@
  * 
  * 状态优先级(从高到低):
  * 1. 错误 (hasError: true, 最高优先级)
- * 2. RSS 发现动画 (discover, 3秒临时)
- * 3. 推荐阅读 (recommend, 1-3条)
+ * 2. RSS 发现动画 (discover, 6秒临时)
+ * 3. 暂停 (paused, 灰度)
  * 4. 后台抓取 (fetching, 圆点呼吸)
- * 5. 学习进度 (learning, 垂直遮罩)
- * 6. 暂停 (paused, 灰度)
- * 7. 静态 (static, 默认)
+ * 5. 学习进度 (learning, 垂直遮罩, 仅学习阶段<100页)
+ * 6. 推荐阅读 (recommend, 1-3条波纹+数字, 学习完成后)
+ * 7. 静态 (static, 默认, 学习完成且无推荐)
  * 
  * Phase 5.2: 图标系统重新设计
  */
@@ -85,6 +85,15 @@ export class IconManager {
   }
   
   /**
+   * 批量更新学习进度和推荐数（避免多次触发 updateIcon）
+   */
+  setBadgeState(learningProgress: number, recommendCount: number): void {
+    this.learningProgress = Math.max(0, Math.min(learningProgress, LEARNING_COMPLETE_PAGES))
+    this.recommendCount = Math.min(Math.max(recommendCount, 0), 3)
+    this.updateIcon()
+  }
+  
+  /**
    * 开始 RSS 发现动画
    * 动画: 0帧(无波纹) → 1帧(1条) → 2帧(2条) → 3帧(3条)
    * 每帧 500ms, 循环 3 次, 总时长 6 秒
@@ -136,6 +145,8 @@ export class IconManager {
     if (this.discoverAnimationTimer !== null) {
       clearTimeout(this.discoverAnimationTimer)
       this.discoverAnimationTimer = null
+      // 重置状态，以便恢复到正常显示逻辑（学习进度/推荐/静态）
+      this.currentState = { type: 'static' }
     }
   }
   
@@ -173,6 +184,8 @@ export class IconManager {
     if (this.fetchingAnimationTimer !== null) {
       clearTimeout(this.fetchingAnimationTimer)
       this.fetchingAnimationTimer = null
+      // 重置状态，以便恢复到正常显示逻辑（学习进度/推荐/静态）
+      this.currentState = { type: 'static' }
     }
   }
   
@@ -260,6 +273,14 @@ export class IconManager {
     // 优先级 1: 错误状态(叠加到任何状态上)
     const errorOverlay = this.hasError
     
+    console.log('[IconManager] updateIcon 调试:', {
+      learningProgress: this.learningProgress,
+      recommendCount: this.recommendCount,
+      currentStateType: this.currentState.type,
+      isPaused: this.isPaused,
+      hasError: this.hasError
+    })
+    
     // 优先级 2: RSS 发现动画(临时)
     if (this.currentState.type === 'discover') {
       state = {
@@ -267,6 +288,7 @@ export class IconManager {
         discoverFrame: this.currentState.discoverFrame,
         hasError: errorOverlay
       }
+      console.log('[IconManager] → 选择状态: discover')
     }
     // 优先级 3: 暂停状态
     else if (this.isPaused) {
@@ -274,6 +296,7 @@ export class IconManager {
         type: 'paused',
         hasError: errorOverlay
       }
+      console.log('[IconManager] → 选择状态: paused')
     }
     // 优先级 4: 后台抓取动画
     else if (this.currentState.type === 'fetching') {
@@ -282,29 +305,33 @@ export class IconManager {
         fetchingTimestamp: this.currentState.fetchingTimestamp,
         hasError: errorOverlay
       }
+      console.log('[IconManager] → 选择状态: fetching')
     }
-    // 优先级 5: 推荐阅读
-    else if (this.recommendCount > 0) {
-      state = {
-        type: 'recommend',
-        recommendCount: this.recommendCount,
-        hasError: errorOverlay
-      }
-    }
-    // 优先级 6: 学习进度
+    // 优先级 5: 学习进度（必须在学习阶段）
     else if (this.learningProgress < LEARNING_COMPLETE_PAGES) {
       state = {
         type: 'learning',
         learningProgress: this.learningProgress,
         hasError: errorOverlay
       }
+      console.log('[IconManager] → 选择状态: learning', this.learningProgress)
     }
-    // 默认: 静态
+    // 优先级 6: 推荐阅读（学习完成后）
+    else if (this.recommendCount > 0) {
+      state = {
+        type: 'recommend',
+        recommendCount: this.recommendCount,
+        hasError: errorOverlay
+      }
+      console.log('[IconManager] → 选择状态: recommend', this.recommendCount)
+    }
+    // 默认: 静态（学习完成，无推荐）
     else {
       state = {
         type: 'static',
         hasError: errorOverlay
       }
+      console.log('[IconManager] → 选择状态: static')
     }
     
     // 组合图标

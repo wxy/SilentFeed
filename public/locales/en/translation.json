@@ -187,7 +187,7 @@
       "save": "Save Settings",
       "saveSuccess": "✓ Successfully saved",
       "generating": "Generating...",
-      "generateNow": "🔮 Recommend Now",
+      "generateNow": "Recommend Now",
       "resetConfirm": "⚠️ Are you sure you want to reset all recommendation data?\n\nThis will clear:\n- All recommendations in the recommendation pool\n- Recommendation count statistics for RSS feeds\n- AI scoring and analysis data for all articles (can be re-analyzed)\n- TF-IDF score cache for all articles (can be recalculated)\n- Recommendation-related statistics\n\n⚠️ Note: Fully crawled article content will be preserved\n\nThis action cannot be undone!",
       "resetSuccess": "✅ Recommended data has been reset",
       "resetFailed": "❌ Reset failed: {{error}}",

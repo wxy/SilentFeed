@@ -70,7 +70,8 @@ export class IconComposer {
   
   constructor(size: number = 128) {
     this.canvas = new OffscreenCanvas(size, size)
-    this.ctx = this.canvas.getContext('2d')!
+    // 设置 willReadFrequently 优化频繁的 getImageData 调用
+    this.ctx = this.canvas.getContext('2d', { willReadFrequently: true })!
   }
   
   /**
@@ -148,6 +149,8 @@ export class IconComposer {
     // 2. 叠加推荐波纹(仅推荐状态)
     if (state.type === 'recommend' && state.recommendCount) {
       this.drawRecommendWaves(state.recommendCount)
+      // 绘制推荐数字（右下角）
+      this.drawRecommendBadge(state.recommendCount)
     }
     
     // 3. 叠加 RSS 发现动画波纹(仅发现状态)
@@ -213,6 +216,50 @@ export class IconComposer {
     if (count >= 3 && this.overlayImages.wave3) {
       this.ctx.drawImage(this.overlayImages.wave3, 0, 0)
     }
+  }
+  
+  /**
+   * 绘制推荐数字徽章（右上角）
+   * 
+   * 样式：
+   * - 背景：黑色圆形 (#000000)
+   * - 文字：白色，加粗
+   * - 位置：右上角，留 2px 边距
+   * - 大小：自适应数字宽度，直径 42%
+   */
+  private drawRecommendBadge(count: number): void {
+    const size = this.canvas.width  // 128px
+    const badgeSize = size * 0.42    // 徽章直径 53.76px (增大到 42%)
+    const padding = size * 0.02      // 边距 2.56px (减少边距，向右上偏移)
+    const centerX = size - padding - badgeSize / 2
+    const centerY = padding + badgeSize / 2  // 右上角：top = padding + radius
+    
+    // 保存当前状态
+    this.ctx.save()
+    
+    // 绘制圆形背景（黑色，完全不透明）
+    this.ctx.fillStyle = '#000000'  // 黑色背景，最显眼
+    this.ctx.beginPath()
+    this.ctx.arc(centerX, centerY, badgeSize / 2, 0, Math.PI * 2)
+    this.ctx.fill()
+    
+    // 绘制白色描边（增强边界）
+    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)'  // 白色描边
+    this.ctx.lineWidth = size * 0.02  // 2.56px 更粗的描边
+    this.ctx.beginPath()
+    this.ctx.arc(centerX, centerY, badgeSize / 2, 0, Math.PI * 2)
+    this.ctx.stroke()
+    
+    // 绘制数字文本（白色）
+    const fontSize = badgeSize * 0.65  // 29.12px
+    this.ctx.fillStyle = '#ffffff'  // 白色文字，最清晰
+    this.ctx.font = `bold ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`
+    this.ctx.textAlign = 'center'
+    this.ctx.textBaseline = 'middle'
+    this.ctx.fillText(count.toString(), centerX, centerY)
+    
+    // 恢复状态
+    this.ctx.restore()
   }
   
   /**

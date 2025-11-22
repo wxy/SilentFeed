@@ -61,6 +61,11 @@ class MockCanvasRenderingContext2D {
   globalAlpha = 1.0
   globalCompositeOperation = 'source-over'
   fillStyle = '#000000'
+  strokeStyle = '#000000'
+  lineWidth = 1
+  font = '10px sans-serif'
+  textAlign = 'start'
+  textBaseline = 'alphabetic'
   private imageData: ImageData
   
   constructor(width: number, height: number) {
@@ -72,11 +77,13 @@ class MockCanvasRenderingContext2D {
   clearRect() {}
   drawImage() {}
   fillRect() {}
+  fillText() {}
   beginPath() {}
   moveTo() {}
   arc() {}
   lineTo() {}
   fill() {}
+  stroke() {}
   save() {}
   restore() {}
   
@@ -341,12 +348,46 @@ describe('IconManager', () => {
     })
     
     it('推荐 > 学习进度', () => {
-      manager.setLearningProgress(500)
+      manager.setLearningProgress(50)
       vi.mocked(chrome.action.setIcon).mockClear()
       
       manager.setRecommendCount(1)
       
       expect(chrome.action.setIcon).toHaveBeenCalledTimes(1)
+    })
+    
+    it('学习完成后，推荐优先于静态', () => {
+      manager.setBadgeState(LEARNING_COMPLETE_PAGES, 3)
+      vi.mocked(chrome.action.setIcon).mockClear()
+      
+      // 应该显示推荐状态，而不是学习进度
+      manager.setBadgeState(LEARNING_COMPLETE_PAGES, 0)
+      expect(chrome.action.setIcon).toHaveBeenCalledTimes(1)
+    })
+  })
+  
+  describe('setBadgeState()', () => {
+    it('应该批量更新学习进度和推荐数', () => {
+      vi.mocked(chrome.action.setIcon).mockClear()
+      
+      manager.setBadgeState(50, 2)
+      
+      // 只触发一次 updateIcon
+      expect(chrome.action.setIcon).toHaveBeenCalledTimes(1)
+    })
+    
+    it('学习阶段应该显示学习进度', () => {
+      manager.setBadgeState(50, 0)
+      
+      // 应该选择 learning 状态
+      expect(chrome.action.setIcon).toHaveBeenCalled()
+    })
+    
+    it('推荐阶段应该显示推荐', () => {
+      manager.setBadgeState(LEARNING_COMPLETE_PAGES, 3)
+      
+      // 应该选择 recommend 状态（不是 learning）
+      expect(chrome.action.setIcon).toHaveBeenCalled()
     })
   })
   

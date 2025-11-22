@@ -283,10 +283,13 @@ export async function checkAIConfigStatus(): Promise<AIConfigStatus> {
       return status
     }
     
-    // 检查API密钥格式
-    if (aiConfig.provider && aiConfig.apiKey) {
-      const { validateApiKey } = await import('./ai-config')
-      status.isKeyValid = validateApiKey(aiConfig.provider, aiConfig.apiKey)
+    // 检查API密钥格式（使用新的 apiKeys 结构）
+    if (aiConfig.provider) {
+      const apiKey = aiConfig.apiKeys?.[aiConfig.provider] || aiConfig.apiKey || ""
+      if (apiKey) {
+        const { validateApiKey } = await import('./ai-config')
+        status.isKeyValid = validateApiKey(aiConfig.provider, apiKey)
+      }
     }
     
     // 检查AI服务可用性（仅在密钥格式正确时）

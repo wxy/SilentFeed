@@ -322,7 +322,7 @@
       "save": "保存设置",
       "saveSuccess": "✓ 保存成功",
       "generating": "生成中...",
-      "generateNow": "🔮 马上推荐",
+      "generateNow": "马上推荐",
       "resetConfirm": "⚠️ 确定要重置所有推荐数据吗？\n\n这将清空：\n- 推荐池中的所有推荐\n- RSS 源的推荐数统计\n- 所有文章的 AI 评分和分析数据（可重新分析）\n- 所有文章的 TF-IDF 评分缓存（可重新计算）\n- 推荐相关的统计数据\n\n⚠️ 注意：已抓取的全文内容会保留\n\n此操作不可恢复！",
       "resetSuccess": "✅ 推荐数据已重置",
       "resetFailed": "❌ 重置失败: {{error}}",

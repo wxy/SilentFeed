@@ -471,20 +471,33 @@ async function recordPageVisit(): Promise<void> {
     }
     
     // 发送消息到 Background 保存数据
-    const response = await chrome.runtime.sendMessage({
-      type: 'SAVE_PAGE_VISIT',
-      data: visitData
-    })
-    
-    if (response?.success) {
-      isRecorded = true
-      logger.info('✅ [PageTracker] 页面访问已记录到数据库（通过 Background）')
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'SAVE_PAGE_VISIT',
+        data: visitData
+      })
       
-      // ⚠️ 不要在这里清理！
-      // SPA 页面可能会继续导航到其他页面
-      // 只在页面真正卸载时才清理（由 beforeunload/pagehide 处理）
-    } else {
-      throw new Error(response?.error || '未知错误')
+      if (response?.success) {
+        isRecorded = true
+        logger.info('✅ [PageTracker] 页面访问已记录到数据库（通过 Background）')
+        
+        // ⚠️ 不要在这里清理！
+        // SPA 页面可能会继续导航到其他页面
+        // 只在页面真正卸载时才清理（由 beforeunload/pagehide 处理）
+      } else {
+        throw new Error(response?.error || '未知错误')
+      }
+    } catch (messageError) {
+      // 页面进入 bfcache 或扩展上下文失效
+      if (messageError instanceof Error) {
+        if (messageError.message?.includes('Extension context') || 
+            messageError.message?.includes('message channel')) {
+          logger.debug('⚠️ [PageTracker] 扩展上下文失效或页面进入缓存')
+        } else {
+          logger.error('❌ [PageTracker] 发送消息失败', messageError)
+        }
+      }
+      throw messageError
     }
     
   } catch (error) {

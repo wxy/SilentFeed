@@ -489,13 +489,22 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
       // 准备内容
       const content = article.fullContent || article.description || article.title || ''
       
+      // 🔍 调试：检查推理模式配置
+      console.log('[Pipeline] 🔍 推理模式配置检查:', {
+        'context.config.useReasoning': context.config.useReasoning,
+        '推理模式状态': context.config.useReasoning ? '启用' : '禁用'
+      })
+      
       // AI 分析选项
+      // 统一使用 deepseek-chat，通过 useReasoning 参数控制推理模式
       const analysisOptions = {
-        model: context.config.useReasoning ? 'deepseek-reasoner' : 'deepseek-chat',
+        model: 'deepseek-chat',
         timeout: context.config.useReasoning ? 120000 : 60000,
         maxTokens: 2000,
         useReasoning: context.config.useReasoning || false
       }
+      
+      console.log('[Pipeline] 🤖 AI分析选项:', analysisOptions)
       
       // 调用 AI 分析
       const analysis = await aiManager.analyzeContent(content, analysisOptions)

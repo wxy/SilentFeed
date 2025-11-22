@@ -169,21 +169,27 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
    */
   markAsRead: async (id: string, duration?: number, depth?: number) => {
     try {
-      console.log('[RecommendationStore] 开始标记已读:', id)
+      const beforeState = get().recommendations
+      console.log('[RecommendationStore] 🔵 开始标记已读:', {
+        id,
+        当前推荐数: beforeState.length,
+        推荐列表: beforeState.map(r => ({ id: r.id, title: r.title.substring(0, 20) }))
+      })
       
       // 调用数据库标记已读（会自动更新 RSS 源统计）
       await markAsRead(id, duration, depth)
-      console.log('[RecommendationStore] 数据库标记已读成功:', id)
+      console.log('[RecommendationStore] ✅ 数据库标记已读成功:', id)
       
       // 🔧 关键修复：从数据库重新加载未读推荐，而不是 filter 内存数组
       // 原因：内存数组可能已过期，filter 会找不到对应的 ID
       const config = await getRecommendationConfig()
       const freshRecommendations = await getUnreadRecommendations(config.maxRecommendations)
       
-      console.log('[RecommendationStore] 重新加载未读推荐:', {
-        beforeCount: get().recommendations.length,
-        afterCount: freshRecommendations.length,
-        removedId: id
+      console.log('[RecommendationStore] 🔄 重新加载未读推荐:', {
+        更新前数量: beforeState.length,
+        更新后数量: freshRecommendations.length,
+        移除的ID: id,
+        新推荐列表: freshRecommendations.map(r => ({ id: r.id, title: r.title.substring(0, 20) }))
       })
       
       // 更新 store 状态
@@ -191,7 +197,21 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
         recommendations: freshRecommendations
       })
       
-      console.log('[RecommendationStore] UI状态更新完成')
+      const afterState = get().recommendations
+      console.log('[RecommendationStore] ✅ Store状态已更新:', {
+        更新后的推荐数: afterState.length,
+        是否变化: afterState.length !== beforeState.length,
+        推荐列表: afterState.map(r => ({ id: r.id, title: r.title.substring(0, 20) }))
+      })
+      
+      // 通知背景脚本更新图标
+      try {
+        await chrome.runtime.sendMessage({
+          type: 'RECOMMENDATIONS_DISMISSED'
+        })
+      } catch (messageError) {
+        console.warn('[RecommendationStore] 无法通知背景脚本更新图标:', messageError)
+      }
       
       // 刷新统计
       await get().refreshStats()
@@ -262,6 +282,14 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
       
       // 刷新统计
       await get().refreshStats()
+      
+      // 通知背景脚本更新图标（更新推荐数字徽章）
+      try {
+        await chrome.runtime.sendMessage({ type: 'RECOMMENDATIONS_DISMISSED' })
+        console.log('[RecommendationStore] 已通知背景脚本更新图标')
+      } catch (messageError) {
+        console.warn('[RecommendationStore] 无法通知背景脚本:', messageError)
+      }
     } catch (error) {
       console.error('[RecommendationStore] 标记不想读失败:', ids, error)
       set({

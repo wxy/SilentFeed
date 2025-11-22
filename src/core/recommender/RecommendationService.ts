@@ -6,6 +6,7 @@
 import { RecommendationPipelineImpl } from './pipeline'
 import { getUserProfile, updateAllFeedStats } from '../../storage/db'
 import { getRecommendationConfig } from '../../storage/recommendation-config'
+import { getAIConfig, AVAILABLE_MODELS, getProviderFromModel } from '../../storage/ai-config'
 import { FeedManager } from '../rss/managers/FeedManager'
 import { db } from '../../storage/db'
 import type { Recommendation } from '@/types/database'
@@ -68,12 +69,75 @@ export class RecommendationService {
       // 获取推荐配置
       const recommendationConfig = await getRecommendationConfig()
       
+      // 获取 AI 配置，检查模型是否支持推理
+      const aiConfig = await getAIConfig()
+      
+      // 确定是否使用推理模式：
+      // 1. 检查分析引擎配置（analysisEngine）
+      // 2. 检查模型是否支持推理
+      // 3. 检查用户是否启用推理
+      let useReasoning = false
+      let reasoningDisabledReason: string | null = null
+      
+      // 如果配置要求使用推理引擎
+      if (recommendationConfig.analysisEngine === 'remoteAIWithReasoning') {
+        // 检查模型是否支持推理
+        if (aiConfig.model) {
+          const provider = getProviderFromModel(aiConfig.model)
+          if (provider) {
+            const modelConfig = AVAILABLE_MODELS[provider]?.find(m => m.id === aiConfig.model)
+            
+            if (modelConfig?.supportsReasoning) {
+              // 模型支持推理，检查用户是否启用
+              if (aiConfig.enableReasoning) {
+                useReasoning = true
+                recLogger.info('✅ 推理模式已启用', {
+                  model: aiConfig.model,
+                  provider
+                })
+              } else {
+                reasoningDisabledReason = '用户未启用推理能力（AI 配置页面）'
+                recLogger.warn('⚠️ 推理模式降级：用户未在 AI 配置中启用推理能力')
+              }
+            } else {
+              reasoningDisabledReason = `模型 ${aiConfig.model} 不支持推理`
+              recLogger.warn(`⚠️ 推理模式降级：模型 ${aiConfig.model} 不支持推理能力`)
+            }
+          } else {
+            reasoningDisabledReason = `未知的模型提供商`
+            recLogger.warn(`⚠️ 推理模式降级：无法识别模型 ${aiConfig.model} 的提供商`)
+          }
+        } else {
+          reasoningDisabledReason = '未选择模型'
+          recLogger.warn('⚠️ 推理模式降级：AI 配置中未选择模型')
+        }
+        
+        if (reasoningDisabledReason) {
+          recLogger.info(`降级原因: ${reasoningDisabledReason}，将使用标准模式`)
+        }
+      }
+      
+      const useLocalAI = recommendationConfig.analysisEngine === 'localAI'
+      
+      // 🔍 调试：检查配置读取
+      recLogger.info('🔍 推荐配置详情:', {
+        analysisEngine: recommendationConfig.analysisEngine,
+        selectedModel: aiConfig.model,
+        modelSupportsReasoning: aiConfig.model ? AVAILABLE_MODELS[getProviderFromModel(aiConfig.model) || 'deepseek']?.find(m => m.id === aiConfig.model)?.supportsReasoning : false,
+        enableReasoningInAIConfig: aiConfig.enableReasoning,
+        finalUseReasoning: useReasoning,
+        reasoningDisabledReason,
+        useLocalAI,
+        推理引擎: recommendationConfig.analysisEngine,
+        完整配置: recommendationConfig
+      })
+      
       recLogger.info(' 开始生成推荐...', {
         maxRecommendations,
         sources,
         batchSize,
-        useReasoning: recommendationConfig.useReasoning,
-        useLocalAI: recommendationConfig.useLocalAI
+        useReasoning,
+        useLocalAI
       })
 
       // 1. 获取用户画像
@@ -93,14 +157,17 @@ export class RecommendationService {
       // 3. 构建推荐输入
       const config: RecommendationConfig = {
         maxRecommendations,
-        useReasoning: recommendationConfig.useReasoning,
-        useLocalAI: recommendationConfig.useLocalAI,
+        useReasoning,
+        useLocalAI,
         batchSize: recommendationConfig.batchSize,
         qualityThreshold: recommendationConfig.qualityThreshold,
         tfidfThreshold: recommendationConfig.tfidfThreshold
       }
       
       recLogger.info(' 推荐配置:', {
+        analysisEngine: recommendationConfig.analysisEngine,
+        useReasoning,
+        useLocalAI,
         qualityThreshold: config.qualityThreshold,
         tfidfThreshold: config.tfidfThreshold,
         batchSize: config.batchSize,
