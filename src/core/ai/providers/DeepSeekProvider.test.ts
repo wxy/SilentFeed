@@ -33,7 +33,7 @@ describe("DeepSeekProvider", () => {
         id: "test-id",
         object: "chat.completion",
         created: Date.now(),
-        model: "deepseek-reasoner",
+        model: "deepseek-chat",
         choices: [
           {
             index: 0,
@@ -115,9 +115,9 @@ describe("DeepSeekProvider", () => {
       expect(result.topicProbabilities["开源"]).toBeCloseTo(0.2, 5)
       expect(result.topicProbabilities["教程"]).toBeCloseTo(0.1, 5)
       
-      // Provider 应该是 "deepseek"（模型是 "deepseek-reasoner"）
+      // Provider 应该是 "deepseek"（模型是 "deepseek-chat"）
       expect(result.metadata.provider).toBe("deepseek")
-      expect(result.metadata.model).toBe("deepseek-reasoner")
+      expect(result.metadata.model).toBe("deepseek-chat")
       expect(result.metadata.tokensUsed?.total).toBe(150)
       expect(result.metadata.cost).toBeGreaterThan(0)
     })
@@ -179,19 +179,22 @@ describe("DeepSeekProvider", () => {
       expect(result.metadata.cost).toBeCloseTo(0.000332, 6)
     })
     
-    it("应该使用 deepseek-reasoner 模型", async () => {
+    it("应该在推理模式下使用 deepseek-chat + reasoning_effort", async () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => mockSuccessResponse
       } as Response)
       
-      // Phase 6: 需要传递 useReasoning=true 才会使用 deepseek-reasoner 模型
+      // 传递 useReasoning=true 启用推理模式
       await provider.analyzeContent("测试", { useReasoning: true })
       
       const fetchCall = vi.mocked(fetch).mock.calls[0]
       const requestBody = JSON.parse(fetchCall[1]?.body as string)
       
-      expect(requestBody.model).toBe("deepseek-reasoner")
+      // 应该使用 deepseek-chat 模型
+      expect(requestBody.model).toBe("deepseek-chat")
+      // 应该有 reasoning_effort 参数
+      expect(requestBody.reasoning_effort).toBe("high")
     })
   
     it("默认应该使用 deepseek-chat 模型", async () => {

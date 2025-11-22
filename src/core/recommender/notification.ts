@@ -173,7 +173,7 @@ export async function sendRecommendationNotification(
     await chrome.notifications.create(notificationId, {
       type: "basic",
       iconUrl: getNotificationIconUrl(),
-      title: `📚 Silent Feed - 新推荐`,
+      title: "Silent Feed - 新推荐",
       message: message,
       priority: 1,
       requireInteraction: false, // 不强制交互，自动消失
@@ -212,7 +212,7 @@ export async function testNotification(): Promise<void> {
   await chrome.notifications.create(notificationId, {
     type: "basic",
     iconUrl: getNotificationIconUrl(),
-    title: "🧪 Silent Feed - 测试通知",
+    title: "Silent Feed - 测试通知",
     message: "这是一条测试推荐\n\n来自: 测试源",
     priority: 2,
     requireInteraction: true, // 测试通知需要用户关闭

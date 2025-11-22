@@ -1,9 +1,9 @@
 /**
  * DeepSeek Provider (Unified)
  * 
- * 统一的 DeepSeek Provider，支持根据 useReasoning 参数动态选择模型：
- * - useReasoning=true: 使用 deepseek-reasoner（推理模型，输出推理链）
- * - useReasoning=false: 使用 deepseek-chat（普通模型，速度快、成本低）
+ * 统一的 DeepSeek Provider，使用 deepseek-chat 模型：
+ * - useReasoning=true: 启用推理模式（输出推理链，slower but more accurate）
+ * - useReasoning=false: 标准模式（速度快、成本低）
  * 
  * 特点：
  * - 国内访问友好
@@ -31,7 +31,7 @@ export class DeepSeekProvider implements AIProvider {
   
   private config: AIProviderConfig
   private endpoint = "https://api.deepseek.com/v1/chat/completions"
-  private model = "deepseek-reasoner"
+  private model = "deepseek-chat"
   
   // 定价（每 1M tokens，人民币）
   private readonly PRICE_INPUT_CACHED = 0.2 // ¥0.2/M (缓存命中)
@@ -224,10 +224,8 @@ ${content}
     prompt: string,
     options?: AnalyzeOptions
   ): Promise<DeepSeekResponse> {
-    // Phase 6: 根据 useReasoning 参数动态选择模型
-    // - useReasoning=true: 使用 deepseek-reasoner（推理模型，慢但更准确）
-    // - useReasoning=false: 使用 deepseek-chat（普通模型，快速且便宜）
-    const selectedModel = options?.useReasoning ? "deepseek-reasoner" : "deepseek-chat"
+    // 统一使用 deepseek-chat 模型
+    const selectedModel = "deepseek-chat"
     
     deepseekLogger.debug(`Using model: ${selectedModel}, useReasoning: ${options?.useReasoning}`)
     
@@ -239,26 +237,29 @@ ${content}
           content: prompt
         }
       ],
-      // DeepSeek Reasoner 不支持 temperature，设置了也不生效
-      // temperature: 0.3,
       
       // 启用 JSON Mode，强制模型输出 JSON
-      // 这会大幅减少推理过程，直接输出结构化结果
       response_format: {
         type: "json_object"
       },
       
       // max_tokens 包含思维链 + 最终答案
-      // 根据文档：模型单次回答的最大长度（含思维链输出），默认为 32K，最大为 64K
-      // 实测推理链约 2000 tokens，设置 4000 给予充足空间，避免截断
+      // 推理模式下可能需要更多 tokens（推理链约 2000 tokens）
       max_tokens: 4000,
       stream: false
     }
     
-    // Phase 6: 根据模型类型设置不同超时
-    // - Reasoner 推理模型较慢：120 秒（推理链可能很长）
-    // - Chat 普通模型：60 秒（给予充足时间处理复杂内容）
-    const defaultTimeout = selectedModel === "deepseek-reasoner" ? 120000 : 60000
+    // 如果启用推理模式，添加 reasoning_effort 参数
+    if (options?.useReasoning) {
+      // @ts-ignore - reasoning_effort 是 DeepSeek 特有参数
+      request.reasoning_effort = "high"
+      deepseekLogger.debug(`Reasoning mode enabled with high effort`)
+    }
+    
+    // 根据推理模式设置不同超时
+    // - 推理模式较慢：120 秒（推理链可能很长）
+    // - 标准模式：60 秒（给予充足时间处理复杂内容）
+    const defaultTimeout = options?.useReasoning ? 120000 : 60000
     const timeout = options?.timeout || defaultTimeout
     
     deepseekLogger.debug(`Timeout: ${timeout}ms for model ${selectedModel}`)

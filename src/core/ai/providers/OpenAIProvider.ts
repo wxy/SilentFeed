@@ -118,15 +118,16 @@ export class OpenAIProvider implements AIProvider {
       const prompt = this.buildPrompt(processedContent)
       
       // 3. 调用 OpenAI API
-      const response = await this.callAPI(prompt, options)
+      const { response, actualModel } = await this.callAPI(prompt, options)
       
       // 4. 解析响应
       const analysis = this.parseResponse(response)
       
-      // 5. 计算成本
+      // 5. 计算成本（使用实际模型）
       const cost = this.calculateCost(
         response.usage.prompt_tokens,
-        response.usage.completion_tokens
+        response.usage.completion_tokens,
+        actualModel
       )
       
       // 6. 返回统一格式
@@ -134,7 +135,7 @@ export class OpenAIProvider implements AIProvider {
         topicProbabilities: analysis.topics,
         metadata: {
           provider: "openai",
-          model: this.model,
+          model: actualModel,
           timestamp: Date.now(),
           tokensUsed: {
             prompt: response.usage.prompt_tokens,
@@ -282,7 +283,7 @@ ${content}
   private async callAPI(
     prompt: string,
     options?: AnalyzeOptions
-  ): Promise<DeepSeekResponse> {
+  ): Promise<{ response: DeepSeekResponse; actualModel: OpenAIModel }> {
     // 根据配置或参数选择模型
     let selectedModel: OpenAIModel = this.model // 使用实例的默认模型
     
@@ -344,10 +345,8 @@ ${content}
     
     const result = await response.json()
     
-    // 更新实际使用的模型（用于成本计算）
-    this.model = selectedModel as OpenAIModel
-    
-    return result
+    // 返回响应和实际使用的模型
+    return { response: result, actualModel: selectedModel }
   }
   
   /**
@@ -440,9 +439,9 @@ ${content}
   /**
    * 计算成本（USD → CNY，考虑缓存，假设 10% 缓存命中率）
    */
-  private calculateCost(promptTokens: number, completionTokens: number): number {
+  private calculateCost(promptTokens: number, completionTokens: number, model: OpenAIModel): number {
     const cacheHitRate = 0.1
-    const pricing = MODEL_PRICING[this.model]
+    const pricing = MODEL_PRICING[model]
     
     const inputCostCached = (promptTokens * cacheHitRate / 1_000_000) * pricing.inputCached
     const inputCostUncached = (promptTokens * (1 - cacheHitRate) / 1_000_000) * pricing.input
