@@ -58,6 +58,11 @@ class MockCanvasRenderingContext2D {
   globalAlpha = 1.0
   globalCompositeOperation = 'source-over'
   fillStyle = '#000000'
+  strokeStyle = '#000000'
+  lineWidth = 1
+  font = '10px sans-serif'
+  textAlign = 'start'
+  textBaseline = 'alphabetic'
   private imageData: ImageData
   
   constructor(width: number, height: number) {
@@ -69,11 +74,13 @@ class MockCanvasRenderingContext2D {
   clearRect() {}
   drawImage() {}
   fillRect() {}
+  fillText() {}
   beginPath() {}
   moveTo() {}
   arc() {}
   lineTo() {}
   fill() {}
+  stroke() {}
   save() {}
   restore() {}
   

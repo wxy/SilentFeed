@@ -148,6 +148,8 @@ export class IconComposer {
     // 2. 叠加推荐波纹(仅推荐状态)
     if (state.type === 'recommend' && state.recommendCount) {
       this.drawRecommendWaves(state.recommendCount)
+      // 绘制推荐数字（右下角）
+      this.drawRecommendBadge(state.recommendCount)
     }
     
     // 3. 叠加 RSS 发现动画波纹(仅发现状态)
@@ -213,6 +215,50 @@ export class IconComposer {
     if (count >= 3 && this.overlayImages.wave3) {
       this.ctx.drawImage(this.overlayImages.wave3, 0, 0)
     }
+  }
+  
+  /**
+   * 绘制推荐数字徽章（右下角）
+   * 
+   * 样式：
+   * - 背景：半透明橙色圆形 (rgba(255, 107, 0, 0.9))
+   * - 文字：白色，加粗
+   * - 位置：右下角，留 2px 边距
+   * - 大小：自适应数字宽度，最小 16px 直径
+   */
+  private drawRecommendBadge(count: number): void {
+    const size = this.canvas.width  // 128px
+    const badgeSize = size * 0.35    // 徽章直径 44.8px (约占图标 1/3)
+    const padding = size * 0.05      // 边距 6.4px
+    const centerX = size - padding - badgeSize / 2
+    const centerY = size - padding - badgeSize / 2
+    
+    // 保存当前状态
+    this.ctx.save()
+    
+    // 绘制圆形背景（半透明橙色）
+    this.ctx.fillStyle = 'rgba(255, 107, 0, 0.9)'  // Silent Feed 主题橙色，90% 不透明
+    this.ctx.beginPath()
+    this.ctx.arc(centerX, centerY, badgeSize / 2, 0, Math.PI * 2)
+    this.ctx.fill()
+    
+    // 绘制白色描边（增强对比度）
+    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)'
+    this.ctx.lineWidth = size * 0.015  // 1.92px
+    this.ctx.beginPath()
+    this.ctx.arc(centerX, centerY, badgeSize / 2, 0, Math.PI * 2)
+    this.ctx.stroke()
+    
+    // 绘制数字文本
+    const fontSize = badgeSize * 0.65  // 29.12px
+    this.ctx.fillStyle = '#ffffff'
+    this.ctx.font = `bold ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`
+    this.ctx.textAlign = 'center'
+    this.ctx.textBaseline = 'middle'
+    this.ctx.fillText(count.toString(), centerX, centerY)
+    
+    // 恢复状态
+    this.ctx.restore()
   }
   
   /**

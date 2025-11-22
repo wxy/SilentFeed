@@ -9,12 +9,12 @@
  * 
  * 状态优先级(从高到低):
  * 1. 错误 (hasError: true, 最高优先级)
- * 2. RSS 发现动画 (discover, 3秒临时)
- * 3. 推荐阅读 (recommend, 1-3条)
+ * 2. RSS 发现动画 (discover, 6秒临时)
+ * 3. 暂停 (paused, 灰度)
  * 4. 后台抓取 (fetching, 圆点呼吸)
- * 5. 学习进度 (learning, 垂直遮罩)
- * 6. 暂停 (paused, 灰度)
- * 7. 静态 (static, 默认)
+ * 5. 学习进度 (learning, 垂直遮罩, 仅学习阶段<100页)
+ * 6. 推荐阅读 (recommend, 1-3条波纹+数字, 学习完成后)
+ * 7. 静态 (static, 默认, 学习完成且无推荐)
  * 
  * Phase 5.2: 图标系统重新设计
  */
@@ -287,15 +287,7 @@ export class IconManager {
         hasError: errorOverlay
       }
     }
-    // 优先级 5: 推荐阅读
-    else if (this.recommendCount > 0) {
-      state = {
-        type: 'recommend',
-        recommendCount: this.recommendCount,
-        hasError: errorOverlay
-      }
-    }
-    // 优先级 6: 学习进度
+    // 优先级 5: 学习进度（必须在学习阶段）
     else if (this.learningProgress < LEARNING_COMPLETE_PAGES) {
       state = {
         type: 'learning',
@@ -303,7 +295,15 @@ export class IconManager {
         hasError: errorOverlay
       }
     }
-    // 默认: 静态
+    // 优先级 6: 推荐阅读（学习完成后）
+    else if (this.recommendCount > 0) {
+      state = {
+        type: 'recommend',
+        recommendCount: this.recommendCount,
+        hasError: errorOverlay
+      }
+    }
+    // 默认: 静态（学习完成，无推荐）
     else {
       state = {
         type: 'static',
