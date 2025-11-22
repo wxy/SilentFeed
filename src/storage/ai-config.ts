@@ -241,7 +241,11 @@ export async function deleteAIConfig(): Promise<void> {
  */
 export async function isAIConfigured(): Promise<boolean> {
   const config = await getAIConfig()
-  return config.enabled && config.provider !== null && config.apiKey !== ""
+  if (!config.enabled || !config.provider) return false
+  
+  // 检查新的 apiKeys 结构或旧的 apiKey 字段（向后兼容）
+  const apiKey = config.apiKeys?.[config.provider] || config.apiKey || ""
+  return apiKey !== ""
 }
 
 /**
