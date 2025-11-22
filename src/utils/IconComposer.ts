@@ -236,22 +236,22 @@ export class IconComposer {
     // 保存当前状态
     this.ctx.save()
     
-    // 绘制圆形背景（白色，完全不透明）
-    this.ctx.fillStyle = '#ffffff'  // 白色背景，更显眼
+    // 绘制圆形背景（黑色，完全不透明）
+    this.ctx.fillStyle = '#000000'  // 黑色背景，最显眼
     this.ctx.beginPath()
     this.ctx.arc(centerX, centerY, badgeSize / 2, 0, Math.PI * 2)
     this.ctx.fill()
     
-    // 绘制橙色描边（增强边界）
-    this.ctx.strokeStyle = 'rgba(255, 107, 0, 0.8)'  // 橙色描边
+    // 绘制白色描边（增强边界）
+    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)'  // 白色描边
     this.ctx.lineWidth = size * 0.02  // 2.56px 更粗的描边
     this.ctx.beginPath()
     this.ctx.arc(centerX, centerY, badgeSize / 2, 0, Math.PI * 2)
     this.ctx.stroke()
     
-    // 绘制数字文本（橙色）
+    // 绘制数字文本（白色）
     const fontSize = badgeSize * 0.65  // 29.12px
-    this.ctx.fillStyle = '#FF6B00'  // Silent Feed 主题橙色
+    this.ctx.fillStyle = '#ffffff'  // 白色文字，最清晰
     this.ctx.font = `bold ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`
     this.ctx.textAlign = 'center'
     this.ctx.textBaseline = 'middle'

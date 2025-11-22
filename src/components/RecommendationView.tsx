@@ -175,7 +175,7 @@ export function RecommendationView() {
 
   const openRSSManagement = () => {
     chrome.tabs.create({ 
-      url: chrome.runtime.getURL('options.html#rss')
+      url: chrome.runtime.getURL('options.html#feeds')
     })
   }
 
