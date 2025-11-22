@@ -26,19 +26,23 @@ const collectionLogger = logger.withTag("CollectionStats")
 
 /**
  * 获取语言名称的国际化文本
+ * 使用翻译键，根据当前界面语言显示对应的语言名称
+ * 例如：中文界面显示"中文""英文"，英文界面显示"Chinese""English"
  */
 function getLanguageName(langCode: string, _: (key: string) => string): string {
   const langMap: Record<string, string> = {
-    'zh-CN': _("common.languages.zhCN"),
-    'zh': _("common.languages.zhCN"),
-    'en': _("common.languages.en"),
-    'ja': _("common.languages.ja"),
-    'fr': _("common.languages.fr"),
-    'de': _("common.languages.de"),
-    'es': _("common.languages.es"),
-    'ko': _("common.languages.ko")
+    'zh-CN': _("options.collectionStats.languages.zhCN"),
+    'zh': _("options.collectionStats.languages.zh"),
+    'en': _("options.collectionStats.languages.en"),
+    'ja': _("options.collectionStats.languages.ja"),
+    'fr': _("options.collectionStats.languages.fr"),
+    'de': _("options.collectionStats.languages.de"),
+    'es': _("options.collectionStats.languages.es"),
+    'ko': _("options.collectionStats.languages.ko"),
+    'other': _("options.collectionStats.languages.other")
   }
-  return langMap[langCode] || langCode
+  // 如果找不到，使用 other 作为默认值
+  return langMap[langCode] || _("options.collectionStats.languages.other")
 }
 
 /**

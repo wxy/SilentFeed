@@ -37,10 +37,11 @@ export function AIConfig() {
   const [showChromeAIHelp, setShowChromeAIHelp] = useState(false) // Phase 9: Chrome AI 帮助浮层
 
   // 动态获取本地化的提供商选项
-  const getProviderOptions = (): Array<{ value: AIProviderType | ""; label: string; description: string }> => [
+  // Phase 10: OpenAI 和 Anthropic 临时禁用，下个版本恢复
+  const getProviderOptions = (): Array<{ value: AIProviderType | ""; label: string; description: string; disabled?: boolean }> => [
     { value: "", label: _("options.aiConfig.providers.none.label"), description: _("options.aiConfig.providers.none.description") },
-    { value: "openai", label: _("options.aiConfig.providers.openai.label"), description: _("options.aiConfig.providers.openai.description") },
-    { value: "anthropic", label: _("options.aiConfig.providers.anthropic.label"), description: _("options.aiConfig.providers.anthropic.description") },
+    { value: "openai", label: _("options.aiConfig.providers.openai.label") + " (" + _("options.aiConfig.temporarilyUnavailable") + ")", description: _("options.aiConfig.providers.openai.description"), disabled: true },
+    { value: "anthropic", label: _("options.aiConfig.providers.anthropic.label") + " (" + _("options.aiConfig.temporarilyUnavailable") + ")", description: _("options.aiConfig.providers.anthropic.description"), disabled: true },
     { value: "deepseek", label: _("options.aiConfig.providers.deepseek.label"), description: _("options.aiConfig.providers.deepseek.description") }
   ]
 
@@ -236,7 +237,7 @@ export function AIConfig() {
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
           {getProviderOptions().map((option) => (
-            <option key={option.value} value={option.value}>
+            <option key={option.value} value={option.value} disabled={option.disabled}>
               {option.label}
             </option>
           ))}
@@ -530,8 +531,9 @@ export function AIConfig() {
                 </ul>
               </div>
 
+              {/* Phase 10: 临时隐藏 OpenAI 成本估算，下个版本恢复 */}
               {/* OpenAI */}
-              <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded">
+              {/* <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded">
                 <div className="font-semibold text-gray-800 dark:text-gray-200">
                   {_("options.aiConfig.cost.openai.title")}
                 </div>
@@ -542,10 +544,11 @@ export function AIConfig() {
                     → {_("options.aiConfig.cost.openai.estimate")}
                   </li>
                 </ul>
-              </div>
+              </div> */}
 
+              {/* Phase 10: 临时隐藏 Anthropic 成本估算，下个版本恢复 */}
               {/* Anthropic */}
-              <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded">
+              {/* <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded">
                 <div className="font-semibold text-gray-800 dark:text-gray-200">
                   {_("options.aiConfig.cost.anthropic.title")}
                 </div>
@@ -556,7 +559,7 @@ export function AIConfig() {
                     → {_("options.aiConfig.cost.anthropic.estimate")}
                   </li>
                 </ul>
-              </div>
+              </div> */}
             </div>
 
             <p className="mt-4 text-xs text-gray-600 dark:text-gray-400">

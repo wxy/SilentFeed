@@ -1,12 +1,12 @@
 /**
- * RecommendationSettings 组件测试
+ * AnalysisSettings 组件测试
  * Phase 9: 分析配置界面测试 - 测试引擎选择、保存、生成推荐等功能
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { RecommendationSettings } from "./RecommendationSettings"
+import { AnalysisSettings } from "./AnalysisSettings"
 
 // Mock react-i18next
 vi.mock("react-i18next", () => ({
@@ -96,14 +96,14 @@ vi.mock("@/storage/db", () => ({
   resetRecommendationData: vi.fn().mockResolvedValue(undefined)
 }))
 
-describe("RecommendationSettings 组件", () => {
+describe("AnalysisSettings 组件", () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
   describe("基本渲染", () => {
     it("应该渲染推荐引擎标题", async () => {
-      render(<RecommendationSettings />)
+      render(<AnalysisSettings />)
       
       await waitFor(() => {
         expect(screen.getByText("Article Recommendation Engine")).toBeInTheDocument()
@@ -111,7 +111,7 @@ describe("RecommendationSettings 组件", () => {
     })
 
     it("应该显示4个引擎选项", async () => {
-      render(<RecommendationSettings />)
+      render(<AnalysisSettings />)
       
       await waitFor(() => {
         // 使用 getAllByText 因为推荐引擎和订阅源引擎都有这些选项
@@ -128,7 +128,7 @@ describe("RecommendationSettings 组件", () => {
     })
 
     it("应该显示当前选中的引擎", async () => {
-      render(<RecommendationSettings />)
+      render(<AnalysisSettings />)
       
       await waitFor(() => {
         // 获取所有 Remote AI (Standard) 的 radio，第一个是推荐引擎的
@@ -139,7 +139,7 @@ describe("RecommendationSettings 组件", () => {
     })
 
     it("应该显示推荐数量配置", async () => {
-      render(<RecommendationSettings />)
+      render(<AnalysisSettings />)
       
       await waitFor(() => {
         expect(screen.getByText("Intelligent Recommendation Quantity")).toBeInTheDocument()
@@ -151,7 +151,7 @@ describe("RecommendationSettings 组件", () => {
   describe("引擎选择", () => {
     it("应该能够选择关键词引擎", async () => {
       const user = userEvent.setup()
-      render(<RecommendationSettings />)
+      render(<AnalysisSettings />)
       
       await waitFor(() => {
         expect(screen.getAllByText("Pure keywords").length).toBeGreaterThan(0)
@@ -166,7 +166,7 @@ describe("RecommendationSettings 组件", () => {
 
     it("应该能够选择本地AI引擎", async () => {
       const user = userEvent.setup()
-      render(<RecommendationSettings />)
+      render(<AnalysisSettings />)
       
       await waitFor(() => {
         expect(screen.getAllByText("Local AI").length).toBeGreaterThan(0)
@@ -180,7 +180,7 @@ describe("RecommendationSettings 组件", () => {
     })
 
     it("不可用的引擎应该被禁用", async () => {
-      render(<RecommendationSettings />)
+      render(<AnalysisSettings />)
       
       await waitFor(() => {
         const reasoningRadio = screen.getByRole("radio", { name: /Remote AI \(Inference Mode\)/i })
@@ -194,7 +194,7 @@ describe("RecommendationSettings 组件", () => {
       const user = userEvent.setup()
       const { saveRecommendationConfig } = await import("@/storage/recommendation-config")
       
-      render(<RecommendationSettings />)
+      render(<AnalysisSettings />)
       
       await waitFor(() => {
         expect(screen.getByText("Save Settings")).toBeInTheDocument()
@@ -218,7 +218,7 @@ describe("RecommendationSettings 组件", () => {
         () => new Promise(resolve => setTimeout(resolve, 100))
       )
       
-      render(<RecommendationSettings />)
+      render(<AnalysisSettings />)
       
       await waitFor(() => {
         expect(screen.getByText("Save Settings")).toBeInTheDocument()
@@ -241,7 +241,7 @@ describe("RecommendationSettings 组件", () => {
         })
       }))
       
-      render(<RecommendationSettings />)
+      render(<AnalysisSettings />)
       
       await waitFor(() => {
         expect(screen.getByText("🔮 Recommend Now")).toBeInTheDocument()
@@ -264,7 +264,7 @@ describe("RecommendationSettings 组件", () => {
       
       const { resetRecommendationData } = await import("@/storage/db")
       
-      render(<RecommendationSettings />)
+      render(<AnalysisSettings />)
       
       // 查找包含 Reset 的按钮（可能在操作区域）
       await waitFor(() => {
@@ -279,7 +279,7 @@ describe("RecommendationSettings 组件", () => {
       
       const { resetRecommendationData } = await import("@/storage/db")
       
-      render(<RecommendationSettings />)
+      render(<AnalysisSettings />)
       
       // 等待组件加载
       await waitFor(() => {

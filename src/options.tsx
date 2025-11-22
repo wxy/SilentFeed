@@ -5,17 +5,17 @@ import { useI18n } from "@/i18n/helpers"
 import i18n from "@/i18n"
 import { CollectionStats } from "@/components/settings/CollectionStats"
 import { AIConfig } from "@/components/settings/AIConfig"
-import { RSSManager } from "@/components/settings/RSSManager"
-import { RecommendationSettings } from "@/components/settings/RecommendationSettings"
+import { RSSSettings } from "@/components/settings/RSSSettings"
+import { AnalysisSettings } from "@/components/settings/AnalysisSettings"
 import { NotificationSettings } from "@/components/settings/NotificationSettings"
-import { ProfileView } from "@/components/settings/ProfileView"
+import { ProfileSettings } from "@/components/settings/ProfileSettings"
 import { getUIStyle, setUIStyle, watchUIStyle, type UIStyle } from "@/storage/ui-config"
 import { useTheme } from "@/hooks/useTheme"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
 import "@/styles/global.css"
 import "@/styles/sketchy.css"
 
-type TabKey = "preferences" | "feeds" | "aiEngine" | "recommendations" | "profile" | "myData"
+type TabKey = "preferences" | "feeds" | "ai-engine" | "analysis" | "profile" | "data"
 
 /**
  * Silent Feed - 设置页面
@@ -24,9 +24,10 @@ type TabKey = "preferences" | "feeds" | "aiEngine" | "recommendations" | "profil
  * Phase 8: 设置页重组
  * - preferences: 偏好设置（语言、UI风格、通知）
  * - feeds: 订阅源管理
- * - aiEngine: AI 引擎配置（基础设施层）
- * - recommendations: 推荐系统设置
- * - myData: 我的数据（用户画像、统计）
+ * - ai-engine: AI 引擎配置（基础设施层）
+ * - analysis: 内容分析配置
+ * - profile: 用户画像
+ * - data: 系统数据（采集统计）
  */
 function IndexOptions() {
   const { _ } = useI18n()
@@ -36,14 +37,14 @@ function IndexOptions() {
   const getInitialTab = (): TabKey => {
     // 优先从 hash 读取（支持 #rss 这种格式）
     const hash = window.location.hash.slice(1) as TabKey
-    if (['preferences', 'feeds', 'aiEngine', 'recommendations', 'myData'].includes(hash)) {
+    if (['preferences', 'feeds', 'ai-engine', 'analysis', 'profile', 'data'].includes(hash)) {
       return hash
     }
     
     // 其次从 URL 参数读取
     const urlParams = new URLSearchParams(window.location.search)
     const tab = urlParams.get('tab') as TabKey
-    return ['preferences', 'feeds', 'aiEngine', 'recommendations', 'myData'].includes(tab) ? tab : 'preferences'
+    return ['preferences', 'feeds', 'ai-engine', 'analysis', 'profile', 'data'].includes(tab) ? tab : 'preferences'
   }
 
   const [activeTab, setActiveTab] = useState<TabKey>(getInitialTab)
@@ -110,10 +111,10 @@ function IndexOptions() {
   const tabs: { key: TabKey; icon: string }[] = [
     { key: "preferences", icon: "⚙️" },
     { key: "feeds", icon: "📡" },
-    { key: "aiEngine", icon: "🤖" },
-    { key: "recommendations", icon: "🎯" },
+    { key: "ai-engine", icon: "🤖" },
+    { key: "analysis", icon: "🎯" },
     { key: "profile", icon: "👤" },
-    { key: "myData", icon: "📊" }
+    { key: "data", icon: "📊" }
   ]
 
   const isSketchyStyle = uiStyle === "sketchy"
@@ -266,36 +267,36 @@ function IndexOptions() {
               {/* 订阅源管理 - Phase 5.1 */}
               {activeTab === "feeds" && (
                 <div className={isSketchyStyle ? "sketchy-card p-6" : "bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg"}>
-                  <RSSManager />
+                  <RSSSettings isSketchyStyle={isSketchyStyle} />
                 </div>
               )}
 
               {/* AI 引擎配置 - Phase 4.1 + Phase 8 扩展 */}
-              {activeTab === "aiEngine" && (
+              {activeTab === "ai-engine" && (
                 <div className={isSketchyStyle ? "sketchy-card" : "bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg"}>
                   <AIConfig />
                 </div>
               )}
 
               {/* 分析配置 - Phase 9: 推荐引擎 + 分析引擎 */}
-              {activeTab === "recommendations" && (
+              {activeTab === "analysis" && (
                 <div className={isSketchyStyle ? "sketchy-card p-6" : "bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg"}>
                   <h2 className="text-lg font-semibold mb-4 bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent">
-                    {_("options.tabs.recommendations")}
+                    {_("options.tabs.analysis")}
                   </h2>
-                  <RecommendationSettings />
+                  <AnalysisSettings />
                 </div>
               )}
 
               {/* 用户画像 - Phase 6 */}
               {activeTab === "profile" && (
                 <div className={isSketchyStyle ? "sketchy-card p-6" : "bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg"}>
-                  <ProfileView />
+                  <ProfileSettings />
                 </div>
               )}
 
               {/* 我的数据 - Phase 2.7+ */}
-              {activeTab === "myData" && <CollectionStats />}
+              {activeTab === "data" && <CollectionStats />}
             </div>
           </div>
         </div>

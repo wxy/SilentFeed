@@ -37,7 +37,7 @@ export function RSSDiscoveryHint() {
     
     // 2. 打开设置页，定位到 RSS 标签（使用 URL hash）
     chrome.tabs.create({ 
-      url: chrome.runtime.getURL('options.html#rss')
+      url: chrome.runtime.getURL('options.html#feeds')
     })
   }
 

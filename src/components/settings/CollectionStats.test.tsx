@@ -21,6 +21,16 @@ vi.mock("@/i18n/helpers", () => ({
         "options.collectionStats.rebuildingProfile": "重建画像中...",
         "options.collectionStats.clearDataRestart": "清除数据重新开始",
         "options.collectionStats.clearAll": "清除所有数据",
+        // Language names
+        "options.collectionStats.languages.zh": "中文",
+        "options.collectionStats.languages.en": "英文",
+        "options.collectionStats.languages.zhCN": "简体中文",
+        "options.collectionStats.languages.ja": "日语",
+        "options.collectionStats.languages.fr": "法语",
+        "options.collectionStats.languages.de": "德语",
+        "options.collectionStats.languages.es": "西班牙语",
+        "options.collectionStats.languages.ko": "韩语",
+        "options.collectionStats.languages.other": "其他",
         // Overview section
         "options.collectionStats.totalPagesLabel": "累计采集页面",
         "options.collectionStats.dwellTimeHint": "停留超过30秒的页面",
@@ -102,9 +112,9 @@ vi.mock("@/core/profile/ProfileUpdateScheduler", () => ({
   }
 }))
 
-// Mock UserProfileDisplay component
-vi.mock("./UserProfileDisplay", () => ({
-  UserProfileDisplay: () => (
+// Mock ProfileSettings component
+vi.mock("./ProfileSettings", () => ({
+  ProfileSettings: () => (
     <div data-testid="user-profile-display">用户画像统计</div>
   ),
 }))
@@ -230,8 +240,8 @@ describe("CollectionStats 组件", () => {
       totalKeywords: 1200,
       avgKeywordsPerPage: 12,
       languageDistribution: [
-        { language: "中文", count: 60 },
-        { language: "英文", count: 40 },
+        { language: "zh", count: 60 },
+        { language: "en", count: 40 },
       ],
       topKeywords: [
         { word: "JavaScript", frequency: 25 },

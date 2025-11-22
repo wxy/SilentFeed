@@ -24,7 +24,7 @@ import { LEARNING_COMPLETE_PAGES } from "@/constants/progress"
 
 const recSettingsLogger = logger.withTag("AnalysisConfig")
 
-export function RecommendationSettings() {
+export function AnalysisSettings() {
   const { t: _ } = useTranslation()
   const { generateRecommendations, isLoading: isGenerating } = useRecommendationStore()
   const [config, setConfig] = useState<RecommendationConfig>({
@@ -192,7 +192,7 @@ export function RecommendationSettings() {
               <div className="font-semibold text-gray-900 dark:text-gray-100">
                 {_("options.analysisEngine.options.remoteAI")}
                 {config.analysisEngine === 'remoteAI' && (
-                  <span className="ml-2 text-xs px-2 py-0.5 bg-blue-500 text-white rounded">当前</span>
+                  <span className="ml-2 text-xs px-2 py-0.5 bg-blue-500 text-white rounded">{_("options.analysisEngine.currentLabel")}</span>
                 )}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -226,7 +226,7 @@ export function RecommendationSettings() {
               <div className="font-semibold text-gray-900 dark:text-gray-100">
                 {_("options.analysisEngine.options.remoteAIWithReasoning")}
                 {config.analysisEngine === 'remoteAIWithReasoning' && (
-                  <span className="ml-2 text-xs px-2 py-0.5 bg-purple-500 text-white rounded">当前</span>
+                  <span className="ml-2 text-xs px-2 py-0.5 bg-purple-500 text-white rounded">{_("options.analysisEngine.currentLabel")}</span>
                 )}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -260,7 +260,7 @@ export function RecommendationSettings() {
               <div className="font-semibold text-gray-900 dark:text-gray-100">
                 {_("options.analysisEngine.options.localAI")}
                 {config.analysisEngine === 'localAI' && (
-                  <span className="ml-2 text-xs px-2 py-0.5 bg-green-500 text-white rounded">当前</span>
+                  <span className="ml-2 text-xs px-2 py-0.5 bg-green-500 text-white rounded">{_("options.analysisEngine.currentLabel")}</span>
                 )}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -293,7 +293,7 @@ export function RecommendationSettings() {
               <div className="font-semibold text-gray-900 dark:text-gray-100">
                 {_("options.analysisEngine.options.keyword")}
                 {config.analysisEngine === 'keyword' && (
-                  <span className="ml-2 text-xs px-2 py-0.5 bg-gray-500 text-white rounded">当前</span>
+                  <span className="ml-2 text-xs px-2 py-0.5 bg-gray-500 text-white rounded">{_("options.analysisEngine.currentLabel")}</span>
                 )}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -345,7 +345,7 @@ export function RecommendationSettings() {
               <div className="font-semibold text-gray-900 dark:text-gray-100">
                 {_("options.analysisEngine.options.remoteAI")}
                 {feedAnalysisEngine === 'remoteAI' && (
-                  <span className="ml-2 text-xs px-2 py-0.5 bg-blue-500 text-white rounded">当前</span>
+                  <span className="ml-2 text-xs px-2 py-0.5 bg-blue-500 text-white rounded">{_("options.analysisEngine.currentLabel")}</span>
                 )}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -379,7 +379,7 @@ export function RecommendationSettings() {
               <div className="font-semibold text-gray-900 dark:text-gray-100">
                 {_("options.analysisEngine.options.localAI")}
                 {feedAnalysisEngine === 'localAI' && (
-                  <span className="ml-2 text-xs px-2 py-0.5 bg-green-500 text-white rounded">当前</span>
+                  <span className="ml-2 text-xs px-2 py-0.5 bg-green-500 text-white rounded">{_("options.analysisEngine.currentLabel")}</span>
                 )}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -412,7 +412,7 @@ export function RecommendationSettings() {
               <div className="font-semibold text-gray-900 dark:text-gray-100">
                 {_("options.analysisEngine.options.keyword")}
                 {feedAnalysisEngine === 'keyword' && (
-                  <span className="ml-2 text-xs px-2 py-0.5 bg-gray-500 text-white rounded">当前</span>
+                  <span className="ml-2 text-xs px-2 py-0.5 bg-gray-500 text-white rounded">{_("options.analysisEngine.currentLabel")}</span>
                 )}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">

@@ -896,12 +896,12 @@ export async function getAnalysisStats(): Promise<{
     .sort((a, b) => b.frequency - a.frequency)
     .slice(0, 10)
 
-  // 语言分布统计
+  // 语言分布统计（保留原始语言代码，由 UI 层处理国际化）
   const languageCount = new Map<string, number>()
   analyzedVisits.forEach(visit => {
     if (visit.analysis?.language) {
-      const lang = visit.analysis.language === 'zh' ? '中文' : 
-                   visit.analysis.language === 'en' ? '英文' : '其他'
+      // 直接使用语言代码，不做转换
+      const lang = visit.analysis.language
       languageCount.set(lang, (languageCount.get(lang) || 0) + 1)
     }
   })

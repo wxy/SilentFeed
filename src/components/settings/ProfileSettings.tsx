@@ -60,7 +60,7 @@ function getTopicPersonality(topic: Topic | string, _: (key: string) => string):
   return personalityMap[topic.toLowerCase()] || topic
 }
 
-export function ProfileView() {
+export function ProfileSettings() {
   const { _ } = useI18n()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
