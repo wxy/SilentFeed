@@ -219,20 +219,20 @@ export class IconComposer {
   }
   
   /**
-   * 绘制推荐数字徽章（右下角）
+   * 绘制推荐数字徽章（右上角）
    * 
    * 样式：
-   * - 背景：半透明橙色圆形 (rgba(255, 107, 0, 0.9))
+   * - 背景：黑色圆形 (#000000)
    * - 文字：白色，加粗
-   * - 位置：右下角，留 2px 边距
-   * - 大小：自适应数字宽度，最小 16px 直径
+   * - 位置：右上角，留 2px 边距
+   * - 大小：自适应数字宽度，直径 42%
    */
   private drawRecommendBadge(count: number): void {
     const size = this.canvas.width  // 128px
     const badgeSize = size * 0.42    // 徽章直径 53.76px (增大到 42%)
-    const padding = size * 0.02      // 边距 2.56px (减少边距，向右下偏移)
+    const padding = size * 0.02      // 边距 2.56px (减少边距，向右上偏移)
     const centerX = size - padding - badgeSize / 2
-    const centerY = size - padding - badgeSize / 2
+    const centerY = padding + badgeSize / 2  // 右上角：top = padding + radius
     
     // 保存当前状态
     this.ctx.save()
