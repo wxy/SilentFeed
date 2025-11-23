@@ -350,7 +350,12 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
               className="w-4 h-4 flex-shrink-0 mt-0.5"
               onError={handleFaviconError}
             />
-            <span className="flex-1">{sanitizeHtml(recommendation.title)}</span>
+            <span className="flex-1">
+              {sanitizeHtml(recommendation.title)}
+              <span className="ml-1 cursor-help text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xs" title={recommendation.url}>
+                🔗
+              </span>
+            </span>
           </h3>
         </div>
         
@@ -439,9 +444,11 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
             className="w-4 h-4 flex-shrink-0 mt-0.5"
             onError={handleFaviconError}
           />
-          <span className="flex-1">{sanitizeHtml(recommendation.title)}</span>
-          <span className="flex-shrink-0 cursor-help text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" title={recommendation.url}>
-            🔗
+          <span className="flex-1">
+            {sanitizeHtml(recommendation.title)}
+            <span className="ml-1 cursor-help text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xs" title={recommendation.url}>
+              🔗
+            </span>
           </span>
         </h3>
       </div>
