@@ -1,6 +1,7 @@
 /**
  * UI 风格配置存储
  * 管理用户的 UI 主题偏好（手绘风格 vs 普通风格）
+ * 以及其他 UI 相关设置（如自动翻译）
  * 颜色主题自动跟随系统
  */
 
@@ -11,6 +12,48 @@ const uiLogger = logger.withTag('UIConfig')
 export type UIStyle = "sketchy" | "normal"
 
 const UI_STYLE_KEY = "ui_style"
+const AUTO_TRANSLATE_KEY = "auto_translate"
+
+/**
+ * UI 配置接口
+ */
+export interface UIConfig {
+  /** UI 风格 */
+  style: UIStyle
+  /** 是否启用自动翻译 */
+  autoTranslate: boolean
+}
+
+/**
+ * 获取完整的 UI 配置
+ * @returns UI 配置对象
+ */
+export async function getUIConfig(): Promise<UIConfig> {
+  const result = await chrome.storage.sync.get([UI_STYLE_KEY, AUTO_TRANSLATE_KEY])
+  return {
+    style: (result[UI_STYLE_KEY] as UIStyle) || "sketchy",
+    autoTranslate: result[AUTO_TRANSLATE_KEY] ?? false // 默认关闭自动翻译
+  }
+}
+
+/**
+ * 更新 UI 配置
+ * @param config - 要更新的配置项（部分更新）
+ */
+export async function updateUIConfig(config: Partial<UIConfig>): Promise<void> {
+  const updates: Record<string, any> = {}
+  
+  if (config.style !== undefined) {
+    updates[UI_STYLE_KEY] = config.style
+  }
+  
+  if (config.autoTranslate !== undefined) {
+    updates[AUTO_TRANSLATE_KEY] = config.autoTranslate
+  }
+  
+  await chrome.storage.sync.set(updates)
+  uiLogger.debug('UI 配置已更新:', config)
+}
 
 /**
  * 获取当前 UI 风格

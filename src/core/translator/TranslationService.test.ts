@@ -2,11 +2,22 @@
  * 翻译服务测试
  */
 
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { TranslationService } from './TranslationService'
 
+// Mock AICapabilityManager
+vi.mock('../ai/AICapabilityManager', () => ({
+  aiManager: {
+    initialize: vi.fn().mockResolvedValue(undefined)
+  }
+}))
+
 describe('TranslationService', () => {
-  const service = new TranslationService()
+  let service: TranslationService
+
+  beforeEach(() => {
+    service = new TranslationService()
+  })
 
   describe('语言检测', () => {
     it('应该正确检测中文', () => {
@@ -37,21 +48,31 @@ describe('TranslationService', () => {
     it('应该在源语言与目标语言相同时返回原文', async () => {
       const text = '这是一段中文'
       const result = await service.translateText(text, 'zh-CN')
-      expect(result).toBe(text)
+      
+      expect(result.sourceLanguage).toBe('zh-CN')
+      expect(result.targetLanguage).toBe('zh-CN')
+      expect(result.translatedText).toBe(text)
     })
 
     it('应该在源语言与目标语言不同时尝试翻译（当前返回原文）', async () => {
       const text = 'This is English'
       const result = await service.translateText(text, 'zh-CN')
+      
+      expect(result.sourceLanguage).toBe('en')
+      expect(result.targetLanguage).toBe('zh-CN')
       // 当前翻译功能未实现，应返回原文
-      expect(result).toBe(text)
+      expect(result.translatedText).toBe(text)
     })
 
-    it('应该在强制模式下即使语言相同也尝试翻译', async () => {
-      const text = '这是一段中文'
-      const result = await service.translateText(text, 'zh-CN', { force: true })
-      // 当前翻译功能未实现，应返回原文
-      expect(result).toBe(text)
+    it('应该返回包含语言信息的结果', async () => {
+      const text = '日本語のテキスト'
+      const result = await service.translateText(text, 'en')
+      
+      expect(result).toHaveProperty('sourceLanguage')
+      expect(result).toHaveProperty('targetLanguage')
+      expect(result).toHaveProperty('translatedText')
+      expect(result.sourceLanguage).toBe('ja')
+      expect(result.targetLanguage).toBe('en')
     })
   })
 
@@ -65,10 +86,15 @@ describe('TranslationService', () => {
       const results = await service.translateBatch(texts, 'en')
       
       expect(results).toHaveLength(3)
-      // 当前翻译功能未实现
-      expect(results[0]).toBe('第一段文字') // 中文不翻译
-      expect(results[1]).toBe('第二段文字') // 中文不翻译
-      expect(results[2]).toBe('Third paragraph') // 英文不翻译
+      expect(results[0].sourceLanguage).toBe('zh-CN')
+      expect(results[1].sourceLanguage).toBe('zh-CN')
+      expect(results[2].sourceLanguage).toBe('en')
+      
+      // 当前翻译功能未实现，中文不翻译
+      expect(results[0].translatedText).toBe('第一段文字')
+      expect(results[1].translatedText).toBe('第二段文字')
+      // 英文也不翻译（源语言与目标语言相同）
+      expect(results[2].translatedText).toBe('Third paragraph')
     })
 
     it('应该处理空数组', async () => {

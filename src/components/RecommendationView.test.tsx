@@ -147,14 +147,14 @@ describe("RecommendationView 组件", () => {
       },
     ]
 
-    it("应该显示推荐列表头部", () => {
+    it("应该显示推荐列表", () => {
       mockRecommendations = mockRecs
       render(<RecommendationView />)
 
-      // Phase 6: 组件结构变更，不再显示 "为你推荐" 和推荐数量标题
-      // 改为检查操作按钮
-      expect(screen.getByText(/设置/)).toBeInTheDocument()
-      expect(screen.getByText(/全部忽略/)).toBeInTheDocument()
+      // Phase 7: 工具栏移到popup头部，RecommendationView只显示推荐列表
+      // 检查推荐条目是否渲染
+      expect(screen.getByText("推荐文章 1")).toBeInTheDocument()
+      expect(screen.getByText("推荐文章 2")).toBeInTheDocument()
     })
 
     it("应该渲染所有推荐条目", () => {
@@ -169,23 +169,23 @@ describe("RecommendationView 组件", () => {
       mockRecommendations = mockRecs
       render(<RecommendationView />)
 
-      // 第一条推荐会显示摘要（isTopItem=true）
+      // Phase 7: 智能显示摘要 - 2条时都显示摘要
       expect(
         screen.getByText("这是第一篇推荐文章的摘要")
       ).toBeInTheDocument()
-      // 第二条不显示摘要（使用紧凑布局）
+      // 2条推荐时，第二条也会显示摘要
       expect(
-        screen.queryByText("这是第二篇推荐文章的摘要")
-      ).not.toBeInTheDocument()
+        screen.getByText("这是第二篇推荐文章的摘要")
+      ).toBeInTheDocument()
     })
 
-    it("应该显示推荐来源", () => {
+    it("应该显示favicon图标", () => {
       mockRecommendations = mockRecs
-      render(<RecommendationView />)
+      const { container } = render(<RecommendationView />)
 
-      // 使用正则表达式匹配，因为文本被 emoji 分割
-      expect(screen.getByText(/Tech Blog/)).toBeInTheDocument()
-      expect(screen.getByText(/Dev News/)).toBeInTheDocument()
+      // Phase 7: 网站名移除，只显示favicon，使用 container.querySelectorAll 因为 img 没有 alt
+      const favicons = container.querySelectorAll('img')
+      expect(favicons.length).toBeGreaterThanOrEqual(2)
     })
 
     it("应该显示推荐分数（百分比）", () => {
@@ -328,82 +328,8 @@ describe("RecommendationView 组件", () => {
     })
   })
 
-  describe("全部忽略功能", () => {
-    const mockRecs: Recommendation[] = [
-      {
-        id: "rec-1",
-        url: "https://example.com/1",
-        title: "文章 1",
-        summary: "这是第一篇测试文章的摘要",
-        source: "Blog",
-        recommendedAt: Date.now(),
-        score: 0.9,
-        isRead: false,
-        sourceUrl: "https://example.com",
-      },
-      {
-        id: "rec-2",
-        url: "https://example.com/2",
-        title: "文章 2",
-        summary: "这是第二篇测试文章的摘要",
-        source: "Blog",
-        recommendedAt: Date.now(),
-        score: 0.8,
-        isRead: false,
-        sourceUrl: "https://example.com",
-      },
-    ]
-
-    it("点击全部忽略应该显示确认对话框", async () => {
-      const user = userEvent.setup()
-      window.confirm = vi.fn().mockReturnValue(false)
-
-      mockRecommendations = mockRecs
-      render(<RecommendationView />)
-
-      const dismissButton = screen.getByText("全部忽略")
-      await user.click(dismissButton)
-
-      expect(window.confirm).toHaveBeenCalledWith("确定要忽略全部 2 条推荐吗？")
-    })
-
-    it("确认后应该调用 dismissAll", async () => {
-      const user = userEvent.setup()
-      window.confirm = vi.fn().mockReturnValue(true)
-
-      mockRecommendations = mockRecs
-      render(<RecommendationView />)
-
-      const dismissButton = screen.getByText("全部忽略")
-      await user.click(dismissButton)
-
-      expect(mockDismissAll).toHaveBeenCalled()
-    })
-
-    it("取消后不应该调用 dismissAll", async () => {
-      const user = userEvent.setup()
-      window.confirm = vi.fn().mockReturnValue(false)
-
-      mockRecommendations = mockRecs
-      render(<RecommendationView />)
-
-      const dismissButton = screen.getByText("全部忽略")
-      await user.click(dismissButton)
-
-      expect(mockDismissAll).not.toHaveBeenCalled()
-    })
-
-    it("当推荐列表为空时点击忽略不应该有任何操作", async () => {
-      const user = userEvent.setup()
-      window.confirm = vi.fn()
-      mockRecommendations = []
-
-      render(<RecommendationView />)
-
-      // 空列表时不应该显示全部忽略按钮
-      expect(screen.queryByText("全部忽略")).not.toBeInTheDocument()
-    })
-  })
+  // Phase 7: "全部忽略"按钮移至popup头部，RecommendationView不再包含此功能
+  // 相关测试移至popup.test.tsx
 
   describe("UI 样式", () => {
     it("推荐条目应该有 hover 效果", () => {

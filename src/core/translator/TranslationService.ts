@@ -1,22 +1,18 @@
 /**
  * 翻译服务
- * 提供基于 AI 的内容翻译功能，支持缓存机制
+ * 提供基于 AI 的内容翻译功能
  * 
- * TODO: 当前版本是基础实现，翻译功能暂时返回原文
- * 需要等待 AICapabilityManager 添加 generateText 方法后再完善
+ * 设计思路：
+ * - 翻译结果直接存储在推荐条目中，无需独立缓存
+ * - 目标语言自动使用界面语言
+ * - 源语言由 AI 自动识别
+ * - 翻译在推荐生成后、展示前进行
  */
 
-/**
- * 翻译缓存（目前未使用，等待数据库表添加）
- */
-export interface TranslationCache {
-  id?: number
-  originalText: string
-  translatedText: string
-  sourceLanguage: string
-  targetLanguage: string
-  createdAt: number
-}
+import { aiManager } from "../ai/AICapabilityManager"
+import { logger } from "@/utils/logger"
+
+const translationLogger = logger.withTag('Translation')
 
 /**
  * 支持的语言
@@ -24,73 +20,115 @@ export interface TranslationCache {
 export type SupportedLanguage = 'zh-CN' | 'en' | 'ja' | 'ko' | 'fr' | 'de' | 'es'
 
 /**
- * 翻译选项
+ * 翻译结果
  */
-export interface TranslationOptions {
-  /** 是否使用缓存，默认 true */
-  useCache?: boolean
-  /** 强制翻译（即使检测到目标语言相同），默认 false */
-  force?: boolean
+export interface TranslationResult {
+  /** 原文语言（由 AI 识别） */
+  sourceLanguage: string
+  /** 译文语言 */
+  targetLanguage: string
+  /** 翻译后的文本 */
+  translatedText: string
 }
 
 /**
  * 翻译服务类
- * 
- * 当前版本：基础框架
- * - ✅ 语言检测
- * - ✅ 批量翻译接口
- * - ⏳ AI 翻译（待实现）
- * - ⏳ 缓存机制（待数据库表添加）
  */
 export class TranslationService {
   /**
-   * 翻译文本
+   * 翻译文本（由 AI 识别源语言并翻译）
    * @param text 原文
    * @param targetLanguage 目标语言
-   * @param options 翻译选项
-   * @returns 翻译后的文本
+   * @returns 翻译结果（包含识别的源语言和翻译后的文本）
    */
   async translateText(
     text: string,
-    targetLanguage: SupportedLanguage,
-    options: TranslationOptions = {}
-  ): Promise<string> {
-    const { force = false } = options
+    targetLanguage: SupportedLanguage
+  ): Promise<TranslationResult> {
+    try {
+      // 初始化 AI Manager
+      await aiManager.initialize()
+      
+      const languageNames: Record<SupportedLanguage, string> = {
+        'zh-CN': '简体中文',
+        'en': 'English',
+        'ja': '日本語',
+        'ko': '한국어',
+        'fr': 'Français',
+        'de': 'Deutsch',
+        'es': 'Español'
+      }
 
-    // 1. 检测源语言
-    const sourceLang = this.detectLanguage(text)
-    
-    // 如果源语言与目标语言相同，无需翻译（除非强制）
-    if (!force && sourceLang === targetLanguage) {
-      return text
+      const targetLangName = languageNames[targetLanguage] || targetLanguage
+
+      // 构建翻译 prompt，要求 AI 识别源语言并翻译
+      const prompt = `请分析以下文本并翻译为${targetLangName}。
+
+要求：
+1. 首先识别文本的源语言，用语言代码表示（如 zh-CN, en, ja, ko 等）
+2. 如果源语言与目标语言相同，则无需翻译，直接返回原文
+3. 翻译时保持原文的语气和风格
+4. 如果是标题，翻译后也应该是标题形式
+
+请按以下格式返回结果（严格遵守格式，不要添加其他内容）：
+源语言: [语言代码]
+译文: [翻译结果]
+
+原文：
+${text}`
+
+      // TODO: 当前 analyzeContent 返回主题概率，不适合翻译
+      // 需要等待 AICapabilityManager 添加 generateText 方法
+      // 临时方案：使用本地语言检测
+      const detectedLang = this.detectLanguage(text)
+      
+      if (detectedLang === targetLanguage) {
+        // 源语言与目标语言相同，无需翻译
+        return {
+          sourceLanguage: detectedLang,
+          targetLanguage,
+          translatedText: text
+        }
+      }
+
+      // TODO: 调用 AI 翻译
+      translationLogger.warn('AI 翻译功能尚未实现，返回原文')
+      
+      return {
+        sourceLanguage: detectedLang,
+        targetLanguage,
+        translatedText: text // 临时返回原文
+      }
+    } catch (error) {
+      translationLogger.error('翻译失败:', error)
+      
+      // 失败时返回原文
+      return {
+        sourceLanguage: 'unknown',
+        targetLanguage,
+        translatedText: text
+      }
     }
-
-    // TODO: 实现真正的翻译
-    // 当前返回原文
-    console.warn('[TranslationService] 翻译功能尚未实现，返回原文')
-    return text
   }
 
   /**
    * 批量翻译文本
    * @param texts 原文数组
    * @param targetLanguage 目标语言
-   * @param options 翻译选项
-   * @returns 翻译后的文本数组
+   * @returns 翻译结果数组
    */
   async translateBatch(
     texts: string[],
-    targetLanguage: SupportedLanguage,
-    options: TranslationOptions = {}
-  ): Promise<string[]> {
+    targetLanguage: SupportedLanguage
+  ): Promise<TranslationResult[]> {
     const results = await Promise.all(
-      texts.map(text => this.translateText(text, targetLanguage, options))
+      texts.map(text => this.translateText(text, targetLanguage))
     )
     return results
   }
 
   /**
-   * 检测文本语言
+   * 检测文本语言（本地实现，作为 AI 识别的备用方案）
    * @param text 文本
    * @returns 检测到的语言代码
    */
