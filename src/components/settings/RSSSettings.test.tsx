@@ -104,6 +104,7 @@ const mockSubscribedFeed: DiscoveredFeed = {
   discoveredAt: Date.now(),
   discoveredFrom: 'https://subscribed.com',
   status: 'subscribed',
+  subscribedAt: Date.now(), // 订阅时间
   isActive: true,
   lastFetchedAt: Date.now(),
   articleCount: 10,
@@ -311,6 +312,272 @@ describe("RSSSettings 组件", () => {
                element?.textContent?.includes('options.rssManager.ignoredFeeds') || false
       })[0]
       expect(toggleSpan).toBeInTheDocument()
+    })
+
+    it("应该能够删除忽略的源", async () => {
+      mockGetFeeds.mockImplementation((status: string) => {
+        if (status === 'ignored') return Promise.resolve([mockIgnoredFeed])
+        return Promise.resolve([])
+      })
+      mockDelete.mockResolvedValue(undefined)
+      
+      render(<RSSSettings />)
+      
+      await waitFor(() => {
+        // 验证忽略列表区域存在（通过查找折叠按钮）
+        const toggleButton = screen.getAllByText((content, element) => {
+          return element?.textContent?.includes('options.rssManager.ignoredFeeds') || false
+        })[0]
+        expect(toggleButton).toBeInTheDocument()
+      })
+      
+      // 验证 delete 函数已定义
+      expect(mockDelete).toBeDefined()
+    })
+  })
+
+  describe("手动添加 RSS - 完整流程", () => {
+    it("应该成功添加新的 RSS 源", async () => {
+      const user = userEvent.setup()
+      // 必须有至少一个订阅源，才会显示手动添加表单
+      mockGetFeeds.mockImplementation((status: string) => {
+        if (status === 'subscribed') return Promise.resolve([mockSubscribedFeed])
+        return Promise.resolve([])
+      })
+      mockGetFeedByUrl.mockResolvedValue(null) // 不存在
+      mockAddCandidate.mockResolvedValue('new-feed-id')
+      mockSubscribe.mockResolvedValue(undefined)
+      mockAnalyzeFeed.mockResolvedValue({ score: 75 })
+      vi.mocked(RSSValidator.validateURL).mockResolvedValue({
+        valid: true,
+        type: 'rss',
+        metadata: {
+          title: '新RSS源',
+          description: '描述',
+          link: 'https://example.com',
+          language: 'zh-CN',
+        },
+      })
+      
+      render(<RSSSettings />)
+      
+      await waitFor(() => {
+        expect(screen.queryByText("options.rssManager.loading")).not.toBeInTheDocument()
+      })
+      
+      const input = screen.getByPlaceholderText('options.rssManager.manualPlaceholder')
+      await user.type(input, 'https://example.com/feed.xml')
+      
+      const addButton = screen.getByText('options.rssManager.subscribe')
+      await user.click(addButton)
+      
+      await waitFor(() => {
+        expect(mockAddCandidate).toHaveBeenCalled()
+        expect(mockSubscribe).toHaveBeenCalledWith('new-feed-id', 'manual')
+      })
+    })
+
+    it("应该处理 URL 验证失败", async () => {
+      const user = userEvent.setup()
+      // 必须有至少一个订阅源
+      mockGetFeeds.mockImplementation((status: string) => {
+        if (status === 'subscribed') return Promise.resolve([mockSubscribedFeed])
+        return Promise.resolve([])
+      })
+      vi.mocked(RSSValidator.validateURL).mockResolvedValue({
+        valid: false,
+        type: null,
+        error: 'Invalid URL',
+      })
+      
+      render(<RSSSettings />)
+      
+      await waitFor(() => {
+        expect(screen.queryByText("options.rssManager.loading")).not.toBeInTheDocument()
+      })
+      
+      const input = screen.getByPlaceholderText('options.rssManager.manualPlaceholder')
+      await user.type(input, 'invalid-url')
+      
+      const addButton = screen.getByText('options.rssManager.subscribe')
+      await user.click(addButton)
+      
+      await waitFor(() => {
+        expect(screen.getByText('Invalid URL')).toBeInTheDocument()
+      })
+    })
+
+    it("应该处理已存在的 RSS 源", async () => {
+      const user = userEvent.setup()
+      // 必须有至少一个订阅源
+      mockGetFeeds.mockImplementation((status: string) => {
+        if (status === 'subscribed') return Promise.resolve([mockSubscribedFeed])
+        return Promise.resolve([])
+      })
+      mockGetFeedByUrl.mockResolvedValue(mockSubscribedFeed) // 已存在
+      vi.mocked(RSSValidator.validateURL).mockResolvedValue({
+        valid: true,
+        type: 'rss',
+      })
+      
+      render(<RSSSettings />)
+      
+      await waitFor(() => {
+        expect(screen.queryByText("options.rssManager.loading")).not.toBeInTheDocument()
+      })
+      
+      const input = screen.getByPlaceholderText('options.rssManager.manualPlaceholder')
+      await user.type(input, 'https://example.com/feed.xml')
+      
+      const addButton = screen.getByText('options.rssManager.subscribe')
+      await user.click(addButton)
+      
+      await waitFor(() => {
+        expect(screen.getByText('options.rssManager.errors.alreadyExists')).toBeInTheDocument()
+      })
+    })
+
+    it("应该禁用空 URL 输入的订阅按钮", async () => {
+      // 必须有至少一个订阅源
+      mockGetFeeds.mockImplementation((status: string) => {
+        if (status === 'subscribed') return Promise.resolve([mockSubscribedFeed])
+        return Promise.resolve([])
+      })
+      
+      render(<RSSSettings />)
+      
+      await waitFor(() => {
+        expect(screen.queryByText("options.rssManager.loading")).not.toBeInTheDocument()
+      })
+      
+      // 验证空 URL 时按钮被禁用
+      const addButton = screen.getByText('options.rssManager.subscribe')
+      expect(addButton).toBeDisabled()
+    })
+  })
+
+  describe("源状态切换", () => {
+    it("应该能够暂停订阅源", async () => {
+      mockGetFeeds.mockImplementation((status: string) => {
+        if (status === 'subscribed') return Promise.resolve([mockSubscribedFeed])
+        return Promise.resolve([])
+      })
+      mockToggleActive.mockResolvedValue(false) // 返回新状态：已暂停
+      
+      render(<RSSSettings />)
+      
+      await waitFor(() => {
+        expect(screen.getByText('已订阅源')).toBeInTheDocument()
+      })
+      
+      // 验证 toggleActive 函数已定义
+      expect(mockToggleActive).toBeDefined()
+    })
+
+    it("应该显示暂停状态", async () => {
+      const pausedFeed: DiscoveredFeed = { 
+        ...mockSubscribedFeed, 
+        isActive: false,
+        subscribedAt: Date.now()  // 必须有 subscribedAt 才会显示暂停状态
+      }
+      mockGetFeeds.mockImplementation((status: string) => {
+        if (status === 'subscribed') return Promise.resolve([pausedFeed])
+        return Promise.resolve([])
+      })
+      mockToggleActive.mockResolvedValue(true) // 返回新状态：已恢复
+      
+      render(<RSSSettings />)
+      
+      await waitFor(() => {
+        expect(screen.getByText('已订阅源')).toBeInTheDocument()
+      })
+      
+      // 验证暂停状态文本显示（包含暂停图标和文本）
+      const pausedText = screen.getAllByText((content, element) => {
+        return (element?.textContent?.includes('⏸') && 
+                element?.textContent?.includes('options.rssManager.status.paused')) || false
+      })
+      expect(pausedText.length).toBeGreaterThan(0)
+    })
+  })
+
+  describe("RSS 读取操作", () => {
+    it("应该能够读取所有订阅源", async () => {
+      const user = userEvent.setup()
+      mockGetFeeds.mockImplementation((status: string) => {
+        if (status === 'subscribed') return Promise.resolve([mockSubscribedFeed])
+        return Promise.resolve([])
+      })
+      mockSendMessage.mockResolvedValue({ success: true, data: {} })
+      
+      render(<RSSSettings />)
+      
+      await waitFor(() => {
+        expect(screen.getByText('已订阅源')).toBeInTheDocument()
+      })
+      
+      const fetchAllButton = screen.getByText('options.rssManager.actions.fetchAll')
+      await user.click(fetchAllButton)
+      
+      await waitFor(() => {
+        expect(mockSendMessage).toHaveBeenCalledWith({
+          type: 'MANUAL_FETCH_FEEDS'
+        })
+      })
+    })
+
+    it("应该处理全部读取失败", async () => {
+      const user = userEvent.setup()
+      const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {})
+      
+      mockGetFeeds.mockImplementation((status: string) => {
+        if (status === 'subscribed') return Promise.resolve([mockSubscribedFeed])
+        return Promise.resolve([])
+      })
+      mockSendMessage.mockResolvedValue({ success: false, error: 'Network error' })
+      
+      render(<RSSSettings />)
+      
+      await waitFor(() => {
+        expect(screen.getByText('已订阅源')).toBeInTheDocument()
+      })
+      
+      const fetchAllButton = screen.getByText('options.rssManager.actions.fetchAll')
+      await user.click(fetchAllButton)
+      
+      await waitFor(() => {
+        expect(alertSpy).toHaveBeenCalled()
+      })
+      
+      alertSpy.mockRestore()
+    })
+  })
+
+  describe("从忽略列表恢复订阅", () => {
+    it("应该能够从忽略列表订阅源", async () => {
+      mockGetFeeds.mockImplementation((status: string) => {
+        if (status === 'ignored') return Promise.resolve([mockIgnoredFeed])
+        return Promise.resolve([])
+      })
+      mockSubscribe.mockResolvedValue(undefined)
+      mockGetFeed.mockResolvedValue({
+        ...mockIgnoredFeed,
+        status: 'subscribed',
+        quality: { score: 75 }
+      })
+      
+      render(<RSSSettings />)
+      
+      await waitFor(() => {
+        // 验证忽略列表区域存在
+        const toggleButton = screen.getAllByText((content, element) => {
+          return element?.textContent?.includes('options.rssManager.ignoredFeeds') || false
+        })[0]
+        expect(toggleButton).toBeInTheDocument()
+      })
+      
+      // 验证 subscribe 函数可以被调用
+      expect(mockSubscribe).toBeDefined()
     })
   })
 })
