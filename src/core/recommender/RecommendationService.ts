@@ -151,7 +151,18 @@ export class RecommendationService {
       // 2. 获取RSS文章数据（Phase 6: 优先获取未分析的文章）
       const articles = await this.collectArticles(sources, batchSize)
       if (articles.length === 0) {
-        throw new Error('没有可用的RSS文章数据，请先订阅一些RSS源')
+        // 无数据时返回温和提示，而非抛出错误
+        recLogger.warn('没有可用的RSS文章数据，请先订阅一些RSS源')
+        return {
+          recommendations: [],
+          stats: {
+            total: 0,
+            analyzed: 0,
+            recommended: 0,
+            filtered: 0,
+            reason: '没有可用的RSS文章数据，请先订阅一些RSS源'
+          }
+        }
       }
 
       recLogger.info(`收集到文章: ${articles.length} 篇（批次大小：${batchSize}）`)

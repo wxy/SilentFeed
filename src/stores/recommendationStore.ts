@@ -129,6 +129,17 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
         config.batchSize
       )
       
+      // 无数据时不是错误，只是空状态
+      if (result.recommendations.length === 0 && result.stats?.reason) {
+        console.warn('[RecommendationStore] 无推荐数据:', result.stats.reason)
+        set({ 
+          recommendations: [], 
+          isLoading: false,
+          error: null // 不设置错误，让UI显示空状态
+        })
+        return
+      }
+      
       if (result.errors && result.errors.length > 0) {
         console.warn('[RecommendationStore] 推荐生成有警告:', result.errors)
         // 即使有警告也继续，除非完全失败
