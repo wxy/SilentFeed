@@ -14,7 +14,6 @@ export function NotificationSettings() {
     quietHours: { start: 22, end: 8 },
     minInterval: 60
   })
-  const [isTesting, setIsTesting] = useState(false)
 
   useEffect(() => {
     loadConfig()
@@ -45,21 +44,6 @@ export function NotificationSettings() {
     }
     setConfig(newConfig)
     await chrome.storage.local.set({ "notification-config": newConfig })
-  }
-
-  const handleTestNotification = async () => {
-    setIsTesting(true)
-    try {
-      await chrome.runtime.sendMessage({
-        type: 'TEST_NOTIFICATION'
-      })
-      alert(_('options.general.testNotificationSuccess'))
-    } catch (error) {
-      console.error('测试通知失败:', error)
-      alert(_('options.general.testNotificationError', { error: error instanceof Error ? error.message : String(error) }))
-    } finally {
-      setIsTesting(false)
-    }
   }
 
   return (
@@ -136,18 +120,6 @@ export function NotificationSettings() {
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
               {_('options.general.quietHint')}
             </p>
-          </div>
-
-          {/* 测试通知 */}
-          <div>
-            <button
-              onClick={handleTestNotification}
-              disabled={isTesting}
-              className="px-4 py-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded-md transition-colors"
-              title={_('options.general.testNotificationTitle')}
-            >
-              {isTesting ? _('options.recommendation.saving') : _('options.general.testNotification')}
-            </button>
           </div>
         </>
       )}
