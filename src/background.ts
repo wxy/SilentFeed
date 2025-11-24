@@ -165,7 +165,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             const visitData = message.data as Omit<ConfirmedVisit, 'id'> & { id: string }
             await db.confirmedVisits.add(visitData)
             await updateBadge()
-            ProfileUpdateScheduler.checkAndScheduleUpdate().catch(error => {
+            // Phase 8: 传递访问数据给 ProfileUpdateScheduler 用于语义画像学习
+            ProfileUpdateScheduler.checkAndScheduleUpdate(visitData).catch(error => {
               bgLogger.error('画像更新调度失败:', error)
             })
             sendResponse({ success: true })

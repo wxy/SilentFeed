@@ -9,7 +9,9 @@
  */
 
 import { profileManager } from '@/core/profile/ProfileManager'
-import { getPageCount, getAnalysisStats } from '@/storage/db'
+import { getPageCount, getAnalysisStats, db } from '@/storage/db'
+import { semanticProfileBuilder } from '@/core/profile/SemanticProfileBuilder'
+import type { ConfirmedVisit } from '@/types/database'
 
 interface UpdateSchedule {
   lastUpdateTime: number
@@ -101,8 +103,20 @@ export class ProfileUpdateScheduler {
   /**
    * 检查是否应该触发自动更新
    * 在页面保存后调用
+   * 
+   * @param visit 可选的页面访问数据（Phase 8: 用于语义画像学习）
    */
-  static async checkAndScheduleUpdate(): Promise<void> {
+  static async checkAndScheduleUpdate(visit?: ConfirmedVisit): Promise<void> {
+    // 🆕 Phase 8: 如果提供了访问数据，触发语义画像更新（浏览行为）
+    if (visit) {
+      try {
+        await semanticProfileBuilder.onBrowse(visit)
+        console.log('[ProfileScheduler] ✅ 语义画像已更新（浏览）')
+      } catch (profileError) {
+        console.warn('[ProfileScheduler] 语义画像更新失败（不影响主流程）:', profileError)
+      }
+    }
+    
     // 如果正在更新中，跳过
     if (this.schedule.isUpdating) {
       console.log('[ProfileScheduler] 画像更新中，跳过调度')
