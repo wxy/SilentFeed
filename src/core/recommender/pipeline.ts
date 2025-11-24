@@ -617,11 +617,19 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
       
       for (const item of contentList) {
         try {
+          // Phase 8: 获取语义化用户画像（如果存在）
+          const userProfile = context.userProfile.aiSummary ? {
+            interests: context.userProfile.aiSummary.interests,
+            preferences: context.userProfile.aiSummary.preferences,
+            avoidTopics: context.userProfile.aiSummary.avoidTopics
+          } : undefined
+          
           // 构建分析上下文
           const analysisOptions = {
             maxLength: 3000,
             timeout: this.config.ai.timeout || 60000,  // Phase 6: 默认 60 秒
-            useReasoning: context.config?.useReasoning || false  // Phase 6: 传递推理模式参数
+            useReasoning: context.config?.useReasoning || false,  // Phase 6: 传递推理模式参数
+            userProfile  // Phase 8: 传递用户画像
           }
           
           // 调用AI分析（这里保持单个调用，因为aiManager暂不支持批量）

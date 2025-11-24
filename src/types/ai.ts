@@ -25,6 +25,19 @@ export interface RecommendationReasonRequest {
 
   /** 相关性评分 */
   relevanceScore: number
+
+  /** 
+   * Phase 8: 语义化用户画像（可选）
+   * 如果提供，AI 将使用丰富的画像信息进行评分
+   */
+  userProfile?: {
+    /** 兴趣领域描述（自然语言） */
+    interests: string
+    /** 内容偏好列表 */
+    preferences: string[]
+    /** 避免的主题列表 */
+    avoidTopics: string[]
+  }
 }
 
 /**
@@ -48,6 +61,89 @@ export interface RecommendationReasonResult {
     tokensUsed?: {
       input: number
       output: number
+    }
+  }
+}
+
+/**
+ * Phase 8: 用户画像生成请求
+ */
+export interface UserProfileGenerationRequest {
+  /** 用户行为数据 */
+  behaviors: {
+    /** 浏览行为（最近 100 条） */
+    browses?: Array<{
+      keywords: string[]
+      topics: string[]
+      weight: number
+      timestamp: number
+    }>
+    
+    /** 阅读行为（最近 50 条） */
+    reads?: Array<{
+      title: string
+      keywords: string[]
+      topics: string[]
+      readDuration: number
+      scrollDepth: number
+      weight: number
+      timestamp: number
+    }>
+    
+    /** 拒绝行为（最近 20 条） */
+    dismisses?: Array<{
+      title: string
+      keywords: string[]
+      topics: string[]
+      weight: number
+      timestamp: number
+    }>
+  }
+  
+  /** 聚合的关键词权重（Top 50） */
+  topKeywords: Array<{
+    word: string
+    weight: number
+  }>
+  
+  /** 主题分布 */
+  topicDistribution: Record<string, number>
+  
+  /** 可选：当前画像（用于增量更新） */
+  currentProfile?: {
+    interests: string
+    preferences: string[]
+    avoidTopics: string[]
+  }
+}
+
+/**
+ * Phase 8: 用户画像生成结果
+ */
+export interface UserProfileGenerationResult {
+  /** 兴趣领域描述（自然语言，50-200字） */
+  interests: string
+  
+  /** 内容偏好列表（3-5条） */
+  preferences: string[]
+  
+  /** 避免的主题列表（0-5条） */
+  avoidTopics: string[]
+  
+  /** 生成元数据 */
+  metadata: {
+    provider: "openai" | "anthropic" | "deepseek" | "keyword"
+    model: string
+    timestamp: number
+    tokensUsed?: {
+      input: number
+      output: number
+    }
+    /** 基于的数据量 */
+    basedOn: {
+      browses: number
+      reads: number
+      dismisses: number
     }
   }
 }
@@ -137,6 +233,19 @@ export interface AIProvider {
   ): Promise<UnifiedAnalysisResult>
 
   /**
+   * Phase 8: 生成用户画像（可选功能）
+   * 
+   * 基于用户行为数据生成语义化的用户兴趣画像
+   * 
+   * @param request - 用户画像生成请求
+   * @returns 用户画像生成结果
+   * @throws Error 如果生成失败
+   */
+  generateUserProfile?(
+    request: UserProfileGenerationRequest
+  ): Promise<UserProfileGenerationResult>
+
+  /**
    * 生成推荐理由（可选功能）
    *
    * @param request - 推荐理由生成请求
@@ -173,6 +282,19 @@ export interface AnalyzeOptions {
 
   /** 是否使用推理模式（Phase 6）*/
   useReasoning?: boolean
+
+  /** 
+   * Phase 8: 语义化用户画像（可选）
+   * 如果提供，AI 将根据用户兴趣评估内容相关性
+   */
+  userProfile?: {
+    /** 兴趣领域描述（自然语言） */
+    interests: string
+    /** 内容偏好列表 */
+    preferences: string[]
+    /** 避免的主题列表 */
+    avoidTopics: string[]
+  }
 }
 
 /**

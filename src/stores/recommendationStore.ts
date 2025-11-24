@@ -13,6 +13,7 @@ import {
   getRecommendationStats,
   db
 } from '@/storage/db'
+import { semanticProfileBuilder } from '@/core/profile/SemanticProfileBuilder'
 
 /**
  * 推荐统计数据
@@ -187,9 +188,22 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
         推荐列表: beforeState.map(r => ({ id: r.id, title: r.title.substring(0, 20) }))
       })
       
+      // 🆕 Phase 8: 获取推荐对象用于用户画像学习
+      const recommendation = await db.recommendations.get(id)
+      
       // 调用数据库标记已读（会自动更新 RSS 源统计）
       await markAsRead(id, duration, depth)
       console.log('[RecommendationStore] ✅ 数据库标记已读成功:', id)
+      
+      // 🆕 Phase 8: 更新用户画像（阅读行为）
+      if (recommendation && duration && depth !== undefined) {
+        try {
+          await semanticProfileBuilder.onRead(recommendation, duration, depth)
+          console.log('[RecommendationStore] ✅ 用户画像已更新（阅读）')
+        } catch (profileError) {
+          console.warn('[RecommendationStore] 画像更新失败（不影响主流程）:', profileError)
+        }
+      }
       
       // 🔧 关键修复：从数据库重新加载未读推荐，而不是 filter 内存数组
       // 原因：内存数组可能已过期，filter 会找不到对应的 ID
@@ -277,9 +291,24 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
     set({ isLoading: true, error: null })
     
     try {
+      // 🆕 Phase 8: 获取推荐对象用于用户画像学习（在删除前）
+      const dismissedRecs = await db.recommendations.bulkGet(ids)
+      
       // 调用数据库标记为不想读
       await dismissRecommendations(ids)
       console.log('[RecommendationStore] 数据库标记不想读成功:', ids)
+      
+      // 🆕 Phase 8: 更新用户画像（拒绝行为）
+      for (const recommendation of dismissedRecs) {
+        if (recommendation) {
+          try {
+            await semanticProfileBuilder.onDismiss(recommendation)
+            console.log('[RecommendationStore] ✅ 用户画像已更新（拒绝）:', recommendation.title.substring(0, 20))
+          } catch (profileError) {
+            console.warn('[RecommendationStore] 画像更新失败（不影响主流程）:', profileError)
+          }
+        }
+      }
       
       // 🔧 关键修复：从数据库重新加载未读推荐
       const config = await getRecommendationConfig()

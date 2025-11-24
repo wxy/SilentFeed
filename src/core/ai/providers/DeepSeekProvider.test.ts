@@ -20,10 +20,16 @@ describe("DeepSeekProvider", () => {
       expect(available).toBe(true)
     })
     
-    it("应该在 API Key 无效时返回 false", async () => {
-      const invalidProvider = new DeepSeekProvider({ apiKey: "short" })
-      const available = await invalidProvider.isAvailable()
+    it("应该在 API Key 为空时返回 false", async () => {
+      const emptyProvider = new DeepSeekProvider({ apiKey: "" })
+      const available = await emptyProvider.isAvailable()
       expect(available).toBe(false)
+    })
+    
+    it("应该接受任意长度的有效 API Key", async () => {
+      const shortProvider = new DeepSeekProvider({ apiKey: "sk-test" })
+      const available = await shortProvider.isAvailable()
+      expect(available).toBe(true)
     })
   })
   
