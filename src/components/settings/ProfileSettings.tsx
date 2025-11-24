@@ -77,6 +77,16 @@ export function ProfileSettings() {
           InterestSnapshotManager.getEvolutionHistory(10),
           getAIConfig()
         ])
+        
+        // 调试日志：检查 AI 画像数据
+        profileViewLogger.info("用户画像数据:", {
+          hasAiSummary: !!data?.aiSummary,
+          aiSummaryProvider: data?.aiSummary?.metadata?.provider,
+          totalPages: data?.totalPages,
+          behaviorsReads: data?.behaviors?.reads?.length || 0,
+          behaviorsDismisses: data?.behaviors?.dismisses?.length || 0
+        })
+        
         setProfile(data)
         setEvolutionHistory(history)
         setAiConfigured(aiConfig.enabled && aiConfig.provider !== null)
@@ -365,6 +375,31 @@ export function ProfileSettings() {
                     💰 成本 ¥{profile.aiSummary.metadata.cost.toFixed(4)}
                   </span>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* AI 画像未生成提示 */}
+        {!profile.aiSummary && aiConfigured && profile.totalPages > 0 && (
+          <div className="bg-gradient-to-r from-yellow-50/80 to-amber-50/80 dark:from-yellow-900/20 dark:to-amber-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">⏳</span>
+              <div className="flex-1">
+                <h3 className="text-sm font-medium text-yellow-900 dark:text-yellow-100 mb-1">
+                  AI 语义画像正在积累数据
+                </h3>
+                <p className="text-xs text-yellow-700 dark:text-yellow-300 mb-2">
+                  系统会在满足以下任一条件后自动生成 AI 画像：
+                </p>
+                <ul className="text-xs text-yellow-700 dark:text-yellow-300 space-y-1 list-disc list-inside">
+                  <li>浏览 ≥20 个页面（当前: {profile.totalPages} 页）</li>
+                  <li>阅读 ≥5 篇推荐（当前: {profile.behaviors?.totalReads || 0} 篇）</li>
+                  <li>拒绝 ≥5 篇推荐（当前: {profile.behaviors?.totalDismisses || 0} 篇）</li>
+                </ul>
+                <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-2">
+                  💡 提示：每个页面需要停留 30 秒以上才会被记录
+                </p>
               </div>
             </div>
           </div>
