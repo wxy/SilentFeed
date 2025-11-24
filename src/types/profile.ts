@@ -26,10 +26,64 @@ export interface UserProfile {
     avgDwellTime: number
   }>
 
+  // === Phase 8: 语义化画像 ===
+  
+  /** AI 生成的语义摘要（丰富画像）*/
+  aiSummary?: {
+    /** 用户兴趣总结（100-200字，详细具体）*/
+    interests: string
+    /** 偏好特征（5-10条，如"深度技术解析"）*/
+    preferences: string[]
+    /** 避免主题（3-5条，基于拒绝记录）*/
+    avoidTopics: string[]
+    /** 生成时间 */
+    generatedAt: number
+    /** 基于的数据量 */
+    basedOnPages: number
+    basedOnReads: number
+    basedOnDismisses: number
+  }
+  
+  /** 用户行为记录（强信号）*/
+  behaviors?: {
+    /** 阅读记录（保留最近 50 条）*/
+    reads: Array<{
+      articleId: string
+      title: string
+      summary: string           // 文章摘要（用于画像生成）
+      feedUrl?: string
+      readDuration: number      // 阅读时长（秒）
+      scrollDepth: number       // 滚动深度 0-1
+      timestamp: number
+      weight: number            // 综合权重（基于时长+深度）
+    }>
+    /** 拒绝记录（保留最近 30 条）*/
+    dismisses: Array<{
+      articleId: string
+      title: string
+      summary: string           // 用于识别不喜欢的内容
+      feedUrl?: string
+      timestamp: number
+      weight: number            // 负权重（固定 -1）
+    }>
+    /** 统计信息 */
+    totalReads: number
+    totalDismisses: number
+    lastReadAt?: number
+    lastDismissAt?: number
+  }
+  
+  /** 展示关键词（用于 UI，20-30个）*/
+  displayKeywords?: Array<{
+    word: string
+    weight: number
+    source: 'browse' | 'read' | 'dismiss'
+  }>
+
   // 元数据
   totalPages: number // 分析的页面总数
   lastUpdated: number // 最后更新时间
-  version: number // 画像版本（用于迁移）
+  version: number // 画像版本（用于迁移，v2 = 语义化）
 }
 
 /**
