@@ -66,40 +66,14 @@ describe('NotificationManager - 推荐通知模块', () => {
     // ⚠️ Mock 系统时间为下午2点（确保不在默认静默时段 22:00-08:00）
     vi.setSystemTime(new Date('2025-01-01T14:00:00'))
     
-    // 默认配置：通知启用，无静默时段
-    mockStorage.local.get.mockImplementation(async (keys) => {
-      // 处理单个字符串 key
-      if (typeof keys === 'string') {
-        if (keys === 'notification-config') {
-          return {
-            'notification-config': {
-              enabled: true,
-              quietHours: null,  // 明确设置为 null，避免使用默认静默时段
-              minInterval: 60
-            }
-          }
-        }
-        if (keys === 'last-notification-time') {
-          return { 'last-notification-time': 0 }
-        }
-        // 其他 key (如 notification-url-xxx) 返回空对象
-        return {}
-      }
-      
-      // 处理数组 keys
-      if (Array.isArray(keys)) {
-        const result: any = {}
-        keys.forEach(key => {
-          if (key === 'notification-config') {
-            result[key] = { enabled: true, quietHours: null, minInterval: 60 }
-          } else if (key === 'last-notification-time') {
-            result[key] = 0
-          }
-        })
-        return result
-      }
-      
-      return {}
+    // 默认 mock 返回值（每个测试可以覆盖）
+    mockStorage.local.get.mockResolvedValue({
+      'notification-config': { 
+        enabled: true,
+        quietHours: null,  // 关闭静默时段
+        minInterval: 60 
+      },
+      'last-notification-time': 0
     })
     
     mockStorage.local.set.mockResolvedValue(undefined)
