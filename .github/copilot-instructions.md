@@ -245,9 +245,28 @@ TypeScript 示例:
 1. 开发前: 从 master 创建功能分支 (git checkout -b feature/xxx)
 2. 开发中: 频繁提交,保持提交原子化,运行测试确保通过
 3. 提交代码: git add . && git commit -m "feat: xxx"
-4. 推送分支: git push origin feature/xxx
-5. 创建 PR: 标题和描述使用中文,关联相关 issue
-6. 合并后: 删除功能分支 (git branch -d feature/xxx)
+4. **推送前检查**: 运行 `npm run pre-push` 确保测试和覆盖率通过
+5. 推送分支: git push origin feature/xxx
+6. 创建 PR: 标题和描述使用中文,关联相关 issue
+7. 合并后: 删除功能分支 (git branch -d feature/xxx)
+
+### 推送前检查 ⚠️ 重要
+
+**在推送代码或创建 PR 前，必须运行 pre-push 检查**：
+
+```bash
+npm run pre-push
+```
+
+此命令会依次执行：
+1. ✅ 运行完整测试套件 (`npm run test:run`)
+2. ✅ 检查测试覆盖率 (`npm run test:coverage`)
+   - 行覆盖率 ≥ 70%
+   - 函数覆盖率 ≥ 70%
+   - 分支覆盖率 ≥ 60%
+3. ✅ 运行生产构建 (`npm run build`)
+
+**所有检查通过后才能推送代码**，避免 CI 失败。
 
 ### Copilot 交互惯例
 

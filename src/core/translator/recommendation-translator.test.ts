@@ -29,7 +29,7 @@ vi.mock('./TranslationService', () => {
   }
 })
 
-import { translateRecommendation, translateRecommendations, getDisplayText } from './recommendation-translator'
+import { translateRecommendation, translateRecommendations, getDisplayText, formatLanguageLabel } from './recommendation-translator'
 import { getUIConfig } from '@/storage/ui-config'
 import { TranslationService } from './TranslationService'
 
@@ -260,6 +260,69 @@ describe('推荐条目翻译', () => {
       expect(result.summary).toBe('这是一篇测试文章')
       expect(result.needsTranslation).toBe(true)
       expect(result.sourceLanguage).toBe('zh-CN')
+    })
+    
+    it('应该检测日文语言', () => {
+      const japaneseRec: Recommendation = {
+        ...mockRecommendation,
+        title: 'これはテストです',
+        summary: 'テスト記事の要約'
+      }
+      
+      const result = getDisplayText(japaneseRec, false, false)
+      expect(result.sourceLanguage).toBe('ja')
+    })
+    
+    it('应该检测韩文语言', () => {
+      const koreanRec: Recommendation = {
+        ...mockRecommendation,
+        title: '테스트 기사',
+        summary: '테스트 요약'
+      }
+      
+      const result = getDisplayText(koreanRec, false, false)
+      expect(result.sourceLanguage).toBe('ko')
+    })
+    
+    it('应该使用 excerpt 作为 summary 的备选', () => {
+      const recWithExcerpt: Recommendation = {
+        ...mockRecommendation,
+        summary: '',
+        excerpt: 'This is an excerpt'
+      }
+      
+      const result = getDisplayText(recWithExcerpt, false, false)
+      expect(result.summary).toBe('This is an excerpt')
+    })
+    
+    it('应该在 showOriginal=true 时保留 targetLanguage', () => {
+      const translatedRec: Recommendation = {
+        ...mockRecommendation,
+        translation: {
+          sourceLanguage: 'en',
+          targetLanguage: 'zh-CN',
+          translatedTitle: '测试',
+          translatedSummary: '测试',
+          translatedAt: Date.now()
+        }
+      }
+      
+      const result = getDisplayText(translatedRec, true, true)
+      expect(result.targetLanguage).toBe('zh-CN')
+    })
+  })
+  
+  describe('formatLanguageLabel', () => {
+    it('应该格式化中文代码为 ZH', () => {
+      expect(formatLanguageLabel('zh-CN')).toBe('ZH')
+      expect(formatLanguageLabel('zh-TW')).toBe('ZH')
+    })
+    
+    it('应该格式化其他语言代码', () => {
+      expect(formatLanguageLabel('en')).toBe('EN')
+      expect(formatLanguageLabel('ja')).toBe('JA')
+      expect(formatLanguageLabel('ko')).toBe('KO')
+      expect(formatLanguageLabel('fr')).toBe('FR')
     })
   })
 })
