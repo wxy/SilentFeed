@@ -26,7 +26,9 @@ import type {
   AnalyzeOptions,
   DeepSeekRequest,
   DeepSeekResponse,
-  AIAnalysisOutput
+  AIAnalysisOutput,
+  UserProfileGenerationRequest,
+  UserProfileGenerationResult
 } from "@/types/ai"
 import { logger } from "../../../utils/logger"
 
@@ -509,6 +511,216 @@ ${content}
     return Object.fromEntries(
       Object.entries(topics).map(([key, prob]) => [key, prob / total])
     )
+  }
+  
+  /**
+   * Phase 8: 生成用户画像
+   * 
+   * 使用 OpenAI Structured Outputs API 确保返回稳定的 JSON 格式
+   */
+  async generateUserProfile(
+    request: UserProfileGenerationRequest
+  ): Promise<UserProfileGenerationResult> {
+    const startTime = Date.now()
+    
+    // 1. 构建丰富的上下文
+    const context = this.buildProfileContext(request)
+    
+    // 2. 选择模型（使用标准模型，不使用推理模型）
+    // 如果当前配置是推理模型，切换到 gpt-5-mini
+    const selectedModel: OpenAIModel = this.model.startsWith("o") ? "gpt-5-mini" : this.model
+    
+    // 3. 定义 JSON Schema（Structured Outputs）
+    const responseFormat = {
+      type: "json_schema",
+      json_schema: {
+        name: "user_profile",
+        strict: true,
+        schema: {
+          type: "object",
+          properties: {
+            interests: {
+              type: "string",
+              description: "用户兴趣总结，100-200字，详细具体"
+            },
+            preferences: {
+              type: "array",
+              description: "偏好特征列表，5-10条",
+              items: { type: "string" }
+            },
+            avoidTopics: {
+              type: "array",
+              description: "避免主题列表，3-5条",
+              items: { type: "string" }
+            }
+          },
+          required: ["interests", "preferences", "avoidTopics"],
+          additionalProperties: false
+        }
+      }
+    }
+    
+    // 4. 调用 OpenAI API
+    const apiRequest = {
+      model: selectedModel,
+      messages: [{
+        role: "user" as const,
+        content: context.prompt
+      }],
+      temperature: 0.3,  // 低温度，保证一致性
+      max_tokens: 1000,
+      response_format: responseFormat as any  // Structured Outputs
+    }
+    
+    openaiLogger.debug(`Generating user profile with model: ${selectedModel}`)
+    openaiLogger.debug(`Context: ${context.stats.totalBehaviors} behaviors, ${context.stats.topKeywords} top keywords`)
+    
+    try {
+      // 5. 发送请求
+      const response = await fetch(this.endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${this.config.apiKey}`
+        },
+        body: JSON.stringify(apiRequest),
+        signal: AbortSignal.timeout(60000) // 60秒超时
+      })
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`OpenAI API error: ${response.status} ${errorText}`)
+      }
+      
+      const result: DeepSeekResponse = await response.json()
+      
+      // 6. 解析结果
+      const content = result.choices[0]?.message?.content
+      if (!content) {
+        throw new Error("Empty response from OpenAI")
+      }
+      
+      const profile = JSON.parse(content)
+      
+      // 7. 计算成本
+      const usage = result.usage
+      const cost = this.calculateCost(
+        usage.prompt_tokens,
+        usage.completion_tokens,
+        selectedModel as OpenAIModel
+      )
+      
+      const elapsed = Date.now() - startTime
+      
+      openaiLogger.info(`User profile generated in ${elapsed}ms`, {
+        interests: profile.interests.slice(0, 50) + '...',
+        preferences: profile.preferences.length,
+        avoidTopics: profile.avoidTopics.length,
+        cost: `¥${cost.toFixed(6)}`,
+        tokens: `${usage.prompt_tokens} + ${usage.completion_tokens} = ${usage.total_tokens}`
+      })
+      
+      return {
+        interests: profile.interests,
+        preferences: profile.preferences,
+        avoidTopics: profile.avoidTopics,
+        metadata: {
+          provider: 'openai',
+          model: selectedModel,
+          timestamp: Date.now(),
+          basedOn: {
+            browses: request.behaviors.browses?.length || 0,
+            reads: request.behaviors.reads?.length || 0,
+            dismisses: request.behaviors.dismisses?.length || 0
+          },
+          tokensUsed: {
+            prompt: usage.prompt_tokens,
+            completion: usage.completion_tokens,
+            total: usage.total_tokens
+          },
+          cost
+        }
+      }
+    } catch (error) {
+      openaiLogger.error("Failed to generate user profile:", error)
+      throw error
+    }
+  }
+  
+  /**
+   * 构建用户画像生成的 Prompt
+   */
+  private buildProfileContext(request: UserProfileGenerationRequest): {
+    prompt: string
+    stats: {
+      totalBehaviors: number
+      topKeywords: number
+    }
+  } {
+    const { behaviors, topKeywords } = request
+    
+    // 准备阅读记录（按权重排序，取前 10）
+    const topReads = (behaviors.reads || [])
+      .sort((a, b) => b.weight - a.weight)
+      .slice(0, 10)
+      .map((r, i) => 
+        `${i + 1}. **${r.title}**\n` +
+        `   摘要：${r.summary}\n` +
+        `   权重：${r.weight.toFixed(2)}`
+      )
+      .join('\n\n')
+    
+    // 准备拒绝记录（取前 5）
+    const topDismisses = (behaviors.dismisses || [])
+      .slice(0, 5)
+      .map((d, i) =>
+        `${i + 1}. **${d.title}**\n` +
+        `   摘要：${d.summary}`
+      )
+      .join('\n\n')
+    
+    // 准备浏览记录（高频关键词）
+    const keywordsSummary = topKeywords
+      .slice(0, 20)
+      .map((k, i) => `${i + 1}. ${k.word} (${k.count}次)`)
+      .join('\n')
+    
+    // 构建 Prompt
+    const prompt = `
+你是用户画像分析专家。请深入分析用户的阅读偏好，生成精准的兴趣画像。
+
+=== 📖 用户阅读过的推荐（强烈信号）===
+${topReads || '（暂无阅读记录）'}
+
+=== ❌ 用户拒绝的推荐（负向信号）===
+${topDismisses || '（暂无拒绝记录）'}
+
+=== 🔑 高频关键词（浏览记录）===
+${keywordsSummary || '（暂无关键词）'}
+
+=== 📊 统计信息 ===
+- 总阅读推荐：${behaviors.reads?.length || 0} 篇
+- 总拒绝推荐：${behaviors.dismisses?.length || 0} 篇
+- 浏览关键词：${topKeywords.length} 个
+
+=== 🎯 分析任务 ===
+请综合以上信息，生成用户画像。注意：
+1. **优先考虑阅读记录**（权重最高，代表用户真实偏好）
+2. **重视拒绝记录**（避免推荐类似内容）
+3. **参考关键词**（辅助理解兴趣广度）
+4. **识别细分兴趣**（不要只归纳到"技术"、"设计"等粗分类）
+5. **捕捉偏好风格**（如"深度解析" vs "快速入门"）
+
+请严格按照 JSON Schema 返回结果。
+`.trim()
+    
+    return {
+      prompt,
+      stats: {
+        totalBehaviors: (behaviors.reads?.length || 0) + (behaviors.dismisses?.length || 0),
+        topKeywords: topKeywords.length
+      }
+    }
   }
   
   /**

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest"
 import { OpenAIProvider } from "./OpenAIProvider"
-import type { DeepSeekResponse } from "@/types/ai"
+import type { DeepSeekResponse, UserProfileGenerationRequest } from "@/types/ai"
 
 // Mock fetch
 global.fetch = vi.fn()
@@ -473,6 +473,325 @@ describe("OpenAIProvider", () => {
         // 应该被截取到 3000 字符以内
         expect(promptContent.length).toBeLessThan(3500)
       })
+    })
+  })
+  
+  describe("generateUserProfile", () => {
+    const mockProfileRequest: UserProfileGenerationRequest = {
+      behaviors: {
+        reads: [
+          {
+            title: "React Hooks 深入解析",
+            summary: "详细介绍 React Hooks 的工作原理和最佳实践",
+            weight: 0.8,
+            timestamp: Date.now()
+          },
+          {
+            title: "TypeScript 高级技巧",
+            summary: "TypeScript 类型系统的高级用法",
+            weight: 0.7,
+            timestamp: Date.now()
+          }
+        ],
+        dismisses: [
+          {
+            title: "NBA 总决赛回顾",
+            summary: "篮球比赛精彩瞬间",
+            timestamp: Date.now()
+          }
+        ]
+      },
+      topKeywords: [
+        { word: "技术", count: 50 },
+        { word: "前端", count: 30 },
+        { word: "React", count: 25 }
+      ]
+    }
+    
+    const mockProfileResponse: DeepSeekResponse = {
+      id: "profile-test-id",
+      object: "chat.completion",
+      created: Date.now(),
+      model: "gpt-5-mini",
+      choices: [
+        {
+          index: 0,
+          message: {
+            role: "assistant",
+            content: JSON.stringify({
+              interests: "用户对前端开发和 TypeScript 有浓厚兴趣，喜欢深度技术文章和实战教程。",
+              preferences: ["深度技术解析", "代码实践教程", "开源项目分析"],
+              avoidTopics: ["体育赛事", "娱乐资讯"]
+            })
+          },
+          finish_reason: "stop"
+        }
+      ],
+      usage: {
+        prompt_tokens: 500,
+        completion_tokens: 120,
+        total_tokens: 620
+      }
+    }
+    
+    it("应该成功生成用户画像", async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockProfileResponse
+      } as Response)
+      
+      const result = await provider.generateUserProfile(mockProfileRequest)
+      
+      expect(result.interests).toContain("前端开发")
+      expect(result.interests).toContain("TypeScript")
+      expect(result.preferences).toHaveLength(3)
+      expect(result.preferences).toContain("深度技术解析")
+      expect(result.avoidTopics).toHaveLength(2)
+      expect(result.avoidTopics).toContain("体育赛事")
+      
+      expect(result.metadata.provider).toBe("openai")
+      expect(result.metadata.model).toBe("gpt-5-mini")
+      expect(result.metadata.basedOn.reads).toBe(2)
+      expect(result.metadata.basedOn.dismisses).toBe(1)
+      expect(result.metadata.tokensUsed?.total).toBe(620)
+      expect(result.metadata.cost).toBeGreaterThan(0)
+    })
+    
+    it("应该使用 Structured Outputs API", async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockProfileResponse
+      } as Response)
+      
+      await provider.generateUserProfile(mockProfileRequest)
+      
+      const fetchCall = vi.mocked(fetch).mock.calls[0]
+      const requestBody = JSON.parse(fetchCall[1]?.body as string)
+      
+      expect(requestBody.response_format).toBeDefined()
+      expect(requestBody.response_format.type).toBe("json_schema")
+      expect(requestBody.response_format.json_schema.name).toBe("user_profile")
+      expect(requestBody.response_format.json_schema.strict).toBe(true)
+      expect(requestBody.response_format.json_schema.schema.properties).toHaveProperty("interests")
+      expect(requestBody.response_format.json_schema.schema.properties).toHaveProperty("preferences")
+      expect(requestBody.response_format.json_schema.schema.properties).toHaveProperty("avoidTopics")
+      expect(requestBody.response_format.json_schema.schema.required).toEqual([
+        "interests",
+        "preferences",
+        "avoidTopics"
+      ])
+    })
+    
+    it("应该使用正确的模型和参数", async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockProfileResponse
+      } as Response)
+      
+      await provider.generateUserProfile(mockProfileRequest)
+      
+      const fetchCall = vi.mocked(fetch).mock.calls[0]
+      const requestBody = JSON.parse(fetchCall[1]?.body as string)
+      
+      expect(requestBody.model).toBe("gpt-5-mini")
+      expect(requestBody.temperature).toBe(0.3)  // 低温度保证一致性
+      expect(requestBody.max_tokens).toBe(1000)
+    })
+    
+    it("应该处理空行为记录", async () => {
+      const emptyRequest: UserProfileGenerationRequest = {
+        behaviors: {
+          reads: [],
+          dismisses: []
+        },
+        topKeywords: []
+      }
+      
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          ...mockProfileResponse,
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: "assistant",
+                content: JSON.stringify({
+                  interests: "正在学习您的兴趣偏好",
+                  preferences: ["技术文章", "新闻资讯"],
+                  avoidTopics: []
+                })
+              },
+              finish_reason: "stop"
+            }
+          ]
+        })
+      } as Response)
+      
+      const result = await provider.generateUserProfile(emptyRequest)
+      
+      expect(result.interests).toBeTruthy()
+      expect(result.preferences).toBeInstanceOf(Array)
+      expect(result.avoidTopics).toBeInstanceOf(Array)
+      expect(result.metadata.basedOn.reads).toBe(0)
+      expect(result.metadata.basedOn.dismisses).toBe(0)
+    })
+    
+    it("应该正确计算成本", async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockProfileResponse
+      } as Response)
+      
+      const result = await provider.generateUserProfile(mockProfileRequest)
+      
+      // gpt-5-mini 价格（10% 缓存命中率，USD → CNY，汇率 7.2）:
+      // 输入: 500 tokens * (0.1 * 0.025 + 0.9 * 0.250) / 1M * 7.2 = ¥0.00081900
+      // 输出: 120 tokens * 2.0 / 1M * 7.2 = ¥0.001728
+      // 总计: ¥0.00254700
+      expect(result.metadata.cost).toBeCloseTo(0.002547, 5)
+    })
+    
+    it("应该处理 API 错误", async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        text: async () => "Internal Server Error"
+      } as Response)
+      
+      await expect(provider.generateUserProfile(mockProfileRequest)).rejects.toThrow()
+    })
+    
+    it("应该处理空响应", async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          ...mockProfileResponse,
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: "assistant",
+                content: ""
+              },
+              finish_reason: "stop"
+            }
+          ]
+        })
+      } as Response)
+      
+      await expect(provider.generateUserProfile(mockProfileRequest)).rejects.toThrow("Empty response")
+    })
+    
+    it("应该处理无效 JSON", async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          ...mockProfileResponse,
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: "assistant",
+                content: "不是有效的 JSON"
+              },
+              finish_reason: "stop"
+            }
+          ]
+        })
+      } as Response)
+      
+      await expect(provider.generateUserProfile(mockProfileRequest)).rejects.toThrow()
+    })
+    
+    it("应该限制阅读记录数量（最多 10 条）", async () => {
+      const manyReadsRequest: UserProfileGenerationRequest = {
+        behaviors: {
+          reads: Array.from({ length: 20 }, (_, i) => ({
+            title: `文章 ${i + 1}`,
+            summary: `摘要 ${i + 1}`,
+            weight: 0.5,
+            timestamp: Date.now()
+          })),
+          dismisses: []
+        },
+        topKeywords: []
+      }
+      
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockProfileResponse
+      } as Response)
+      
+      await provider.generateUserProfile(manyReadsRequest)
+      
+      const fetchCall = vi.mocked(fetch).mock.calls[0]
+      const requestBody = JSON.parse(fetchCall[1]?.body as string)
+      const prompt = requestBody.messages[0].content
+      
+      // 检查 prompt 中只包含前 10 篇
+      expect(prompt).toContain("文章 1")
+      expect(prompt).toContain("文章 10")
+      expect(prompt).not.toContain("文章 11")
+      expect(prompt).not.toContain("文章 20")
+    })
+    
+    it("应该限制拒绝记录数量（最多 5 条）", async () => {
+      const manyDismissesRequest: UserProfileGenerationRequest = {
+        behaviors: {
+          reads: [],
+          dismisses: Array.from({ length: 10 }, (_, i) => ({
+            title: `拒绝文章 ${i + 1}`,
+            summary: `拒绝摘要 ${i + 1}`,
+            timestamp: Date.now()
+          }))
+        },
+        topKeywords: []
+      }
+      
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockProfileResponse
+      } as Response)
+      
+      await provider.generateUserProfile(manyDismissesRequest)
+      
+      const fetchCall = vi.mocked(fetch).mock.calls[0]
+      const requestBody = JSON.parse(fetchCall[1]?.body as string)
+      const prompt = requestBody.messages[0].content
+      
+      // 检查 prompt 中只包含前 5 条
+      expect(prompt).toContain("拒绝文章 1")
+      expect(prompt).toContain("拒绝文章 5")
+      expect(prompt).not.toContain("拒绝文章 6")
+      expect(prompt).not.toContain("拒绝文章 10")
+    })
+    
+    it("应该限制关键词数量（最多 20 个）", async () => {
+      const manyKeywordsRequest: UserProfileGenerationRequest = {
+        behaviors: { reads: [], dismisses: [] },
+        topKeywords: Array.from({ length: 50 }, (_, i) => ({
+          word: `关键词${i + 1}`,
+          count: 10
+        }))
+      }
+      
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockProfileResponse
+      } as Response)
+      
+      await provider.generateUserProfile(manyKeywordsRequest)
+      
+      const fetchCall = vi.mocked(fetch).mock.calls[0]
+      const requestBody = JSON.parse(fetchCall[1]?.body as string)
+      const prompt = requestBody.messages[0].content
+      
+      // 检查 prompt 中只包含前 20 个关键词
+      expect(prompt).toContain("关键词1")
+      expect(prompt).toContain("关键词20")
+      expect(prompt).not.toContain("关键词21")
+      expect(prompt).not.toContain("关键词50")
     })
   })
 })
