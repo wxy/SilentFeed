@@ -61,6 +61,9 @@ describe('NotificationManager - 推荐通知模块', () => {
   beforeEach(async () => {
     vi.clearAllMocks()
     
+    // ⚠️ Mock 系统时间为下午2点（确保不在默认静默时段 22:00-08:00）
+    vi.setSystemTime(new Date('2025-01-01T14:00:00'))
+    
     // 默认配置：通知启用，无静默时段
     mockStorage.local.get.mockImplementation(async (keys) => {
       // 处理单个字符串 key
@@ -69,7 +72,7 @@ describe('NotificationManager - 推荐通知模块', () => {
           return {
             'notification-config': {
               enabled: true,
-              quietHours: undefined,
+              quietHours: null,  // 明确设置为 null，避免使用默认静默时段
               minInterval: 60
             }
           }
@@ -86,7 +89,7 @@ describe('NotificationManager - 推荐通知模块', () => {
         const result: any = {}
         keys.forEach(key => {
           if (key === 'notification-config') {
-            result[key] = { enabled: true, quietHours: undefined, minInterval: 60 }
+            result[key] = { enabled: true, quietHours: null, minInterval: 60 }
           } else if (key === 'last-notification-time') {
             result[key] = 0
           }
@@ -114,6 +117,11 @@ describe('NotificationManager - 推荐通知模块', () => {
       }
     })
     mockRuntime.getURL.mockImplementation((path: string) => `chrome-extension://test-id/${path}`)
+  })
+
+  afterEach(() => {
+    // 恢复真实时间
+    vi.useRealTimers()
   })
 
   describe('sendRecommendationNotification', () => {
