@@ -2,11 +2,12 @@
  * IndexedDB 数据库定义（使用 Dexie.js）
  * 
  * 数据库名称: SilentFeedDB
- * 当前版本: 13
+ * 当前版本: 14
  * 
  * ⚠️ 版本管理说明：
  * - 开发过程中如果遇到版本冲突，请删除旧数据库
  * - 生产环境版本号应该只增不减
+ * - 版本 14（Phase 8: 语义化用户画像 - 添加 aiSummary、behaviors 字段）
  * - 版本 13（Phase 7: 推荐软删除机制 - 添加 status 字段，保留历史记录）
  */
 
@@ -383,6 +384,60 @@ export class SilentFeedDB extends Dexie {
       
       await Promise.all(updates)
       dbLogger.info(`已迁移 ${updates.length} 条推荐记录`)
+    })
+
+    // 版本 14: 语义化用户画像（Phase 8）
+    // 添加 aiSummary 和 behaviors 字段，支持 AI 驱动的深度理解
+    this.version(14).stores({
+      pendingVisits: 'id, url, startTime, expiresAt',
+      confirmedVisits: 'id, visitTime, domain, *analysis.keywords, [visitTime+domain]',
+      settings: 'id',
+      recommendations: 'id, recommendedAt, isRead, source, sourceUrl, status, replacedAt, [isRead+recommendedAt], [isRead+source], [status+recommendedAt]',
+      userProfile: 'id, lastUpdated, version',  // 添加 version 索引
+      interestSnapshots: 'id, timestamp, primaryTopic, trigger, [primaryTopic+timestamp]',
+      discoveredFeeds: 'id, url, status, discoveredAt, subscribedAt, discoveredFrom, isActive, lastFetchedAt, [status+discoveredAt], [isActive+lastFetchedAt]',
+      feedArticles: 'id, feedId, link, published, recommended, read, [feedId+published], [recommended+published], [read+published]'
+    }).upgrade(async tx => {
+      // 数据迁移：升级用户画像到 v2
+      dbLogger.info('[Phase 8] 迁移用户画像：添加语义化字段...')
+      
+      const profile = await tx.table('userProfile').get('singleton')
+      
+      if (profile) {
+        // 检查版本号
+        if (profile.version !== 2) {
+          dbLogger.info('[Phase 8] 升级画像版本: v1 → v2')
+          
+          // 初始化新字段
+          const updates: Partial<UserProfile> = {
+            version: 2,
+            // 初始化行为记录
+            behaviors: {
+              reads: [],
+              dismisses: [],
+              totalReads: 0,
+              totalDismisses: 0
+            },
+            // 将现有关键词转换为 displayKeywords 格式
+            displayKeywords: profile.keywords?.map(k => ({
+              word: k.word,
+              weight: k.weight,
+              source: 'browse' as const
+            })) || []
+          }
+          
+          await tx.table('userProfile').update('singleton', updates)
+          
+          dbLogger.info('[Phase 8] ✅ 画像升级完成', {
+            displayKeywords数量: updates.displayKeywords?.length || 0,
+            版本: 'v2'
+          })
+        } else {
+          dbLogger.info('[Phase 8] 画像已是 v2 版本，跳过迁移')
+        }
+      } else {
+        dbLogger.info('[Phase 8] 未找到现有画像，将在首次构建时创建 v2 版本')
+      }
     })
   }
 }
