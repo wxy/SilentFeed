@@ -94,8 +94,8 @@ export class SemanticProfileBuilder {
       weight: weight.toFixed(2)
     })
     
-    // 2. 记录行为
-    await this.recordReadBehavior(article, weight)
+    // 2. 记录行为（传递完整参数）
+    await this.recordReadBehavior(article, readDuration, scrollDepth, weight)
     
     this.readCount++
     
@@ -187,9 +187,10 @@ export class SemanticProfileBuilder {
       if (!profile) return
       
       // 增量更新关键词权重
+      const keywords = page.analysis?.keywords || []
       const displayKeywords = this.updateKeywordsIncremental(
         profile.displayKeywords || [],
-        page.keywords || []
+        keywords
       )
       
       await db.userProfile.update('singleton', {
@@ -198,7 +199,7 @@ export class SemanticProfileBuilder {
       })
       
       profileLogger.debug('[LightweightUpdate] 轻量更新完成', {
-        新增关键词: page.keywords?.length || 0
+        新增关键词: keywords.length
       })
       
     } catch (error) {
@@ -220,7 +221,8 @@ export class SemanticProfileBuilder {
     // === 1. 准备上下文数据 ===
     
     // 最近阅读（按权重排序，取前 10 篇）
-    const topReads = behaviors.reads
+    // 注意：复制数组避免修改原数组
+    const topReads = [...behaviors.reads]
       .sort((a, b) => b.weight - a.weight)
       .slice(0, 10)
       .map(r => ({
@@ -241,14 +243,14 @@ export class SemanticProfileBuilder {
     
     // 高频浏览页面（停留时间 > 60秒，取前 20 个）
     const topVisits = visits
-      .filter(v => v.dwellTime > 60)
-      .sort((a, b) => b.dwellTime - a.dwellTime)
+      .filter(v => v.duration > 60)
+      .sort((a, b) => b.duration - a.duration)
       .slice(0, 20)
       .map(v => ({
         title: v.title,
         domain: v.domain,
-        keywords: v.keywords?.slice(0, 5) || [],
-        dwellTime: `${v.dwellTime}秒`
+        keywords: v.analysis?.keywords?.slice(0, 5) || [],
+        duration: `${v.duration}秒`
       }))
     
     // === 2. 构建详细的 Prompt ===
@@ -274,7 +276,7 @@ ${i + 1}. **${d.title}**
 ${topVisits.slice(0, 15).map((v, i) => `
 ${i + 1}. **${v.title}** (${v.domain})
    关键词：${v.keywords.join('、') || '无'}
-   停留时长：${v.dwellTime}
+   停留时长：${v.duration}
 `).join('\n')}
 
 === 📊 统计信息 ===
@@ -380,13 +382,14 @@ ${i + 1}. **${v.title}** (${v.domain})
   }
 
   /**
-   * 提取主题关键词（辅助方法）
+   * 从访问记录中提取高频关键词
    */
   private extractTopKeywords(visits: ConfirmedVisit[], limit: number): string[] {
     const keywordMap = new Map<string, number>()
     
     for (const visit of visits) {
-      for (const keyword of visit.keywords || []) {
+      const keywords = visit.analysis?.keywords || []
+      for (const keyword of keywords) {
         keywordMap.set(keyword, (keywordMap.get(keyword) || 0) + 1)
       }
     }
@@ -417,7 +420,8 @@ ${i + 1}. **${v.title}** (${v.domain})
     
     // 1. 从浏览记录提取（权重 1）
     for (const visit of visits) {
-      for (const keyword of visit.keywords || []) {
+      const keywords = visit.analysis?.keywords || []
+      for (const keyword of keywords) {
         const existing = keywordMap.get(keyword)
         if (existing) {
           existing.weight += 1
@@ -532,6 +536,8 @@ ${i + 1}. **${v.title}** (${v.domain})
    */
   private async recordReadBehavior(
     article: Recommendation,
+    readDuration: number,
+    scrollDepth: number,
     weight: number
   ): Promise<void> {
     
@@ -547,10 +553,10 @@ ${i + 1}. **${v.title}** (${v.domain})
     behaviors.reads.unshift({
       articleId: article.id,
       title: article.title,
-      summary: article.snippet || article.reason || '',
+      summary: article.summary || '',
       feedUrl: article.sourceUrl,
-      readDuration: article.readDuration || 0,
-      scrollDepth: article.scrollDepth || 0,
+      readDuration,
+      scrollDepth,
       timestamp: Date.now(),
       weight
     })
@@ -579,7 +585,7 @@ ${i + 1}. **${v.title}** (${v.domain})
     behaviors.dismisses.unshift({
       articleId: article.id,
       title: article.title,
-      summary: article.snippet || article.reason || '',
+      summary: article.summary || '',
       feedUrl: article.sourceUrl,
       timestamp: Date.now(),
       weight: -1
