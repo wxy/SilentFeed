@@ -82,18 +82,19 @@ export class OpenAIProvider implements AIProvider {
    */
   async isAvailable(): Promise<boolean> {
     try {
-      // 检查 API Key
-      if (!this.config.apiKey || this.config.apiKey.length < 20) {
-        openaiLogger.warn("Invalid API Key")
+      // 检查 API Key（只检查是否存在，不限制长度）
+      if (!this.config.apiKey || this.config.apiKey.trim().length === 0) {
+        openaiLogger.warn("API Key is empty")
         return false
       }
       
       // 检查网络（简单验证）
-      if (!navigator.onLine) {
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
         openaiLogger.warn("No network connection")
         return false
       }
       
+      openaiLogger.debug(`✅ OpenAI Provider is available (API Key: ${this.config.apiKey.substring(0, 10)}..., length: ${this.config.apiKey.length})`)
       return true
     } catch (error) {
       openaiLogger.error("isAvailable check failed:", error)

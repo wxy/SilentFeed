@@ -52,16 +52,14 @@ describe("AICapabilityManager", () => {
         aiConfig: {
           enabled: true,
           provider: "deepseek",
-          apiKey: "invalid-key" // 太短，无效
+          apiKey: "" // 空的 API Key，无效
         }
       })
       
       await manager.initialize()
       
-      // 会创建 DeepSeekProvider 但标记为不可用
-      // 实际调用时会使用 fallback
-      expect(manager["primaryProvider"]?.constructor.name).toBe("DeepSeekProvider")
-      expect(await manager["primaryProvider"]!.isAvailable()).toBe(false)
+      // API Key 为空，不会创建 Provider
+      expect(manager["primaryProvider"]).toBeNull()
     })
   })
   

@@ -55,19 +55,19 @@ export class DeepSeekProvider implements AIProvider {
    */
   async isAvailable(): Promise<boolean> {
     try {
-      // 检查 API Key
-      if (!this.config.apiKey || this.config.apiKey.length < 20) {
-        deepseekLogger.warn(`Invalid API Key (length: ${this.config.apiKey?.length || 0}, required: >= 20)`)
+      // 检查 API Key（只检查是否存在，不限制长度）
+      if (!this.config.apiKey || this.config.apiKey.trim().length === 0) {
+        deepseekLogger.warn("API Key is empty")
         return false
       }
       
       // 检查网络（简单验证）
-      if (!navigator.onLine) {
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
         deepseekLogger.warn("No network connection")
         return false
       }
       
-      deepseekLogger.debug("✅ DeepSeek Provider is available")
+      deepseekLogger.debug(`✅ DeepSeek Provider is available (API Key: ${this.config.apiKey.substring(0, 10)}..., length: ${this.config.apiKey.length})`)
       return true
     } catch (error) {
       deepseekLogger.error("isAvailable check failed:", error)
