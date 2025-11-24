@@ -57,7 +57,7 @@ export class DeepSeekProvider implements AIProvider {
     try {
       // 检查 API Key
       if (!this.config.apiKey || this.config.apiKey.length < 20) {
-        deepseekLogger.warn("Invalid API Key")
+        deepseekLogger.warn(`Invalid API Key (length: ${this.config.apiKey?.length || 0}, required: >= 20)`)
         return false
       }
       
@@ -67,6 +67,7 @@ export class DeepSeekProvider implements AIProvider {
         return false
       }
       
+      deepseekLogger.debug("✅ DeepSeek Provider is available")
       return true
     } catch (error) {
       deepseekLogger.error("isAvailable check failed:", error)

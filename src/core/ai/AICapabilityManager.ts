@@ -121,8 +121,11 @@ export class AICapabilityManager {
   ): Promise<UserProfileGenerationResult> {
     // 1. 尝试使用主 Provider（如果支持）
     if (this.primaryProvider?.generateUserProfile) {
+      aiLogger.debug(` Checking if ${this.primaryProvider.name} supports profile generation...`)
       try {
         const available = await this.primaryProvider.isAvailable()
+        aiLogger.debug(` ${this.primaryProvider.name} availability: ${available}`)
+        
         if (available) {
           aiLogger.info(` Generating user profile with: ${this.primaryProvider.name}`)
           const result = await this.primaryProvider.generateUserProfile(request)
@@ -134,11 +137,13 @@ export class AICapabilityManager {
           
           return result
         } else {
-          aiLogger.warn(" Primary provider not available for profile generation, using fallback")
+          aiLogger.warn(` Primary provider ${this.primaryProvider.name} not available, using fallback`)
         }
       } catch (error) {
-        aiLogger.error(" Primary provider failed for profile generation, using fallback:", error)
+        aiLogger.error(` Primary provider ${this.primaryProvider.name} failed for profile generation:`, error)
       }
+    } else {
+      aiLogger.warn(` Primary provider does not support generateUserProfile method`)
     }
     
     // 2. 降级到关键词分析
