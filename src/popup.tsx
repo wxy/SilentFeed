@@ -26,6 +26,11 @@ function IndexPopup() {
   const [pageCount, setPageCount] = useState<number | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [uiStyle, setUiStyle] = useState<UIStyle>("sketchy")
+  const [toolbarState, setToolbarState] = useState<{
+    hasRSSFeeds: boolean
+    onDismissAll?: () => Promise<void>
+    onOpenRSSManagement?: () => void
+  }>({ hasRSSFeeds: false })
 
   const COLD_START_THRESHOLD = LEARNING_COMPLETE_PAGES
 
@@ -38,6 +43,17 @@ function IndexPopup() {
     document.body.style.height = 'auto'
     document.documentElement.style.minHeight = 'auto'
     document.documentElement.style.height = 'auto'
+  }, [])
+
+  // 监听 RecommendationView 的工具栏状态
+  useEffect(() => {
+    const checkToolbar = setInterval(() => {
+      if (typeof window !== 'undefined' && (window as any).__recommendationViewToolbar) {
+        setToolbarState((window as any).__recommendationViewToolbar)
+      }
+    }, 100)
+    
+    return () => clearInterval(checkToolbar)
   }, [])
 
   useEffect(() => {
@@ -83,7 +99,7 @@ function IndexPopup() {
   // 弹窗高度根据内容动态计算，无固定高度，无滚动条
   const containerClass = isSketchyStyle 
     ? "sketchy-container sketchy-paper-texture w-80 flex flex-col"
-    : "w-80 flex flex-col p-4 bg-gradient-to-br from-slate-50/95 to-indigo-50/80 dark:from-gray-900 dark:to-indigo-950/30"
+    : "w-80 flex flex-col bg-gradient-to-br from-slate-50/95 to-indigo-50/80 dark:from-gray-900 dark:to-indigo-950/30"
 
   // 加载中状态
   if (isLoading) {
@@ -141,10 +157,58 @@ function IndexPopup() {
           </svg>
         )}
         
-        {/* 头部 - 精简设计，只显示应用名 */}
-        <div className={isSketchyStyle ? "px-6 pt-4 pb-3" : "p-4"}>
-          <h1 className={isSketchyStyle ? "sketchy-title text-xl text-center" : "text-xl font-bold text-center"}>{_("app.name")}</h1>
-          {isSketchyStyle && <div className="sketchy-divider mt-2"></div>}
+        {/* 头部 - 极简设计：应用名 + 右上角工具图标 */}
+        <div className={isSketchyStyle 
+          ? "px-4 pt-2 pb-2 flex items-center justify-between bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-b-2 border-blue-200 dark:border-blue-700" 
+          : "px-4 pt-3 pb-3 flex items-center justify-between bg-gradient-to-r from-indigo-500 to-cyan-500 dark:from-indigo-600 dark:to-cyan-600 border-b border-indigo-600/20 dark:border-cyan-500/20 shadow-sm"
+        }>
+          <h1 className={isSketchyStyle ? "sketchy-title text-sm font-medium" : "text-base font-bold text-white drop-shadow-sm"}>{_("app.name")}</h1>
+          
+          {/* 右上角工具图标 - 仅在推荐阶段显示完整工具栏 */}
+          <div className="flex items-center gap-1.5">
+            {/* 设置按钮始终显示 */}
+            <button
+              onClick={() => chrome.runtime.openOptionsPage()}
+              className={isSketchyStyle 
+                ? "p-1.5 hover:bg-white/50 dark:hover:bg-gray-700/50 rounded transition-colors"
+                : "p-1.5 hover:bg-white/20 rounded transition-colors"
+              }
+              title={_("popup.settings")}
+            >
+              <span className={isSketchyStyle ? "text-sm" : "text-sm text-white drop-shadow"}>⚙️</span>
+            </button>
+            
+            {/* 推荐阶段显示额外按钮 */}
+            {!isColdStart && (
+              <>
+                {/* RSS源按钮 - 仅在有发现的源时显示 */}
+                {toolbarState.hasRSSFeeds && (
+                  <button
+                    onClick={toolbarState.onOpenRSSManagement}
+                    className={isSketchyStyle 
+                      ? "p-1.5 hover:bg-white/50 dark:hover:bg-gray-700/50 rounded transition-colors"
+                      : "p-1.5 hover:bg-white/20 rounded transition-colors"
+                    }
+                    title={_("popup.rssFeeds")}
+                  >
+                    <span className={isSketchyStyle ? "text-sm" : "text-sm text-white drop-shadow"}>📡</span>
+                  </button>
+                )}
+                
+                {/* 全部不想读按钮 */}
+                <button
+                  onClick={toolbarState.onDismissAll}
+                  className={isSketchyStyle 
+                    ? "p-1.5 hover:bg-white/50 dark:hover:bg-gray-700/50 rounded transition-colors"
+                    : "p-1.5 hover:bg-white/20 rounded transition-colors"
+                  }
+                  title={_("popup.dismissAll")}
+                >
+                  <span className={isSketchyStyle ? "text-sm" : "text-sm text-white drop-shadow"}>👎</span>
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         {/* 主体内容 - 两阶段切换 */}

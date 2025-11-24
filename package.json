@@ -14,7 +14,8 @@
     "test:coverage": "vitest run --coverage",
     "i18n:extract": "i18next-parser",
     "i18n:translate": "node scripts/translate.js",
-    "i18n:sync": "npm run i18n:extract && npm run i18n:translate"
+    "i18n:sync": "npm run i18n:extract && npm run i18n:translate",
+    "pre-push": "bash scripts/pre-push-check.sh"
   },
   "dependencies": {
     "dexie": "^4.2.1",

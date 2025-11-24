@@ -2,9 +2,9 @@
  * 推荐通知模块测试
  * 使用分段生成+合并的方法创建
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
-// Mock Chrome APIs
+// ⚠️ 关键：在导入模块之前先 mock Chrome APIs
 const mockNotifications = {
   create: vi.fn(),
   clear: vi.fn(),
@@ -12,7 +12,7 @@ const mockNotifications = {
   onClicked: { addListener: vi.fn() },
   onButtonClicked: { addListener: vi.fn() },
   onClosed: { addListener: vi.fn() }
-} as any
+}
 
 const mockStorage = {
   local: {
@@ -20,7 +20,7 @@ const mockStorage = {
     set: vi.fn(),
     remove: vi.fn()
   }
-} as any
+}
 
 const mockRuntime = {
   getManifest: vi.fn(() => ({
@@ -32,17 +32,17 @@ const mockRuntime = {
   })),
   getURL: vi.fn((path: string) => `chrome-extension://test-id/${path}`),
   openOptionsPage: vi.fn()
-} as any
+}
 
 const mockAction = {
   openPopup: vi.fn()
-} as any
+}
 
 const mockTabs = {
   create: vi.fn()
-} as any
+}
 
-// @ts-ignore
+// @ts-ignore - 必须在导入 notification 模块之前设置
 global.chrome = {
   notifications: mockNotifications,
   storage: mockStorage,
@@ -51,10 +51,31 @@ global.chrome = {
   tabs: mockTabs
 }
 
+// 现在才导入被测试的模块
+import { 
+  sendRecommendationNotification,
+  setupNotificationListeners,
+  canSendNotification,
+  testNotification
+} from './notification'
+
 describe('NotificationManager - 推荐通知模块', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
-    mockStorage.local.get.mockResolvedValue({})
+    
+    // ⚠️ Mock 系统时间为下午2点（确保不在默认静默时段 22:00-08:00）
+    vi.setSystemTime(new Date('2025-01-01T14:00:00'))
+    
+    // 默认 mock 返回值（每个测试可以覆盖）
+    mockStorage.local.get.mockResolvedValue({
+      'notification-config': { 
+        enabled: true,
+        quietHours: null,  // 关闭静默时段
+        minInterval: 60 
+      },
+      'last-notification-time': 0
+    })
+    
     mockStorage.local.set.mockResolvedValue(undefined)
     mockStorage.local.remove.mockResolvedValue(undefined)
     mockNotifications.create.mockResolvedValue('test-id')
@@ -74,20 +95,13 @@ describe('NotificationManager - 推荐通知模块', () => {
     mockRuntime.getURL.mockImplementation((path: string) => `chrome-extension://test-id/${path}`)
   })
 
+  afterEach(() => {
+    // 恢复真实时间
+    vi.useRealTimers()
+  })
+
   describe('sendRecommendationNotification', () => {
     it('应该创建推荐通知', async () => {
-      // 设置通知配置：启用通知且没有静默时段
-      mockStorage.local.get.mockResolvedValue({
-        'notification-config': { 
-          enabled: true,
-          quietHours: undefined, // 关闭静默时段
-          minInterval: 60 
-        },
-        'last-notification-time': 0 // 设置上次通知时间为很久以前
-      })
-      
-      const { sendRecommendationNotification } = await import('./notification')
-      
       const mockRecommendation = {
         title: '测试文章标题',
         source: '测试来源',
@@ -115,13 +129,6 @@ describe('NotificationManager - 推荐通知模块', () => {
     })
 
     it('应该在单条推荐时显示完整标题', async () => {
-      mockStorage.local.get.mockResolvedValue({
-        'notification-config': { enabled: true },
-        'last-notification-time': 0
-      })
-      
-      const { sendRecommendationNotification } = await import('./notification')
-      
       const mockRecommendation = {
         title: '唯一的推荐',
         source: '测试源',
@@ -139,25 +146,18 @@ describe('NotificationManager - 推荐通知模块', () => {
     })
 
     it('应该在多条推荐时显示数量', async () => {
-      mockStorage.local.get.mockResolvedValue({
-        'notification-config': { enabled: true },
-        'last-notification-time': 0
-      })
-      
-      const { sendRecommendationNotification } = await import('./notification')
-      
       const mockRecommendation = {
         title: '第一条推荐',
         source: '测试源',
         url: 'https://example.com'
       }
       
-      await sendRecommendationNotification(5, mockRecommendation)
+      await sendRecommendationNotification(3, mockRecommendation)
       
       expect(mockNotifications.create).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
-          message: expect.stringContaining('还有 4 篇推荐')
+          message: expect.stringContaining('还有 2 篇推荐')
         })
       )
     })
@@ -168,7 +168,6 @@ describe('NotificationManager - 推荐通知模块', () => {
         'notification-config': { enabled: false }
       })
       
-      const { sendRecommendationNotification } = await import('./notification')
       
       const mockRecommendation = {
         title: '测试文章',
@@ -193,7 +192,6 @@ describe('NotificationManager - 推荐通知模块', () => {
         }
       })
       
-      const { sendRecommendationNotification } = await import('./notification')
       
       await sendRecommendationNotification(1, {
         title: '测试',
@@ -218,7 +216,6 @@ describe('NotificationManager - 推荐通知模块', () => {
         'last-notification-time': 0
       })
       
-      const { sendRecommendationNotification } = await import('./notification')
       
       await sendRecommendationNotification(1, {
         title: '测试',
@@ -240,7 +237,6 @@ describe('NotificationManager - 推荐通知模块', () => {
         'last-notification-time': thirtyMinutesAgo
       })
       
-      const { sendRecommendationNotification } = await import('./notification')
       
       await sendRecommendationNotification(1, {
         title: '测试',
@@ -261,7 +257,6 @@ describe('NotificationManager - 推荐通知模块', () => {
         'last-notification-time': twoHoursAgo
       })
       
-      const { sendRecommendationNotification } = await import('./notification')
       
       await sendRecommendationNotification(1, {
         title: '测试',
@@ -276,7 +271,6 @@ describe('NotificationManager - 推荐通知模块', () => {
       // Mock storage.get 失败
       mockStorage.local.get.mockRejectedValue(new Error('Storage error'))
       
-      const { sendRecommendationNotification } = await import('./notification')
       
       // 使用默认配置（enabled: true），应该尝试发送通知
       await sendRecommendationNotification(1, {
@@ -298,7 +292,6 @@ describe('NotificationManager - 推荐通知模块', () => {
       // Mock notifications.create 失败
       mockNotifications.create.mockRejectedValue(new Error('Notification error'))
       
-      const { sendRecommendationNotification } = await import('./notification')
       
       // 不应该抛出错误
       await expect(
@@ -316,7 +309,6 @@ describe('NotificationManager - 推荐通知模块', () => {
         'last-notification-time': 0
       })
       
-      const { sendRecommendationNotification } = await import('./notification')
       
       const testUrl = 'https://example.com/article'
       await sendRecommendationNotification(1, {
@@ -337,7 +329,6 @@ describe('NotificationManager - 推荐通知模块', () => {
 
   describe('testNotification', () => {
     it('应该发送测试通知', async () => {
-      const { testNotification } = await import('./notification')
       
       await testNotification()
       
@@ -353,7 +344,6 @@ describe('NotificationManager - 推荐通知模块', () => {
     })
 
     it('应该保存测试URL', async () => {
-      const { testNotification } = await import('./notification')
       
       await testNotification()
       
@@ -367,7 +357,6 @@ describe('NotificationManager - 推荐通知模块', () => {
 
   describe('setupNotificationListeners', () => {
     it('应该设置通知点击监听器', async () => {
-      const { setupNotificationListeners } = await import('./notification')
       
       setupNotificationListeners()
       
@@ -377,7 +366,6 @@ describe('NotificationManager - 推荐通知模块', () => {
     })
 
     it('应该处理通知点击事件', async () => {
-      const { setupNotificationListeners } = await import('./notification')
       
       setupNotificationListeners()
       
@@ -395,7 +383,6 @@ describe('NotificationManager - 推荐通知模块', () => {
     it('应该在无法打开popup时打开选项页', async () => {
       mockAction.openPopup.mockRejectedValue(new Error('Cannot open popup'))
       
-      const { setupNotificationListeners } = await import('./notification')
       
       setupNotificationListeners()
       
@@ -412,7 +399,6 @@ describe('NotificationManager - 推荐通知模块', () => {
         'notification-url-test-id': testUrl
       })
       
-      const { setupNotificationListeners } = await import('./notification')
       
       setupNotificationListeners()
       
@@ -428,7 +414,6 @@ describe('NotificationManager - 推荐通知模块', () => {
     })
 
     it('应该处理"不想看"按钮点击', async () => {
-      const { setupNotificationListeners } = await import('./notification')
       
       setupNotificationListeners()
       
@@ -446,7 +431,6 @@ describe('NotificationManager - 推荐通知模块', () => {
     it('应该处理URL不存在的情况', async () => {
       mockStorage.local.get.mockResolvedValue({})
       
-      const { setupNotificationListeners } = await import('./notification')
       
       setupNotificationListeners()
       
@@ -465,7 +449,6 @@ describe('NotificationManager - 推荐通知模块', () => {
       })
       mockTabs.create.mockRejectedValue(new Error('Cannot create tab'))
       
-      const { setupNotificationListeners } = await import('./notification')
       
       setupNotificationListeners()
       
@@ -476,7 +459,6 @@ describe('NotificationManager - 推荐通知模块', () => {
     })
 
     it('应该处理通知关闭事件', async () => {
-      const { setupNotificationListeners } = await import('./notification')
       
       setupNotificationListeners()
       
@@ -495,7 +477,6 @@ describe('NotificationManager - 推荐通知模块', () => {
         'last-notification-time': 0
       })
       
-      const { sendRecommendationNotification } = await import('./notification')
       
       await sendRecommendationNotification(1, {
         title: '测试',
@@ -524,7 +505,6 @@ describe('NotificationManager - 推荐通知模块', () => {
         'last-notification-time': 0
       })
       
-      const { sendRecommendationNotification } = await import('./notification')
       
       await sendRecommendationNotification(1, {
         title: '测试',
@@ -550,7 +530,6 @@ describe('NotificationManager - 推荐通知模块', () => {
         'last-notification-time': 0
       })
       
-      const { sendRecommendationNotification } = await import('./notification')
       
       await sendRecommendationNotification(1, {
         title: '测试',

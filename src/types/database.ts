@@ -130,6 +130,23 @@ export interface Recommendation {
    * Phase 7: 替换者ID（被哪个推荐替换）
    */
   replacedBy?: string
+  
+  /**
+   * 翻译数据（可选）
+   * 当启用自动翻译时，存储翻译后的标题和摘要
+   */
+  translation?: {
+    /** 原文语言（由 AI 识别） */
+    sourceLanguage: string
+    /** 译文语言（界面语言） */
+    targetLanguage: string
+    /** 翻译后的标题 */
+    translatedTitle: string
+    /** 翻译后的摘要 */
+    translatedSummary: string
+    /** 翻译时间 */
+    translatedAt: number
+  }
 }
 
 /**

@@ -1,8 +1,8 @@
 /**
  * 推荐阶段组件
- * Phase 6: 固定高度布局，克制设计
- * - 顶部工具栏：设置、RSS源（可选）、全部不想读
- * - 推荐列表：固定高度，无滚动条
+ * Phase 7: 空间优化布局
+ * - 头部工具栏移至popup（设置、RSS源、全部不想读）
+ * - 推荐列表：智能显示摘要，优化空间利用
  * - 用户行为跟踪：点击、不想读、全部不想读
  */
 
@@ -21,8 +21,17 @@ import { getFaviconUrl, handleFaviconError } from "@/utils/favicon"
 import { formatRecommendationReason } from "@/utils/formatReason"
 import type { Recommendation } from "@/types/database"
 import { logger } from "@/utils/logger"
+import { getDisplayText, formatLanguageLabel, translateOnDemand } from "@/core/translator/recommendation-translator"
+import { getUIConfig } from "@/storage/ui-config"
 
 const recViewLogger = logger.withTag("RecommendationView")
+
+// 导出工具栏相关接口给popup使用
+export interface RecommendationViewToolbar {
+  hasRSSFeeds: boolean
+  onDismissAll: () => Promise<void>
+  onOpenRSSManagement: () => void
+}
 
 /**
  * 获取推荐引擎标志（基于结构化数据或字符串）
@@ -34,9 +43,9 @@ function getEngineLabel(recommendation: Recommendation, t: (key: string) => stri
   if (typeof reason === 'object' && reason !== null) {
     const { provider, isReasoning } = reason
     if (provider === 'deepseek' && isReasoning) {
-      return { emoji: "🧠", text: t("popup.engine.reasoningAI") }
+      return { emoji: "👽", text: t("popup.engine.reasoningAI") }
     } else if (provider === 'keyword') {
-      return { emoji: "🔍", text: t("popup.engine.algorithm") }
+      return { emoji: "🧮", text: t("popup.engine.algorithm") }
     } else {
       return { emoji: "🤖", text: t("popup.engine.ai") }
     }
@@ -45,13 +54,13 @@ function getEngineLabel(recommendation: Recommendation, t: (key: string) => stri
   // 兼容旧版本字符串数据
   const reasonStr = typeof reason === 'string' ? reason : ""
   if (reasonStr.includes("推理AI")) {
-    return { emoji: "🧠", text: t("popup.engine.reasoningAI") }
+    return { emoji: "👽", text: t("popup.engine.reasoningAI") }
   } else if (reasonStr.includes("AI")) {
     return { emoji: "🤖", text: t("popup.engine.ai") }
   } else if (reasonStr.includes("算法")) {
-    return { emoji: "🔍", text: t("popup.engine.algorithm") }
+    return { emoji: "🧮", text: t("popup.engine.algorithm") }
   } else {
-    return { emoji: "🔍", text: t("popup.engine.algorithm") }
+    return { emoji: "🧮", text: t("popup.engine.algorithm") }
   }
 }
 
@@ -87,7 +96,7 @@ export function RecommendationView() {
     loadConfig()
   }, [])
 
-  // 检查是否有发现的RSS源
+  // 检查是否有RSS源
   useEffect(() => {
     const checkRSSFeeds = async () => {
       try {
@@ -190,6 +199,41 @@ export function RecommendationView() {
   // 只显示前N条推荐（根据配置）
   const displayedRecommendations = recommendations.slice(0, maxRecommendations)
 
+  /**
+   * 智能决定哪些条目显示摘要
+   * 策略：
+   * - 第一条始终显示摘要
+   * - 其他条目：如果总高度允许，从第二条开始显示1-2行摘要
+   * - 如果空间不够，从最后一条开始隐藏摘要
+   * 
+   * 高度估算：
+   * - 第一条(有摘要): ~160px
+   * - 其他条(无摘要): ~75px
+   * - 其他条(有摘要): ~105px (增加~30px)
+   * - 最大高度: 600px
+   */
+  const shouldShowExcerpt = (index: number): boolean => {
+    if (index === 0) return true // 第一条总是显示
+    
+    const itemCount = displayedRecommendations.length
+    if (itemCount <= 3) return true // 3条以内全部显示摘要
+    if (itemCount === 4) return index <= 2 // 4条时前3条显示
+    if (itemCount === 5) return index <= 1 // 5条时前2条显示
+    
+    return false
+  }
+
+  // 导出工具栏状态给popup使用 (通过window全局对象)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).__recommendationViewToolbar = {
+        hasRSSFeeds,
+        onDismissAll: handleDismissAll,
+        onOpenRSSManagement: openRSSManagement
+      }
+    }
+  }, [hasRSSFeeds])
+
   if (isLoading && recommendations.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -225,26 +269,6 @@ export function RecommendationView() {
   if (displayedRecommendations.length === 0) {
     return (
       <div className="flex flex-col">
-        {/* 顶部工具栏 */}
-        <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-          <button
-            onClick={openSettings}
-            className="text-xs text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-          >
-            ⚙️ {_("popup.settings")}
-          </button>
-          
-          {hasRSSFeeds && (
-            <button
-              onClick={openRSSManagement}
-              className="flex items-center gap-1 px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded text-xs hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
-            >
-              <span>📡</span>
-              <span>{_("popup.rssFeeds")}</span>
-            </button>
-          )}
-        </div>
-        
         {/* 空状态 */}
         <div className="h-[300px] flex items-center justify-center">
           <div className="text-center px-6">
@@ -274,35 +298,6 @@ export function RecommendationView() {
 
   return (
     <div className="flex flex-col">
-      {/* 顶部工具栏 */}
-      <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={openSettings}
-            className="text-xs text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-          >
-            ⚙️ {_("popup.settings")}
-          </button>
-          
-          {hasRSSFeeds && (
-            <button
-              onClick={openRSSManagement}
-              className="flex items-center gap-1 px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded text-xs hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
-            >
-              <span>📡</span>
-              <span>{_("popup.rssFeeds")}</span>
-            </button>
-          )}
-        </div>
-        
-        <button
-          onClick={handleDismissAll}
-          className="text-xs text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
-        >
-          {_("popup.dismissAll")}
-        </button>
-      </div>
-
       {/* 推荐列表 - 无滚动条，动态高度 */}
       <div className="flex flex-col">
         {displayedRecommendations.map((rec, index) => (
@@ -310,6 +305,7 @@ export function RecommendationView() {
             key={rec.id}
             recommendation={rec}
             isTopItem={index === 0} // 第一条显示摘要
+            showExcerpt={shouldShowExcerpt(index)} // 智能决定是否显示摘要
             onClick={(e) => handleItemClick(rec, e)}
             onDismiss={(e) => handleDismiss(rec.id, e)}
           />
@@ -321,173 +317,291 @@ export function RecommendationView() {
 
 /**
  * 推荐条目组件
- * Phase 6 优化：紧凑布局，适应600px高度限制
- * - 第一条（评分最高）显示摘要（max-h-32 = 128px）
- * - 其他条目保持紧凑（h-16 = 64px）
+ * Phase 7 优化：空间优化布局
+ * - 第一条（评分最高）显示摘要（标题3行 + 摘要4行）
+ * - 其他条目：智能显示摘要（标题2行 + 摘要2行）
  * - 显示文章长度、阅读时长、推荐理由
  */
 interface RecommendationItemProps {
   recommendation: Recommendation
   isTopItem: boolean  // 是否为第一条（评分最高）
+  showExcerpt: boolean // 是否显示摘要
   onClick: (event: React.MouseEvent) => void
   onDismiss: (event: React.MouseEvent) => void
 }
 
-function RecommendationItem({ recommendation, isTopItem, onClick, onDismiss }: RecommendationItemProps) {
+function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, onDismiss }: RecommendationItemProps) {
   const { _, t } = useI18n()
+  const [showOriginal, setShowOriginal] = useState(false)
+  const [autoTranslateEnabled, setAutoTranslateEnabled] = useState(false)
+  const [currentRecommendation, setCurrentRecommendation] = useState(recommendation)
+  const [isTranslating, setIsTranslating] = useState(false)
   
-  // 第一条显示摘要，需要更大的高度（但限制最大高度避免溢出）
+  // 加载自动翻译配置
+  useEffect(() => {
+    const loadConfig = async () => {
+      const config = await getUIConfig()
+      setAutoTranslateEnabled(config.autoTranslate)
+    }
+    loadConfig()
+  }, [])
+  
+  // 当推荐或配置变化时，检查是否需要即时翻译
+  useEffect(() => {
+    const checkAndTranslate = async () => {
+      const displayText = getDisplayText(currentRecommendation, showOriginal, autoTranslateEnabled)
+      
+      // 如果需要即时翻译且未在翻译中
+      if (displayText.needsTranslation && !isTranslating) {
+        setIsTranslating(true)
+        recViewLogger.info(`检测到需要即时翻译: ${currentRecommendation.id}`)
+        
+        try {
+          const translated = await translateOnDemand(currentRecommendation)
+          setCurrentRecommendation(translated)
+        } catch (error) {
+          recViewLogger.error('即时翻译失败:', error)
+        } finally {
+          setIsTranslating(false)
+        }
+      }
+    }
+    
+    checkAndTranslate()
+  }, [currentRecommendation, showOriginal, autoTranslateEnabled, isTranslating])
+  
+  // 获取显示文本（自动选择原文或译文）
+  const displayText = getDisplayText(currentRecommendation, showOriginal, autoTranslateEnabled)
+  
+  // 第一条显示详细信息（标题3行 + 摘要4行）
   if (isTopItem) {
     return (
       <div
-        data-recommendation-id={recommendation.id}
-        className="max-h-32 px-4 py-2 border-b-2 border-blue-200 dark:border-blue-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors bg-blue-50/30 dark:bg-blue-900/10"
+        data-recommendation-id={currentRecommendation.id}
+        className="px-4 py-3 border-b-2 border-blue-200 dark:border-blue-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors bg-blue-50/30 dark:bg-blue-900/10 flex flex-col gap-2"
       >
-        {/* 标题行 - 限制单行 */}
+        {/* 标题行 - 3行，带 favicon */}
         <div 
           onClick={(e) => onClick(e)}
-          className="cursor-pointer mb-1.5"
+          className="cursor-pointer"
         >
-          <h3 className="text-sm font-medium line-clamp-1 leading-snug">
-            {sanitizeHtml(recommendation.title)}
+          <h3 className="text-sm font-medium line-clamp-3 leading-snug flex items-start gap-1.5">
+            <img 
+              src={getFaviconUrl(currentRecommendation.sourceUrl || currentRecommendation.url)} 
+              alt="" 
+              className="w-4 h-4 flex-shrink-0 mt-0.5"
+              onError={handleFaviconError}
+            />
+            <span className="flex-1">
+              {sanitizeHtml(displayText.title)}
+              <span className="ml-1 cursor-help text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xs" title={currentRecommendation.url}>
+                🔗
+              </span>
+            </span>
           </h3>
         </div>
         
-        {/* 摘要 - 仅第一条显示，限制2行 */}
-        {(recommendation.excerpt || recommendation.summary) && (
+        {/* 摘要 - 4行 */}
+        {displayText.summary && (
           <div 
             onClick={(e) => onClick(e)}
-            className="cursor-pointer mb-1.5"
+            className="cursor-pointer"
           >
-            <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
-              {sanitizeHtml(recommendation.excerpt || recommendation.summary)}
+            <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-4 leading-relaxed">
+              {sanitizeHtml(displayText.summary)}
             </p>
           </div>
         )}
         
-        {/* 推荐理由 - 限制单行 */}
-        {recommendation.reason && (
-          <div className="mb-1.5">
-            <p className="text-xs text-blue-700 dark:text-blue-300 italic line-clamp-1">
-              💡 {sanitizeHtml(formatRecommendationReason(recommendation.reason, t))}
-            </p>
-          </div>
-        )}
-        
-        {/* 底部信息栏 */}
+        {/* 底部信息栏 - 紧凑布局 */}
         <div className="flex items-center justify-between text-xs">
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <span className="flex items-center gap-1 text-gray-500 dark:text-gray-500 truncate">
-              <img 
-                src={getFaviconUrl(recommendation.sourceUrl || recommendation.url)} 
-                alt="" 
-                className="w-4 h-4 flex-shrink-0"
-                onError={handleFaviconError}
-              />
-              <span className="truncate">{recommendation.source}</span>
+            {/* 推荐理由主题（仅图标+tooltip） */}
+            {currentRecommendation.reason && (
+              <span className="text-blue-600 dark:text-blue-400 flex-shrink-0 cursor-help" title={formatRecommendationReason(currentRecommendation.reason, t)}>
+                💡
+              </span>
+            )}
+            
+            {currentRecommendation.wordCount && (
+              <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
+                {formatWordCount(currentRecommendation.wordCount)}字
+              </span>
+            )}
+            
+            {currentRecommendation.readingTime && (
+              <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
+                {currentRecommendation.readingTime}分钟
+              </span>
+            )}
+            
+            {/* 推荐分数 - 可视化横线 */}
+            {currentRecommendation.score && (
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <div className="w-12 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-green-400 to-green-600 transition-all"
+                    style={{ width: `${Math.round(currentRecommendation.score * 100)}%` }}
+                  ></div>
+                </div>
+                <span className="text-xs text-green-600 dark:text-green-400">
+                  {Math.round(currentRecommendation.score * 100)}%
+                </span>
+              </div>
+            )}
+            
+            {/* 推荐引擎 - 仅图标+tooltip */}
+            <span className="flex-shrink-0 cursor-help" title={getEngineLabel(currentRecommendation, _).text}>
+              {getEngineLabel(currentRecommendation, _).emoji}
             </span>
             
-            {recommendation.wordCount && (
-              <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
-                📏 {formatWordCount(recommendation.wordCount)}
-              </span>
+            {/* 语言标签 - 显示当前语言，点击切换（如果有翻译或正在翻译） */}
+            {(displayText.hasTranslation || displayText.needsTranslation || autoTranslateEnabled) && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (displayText.hasTranslation) {
+                    setShowOriginal(!showOriginal)
+                  }
+                }}
+                disabled={isTranslating || (!displayText.hasTranslation && displayText.needsTranslation)}
+                className={`flex-shrink-0 text-xs px-1.5 py-0.5 rounded font-medium transition-all ${
+                  isTranslating 
+                    ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 cursor-wait'
+                    : displayText.isShowingOriginal
+                      ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-800/40 cursor-pointer'
+                      : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-800/40 cursor-pointer'
+                }`}
+                title={isTranslating ? '翻译中...' : (displayText.isShowingOriginal ? `${_("popup.showTranslation")} (${formatLanguageLabel(displayText.targetLanguage || 'en')})` : `${_("popup.showOriginal")} (${formatLanguageLabel(displayText.sourceLanguage)})`)}  
+              >
+                {isTranslating ? '...' : formatLanguageLabel(displayText.currentLanguage)}
+              </button>
             )}
-            
-            {recommendation.readingTime && (
-              <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
-                ⏱️ {recommendation.readingTime}分钟
-              </span>
-            )}
-            
-            {recommendation.score && (
-              <span className="text-green-600 dark:text-green-400 font-medium flex-shrink-0">
-                ⭐ {Math.round(recommendation.score * 100)}%
-              </span>
-            )}
-            
-            {/* 推荐引擎标志 */}
-            <span className="text-xs text-gray-500 dark:text-gray-500 flex-shrink-0 ml-1">
-              {(() => {
-                const { emoji, text } = getEngineLabel(recommendation, _)
-                return `${emoji} ${text}`
-              })()}
-            </span>
           </div>
           
           <button
             onClick={onDismiss}
-            className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded hover:bg-red-100 dark:hover:bg-red-900 hover:text-red-600 dark:hover:text-red-300 transition-colors flex-shrink-0 ml-2"
+            className="text-base hover:scale-110 transition-transform flex-shrink-0 ml-2"
             title={_("popup.notInterested")}
           >
-            ❌
+            👎
           </button>
         </div>
       </div>
     )
   }
   
-  // 其他条目保持紧凑 - h-16 = 64px
+  // 其他条目保持紧凑 - 标题2行
   return (
     <div
-      data-recommendation-id={recommendation.id}
-      className="h-16 px-4 py-2 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex flex-col justify-between"
+      data-recommendation-id={currentRecommendation.id}
+      className="px-4 py-2 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex flex-col gap-1.5"
     >
-      {/* 标题行 - 单行，超出隐藏 */}
+      {/* 标题行 - 2行，带 favicon */}
       <div 
         onClick={(e) => onClick(e)}
-        className="cursor-pointer flex-1 overflow-hidden"
+        className="cursor-pointer"
       >
-        <h3 className="text-sm font-medium line-clamp-1 leading-snug">
-          {sanitizeHtml(recommendation.title)}
+        <h3 className="text-sm font-medium line-clamp-2 leading-snug flex items-start gap-1.5">
+          <img 
+            src={getFaviconUrl(currentRecommendation.sourceUrl || currentRecommendation.url)} 
+            alt="" 
+            className="w-4 h-4 flex-shrink-0 mt-0.5"
+            onError={handleFaviconError}
+          />
+          <span className="flex-1">
+            {sanitizeHtml(displayText.title)}
+            <span className="ml-1 cursor-help text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xs" title={currentRecommendation.url}>
+              🔗
+            </span>
+          </span>
         </h3>
       </div>
+      
+      {/* 摘要 - 智能显示，2行 */}
+      {showExcerpt && displayText.summary && (
+        <div 
+          onClick={(e) => onClick(e)}
+          className="cursor-pointer"
+        >
+          <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
+            {sanitizeHtml(displayText.summary)}
+          </p>
+        </div>
+      )}
       
       {/* 底部信息栏 */}
       <div className="flex items-center justify-between text-xs">
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          <span className="flex items-center gap-1 text-gray-500 dark:text-gray-500 truncate">
-            <img 
-              src={getFaviconUrl(recommendation.sourceUrl || recommendation.url)} 
-              alt="" 
-              className="w-4 h-4 flex-shrink-0"
-              onError={handleFaviconError}
-            />
-            <span className="truncate">{recommendation.source}</span>
+          {/* 推荐理由主题（仅图标+tooltip） */}
+          {currentRecommendation.reason && (
+            <span className="text-blue-600 dark:text-blue-400 flex-shrink-0 cursor-help" title={formatRecommendationReason(currentRecommendation.reason, t)}>
+              💡
+            </span>
+          )}
+          
+          {currentRecommendation.wordCount && (
+            <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
+              {formatWordCount(currentRecommendation.wordCount)}字
+            </span>
+          )}
+          
+          {currentRecommendation.readingTime && (
+            <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
+              {currentRecommendation.readingTime}分钟
+            </span>
+          )}
+          
+          {/* 推荐分数 - 可视化横线 */}
+          {currentRecommendation.score && (
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <div className="w-12 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-green-400 to-green-600 transition-all"
+                  style={{ width: `${Math.round(currentRecommendation.score * 100)}%` }}
+                ></div>
+              </div>
+              <span className="text-xs text-green-600 dark:text-green-400">
+                {Math.round(currentRecommendation.score * 100)}%
+              </span>
+            </div>
+          )}
+          
+          {/* 推荐引擎 - 仅图标+tooltip */}
+          <span className="flex-shrink-0 cursor-help" title={getEngineLabel(currentRecommendation, _).text}>
+            {getEngineLabel(currentRecommendation, _).emoji}
           </span>
           
-          {recommendation.wordCount && (
-            <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
-              📏 {formatWordCount(recommendation.wordCount)}
-            </span>
+          {/* 语言标签 - 显示当前语言，点击切换（如果有翻译或正在翻译） */}
+          {(displayText.hasTranslation || displayText.needsTranslation || autoTranslateEnabled) && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                if (displayText.hasTranslation) {
+                  setShowOriginal(!showOriginal)
+                }
+              }}
+              disabled={isTranslating || (!displayText.hasTranslation && displayText.needsTranslation)}
+              className={`flex-shrink-0 text-xs px-1.5 py-0.5 rounded font-medium transition-all ${
+                isTranslating 
+                  ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 cursor-wait'
+                  : displayText.isShowingOriginal
+                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-800/40 cursor-pointer'
+                    : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-800/40 cursor-pointer'
+              }`}
+              title={isTranslating ? '翻译中...' : (displayText.isShowingOriginal ? `${_("popup.showTranslation")} (${formatLanguageLabel(displayText.targetLanguage || 'en')})` : `${_("popup.showOriginal")} (${formatLanguageLabel(displayText.sourceLanguage)})`)}  
+            >
+              {isTranslating ? '...' : formatLanguageLabel(displayText.currentLanguage)}
+            </button>
           )}
-          
-          {recommendation.readingTime && (
-            <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
-              ⏱️ {recommendation.readingTime}min
-            </span>
-          )}
-          
-          {recommendation.score && (
-            <span className="text-green-600 dark:text-green-400 font-medium flex-shrink-0">
-              {Math.round(recommendation.score * 100)}%
-            </span>
-          )}
-          
-          {/* 推荐引擎标志 */}
-          <span className="text-xs text-gray-500 dark:text-gray-500 flex-shrink-0 ml-1">
-            {(() => {
-              const { emoji, text } = getEngineLabel(recommendation, _)
-              return `${emoji} ${text}`
-            })()}
-          </span>
         </div>
         
         <button
           onClick={onDismiss}
-          className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded hover:bg-red-100 dark:hover:bg-red-900 hover:text-red-600 dark:hover:text-red-300 transition-colors flex-shrink-0 ml-2"
+          className="text-base hover:scale-110 transition-transform flex-shrink-0 ml-2"
           title={_("popup.notInterested")}
         >
-          ❌
+          👎
         </button>
       </div>
     </div>

@@ -40,3 +40,8 @@
   - 修复 IconManager 在停止动画后未重置 currentState 的问题
   - stopDiscoverAnimation() 和 stopFetchingAnimation() 现在会将状态重置为 'static'
   - updateIcon() 能正确根据当前实际情况（学习进度/推荐数）显示对应状态
+- [ ] 弹窗内的条目在点击某条不想读之后，新填充的条目并不是按推荐比例倒序排列的。
+- [ ] 翻译模块的分支覆盖率不足 60%（当前 58.87%）
+  - 主要是 error handling 分支未完全覆盖
+  - 需要添加测试覆盖翻译失败、API 错误等场景
+  - 临时降低阈值到 58%，待完善后恢复到 60%

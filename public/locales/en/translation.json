@@ -39,7 +39,9 @@
       "reasoningAI": "Inference AI",
       "ai": "AI",
       "algorithm": "Algorithm"
-    }
+    },
+    "showTranslation": "Translation",
+    "showOriginal": "Original"
   },
   "recommendation": {
     "reason": {
@@ -139,7 +141,11 @@
       "testNotificationTitle": "Testing the recommended notification feature",
       "testNotificationSuccess": "✅ Test notification sent! Please check the system notification center.",
       "testNotificationFailed": "❌ Test notification failed, please check the console",
-      "testNotificationError": "❌ Test notification failed: {{error}}"
+      "testNotificationError": "❌ Test notification failed: {{error}}",
+      "autoTranslate": "Auto-translate recommendations",
+      "autoTranslateDesc": "Use AI to automatically translate recommendations into interface language",
+      "autoTranslateWarning": "⚠️ Translation consumes AI credits (approx. 30% of recommendation cost)",
+      "autoTranslateHint": "💡 Toggle between original and translation using language tag button"
     },
     "rss": {
       "title": "RSS Feed Management",
@@ -187,7 +193,7 @@
       "save": "Save Settings",
       "saveSuccess": "✓ Successfully saved",
       "generating": "Generating...",
-      "generateNow": "Recommend Now",
+      "generateNow": "Recommend now",
       "resetConfirm": "⚠️ Are you sure you want to reset all recommendation data?\n\nThis will clear:\n- All recommendations in the recommendation pool\n- Recommendation count statistics for RSS feeds\n- AI scoring and analysis data for all articles (can be re-analyzed)\n- TF-IDF score cache for all articles (can be recalculated)\n- Recommendation-related statistics\n\n⚠️ Note: Fully crawled article content will be preserved\n\nThis action cannot be undone!",
       "resetSuccess": "✅ Recommended data has been reset",
       "resetFailed": "❌ Reset failed: {{error}}",

@@ -38,7 +38,9 @@
       "reasoningAI": "推理AI",
       "ai": "AI",
       "algorithm": "算法"
-    }
+    },
+    "showTranslation": "译文",
+    "showOriginal": "原文"
   },
   "recommendation": {
     "reason": {
@@ -152,7 +154,11 @@
       "testNotificationTitle": "测试推荐通知功能",
       "testNotificationSuccess": "✅ 测试通知已发送！请检查系统通知中心",
       "testNotificationFailed": "❌ 测试通知失败，请查看控制台",
-      "testNotificationError": "❌ 测试通知失败: {{error}}"
+      "testNotificationError": "❌ 测试通知失败: {{error}}",
+      "autoTranslate": "自动翻译推荐",
+      "autoTranslateDesc": "使用 AI 自动将推荐内容翻译为界面语言",
+      "autoTranslateWarning": "⚠️ 翻译功能会消耗 AI 额度，成本约为推荐生成的 30%",
+      "autoTranslateHint": "💡 翻译后可以通过语言标签按钮在原文和译文之间切换"
     },
     "rss": {
       "title": "RSS 源管理",

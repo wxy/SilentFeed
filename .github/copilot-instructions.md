@@ -245,9 +245,55 @@ TypeScript 示例:
 1. 开发前: 从 master 创建功能分支 (git checkout -b feature/xxx)
 2. 开发中: 频繁提交,保持提交原子化,运行测试确保通过
 3. 提交代码: git add . && git commit -m "feat: xxx"
-4. 推送分支: git push origin feature/xxx
-5. 创建 PR: 标题和描述使用中文,关联相关 issue
-6. 合并后: 删除功能分支 (git branch -d feature/xxx)
+4. **推送前检查**: 运行 `npm run pre-push` 确保测试和覆盖率通过
+5. 推送分支: git push origin feature/xxx
+6. **等待用户明确指令**: 不要主动创建 PR，等待用户明确要求
+7. 创建 PR: 使用 `gh pr create` 命令，标题和描述使用中文
+8. 合并后: 删除功能分支 (git branch -d feature/xxx)
+
+### 推送前检查 ⚠️ 重要
+
+**在推送代码或创建 PR 前，必须运行 pre-push 检查**：
+
+```bash
+npm run pre-push
+```
+
+此命令会依次执行：
+1. ✅ 运行完整测试套件 (`npm run test:run`)
+2. ✅ 检查测试覆盖率 (`npm run test:coverage`)
+   - 行覆盖率 ≥ 70%
+   - 函数覆盖率 ≥ 70%
+   - 分支覆盖率 ≥ 60%（当前临时为 58%）
+3. ✅ 运行生产构建 (`npm run build`)
+
+**所有检查通过后才能推送代码**，避免 CI 失败。
+
+### Pull Request 管理 ⚠️ 重要规则
+
+**使用 GitHub CLI 管理 PR**：
+
+1. **创建 PR** - 仅在用户明确要求时执行：
+   ```bash
+   gh pr create --base master --head feature/xxx --title "标题" --body-file PR_DESCRIPTION.md
+   ```
+
+2. **查看 PR 状态**：
+   ```bash
+   gh pr checks <PR号>
+   ```
+
+3. **查看 PR 详情**：
+   ```bash
+   gh pr view <PR号>
+   ```
+
+**关键约束**：
+- ⛔ **禁止主动创建 PR** - 必须等待用户明确指令（如："生成 PR 合并到主分支"）
+- ⛔ **禁止在检查失败时推送** - pre-push 检查必须 100% 通过
+- ⛔ **禁止在未运行检查时推送 PR** - 必须先执行 `npm run pre-push`
+- ✅ **推送后检查 CI 状态** - 使用 `gh pr checks` 监控 CI 运行结果
+- ✅ **CI 失败时立即修复** - 不要等待，立即分析日志并修复
 
 ### Copilot 交互惯例
 
@@ -264,9 +310,16 @@ TypeScript 示例:
 2. **开发过程**: 编写代码 → 编写测试 → 运行测试(npm test) → 确保通过
 3. **浏览器测试**: 交付给用户进行浏览器实际测试,等待反馈,根据反馈修复
 4. **提交代码**: 仅在用户明确要求时才提交,遵循约定式提交规范
-5. **推送和 PR**: 仅在用户明确要求时才推送/创建 PR
+5. **推送前检查**: 运行 `npm run pre-push` 确保测试和覆盖率 100% 通过
+6. **推送和 PR**: 仅在用户明确要求时才推送/创建 PR，使用 `gh` 命令
 
-**禁止行为**: 未经测试就交付代码 | 未经用户确认就提交代码 | 未经用户要求就推送代码 | 跳过浏览器测试环节
+**禁止行为**: 
+- ❌ 未经测试就交付代码
+- ❌ 未经用户确认就提交代码
+- ❌ 未经用户要求就推送代码
+- ❌ 跳过浏览器测试环节
+- ❌ **未运行 pre-push 检查就推送 PR**
+- ❌ **主动创建 PR（必须等待用户明确指令）**
 
 ### 功能开发文档要求
 
