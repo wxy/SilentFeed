@@ -41,6 +41,15 @@ vi.mock("@/i18n/helpers", () => ({
       }
       return translations[key] || key
     },
+    t: (key: string) => key,
+  }),
+}))
+
+// Mock ui-config
+vi.mock("@/storage/ui-config", () => ({
+  getUIConfig: vi.fn().mockResolvedValue({
+    style: "sketchy",
+    autoTranslate: false,
   }),
 }))
 
