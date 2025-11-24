@@ -49,9 +49,10 @@ export class ProfileManager {
           return emptyProfile
         }
 
-        // 3. 构建新的用户画像
-        const newProfile = await profileBuilder.buildFromVisits(analyzedVisits)
+        // 3. 构建新的用户画像（传入总记录数，确保 totalPages 正确）
+        const newProfile = await profileBuilder.buildFromVisits(analyzedVisits, visits.length)
         profileLogger.info(`构建完成，包含 ${newProfile.keywords.length} 个关键词，${newProfile.domains.length} 个域名`)
+        profileLogger.info(`总页面数: ${newProfile.totalPages} (基于 ${visits.length} 条确认记录，${analyzedVisits.length} 条有分析)`)
 
         // 4. 保存到数据库
         await db.userProfile.put(newProfile)
@@ -99,11 +100,13 @@ export class ProfileManager {
         )
 
         // 重新构建画像（简化版本，实际可以做增量计算）
-        const updatedProfile = await profileBuilder.buildFromVisits(analyzedVisits)
+        // 传入总记录数，确保 totalPages 正确
+        const updatedProfile = await profileBuilder.buildFromVisits(analyzedVisits, allVisits.length)
 
         // 保存更新后的画像
         await db.userProfile.put(updatedProfile)
         profileLogger.info('用户画像增量更新完成')
+        profileLogger.info(`总页面数: ${updatedProfile.totalPages} (基于 ${allVisits.length} 条确认记录，${analyzedVisits.length} 条有分析)`)
 
         // 处理兴趣变化追踪
         await InterestSnapshotManager.handleProfileUpdate(updatedProfile, 'manual')

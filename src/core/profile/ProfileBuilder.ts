@@ -33,10 +33,14 @@ export class ProfileBuilder {
   /**
    * 从访问记录构建用户画像
    *
-   * @param visits 确认的访问记录列表
+   * @param visits 确认的访问记录列表（已过滤为有分析数据的记录）
+   * @param totalVisitsCount 所有确认访问的总数（未过滤）
    * @returns 用户画像
    */
-  async buildFromVisits(visits: ConfirmedVisit[]): Promise<UserProfile> {
+  async buildFromVisits(
+    visits: ConfirmedVisit[], 
+    totalVisitsCount?: number
+  ): Promise<UserProfile> {
     if (visits.length === 0) {
       return this.createEmptyProfile()
     }
@@ -59,7 +63,7 @@ export class ProfileBuilder {
       topics: topicDistribution,
       keywords: this.getTopKeywords(keywordWeights),
       domains: domainStats.slice(0, this.config.maxDomains),
-      totalPages: visits.length,
+      totalPages: totalVisitsCount ?? visits.length, // 使用传入的总数，否则使用 visits.length
       lastUpdated: Date.now(),
       version: 1,
     }
