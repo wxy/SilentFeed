@@ -196,7 +196,8 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
       const config = await getRecommendationConfig()
       const recommendations = await getUnreadRecommendations(config.maxRecommendations * 2)
       
-      // ✅ 按评分降序排序并限制数量（与 loadRecommendations 保持一致）
+      // ✅ 按评分降序排序并限制数量
+      // 注意：getUnreadRecommendations 已按分数排序，这里再次排序确保一致性
       const sortedRecommendations = recommendations
         .sort((a: Recommendation, b: Recommendation) => b.score - a.score)
         .slice(0, config.maxRecommendations)
@@ -284,7 +285,8 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
       const config = await getRecommendationConfig()
       const recommendations = await getUnreadRecommendations(config.maxRecommendations * 2)
       
-      // ✅ 按评分降序排序并限制数量（与 loadRecommendations 保持一致）
+      // ✅ 按评分降序排序并限制数量
+      // 注意：getUnreadRecommendations 已按分数排序，这里再次排序确保一致性
       const sortedRecommendations = recommendations
         .sort((a: Recommendation, b: Recommendation) => b.score - a.score)
         .slice(0, config.maxRecommendations)

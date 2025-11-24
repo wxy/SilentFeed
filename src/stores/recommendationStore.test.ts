@@ -110,7 +110,7 @@ describe('RecommendationStore', () => {
 
     it('应该处理加载错误', async () => {
       // Mock 数据库错误
-      const spy = vi.spyOn(db.recommendations, 'orderBy').mockImplementation(() => {
+      const spy = vi.spyOn(db.recommendations, 'filter').mockImplementation(() => {
         throw new Error('数据库错误')
       })
       
