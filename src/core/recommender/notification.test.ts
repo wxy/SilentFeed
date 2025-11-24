@@ -2,15 +2,9 @@
  * 推荐通知模块测试
  * 使用分段生成+合并的方法创建
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { 
-  sendRecommendationNotification,
-  setupNotificationListeners,
-  canSendNotification,
-  testNotification
-} from './notification'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
-// Mock Chrome APIs
+// ⚠️ 关键：在导入模块之前先 mock Chrome APIs
 const mockNotifications = {
   create: vi.fn(),
   clear: vi.fn(),
@@ -18,7 +12,7 @@ const mockNotifications = {
   onClicked: { addListener: vi.fn() },
   onButtonClicked: { addListener: vi.fn() },
   onClosed: { addListener: vi.fn() }
-} as any
+}
 
 const mockStorage = {
   local: {
@@ -26,7 +20,7 @@ const mockStorage = {
     set: vi.fn(),
     remove: vi.fn()
   }
-} as any
+}
 
 const mockRuntime = {
   getManifest: vi.fn(() => ({
@@ -38,17 +32,17 @@ const mockRuntime = {
   })),
   getURL: vi.fn((path: string) => `chrome-extension://test-id/${path}`),
   openOptionsPage: vi.fn()
-} as any
+}
 
 const mockAction = {
   openPopup: vi.fn()
-} as any
+}
 
 const mockTabs = {
   create: vi.fn()
-} as any
+}
 
-// @ts-ignore
+// @ts-ignore - 必须在导入 notification 模块之前设置
 global.chrome = {
   notifications: mockNotifications,
   storage: mockStorage,
@@ -56,6 +50,14 @@ global.chrome = {
   action: mockAction,
   tabs: mockTabs
 }
+
+// 现在才导入被测试的模块
+import { 
+  sendRecommendationNotification,
+  setupNotificationListeners,
+  canSendNotification,
+  testNotification
+} from './notification'
 
 describe('NotificationManager - 推荐通知模块', () => {
   beforeEach(async () => {
