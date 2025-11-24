@@ -173,14 +173,16 @@ describe('推荐条目翻译', () => {
 
   describe('getDisplayText', () => {
     it('应该在无翻译时返回原文', () => {
-      const result = getDisplayText(mockRecommendation)
+      const result = getDisplayText(mockRecommendation, false, false)
       
       expect(result.title).toBe('Test Article')
       expect(result.summary).toBe('This is a test article')
       expect(result.hasTranslation).toBe(false)
+      expect(result.isShowingOriginal).toBe(true)
+      expect(result.sourceLanguage).toBe('en')
     })
 
-    it('应该在有翻译时返回译文', () => {
+    it('应该在有翻译且启用自动翻译时返回译文', () => {
       const translatedRec: Recommendation = {
         ...mockRecommendation,
         translation: {
@@ -192,12 +194,13 @@ describe('推荐条目翻译', () => {
         }
       }
 
-      const result = getDisplayText(translatedRec)
+      const result = getDisplayText(translatedRec, false, true)
       
       expect(result.title).toBe('测试文章')
       expect(result.summary).toBe('这是一篇测试文章')
-      expect(result.language).toBe('zh-CN')
+      expect(result.currentLanguage).toBe('zh-CN')
       expect(result.hasTranslation).toBe(true)
+      expect(result.isShowingOriginal).toBe(false)
     })
 
     it('应该在 showOriginal=true 时返回原文', () => {
@@ -212,12 +215,51 @@ describe('推荐条目翻译', () => {
         }
       }
 
-      const result = getDisplayText(translatedRec, true)
+      const result = getDisplayText(translatedRec, true, true)
       
       expect(result.title).toBe('Test Article')
       expect(result.summary).toBe('This is a test article')
-      expect(result.language).toBe('en')
+      expect(result.currentLanguage).toBe('en')
       expect(result.hasTranslation).toBe(true)
+      expect(result.isShowingOriginal).toBe(true)
+    })
+    
+    it('应该在禁用自动翻译时始终返回原文', () => {
+      const translatedRec: Recommendation = {
+        ...mockRecommendation,
+        translation: {
+          sourceLanguage: 'en',
+          targetLanguage: 'zh-CN',
+          translatedTitle: '测试文章',
+          translatedSummary: '这是一篇测试文章',
+          translatedAt: Date.now()
+        }
+      }
+
+      const result = getDisplayText(translatedRec, false, false)
+      
+      expect(result.title).toBe('Test Article')
+      expect(result.summary).toBe('This is a test article')
+      expect(result.currentLanguage).toBe('en')
+      expect(result.hasTranslation).toBe(true)
+      expect(result.isShowingOriginal).toBe(true)
+      expect(result.needsTranslation).toBe(false)
+    })
+    
+    it('应该在启用自动翻译但没有翻译时标记需要翻译', () => {
+      // 使用中文推荐，这样源语言(zh-CN)与目标语言(en在测试环境)不同
+      const chineseRec: Recommendation = {
+        ...mockRecommendation,
+        title: '测试文章',
+        summary: '这是一篇测试文章'
+      }
+      
+      const result = getDisplayText(chineseRec, false, true)
+      
+      expect(result.title).toBe('测试文章')
+      expect(result.summary).toBe('这是一篇测试文章')
+      expect(result.needsTranslation).toBe(true)
+      expect(result.sourceLanguage).toBe('zh-CN')
     })
   })
 })

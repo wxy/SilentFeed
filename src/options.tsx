@@ -9,7 +9,7 @@ import { RSSSettings } from "@/components/settings/RSSSettings"
 import { AnalysisSettings } from "@/components/settings/AnalysisSettings"
 import { NotificationSettings } from "@/components/settings/NotificationSettings"
 import { ProfileSettings } from "@/components/settings/ProfileSettings"
-import { getUIStyle, setUIStyle, watchUIStyle, type UIStyle } from "@/storage/ui-config"
+import { getUIStyle, setUIStyle, watchUIStyle, getUIConfig, updateUIConfig, type UIStyle } from "@/storage/ui-config"
 import { useTheme } from "@/hooks/useTheme"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
 import "@/styles/global.css"
@@ -49,14 +49,16 @@ function IndexOptions() {
 
   const [activeTab, setActiveTab] = useState<TabKey>(getInitialTab)
   const [uiStyle, setUiStyleState] = useState<UIStyle>("sketchy")
+  const [autoTranslate, setAutoTranslate] = useState(false)
 
-  // 加载 UI 风格
+  // 加载 UI 风格和自动翻译设置
   useEffect(() => {
-    const loadUIStyle = async () => {
-      const style = await getUIStyle()
-      setUiStyleState(style)
+    const loadUIConfig = async () => {
+      const config = await getUIConfig()
+      setUiStyleState(config.style)
+      setAutoTranslate(config.autoTranslate)
     }
-    loadUIStyle()
+    loadUIConfig()
 
     // 监听 UI 风格变化
     const unwatch = watchUIStyle((newStyle) => {
@@ -70,6 +72,13 @@ function IndexOptions() {
   const handleUIStyleChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const style = e.target.value as UIStyle
     await setUIStyle(style)
+  }
+  
+  // 切换自动翻译
+  const handleAutoTranslateChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const enabled = e.target.checked
+    setAutoTranslate(enabled)
+    await updateUIConfig({ autoTranslate: enabled })
   }
 
   // 当标签改变时更新 URL
@@ -247,6 +256,30 @@ function IndexOptions() {
                       </select>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                         {_("options.general.uiStyleDescription")}
+                      </p>
+                    </div>
+
+                    {/* 自动翻译开关 - Phase 翻译功能 */}
+                    <div>
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={autoTranslate}
+                          onChange={handleAutoTranslateChange}
+                          className="w-4 h-4 text-indigo-600 bg-white/80 dark:bg-gray-700/80 border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 transition-all"
+                        />
+                        <span className="text-sm font-medium">
+                          {_("options.general.autoTranslate")}
+                        </span>
+                      </label>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 ml-7">
+                        {_("options.general.autoTranslateDesc")}
+                      </p>
+                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 ml-7">
+                        {_("options.general.autoTranslateWarning")}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-7">
+                        {_("options.general.autoTranslateHint")}
                       </p>
                     </div>
 

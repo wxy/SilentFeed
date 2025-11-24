@@ -20,6 +20,8 @@ import type {
 } from '@/types/recommendation'
 import { trackRecommendationGenerated } from './adaptive-count'
 import { sendRecommendationNotification } from './notification'
+import { translateRecommendations } from '../translator/recommendation-translator'
+import { getUIConfig } from '../../storage/ui-config'
 import { logger } from '../../utils/logger'
 
 // 创建带标签的 logger
@@ -225,7 +227,22 @@ export class RecommendationService {
       // 6. 跟踪推荐生成
       await trackRecommendationGenerated(recommendations.length)
 
-      // 7. 发送通知（如果有推荐）
+      // 7. 自动翻译推荐（如果启用）
+      const uiConfig = await getUIConfig()
+      if (uiConfig.autoTranslate && recommendations.length > 0) {
+        recLogger.info(`🌐 自动翻译已启用，开始翻译 ${recommendations.length} 条推荐...`)
+        try {
+          const translatedRecs = await translateRecommendations(recommendations)
+          // translateRecommendations 已经更新了数据库，直接使用返回的结果
+          recommendations.splice(0, recommendations.length, ...translatedRecs)
+          recLogger.info(`✅ 翻译完成`)
+        } catch (error) {
+          recLogger.error('❌ 翻译失败:', error)
+          // 翻译失败不影响推荐展示
+        }
+      }
+
+      // 8. 发送通知（如果有推荐）
       if (recommendations.length > 0) {
         const topRecommendation = recommendations[0]
         await sendRecommendationNotification(recommendations.length, {

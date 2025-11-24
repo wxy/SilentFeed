@@ -9,7 +9,7 @@
  * - 翻译在推荐生成后、展示前进行
  */
 
-import { aiManager } from "../ai/AICapabilityManager"
+import { getAIConfig } from "@/storage/ai-config"
 import { logger } from "@/utils/logger"
 
 const translationLogger = logger.withTag('Translation')
@@ -46,8 +46,20 @@ export class TranslationService {
     targetLanguage: SupportedLanguage
   ): Promise<TranslationResult> {
     try {
-      // 初始化 AI Manager
-      await aiManager.initialize()
+      // 获取 AI 配置
+      const aiConfig = await getAIConfig()
+      
+      // 如果 AI 未启用或没有配置 API Key，使用本地检测
+      const hasApiKey = aiConfig.apiKeys?.openai || aiConfig.apiKeys?.deepseek
+      if (!aiConfig.enabled || !hasApiKey) {
+        translationLogger.warn('AI 未配置，无法翻译')
+        const detectedLang = this.detectLanguage(text)
+        return {
+          sourceLanguage: detectedLang,
+          targetLanguage,
+          translatedText: text // 返回原文
+        }
+      }
       
       const languageNames: Record<SupportedLanguage, string> = {
         'zh-CN': '简体中文',
@@ -77,27 +89,63 @@ export class TranslationService {
 原文：
 ${text}`
 
-      // TODO: 当前 analyzeContent 返回主题概率，不适合翻译
-      // 需要等待 AICapabilityManager 添加 generateText 方法
-      // 临时方案：使用本地语言检测
-      const detectedLang = this.detectLanguage(text)
+      // 调用 AI API（优先使用 DeepSeek，因为翻译成本较低）
+      const provider = aiConfig.provider || 'deepseek'
+      const apiKey = provider === 'deepseek' 
+        ? aiConfig.apiKeys.deepseek 
+        : aiConfig.apiKeys.openai
       
-      if (detectedLang === targetLanguage) {
-        // 源语言与目标语言相同，无需翻译
+      if (!apiKey) {
+        translationLogger.warn(`${provider} API Key 未配置`)
+        const detectedLang = this.detectLanguage(text)
         return {
           sourceLanguage: detectedLang,
           targetLanguage,
           translatedText: text
         }
       }
-
-      // TODO: 调用 AI 翻译
-      translationLogger.warn('AI 翻译功能尚未实现，返回原文')
       
+      const endpoint = provider === 'deepseek' 
+        ? 'https://api.deepseek.com/v1/chat/completions'
+        : 'https://api.openai.com/v1/chat/completions'
+      
+      const model = provider === 'deepseek' ? 'deepseek-chat' : 'gpt-4o-mini'
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: 'user', content: prompt }
+          ],
+          temperature: 0.3 // 较低的温度以保证翻译稳定性
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error(`AI API 请求失败: ${response.status}`)
+      }
+
+      const data = await response.json()
+      const content = data.choices[0]?.message?.content || ''
+
+      // 解析返回内容
+      const sourceLangMatch = content.match(/源语言:\s*([a-zA-Z-]+)/)
+      const translationMatch = content.match(/译文:\s*(.+)/)
+
+      const sourceLanguage = sourceLangMatch?.[1] || this.detectLanguage(text)
+      const translatedText = translationMatch?.[1]?.trim() || text
+
+      translationLogger.debug(`翻译完成: ${sourceLanguage} -> ${targetLanguage}`)
+
       return {
-        sourceLanguage: detectedLang,
+        sourceLanguage,
         targetLanguage,
-        translatedText: text // 临时返回原文
+        translatedText
       }
     } catch (error) {
       translationLogger.error('翻译失败:', error)

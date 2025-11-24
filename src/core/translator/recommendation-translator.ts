@@ -32,6 +32,19 @@ function getCurrentLanguage(): SupportedLanguage {
 }
 
 /**
+ * 格式化语言代码为显示标签
+ * @param langCode 语言代码（如 zh-CN, en, ja）
+ * @returns 显示标签（如 ZH, EN, JA）
+ */
+export function formatLanguageLabel(langCode: string): string {
+  const code = langCode.toUpperCase()
+  // 简化中文代码
+  if (code.startsWith('ZH')) return 'ZH'
+  // 其他语言取前两位
+  return code.substring(0, 2)
+}
+
+/**
  * 翻译单个推荐条目
  * @param recommendation 推荐条目
  * @returns 翻译后的推荐条目（如果启用翻译且需要翻译）
@@ -111,35 +124,157 @@ export async function translateRecommendations(
 }
 
 /**
+ * 即时翻译推荐（兜底策略）
+ * 用于在显示时发现推荐没有翻译时即时翻译
+ * 
+ * @param recommendation 推荐条目
+ * @returns 翻译后的推荐条目
+ */
+export async function translateOnDemand(
+  recommendation: Recommendation
+): Promise<Recommendation> {
+  translationLogger.info(`即时翻译推荐: ${recommendation.id}`)
+  
+  try {
+    const translated = await translateRecommendation(recommendation)
+    
+    // 如果翻译成功，更新数据库
+    if (translated.translation) {
+      const { db } = await import('@/storage/db')
+      await db.recommendations.update(recommendation.id, {
+        translation: translated.translation
+      })
+      translationLogger.debug(`推荐 ${recommendation.id} 翻译已保存到数据库`)
+    }
+    
+    return translated
+  } catch (error) {
+    translationLogger.error('即时翻译失败:', error)
+    return recommendation
+  }
+}
+
+/**
+ * 显示文本结果
+ */
+export interface DisplayTextResult {
+  title: string
+  summary: string
+  /** 当前显示的语言代码 */
+  currentLanguage: string
+  /** 原文语言代码 */
+  sourceLanguage: string
+  /** 目标语言代码（翻译语言） */
+  targetLanguage?: string
+  /** 是否有翻译 */
+  hasTranslation: boolean
+  /** 是否正在显示原文 */
+  isShowingOriginal: boolean
+  /** 是否需要即时翻译（兜底策略） */
+  needsTranslation: boolean
+}
+
+/**
  * 获取推荐的显示文本（自动选择原文或译文）
+ * 
+ * 兜底策略：
+ * 1. 如果启用了自动翻译但推荐没有翻译 → needsTranslation = true（由组件处理即时翻译）
+ * 2. 如果禁用了自动翻译 → 始终显示原文，即使有翻译
+ * 
  * @param recommendation 推荐条目
  * @param showOriginal 是否强制显示原文（默认 false）
+ * @param autoTranslateEnabled 是否启用自动翻译（从 UI 配置获取）
  * @returns 显示文本对象
  */
 export function getDisplayText(
   recommendation: Recommendation,
-  showOriginal = false
-): {
-  title: string
-  summary: string
-  language: string
-  hasTranslation: boolean
-} {
+  showOriginal = false,
+  autoTranslateEnabled = false
+): DisplayTextResult {
   const hasTranslation = !!recommendation.translation
-
-  if (!hasTranslation || showOriginal) {
+  
+  // 检测源语言（如果没有翻译信息）
+  const detectSourceLanguage = (): string => {
+    if (recommendation.translation?.sourceLanguage) {
+      return recommendation.translation.sourceLanguage
+    }
+    
+    // 简单的语言检测
+    const text = recommendation.title
+    if (/[\u3040-\u309f\u30a0-\u30ff]/.test(text)) return 'ja'
+    if (/[\uac00-\ud7af]/.test(text)) return 'ko'
+    if (/[\u4e00-\u9fa5]/.test(text)) return 'zh-CN'
+    return 'en'
+  }
+  
+  const sourceLanguage = detectSourceLanguage()
+  const targetLanguage = getCurrentLanguage()
+  
+  // 如果禁用了自动翻译，始终显示原文
+  if (!autoTranslateEnabled) {
     return {
       title: recommendation.title,
       summary: recommendation.summary || recommendation.excerpt || '',
-      language: recommendation.translation?.sourceLanguage || 'unknown',
-      hasTranslation
+      currentLanguage: sourceLanguage,
+      sourceLanguage,
+      targetLanguage: undefined,
+      hasTranslation,
+      isShowingOriginal: true,
+      needsTranslation: false
     }
   }
-
+  
+  // 如果启用了自动翻译但没有翻译 → 需要即时翻译
+  if (autoTranslateEnabled && !hasTranslation && sourceLanguage !== targetLanguage) {
+    return {
+      title: recommendation.title,
+      summary: recommendation.summary || recommendation.excerpt || '',
+      currentLanguage: sourceLanguage,
+      sourceLanguage,
+      targetLanguage,
+      hasTranslation: false,
+      isShowingOriginal: true,
+      needsTranslation: true // 触发即时翻译
+    }
+  }
+  
+  // 如果用户主动选择显示原文
+  if (showOriginal) {
+    return {
+      title: recommendation.title,
+      summary: recommendation.summary || recommendation.excerpt || '',
+      currentLanguage: sourceLanguage,
+      sourceLanguage,
+      targetLanguage: recommendation.translation?.targetLanguage,
+      hasTranslation,
+      isShowingOriginal: true,
+      needsTranslation: false
+    }
+  }
+  
+  // 显示翻译文本
+  if (hasTranslation) {
+    return {
+      title: recommendation.translation!.translatedTitle,
+      summary: recommendation.translation!.translatedSummary,
+      currentLanguage: recommendation.translation!.targetLanguage,
+      sourceLanguage,
+      targetLanguage: recommendation.translation!.targetLanguage,
+      hasTranslation: true,
+      isShowingOriginal: false,
+      needsTranslation: false
+    }
+  }
+  
+  // 默认显示原文
   return {
-    title: recommendation.translation!.translatedTitle,
-    summary: recommendation.translation!.translatedSummary,
-    language: recommendation.translation!.targetLanguage,
-    hasTranslation
+    title: recommendation.title,
+    summary: recommendation.summary || recommendation.excerpt || '',
+    currentLanguage: sourceLanguage,
+    sourceLanguage,
+    targetLanguage: undefined,
+    hasTranslation: false,
+    isShowingOriginal: true,
+    needsTranslation: false
   }
 }

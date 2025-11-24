@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-11-22T09:20:17.916Z",
+  "lastUpdate": "2025-11-24T01:16:57.885Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -6934,15 +6934,15 @@
     },
     "options.recommendation.generateNow": {
       "zh-CN": {
-        "value": "🔮 马上推荐",
-        "hash": "c996bd57",
-        "lastModified": "2025-11-18T15:48:31.406Z",
+        "value": "马上推荐",
+        "hash": "161272c3",
+        "lastModified": "2025-11-24T01:14:51.014Z",
         "status": "verified"
       },
       "en": {
-        "value": "🔮 Recommend Now",
-        "hash": "d30e72de",
-        "lastModified": "2025-11-18T15:48:31.406Z",
+        "value": "Recommend now",
+        "hash": "f8f23b25",
+        "lastModified": "2025-11-24T01:14:51.014Z",
         "status": "ai-translated"
       }
     },
@@ -9925,6 +9925,90 @@
         "value": "o1-mini: $3.00/M input, $12.0/M output (approx. $2.20/month, inference model)",
         "hash": "bc350fb7",
         "lastModified": "2025-11-22T09:06:28.553Z",
+        "status": "ai-translated"
+      }
+    },
+    "popup.showTranslation": {
+      "zh-CN": {
+        "value": "译文",
+        "hash": "cd2589e0",
+        "lastModified": "2025-11-24T01:14:47.126Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Translate the following Chinese into English:",
+        "hash": "71cbd8bc",
+        "lastModified": "2025-11-24T01:14:47.127Z",
+        "status": "ai-translated"
+      }
+    },
+    "popup.showOriginal": {
+      "zh-CN": {
+        "value": "原文",
+        "hash": "e5729e94",
+        "lastModified": "2025-11-24T01:14:49.167Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Translate the following Chinese text into English:  \nOriginal text",
+        "hash": "4aa98f27",
+        "lastModified": "2025-11-24T01:14:49.168Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.autoTranslate": {
+      "zh-CN": {
+        "value": "自动翻译推荐",
+        "hash": "9625352f",
+        "lastModified": "2025-11-24T01:16:49.800Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Automatic Translation Recommendations",
+        "hash": "2e776078",
+        "lastModified": "2025-11-24T01:16:49.801Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.autoTranslateDesc": {
+      "zh-CN": {
+        "value": "使用 AI 自动将推荐内容翻译为界面语言",
+        "hash": "8132050e",
+        "lastModified": "2025-11-24T01:16:51.945Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Use AI to automatically translate recommended content into the interface language.",
+        "hash": "c4ed353d",
+        "lastModified": "2025-11-24T01:16:51.945Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.autoTranslateWarning": {
+      "zh-CN": {
+        "value": "⚠️ 翻译功能会消耗 AI 额度，成本约为推荐生成的 30%",
+        "hash": "6f563faf",
+        "lastModified": "2025-11-24T01:16:54.612Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "⚠️ Translation feature consumes AI credits, costing approximately 30% of recommended generation.",
+        "hash": "f7edbad7",
+        "lastModified": "2025-11-24T01:16:54.612Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.general.autoTranslateHint": {
+      "zh-CN": {
+        "value": "💡 翻译后可以通过语言标签按钮在原文和译文之间切换",
+        "hash": "c40d1fe1",
+        "lastModified": "2025-11-24T01:16:57.375Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "💡 After translation, you can switch between the original text and the translation using the language tag button.",
+        "hash": "21ff29f6",
+        "lastModified": "2025-11-24T01:16:57.375Z",
         "status": "ai-translated"
       }
     }
