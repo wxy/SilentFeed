@@ -63,19 +63,25 @@ describe('NotificationManager - 推荐通知模块', () => {
     
     // 默认配置：通知启用，无静默时段
     mockStorage.local.get.mockImplementation(async (keys) => {
-      if (keys === 'notification-config') {
-        return {
-          'notification-config': {
-            enabled: true,
-            quietHours: undefined,
-            minInterval: 60
+      // 处理单个字符串 key
+      if (typeof keys === 'string') {
+        if (keys === 'notification-config') {
+          return {
+            'notification-config': {
+              enabled: true,
+              quietHours: undefined,
+              minInterval: 60
+            }
           }
         }
+        if (keys === 'last-notification-time') {
+          return { 'last-notification-time': 0 }
+        }
+        // 其他 key (如 notification-url-xxx) 返回空对象
+        return {}
       }
-      if (keys === 'last-notification-time') {
-        return { 'last-notification-time': 0 }
-      }
-      // 处理数组或单个 key 的情况
+      
+      // 处理数组 keys
       if (Array.isArray(keys)) {
         const result: any = {}
         keys.forEach(key => {
@@ -87,6 +93,7 @@ describe('NotificationManager - 推荐通知模块', () => {
         })
         return result
       }
+      
       return {}
     })
     
