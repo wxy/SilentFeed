@@ -7,6 +7,13 @@ import { useRecommendationStore } from './recommendationStore'
 import { db } from '@/storage/db'
 import type { Recommendation } from '@/types/database'
 
+// Mock chrome API
+global.chrome = {
+  runtime: {
+    sendMessage: vi.fn().mockResolvedValue({}),
+  },
+} as any
+
 describe('RecommendationStore', () => {
   beforeEach(async () => {
     // 清空数据库
@@ -334,6 +341,206 @@ describe('RecommendationStore', () => {
       const state = useRecommendationStore.getState()
       expect(state.recommendations).toHaveLength(1)
       expect(state.stats).not.toBeNull()
+    })
+  })
+
+  describe('generateRecommendations', () => {
+    it('应该手动生成推荐', async () => {
+      // Mock 推荐服务
+      vi.doMock('../core/recommender/RecommendationService', () => ({
+        recommendationService: {
+          generateRecommendations: vi.fn().mockResolvedValue({
+            recommendations: ['rec1', 'rec2'],
+            errors: []
+          })
+        }
+      }))
+      
+      // 准备一些订阅源的文章
+      await db.feedArticles.add({
+        id: 'article1',
+        feedId: 'feed1',
+        title: 'Test Article',
+        link: 'https://example.com/article1',
+        published: Date.now(),
+        fetched: Date.now()
+      })
+      
+      const store = useRecommendationStore.getState()
+      await store.generateRecommendations()
+      
+      const state = useRecommendationStore.getState()
+      expect(state.isLoading).toBe(false)
+      expect(state.error).toBeNull()
+    })
+
+    it('应该处理生成推荐时的警告', async () => {
+      // Mock 推荐服务返回警告
+      vi.doMock('../core/recommender/RecommendationService', () => ({
+        recommendationService: {
+          generateRecommendations: vi.fn().mockResolvedValue({
+            recommendations: ['rec1'],
+            errors: ['Warning: Some feeds failed']
+          })
+        }
+      }))
+      
+      const store = useRecommendationStore.getState()
+      await store.generateRecommendations()
+      
+      const state = useRecommendationStore.getState()
+      expect(state.isLoading).toBe(false)
+      // 有警告但仍有推荐，不应该设置错误
+      expect(state.error).toBeNull()
+    })
+
+    it('应该处理生成推荐完全失败', async () => {
+      // Mock 推荐服务返回错误且无推荐
+      vi.doMock('../core/recommender/RecommendationService', () => ({
+        recommendationService: {
+          generateRecommendations: vi.fn().mockResolvedValue({
+            recommendations: [],
+            errors: ['Error: All feeds failed']
+          })
+        }
+      }))
+      
+      const store = useRecommendationStore.getState()
+      await store.generateRecommendations()
+      
+      const state = useRecommendationStore.getState()
+      expect(state.isLoading).toBe(false)
+      expect(state.error).toBe('Error: All feeds failed')
+    })
+
+    it('应该处理生成推荐时的异常', async () => {
+      // Mock 推荐服务抛出异常
+      vi.doMock('../core/recommender/RecommendationService', () => ({
+        recommendationService: {
+          generateRecommendations: vi.fn().mockRejectedValue(new Error('Network error'))
+        }
+      }))
+      
+      const store = useRecommendationStore.getState()
+      await store.generateRecommendations()
+      
+      const state = useRecommendationStore.getState()
+      expect(state.isLoading).toBe(false)
+      expect(state.error).toBe('Network error')
+    })
+  })
+
+  describe('chrome API 交互', () => {
+    it('应该在标记已读后通知背景脚本', async () => {
+      const sendMessageSpy = vi.spyOn(chrome.runtime, 'sendMessage')
+      
+      await db.recommendations.add({
+        id: '1',
+        url: 'https://example.com/1',
+        title: '推荐 1',
+        summary: '摘要',
+        source: 'Source',
+        sourceUrl: 'https://source.com',
+        recommendedAt: Date.now(),
+        score: 0.9,
+        isRead: false
+      })
+      
+      const store = useRecommendationStore.getState()
+      await store.loadRecommendations()
+      await store.markAsRead('1')
+      
+      expect(sendMessageSpy).toHaveBeenCalledWith({
+        type: 'RECOMMENDATIONS_DISMISSED'
+      })
+    })
+
+    it('应该处理通知背景脚本失败', async () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const sendMessageSpy = vi.spyOn(chrome.runtime, 'sendMessage')
+        .mockRejectedValue(new Error('Extension context invalidated'))
+      
+      await db.recommendations.add({
+        id: '1',
+        url: 'https://example.com/1',
+        title: '推荐 1',
+        summary: '摘要',
+        source: 'Source',
+        sourceUrl: 'https://source.com',
+        recommendedAt: Date.now(),
+        score: 0.9,
+        isRead: false
+      })
+      
+      const store = useRecommendationStore.getState()
+      await store.loadRecommendations()
+      await store.markAsRead('1')
+      
+      // 应该静默处理错误，不影响主流程
+      const state = useRecommendationStore.getState()
+      expect(state.recommendations).toHaveLength(0) // 推荐已被移除
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[RecommendationStore] 无法通知背景脚本更新图标:',
+        expect.any(Error)
+      )
+      
+      sendMessageSpy.mockRestore()
+      consoleWarnSpy.mockRestore()
+    })
+
+    it('应该在dismissSelected后通知背景脚本', async () => {
+      const sendMessageSpy = vi.spyOn(chrome.runtime, 'sendMessage')
+      
+      await db.recommendations.add({
+        id: '1',
+        url: 'https://example.com/1',
+        title: '推荐 1',
+        summary: '摘要',
+        source: 'Source',
+        sourceUrl: 'https://source.com',
+        recommendedAt: Date.now(),
+        score: 0.9,
+        isRead: false
+      })
+      
+      const store = useRecommendationStore.getState()
+      await store.loadRecommendations()
+      await store.dismissSelected(['1'])
+      
+      expect(sendMessageSpy).toHaveBeenCalledWith({
+        type: 'RECOMMENDATIONS_DISMISSED'
+      })
+    })
+
+    it('应该处理dismissSelected通知背景脚本失败', async () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const sendMessageSpy = vi.spyOn(chrome.runtime, 'sendMessage')
+        .mockRejectedValue(new Error('Extension context invalidated'))
+      
+      await db.recommendations.add({
+        id: '1',
+        url: 'https://example.com/1',
+        title: '推荐 1',
+        summary: '摘要',
+        source: 'Source',
+        sourceUrl: 'https://source.com',
+        recommendedAt: Date.now(),
+        score: 0.9,
+        isRead: false
+      })
+      
+      const store = useRecommendationStore.getState()
+      await store.loadRecommendations()
+      await store.dismissSelected(['1'])
+      
+      // 应该静默处理错误
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[RecommendationStore] 无法通知背景脚本:',
+        expect.any(Error)
+      )
+      
+      sendMessageSpy.mockRestore()
+      consoleWarnSpy.mockRestore()
     })
   })
 
