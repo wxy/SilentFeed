@@ -114,8 +114,8 @@ export class OpenAIProvider implements AIProvider {
       // 1. 内容预处理
       const processedContent = this.preprocessContent(content, options)
       
-      // 2. 构建提示词
-      const prompt = this.buildPrompt(processedContent)
+      // 2. 构建提示词（Phase 8: 传递用户画像）
+      const prompt = this.buildPrompt(processedContent, options?.userProfile)
       
       // 3. 调用 OpenAI API
       const { response, actualModel } = await this.callAPI(prompt, options)
@@ -225,11 +225,85 @@ export class OpenAIProvider implements AIProvider {
   
   /**
    * 构建提示词
+   * 
+   * Phase 8: 支持传递用户画像进行个性化分析
    */
-  private buildPrompt(content: string): string {
+  private buildPrompt(
+    content: string,
+    userProfile?: {
+      interests: string
+      preferences: string[]
+      avoidTopics: string[]
+    }
+  ): string {
     // 判断是否为推理模型
     const isReasoningModel = this.model.startsWith("o")
     
+    // Phase 8: 如果有用户画像，使用个性化 prompt
+    if (userProfile && userProfile.interests) {
+      if (isReasoningModel) {
+        // 推理模型：更详细的提示，引导思考过程
+        return `你是一个智能内容分析助手，需要根据用户兴趣分析文章的主题和相关性。
+
+# 用户画像
+- **兴趣领域**: ${userProfile.interests}
+- **内容偏好**: ${userProfile.preferences.join('、')}
+- **避免主题**: ${userProfile.avoidTopics.join('、')}
+
+# 文章内容
+${content}
+
+请仔细思考：
+1. 这篇文章的主要主题是什么？
+2. 哪些主题与用户的兴趣相关？
+3. 是否包含用户避免的主题？
+4. 每个主题的重要性如何？
+
+以 JSON 格式返回分析结果，包含主题及其概率（0-1之间的数字，总和为1）。
+避免的主题应该给予更低的概率。
+
+返回格式示例：
+{
+  "topics": {
+    "技术": 0.7,
+    "开源": 0.2,
+    "教程": 0.1
+  }
+}
+
+只返回 JSON，不要其他解释。`
+      } else {
+        // 标准模型：简洁提示
+        return `你是一个智能内容分析助手，需要根据用户兴趣分析文章的主题和相关性。
+
+# 用户画像
+- **兴趣领域**: ${userProfile.interests}
+- **内容偏好**: ${userProfile.preferences.join('、')}
+- **避免主题**: ${userProfile.avoidTopics.join('、')}
+
+# 文章内容
+${content}
+
+# 分析要求
+1. 识别文章的 3-5 个主要主题
+2. 评估每个主题与用户兴趣的相关性
+3. 给出每个主题的概率（0-1之间，总和为1）
+4. 避免的主题应该给予更低的概率
+
+# 输出格式（JSON）
+{
+  "topics": {
+    "主题1": 0.5,
+    "主题2": 0.3,
+    "主题3": 0.2
+  }
+}
+
+只输出 JSON，不要其他内容。`
+      }
+    }
+    
+    // 默认 prompt（无用户画像）
     if (isReasoningModel) {
       // 推理模型：更详细的提示，引导思考过程
       return `你是一个内容分析专家。请深入分析以下文本的主题分布。

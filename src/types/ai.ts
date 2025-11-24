@@ -25,6 +25,19 @@ export interface RecommendationReasonRequest {
 
   /** 相关性评分 */
   relevanceScore: number
+
+  /** 
+   * Phase 8: 语义化用户画像（可选）
+   * 如果提供，AI 将使用丰富的画像信息进行评分
+   */
+  userProfile?: {
+    /** 兴趣领域描述（自然语言） */
+    interests: string
+    /** 内容偏好列表 */
+    preferences: string[]
+    /** 避免的主题列表 */
+    avoidTopics: string[]
+  }
 }
 
 /**
@@ -173,6 +186,19 @@ export interface AnalyzeOptions {
 
   /** 是否使用推理模式（Phase 6）*/
   useReasoning?: boolean
+
+  /** 
+   * Phase 8: 语义化用户画像（可选）
+   * 如果提供，AI 将根据用户兴趣评估内容相关性
+   */
+  userProfile?: {
+    /** 兴趣领域描述（自然语言） */
+    interests: string
+    /** 内容偏好列表 */
+    preferences: string[]
+    /** 避免的主题列表 */
+    avoidTopics: string[]
+  }
 }
 
 /**

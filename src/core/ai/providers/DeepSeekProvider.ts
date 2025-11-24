@@ -85,8 +85,8 @@ export class DeepSeekProvider implements AIProvider {
       // 1. 内容预处理
       const processedContent = this.preprocessContent(content, options)
       
-      // 2. 构建提示词
-      const prompt = this.buildPrompt(processedContent)
+      // 2. 构建提示词（Phase 8: 传递用户画像）
+      const prompt = this.buildPrompt(processedContent, options?.userProfile)
       
       // 3. 调用 DeepSeek API
       const response = await this.callAPI(prompt, options)
@@ -195,9 +195,50 @@ export class DeepSeekProvider implements AIProvider {
   
   /**
    * 构建提示词
+   * 
+   * Phase 8: 支持传递用户画像进行个性化分析
    */
-  private buildPrompt(content: string): string {
+  private buildPrompt(
+    content: string,
+    userProfile?: {
+      interests: string
+      preferences: string[]
+      avoidTopics: string[]
+    }
+  ): string {
     // JSON Mode 要求提示词中包含 "JSON" 和格式示例
+    
+    // Phase 8: 如果有用户画像，使用个性化 prompt
+    if (userProfile && userProfile.interests) {
+      return `你是一个智能内容分析助手，需要根据用户兴趣分析文章的主题和相关性。
+
+# 用户画像
+- **兴趣领域**: ${userProfile.interests}
+- **内容偏好**: ${userProfile.preferences.join('、')}
+- **避免主题**: ${userProfile.avoidTopics.join('、')}
+
+# 文章内容
+${content}
+
+# 分析要求
+1. 识别文章的 3-5 个主要主题
+2. 评估每个主题与用户兴趣的相关性
+3. 给出每个主题的概率（0-1之间，总和为1）
+4. 避免的主题应该给予更低的概率
+
+# 输出格式（JSON）
+{
+  "topics": {
+    "主题1": 0.5,
+    "主题2": 0.3,
+    "主题3": 0.2
+  }
+}
+
+只输出 JSON，不要其他内容。`
+    }
+    
+    // 默认 prompt（无用户画像）
     return `分析以下文本的主题分布，输出 JSON 格式结果。
 
 文本：
