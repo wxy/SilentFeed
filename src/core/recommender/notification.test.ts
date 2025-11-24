@@ -52,8 +52,12 @@ global.chrome = {
 }
 
 describe('NotificationManager - 推荐通知模块', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
+    
+    // 清除模块缓存以确保每次测试都使用新的实例
+    vi.resetModules()
+    
     mockStorage.local.get.mockResolvedValue({})
     mockStorage.local.set.mockResolvedValue(undefined)
     mockStorage.local.remove.mockResolvedValue(undefined)
