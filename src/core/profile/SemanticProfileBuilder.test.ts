@@ -466,7 +466,7 @@ describe('SemanticProfileBuilder', () => {
       
       const profile = await db.userProfile.get('singleton')
       expect(profile?.aiSummary).toBeDefined()
-      expect(profile?.aiSummary?.interests).toContain('刚开始使用')
+      expect(profile?.aiSummary?.interests).toContain('正在学习您的兴趣偏好')
     })
 
     it('应该在有浏览数据时基于关键词生成画像', async () => {

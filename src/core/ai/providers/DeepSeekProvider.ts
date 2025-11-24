@@ -20,7 +20,9 @@ import type {
   AnalyzeOptions,
   DeepSeekRequest,
   DeepSeekResponse,
-  AIAnalysisOutput
+  AIAnalysisOutput,
+  UserProfileGenerationRequest,
+  UserProfileGenerationResult
 } from "@/types/ai"
 import { logger } from "../../../utils/logger"
 
@@ -430,5 +432,209 @@ ${content}
     const outputCost = (completionTokens / 1_000_000) * this.PRICE_OUTPUT
     
     return inputCostCached + inputCostUncached + outputCost
+  }
+
+  /**
+   * Phase 8: 生成用户画像
+   * 
+   * 基于用户行为数据生成语义化的用户兴趣画像
+   */
+  async generateUserProfile(
+    request: UserProfileGenerationRequest
+  ): Promise<UserProfileGenerationResult> {
+    try {
+      // 1. 构建用户行为摘要
+      const behaviorSummary = this.buildBehaviorSummary(request)
+      
+      // 2. 构建 Prompt
+      const prompt = this.buildProfilePrompt(behaviorSummary, request.currentProfile)
+      
+      // 3. 调用 API
+      const apiRequest: DeepSeekRequest = {
+        model: "deepseek-chat", // 使用标准模型（不需要推理）
+        messages: [
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        response_format: {
+          type: "json_object"
+        },
+        max_tokens: 1000, // 画像不需要太多 tokens
+        stream: false
+      }
+      
+      const response = await fetch(this.endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${this.config.apiKey}`
+        },
+        body: JSON.stringify(apiRequest),
+        signal: AbortSignal.timeout(30000) // 30秒超时
+      })
+      
+      if (!response.ok) {
+        throw new Error(`DeepSeek API error: ${response.status} ${response.statusText}`)
+      }
+      
+      const data = await response.json() as DeepSeekResponse
+      
+      // 4. 解析响应
+      const content = data.choices[0]?.message?.content
+      if (!content) {
+        throw new Error("Empty response from DeepSeek")
+      }
+      
+      const profileData = JSON.parse(content) as {
+        interests: string
+        preferences: string[]
+        avoidTopics: string[]
+      }
+      
+      // 5. 计算成本
+      const cost = this.calculateCost(
+        data.usage.prompt_tokens,
+        data.usage.completion_tokens
+      )
+      
+      deepseekLogger.debug(' User profile generated:', {
+        interests: profileData.interests.substring(0, 50) + '...',
+        preferences: profileData.preferences,
+        avoidTopics: profileData.avoidTopics,
+        cost: `¥${cost.toFixed(4)}`
+      })
+      
+      return {
+        interests: profileData.interests,
+        preferences: profileData.preferences,
+        avoidTopics: profileData.avoidTopics,
+        metadata: {
+          provider: 'deepseek',
+          model: 'deepseek-chat',
+          timestamp: Date.now(),
+          tokensUsed: {
+            input: data.usage.prompt_tokens,
+            output: data.usage.completion_tokens
+          },
+          basedOn: {
+            browses: request.behaviors.browses?.length || 0,
+            reads: request.behaviors.reads?.length || 0,
+            dismisses: request.behaviors.dismisses?.length || 0
+          }
+        }
+      }
+    } catch (error) {
+      deepseekLogger.error("Failed to generate user profile:", error)
+      throw error
+    }
+  }
+
+  /**
+   * 构建用户行为摘要
+   */
+  private buildBehaviorSummary(request: UserProfileGenerationRequest): string {
+    const parts: string[] = []
+    
+    // 1. 关键词分析
+    const topKeywords = request.topKeywords.slice(0, 15)
+    if (topKeywords.length > 0) {
+      parts.push(`**高频关键词**（权重降序）：\n${topKeywords.map(k => 
+        `- ${k.word} (权重: ${k.weight.toFixed(2)})`
+      ).join('\n')}`)
+    }
+    
+    // 2. 主题分布
+    const topTopics = Object.entries(request.topicDistribution)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+    if (topTopics.length > 0) {
+      parts.push(`\n**主题分布**：\n${topTopics.map(([topic, score]) => 
+        `- ${topic}: ${(score * 100).toFixed(1)}%`
+      ).join('\n')}`)
+    }
+    
+    // 3. 阅读行为（最近的高质量阅读）
+    if (request.behaviors.reads && request.behaviors.reads.length > 0) {
+      const topReads = request.behaviors.reads
+        .filter(r => r.weight > 0.6) // 只看深度阅读
+        .slice(0, 5)
+      
+      if (topReads.length > 0) {
+        parts.push(`\n**深度阅读的文章**（最近 ${topReads.length} 篇）：\n${topReads.map(r => 
+          `- "${r.title}" (阅读深度: ${(r.scrollDepth * 100).toFixed(0)}%, 时长: ${Math.round(r.readDuration)}s)`
+        ).join('\n')}`)
+      }
+    }
+    
+    // 4. 拒绝行为（用户不感兴趣的内容）
+    if (request.behaviors.dismisses && request.behaviors.dismisses.length > 0) {
+      const recentDismisses = request.behaviors.dismisses.slice(0, 5)
+      parts.push(`\n**拒绝的文章**（用户不感兴趣，最近 ${recentDismisses.length} 篇）：\n${recentDismisses.map(d => 
+        `- "${d.title}"`
+      ).join('\n')}`)
+    }
+    
+    return parts.join('\n')
+  }
+
+  /**
+   * 构建画像生成 Prompt
+   */
+  private buildProfilePrompt(behaviorSummary: string, currentProfile?: {
+    interests: string
+    preferences: string[]
+    avoidTopics: string[]
+  }): string {
+    if (currentProfile) {
+      // 增量更新
+      return `你是一个用户兴趣分析专家。基于用户的最新行为数据，更新用户的兴趣画像。
+
+# 当前画像
+- **兴趣领域**: ${currentProfile.interests}
+- **内容偏好**: ${currentProfile.preferences.join('、')}
+- **避免主题**: ${currentProfile.avoidTopics.join('、')}
+
+# 最新用户行为数据
+${behaviorSummary}
+
+# 任务要求
+1. 分析新行为数据与当前画像的一致性
+2. 如果发现新的兴趣点，适当扩展兴趣领域描述
+3. 根据深度阅读的内容，更新或补充内容偏好
+4. 根据拒绝的文章，更新避免主题列表
+5. 保持画像的连贯性和准确性
+
+# 输出格式（JSON）
+{
+  "interests": "简洁的兴趣领域描述（50-200字，自然语言）",
+  "preferences": ["偏好1", "偏好2", "偏好3"], // 3-5条
+  "avoidTopics": ["避免1", "避免2"] // 0-5条
+}
+
+只输出 JSON，不要其他内容。`
+    } else {
+      // 全量生成
+      return `你是一个用户兴趣分析专家。基于用户的浏览和阅读行为，生成用户的兴趣画像。
+
+# 用户行为数据
+${behaviorSummary}
+
+# 任务要求
+1. 分析高频关键词和主题分布，识别用户的核心兴趣领域
+2. 结合深度阅读的文章，理解用户的内容偏好（如：深度分析、实践案例、新闻资讯等）
+3. 根据拒绝的文章，识别用户避免的主题
+4. 用自然、简洁的语言描述用户兴趣，避免生硬的关键词堆砌
+
+# 输出格式（JSON）
+{
+  "interests": "简洁的兴趣领域描述（50-200字，自然语言，例如：'对前端技术、React框架、性能优化感兴趣，关注Web标准和开发工具'）",
+  "preferences": ["偏好1", "偏好2", "偏好3"], // 3-5条，例如：["深度技术文章", "实践案例分享", "新技术趋势"]
+  "avoidTopics": ["避免1", "避免2"] // 0-5条，例如：["娱乐八卦", "体育新闻"]
+}
+
+只输出 JSON，不要其他内容。`
+    }
   }
 }

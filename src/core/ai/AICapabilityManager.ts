@@ -16,7 +16,9 @@ import type {
   UnifiedAnalysisResult,
   AnalyzeOptions,
   RecommendationReasonRequest,
-  RecommendationReasonResult
+  RecommendationReasonResult,
+  UserProfileGenerationRequest,
+  UserProfileGenerationResult
 } from "@/types/ai"
 import { DeepSeekProvider } from "./providers/DeepSeekProvider"
 import { OpenAIProvider } from "./providers/OpenAIProvider"
@@ -107,6 +109,65 @@ export class AICapabilityManager {
     // 2. 降级到关键词分析
     aiLogger.info(" Using fallback provider: Keyword Analysis")
     return await this.fallbackProvider.analyzeContent(content, options)
+  }
+
+  /**
+   * Phase 8: 生成用户画像
+   * 
+   * 基于用户行为数据生成语义化的用户兴趣画像
+   */
+  async generateUserProfile(
+    request: UserProfileGenerationRequest
+  ): Promise<UserProfileGenerationResult> {
+    // 1. 尝试使用主 Provider（如果支持）
+    if (this.primaryProvider?.generateUserProfile) {
+      try {
+        const available = await this.primaryProvider.isAvailable()
+        if (available) {
+          aiLogger.info(` Generating user profile with: ${this.primaryProvider.name}`)
+          const result = await this.primaryProvider.generateUserProfile(request)
+          
+          // 记录使用情况
+          if (result.metadata.tokensUsed) {
+            aiLogger.debug(' Tokens used:', result.metadata.tokensUsed)
+          }
+          
+          return result
+        } else {
+          aiLogger.warn(" Primary provider not available for profile generation, using fallback")
+        }
+      } catch (error) {
+        aiLogger.error(" Primary provider failed for profile generation, using fallback:", error)
+      }
+    }
+    
+    // 2. 降级到关键词分析
+    if (this.fallbackProvider.generateUserProfile) {
+      aiLogger.info(" Using fallback provider for profile generation")
+      return await this.fallbackProvider.generateUserProfile(request)
+    }
+    
+    // 3. 最终降级：基于关键词生成简单画像
+    aiLogger.warn(" No provider supports profile generation, using basic keyword summary")
+    const topKeywords = request.topKeywords.slice(0, 10).map(k => k.word)
+    
+    return {
+      interests: topKeywords.length > 0 
+        ? `对 ${topKeywords.join('、')} 等主题感兴趣`
+        : '正在学习您的兴趣偏好',
+      preferences: ['技术文章', '新闻资讯', '深度分析'],
+      avoidTopics: [],
+      metadata: {
+        provider: 'keyword',
+        model: 'keyword-v1',
+        timestamp: Date.now(),
+        basedOn: {
+          browses: request.behaviors.browses?.length || 0,
+          reads: request.behaviors.reads?.length || 0,
+          dismisses: request.behaviors.dismisses?.length || 0
+        }
+      }
+    }
   }
   
   /**

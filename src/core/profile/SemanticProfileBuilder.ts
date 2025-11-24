@@ -221,142 +221,104 @@ export class SemanticProfileBuilder {
     // === 1. 准备上下文数据 ===
     
     // 最近阅读（按权重排序，取前 10 篇）
-    // 注意：复制数组避免修改原数组
     const topReads = [...behaviors.reads]
       .sort((a, b) => b.weight - a.weight)
       .slice(0, 10)
-      .map(r => ({
-        title: r.title,
-        summary: r.summary,
-        duration: `${r.readDuration}秒`,
-        depth: `${(r.scrollDepth * 100).toFixed(0)}%`,
-        weight: r.weight.toFixed(2)
-      }))
     
     // 最近拒绝（取前 5 篇）
-    const topDismisses = behaviors.dismisses
-      .slice(0, 5)
-      .map(d => ({
-        title: d.title,
-        summary: d.summary
-      }))
+    const topDismisses = behaviors.dismisses.slice(0, 5)
     
     // 高频浏览页面（停留时间 > 60秒，取前 20 个）
     const topVisits = visits
       .filter(v => v.duration > 60)
       .sort((a, b) => b.duration - a.duration)
       .slice(0, 20)
-      .map(v => ({
-        title: v.title,
-        domain: v.domain,
-        keywords: v.analysis?.keywords?.slice(0, 5) || [],
-        duration: `${v.duration}秒`
-      }))
     
-    // === 2. 构建详细的 Prompt ===
+    // 提取高频关键词
+    const keywordMap = new Map<string, number>()
     
-    const prompt = `
-你是用户画像分析专家。请深入分析用户的阅读偏好，生成精准的兴趣画像。
-
-=== 📖 用户阅读过的推荐（强烈信号）===
-${topReads.length > 0 ? topReads.map((r, i) => `
-${i + 1}. **${r.title}**
-   摘要：${r.summary}
-   阅读时长：${r.duration}，滚动深度：${r.depth}
-   权重评分：${r.weight}
-`).join('\n') : '（暂无阅读记录）'}
-
-=== ❌ 用户拒绝的推荐（负向信号）===
-${topDismisses.length > 0 ? topDismisses.map((d, i) => `
-${i + 1}. **${d.title}**
-   摘要：${d.summary}
-`).join('\n') : '（暂无拒绝记录）'}
-
-=== 🌐 用户浏览过的网页（一般信号）===
-${topVisits.slice(0, 15).map((v, i) => `
-${i + 1}. **${v.title}** (${v.domain})
-   关键词：${v.keywords.join('、') || '无'}
-   停留时长：${v.duration}
-`).join('\n')}
-
-=== 📊 统计信息 ===
-- 总浏览页面：${visits.length} 页
-- 总阅读推荐：${behaviors.totalReads} 篇
-- 总拒绝推荐：${behaviors.totalDismisses} 篇
-- 本次更新触发原因：${trigger === 'browse' ? '累计浏览' : trigger === 'read' ? '阅读推荐' : '拒绝推荐'}
-
-=== 🎯 分析任务 ===
-请综合以上信息，生成用户画像。注意：
-1. **优先考虑阅读记录**（权重最高，代表用户真实偏好）
-2. **重视拒绝记录**（避免推荐类似内容）
-3. **参考浏览记录**（辅助理解兴趣广度）
-4. **识别细分兴趣**（不要只归纳到"技术"、"设计"等粗分类，要具体到"React Hooks"、"微服务架构"等）
-5. **捕捉偏好风格**（如"深度解析" vs "快速入门"，"理论研究" vs "实战教程"）
-
-返回 JSON 格式（严格按此结构）：
-\`\`\`json
-{
-  "interests": "用户兴趣总结（100-200字，要详细具体）",
-  "preferences": [
-    "偏好特征1（如：深度技术解析）",
-    "偏好特征2（如：开源项目源码分析）",
-    "偏好特征3",
-    "偏好特征4",
-    "偏好特征5"
-  ],
-  "avoidTopics": [
-    "避免主题1（基于拒绝记录）",
-    "避免主题2",
-    "避免主题3"
-  ]
-}
-\`\`\`
-
-只返回 JSON，不要其他解释。
-`
+    // 从浏览记录
+    for (const visit of visits) {
+      const keywords = visit.analysis?.keywords || []
+      for (const keyword of keywords) {
+        keywordMap.set(keyword, (keywordMap.get(keyword) || 0) + 0.3)
+      }
+    }
     
-    profileLogger.debug('[AISummary] Prompt 构建完成', {
-      prompt长度: prompt.length,
-      预估tokens: Math.ceil(prompt.length / 2.5),
-      阅读记录数: topReads.length,
-      拒绝记录数: topDismisses.length,
-      浏览记录数: topVisits.length
-    })
+    // 从阅读记录（权重更高）
+    for (const read of behaviors.reads) {
+      const words = this.extractWords(read.title + ' ' + read.summary)
+      for (const word of words) {
+        keywordMap.set(word, (keywordMap.get(word) || 0) + read.weight)
+      }
+    }
     
-    // === 3. 调用 AI ===
+    // 从拒绝记录（负权重）
+    for (const dismiss of behaviors.dismisses) {
+      const words = this.extractWords(dismiss.title + ' ' + dismiss.summary)
+      for (const word of words) {
+        keywordMap.set(word, (keywordMap.get(word) || 0) - 0.5)
+      }
+    }
+    
+    const topKeywords = Array.from(keywordMap.entries())
+      .map(([word, weight]) => ({ word, weight }))
+      .filter(k => k.weight > 0.1)
+      .sort((a, b) => b.weight - a.weight)
+      .slice(0, 50)
+    
+    // 主题分布（简化版，从访问记录提取）
+    const topicDistribution: Record<string, number> = {}
+    for (const visit of visits) {
+      const topics = visit.analysis?.topics || []
+      for (const topic of topics) {
+        topicDistribution[topic] = (topicDistribution[topic] || 0) + 0.1
+      }
+    }
+    
+    // === 2. 调用专用的画像生成 API ===
     try {
-      const result = await aiManager.analyzeContent(prompt, {
-        maxLength: 3000,
-        timeout: 60000  // 60秒超时
+      const result = await aiManager.generateUserProfile({
+        behaviors: {
+          browses: topVisits.map(v => ({
+            keywords: v.analysis?.keywords || [],
+            topics: v.analysis?.topics || [],
+            weight: v.duration / 300, // 标准化到 0-1
+            timestamp: v.visitTime
+          })),
+          reads: topReads.map(r => ({
+            title: r.title,
+            keywords: this.extractWords(r.title),
+            topics: [], // 从标题提取的主题
+            readDuration: r.readDuration,
+            scrollDepth: r.scrollDepth,
+            weight: r.weight,
+            timestamp: r.timestamp
+          })),
+          dismisses: topDismisses.map(d => ({
+            title: d.title,
+            keywords: this.extractWords(d.title),
+            topics: [],
+            weight: d.weight,
+            timestamp: d.timestamp
+          }))
+        },
+        topKeywords,
+        topicDistribution,
+        currentProfile: undefined // 暂时不支持增量更新，后续可扩展
       })
       
-      // 解析 AI 返回的 topicProbabilities（实际包含我们的 JSON）
-      // AI Provider 返回的是 UnifiedAnalysisResult，我们需要从中提取内容
-      // 这里需要特殊处理：直接调用 chat API
-      
-      profileLogger.warn('[AISummary] analyzeContent 不支持自定义 prompt，需要改用 chat API')
-      
-      // 临时方案：如果 AI 不可用，使用基础画像
-      if (topReads.length === 0 && topVisits.length === 0) {
-        return {
-          interests: '用户刚开始使用，暂无明确兴趣偏好',
-          preferences: [],
-          avoidTopics: topDismisses.map(d => d.title),
-          generatedAt: Date.now(),
-          basedOnPages: visits.length,
-          basedOnReads: behaviors.totalReads,
-          basedOnDismisses: behaviors.totalDismisses
-        }
-      }
-      
-      // 从浏览记录中提取兴趣（降级方案）
-      const topKeywords = this.extractTopKeywords(visits, 10)
-      const interests = `用户对 ${topKeywords.join('、')} 等主题感兴趣`
+      profileLogger.info('[AISummary] ✅ AI 画像生成成功', {
+        provider: result.metadata.provider,
+        兴趣摘要长度: result.interests.length,
+        偏好数: result.preferences.length,
+        避免主题数: result.avoidTopics.length
+      })
       
       return {
-        interests,
-        preferences: topKeywords.slice(0, 5),
-        avoidTopics: topDismisses.map(d => this.extractMainTopic(d.summary)),
+        interests: result.interests,
+        preferences: result.preferences,
+        avoidTopics: result.avoidTopics,
         generatedAt: Date.now(),
         basedOnPages: visits.length,
         basedOnReads: behaviors.totalReads,
@@ -364,15 +326,17 @@ ${i + 1}. **${v.title}** (${v.domain})
       }
       
     } catch (error) {
-      profileLogger.error('[AISummary] AI 调用失败，使用降级方案:', error)
+      profileLogger.error('[AISummary] AI 生成失败，使用降级方案', error)
       
-      // 降级方案：基于关键词生成
-      const topKeywords = this.extractTopKeywords(visits, 10)
+      // === 3. 降级方案：基于关键词生成简单画像 ===
+      const topKeywordNames = topKeywords.slice(0, 10).map(k => k.word)
       
       return {
-        interests: `用户对 ${topKeywords.join('、')} 等主题感兴趣`,
-        preferences: topKeywords.slice(0, 5),
-        avoidTopics: topDismisses.map(d => this.extractMainTopic(d.summary)),
+        interests: topKeywordNames.length > 0 
+          ? `对 ${topKeywordNames.join('、')} 等主题感兴趣`
+          : '正在学习您的兴趣偏好',
+        preferences: ['技术文章', '新闻资讯', '深度分析'].slice(0, 3),
+        avoidTopics: topDismisses.map(d => this.extractMainTopic(d.summary)).slice(0, 5),
         generatedAt: Date.now(),
         basedOnPages: visits.length,
         basedOnReads: behaviors.totalReads,
