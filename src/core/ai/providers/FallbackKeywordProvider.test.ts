@@ -328,4 +328,85 @@ describe("FallbackKeywordProvider", () => {
       // 应该有降级处理
     })
   })
+
+  describe("generateUserProfile", () => {
+    it("应该基于关键词生成用户画像", async () => {
+      const request = {
+        behaviors: {
+          browses: [
+            { keywords: ['React', 'JavaScript'], topics: ['technology'], weight: 0.8, timestamp: Date.now() }
+          ],
+          reads: [
+            { title: 'React 18 新特性', keywords: ['React'], topics: ['technology'], readDuration: 120, scrollDepth: 0.9, weight: 0.9, timestamp: Date.now() }
+          ],
+          dismisses: [
+            { title: '娱乐八卦', keywords: ['娱乐', '明星'], topics: ['entertainment'], weight: 0.5, timestamp: Date.now() }
+          ]
+        },
+        topKeywords: [
+          { word: 'React', weight: 0.95 },
+          { word: 'JavaScript', weight: 0.88 },
+          { word: 'TypeScript', weight: 0.75 }
+        ],
+        topicDistribution: {
+          technology: 0.85,
+          design: 0.15
+        }
+      }
+
+      const result = await provider.generateUserProfile(request)
+
+      expect(result.interests).toContain('React')
+      expect(result.interests).toContain('JavaScript')
+      expect(result.interests).toContain('technology')
+      expect(result.preferences).toContain('技术文章')
+      expect(result.avoidTopics).toContain('娱乐')
+      expect(result.metadata.provider).toBe('keyword')
+      expect(result.metadata.tokensUsed).toBe(0)
+    })
+
+    it("应该在没有数据时返回默认画像", async () => {
+      const request = {
+        behaviors: {},
+        topKeywords: [],
+        topicDistribution: {}
+      }
+
+      const result = await provider.generateUserProfile(request)
+
+      expect(result.interests).toBe('正在学习您的兴趣偏好')
+      expect(result.preferences).toEqual(['深度文章', '专业内容', '高质量资讯'])
+      expect(result.avoidTopics).toEqual([])
+      expect(result.metadata.provider).toBe('keyword')
+    })
+
+    it("应该正确统计数据量", async () => {
+      const request = {
+        behaviors: {
+          browses: [
+            { keywords: [], topics: [], weight: 0.5, timestamp: Date.now() },
+            { keywords: [], topics: [], weight: 0.5, timestamp: Date.now() },
+            { keywords: [], topics: [], weight: 0.5, timestamp: Date.now() }
+          ],
+          reads: [
+            { title: 'Test', keywords: [], topics: [], readDuration: 60, scrollDepth: 0.8, weight: 0.7, timestamp: Date.now() },
+            { title: 'Test 2', keywords: [], topics: [], readDuration: 120, scrollDepth: 0.9, weight: 0.8, timestamp: Date.now() }
+          ],
+          dismisses: [
+            { title: 'Bad', keywords: ['bad'], topics: [], weight: 0.3, timestamp: Date.now() }
+          ]
+        },
+        topKeywords: [{ word: 'test', weight: 0.5 }],
+        topicDistribution: { technology: 0.5 }
+      }
+
+      const result = await provider.generateUserProfile(request)
+
+      expect(result.metadata.basedOn).toEqual({
+        browses: 3,
+        reads: 2,
+        dismisses: 1
+      })
+    })
+  })
 })
