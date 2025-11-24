@@ -255,6 +255,121 @@ export function ProfileSettings() {
           </div>
         </div>
 
+        {/* AI 语义画像 - AI 的独特价值展示 */}
+        {profile.aiSummary && (
+          <div className="bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 dark:from-purple-900/20 dark:via-pink-900/20 dark:to-orange-900/20 rounded-xl p-6 border-2 border-purple-200 dark:border-purple-700 shadow-lg">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                <span className="text-2xl">🤖</span>
+                <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  AI 语义画像
+                </span>
+              </h3>
+              <div className="flex items-center gap-2">
+                <span className="text-xs bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 py-1 rounded-full font-medium shadow-sm">
+                  {profile.aiSummary.metadata.provider === 'deepseek' ? 'DeepSeek' : 
+                   profile.aiSummary.metadata.provider === 'openai' ? 'OpenAI' : 
+                   'AI'}
+                </span>
+                <span className="text-xs text-purple-600 dark:text-purple-400">
+                  {new Date(profile.aiSummary.metadata.timestamp).toLocaleDateString('zh-CN')}
+                </span>
+              </div>
+            </div>
+
+            {/* 兴趣理解 - AI 的核心价值 */}
+            <div className="mb-5">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-sm font-semibold text-purple-700 dark:text-purple-300">
+                  💭 AI 对您的理解
+                </span>
+                <span className="text-xs text-purple-500 dark:text-purple-400">
+                  (超越关键词，深度语义分析)
+                </span>
+              </div>
+              <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur rounded-lg p-4 border border-purple-100 dark:border-purple-800">
+                <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed italic">
+                  "{profile.aiSummary.interests}"
+                </p>
+              </div>
+            </div>
+
+            {/* 内容偏好 - 可操作的洞察 */}
+            <div className="mb-5">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-sm font-semibold text-pink-700 dark:text-pink-300">
+                  ⭐ 您偏好的内容类型
+                </span>
+                <span className="text-xs bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 px-2 py-0.5 rounded">
+                  {profile.aiSummary.preferences.length} 项
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {profile.aiSummary.preferences.map((pref, i) => (
+                  <span 
+                    key={i}
+                    className="inline-flex items-center gap-1 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-800/40 dark:to-pink-800/40 text-purple-700 dark:text-purple-200 px-3 py-1.5 rounded-lg text-sm font-medium border border-purple-200 dark:border-purple-700 hover:shadow-md transition-shadow"
+                  >
+                    <span>✓</span>
+                    <span>{pref}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* 避免主题 - 负向信号 */}
+            {profile.aiSummary.avoidTopics.length > 0 && (
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-sm font-semibold text-red-700 dark:text-red-300">
+                    🚫 不感兴趣的主题
+                  </span>
+                  <span className="text-xs bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-2 py-0.5 rounded">
+                    {profile.aiSummary.avoidTopics.length} 项
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {profile.aiSummary.avoidTopics.map((topic, i) => (
+                    <span 
+                      key={i}
+                      className="inline-flex items-center gap-1 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 px-3 py-1.5 rounded-lg text-sm border border-red-200 dark:border-red-800"
+                    >
+                      <span>×</span>
+                      <span>{topic}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 数据来源和成本 */}
+            <div className="pt-4 border-t border-purple-200 dark:border-purple-700">
+              <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-4 text-purple-600 dark:text-purple-400">
+                  <span>
+                    📊 基于 {profile.aiSummary.metadata.basedOn.reads} 次阅读
+                  </span>
+                  {profile.aiSummary.metadata.basedOn.dismisses > 0 && (
+                    <span>
+                      🚫 {profile.aiSummary.metadata.basedOn.dismisses} 次拒绝
+                    </span>
+                  )}
+                  {profile.aiSummary.metadata.basedOn.browses > 0 && (
+                    <span>
+                      🌐 {profile.aiSummary.metadata.basedOn.browses} 页浏览
+                    </span>
+                  )}
+                </div>
+                {profile.aiSummary.metadata.cost && (
+                  <span className="text-purple-500 dark:text-purple-400">
+                    💰 成本 ¥{profile.aiSummary.metadata.cost.toFixed(4)}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* AI 配置提示 */}
         {!aiConfigured && (
           <div className="bg-gradient-to-r from-indigo-50/80 to-cyan-50/80 dark:from-indigo-900/20 dark:to-cyan-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-4">

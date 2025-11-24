@@ -157,12 +157,12 @@ export class FallbackKeywordProvider implements AIProvider {
         provider: "keyword",
         model: "FallbackKeywordProvider",
         timestamp: Date.now(),
-        tokensUsed: 0, // 无 token 消耗
         basedOn: {
           browses: request.behaviors?.browses?.length || 0,
           reads: request.behaviors?.reads?.length || 0,
           dismisses: request.behaviors?.dismisses?.length || 0
-        }
+        },
+        cost: 0 // 无 API 成本
       }
     }
   }

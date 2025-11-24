@@ -362,7 +362,7 @@ describe("FallbackKeywordProvider", () => {
       expect(result.preferences).toContain('技术文章')
       expect(result.avoidTopics).toContain('娱乐')
       expect(result.metadata.provider).toBe('keyword')
-      expect(result.metadata.tokensUsed).toBe(0)
+      expect(result.metadata.cost).toBe(0) // 降级方案无成本
     })
 
     it("应该在没有数据时返回默认画像", async () => {

@@ -36,12 +36,24 @@ export interface UserProfile {
     preferences: string[]
     /** 避免主题（3-5条，基于拒绝记录）*/
     avoidTopics: string[]
-    /** 生成时间 */
-    generatedAt: number
-    /** 基于的数据量 */
-    basedOnPages: number
-    basedOnReads: number
-    basedOnDismisses: number
+    /** 生成元数据 */
+    metadata: {
+      provider: "openai" | "anthropic" | "deepseek" | "keyword"
+      model: string
+      timestamp: number
+      tokensUsed?: {
+        input: number
+        output: number
+      }
+      /** 基于的数据量 */
+      basedOn: {
+        browses: number
+        reads: number
+        dismisses: number
+      }
+      /** API 调用成本（人民币，可选） */
+      cost?: number
+    }
   }
   
   /** 用户行为记录（强信号）*/

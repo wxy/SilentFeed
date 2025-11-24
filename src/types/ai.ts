@@ -145,6 +145,8 @@ export interface UserProfileGenerationResult {
       reads: number
       dismisses: number
     }
+    /** API 调用成本（人民币，可选） */
+    cost?: number
   }
 }
 

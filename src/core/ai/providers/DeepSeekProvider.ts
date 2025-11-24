@@ -523,7 +523,8 @@ ${content}
             browses: request.behaviors.browses?.length || 0,
             reads: request.behaviors.reads?.length || 0,
             dismisses: request.behaviors.dismisses?.length || 0
-          }
+          },
+          cost // 添加成本信息
         }
       }
     } catch (error) {

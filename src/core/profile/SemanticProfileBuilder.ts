@@ -31,16 +31,27 @@ const READ_THRESHOLD = 3       // 阅读 3 篇触发全量更新
 const DISMISS_THRESHOLD = 1    // 拒绝 1 篇立即触发全量更新
 
 /**
- * AI 摘要结构
+ * AI 摘要结构（对齐 UserProfileGenerationResult）
  */
 interface AISummary {
   interests: string
   preferences: string[]
   avoidTopics: string[]
-  generatedAt: number
-  basedOnPages: number
-  basedOnReads: number
-  basedOnDismisses: number
+  metadata: {
+    provider: "openai" | "anthropic" | "deepseek" | "keyword"
+    model: string
+    timestamp: number
+    tokensUsed?: {
+      input: number
+      output: number
+    }
+    basedOn: {
+      browses: number
+      reads: number
+      dismisses: number
+    }
+    cost?: number
+  }
 }
 
 /**
@@ -315,15 +326,8 @@ export class SemanticProfileBuilder {
         避免主题数: result.avoidTopics.length
       })
       
-      return {
-        interests: result.interests,
-        preferences: result.preferences,
-        avoidTopics: result.avoidTopics,
-        generatedAt: Date.now(),
-        basedOnPages: visits.length,
-        basedOnReads: behaviors.totalReads,
-        basedOnDismisses: behaviors.totalDismisses
-      }
+      // 直接返回 AI 生成结果（已包含完整 metadata）
+      return result
       
     } catch (error) {
       profileLogger.error('[AISummary] AI 生成失败，使用降级方案', error)
@@ -337,10 +341,16 @@ export class SemanticProfileBuilder {
           : '正在学习您的兴趣偏好',
         preferences: ['技术文章', '新闻资讯', '深度分析'].slice(0, 3),
         avoidTopics: topDismisses.map(d => this.extractMainTopic(d.summary)).slice(0, 5),
-        generatedAt: Date.now(),
-        basedOnPages: visits.length,
-        basedOnReads: behaviors.totalReads,
-        basedOnDismisses: behaviors.totalDismisses
+        metadata: {
+          provider: 'keyword',
+          model: 'local-keyword-extraction',
+          timestamp: Date.now(),
+          basedOn: {
+            browses: visits.length,
+            reads: behaviors.totalReads,
+            dismisses: behaviors.totalDismisses
+          }
+        }
       }
     }
   }
