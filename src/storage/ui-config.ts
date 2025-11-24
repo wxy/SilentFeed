@@ -31,8 +31,8 @@ export interface UIConfig {
 export async function getUIConfig(): Promise<UIConfig> {
   const result = await chrome.storage.sync.get([UI_STYLE_KEY, AUTO_TRANSLATE_KEY])
   return {
-    style: (result[UI_STYLE_KEY] as UIStyle) || "sketchy",
-    autoTranslate: result[AUTO_TRANSLATE_KEY] ?? false // 默认关闭自动翻译
+    style: (result[UI_STYLE_KEY] as UIStyle) || "normal", // 默认使用标准风格
+    autoTranslate: result[AUTO_TRANSLATE_KEY] ?? true // 默认开启自动翻译
   }
 }
 
@@ -61,7 +61,7 @@ export async function updateUIConfig(config: Partial<UIConfig>): Promise<void> {
  */
 export async function getUIStyle(): Promise<UIStyle> {
   const result = await chrome.storage.sync.get(UI_STYLE_KEY)
-  return (result[UI_STYLE_KEY] as UIStyle) || "sketchy" // 默认使用手绘风格
+  return (result[UI_STYLE_KEY] as UIStyle) || "normal" // 默认使用标准风格
 }
 
 /**

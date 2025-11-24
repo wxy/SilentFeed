@@ -10,7 +10,7 @@ import type { NotificationConfig } from "@/core/recommender/notification"
 export function NotificationSettings() {
   const { _ } = useI18n()
   const [config, setConfig] = useState<NotificationConfig>({
-    enabled: false,
+    enabled: true, // 默认启用推荐通知
     quietHours: { start: 22, end: 8 },
     minInterval: 60
   })

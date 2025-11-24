@@ -84,7 +84,10 @@ export function ProfileSettings() {
           aiSummaryProvider: data?.aiSummary?.metadata?.provider,
           totalPages: data?.totalPages,
           behaviorsReads: data?.behaviors?.reads?.length || 0,
-          behaviorsDismisses: data?.behaviors?.dismisses?.length || 0
+          behaviorsDismisses: data?.behaviors?.dismisses?.length || 0,
+          basedOnBrowses: data?.aiSummary?.metadata?.basedOn?.browses,
+          basedOnReads: data?.aiSummary?.metadata?.basedOn?.reads,
+          basedOnDismisses: data?.aiSummary?.metadata?.basedOn?.dismisses
         })
         
         setProfile(data)
@@ -267,21 +270,21 @@ export function ProfileSettings() {
 
         {/* AI 语义画像 - AI 的独特价值展示 */}
         {profile.aiSummary && (
-          <div className="bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 dark:from-purple-900/20 dark:via-pink-900/20 dark:to-orange-900/20 rounded-xl p-6 border-2 border-purple-200 dark:border-purple-700 shadow-lg">
+          <div className="bg-gradient-to-br from-blue-50 to-slate-50 dark:from-blue-900/20 dark:to-slate-900/20 rounded-xl p-6 border-2 border-blue-200 dark:border-blue-700 shadow-lg">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold flex items-center gap-2">
                 <span className="text-2xl">🤖</span>
-                <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-blue-600 to-slate-600 bg-clip-text text-transparent">
                   AI 语义画像
                 </span>
               </h3>
               <div className="flex items-center gap-2">
-                <span className="text-xs bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 py-1 rounded-full font-medium shadow-sm">
+                <span className="text-xs bg-gradient-to-r from-blue-600 to-slate-600 text-white px-3 py-1 rounded-full font-medium shadow-sm">
                   {profile.aiSummary.metadata.provider === 'deepseek' ? 'DeepSeek' : 
                    profile.aiSummary.metadata.provider === 'openai' ? 'OpenAI' : 
                    'AI'}
                 </span>
-                <span className="text-xs text-purple-600 dark:text-purple-400">
+                <span className="text-xs text-blue-600 dark:text-blue-400">
                   {new Date(profile.aiSummary.metadata.timestamp).toLocaleDateString('zh-CN')}
                 </span>
               </div>
@@ -290,14 +293,14 @@ export function ProfileSettings() {
             {/* 兴趣理解 - AI 的核心价值 */}
             <div className="mb-5">
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-sm font-semibold text-purple-700 dark:text-purple-300">
+                <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
                   💭 AI 对您的理解
                 </span>
-                <span className="text-xs text-purple-500 dark:text-purple-400">
+                <span className="text-xs text-blue-500 dark:text-blue-400">
                   (超越关键词，深度语义分析)
                 </span>
               </div>
-              <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur rounded-lg p-4 border border-purple-100 dark:border-purple-800">
+              <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur rounded-lg p-4 border border-blue-100 dark:border-blue-800">
                 <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed italic">
                   "{profile.aiSummary.interests}"
                 </p>
@@ -307,10 +310,10 @@ export function ProfileSettings() {
             {/* 内容偏好 - 可操作的洞察 */}
             <div className="mb-5">
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-sm font-semibold text-pink-700 dark:text-pink-300">
+                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                   ⭐ 您偏好的内容类型
                 </span>
-                <span className="text-xs bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 px-2 py-0.5 rounded">
+                <span className="text-xs bg-slate-100 dark:bg-slate-900/30 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded">
                   {profile.aiSummary.preferences.length} 项
                 </span>
               </div>
@@ -318,7 +321,7 @@ export function ProfileSettings() {
                 {profile.aiSummary.preferences.map((pref, i) => (
                   <span 
                     key={i}
-                    className="inline-flex items-center gap-1 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-800/40 dark:to-pink-800/40 text-purple-700 dark:text-purple-200 px-3 py-1.5 rounded-lg text-sm font-medium border border-purple-200 dark:border-purple-700 hover:shadow-md transition-shadow"
+                    className="inline-flex items-center gap-1 bg-gradient-to-r from-blue-100 to-slate-100 dark:from-blue-800/40 dark:to-slate-800/40 text-blue-700 dark:text-blue-200 px-3 py-1.5 rounded-lg text-sm font-medium border border-blue-200 dark:border-blue-700 hover:shadow-md transition-shadow"
                   >
                     <span>✓</span>
                     <span>{pref}</span>
@@ -353,30 +356,54 @@ export function ProfileSettings() {
             )}
 
             {/* 数据来源和成本 */}
-            <div className="pt-4 border-t border-purple-200 dark:border-purple-700">
+            <div className="pt-4 border-t border-blue-200 dark:border-blue-700">
               <div className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-4 text-purple-600 dark:text-purple-400">
+                <div className="flex items-center gap-3 text-blue-600 dark:text-blue-400">
                   <span>
-                    📊 基于 {profile.aiSummary.metadata.basedOn.reads} 次阅读
+                    🌐 {profile.aiSummary.metadata.basedOn.browses} 页浏览
                   </span>
-                  {profile.aiSummary.metadata.basedOn.dismisses > 0 && (
-                    <span>
-                      🚫 {profile.aiSummary.metadata.basedOn.dismisses} 次拒绝
-                    </span>
-                  )}
-                  {profile.aiSummary.metadata.basedOn.browses > 0 && (
-                    <span>
-                      🌐 {profile.aiSummary.metadata.basedOn.browses} 页浏览
-                    </span>
-                  )}
+                  <span>
+                    📖 {profile.aiSummary.metadata.basedOn.reads} 次阅读
+                  </span>
+                  <span>
+                    🚫 {profile.aiSummary.metadata.basedOn.dismisses} 次拒绝
+                  </span>
                 </div>
                 {profile.aiSummary.metadata.cost && (
-                  <span className="text-purple-500 dark:text-purple-400">
+                  <span className="text-blue-500 dark:text-blue-400">
                     💰 成本 ¥{profile.aiSummary.metadata.cost.toFixed(4)}
                   </span>
                 )}
               </div>
             </div>
+
+            {/* 主题分类摘要 - 降级展示 */}
+            {primaryTopic && (
+              <div className="pt-4 border-t border-blue-200 dark:border-blue-700">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                    <span>📊 主导兴趣:</span>
+                    <span className="font-medium">
+                      {primaryTopic.animal} {primaryTopic.name} ({primaryTopic.score.toFixed(1)}%)
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const detailsEl = document.getElementById('profile-details') as HTMLDetailsElement
+                      if (detailsEl) {
+                        detailsEl.open = true // 先展开
+                        setTimeout(() => {
+                          detailsEl.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                        }, 100) // 等待展开动画完成
+                      }
+                    }}
+                    className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                  >
+                    查看详细数据 →
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -405,8 +432,41 @@ export function ProfileSettings() {
           </div>
         )}
 
-        {/* AI 配置提示 */}
-        {!aiConfigured && (
+        {/* 降级模式提示（无 AI 但有基础画像）*/}
+        {!profile.aiSummary && !aiConfigured && topTopics.length > 0 && (
+          <div className="bg-gradient-to-r from-amber-50/80 to-yellow-50/80 dark:from-amber-900/20 dark:to-yellow-900/20 border-2 border-amber-300 dark:border-amber-700 rounded-xl p-5">
+            <div className="flex items-start gap-3">
+              <span className="text-3xl">⚠️</span>
+              <div className="flex-1">
+                <h3 className="text-base font-bold text-amber-900 dark:text-amber-100 mb-2">
+                  当前使用基础画像（关键词分析）
+                </h3>
+                <p className="text-sm text-amber-800 dark:text-amber-200 mb-3">
+                  💡 配置 AI 可获得 <strong className="text-amber-900 dark:text-amber-100">3-5 倍更精准</strong>的推荐效果：
+                </p>
+                <ul className="text-sm text-amber-700 dark:text-amber-300 space-y-2 mb-4 list-disc list-inside">
+                  <li><strong>语义理解</strong>：深度理解内容含义，而非简单关键词匹配</li>
+                  <li><strong>偏好识别</strong>：精准识别你喜欢的内容类型和风格</li>
+                  <li><strong>智能过滤</strong>：自动排除不感兴趣的主题</li>
+                </ul>
+                <div className="flex items-center gap-3">
+                  <a
+                    href="/options.html?tab=ai"
+                    className="inline-flex items-center gap-2 text-sm bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white px-4 py-2 rounded-lg transition-all shadow-md hover:shadow-lg font-medium">
+                    <span>🚀</span>
+                    <span>立即配置 AI</span>
+                  </a>
+                  <span className="text-xs text-amber-600 dark:text-amber-400">
+                    推荐使用 DeepSeek（成本低至 ¥0.0001/次）
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* AI 配置提示（无 AI 且无基础画像）*/}
+        {!aiConfigured && topTopics.length === 0 && (
           <div className="bg-gradient-to-r from-indigo-50/80 to-cyan-50/80 dark:from-indigo-900/20 dark:to-cyan-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-4">
             <div className="flex items-start gap-3">
               <span className="text-2xl">🚀</span>
@@ -432,6 +492,34 @@ export function ProfileSettings() {
             </div>
           </div>
         )}
+
+        {/* 详细数据区域 - 可折叠 */}
+        <details id="profile-details" className="group">
+          <summary className="cursor-pointer list-none">
+            <div className="bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-800 dark:to-gray-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-colors">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">📊</span>
+                  <div>
+                    <h3 className="font-semibold text-slate-900 dark:text-slate-100">
+                      详细数据分析
+                    </h3>
+                    <p className="text-xs text-slate-600 dark:text-slate-400">
+                      主题分布 · 关键词云 · 兴趣演化 · 访问偏好
+                    </p>
+                  </div>
+                </div>
+                <div className="text-slate-400 dark:text-slate-500 group-open:rotate-180 transition-transform">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </summary>
+
+          {/* 详细内容区域 */}
+          <div className="mt-6 space-y-6">
 
         {/* Top 3 主题分布 */}
         <div>
@@ -817,6 +905,9 @@ export function ProfileSettings() {
             </div>
           )}
         </div>
+
+          </div>
+        </details>
       </div>
     )
   }

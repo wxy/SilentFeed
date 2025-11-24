@@ -136,6 +136,26 @@ export class SemanticProfileBuilder {
     await this.triggerFullUpdate('dismiss')
     this.dismissCount = 0
   }
+  
+  /**
+   * Phase 8: 手动强制生成 AI 画像
+   * 
+   * 用于设置页面的"强制更新"按钮
+   * 忽略计数器和阈值，直接调用 AI 生成画像
+   * 
+   * @param trigger 触发来源（用于日志）
+   */
+  async forceGenerateAIProfile(trigger: string = 'manual'): Promise<void> {
+    profileLogger.info('[AI Profile] 🚀 手动强制生成 AI 画像', { trigger })
+    
+    // 重置计数器（避免重复触发）
+    this.browseCount = 0
+    this.readCount = 0
+    this.dismissCount = 0
+    
+    // 直接调用全量更新
+    await this.triggerFullUpdate(trigger as any)
+  }
 
   /**
    * 全量更新：重新生成 AI 摘要
