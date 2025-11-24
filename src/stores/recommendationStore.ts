@@ -183,18 +183,24 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
       // 🔧 关键修复：从数据库重新加载未读推荐，而不是 filter 内存数组
       // 原因：内存数组可能已过期，filter 会找不到对应的 ID
       const config = await getRecommendationConfig()
-      const freshRecommendations = await getUnreadRecommendations(config.maxRecommendations)
+      const recommendations = await getUnreadRecommendations(config.maxRecommendations * 2)
+      
+      // ✅ 按评分降序排序并限制数量（与 loadRecommendations 保持一致）
+      const sortedRecommendations = recommendations
+        .sort((a: Recommendation, b: Recommendation) => b.score - a.score)
+        .slice(0, config.maxRecommendations)
       
       console.log('[RecommendationStore] 🔄 重新加载未读推荐:', {
         更新前数量: beforeState.length,
-        更新后数量: freshRecommendations.length,
+        更新后数量: sortedRecommendations.length,
         移除的ID: id,
-        新推荐列表: freshRecommendations.map(r => ({ id: r.id, title: r.title.substring(0, 20) }))
+        sorted: true,
+        新推荐列表: sortedRecommendations.map(r => ({ id: r.id, title: r.title.substring(0, 20), score: r.score }))
       })
       
       // 更新 store 状态
       set({
-        recommendations: freshRecommendations
+        recommendations: sortedRecommendations
       })
       
       const afterState = get().recommendations
@@ -265,16 +271,22 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
       
       // 🔧 关键修复：从数据库重新加载未读推荐
       const config = await getRecommendationConfig()
-      const freshRecommendations = await getUnreadRecommendations(config.maxRecommendations)
+      const recommendations = await getUnreadRecommendations(config.maxRecommendations * 2)
+      
+      // ✅ 按评分降序排序并限制数量（与 loadRecommendations 保持一致）
+      const sortedRecommendations = recommendations
+        .sort((a: Recommendation, b: Recommendation) => b.score - a.score)
+        .slice(0, config.maxRecommendations)
       
       console.log('[RecommendationStore] 重新加载未读推荐:', {
         beforeCount: get().recommendations.length,
-        afterCount: freshRecommendations.length,
-        dismissedIds: ids
+        afterCount: sortedRecommendations.length,
+        dismissedIds: ids,
+        sorted: true
       })
       
       set({
-        recommendations: freshRecommendations,
+        recommendations: sortedRecommendations,
         isLoading: false
       })
       
