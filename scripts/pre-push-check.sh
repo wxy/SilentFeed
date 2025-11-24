@@ -7,16 +7,10 @@ set -e  # 遇到错误立即退出
 echo "🔍 开始 Pre-push 检查..."
 echo ""
 
-# 1. 运行测试
-echo "📝 运行测试套件..."
-npm run test:run
-echo "✅ 测试通过"
-echo ""
-
-# 2. 检查覆盖率
-echo "📊 检查测试覆盖率..."
+# 1. 运行测试并检查覆盖率（test:coverage 已包含测试运行）
+echo "📊 运行测试并检查覆盖率..."
 npm run test:coverage
-echo "✅ 覆盖率达标"
+echo "✅ 测试通过，覆盖率达标"
 echo ""
 
 # 3. 运行构建

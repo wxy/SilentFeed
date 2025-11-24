@@ -50,8 +50,8 @@ export class AICapabilityManager {
         return
       }
       
-      // 获取当前 Provider 的 API Key（从新的 apiKeys 字段）
-      const apiKey = config.apiKeys?.[config.provider] || config.apiKey || ""
+      // 获取当前 Provider 的 API Key
+      const apiKey = config.apiKeys?.[config.provider] || ""
       
       if (!apiKey) {
         aiLogger.warn(` No API key for provider ${config.provider}`)
