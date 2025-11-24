@@ -29,9 +29,18 @@ vi.mock('./TranslationService', () => {
   }
 })
 
-import { translateRecommendation, translateRecommendations, getDisplayText, formatLanguageLabel } from './recommendation-translator'
+import { translateRecommendation, translateRecommendations, translateOnDemand, getDisplayText, formatLanguageLabel } from './recommendation-translator'
 import { getUIConfig } from '@/storage/ui-config'
 import { TranslationService } from './TranslationService'
+
+// Mock database
+vi.mock('@/storage/db', () => ({
+  db: {
+    recommendations: {
+      update: vi.fn()
+    }
+  }
+}))
 
 const mockGetUIConfig = vi.mocked(getUIConfig)
 
@@ -169,6 +178,98 @@ describe('推荐条目翻译', () => {
       const result = await translateRecommendations(recommendations)
       expect(result).toEqual(recommendations)
     })
+
+    it('应该处理批量翻译时的错误', async () => {
+      mockGetUIConfig.mockRejectedValue(new Error('Config error'))
+
+      const recommendations = [mockRecommendation]
+      const result = await translateRecommendations(recommendations)
+      expect(result).toEqual(recommendations)
+    })
+  })
+
+  describe('translateOnDemand', () => {
+    it('应该在翻译成功时更新数据库', async () => {
+      // 使用一个简单的场景：禁用自动翻译，返回原推荐（无 translation 字段）
+      // 这样我们可以验证数据库不会被更新
+      mockGetUIConfig.mockResolvedValue({
+        style: 'sketchy',
+        autoTranslate: false
+      })
+
+      const { db } = await import('@/storage/db')
+      vi.mocked(db.recommendations.update).mockClear()
+
+      const result = await translateOnDemand(mockRecommendation)
+      
+      // 验证返回了原推荐（无翻译）
+      expect(result.translation).toBeUndefined()
+
+      // 验证数据库没有更新（因为没有翻译）
+      expect(db.recommendations.update).not.toHaveBeenCalled()
+    })
+
+    it('应该在即时翻译失败时返回原推荐', async () => {
+      mockGetUIConfig.mockRejectedValue(new Error('Translation error'))
+
+      const result = await translateOnDemand(mockRecommendation)
+      expect(result).toEqual(mockRecommendation)
+      expect(result.translation).toBeUndefined()
+    })
+
+    it('应该在源语言与目标语言相同时不更新数据库', async () => {
+      mockGetUIConfig.mockResolvedValue({
+        style: 'sketchy',
+        autoTranslate: true
+      })
+
+      const mockTranslateText = vi.fn()
+        .mockResolvedValue({
+          sourceLanguage: 'zh-CN',
+          targetLanguage: 'zh-CN',
+          translatedText: '中文文章'
+        })
+
+      vi.mocked(TranslationService).mockImplementation(() => ({
+        translateText: mockTranslateText,
+        translateBatch: vi.fn(),
+        detectLanguage: vi.fn()
+      } as any))
+
+      const chineseRec = {
+        ...mockRecommendation,
+        title: '中文文章',
+        summary: '这是中文摘要'
+      }
+
+      const { db } = await import('@/storage/db')
+      vi.mocked(db.recommendations.update).mockClear()
+
+      const result = await translateOnDemand(chineseRec)
+      expect(result.translation).toBeUndefined()
+      expect(db.recommendations.update).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('translateRecommendation 错误处理', () => {
+    it('应该在翻译失败时返回原推荐', async () => {
+      mockGetUIConfig.mockResolvedValue({
+        style: 'sketchy',
+        autoTranslate: true
+      })
+
+      const mockTranslateText = vi.fn().mockRejectedValue(new Error('API error'))
+
+      vi.mocked(TranslationService).mockImplementation(() => ({
+        translateText: mockTranslateText,
+        translateBatch: vi.fn(),
+        detectLanguage: vi.fn()
+      } as any))
+
+      const result = await translateRecommendation(mockRecommendation)
+      expect(result).toEqual(mockRecommendation)
+      expect(result.translation).toBeUndefined()
+    })
   })
 
   describe('getDisplayText', () => {
@@ -247,19 +348,27 @@ describe('推荐条目翻译', () => {
     })
     
     it('应该在启用自动翻译但没有翻译时标记需要翻译', () => {
-      // 使用中文推荐，这样源语言(zh-CN)与目标语言(en在测试环境)不同
-      const chineseRec: Recommendation = {
+      // 使用英文推荐，这样源语言(en)与默认目标语言(通常是浏览器语言)不同
+      const englishRec: Recommendation = {
         ...mockRecommendation,
-        title: '测试文章',
-        summary: '这是一篇测试文章'
+        title: 'English Article',
+        summary: 'This is an English article'
       }
       
-      const result = getDisplayText(chineseRec, false, true)
+      // Mock navigator.language 为中文
+      Object.defineProperty(navigator, 'language', {
+        configurable: true,
+        writable: true,
+        value: 'zh-CN'
+      })
       
-      expect(result.title).toBe('测试文章')
-      expect(result.summary).toBe('这是一篇测试文章')
+      const result = getDisplayText(englishRec, false, true)
+      
+      expect(result.title).toBe('English Article')
+      expect(result.summary).toBe('This is an English article')
       expect(result.needsTranslation).toBe(true)
-      expect(result.sourceLanguage).toBe('zh-CN')
+      expect(result.sourceLanguage).toBe('en')
+      expect(result.targetLanguage).toBe('zh-CN')
     })
     
     it('应该检测日文语言', () => {

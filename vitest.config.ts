@@ -30,7 +30,7 @@ export default defineConfig({
       thresholds: {
         lines: 70,
         functions: 70,
-        branches: 59, // 临时降低到59%，待优化 UI 组件和 pipeline 覆盖率后恢复到60%
+        branches: 60,
         statements: 70,
       },
     },
