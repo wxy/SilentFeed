@@ -759,8 +759,9 @@ describe('Phase 2.7 推荐功能', () => {
       const unread = await getUnreadRecommendations()
       
       expect(unread).toHaveLength(2)
-      expect(unread[0].id).toBe('3')
-      expect(unread[1].id).toBe('1')
+      // 按推荐分数降序：推荐1(0.9) > 推荐3(0.7)
+      expect(unread[0].id).toBe('1')
+      expect(unread[1].id).toBe('3')
     })
 
     it('应该限制返回数量', async () => {

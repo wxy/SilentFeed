@@ -129,6 +129,17 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
         config.batchSize
       )
       
+      // 无数据时不是错误，只是空状态
+      if (result.recommendations.length === 0 && result.stats?.reason) {
+        console.warn('[RecommendationStore] 无推荐数据:', result.stats.reason)
+        set({ 
+          recommendations: [], 
+          isLoading: false,
+          error: null // 不设置错误，让UI显示空状态
+        })
+        return
+      }
+      
       if (result.errors && result.errors.length > 0) {
         console.warn('[RecommendationStore] 推荐生成有警告:', result.errors)
         // 即使有警告也继续，除非完全失败
@@ -183,18 +194,25 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
       // 🔧 关键修复：从数据库重新加载未读推荐，而不是 filter 内存数组
       // 原因：内存数组可能已过期，filter 会找不到对应的 ID
       const config = await getRecommendationConfig()
-      const freshRecommendations = await getUnreadRecommendations(config.maxRecommendations)
+      const recommendations = await getUnreadRecommendations(config.maxRecommendations * 2)
+      
+      // ✅ 按评分降序排序并限制数量
+      // 注意：getUnreadRecommendations 已按分数排序，这里再次排序确保一致性
+      const sortedRecommendations = recommendations
+        .sort((a: Recommendation, b: Recommendation) => b.score - a.score)
+        .slice(0, config.maxRecommendations)
       
       console.log('[RecommendationStore] 🔄 重新加载未读推荐:', {
         更新前数量: beforeState.length,
-        更新后数量: freshRecommendations.length,
+        更新后数量: sortedRecommendations.length,
         移除的ID: id,
-        新推荐列表: freshRecommendations.map(r => ({ id: r.id, title: r.title.substring(0, 20) }))
+        sorted: true,
+        新推荐列表: sortedRecommendations.map(r => ({ id: r.id, title: r.title.substring(0, 20), score: r.score }))
       })
       
       // 更新 store 状态
       set({
-        recommendations: freshRecommendations
+        recommendations: sortedRecommendations
       })
       
       const afterState = get().recommendations
@@ -265,16 +283,23 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
       
       // 🔧 关键修复：从数据库重新加载未读推荐
       const config = await getRecommendationConfig()
-      const freshRecommendations = await getUnreadRecommendations(config.maxRecommendations)
+      const recommendations = await getUnreadRecommendations(config.maxRecommendations * 2)
+      
+      // ✅ 按评分降序排序并限制数量
+      // 注意：getUnreadRecommendations 已按分数排序，这里再次排序确保一致性
+      const sortedRecommendations = recommendations
+        .sort((a: Recommendation, b: Recommendation) => b.score - a.score)
+        .slice(0, config.maxRecommendations)
       
       console.log('[RecommendationStore] 重新加载未读推荐:', {
         beforeCount: get().recommendations.length,
-        afterCount: freshRecommendations.length,
-        dismissedIds: ids
+        afterCount: sortedRecommendations.length,
+        dismissedIds: ids,
+        sorted: true
       })
       
       set({
-        recommendations: freshRecommendations,
+        recommendations: sortedRecommendations,
         isLoading: false
       })
       

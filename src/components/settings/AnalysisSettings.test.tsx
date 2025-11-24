@@ -233,31 +233,6 @@ describe("AnalysisSettings 组件", () => {
       
       expect(screen.getByText("Saving...")).toBeInTheDocument()
     })
-
-    it("应该能够生成推荐", async () => {
-      const user = userEvent.setup()
-      const mockGenerate = vi.fn().mockResolvedValue(undefined)
-      
-      vi.doMock("@/stores/recommendationStore", () => ({
-        useRecommendationStore: () => ({
-          generateRecommendations: mockGenerate,
-          isLoading: false
-        })
-      }))
-      
-      render(<AnalysisSettings />)
-      
-      await waitFor(() => {
-        expect(screen.getByText("🔮 Recommend Now")).toBeInTheDocument()
-      })
-      
-      const generateButton = screen.getByText("🔮 Recommend Now")
-      await user.click(generateButton)
-      
-      // 注意：由于 mock 的限制，这里可能不会实际调用
-      // 主要测试按钮是否可点击
-      expect(generateButton).toBeInTheDocument()
-    })
   })
 
   describe("数据管理", () => {

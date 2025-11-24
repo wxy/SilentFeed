@@ -17,7 +17,6 @@ import {
 import type { RecommendationAnalysisEngine, FeedAnalysisEngine } from "@/types/analysis-engine"
 import { checkEngineCapability } from "@/utils/analysis-engine-capability"
 import { getAdaptiveMetrics, type AdaptiveMetrics } from "@/core/recommender/adaptive-count"
-import { useRecommendationStore } from "@/stores/recommendationStore"
 import { logger } from "@/utils/logger"
 import { getPageCount } from "@/storage/db"
 import { LEARNING_COMPLETE_PAGES } from "@/constants/progress"
@@ -26,7 +25,6 @@ const recSettingsLogger = logger.withTag("AnalysisConfig")
 
 export function AnalysisSettings() {
   const { t: _ } = useTranslation()
-  const { generateRecommendations, isLoading: isGenerating } = useRecommendationStore()
   const [config, setConfig] = useState<RecommendationConfig>({
     analysisEngine: 'remoteAI',
     feedAnalysisEngine: 'remoteAI', // Phase 9: 订阅源分析引擎
@@ -125,14 +123,6 @@ export function AnalysisSettings() {
       alert("保存失败，请重试")
     } finally {
       setIsSaving(false)
-    }
-  }
-
-  const handleGenerateRecommendations = async () => {
-    try {
-      await generateRecommendations()
-    } catch (error) {
-      recSettingsLogger.error("生成推荐失败:", error)
     }
   }
 
@@ -473,14 +463,6 @@ export function AnalysisSettings() {
           className="px-6 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white rounded-lg transition-colors"
         >
           {isSaving ? _("options.recommendation.saving") : _("options.recommendation.save")}
-        </button>
-
-        <button
-          onClick={handleGenerateRecommendations}
-          disabled={isGenerating}
-          className="px-6 py-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white rounded-lg transition-colors"
-        >
-          {isGenerating ? _("options.recommendation.generating") : _("options.recommendation.generateNow")}
         </button>
 
         {saveSuccess && (

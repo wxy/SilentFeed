@@ -797,10 +797,8 @@ export async function dismissRecommendations(ids: string[]): Promise<void> {
  * @param limit - 数量限制（默认 50）
  */
 export async function getUnreadRecommendations(limit: number = 50): Promise<Recommendation[]> {
-  // Phase 7: 过滤掉已读、已忽略和非活跃的推荐
-  return await db.recommendations
-    .orderBy('recommendedAt')
-    .reverse() // 倒序（最新在前）
+  // Phase 7: 过滤掉已读、已忽略和非活跃的推荐，按推荐分数排序
+  const recommendations = await db.recommendations
     .filter(r => {
       // 必须是活跃状态
       const isActive = !r.status || r.status === 'active'
@@ -808,8 +806,12 @@ export async function getUnreadRecommendations(limit: number = 50): Promise<Reco
       const isUnreadAndNotDismissed = !r.isRead && r.feedback !== 'dismissed'
       return isActive && isUnreadAndNotDismissed
     })
-    .limit(limit)
     .toArray()
+  
+  // 按推荐分数降序排序，取前 N 条
+  return recommendations
+    .sort((a, b) => (b.score || 0) - (a.score || 0))
+    .slice(0, limit)
 }
 
 // ==================== 用户画像操作 (Phase 3.3) ====================
