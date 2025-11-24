@@ -10,6 +10,7 @@ import { evaluateAndAdjust } from './core/recommender/adaptive-count'
 import { setupNotificationListeners, testNotification } from './core/recommender/notification'
 import { logger } from '@/utils/logger'
 import { LEARNING_COMPLETE_PAGES } from '@/constants/progress'
+import { aiManager } from './core/ai/AICapabilityManager'
 
 const bgLogger = logger.withTag('Background')
 
@@ -99,7 +100,11 @@ chrome.runtime.onInstalled.addListener(async () => {
     // 1. 初始化数据库
     await initializeDatabase()
     
-    // 2. 更新徽章
+    // 2. 初始化 AI Manager (Phase 8)
+    await aiManager.initialize()
+    bgLogger.info('✅ AI Manager 初始化完成')
+    
+    // 3. 更新徽章
     await updateBadge()
     
     bgLogger.info('✅ 初始化完成')
@@ -117,6 +122,10 @@ chrome.runtime.onInstalled.addListener(async () => {
 ;(async () => {
   try {
     bgLogger.info('Service Worker 启动...')
+    
+    // Phase 8: 初始化 AI Manager
+    await aiManager.initialize()
+    bgLogger.info('✅ AI Manager 初始化完成')
     
     // Phase 5.2: 初始化图标管理器
     try {

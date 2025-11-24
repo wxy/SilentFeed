@@ -548,11 +548,11 @@ ${content}
     
     // 2. 主题分布
     const topTopics = Object.entries(request.topicDistribution)
-      .sort((a, b) => b[1] - a[1])
+      .sort((a, b) => (b[1] as number) - (a[1] as number))
       .slice(0, 8)
     if (topTopics.length > 0) {
       parts.push(`\n**主题分布**：\n${topTopics.map(([topic, score]) => 
-        `- ${topic}: ${(score * 100).toFixed(1)}%`
+        `- ${topic}: ${((score as number) * 100).toFixed(1)}%`
       ).join('\n')}`)
     }
     
