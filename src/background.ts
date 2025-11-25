@@ -12,6 +12,7 @@ import { getOnboardingState } from './storage/onboarding-state'
 import { logger } from '@/utils/logger'
 import { LEARNING_COMPLETE_PAGES } from '@/constants/progress'
 import { aiManager } from './core/ai/AICapabilityManager'
+import { isAIConfigured } from '@/storage/ai-config'
 
 const bgLogger = logger.withTag('Background')
 
@@ -55,7 +56,6 @@ async function updateBadge(): Promise<void> {
     }
     
     // 0. 检查 AI 配置状态（优先级最高）
-    const { isAIConfigured } = await import('@/storage/ai-config')
     const aiConfigured = await isAIConfigured()
     
     if (!aiConfigured) {
