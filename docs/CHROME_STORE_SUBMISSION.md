@@ -223,6 +223,18 @@ License: MIT License
 
 ## 隐私相关
 
+### 单一用途说明 (Single Purpose)
+
+**Single Purpose Description**:
+
+Silent Feed is an AI-powered RSS reader that intelligently recommends relevant articles based on your browsing interests. It automatically learns from your reading behavior, manages RSS subscriptions, and delivers personalized content recommendations while keeping all data processing local by default.
+
+**单一用途描述**:
+
+Silent Feed 是一个 AI 驱动的 RSS 阅读器，根据您的浏览兴趣智能推荐相关文章。它自动从您的阅读行为中学习，管理 RSS 订阅，并提供个性化内容推荐，同时默认保持所有数据处理在本地进行。
+
+---
+
 ### 权限说明
 
 **请求的权限**:
@@ -232,7 +244,35 @@ License: MIT License
 - `notifications` - 桌面通知
 - `https://*/*` - 抓取 RSS 内容
 
-**权限用途详细说明**:
+---
+
+### 权限理由 (Permission Justifications)
+
+**Chrome Web Store 提交时需要填写的权限理由（英文）**:
+
+#### 1. tabs
+**Justification**: 
+This permission is required to detect RSS feeds available on the current webpage. When users visit a website, the extension checks the page's HTML headers for RSS/Atom feed links and displays a notification icon if feeds are found. This allows users to quickly subscribe to feeds without manually searching for feed URLs. The extension only reads the page URL and feed link information from headers, and does not access page content or user input data.
+
+#### 2. storage
+**Justification**:
+This permission is essential for storing user preferences, RSS subscription lists, browsing history for interest profiling, and AI recommendation data. All data is stored locally in the browser's IndexedDB and is never uploaded to any server unless the user explicitly configures an AI API for recommendations. Users have full control over their data and can delete it at any time through the settings interface.
+
+#### 3. alarms
+**Justification**:
+This permission enables the extension to periodically fetch new articles from subscribed RSS feeds in the background. The fetch frequency is dynamically adjusted based on each feed's update pattern (typically every 6-24 hours) to minimize resource usage. This ensures users receive fresh content recommendations without manually refreshing feeds, while being respectful of system resources.
+
+#### 4. notifications
+**Justification**:
+This permission allows the extension to notify users when high-quality article recommendations are available. Notifications are shown sparingly and intelligently to avoid interrupting users frequently. Users maintain full control and can completely disable notifications in the settings. This helps users stay informed of valuable content without being overwhelmed.
+
+#### 5. Host Permission: https://*/*
+**Justification**:
+This host permission is necessary to fetch RSS feed content from the websites that users have subscribed to. The extension only accesses URLs of RSS feeds that users explicitly subscribe to, and does not track browsing behavior or access unauthorized websites. This permission enables the core functionality of retrieving and parsing RSS/Atom feeds from across the web to provide users with aggregated content recommendations.
+
+---
+
+**权限用途详细说明（中文补充）**:
 
 1. **tabs (标签页)**
    - 用途：检测当前网页是否包含 RSS 订阅源
