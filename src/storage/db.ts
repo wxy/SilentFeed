@@ -786,6 +786,13 @@ export async function markAsRead(
     await updateFeedStats(recommendation.sourceUrl)
     dbLogger.debug('✅ RSS 源统计已更新')
   }
+  
+  // 🚀 Phase 8.3: 用户阅读行为立即触发画像更新
+  // 确保用户偏好能立即反映在下次推荐中
+  const { ProfileUpdateScheduler } = await import('../core/profile/ProfileUpdateScheduler')
+  ProfileUpdateScheduler.forceUpdateProfile('user_read').catch(error => {
+    dbLogger.error('❌ 用户阅读后画像更新失败:', error)
+  })
 }
 
 /**
@@ -842,6 +849,13 @@ export async function dismissRecommendations(ids: string[]): Promise<void> {
   for (const sourceUrl of sourceUrls) {
     await updateFeedStats(sourceUrl)
   }
+  
+  // 🚀 Phase 8.3: 用户拒绝行为立即触发画像更新
+  // 确保用户不喜欢的内容能立即影响推荐
+  const { ProfileUpdateScheduler } = await import('../core/profile/ProfileUpdateScheduler')
+  ProfileUpdateScheduler.forceUpdateProfile('user_dismiss').catch(error => {
+    dbLogger.error('❌ 用户拒绝后画像更新失败:', error)
+  })
 }
 
 /**
