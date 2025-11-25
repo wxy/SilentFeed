@@ -97,6 +97,7 @@ export function shouldFetch(feed: DiscoveredFeed, forceManual = false): boolean 
  * 生成文章唯一 ID
  * 
  * 使用文章链接作为唯一标识
+ * 同一篇文章在不同 Feed 中共享同一条记录
  * 
  * @param article - 文章
  * @returns 唯一 ID
@@ -233,18 +234,44 @@ export async function fetchFeed(feed: DiscoveredFeed): Promise<boolean> {
       })
       
       // 8.2 更新 feedArticles 表（Phase 7: 数据库规范化）
-      // 策略：使用 bulkPut 更新/插入文章（自动处理已存在的记录）
-      // 这样可以保留已有的阅读状态等信息，同时添加新文章
+      // 策略：只处理属于当前 Feed 的文章，避免影响其他 Feed 的相同文章
       
-      // 批量更新/插入最新文章（bulkPut 会自动更新已存在的，插入不存在的）
-      if (latest.length > 0) {
-        await db.feedArticles.bulkPut(latest)
+      // 获取该 Feed 当前的所有文章
+      const currentArticles = await db.feedArticles.where('feedId').equals(feed.id).toArray()
+      const currentIds = new Set(currentArticles.map(a => a.id))
+      const latestIds = new Set(latest.map(a => a.id))
+      
+      // 检查哪些文章已经存在于数据库（可能属于其他 Feed）
+      const existingArticles = await db.feedArticles.bulkGet(latest.map(a => a.id))
+      
+      // 1. 分类处理文章
+      const articlesToUpdate: FeedArticle[] = []  // 属于当前 Feed，需要更新
+      const articlesToInsert: FeedArticle[] = []  // 完全不存在，需要插入
+      
+      latest.forEach((article, index) => {
+        const existing = existingArticles[index]
+        
+        if (!existing) {
+          // 文章不存在，可以安全插入
+          articlesToInsert.push(article)
+        } else if (existing.feedId === feed.id) {
+          // 文章存在且属于当前 Feed，可以安全更新
+          articlesToUpdate.push(article)
+        }
+        // 如果文章存在但属于其他 Feed，跳过（避免覆盖其他 Feed 的数据）
+      })
+      
+      // 2. 批量操作
+      if (articlesToInsert.length > 0) {
+        await db.feedArticles.bulkAdd(articlesToInsert)
       }
       
-      // 清理该 Feed 中不在最新列表的旧文章
-      const latestIds = new Set(latest.map(a => a.id))
-      const oldArticles = await db.feedArticles.where('feedId').equals(feed.id).toArray()
-      const articlesToDelete = oldArticles
+      if (articlesToUpdate.length > 0) {
+        await db.feedArticles.bulkPut(articlesToUpdate)
+      }
+      
+      // 3. 清理该 Feed 中不在最新列表的旧文章
+      const articlesToDelete = currentArticles
         .filter(a => !latestIds.has(a.id))
         .map(a => a.id)
       
