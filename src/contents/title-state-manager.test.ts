@@ -21,12 +21,23 @@ class TitleStateManager {
   private currentEmoji: string = ''
   
   private readonly EMOJIS = {
-    LEARNING: '⏱️',
-    LEARNED: '✅',
+    LEARNING: '📖',   // 学习中（正在阅读）
+    PAUSED: '⏸️',     // 已暂停（标签页未激活）
+    LEARNED: '✅',    // 已学习完成
   }
   
   startLearning(): void {
     this.originalTitle = this.getCleanTitle()
+    this.currentEmoji = this.EMOJIS.LEARNING
+    this.updateTitle()
+  }
+  
+  pauseLearning(): void {
+    this.currentEmoji = this.EMOJIS.PAUSED
+    this.updateTitle()
+  }
+  
+  resumeLearning(): void {
     this.currentEmoji = this.EMOJIS.LEARNING
     this.updateTitle()
   }
@@ -76,7 +87,7 @@ describe('TitleStateManager', () => {
   describe('startLearning', () => {
     it('应该在标题前添加学习中 emoji', () => {
       manager.startLearning()
-      expect(document.title).toBe('⏱️ Test Page Title')
+      expect(document.title).toBe('📖 Test Page Title')
     })
     
     it('应该保存原始标题', () => {
@@ -88,14 +99,40 @@ describe('TitleStateManager', () => {
     it('应该移除已存在的 emoji 后再添加', () => {
       document.title = '✅ Test Page Title'
       manager.startLearning()
-      expect(document.title).toBe('⏱️ Test Page Title')
+      expect(document.title).toBe('📖 Test Page Title')
+    })
+  })
+  
+  describe('pauseLearning', () => {
+    it('应该将学习中 emoji 替换为暂停 emoji', () => {
+      manager.startLearning()
+      expect(document.title).toBe('📖 Test Page Title')
+      
+      manager.pauseLearning()
+      expect(document.title).toBe('⏸️ Test Page Title')
+    })
+    
+    it('应该直接添加暂停 emoji（即使没有先调用 startLearning）', () => {
+      manager.pauseLearning()
+      expect(document.title).toBe('⏸️ Test Page Title')
+    })
+  })
+  
+  describe('resumeLearning', () => {
+    it('应该将暂停 emoji 替换为学习中 emoji', () => {
+      manager.startLearning()
+      manager.pauseLearning()
+      expect(document.title).toBe('⏸️ Test Page Title')
+      
+      manager.resumeLearning()
+      expect(document.title).toBe('📖 Test Page Title')
     })
   })
   
   describe('completeLearning', () => {
     it('应该将学习中 emoji 替换为完成 emoji', () => {
       manager.startLearning()
-      expect(document.title).toBe('⏱️ Test Page Title')
+      expect(document.title).toBe('📖 Test Page Title')
       
       manager.completeLearning()
       expect(document.title).toBe('✅ Test Page Title')
@@ -129,7 +166,7 @@ describe('TitleStateManager', () => {
   describe('reset', () => {
     it('应该清除 emoji 并更新原始标题', () => {
       manager.startLearning()
-      expect(document.title).toBe('⏱️ Test Page Title')
+      expect(document.title).toBe('📖 Test Page Title')
       
       // 模拟标题被其他代码修改
       document.title = 'New Page Title'
@@ -139,14 +176,20 @@ describe('TitleStateManager', () => {
       
       // 再次开始学习应该使用新标题
       manager.startLearning()
-      expect(document.title).toBe('⏱️ New Page Title')
+      expect(document.title).toBe('📖 New Page Title')
     })
   })
   
   describe('多次调用', () => {
     it('应该正确处理多次状态切换', () => {
       manager.startLearning()
-      expect(document.title).toBe('⏱️ Test Page Title')
+      expect(document.title).toBe('📖 Test Page Title')
+      
+      manager.pauseLearning()
+      expect(document.title).toBe('⏸️ Test Page Title')
+      
+      manager.resumeLearning()
+      expect(document.title).toBe('📖 Test Page Title')
       
       manager.completeLearning()
       expect(document.title).toBe('✅ Test Page Title')
@@ -155,14 +198,14 @@ describe('TitleStateManager', () => {
       expect(document.title).toBe('Test Page Title')
       
       manager.startLearning()
-      expect(document.title).toBe('⏱️ Test Page Title')
+      expect(document.title).toBe('📖 Test Page Title')
     })
     
     it('应该避免重复添加 emoji', () => {
       manager.startLearning()
       manager.startLearning()
-      expect(document.title).toBe('⏱️ Test Page Title')
-      expect(document.title).not.toBe('⏱️ ⏱️ Test Page Title')
+      expect(document.title).toBe('📖 Test Page Title')
+      expect(document.title).not.toBe('📖 📖 Test Page Title')
     })
   })
   
@@ -172,7 +215,7 @@ describe('TitleStateManager', () => {
       manager = new TitleStateManager()
       
       manager.startLearning()
-      expect(document.title).toBe('⏱️ Test - Page & Title (2024)')
+      expect(document.title).toBe('📖 Test - Page & Title (2024)')
       
       manager.clearLearning()
       expect(document.title).toBe('Test - Page & Title (2024)')
@@ -183,7 +226,7 @@ describe('TitleStateManager', () => {
       manager = new TitleStateManager()
       
       manager.startLearning()
-      expect(document.title).toBe('⏱️ ')
+      expect(document.title).toBe('📖 ')
       
       manager.clearLearning()
       expect(document.title).toBe('')

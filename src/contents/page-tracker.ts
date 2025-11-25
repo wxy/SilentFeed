@@ -69,18 +69,37 @@ class TitleStateManager {
   
   // Emoji 定义
   private readonly EMOJIS = {
-    LEARNING: '⏱️',  // 学习中（计时中）
+    LEARNING: '📖',   // 学习中（正在阅读）
+    PAUSED: '⏸️',     // 已暂停（标签页未激活）
     LEARNED: '✅',    // 已学习完成
   }
   
   /**
-   * 标记页面开始学习（添加计时 emoji）
+   * 标记页面开始学习（添加阅读 emoji）
    */
   startLearning(): void {
     this.originalTitle = this.getCleanTitle()
     this.currentEmoji = this.EMOJIS.LEARNING
     this.updateTitle()
     logger.debug('📝 [TitleState] 开始学习', { title: document.title })
+  }
+  
+  /**
+   * 标记页面暂停学习（标签页失活）
+   */
+  pauseLearning(): void {
+    this.currentEmoji = this.EMOJIS.PAUSED
+    this.updateTitle()
+    logger.debug('⏸️ [TitleState] 学习暂停', { title: document.title })
+  }
+  
+  /**
+   * 恢复学习状态（标签页激活）
+   */
+  resumeLearning(): void {
+    this.currentEmoji = this.EMOJIS.LEARNING
+    this.updateTitle()
+    logger.debug('▶️ [TitleState] 恢复学习', { title: document.title })
   }
   
   /**
@@ -657,6 +676,19 @@ function setupVisibilityListener(): void {
   const handler = () => {
     const isVisible = !document.hidden
     calculator.onVisibilityChange(isVisible)
+    
+    // 更新标题状态
+    if (isVisible) {
+      logger.debug('👁️ [DwellTime] 页面激活')
+      if (!isRecorded) {
+        titleManager.resumeLearning() // 恢复学习状态
+      }
+    } else {
+      logger.debug('😴 [DwellTime] 页面失活')
+      if (!isRecorded) {
+        titleManager.pauseLearning() // 暂停学习状态
+      }
+    }
   }
   
   document.addEventListener('visibilitychange', handler)

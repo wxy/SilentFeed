@@ -25,6 +25,7 @@ import type { InterestSnapshot, UserProfile } from "@/types/profile"
 import type { DiscoveredFeed, FeedArticle } from "@/types/rss"
 import { logger } from '@/utils/logger'
 import { statsCache } from '@/utils/cache'
+import { ProfileUpdateScheduler } from '@/core/profile/ProfileUpdateScheduler'
 
 // 导出 statsCache 用于测试清理
 export { statsCache }
