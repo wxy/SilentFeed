@@ -64,7 +64,7 @@ Silent Feed 的解决方案：
 
 - 自动收集浏览历史（隐私保护模式）
 - 智能过滤有效页面（停留时间 > 30秒）
-- 使用 TF-IDF 和 NLP 提取关键词
+- 使用 TF-IDF 辅助 AI 提取关键特征
 - 构建本地化的用户兴趣画像
 
 <details>
@@ -84,8 +84,8 @@ Silent Feed 会分析以下维度：
 
 - **多种 AI 引擎**：
   - 🤖 DeepSeek Chat（成本低，效果好）
-  - 🧮 基于规则的推荐（无需 API）
   - 👽 DeepSeek Reasoner（深度推理模式）
+  - ⚙️ 本地 AI（自行部署兼容 ChatGPT API 的服务）
   - ⚙️ 更多引擎即将支持（OpenAI, Anthropic）
 
 - **推荐策略**：
@@ -100,13 +100,12 @@ Silent Feed 会分析以下维度：
 Silent Feed 提供透明的成本控制：
 - **DeepSeek Chat**：¥0.001/篇 （推荐）
 - **DeepSeek Reasoner**：¥0.01/篇 （深度推理）
-- **规则引擎**：完全免费
+- **本地 AI**：完全免费（需自行部署）
 
 你可以：
 - 查看实时 AI 成本统计
 - 设置每日/每月预算
-- 随时切换推荐引擎
-- 使用免费的规则引擎</details>
+- 随时切换推荐引擎</details>
 
 ### 3. 📡 RSS 自动发现和管理
 
