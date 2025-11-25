@@ -222,17 +222,6 @@ export async function fetchFeed(feed: DiscoveredFeed): Promise<boolean> {
     
     // 8. 更新数据库（使用事务保证数据一致性）
     await db.transaction('rw', [db.discoveredFeeds, db.feedArticles], async () => {
-      // 8.1 更新 Feed 基本信息
-      await db.discoveredFeeds.update(feed.id, {
-        lastFetchedAt: now,
-        nextScheduledFetch,
-        updateFrequency,
-        lastError: undefined,
-        latestArticles: latest,  // 保留以兼容旧代码
-        articleCount: totalCount,
-        unreadCount
-      })
-      
       // 8.2 更新 feedArticles 表（Phase 7: 数据库规范化）
       // 策略：只处理属于当前 Feed 的文章，避免影响其他 Feed 的相同文章
       
@@ -247,6 +236,7 @@ export async function fetchFeed(feed: DiscoveredFeed): Promise<boolean> {
       // 1. 分类处理文章
       const articlesToUpdate: FeedArticle[] = []  // 属于当前 Feed，需要更新
       const articlesToInsert: FeedArticle[] = []  // 完全不存在，需要插入
+      const ownedArticles: FeedArticle[] = []     // 真正属于当前 Feed 的文章（用于 latestArticles）
       
       latest.forEach((article, index) => {
         const existing = existingArticles[index]
@@ -254,11 +244,13 @@ export async function fetchFeed(feed: DiscoveredFeed): Promise<boolean> {
         if (!existing) {
           // 文章不存在，可以安全插入
           articlesToInsert.push(article)
+          ownedArticles.push(article)
         } else if (existing.feedId === feed.id) {
           // 文章存在且属于当前 Feed，可以安全更新
           articlesToUpdate.push(article)
+          ownedArticles.push(article)
         }
-        // 如果文章存在但属于其他 Feed，跳过（避免覆盖其他 Feed 的数据）
+        // 如果文章存在但属于其他 Feed，跳过（不计入当前 Feed 的统计）
       })
       
       // 2. 批量操作
@@ -278,6 +270,21 @@ export async function fetchFeed(feed: DiscoveredFeed): Promise<boolean> {
       if (articlesToDelete.length > 0) {
         await db.feedArticles.bulkDelete(articlesToDelete)
       }
+      
+      // 4. 计算真实的文章统计（只包含真正属于当前 Feed 的文章）
+      const realTotalCount = ownedArticles.length
+      const realUnreadCount = ownedArticles.filter(a => !a.read).length
+      
+      // 8.1 更新 Feed 基本信息（使用真实的统计数据）
+      await db.discoveredFeeds.update(feed.id, {
+        lastFetchedAt: now,
+        nextScheduledFetch,
+        updateFrequency,
+        lastError: undefined,
+        latestArticles: ownedArticles,  // 只包含真正属于当前 Feed 的文章
+        articleCount: realTotalCount,   // 真实的文章数量
+        unreadCount: realUnreadCount    // 真实的未读数量
+      })
     })
     
     // Phase 7: 更新详细统计（分析、推荐、阅读、不想读）
@@ -286,16 +293,20 @@ export async function fetchFeed(feed: DiscoveredFeed): Promise<boolean> {
     // 重新获取更新后的 feed 数据以显示完整统计
     const updatedFeed = await db.discoveredFeeds.get(feed.id)
     
+    // 计算跨 Feed 共享的文章数量
+    const sharedArticlesCount = latest.length - (updatedFeed?.articleCount || 0)
+    
     console.log('[FeedScheduler] ✅ 抓取成功:', {
       feed: feed.title,
-      newArticles: newArticles.length,
-      totalArticles: updatedFeed?.articleCount || totalCount,
-      analyzedCount: updatedFeed?.analyzedCount || 0,
-      recommendedCount: updatedFeed?.recommendedCount || 0,
-      readCount: updatedFeed?.readCount || 0,
-      dislikedCount: updatedFeed?.dislikedCount || 0,
-      unreadCount: updatedFeed?.unreadCount || unreadCount,
-      keepCount
+      抓取到的文章: newArticles.length,
+      独属文章: updatedFeed?.articleCount || 0,
+      跨Feed共享: sharedArticlesCount > 0 ? sharedArticlesCount : undefined,
+      已分析: updatedFeed?.analyzedCount || 0,
+      已推荐: updatedFeed?.recommendedCount || 0,
+      已阅读: updatedFeed?.readCount || 0,
+      不想读: updatedFeed?.dislikedCount || 0,
+      未读: updatedFeed?.unreadCount || 0,
+      保留数量: keepCount
     })
     
     return true
