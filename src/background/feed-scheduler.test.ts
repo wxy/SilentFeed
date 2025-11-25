@@ -52,7 +52,8 @@ vi.mock('../storage/db', () => ({
         }))
       })),
       bulkAdd: vi.fn().mockResolvedValue(undefined),
-      bulkPut: vi.fn().mockResolvedValue(undefined)  // 添加 bulkPut 方法
+      bulkPut: vi.fn().mockResolvedValue(undefined),  // 添加 bulkPut 方法
+      bulkGet: vi.fn().mockResolvedValue([])  // 添加 bulkGet 方法
     },
     transaction: vi.fn((mode, tables, callback) => {
       // 简单模拟事务：直接执行回调

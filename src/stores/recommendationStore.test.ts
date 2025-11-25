@@ -6,6 +6,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { useRecommendationStore } from './recommendationStore'
 import { db } from '@/storage/db'
 import type { Recommendation } from '@/types/database'
+import { recommendationService } from '../core/recommender/RecommendationService'
 
 // Mock recommendationService
 vi.mock('../core/recommender/RecommendationService', () => ({
@@ -27,6 +28,12 @@ vi.mock('../core/recommender/RecommendationService', () => ({
 global.chrome = {
   runtime: {
     sendMessage: vi.fn().mockResolvedValue({}),
+  },
+  storage: {
+    local: {
+      get: vi.fn().mockResolvedValue({}),
+      set: vi.fn().mockResolvedValue(undefined),
+    },
   },
 } as any
 
@@ -412,14 +419,16 @@ describe('RecommendationStore', () => {
 
     it('应该处理生成推荐完全失败', async () => {
       // Mock 推荐服务返回错误且无推荐
-      vi.doMock('../core/recommender/RecommendationService', () => ({
-        recommendationService: {
-          generateRecommendations: vi.fn().mockResolvedValue({
-            recommendations: [],
-            errors: ['Error: All feeds failed']
-          })
-        }
-      }))
+      vi.mocked(recommendationService.generateRecommendations).mockResolvedValueOnce({
+        recommendations: [],
+        stats: {
+          totalFeeds: 0,
+          processedFeeds: 0,
+          totalArticles: 0,
+          recommendedArticles: 0
+        },
+        errors: ['Error: All feeds failed']
+      })
       
       const store = useRecommendationStore.getState()
       await store.generateRecommendations()
@@ -431,11 +440,9 @@ describe('RecommendationStore', () => {
 
     it('应该处理生成推荐时的异常', async () => {
       // Mock 推荐服务抛出异常
-      vi.doMock('../core/recommender/RecommendationService', () => ({
-        recommendationService: {
-          generateRecommendations: vi.fn().mockRejectedValue(new Error('Network error'))
-        }
-      }))
+      vi.mocked(recommendationService.generateRecommendations).mockRejectedValueOnce(
+        new Error('Network error')
+      )
       
       const store = useRecommendationStore.getState()
       await store.generateRecommendations()
