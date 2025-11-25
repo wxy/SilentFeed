@@ -291,7 +291,7 @@ export function AIConfig() {
         </select>
         {model && currentProvider && AVAILABLE_MODELS[currentProvider]?.find(m => m.id === model) && (
           <p className="mt-1 text-sm text-gray-500">
-            {AVAILABLE_MODELS[currentProvider].find(m => m.id === model)?.description}
+            {_(`options.aiConfig.models.${model}.description`)}
           </p>
         )}
       </div>

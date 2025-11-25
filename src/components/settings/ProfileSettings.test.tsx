@@ -359,7 +359,7 @@ describe("ProfileSettings 组件", () => {
       
       // Phase 8: AI 未配置时应显示警告卡片（非专门的 AI 配置提示区域）
       await waitFor(() => {
-        expect(screen.getByText("当前使用基础画像（关键词分析）")).toBeInTheDocument()
+        expect(screen.getByText("options.profile.aiProfile.fallbackTitle")).toBeInTheDocument()
         expect(screen.getByText("立即配置 AI")).toBeInTheDocument()
       })
     })

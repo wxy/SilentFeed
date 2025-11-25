@@ -431,7 +431,7 @@ function AIConfigStep({
             <optgroup key={provider} label={provider.toUpperCase()}>
               {models.map((m) => (
                 <option key={m.id} value={m.id}>
-                  {m.name} - {m.description}
+                  {_(`options.aiConfig.models.${m.id}.name`)} - {_(`options.aiConfig.models.${m.id}.description`)}
                 </option>
               ))}
             </optgroup>

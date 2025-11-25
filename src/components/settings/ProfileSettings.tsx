@@ -275,7 +275,7 @@ export function ProfileSettings() {
               <h3 className="text-lg font-bold flex items-center gap-2">
                 <span className="text-2xl">🤖</span>
                 <span className="bg-gradient-to-r from-blue-600 to-slate-600 bg-clip-text text-transparent">
-                  AI 语义画像
+                  {_("options.profile.aiProfile.title")}
                 </span>
               </h3>
               <div className="flex items-center gap-2">
@@ -294,10 +294,10 @@ export function ProfileSettings() {
             <div className="mb-5">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
-                  💭 AI 对您的理解
+                  💭 {_("options.profile.aiProfile.understanding")}
                 </span>
                 <span className="text-xs text-blue-500 dark:text-blue-400">
-                  (超越关键词，深度语义分析)
+                  ({_("options.profile.aiProfile.understandingHint")})
                 </span>
               </div>
               <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur rounded-lg p-4 border border-blue-100 dark:border-blue-800">
@@ -414,18 +414,18 @@ export function ProfileSettings() {
               <span className="text-2xl">⏳</span>
               <div className="flex-1">
                 <h3 className="text-sm font-medium text-yellow-900 dark:text-yellow-100 mb-1">
-                  AI 语义画像正在积累数据
+                  {_("options.profile.aiProfile.accumulating")}
                 </h3>
                 <p className="text-xs text-yellow-700 dark:text-yellow-300 mb-2">
-                  系统会在满足以下任一条件后自动生成 AI 画像：
+                  {_("options.profile.aiProfile.accumulatingDesc")}
                 </p>
                 <ul className="text-xs text-yellow-700 dark:text-yellow-300 space-y-1 list-disc list-inside">
-                  <li>浏览 ≥20 个页面（当前: {profile.totalPages} 页）</li>
-                  <li>阅读 ≥5 篇推荐（当前: {profile.behaviors?.totalReads || 0} 篇）</li>
-                  <li>拒绝 ≥5 篇推荐（当前: {profile.behaviors?.totalDismisses || 0} 篇）</li>
+                  <li>{_("options.profile.aiProfile.condition1", { count: profile.totalPages })}</li>
+                  <li>{_("options.profile.aiProfile.condition2", { count: profile.behaviors?.totalReads || 0 })}</li>
+                  <li>{_("options.profile.aiProfile.condition3", { count: profile.behaviors?.totalDismisses || 0 })}</li>
                 </ul>
                 <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-2">
-                  💡 提示：每个页面需要停留 30 秒以上才会被记录
+                  {_("options.profile.aiProfile.accumulatingHint")}
                 </p>
               </div>
             </div>
@@ -439,15 +439,13 @@ export function ProfileSettings() {
               <span className="text-3xl">⚠️</span>
               <div className="flex-1">
                 <h3 className="text-base font-bold text-amber-900 dark:text-amber-100 mb-2">
-                  当前使用基础画像（关键词分析）
+                  {_("options.profile.aiProfile.fallbackTitle")}
                 </h3>
-                <p className="text-sm text-amber-800 dark:text-amber-200 mb-3">
-                  💡 配置 AI 可获得 <strong className="text-amber-900 dark:text-amber-100">3-5 倍更精准</strong>的推荐效果：
-                </p>
+                <p className="text-sm text-amber-800 dark:text-amber-200 mb-3" dangerouslySetInnerHTML={{ __html: _("options.profile.aiProfile.fallbackBenefit") }} />
                 <ul className="text-sm text-amber-700 dark:text-amber-300 space-y-2 mb-4 list-disc list-inside">
-                  <li><strong>语义理解</strong>：深度理解内容含义，而非简单关键词匹配</li>
-                  <li><strong>偏好识别</strong>：精准识别你喜欢的内容类型和风格</li>
-                  <li><strong>智能过滤</strong>：自动排除不感兴趣的主题</li>
+                  <li dangerouslySetInnerHTML={{ __html: _("options.profile.aiProfile.benefit1") }} />
+                  <li dangerouslySetInnerHTML={{ __html: _("options.profile.aiProfile.benefit2") }} />
+                  <li dangerouslySetInnerHTML={{ __html: _("options.profile.aiProfile.benefit3") }} />
                 </ul>
                 <div className="flex items-center gap-3">
                   <a

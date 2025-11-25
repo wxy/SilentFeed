@@ -1,32 +1,32 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-11-25T09:48:46.723Z",
+  "lastUpdate": "2025-11-25T13:07:05.294Z",
   "translations": {
     "app.name": {
       "zh-CN": {
-        "value": "静阅",
-        "hash": "b57de46c",
-        "lastModified": "2025-11-19T15:20:25.695Z",
+        "value": "静阅（Silent Feed）",
+        "hash": "7c81c3e3",
+        "lastModified": "2025-11-25T13:06:08.673Z",
         "status": "verified"
       },
       "en": {
-        "value": "Quiet Reading",
-        "hash": "f66c1084",
-        "lastModified": "2025-11-19T15:20:25.696Z",
+        "value": "Silent Feed",
+        "hash": "3c0c6b59",
+        "lastModified": "2025-11-25T13:06:08.674Z",
         "status": "ai-translated"
       }
     },
     "app.shortName": {
       "zh-CN": {
-        "value": "Silent Feed",
-        "hash": "3c0c6b59",
-        "lastModified": "2025-11-19T15:20:27.454Z",
+        "value": "静阅",
+        "hash": "b57de46c",
+        "lastModified": "2025-11-25T13:06:10.511Z",
         "status": "verified"
       },
       "en": {
-        "value": "Silent Feed",
-        "hash": "3c0c6b59",
-        "lastModified": "2025-11-19T15:20:27.454Z",
+        "value": "Silent Read",
+        "hash": "a5e4b55d",
+        "lastModified": "2025-11-25T13:06:10.511Z",
         "status": "ai-translated"
       }
     },
@@ -10905,6 +10905,370 @@
         "value": "Go add RSS feeds",
         "hash": "6a7f6604",
         "lastModified": "2025-11-25T08:49:50.946Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.models.deepseek-chat.name": {
+      "zh-CN": {
+        "value": "DeepSeek",
+        "hash": "264d9bb4",
+        "lastModified": "2025-11-25T13:06:12.350Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "DeepSeek",
+        "hash": "264d9bb4",
+        "lastModified": "2025-11-25T13:06:12.350Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.models.deepseek-chat.description": {
+      "zh-CN": {
+        "value": "国内友好，支持推理模式（R1）",
+        "hash": "1d9543b4",
+        "lastModified": "2025-11-25T13:06:15.120Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Domestically friendly, supports inference mode (R1)",
+        "hash": "4da796cd",
+        "lastModified": "2025-11-25T13:06:15.120Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.models.gpt-5-nano.name": {
+      "zh-CN": {
+        "value": "GPT-5 Nano",
+        "hash": "e1941c89",
+        "lastModified": "2025-11-25T13:06:17.069Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "GPT-5 Nano",
+        "hash": "e1941c89",
+        "lastModified": "2025-11-25T13:06:17.069Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.models.gpt-5-nano.description": {
+      "zh-CN": {
+        "value": "最快最便宜，适合简单任务",
+        "hash": "95bdc7c5",
+        "lastModified": "2025-11-25T13:06:19.519Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Fastest and cheapest, suitable for simple tasks",
+        "hash": "5c3686dc",
+        "lastModified": "2025-11-25T13:06:19.520Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.models.gpt-5-mini.name": {
+      "zh-CN": {
+        "value": "GPT-5 Mini",
+        "hash": "0b039e03",
+        "lastModified": "2025-11-25T13:06:21.162Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "GPT-5 Mini",
+        "hash": "0b039e03",
+        "lastModified": "2025-11-25T13:06:21.162Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.models.gpt-5-mini.description": {
+      "zh-CN": {
+        "value": "平衡性能和成本（推荐）",
+        "hash": "a6135199",
+        "lastModified": "2025-11-25T13:06:23.310Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Balancing performance and cost (Recommended)",
+        "hash": "4e9052bd",
+        "lastModified": "2025-11-25T13:06:23.310Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.models.gpt-5.name": {
+      "zh-CN": {
+        "value": "GPT-5",
+        "hash": "0e997599",
+        "lastModified": "2025-11-25T13:06:25.073Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "GPT-5",
+        "hash": "0e997599",
+        "lastModified": "2025-11-25T13:06:25.073Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.models.gpt-5.description": {
+      "zh-CN": {
+        "value": "最强大的模型，适合复杂任务",
+        "hash": "d22296f7",
+        "lastModified": "2025-11-25T13:06:26.897Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "The most powerful model, ideal for complex tasks",
+        "hash": "17e290e2",
+        "lastModified": "2025-11-25T13:06:26.897Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.models.claude-3-5-haiku.name": {
+      "zh-CN": {
+        "value": "Claude 3.5 Haiku",
+        "hash": "b95d661f",
+        "lastModified": "2025-11-25T13:06:28.840Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Claude 3.5 Haiku",
+        "hash": "b95d661f",
+        "lastModified": "2025-11-25T13:06:28.840Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.models.claude-3-5-haiku.description": {
+      "zh-CN": {
+        "value": "最快最便宜，适合简单任务",
+        "hash": "95bdc7c5",
+        "lastModified": "2025-11-25T13:06:30.581Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Fastest and cheapest, suitable for simple tasks",
+        "hash": "5c3686dc",
+        "lastModified": "2025-11-25T13:06:30.581Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.models.claude-3-5-sonnet.name": {
+      "zh-CN": {
+        "value": "Claude 3.5 Sonnet",
+        "hash": "91862a73",
+        "lastModified": "2025-11-25T13:06:32.413Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Claude 3.5 Sonnet",
+        "hash": "91862a73",
+        "lastModified": "2025-11-25T13:06:32.413Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.models.claude-3-5-sonnet.description": {
+      "zh-CN": {
+        "value": "平衡性能和成本（推荐）",
+        "hash": "a6135199",
+        "lastModified": "2025-11-25T13:06:34.585Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Balancing performance and cost (Recommended)",
+        "hash": "4e9052bd",
+        "lastModified": "2025-11-25T13:06:34.585Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.aiProfile.title": {
+      "zh-CN": {
+        "value": "AI 语义画像",
+        "hash": "273d96c6",
+        "lastModified": "2025-11-25T13:06:36.522Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "AI Semantic Profiling",
+        "hash": "cb95560f",
+        "lastModified": "2025-11-25T13:06:36.522Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.aiProfile.understanding": {
+      "zh-CN": {
+        "value": "AI 对您的理解",
+        "hash": "17742e4b",
+        "lastModified": "2025-11-25T13:06:38.673Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "AI's Understanding of You",
+        "hash": "afa62907",
+        "lastModified": "2025-11-25T13:06:38.673Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.aiProfile.understandingHint": {
+      "zh-CN": {
+        "value": "超越关键词，深度语义分析",
+        "hash": "60743bbd",
+        "lastModified": "2025-11-25T13:06:40.513Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Beyond Keywords, Deep Semantic Analysis",
+        "hash": "e5203bff",
+        "lastModified": "2025-11-25T13:06:40.513Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.aiProfile.accumulating": {
+      "zh-CN": {
+        "value": "AI 语义画像正在积累数据",
+        "hash": "7ffc0800",
+        "lastModified": "2025-11-25T13:06:42.464Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "AI semantic profiling is accumulating data.",
+        "hash": "f2e6be67",
+        "lastModified": "2025-11-25T13:06:42.464Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.aiProfile.accumulatingDesc": {
+      "zh-CN": {
+        "value": "系统会在满足以下任一条件后自动生成 AI 画像：",
+        "hash": "9944cfb2",
+        "lastModified": "2025-11-25T13:06:44.714Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "The system will automatically generate an AI portrait when any of the following conditions are met:",
+        "hash": "e2eb6966",
+        "lastModified": "2025-11-25T13:06:44.714Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.aiProfile.condition1": {
+      "zh-CN": {
+        "value": "浏览 ≥20 个页面（当前: {{count}} 页）",
+        "hash": "6cbe5c0e",
+        "lastModified": "2025-11-25T13:06:47.169Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Browse ≥20 pages (Current: {{count}} pages)",
+        "hash": "ba3e3a31",
+        "lastModified": "2025-11-25T13:06:47.169Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.aiProfile.condition2": {
+      "zh-CN": {
+        "value": "阅读 ≥5 篇推荐（当前: {{count}} 篇）",
+        "hash": "1441978b",
+        "lastModified": "2025-11-25T13:06:49.218Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Read ≥5 recommended articles (Current: {{count}} articles)",
+        "hash": "2de61c1c",
+        "lastModified": "2025-11-25T13:06:49.218Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.aiProfile.condition3": {
+      "zh-CN": {
+        "value": "拒绝 ≥5 篇推荐（当前: {{count}} 篇）",
+        "hash": "1c97edb2",
+        "lastModified": "2025-11-25T13:06:51.368Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Rejected ≥5 recommendations (Current: {{count}})",
+        "hash": "31913561",
+        "lastModified": "2025-11-25T13:06:51.369Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.aiProfile.accumulatingHint": {
+      "zh-CN": {
+        "value": "💡 提示：每个页面需要停留 30 秒以上才会被记录",
+        "hash": "b69584a9",
+        "lastModified": "2025-11-25T13:06:53.723Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "💡 Tip: Each page must be viewed for more than 30 seconds to be recorded.",
+        "hash": "1a005d6d",
+        "lastModified": "2025-11-25T13:06:53.723Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.aiProfile.fallbackTitle": {
+      "zh-CN": {
+        "value": "当前使用基础画像（关键词分析）",
+        "hash": "69d464df",
+        "lastModified": "2025-11-25T13:06:55.568Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Currently using basic profiling (keyword analysis)",
+        "hash": "cf1a979e",
+        "lastModified": "2025-11-25T13:06:55.568Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.aiProfile.fallbackBenefit": {
+      "zh-CN": {
+        "value": "💡 配置 AI 可获得 <strong>3-5 倍更精准</strong>的推荐效果：",
+        "hash": "615cbaf8",
+        "lastModified": "2025-11-25T13:06:57.598Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "💡 Configure AI for <strong>3-5x more accurate</strong> recommendations:",
+        "hash": "5b919258",
+        "lastModified": "2025-11-25T13:06:57.598Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.aiProfile.benefit1": {
+      "zh-CN": {
+        "value": "<strong>语义理解</strong>：深度理解内容含义，而非简单关键词匹配",
+        "hash": "5a5b1deb",
+        "lastModified": "2025-11-25T13:07:00.073Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "<strong>Semantic Understanding</strong>: Deep comprehension of content meaning, not just simple keyword matching.",
+        "hash": "1f239151",
+        "lastModified": "2025-11-25T13:07:00.073Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.aiProfile.benefit2": {
+      "zh-CN": {
+        "value": "<strong>偏好识别</strong>：精准识别你喜欢的内容类型和风格",
+        "hash": "4c35157e",
+        "lastModified": "2025-11-25T13:07:02.632Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "<strong>Preference Recognition</strong>: Accurately identifies the types and styles of content you like.",
+        "hash": "1a4725d7",
+        "lastModified": "2025-11-25T13:07:02.632Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.aiProfile.benefit3": {
+      "zh-CN": {
+        "value": "<strong>智能过滤</strong>：自动排除不感兴趣的主题",
+        "hash": "4cc16b23",
+        "lastModified": "2025-11-25T13:07:04.783Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "<strong>Smart Filtering</strong>: Automatically excludes topics of no interest",
+        "hash": "b9ae4e15",
+        "lastModified": "2025-11-25T13:07:04.783Z",
         "status": "ai-translated"
       }
     }
