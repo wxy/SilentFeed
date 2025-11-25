@@ -19,6 +19,12 @@
 
 ### 扩展信息
 
+**扩展 ID**:  
+`pieiedlagbmcnooloibhigmidpakneca`
+
+**Chrome Web Store 链接**:  
+https://chromewebstore.google.com/detail/pieiedlagbmcnooloibhigmidpakneca
+
 **名称 (中文主推)**:  
 Silent Feed (静阅)
 
@@ -342,7 +348,7 @@ https://github.com/wxy/SilentFeed/blob/master/PRIVACY.md
 - `assets/icons/128/base-static.png` - 128x128 主图标
 - `assets/icons/96/base-static.png` - 96x96（需创建）
 
-### 截图（必需）
+### 截图(必需)
 
 **要求**:
 - 最少 1 张，最多 5 张
@@ -350,51 +356,54 @@ https://github.com/wxy/SilentFeed/blob/master/PRIVACY.md
 - 格式：PNG 或 JPEG
 - 内容：展示扩展的主要功能
 
-**建议截图**:
+**已准备的截图**:
 
-1. **推荐界面** (screenshot-1-recommendations.png)
-   - 展示 AI 推荐的文章列表
-   - 显示推荐分数、引擎图标、推荐理由
-   - 强调：智能推荐功能
+#### 1. 推荐界面 (screenshot-1-recommendations)
+- **中文**: `docs/assets/screenshots/screenshot-1-recommendations-cn.png`
+- **英文**: `docs/assets/screenshots/screenshot-1-recommendations-en.png`
+- 展示 AI 推荐的文章列表、推荐分数、引擎图标、推荐理由
+- 强调：智能推荐功能
 
-2. **冷启动界面** (screenshot-2-cold-start.png)
-   - 展示 100 页面倒计数
-   - 显示当前收集进度
-   - 强调：渐进成长特性
+#### 2. 冷启动界面 (screenshot-2-cold-start)
+- **中文**: `docs/assets/screenshots/screenshot-2-cold-start-cn.png`
+- **英文**: `docs/assets/screenshots/screenshot-2-cold-start-en.png`
+- 展示 100 页面倒计数、当前收集进度
+- 强调：渐进成长特性
 
-3. **兴趣画像** (screenshot-3-profile.png)
-   - 展示主题分布图表
-   - 显示关键词云图
-   - 强调：兴趣分析可视化
+#### 3. 兴趣画像 (screenshot-3-profile)
+- **中文**: `docs/assets/screenshots/screenshot-3-profile-cn.png`
+- **英文**: `docs/assets/screenshots/screenshot-3-profile-en.png`
+- 展示主题分布图表、关键词云图
+- 强调：兴趣分析可视化
 
-4. **RSS 管理** (screenshot-4-rss-settings.png)
-   - 展示订阅列表
-   - 显示添加源和导入 OPML 功能
-   - 强调：RSS 管理功能
+#### 4. RSS 管理 (screenshot-4-rss-settings)
+- **中文**: `docs/assets/screenshots/screenshot-4-rss-settings-cn.png`
+- **英文**: `docs/assets/screenshots/screenshot-4-rss-settings-en.png`
+- 展示订阅列表、添加源和导入 OPML 功能
+- 强调：RSS 管理功能
 
-5. **AI 配置** (screenshot-5-ai-config.png)
-   - 展示 AI 引擎选择
-   - 显示成本统计
-   - 强调：AI 配置和成本控制
+#### 5. AI 配置 (screenshot-5-ai-config)
+- **中文**: `docs/assets/screenshots/screenshot-5-ai-config-cn.png`
+- **英文**: `docs/assets/screenshots/screenshot-5-ai-config-en.png`
+- 展示 AI 引擎选择、成本统计
+- 强调：AI 配置和成本控制
 
-**截图保存位置**:
-`docs/assets/screenshots/`
+**附加截图**:
+- **弹窗推荐** (popup-recommendations): `popup-recommendations-{cn,en}.png`
+- **设置页面** (settings-profile): `settings-profile-{cn,en}.png`
 
 ### 宣传图（可选）
 
+**已准备的宣传图**:
+
 **小型宣传图** (Promotional tile - Small):
+- 文件：`docs/assets/screenshots/promo-tile-small-440x280.png`
 - 尺寸：440x280 像素
-- 格式：PNG 或 JPEG
 - 用途：Chrome Web Store 列表页
 
-**大型宣传图** (Promotional tile - Large):  
-- 尺寸：920x680 像素
-- 格式：PNG 或 JPEG
-- 用途：Chrome Web Store 精选推荐
-
 **跑马图** (Marquee):
+- 文件：`docs/assets/screenshots/marquee-1400x560.png`
 - 尺寸：1400x560 像素
-- 格式：PNG 或 JPEG
 - 用途：Chrome Web Store 首页展示（如果被精选）
 
 ---
@@ -418,16 +427,16 @@ https://github.com/wxy/SilentFeed/blob/master/PRIVACY.md
 - [x] README.en.md（英文详细文档）
 - [x] docs/USER_GUIDE.md（用户手册）
 - [x] docs/CHROME_STORE_SUBMISSION.md（本文档）
-- [ ] PRIVACY.md（隐私政策）
+- [x] PRIVACY.md（隐私政策）
 - [ ] CHANGELOG.md（版本更新日志）
 
 ### 图标和截图
 
 - [x] 128x128 应用图标
 - [ ] 96x96 应用图标（可选）
-- [ ] 至少 1 张功能截图（推荐 3-5 张）
-- [ ] 440x280 小型宣传图（可选）
-- [ ] 920x680 大型宣传图（可选）
+- [x] 至少 1 张功能截图（推荐 3-5 张）- 已准备 5 张中英文截图
+- [x] 440x280 小型宣传图（可选）
+- [x] 1400x560 跑马图（可选）
 
 ### 测试
 
