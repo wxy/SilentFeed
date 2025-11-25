@@ -902,7 +902,19 @@
         "fallbackBenefit": "💡 Configure AI for <strong>3-5x more accurate</strong> recommendations:",
         "benefit1": "<strong>Semantic Understanding</strong>: Deep comprehension of content meaning, not just simple keyword matching.",
         "benefit2": "<strong>Preference Recognition</strong>: Accurately identifies the types and styles of content you like.",
-        "benefit3": "<strong>Smart Filtering</strong>: Automatically excludes topics of no interest"
+        "benefit3": "<strong>Smart Filtering</strong>: Automatically excludes topics of no interest",
+        "preferences": "Your preferred content types",
+        "avoidTopics": "Topics of no interest",
+        "items": "{{count}} items",
+        "dataSource": "Data Sources and Costs",
+        "browses": "{{count}} page views",
+        "reads": "{{count}} reads",
+        "dismisses": "{{count}} rejections",
+        "cost": "Cost ¥{{cost}}",
+        "primaryTopic": "Dominant Interest",
+        "viewDetails": "View detailed data →",
+        "configureAI": "Configure AI Now",
+        "recommendDeepSeek": "Recommended to use DeepSeek (cost as low as ¥0.0001 per request)"
       }
     }
   },

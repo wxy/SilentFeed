@@ -311,10 +311,10 @@ export function ProfileSettings() {
             <div className="mb-5">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  ⭐ 您偏好的内容类型
+                  ⭐ {_("options.profile.aiProfile.preferences")}
                 </span>
                 <span className="text-xs bg-slate-100 dark:bg-slate-900/30 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded">
-                  {profile.aiSummary.preferences.length} 项
+                  {_("options.profile.aiProfile.items", { count: profile.aiSummary.preferences.length })}
                 </span>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -335,10 +335,10 @@ export function ProfileSettings() {
               <div className="mb-4">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-sm font-semibold text-red-700 dark:text-red-300">
-                    🚫 不感兴趣的主题
+                    🚫 {_("options.profile.aiProfile.avoidTopics")}
                   </span>
                   <span className="text-xs bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-2 py-0.5 rounded">
-                    {profile.aiSummary.avoidTopics.length} 项
+                    {_("options.profile.aiProfile.items", { count: profile.aiSummary.avoidTopics.length })}
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -360,18 +360,18 @@ export function ProfileSettings() {
               <div className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-3 text-blue-600 dark:text-blue-400">
                   <span>
-                    🌐 {profile.aiSummary.metadata.basedOn.browses} 页浏览
+                    🌐 {_("options.profile.aiProfile.browses", { count: profile.aiSummary.metadata.basedOn.browses })}
                   </span>
                   <span>
-                    📖 {profile.aiSummary.metadata.basedOn.reads} 次阅读
+                    📖 {_("options.profile.aiProfile.reads", { count: profile.aiSummary.metadata.basedOn.reads })}
                   </span>
                   <span>
-                    🚫 {profile.aiSummary.metadata.basedOn.dismisses} 次拒绝
+                    🚫 {_("options.profile.aiProfile.dismisses", { count: profile.aiSummary.metadata.basedOn.dismisses })}
                   </span>
                 </div>
                 {profile.aiSummary.metadata.cost && (
                   <span className="text-blue-500 dark:text-blue-400">
-                    💰 成本 ¥{profile.aiSummary.metadata.cost.toFixed(4)}
+                    💰 {_("options.profile.aiProfile.cost", { cost: profile.aiSummary.metadata.cost.toFixed(4) })}
                   </span>
                 )}
               </div>
@@ -382,7 +382,7 @@ export function ProfileSettings() {
               <div className="pt-4 border-t border-blue-200 dark:border-blue-700">
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-                    <span>📊 主导兴趣:</span>
+                    <span>📊 {_("options.profile.aiProfile.primaryTopic")}:</span>
                     <span className="font-medium">
                       {primaryTopic.animal} {primaryTopic.name} ({primaryTopic.score.toFixed(1)}%)
                     </span>
@@ -399,7 +399,7 @@ export function ProfileSettings() {
                     }}
                     className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
                   >
-                    查看详细数据 →
+                    {_("options.profile.aiProfile.viewDetails")}
                   </button>
                 </div>
               </div>
@@ -452,10 +452,10 @@ export function ProfileSettings() {
                     href="/options.html?tab=ai"
                     className="inline-flex items-center gap-2 text-sm bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-lg transition-colors shadow-md font-medium">
                     <span>🚀</span>
-                    <span>立即配置 AI</span>
+                    <span>{_("options.profile.aiProfile.configureAI")}</span>
                   </a>
                   <span className="text-xs text-amber-600 dark:text-amber-400">
-                    推荐使用 DeepSeek（成本低至 ¥0.0001/次）
+                    {_("options.profile.aiProfile.recommendDeepSeek")}
                   </span>
                 </div>
               </div>

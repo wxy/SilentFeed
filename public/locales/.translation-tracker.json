@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-11-25T13:07:05.294Z",
+  "lastUpdate": "2025-11-25T13:25:51.652Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -11269,6 +11269,174 @@
         "value": "<strong>Smart Filtering</strong>: Automatically excludes topics of no interest",
         "hash": "b9ae4e15",
         "lastModified": "2025-11-25T13:07:04.783Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.aiProfile.preferences": {
+      "zh-CN": {
+        "value": "您偏好的内容类型",
+        "hash": "109693de",
+        "lastModified": "2025-11-25T13:25:30.873Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Your preferred content types",
+        "hash": "96646462",
+        "lastModified": "2025-11-25T13:25:30.874Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.aiProfile.avoidTopics": {
+      "zh-CN": {
+        "value": "不感兴趣的主题",
+        "hash": "cfad35e4",
+        "lastModified": "2025-11-25T13:25:32.920Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Topics of no interest",
+        "hash": "173f40b5",
+        "lastModified": "2025-11-25T13:25:32.920Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.aiProfile.items": {
+      "zh-CN": {
+        "value": "{{count}} 项",
+        "hash": "b1c255ab",
+        "lastModified": "2025-11-25T13:25:34.669Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{count}} items",
+        "hash": "39d76132",
+        "lastModified": "2025-11-25T13:25:34.669Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.aiProfile.dataSource": {
+      "zh-CN": {
+        "value": "数据来源和成本",
+        "hash": "75b89eaf",
+        "lastModified": "2025-11-25T13:25:36.705Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Data Sources and Costs",
+        "hash": "d4bf9565",
+        "lastModified": "2025-11-25T13:25:36.705Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.aiProfile.browses": {
+      "zh-CN": {
+        "value": "{{count}} 页浏览",
+        "hash": "fc6af48c",
+        "lastModified": "2025-11-25T13:25:38.445Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{count}} page views",
+        "hash": "16661c16",
+        "lastModified": "2025-11-25T13:25:38.445Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.aiProfile.reads": {
+      "zh-CN": {
+        "value": "{{count}} 次阅读",
+        "hash": "be6ce130",
+        "lastModified": "2025-11-25T13:25:40.206Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{count}} reads",
+        "hash": "ba1a542d",
+        "lastModified": "2025-11-25T13:25:40.206Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.aiProfile.dismisses": {
+      "zh-CN": {
+        "value": "{{count}} 次拒绝",
+        "hash": "8f953d0f",
+        "lastModified": "2025-11-25T13:25:41.826Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{count}} rejections",
+        "hash": "68acdcec",
+        "lastModified": "2025-11-25T13:25:41.826Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.aiProfile.cost": {
+      "zh-CN": {
+        "value": "成本 ¥{{cost}}",
+        "hash": "b7037ba3",
+        "lastModified": "2025-11-25T13:25:43.461Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Cost ¥{{cost}}",
+        "hash": "f6d718f2",
+        "lastModified": "2025-11-25T13:25:43.461Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.aiProfile.primaryTopic": {
+      "zh-CN": {
+        "value": "主导兴趣",
+        "hash": "2563bbfa",
+        "lastModified": "2025-11-25T13:25:45.102Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Dominant Interest",
+        "hash": "84a3f031",
+        "lastModified": "2025-11-25T13:25:45.102Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.aiProfile.viewDetails": {
+      "zh-CN": {
+        "value": "查看详细数据 →",
+        "hash": "59fea2e6",
+        "lastModified": "2025-11-25T13:25:46.956Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "View detailed data →",
+        "hash": "de60a11c",
+        "lastModified": "2025-11-25T13:25:46.956Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.aiProfile.configureAI": {
+      "zh-CN": {
+        "value": "立即配置 AI",
+        "hash": "fce2dfe2",
+        "lastModified": "2025-11-25T13:25:49.095Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Configure AI Now",
+        "hash": "d14c1151",
+        "lastModified": "2025-11-25T13:25:49.095Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.aiProfile.recommendDeepSeek": {
+      "zh-CN": {
+        "value": "推荐使用 DeepSeek（成本低至 ¥0.0001/次）",
+        "hash": "f7ead383",
+        "lastModified": "2025-11-25T13:25:51.143Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Recommended to use DeepSeek (cost as low as ¥0.0001 per request)",
+        "hash": "22e36393",
+        "lastModified": "2025-11-25T13:25:51.143Z",
         "status": "ai-translated"
       }
     }
