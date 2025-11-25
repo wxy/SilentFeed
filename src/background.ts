@@ -223,8 +223,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             const { state } = message
             bgLogger.info(`Onboarding 状态变化: ${state}`)
             
-            // 导入并调用重新配置函数
-            const { reconfigureSchedulersForState } = await import('./background/index')
+            // 调用重新配置函数
             await reconfigureSchedulersForState(state)
             
             sendResponse({ success: true })

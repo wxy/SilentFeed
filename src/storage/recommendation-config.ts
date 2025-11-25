@@ -287,7 +287,6 @@ export async function checkAIConfigStatus(): Promise<AIConfigStatus> {
     if (aiConfig.provider) {
       const apiKey = aiConfig.apiKeys?.[aiConfig.provider] || aiConfig.apiKey || ""
       if (apiKey) {
-        const { validateApiKey } = await import('./ai-config')
         status.isKeyValid = validateApiKey(aiConfig.provider, apiKey)
       }
     }

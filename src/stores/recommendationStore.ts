@@ -120,9 +120,6 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
       // 获取推荐配置
       const config = await getRecommendationConfig()
       
-      // 动态导入推荐服务
-      const { recommendationService } = await import('../core/recommender/RecommendationService')
-      
       // Phase 6: 传递 batchSize 参数
       const result = await recommendationService.generateRecommendations(
         config.maxRecommendations, 
