@@ -238,7 +238,7 @@ Silent Feed 是一个 AI 驱动的 RSS 阅读器，根据您的浏览兴趣智�
 ### 权限说明
 
 **请求的权限**:
-- `tabs` - 检测当前页面的 RSS 源
+- `activeTab` - 检测当前页面的 RSS 源
 - `storage` - 存储用户配置和数据
 - `alarms` - 定时抓取 RSS 订阅
 - `notifications` - 桌面通知
@@ -250,9 +250,9 @@ Silent Feed 是一个 AI 驱动的 RSS 阅读器，根据您的浏览兴趣智�
 
 **Chrome Web Store 提交时需要填写的权限理由（英文）**:
 
-#### 1. tabs
+#### 1. activeTab
 **Justification**: 
-This permission is required to detect RSS feeds available on the current webpage. When users visit a website, the extension checks the page's HTML headers for RSS/Atom feed links and displays a notification icon if feeds are found. This allows users to quickly subscribe to feeds without manually searching for feed URLs. The extension only reads the page URL and feed link information from headers, and does not access page content or user input data.
+This permission is required to detect RSS feeds available on the current webpage when users explicitly interact with the extension. When users click the extension icon or interact with extension features, we check the active page's HTML headers for RSS/Atom feed links and display a notification icon if feeds are found. This allows users to quickly subscribe to feeds without manually searching for feed URLs. The extension only reads the page URL and feed link information from headers when the user actively engages with the extension, and does not access page content or user input data.
 
 #### 2. storage
 **Justification**:
@@ -274,9 +274,10 @@ This host permission is necessary to fetch RSS feed content from the websites th
 
 **权限用途详细说明（中文补充）**:
 
-1. **tabs (标签页)**
-   - 用途：检测当前网页是否包含 RSS 订阅源
+1. **activeTab (活动标签页)**
+   - 用途：检测当前网页是否包含 RSS 订阅源（仅在用户主动交互时）
    - 数据：只读取页面 URL 和 HTML header 中的 RSS 链接
+   - 触发：仅在用户点击扩展图标或使用扩展功能时
    - 不会：读取页面内容或用户输入
 
 2. **storage (存储)**
