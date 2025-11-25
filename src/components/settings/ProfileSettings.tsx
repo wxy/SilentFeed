@@ -275,7 +275,7 @@ export function ProfileSettings() {
               <h3 className="text-lg font-bold flex items-center gap-2">
                 <span className="text-2xl">🤖</span>
                 <span className="bg-gradient-to-r from-blue-600 to-slate-600 bg-clip-text text-transparent">
-                  AI 语义画像
+                  {_("options.profile.aiProfile.title")}
                 </span>
               </h3>
               <div className="flex items-center gap-2">
@@ -294,10 +294,10 @@ export function ProfileSettings() {
             <div className="mb-5">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
-                  💭 AI 对您的理解
+                  💭 {_("options.profile.aiProfile.understanding")}
                 </span>
                 <span className="text-xs text-blue-500 dark:text-blue-400">
-                  (超越关键词，深度语义分析)
+                  ({_("options.profile.aiProfile.understandingHint")})
                 </span>
               </div>
               <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur rounded-lg p-4 border border-blue-100 dark:border-blue-800">
@@ -311,10 +311,10 @@ export function ProfileSettings() {
             <div className="mb-5">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  ⭐ 您偏好的内容类型
+                  ⭐ {_("options.profile.aiProfile.preferences")}
                 </span>
                 <span className="text-xs bg-slate-100 dark:bg-slate-900/30 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded">
-                  {profile.aiSummary.preferences.length} 项
+                  {_("options.profile.aiProfile.items", { count: profile.aiSummary.preferences.length })}
                 </span>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -335,10 +335,10 @@ export function ProfileSettings() {
               <div className="mb-4">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-sm font-semibold text-red-700 dark:text-red-300">
-                    🚫 不感兴趣的主题
+                    🚫 {_("options.profile.aiProfile.avoidTopics")}
                   </span>
                   <span className="text-xs bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-2 py-0.5 rounded">
-                    {profile.aiSummary.avoidTopics.length} 项
+                    {_("options.profile.aiProfile.items", { count: profile.aiSummary.avoidTopics.length })}
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -360,18 +360,18 @@ export function ProfileSettings() {
               <div className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-3 text-blue-600 dark:text-blue-400">
                   <span>
-                    🌐 {profile.aiSummary.metadata.basedOn.browses} 页浏览
+                    🌐 {_("options.profile.aiProfile.browses", { count: profile.aiSummary.metadata.basedOn.browses })}
                   </span>
                   <span>
-                    📖 {profile.aiSummary.metadata.basedOn.reads} 次阅读
+                    📖 {_("options.profile.aiProfile.reads", { count: profile.aiSummary.metadata.basedOn.reads })}
                   </span>
                   <span>
-                    🚫 {profile.aiSummary.metadata.basedOn.dismisses} 次拒绝
+                    🚫 {_("options.profile.aiProfile.dismisses", { count: profile.aiSummary.metadata.basedOn.dismisses })}
                   </span>
                 </div>
                 {profile.aiSummary.metadata.cost && (
                   <span className="text-blue-500 dark:text-blue-400">
-                    💰 成本 ¥{profile.aiSummary.metadata.cost.toFixed(4)}
+                    💰 {_("options.profile.aiProfile.cost", { cost: profile.aiSummary.metadata.cost.toFixed(4) })}
                   </span>
                 )}
               </div>
@@ -382,7 +382,7 @@ export function ProfileSettings() {
               <div className="pt-4 border-t border-blue-200 dark:border-blue-700">
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-                    <span>📊 主导兴趣:</span>
+                    <span>📊 {_("options.profile.aiProfile.primaryTopic")}:</span>
                     <span className="font-medium">
                       {primaryTopic.animal} {primaryTopic.name} ({primaryTopic.score.toFixed(1)}%)
                     </span>
@@ -399,7 +399,7 @@ export function ProfileSettings() {
                     }}
                     className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
                   >
-                    查看详细数据 →
+                    {_("options.profile.aiProfile.viewDetails")}
                   </button>
                 </div>
               </div>
@@ -414,18 +414,18 @@ export function ProfileSettings() {
               <span className="text-2xl">⏳</span>
               <div className="flex-1">
                 <h3 className="text-sm font-medium text-yellow-900 dark:text-yellow-100 mb-1">
-                  AI 语义画像正在积累数据
+                  {_("options.profile.aiProfile.accumulating")}
                 </h3>
                 <p className="text-xs text-yellow-700 dark:text-yellow-300 mb-2">
-                  系统会在满足以下任一条件后自动生成 AI 画像：
+                  {_("options.profile.aiProfile.accumulatingDesc")}
                 </p>
                 <ul className="text-xs text-yellow-700 dark:text-yellow-300 space-y-1 list-disc list-inside">
-                  <li>浏览 ≥20 个页面（当前: {profile.totalPages} 页）</li>
-                  <li>阅读 ≥5 篇推荐（当前: {profile.behaviors?.totalReads || 0} 篇）</li>
-                  <li>拒绝 ≥5 篇推荐（当前: {profile.behaviors?.totalDismisses || 0} 篇）</li>
+                  <li>{_("options.profile.aiProfile.condition1", { count: profile.totalPages })}</li>
+                  <li>{_("options.profile.aiProfile.condition2", { count: profile.behaviors?.totalReads || 0 })}</li>
+                  <li>{_("options.profile.aiProfile.condition3", { count: profile.behaviors?.totalDismisses || 0 })}</li>
                 </ul>
                 <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-2">
-                  💡 提示：每个页面需要停留 30 秒以上才会被记录
+                  {_("options.profile.aiProfile.accumulatingHint")}
                 </p>
               </div>
             </div>
@@ -439,25 +439,23 @@ export function ProfileSettings() {
               <span className="text-3xl">⚠️</span>
               <div className="flex-1">
                 <h3 className="text-base font-bold text-amber-900 dark:text-amber-100 mb-2">
-                  当前使用基础画像（关键词分析）
+                  {_("options.profile.aiProfile.fallbackTitle")}
                 </h3>
-                <p className="text-sm text-amber-800 dark:text-amber-200 mb-3">
-                  💡 配置 AI 可获得 <strong className="text-amber-900 dark:text-amber-100">3-5 倍更精准</strong>的推荐效果：
-                </p>
+                <p className="text-sm text-amber-800 dark:text-amber-200 mb-3" dangerouslySetInnerHTML={{ __html: _("options.profile.aiProfile.fallbackBenefit") }} />
                 <ul className="text-sm text-amber-700 dark:text-amber-300 space-y-2 mb-4 list-disc list-inside">
-                  <li><strong>语义理解</strong>：深度理解内容含义，而非简单关键词匹配</li>
-                  <li><strong>偏好识别</strong>：精准识别你喜欢的内容类型和风格</li>
-                  <li><strong>智能过滤</strong>：自动排除不感兴趣的主题</li>
+                  <li dangerouslySetInnerHTML={{ __html: _("options.profile.aiProfile.benefit1") }} />
+                  <li dangerouslySetInnerHTML={{ __html: _("options.profile.aiProfile.benefit2") }} />
+                  <li dangerouslySetInnerHTML={{ __html: _("options.profile.aiProfile.benefit3") }} />
                 </ul>
                 <div className="flex items-center gap-3">
                   <a
                     href="/options.html?tab=ai"
                     className="inline-flex items-center gap-2 text-sm bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-lg transition-colors shadow-md font-medium">
                     <span>🚀</span>
-                    <span>立即配置 AI</span>
+                    <span>{_("options.profile.aiProfile.configureAI")}</span>
                   </a>
                   <span className="text-xs text-amber-600 dark:text-amber-400">
-                    推荐使用 DeepSeek（成本低至 ¥0.0001/次）
+                    {_("options.profile.aiProfile.recommendDeepSeek")}
                   </span>
                 </div>
               </div>
@@ -502,10 +500,10 @@ export function ProfileSettings() {
                   <span className="text-2xl">📊</span>
                   <div>
                     <h3 className="font-semibold text-slate-900 dark:text-slate-100">
-                      详细数据分析
+                      {_("options.profile.detailedAnalysis.title")}
                     </h3>
                     <p className="text-xs text-slate-600 dark:text-slate-400">
-                      主题分布 · 关键词云 · 兴趣演化 · 访问偏好
+                      {_("options.profile.detailedAnalysis.subtitle")}
                     </p>
                   </div>
                 </div>
@@ -808,15 +806,15 @@ export function ProfileSettings() {
                         
                         {/* 第二行：分数 + 页数 */}
                         <div className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-                          {Math.round(snapshot.score * 100)}% · {snapshot.basedOnPages}页
+                          {Math.round(snapshot.score * 100)}% · {_("options.profile.detailedAnalysis.pages", { count: snapshot.basedOnPages })}
                         </div>
                         
                         {/* 第三行：统计数据（如果有）*/}
                         {snapshot.stats && (
                           <div className="text-[10px] text-gray-500 dark:text-gray-500 mt-0.5">
-                            {snapshot.stats.totalBrowses}浏览
-                            {snapshot.stats.totalReads > 0 && ` · ${snapshot.stats.totalReads}阅读`}
-                            {snapshot.stats.totalDismisses > 0 && ` · ${snapshot.stats.totalDismisses}拒绝`}
+                            {_("options.profile.detailedAnalysis.browses", { count: snapshot.stats.totalBrowses })}
+                            {snapshot.stats.totalReads > 0 && ` · ${_("options.profile.detailedAnalysis.reads", { count: snapshot.stats.totalReads })}`}
+                            {snapshot.stats.totalDismisses > 0 && ` · ${_("options.profile.detailedAnalysis.dismisses", { count: snapshot.stats.totalDismisses })}`}
                           </div>
                         )}
                         

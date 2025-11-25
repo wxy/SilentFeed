@@ -19,6 +19,12 @@
 
 ### 扩展信息
 
+**扩展 ID**:  
+`pieiedlagbmcnooloibhigmidpakneca`
+
+**Chrome Web Store 链接**:  
+https://chromewebstore.google.com/detail/pieiedlagbmcnooloibhigmidpakneca
+
 **名称 (中文主推)**:  
 Silent Feed (静阅)
 
@@ -62,8 +68,8 @@ Silent Feed（静阅）- 让信息流安静下来
 
 2. 智能推荐
    • AI 自动筛选出 3-5 条最相关的内容
-   • 支持多种 AI 引擎（DeepSeek/OpenAI/Anthropic）
-   • 或使用免费的规则引擎
+   • 支持多种远程 AI 引擎（DeepSeek/OpenAI/Anthropic）
+   • 未来将支持自定义的本地 AI 供应商
    • 推荐分数可视化，理由详细说明
 
 3. RSS 自动管理
@@ -97,10 +103,15 @@ Silent Feed（静阅）- 让信息流安静下来
 
 💰 成本透明
 
-• DeepSeek Chat：¥0.001/篇（推荐）
+使用你自己的 API Key，成本完全由你控制：
+
+• DeepSeek Chat：¥0.001/篇（性价比之选）
 • DeepSeek Reasoner：¥0.01/篇（深度推理）
-• 规则引擎：完全免费
-• 随时可切换引擎或查看成本统计
+• OpenAI GPT-4o-mini：$0.002/篇（约 ¥0.014）
+• Anthropic Claude 3.5 Haiku：$0.003/篇（约 ¥0.021）
+
+• 实时成本统计，随时可切换引擎
+• 未来将支持自定义的本地 AI 供应商（免费）
 
 🛠️ 技术架构
 
@@ -145,8 +156,8 @@ Not about managing RSS, but letting AI be your "information gatekeeper".
 
 2. Smart Recommendations
    • AI automatically filters out 3-5 most relevant articles
-   • Multiple AI engines supported (DeepSeek/OpenAI/Anthropic)
-   • Or use free rule-based engine
+   • Multiple remote AI engines supported (DeepSeek/OpenAI/Anthropic)
+   • Future support for custom local AI providers
    • Recommendation score visualization with detailed reasoning
 
 3. RSS Auto-Management
@@ -180,10 +191,15 @@ May not suit you if you:
 
 💰 Transparent Costs
 
-• DeepSeek Chat: $0.0001/article (Recommended)
+Use your own API Key, you control the costs:
+
+• DeepSeek Chat: $0.0001/article (Best value)
 • DeepSeek Reasoner: $0.001/article (Deep reasoning)
-• Rule Engine: Completely free
-• Switch engines anytime or check cost statistics
+• OpenAI GPT-4o-mini: $0.002/article
+• Anthropic Claude 3.5 Haiku: $0.003/article
+
+• Real-time cost statistics, switch engines anytime
+• Future support for custom local AI providers (Free)
 
 🛠️ Tech Stack
 
@@ -213,20 +229,61 @@ License: MIT License
 
 ## 隐私相关
 
+### 单一用途说明 (Single Purpose)
+
+**Single Purpose Description**:
+
+Silent Feed is an AI-powered RSS reader that intelligently recommends relevant articles based on your browsing interests. It automatically learns from your reading behavior, manages RSS subscriptions, and delivers personalized content recommendations while keeping all data processing local by default.
+
+**单一用途描述**:
+
+Silent Feed 是一个 AI 驱动的 RSS 阅读器，根据您的浏览兴趣智能推荐相关文章。它自动从您的阅读行为中学习，管理 RSS 订阅，并提供个性化内容推荐，同时默认保持所有数据处理在本地进行。
+
+---
+
 ### 权限说明
 
 **请求的权限**:
-- `tabs` - 检测当前页面的 RSS 源
+- `tabs` - 页面访问追踪和 RSS 源检测
 - `storage` - 存储用户配置和数据
 - `alarms` - 定时抓取 RSS 订阅
 - `notifications` - 桌面通知
 - `https://*/*` - 抓取 RSS 内容
 
-**权限用途详细说明**:
+---
+
+### 权限理由 (Permission Justifications)
+
+**Chrome Web Store 提交时需要填写的权限理由（英文）**:
+
+#### 1. tabs
+**Justification**: 
+This permission is essential for two core features: (1) tracking page visits to build user interest profiles - the extension monitors browsing behavior across all tabs to learn user preferences, even when tabs are inactive (e.g., listening for visibility changes, tracking dwell time); (2) detecting RSS feeds on webpages - checking page HTML headers for RSS/Atom feed links. The extension only accesses page URLs, titles, and feed link information from headers, and does not read page content or user input data. This permission enables the automatic learning feature that is central to the extension's AI-powered recommendation system.
+
+#### 2. storage
+**Justification**:
+This permission is essential for storing user preferences, RSS subscription lists, browsing history for interest profiling, and AI recommendation data. All data is stored locally in the browser's IndexedDB and is never uploaded to any server unless the user explicitly configures an AI API for recommendations. Users have full control over their data and can delete it at any time through the settings interface.
+
+#### 3. alarms
+**Justification**:
+This permission enables the extension to periodically fetch new articles from subscribed RSS feeds in the background. The fetch frequency is dynamically adjusted based on each feed's update pattern (typically every 6-24 hours) to minimize resource usage. This ensures users receive fresh content recommendations without manually refreshing feeds, while being respectful of system resources.
+
+#### 4. notifications
+**Justification**:
+This permission allows the extension to notify users when high-quality article recommendations are available. Notifications are shown sparingly and intelligently to avoid interrupting users frequently. Users maintain full control and can completely disable notifications in the settings. This helps users stay informed of valuable content without being overwhelmed.
+
+#### 5. Host Permission: https://*/*
+**Justification**:
+This host permission is necessary to fetch RSS feed content from the websites that users have subscribed to. The extension only accesses URLs of RSS feeds that users explicitly subscribe to, and does not track browsing behavior or access unauthorized websites. This permission enables the core functionality of retrieving and parsing RSS/Atom feeds from across the web to provide users with aggregated content recommendations.
+
+---
+
+**权限用途详细说明（中文补充）**:
 
 1. **tabs (标签页)**
-   - 用途：检测当前网页是否包含 RSS 订阅源
-   - 数据：只读取页面 URL 和 HTML header 中的 RSS 链接
+   - 用途1：页面访问追踪 - 在后台监听所有标签页的浏览行为（包括失活标签页），用于构建用户兴趣画像
+   - 用途2：RSS 源检测 - 检测当前网页是否包含 RSS 订阅源
+   - 数据：只读取页面 URL、标题和 HTML header 中的 RSS 链接
    - 不会：读取页面内容或用户输入
 
 2. **storage (存储)**
@@ -291,7 +348,7 @@ https://github.com/wxy/SilentFeed/blob/master/PRIVACY.md
 - `assets/icons/128/base-static.png` - 128x128 主图标
 - `assets/icons/96/base-static.png` - 96x96（需创建）
 
-### 截图（必需）
+### 截图(必需)
 
 **要求**:
 - 最少 1 张，最多 5 张
@@ -299,51 +356,54 @@ https://github.com/wxy/SilentFeed/blob/master/PRIVACY.md
 - 格式：PNG 或 JPEG
 - 内容：展示扩展的主要功能
 
-**建议截图**:
+**已准备的截图**:
 
-1. **推荐界面** (screenshot-1-recommendations.png)
-   - 展示 AI 推荐的文章列表
-   - 显示推荐分数、引擎图标、推荐理由
-   - 强调：智能推荐功能
+#### 1. 推荐界面 (screenshot-1-recommendations)
+- **中文**: `docs/assets/screenshots/screenshot-1-recommendations-cn.png`
+- **英文**: `docs/assets/screenshots/screenshot-1-recommendations-en.png`
+- 展示 AI 推荐的文章列表、推荐分数、引擎图标、推荐理由
+- 强调：智能推荐功能
 
-2. **冷启动界面** (screenshot-2-cold-start.png)
-   - 展示 100 页面倒计数
-   - 显示当前收集进度
-   - 强调：渐进成长特性
+#### 2. 冷启动界面 (screenshot-2-cold-start)
+- **中文**: `docs/assets/screenshots/screenshot-2-cold-start-cn.png`
+- **英文**: `docs/assets/screenshots/screenshot-2-cold-start-en.png`
+- 展示 100 页面倒计数、当前收集进度
+- 强调：渐进成长特性
 
-3. **兴趣画像** (screenshot-3-profile.png)
-   - 展示主题分布图表
-   - 显示关键词云图
-   - 强调：兴趣分析可视化
+#### 3. 兴趣画像 (screenshot-3-profile)
+- **中文**: `docs/assets/screenshots/screenshot-3-profile-cn.png`
+- **英文**: `docs/assets/screenshots/screenshot-3-profile-en.png`
+- 展示主题分布图表、关键词云图
+- 强调：兴趣分析可视化
 
-4. **RSS 管理** (screenshot-4-rss-settings.png)
-   - 展示订阅列表
-   - 显示添加源和导入 OPML 功能
-   - 强调：RSS 管理功能
+#### 4. RSS 管理 (screenshot-4-rss-settings)
+- **中文**: `docs/assets/screenshots/screenshot-4-rss-settings-cn.png`
+- **英文**: `docs/assets/screenshots/screenshot-4-rss-settings-en.png`
+- 展示订阅列表、添加源和导入 OPML 功能
+- 强调：RSS 管理功能
 
-5. **AI 配置** (screenshot-5-ai-config.png)
-   - 展示 AI 引擎选择
-   - 显示成本统计
-   - 强调：AI 配置和成本控制
+#### 5. AI 配置 (screenshot-5-ai-config)
+- **中文**: `docs/assets/screenshots/screenshot-5-ai-config-cn.png`
+- **英文**: `docs/assets/screenshots/screenshot-5-ai-config-en.png`
+- 展示 AI 引擎选择、成本统计
+- 强调：AI 配置和成本控制
 
-**截图保存位置**:
-`docs/assets/screenshots/`
+**附加截图**:
+- **弹窗推荐** (popup-recommendations): `popup-recommendations-{cn,en}.png`
+- **设置页面** (settings-profile): `settings-profile-{cn,en}.png`
 
 ### 宣传图（可选）
 
+**已准备的宣传图**:
+
 **小型宣传图** (Promotional tile - Small):
+- 文件：`docs/assets/screenshots/promo-tile-small-440x280.png`
 - 尺寸：440x280 像素
-- 格式：PNG 或 JPEG
 - 用途：Chrome Web Store 列表页
 
-**大型宣传图** (Promotional tile - Large):  
-- 尺寸：920x680 像素
-- 格式：PNG 或 JPEG
-- 用途：Chrome Web Store 精选推荐
-
 **跑马图** (Marquee):
+- 文件：`docs/assets/screenshots/marquee-1400x560.png`
 - 尺寸：1400x560 像素
-- 格式：PNG 或 JPEG
 - 用途：Chrome Web Store 首页展示（如果被精选）
 
 ---
@@ -367,16 +427,16 @@ https://github.com/wxy/SilentFeed/blob/master/PRIVACY.md
 - [x] README.en.md（英文详细文档）
 - [x] docs/USER_GUIDE.md（用户手册）
 - [x] docs/CHROME_STORE_SUBMISSION.md（本文档）
-- [ ] PRIVACY.md（隐私政策）
+- [x] PRIVACY.md（隐私政策）
 - [ ] CHANGELOG.md（版本更新日志）
 
 ### 图标和截图
 
 - [x] 128x128 应用图标
 - [ ] 96x96 应用图标（可选）
-- [ ] 至少 1 张功能截图（推荐 3-5 张）
-- [ ] 440x280 小型宣传图（可选）
-- [ ] 920x680 大型宣传图（可选）
+- [x] 至少 1 张功能截图（推荐 3-5 张）- 已准备 5 张中英文截图
+- [x] 440x280 小型宣传图（可选）
+- [x] 1400x560 跑马图（可选）
 
 ### 测试
 

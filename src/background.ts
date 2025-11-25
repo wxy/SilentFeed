@@ -12,6 +12,7 @@ import { getOnboardingState } from './storage/onboarding-state'
 import { logger } from '@/utils/logger'
 import { LEARNING_COMPLETE_PAGES } from '@/constants/progress'
 import { aiManager } from './core/ai/AICapabilityManager'
+import { isAIConfigured } from '@/storage/ai-config'
 
 const bgLogger = logger.withTag('Background')
 
@@ -41,6 +42,7 @@ let rssDiscoveryViewed = false
  * Phase 5.2: 使用新的图标系统
  * 
  * 优先级：
+ * 0. AI 未配置 - 图标暂停状态（优先级最高）
  * 1. RSS 发现（未查看） - 图标动画
  * 2. 学习阶段（< 100 页） - 图标进度遮罩
  * 3. 推荐阶段（≥ 100 页） - 图标波纹点亮
@@ -51,6 +53,19 @@ async function updateBadge(): Promise<void> {
     if (!iconManager) {
       bgLogger.warn('⚠️ 图标管理器未初始化')
       return
+    }
+    
+    // 0. 检查 AI 配置状态（优先级最高）
+    const aiConfigured = await isAIConfigured()
+    
+    if (!aiConfigured) {
+      // AI 未配置，显示暂停图标
+      iconManager.pause()
+      bgLogger.info('⏸️ AI 未配置，显示暂停图标')
+      return
+    } else {
+      // AI 已配置，恢复正常图标
+      iconManager.resume()
     }
     
     // 1. 检查是否有未查看的 RSS 发现
@@ -208,8 +223,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             const { state } = message
             bgLogger.info(`Onboarding 状态变化: ${state}`)
             
-            // 导入并调用重新配置函数
-            const { reconfigureSchedulersForState } = await import('./background/index')
+            // 调用重新配置函数
             await reconfigureSchedulersForState(state)
             
             sendResponse({ success: true })
@@ -424,7 +438,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 } 
               })
             } else {
-              throw new Error(`抓取失败: ${feed.title}`)
+              // 获取详细错误信息
+              const updatedFeed = await db.discoveredFeeds.get(feedId)
+              const errorDetail = updatedFeed?.lastError || '未知错误'
+              throw new Error(`抓取失败: ${feed.title} - ${errorDetail}`)
             }
             
           } catch (error) {

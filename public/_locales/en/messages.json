@@ -1,0 +1,10 @@
+{
+  "extName": {
+    "message": "Silent Feed",
+    "description": "Extension name"
+  },
+  "extDescription": {
+    "message": "AI-powered RSS reader that learns your interests and recommends only what you care about. Privacy-first, local processing.",
+    "description": "Extension description"
+  }
+}

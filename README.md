@@ -1,11 +1,14 @@
 <div align="center">
 
+<img src="assets/icons/128/base-static.png" width="128" height="128" alt="Silent Feed Logo" />
+
 # 🤫 Silent Feed (静阅)
 
 **An AI-powered RSS reader that brings you quiet, focused reading experience.**
 
 *让信息流安静下来*
 
+[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Install-blue.svg)](https://chromewebstore.google.com/detail/pieiedlagbmcnooloibhigmidpakneca)
 [![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/wxy/SilentFeed)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
@@ -16,7 +19,7 @@
 
 [📖 中文文档](README.zh-CN.md) | [📖 English](README.en.md)
 
-[�� 快速开始](#快速开始) | [📚 用户手册](docs/USER_GUIDE.md) | [🤝 参与贡献](CONTRIBUTING.md)
+[🚀 快速开始](#快速开始) | [📚 用户手册](docs/USER_GUIDE.md) | [🤝 参与贡献](CONTRIBUTING.md)
 
 ---
 
@@ -34,8 +37,8 @@
 </td>
 <td width="50%">
 
-### 🎯 智能推荐
-基于真实行为而非设置，AI 只推送你**真正感兴趣**的内容，过滤 95% 的信息噪音。
+### 🎯 AI 智能推荐
+**AI 驱动**的个性化推荐，基于真实行为分析，只推送你**真正感兴趣**的内容，过滤 95% 的信息噪音。
 
 </td>
 </tr>
@@ -43,7 +46,7 @@
 <td width="50%">
 
 ### 🔒 隐私优先
-所有分析**默认在本地进行**，或使用你自己的 AI API，数据完全由你掌控。
+**数据只保存在本地**，支持本地 AI 或自定义 AI 服务。使用远程 AI 时，数据隐私由提供商负责。
 
 </td>
 <td width="50%">
@@ -58,43 +61,71 @@
 ## 📸 预览
 
 <div align="center">
-<img src="docs/assets/screenshots/popup-recommendations.png" width="400" alt="推荐界面" />
-<img src="docs/assets/screenshots/settings-profile.png" width="400" alt="设置界面" />
+
+### 智能推荐界面
+<img src="docs/assets/screenshots/screenshot-1-recommendations-cn.png" width="800" alt="推荐界面" />
+
+*AI 智能筛选，只推荐你真正关心的内容*
+
+---
+
+### 兴趣画像可视化
+<img src="docs/assets/screenshots/screenshot-3-profile-cn.png" width="800" alt="兴趣画像" />
+
+*清晰了解你的阅读兴趣分布*
+
+---
+
+### RSS 订阅管理
+<img src="docs/assets/screenshots/screenshot-4-rss-settings-cn.png" width="800" alt="RSS 管理" />
+
+*一键订阅，批量导入 OPML，智能抓取*
+
 </div>
 
-> 更多截图见 [用户手册](docs/USER_GUIDE.md#界面预览)
+> 更多截图见 [Chrome Web Store](https://chromewebstore.google.com/detail/pieiedlagbmcnooloibhigmidpakneca) 或 [用户手册](docs/USER_GUIDE.md#界面预览)
 
 ## 🚀 快速开始
 
-### 用户安装
+### 安装扩展
 
-1. **下载扩展**（即将上线 Chrome Web Store）
-2. **安装到浏览器**
-3. **正常浏览网页**（扩展会在后台学习你的兴趣）
-4. **100 页面后开始推荐**
+**方式一：Chrome Web Store（推荐）**
+
+[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Install-blue.svg?style=for-the-badge)](https://chromewebstore.google.com/detail/pieiedlagbmcnooloibhigmidpakneca)
+
+点击上方按钮直接安装
+
+**方式二：开发者模式安装**
+
+1. 下载最新 Release
+2. 解压 zip 文件
+3. 打开 Chrome 扩展管理页面 `chrome://extensions/`
+4. 启用"开发者模式"
+5. 点击"加载已解压的扩展程序"
+6. 选择解压后的文件夹
+
+---
+
+### 首次使用
+
+安装后首次使用：
+
+1. **配置 AI 服务**（必需）
+   - 选择 AI 引擎（OpenAI / Anthropic / DeepSeek / 本地 AI）
+   - 配置 API Key 或本地服务地址
+   - 测试连接确保可用
+
+2. **订阅 RSS 源**（可选）
+   - 自动检测当前页面的 RSS 源
+   - 或手动添加感兴趣的订阅源
+
+3. **正常浏览网页**
+   - 扩展会在后台学习你的兴趣
+   - 100 页面后开始个性化推荐
 
 详细使用说明见 [用户手册](docs/USER_GUIDE.md)
 
-### 开发者指南
-
-```bash
-# 1. 克隆仓库
-git clone https://github.com/wxy/SilentFeed.git
-cd SilentFeed
-
-# 2. 安装依赖
-npm install
-
-# 3. 启动开发服务器
-npm run dev
-
-# 4. 加载扩展
-# 打开 chrome://extensions/
-# 开启"开发者模式" → "加载已解压的扩展程序"
-# 选择 build/chrome-mv3-dev 目录
-```
-
-更多开发信息见 [中文文档](README.zh-CN.md) | [English](README.en.md)
+> **开发者**: 如需参与开发，请查看 [贡献指南](CONTRIBUTING.md)
 
 ## 🛠️ 技术栈
 
@@ -103,7 +134,7 @@ npm run dev
 - **UI**: React 18 + Tailwind CSS
 - **状态管理**: Zustand
 - **数据库**: Dexie.js (IndexedDB)
-- **AI**: OpenAI / Anthropic / DeepSeek / Chrome AI
+- **AI**: OpenAI / Anthropic / DeepSeek / 本地 AI（必需）
 - **测试**: Vitest + Testing Library
 - **国际化**: i18next
 
@@ -132,7 +163,7 @@ npm run dev
 我们欢迎所有形式的贡献！
 
 - 🐛 [报告 Bug](https://github.com/wxy/SilentFeed/issues)
-- �� [提出新功能建议](https://github.com/wxy/SilentFeed/issues)
+- 💡 [提出新功能建议](https://github.com/wxy/SilentFeed/issues)
 - 📖 改进文档
 - 🔧 提交代码
 
@@ -154,6 +185,6 @@ npm run dev
 
 **Made with ❤️ by Silent Feed Team**
 
-[⭐ Star on GitHub](https://github.com/wxy/SilentFeed) | [🐦 Follow Updates](https://twitter.com/silentfeed)
+[⭐ Star on GitHub](https://github.com/wxy/SilentFeed) | [🐛 Report Issues](https://github.com/wxy/SilentFeed/issues)
 
 </div>

@@ -1,0 +1,10 @@
+{
+  "extName": {
+    "message": "Silent Feed (静阅)",
+    "description": "Extension name"
+  },
+  "extDescription": {
+    "message": "AI 驱动的 RSS 阅读器，自动学习你的兴趣，只推送你真正关心的内容。隐私优先，本地处理。",
+    "description": "Extension description"
+  }
+}

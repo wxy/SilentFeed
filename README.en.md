@@ -2,8 +2,11 @@
 
 <div align="center">
 
+<img src="assets/icons/128/base-static.png" width="128" height="128" alt="Silent Feed Logo" />
+
 **An AI-powered RSS reader that brings you quiet, focused reading experience**
 
+[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Install-blue.svg)](https://chromewebstore.google.com/detail/pieiedlagbmcnooloibhigmidpakneca)
 [![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/wxy/SilentFeed)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Language](https://img.shields.io/badge/language-TypeScript-blue.svg)](https://www.typescriptlang.org/)

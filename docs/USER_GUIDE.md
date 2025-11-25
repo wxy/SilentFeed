@@ -171,7 +171,7 @@ Silent Feed 需要收集 **100 个有效页面访问** 才能开始推荐：
 **AI 引擎选择**
 - **DeepSeek Chat**（推荐）：成本低（¥0.001/篇），效果好
 - **DeepSeek Reasoner**：深度推理模式，成本较高（¥0.01/篇）
-- **规则引擎**：完全免费，基于关键词匹配
+- **本地 AI**：完全免费，自部署兼容 ChatGPT API 的服务
 - **OpenAI**（即将支持）：GPT-4o / GPT-4o-mini
 - **Anthropic**（即将支持）：Claude 3.5
 
@@ -225,13 +225,13 @@ A: 构建准确的兴趣画像需要足够的数据样本。100 页面是经过�
 
 A: 完全安全。所有数据默认只存储在你的浏览器本地（IndexedDB），不会上传到任何服务器。使用 AI 推荐时，只会发送必要的特征数据（关键词、主题分数），不包含 URL 或敏感信息。
 
-#### Q: 可以不配置 AI 吗？
+#### Q: 可以使用免费的 AI 吗？
 
-A: 可以。你可以使用免费的规则引擎，基于关键词匹配推荐文章。虽然效果不如 AI，但完全免费且隐私性更好。
+A: 可以。你可以自行部署本地 AI 服务（如 Ollama + LLaMA），只要兼容 ChatGPT API 格式即可。这样完全免费且隐私性更好。
 
 #### Q: AI 推荐费用如何？
 
-A: 以 DeepSeek Chat 为例，每篇文章约 ¥0.001，每天推荐 5 篇文章，月成本约 ¥0.15。你可以随时切换到免费的规则引擎。
+A: 以 DeepSeek Chat 为例，每篇文章约 ¥0.001，每天推荐 5 篇文章，月成本约 ¥0.15。你也可以使用本地 AI 服务完全免费。
 
 #### Q: 如何导入其他 RSS 阅读器的订阅？
 
@@ -505,7 +505,7 @@ A: Yes. You can use the free rule engine based on keyword matching. While not as
 
 #### Q: How much does AI recommendation cost?
 
-A: Using DeepSeek Chat as example, about $0.0001 per article. Recommending 5 articles daily, monthly cost is about $0.015. You can switch to free rule engine anytime.
+A: Using DeepSeek Chat as example, about $0.0001 per article. Recommending 5 articles daily, monthly cost is about $0.015. You can also use local AI service for completely free.
 
 #### Q: How to import subscriptions from other RSS readers?
 

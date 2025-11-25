@@ -1,7 +1,7 @@
 {
   "app": {
     "name": "Silent Feed",
-    "shortName": "Silent Feed",
+    "shortName": "Silent Read",
     "slogan": "Quiet the feed"
   },
   "popup": {
@@ -707,7 +707,33 @@
       "subtitle": "Configure remote AI services for more accurate content analysis.",
       "reasoningSupported": "The current model supports inference mode.",
       "reasoningNotSupported": "The current model does not support inference mode.",
-      "reasoningCost": "Cost approximately {{multiplier}}x"
+      "reasoningCost": "Cost approximately {{multiplier}}x",
+      "models": {
+        "deepseek-chat": {
+          "name": "DeepSeek",
+          "description": "Domestically friendly, supports inference mode (R1)"
+        },
+        "gpt-5-nano": {
+          "name": "GPT-5 Nano",
+          "description": "Fastest and cheapest, suitable for simple tasks"
+        },
+        "gpt-5-mini": {
+          "name": "GPT-5 Mini",
+          "description": "Balancing performance and cost (Recommended)"
+        },
+        "gpt-5": {
+          "name": "GPT-5",
+          "description": "The most powerful model, ideal for complex tasks"
+        },
+        "claude-3-5-haiku": {
+          "name": "Claude 3.5 Haiku",
+          "description": "Fastest and cheapest, suitable for simple tasks"
+        },
+        "claude-3-5-sonnet": {
+          "name": "Claude 3.5 Sonnet",
+          "description": "Balancing performance and cost (Recommended)"
+        }
+      }
     },
     "rssManager": {
       "addSource": "Add feed",
@@ -861,7 +887,43 @@
       "avgDwellTime": "Average Dwell Time",
       "evolutionHistory": "Evolution of Interests",
       "basedOnPages": "Based on {{count}} pages",
-      "lastUpdated": "Last updated"
+      "lastUpdated": "Last updated",
+      "aiProfile": {
+        "title": "AI Semantic Profiling",
+        "understanding": "AI's Understanding of You",
+        "understandingHint": "Beyond Keywords, Deep Semantic Analysis",
+        "accumulating": "AI semantic profiling is accumulating data.",
+        "accumulatingDesc": "The system will automatically generate an AI portrait when any of the following conditions are met:",
+        "condition1": "Browse ≥20 pages (Current: {{count}} pages)",
+        "condition2": "Read ≥5 recommended articles (Current: {{count}} articles)",
+        "condition3": "Rejected ≥5 recommendations (Current: {{count}})",
+        "accumulatingHint": "💡 Tip: Each page must be viewed for more than 30 seconds to be recorded.",
+        "fallbackTitle": "Currently using basic profiling (keyword analysis)",
+        "fallbackBenefit": "💡 Configure AI for <strong>3-5x more accurate</strong> recommendations:",
+        "benefit1": "<strong>Semantic Understanding</strong>: Deep comprehension of content meaning, not just simple keyword matching.",
+        "benefit2": "<strong>Preference Recognition</strong>: Accurately identifies the types and styles of content you like.",
+        "benefit3": "<strong>Smart Filtering</strong>: Automatically excludes topics of no interest",
+        "preferences": "Your preferred content types",
+        "avoidTopics": "Topics of no interest",
+        "items": "{{count}} items",
+        "dataSource": "Data Sources and Costs",
+        "browses": "{{count}} page views",
+        "reads": "{{count}} reads",
+        "dismisses": "{{count}} rejections",
+        "cost": "Cost ¥{{cost}}",
+        "primaryTopic": "Dominant Interest",
+        "viewDetails": "View detailed data →",
+        "configureAI": "Configure AI Now",
+        "recommendDeepSeek": "Recommended to use DeepSeek (cost as low as ¥0.0001 per request)"
+      },
+      "detailedAnalysis": {
+        "title": "Detailed Data Analysis",
+        "subtitle": "Topic Distribution · Keyword Cloud · Interest Evolution · Access Preferences",
+        "pages": "{{count}} pages",
+        "browses": "{{count}} views",
+        "reads": "{{count}} reads",
+        "dismisses": "{{count}} refused"
+      }
     }
   },
   "onboarding": {

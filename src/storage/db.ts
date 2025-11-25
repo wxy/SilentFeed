@@ -25,6 +25,7 @@ import type { InterestSnapshot, UserProfile } from "@/types/profile"
 import type { DiscoveredFeed, FeedArticle } from "@/types/rss"
 import { logger } from '@/utils/logger'
 import { statsCache } from '@/utils/cache'
+import { ProfileUpdateScheduler } from '@/core/profile/ProfileUpdateScheduler'
 
 // 导出 statsCache 用于测试清理
 export { statsCache }
@@ -789,7 +790,6 @@ export async function markAsRead(
   
   // 🚀 Phase 8.3: 用户阅读行为立即触发画像更新
   // 确保用户偏好能立即反映在下次推荐中
-  const { ProfileUpdateScheduler } = await import('../core/profile/ProfileUpdateScheduler')
   ProfileUpdateScheduler.forceUpdateProfile('user_read').catch(error => {
     dbLogger.error('❌ 用户阅读后画像更新失败:', error)
   })
@@ -852,7 +852,6 @@ export async function dismissRecommendations(ids: string[]): Promise<void> {
   
   // 🚀 Phase 8.3: 用户拒绝行为立即触发画像更新
   // 确保用户不喜欢的内容能立即影响推荐
-  const { ProfileUpdateScheduler } = await import('../core/profile/ProfileUpdateScheduler')
   ProfileUpdateScheduler.forceUpdateProfile('user_dismiss').catch(error => {
     dbLogger.error('❌ 用户拒绝后画像更新失败:', error)
   })
