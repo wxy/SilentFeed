@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-11-25T13:25:51.652Z",
+  "lastUpdate": "2025-11-25T13:31:34.386Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -11437,6 +11437,90 @@
         "value": "Recommended to use DeepSeek (cost as low as ¥0.0001 per request)",
         "hash": "22e36393",
         "lastModified": "2025-11-25T13:25:51.143Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.detailedAnalysis.title": {
+      "zh-CN": {
+        "value": "详细数据分析",
+        "hash": "c6cd504e",
+        "lastModified": "2025-11-25T13:31:23.977Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Detailed Data Analysis",
+        "hash": "b2075517",
+        "lastModified": "2025-11-25T13:31:23.978Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.detailedAnalysis.subtitle": {
+      "zh-CN": {
+        "value": "主题分布 · 关键词云 · 兴趣演化 · 访问偏好",
+        "hash": "165382c2",
+        "lastModified": "2025-11-25T13:31:25.895Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Topic Distribution · Keyword Cloud · Interest Evolution · Access Preferences",
+        "hash": "cfb2882b",
+        "lastModified": "2025-11-25T13:31:25.895Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.detailedAnalysis.pages": {
+      "zh-CN": {
+        "value": "{{count}}页",
+        "hash": "b1a5cc8c",
+        "lastModified": "2025-11-25T13:31:27.533Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{count}} pages",
+        "hash": "a4b3ab30",
+        "lastModified": "2025-11-25T13:31:27.533Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.detailedAnalysis.browses": {
+      "zh-CN": {
+        "value": "{{count}}浏览",
+        "hash": "237063c7",
+        "lastModified": "2025-11-25T13:31:29.987Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{count}} views",
+        "hash": "99322305",
+        "lastModified": "2025-11-25T13:31:29.987Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.detailedAnalysis.reads": {
+      "zh-CN": {
+        "value": "{{count}}阅读",
+        "hash": "7a983fd1",
+        "lastModified": "2025-11-25T13:31:31.932Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{count}} reads",
+        "hash": "ba1a542d",
+        "lastModified": "2025-11-25T13:31:31.933Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.detailedAnalysis.dismisses": {
+      "zh-CN": {
+        "value": "{{count}}拒绝",
+        "hash": "57ed56b4",
+        "lastModified": "2025-11-25T13:31:33.877Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{count}} refused",
+        "hash": "7ee10083",
+        "lastModified": "2025-11-25T13:31:33.877Z",
         "status": "ai-translated"
       }
     }

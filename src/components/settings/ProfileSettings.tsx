@@ -500,10 +500,10 @@ export function ProfileSettings() {
                   <span className="text-2xl">📊</span>
                   <div>
                     <h3 className="font-semibold text-slate-900 dark:text-slate-100">
-                      详细数据分析
+                      {_("options.profile.detailedAnalysis.title")}
                     </h3>
                     <p className="text-xs text-slate-600 dark:text-slate-400">
-                      主题分布 · 关键词云 · 兴趣演化 · 访问偏好
+                      {_("options.profile.detailedAnalysis.subtitle")}
                     </p>
                   </div>
                 </div>
@@ -806,15 +806,15 @@ export function ProfileSettings() {
                         
                         {/* 第二行：分数 + 页数 */}
                         <div className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-                          {Math.round(snapshot.score * 100)}% · {snapshot.basedOnPages}页
+                          {Math.round(snapshot.score * 100)}% · {_("options.profile.detailedAnalysis.pages", { count: snapshot.basedOnPages })}
                         </div>
                         
                         {/* 第三行：统计数据（如果有）*/}
                         {snapshot.stats && (
                           <div className="text-[10px] text-gray-500 dark:text-gray-500 mt-0.5">
-                            {snapshot.stats.totalBrowses}浏览
-                            {snapshot.stats.totalReads > 0 && ` · ${snapshot.stats.totalReads}阅读`}
-                            {snapshot.stats.totalDismisses > 0 && ` · ${snapshot.stats.totalDismisses}拒绝`}
+                            {_("options.profile.detailedAnalysis.browses", { count: snapshot.stats.totalBrowses })}
+                            {snapshot.stats.totalReads > 0 && ` · ${_("options.profile.detailedAnalysis.reads", { count: snapshot.stats.totalReads })}`}
+                            {snapshot.stats.totalDismisses > 0 && ` · ${_("options.profile.detailedAnalysis.dismisses", { count: snapshot.stats.totalDismisses })}`}
                           </div>
                         )}
                         

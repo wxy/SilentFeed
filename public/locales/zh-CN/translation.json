@@ -801,6 +801,14 @@
       "evolutionHistory": "兴趣演化历程",
       "basedOnPages": "基于 {{count}} 页",
       "lastUpdated": "最后更新",
+      "detailedAnalysis": {
+        "title": "详细数据分析",
+        "subtitle": "主题分布 · 关键词云 · 兴趣演化 · 访问偏好",
+        "pages": "{{count}}页",
+        "browses": "{{count}}浏览",
+        "reads": "{{count}}阅读",
+        "dismisses": "{{count}}拒绝"
+      },
       "aiProfile": {
         "title": "AI 语义画像",
         "understanding": "AI 对您的理解",

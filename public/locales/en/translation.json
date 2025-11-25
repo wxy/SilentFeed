@@ -915,6 +915,14 @@
         "viewDetails": "View detailed data →",
         "configureAI": "Configure AI Now",
         "recommendDeepSeek": "Recommended to use DeepSeek (cost as low as ¥0.0001 per request)"
+      },
+      "detailedAnalysis": {
+        "title": "Detailed Data Analysis",
+        "subtitle": "Topic Distribution · Keyword Cloud · Interest Evolution · Access Preferences",
+        "pages": "{{count}} pages",
+        "browses": "{{count}} views",
+        "reads": "{{count}} reads",
+        "dismisses": "{{count}} refused"
       }
     }
   },
