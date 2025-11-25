@@ -80,7 +80,7 @@ describe("ProfileManager", () => {
       const result = await manager.rebuildProfile()
 
       expect(db.confirmedVisits.orderBy).toHaveBeenCalledWith("visitTime")
-      expect(profileBuilder.buildFromVisits).toHaveBeenCalledWith(mockVisits)
+      expect(profileBuilder.buildFromVisits).toHaveBeenCalledWith(mockVisits, mockVisits.length)
       expect(db.userProfile.put).toHaveBeenCalledWith(mockProfile)
       expect(InterestSnapshotManager.handleProfileUpdate).toHaveBeenCalledWith(mockProfile, "rebuild")
       expect(result).toEqual(mockProfile)
@@ -367,7 +367,8 @@ describe("ProfileManager", () => {
         expect.arrayContaining([
           expect.objectContaining({ id: "visit1" }),
           expect.objectContaining({ id: "visit2" }),
-        ])
+        ]),
+        2 // 总记录数（allVisits.length）
       )
       expect(db.userProfile.put).toHaveBeenCalledWith(updatedProfile)
       expect(InterestSnapshotManager.handleProfileUpdate).toHaveBeenCalledWith(
@@ -464,10 +465,10 @@ describe("ProfileManager", () => {
 
       await manager.updateProfile([allVisits[0]])
 
-      // 应该只传递有有效分析数据的记录
+      // 应该只传递有有效分析数据的记录（第二个参数是所有记录数 3）
       expect(profileBuilder.buildFromVisits).toHaveBeenCalledWith([
         expect.objectContaining({ id: "visit1" }),
-      ])
+      ], 3)
     })
 
     it("应该在更新失败时抛出错误", async () => {

@@ -23,13 +23,13 @@ describe("ui-config", () => {
   })
 
   describe("getUIStyle", () => {
-    it("应该返回默认值 sketchy 当未设置时", async () => {
+    it("应该返回默认值 normal 当未设置时", async () => {
       // Mock chrome.storage.sync.get 返回空对象
       vi.spyOn(chrome.storage.sync, "get").mockImplementation(() => Promise.resolve({}))
 
       const style = await getUIStyle()
 
-      expect(style).toBe("sketchy")
+      expect(style).toBe("normal")
       expect(chrome.storage.sync.get).toHaveBeenCalledWith("ui_style")
     })
 

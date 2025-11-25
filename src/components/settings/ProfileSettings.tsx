@@ -77,6 +77,19 @@ export function ProfileSettings() {
           InterestSnapshotManager.getEvolutionHistory(10),
           getAIConfig()
         ])
+        
+        // 调试日志：检查 AI 画像数据
+        profileViewLogger.info("用户画像数据:", {
+          hasAiSummary: !!data?.aiSummary,
+          aiSummaryProvider: data?.aiSummary?.metadata?.provider,
+          totalPages: data?.totalPages,
+          behaviorsReads: data?.behaviors?.reads?.length || 0,
+          behaviorsDismisses: data?.behaviors?.dismisses?.length || 0,
+          basedOnBrowses: data?.aiSummary?.metadata?.basedOn?.browses,
+          basedOnReads: data?.aiSummary?.metadata?.basedOn?.reads,
+          basedOnDismisses: data?.aiSummary?.metadata?.basedOn?.dismisses
+        })
+        
         setProfile(data)
         setEvolutionHistory(history)
         setAiConfigured(aiConfig.enabled && aiConfig.provider !== null)
@@ -255,9 +268,206 @@ export function ProfileSettings() {
           </div>
         </div>
 
-        {/* AI 配置提示 */}
-        {!aiConfigured && (
-          <div className="bg-gradient-to-r from-indigo-50/80 to-cyan-50/80 dark:from-indigo-900/20 dark:to-cyan-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-4">
+        {/* AI 语义画像 - AI 的独特价值展示 */}
+        {profile.aiSummary && (
+          <div className="bg-gradient-to-br from-blue-50 to-slate-50 dark:from-blue-900/20 dark:to-slate-900/20 rounded-xl p-6 border-2 border-blue-200 dark:border-blue-700 shadow-lg">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                <span className="text-2xl">🤖</span>
+                <span className="bg-gradient-to-r from-blue-600 to-slate-600 bg-clip-text text-transparent">
+                  AI 语义画像
+                </span>
+              </h3>
+              <div className="flex items-center gap-2">
+                <span className="text-xs bg-primary/10 text-primary px-3 py-1 rounded-full font-medium border border-primary/20">
+                  {profile.aiSummary.metadata.provider === 'deepseek' ? 'DeepSeek' : 
+                   profile.aiSummary.metadata.provider === 'openai' ? 'OpenAI' : 
+                   'AI'}
+                </span>
+                <span className="text-xs text-blue-600 dark:text-blue-400">
+                  {new Date(profile.aiSummary.metadata.timestamp).toLocaleDateString('zh-CN')}
+                </span>
+              </div>
+            </div>
+
+            {/* 兴趣理解 - AI 的核心价值 */}
+            <div className="mb-5">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                  💭 AI 对您的理解
+                </span>
+                <span className="text-xs text-blue-500 dark:text-blue-400">
+                  (超越关键词，深度语义分析)
+                </span>
+              </div>
+              <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur rounded-lg p-4 border border-blue-100 dark:border-blue-800">
+                <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed italic">
+                  "{profile.aiSummary.interests}"
+                </p>
+              </div>
+            </div>
+
+            {/* 内容偏好 - 可操作的洞察 */}
+            <div className="mb-5">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  ⭐ 您偏好的内容类型
+                </span>
+                <span className="text-xs bg-slate-100 dark:bg-slate-900/30 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded">
+                  {profile.aiSummary.preferences.length} 项
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {profile.aiSummary.preferences.map((pref, i) => (
+                  <span 
+                    key={i}
+                    className="inline-flex items-center gap-1 bg-primary/5 text-primary px-3 py-1.5 rounded-lg text-sm font-medium border border-primary/20 hover:bg-primary/10 transition-colors"
+                  >
+                    <span>✓</span>
+                    <span>{pref}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* 避免主题 - 负向信号 */}
+            {profile.aiSummary.avoidTopics.length > 0 && (
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-sm font-semibold text-red-700 dark:text-red-300">
+                    🚫 不感兴趣的主题
+                  </span>
+                  <span className="text-xs bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-2 py-0.5 rounded">
+                    {profile.aiSummary.avoidTopics.length} 项
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {profile.aiSummary.avoidTopics.map((topic, i) => (
+                    <span 
+                      key={i}
+                      className="inline-flex items-center gap-1 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 px-3 py-1.5 rounded-lg text-sm border border-red-200 dark:border-red-800"
+                    >
+                      <span>×</span>
+                      <span>{topic}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 数据来源和成本 */}
+            <div className="pt-4 border-t border-blue-200 dark:border-blue-700">
+              <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-3 text-blue-600 dark:text-blue-400">
+                  <span>
+                    🌐 {profile.aiSummary.metadata.basedOn.browses} 页浏览
+                  </span>
+                  <span>
+                    📖 {profile.aiSummary.metadata.basedOn.reads} 次阅读
+                  </span>
+                  <span>
+                    🚫 {profile.aiSummary.metadata.basedOn.dismisses} 次拒绝
+                  </span>
+                </div>
+                {profile.aiSummary.metadata.cost && (
+                  <span className="text-blue-500 dark:text-blue-400">
+                    💰 成本 ¥{profile.aiSummary.metadata.cost.toFixed(4)}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* 主题分类摘要 - 降级展示 */}
+            {primaryTopic && (
+              <div className="pt-4 border-t border-blue-200 dark:border-blue-700">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                    <span>📊 主导兴趣:</span>
+                    <span className="font-medium">
+                      {primaryTopic.animal} {primaryTopic.name} ({primaryTopic.score.toFixed(1)}%)
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const detailsEl = document.getElementById('profile-details') as HTMLDetailsElement
+                      if (detailsEl) {
+                        detailsEl.open = true // 先展开
+                        setTimeout(() => {
+                          detailsEl.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                        }, 100) // 等待展开动画完成
+                      }
+                    }}
+                    className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                  >
+                    查看详细数据 →
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* AI 画像未生成提示 */}
+        {!profile.aiSummary && aiConfigured && profile.totalPages > 0 && (
+          <div className="bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">⏳</span>
+              <div className="flex-1">
+                <h3 className="text-sm font-medium text-yellow-900 dark:text-yellow-100 mb-1">
+                  AI 语义画像正在积累数据
+                </h3>
+                <p className="text-xs text-yellow-700 dark:text-yellow-300 mb-2">
+                  系统会在满足以下任一条件后自动生成 AI 画像：
+                </p>
+                <ul className="text-xs text-yellow-700 dark:text-yellow-300 space-y-1 list-disc list-inside">
+                  <li>浏览 ≥20 个页面（当前: {profile.totalPages} 页）</li>
+                  <li>阅读 ≥5 篇推荐（当前: {profile.behaviors?.totalReads || 0} 篇）</li>
+                  <li>拒绝 ≥5 篇推荐（当前: {profile.behaviors?.totalDismisses || 0} 篇）</li>
+                </ul>
+                <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-2">
+                  💡 提示：每个页面需要停留 30 秒以上才会被记录
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 降级模式提示（无 AI 但有基础画像）*/}
+        {!profile.aiSummary && !aiConfigured && topTopics.length > 0 && (
+          <div className="bg-gray-100 dark:bg-gray-800 border-2 border-gray-400 dark:border-gray-600 rounded-xl p-5">
+            <div className="flex items-start gap-3">
+              <span className="text-3xl">⚠️</span>
+              <div className="flex-1">
+                <h3 className="text-base font-bold text-amber-900 dark:text-amber-100 mb-2">
+                  当前使用基础画像（关键词分析）
+                </h3>
+                <p className="text-sm text-amber-800 dark:text-amber-200 mb-3">
+                  💡 配置 AI 可获得 <strong className="text-amber-900 dark:text-amber-100">3-5 倍更精准</strong>的推荐效果：
+                </p>
+                <ul className="text-sm text-amber-700 dark:text-amber-300 space-y-2 mb-4 list-disc list-inside">
+                  <li><strong>语义理解</strong>：深度理解内容含义，而非简单关键词匹配</li>
+                  <li><strong>偏好识别</strong>：精准识别你喜欢的内容类型和风格</li>
+                  <li><strong>智能过滤</strong>：自动排除不感兴趣的主题</li>
+                </ul>
+                <div className="flex items-center gap-3">
+                  <a
+                    href="/options.html?tab=ai"
+                    className="inline-flex items-center gap-2 text-sm bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-lg transition-colors shadow-md font-medium">
+                    <span>🚀</span>
+                    <span>立即配置 AI</span>
+                  </a>
+                  <span className="text-xs text-amber-600 dark:text-amber-400">
+                    推荐使用 DeepSeek（成本低至 ¥0.0001/次）
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* AI 配置提示（无 AI 且无基础画像）*/}
+        {!aiConfigured && topTopics.length === 0 && (
+          <div className="bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg p-4">
             <div className="flex items-start gap-3">
               <span className="text-2xl">🚀</span>
               <div className="flex-1">
@@ -283,13 +493,41 @@ export function ProfileSettings() {
           </div>
         )}
 
+        {/* 详细数据区域 - 可折叠 */}
+        <details id="profile-details" className="group">
+          <summary className="cursor-pointer list-none">
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">📊</span>
+                  <div>
+                    <h3 className="font-semibold text-slate-900 dark:text-slate-100">
+                      详细数据分析
+                    </h3>
+                    <p className="text-xs text-slate-600 dark:text-slate-400">
+                      主题分布 · 关键词云 · 兴趣演化 · 访问偏好
+                    </p>
+                  </div>
+                </div>
+                <div className="text-slate-400 dark:text-slate-500 group-open:rotate-180 transition-transform">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </summary>
+
+          {/* 详细内容区域 */}
+          <div className="mt-6 space-y-6">
+
         {/* Top 3 主题分布 */}
         <div>
           <h3 className="text-md font-medium mb-4 flex items-center gap-2">
             <span>🎯</span>
             <span>{_("options.userProfile.interests.title")}</span>
             {primaryTopic && (
-              <span className="text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-1 rounded-full animate-pulse">
+              <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full font-medium">
                 {primaryTopic.primaryLevel === 'absolute' && _("options.userProfile.interests.primaryAbsolute", { topic: primaryTopic.name })}
                 {primaryTopic.primaryLevel === 'relative' && _("options.userProfile.interests.primaryRelative", { topic: primaryTopic.name })} 
                 {primaryTopic.primaryLevel === 'leading' && _("options.userProfile.interests.primaryLeading", { topic: primaryTopic.name })}
@@ -307,8 +545,8 @@ export function ProfileSettings() {
                   key={item.topic} 
                   className={`rounded-xl p-4 border transition-all duration-500 ${
                     item.isPrimary 
-                      ? 'bg-gradient-to-r from-purple-50 via-pink-50 to-purple-50 dark:from-purple-900/30 dark:via-pink-900/30 dark:to-purple-900/30 border-2 border-purple-300 dark:border-purple-600 shadow-lg ring-2 ring-purple-200 dark:ring-purple-800' 
-                      : 'bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-700 border border-gray-200 dark:border-gray-600'
+                      ? 'bg-bg-surface border-2 border-primary/30 shadow-lg' 
+                      : 'bg-bg-surface border border-[rgb(var(--border))]'
                   }`}
                 >
                   <div className="flex items-center gap-4">
@@ -316,12 +554,12 @@ export function ProfileSettings() {
                     <div className="flex-shrink-0">
                       <div className={`rounded-full flex items-center justify-center ${
                         item.isPrimary 
-                          ? 'w-20 h-20 text-3xl bg-gradient-to-br from-purple-200 via-pink-200 to-purple-200 shadow-xl animate-bounce'
+                          ? 'w-20 h-20 text-3xl bg-primary/10 border-2 border-primary/30 shadow-xl'
                           : index === 0 
-                          ? 'w-16 h-16 text-2xl bg-gradient-to-br from-blue-100 to-purple-100'
+                          ? 'w-16 h-16 text-2xl bg-primary/5 border border-primary/20'
                           : index === 1
-                          ? 'w-16 h-16 text-2xl bg-gradient-to-br from-green-100 to-emerald-100' 
-                          : 'w-16 h-16 text-2xl bg-gradient-to-br from-orange-100 to-amber-100'
+                          ? 'w-16 h-16 text-2xl bg-gray-100 dark:bg-gray-700 border border-[rgb(var(--border))]' 
+                          : 'w-16 h-16 text-2xl bg-gray-50 dark:bg-gray-800 border border-[rgb(var(--border))]'
                       }`}>
                         {item.animal}
                       </div>
@@ -344,7 +582,7 @@ export function ProfileSettings() {
                             {item.score.toFixed(1)}%
                           </span>
                           {item.isPrimary && (
-                            <span className="text-xs bg-gradient-to-r from-yellow-400 to-orange-400 text-yellow-900 px-2 py-1 rounded-full font-bold">
+                            <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full font-medium border border-primary/20">
                               {item.primaryLevel === 'absolute' && _("options.userProfile.interests.levelAbsolute")}
                               {item.primaryLevel === 'relative' && _("options.userProfile.interests.levelRelative")}
                               {item.primaryLevel === 'leading' && _("options.userProfile.interests.levelLeading")}
@@ -371,12 +609,12 @@ export function ProfileSettings() {
                         <div
                           className={`h-2 rounded-full transition-all duration-500 ${
                             item.isPrimary 
-                              ? 'bg-gradient-to-r from-purple-500 via-pink-500 to-purple-600'
+                              ? 'bg-primary'
                               : index === 0 
-                              ? 'bg-gradient-to-r from-blue-400 to-purple-500'
+                              ? 'bg-primary/70'
                               : index === 1
-                              ? 'bg-gradient-to-r from-green-400 to-emerald-500' 
-                              : 'bg-gradient-to-r from-orange-400 to-amber-500'
+                              ? 'bg-primary/50' 
+                              : 'bg-primary/30'
                           }`}
                           style={{ width: `${Math.max(item.score, 5)}%` }}
                         />
@@ -422,7 +660,7 @@ export function ProfileSettings() {
                   {/* 贯穿的时间箭头 - 在最底层，垂直居中，延伸到两端 */}
                   {evolutionHistory.snapshots.length > 1 && (
                     <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 flex items-center z-0">
-                      <div className="w-full h-0.5 bg-gradient-to-r from-blue-400 via-blue-300 to-blue-400 dark:from-blue-500 dark:via-blue-400 dark:to-blue-500 relative">
+                      <div className="w-full h-0.5 bg-primary/20 relative">
                         {/* 右侧箭头 */}
                         <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-0 h-0 border-l-[10px] border-l-blue-400 dark:border-l-blue-500 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent"></div>
                       </div>
@@ -485,11 +723,11 @@ export function ProfileSettings() {
                         <div 
                           className={`${style.containerSize} rounded-full flex items-center justify-center ${style.shadowSize} transition-all duration-300 hover:scale-110 cursor-pointer relative ${
                             isLatest 
-                              ? 'bg-gradient-to-br from-purple-200 via-pink-200 to-purple-200'
+                              ? 'bg-gradient-to-br from-gray-300 to-gray-400 dark:from-gray-600 dark:to-gray-700'
                               : snapshot.isTopicChange
-                                ? 'bg-gradient-to-br from-blue-100 to-purple-100'
+                                ? 'bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800'
                                 : snapshot.isLevelChange
-                                  ? 'bg-gradient-to-br from-green-100 to-emerald-100'
+                                  ? 'bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800'
                                   : 'bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600'
                           }`}
                         >
@@ -497,8 +735,8 @@ export function ProfileSettings() {
                           
                           {/* 重建标记 - 相对于头像圆圈定位 */}
                           {snapshot.trigger === 'rebuild' && (
-                            <div className="absolute -top-1 -right-1 text-xl bg-white dark:bg-gray-800 rounded-full p-1 shadow-lg ring-2 ring-purple-400 z-20">
-                              🔄
+                            <div className="absolute -top-1 -right-1 w-8 h-8 flex items-center justify-center bg-white dark:bg-gray-800 rounded-full shadow-lg ring-2 ring-gray-400 dark:ring-gray-600 z-20 leading-none">
+                              <span className="text-lg">🔄</span>
                             </div>
                           )}
                           {/* 变化标记 - 相对于头像圆圈定位 */}
@@ -514,28 +752,24 @@ export function ProfileSettings() {
                           )}
                         </div>
                         
-                        {/* Hover 提示框 - 显示在头像下方 */}
-                        <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                          <div className="bg-gray-700 dark:bg-gray-300 text-white dark:text-gray-900 text-xs rounded-lg px-3 py-2 whitespace-nowrap shadow-2xl ring-1 ring-black/10">
-                            <div className="font-semibold mb-1">
-                              {getTopicName(snapshot.topic, _)}
-                              {snapshot.trigger === 'rebuild' && (
-                                <span className="ml-1 text-purple-300 dark:text-purple-600">{_("options.userProfile.evolution.rebuildLabel")}</span>
-                              )}
-                            </div>
-                            <div>{_("options.userProfile.evolution.scoreLabel", { score: Math.round(snapshot.score * 100) })}</div>
-                            <div>{_("options.userProfile.evolution.pagesLabel", { pages: snapshot.basedOnPages })}</div>
-                            <div className="text-gray-300 dark:text-gray-600 mt-1">
-                              {snapshot.trigger === 'rebuild' 
-                                ? _("options.userProfile.evolution.rebuildTrigger")
-                                : snapshot.changeDetails || _("options.userProfile.evolution.stable")}
-                            </div>
-                            {/* 向上的小三角 */}
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-px">
-                              <div className="border-4 border-transparent border-b-gray-700 dark:border-b-gray-300"></div>
+                        {/* Hover 提示框 - 只显示 AI 理解 */}
+                        {snapshot.aiSummary && (
+                          <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                            <div className="bg-gray-800 dark:bg-gray-100 text-white dark:text-gray-900 rounded-lg px-4 py-3 shadow-xl border border-gray-700 dark:border-gray-300 max-w-sm">
+                              <div className="text-gray-300 dark:text-gray-600 text-xs font-medium mb-2 flex items-center gap-1">
+                                <span>🤖</span>
+                                <span>AI 理解</span>
+                              </div>
+                              <div className="text-gray-100 dark:text-gray-700 text-[11px] italic leading-relaxed line-clamp-4">
+                                "{snapshot.aiSummary.interests}"
+                              </div>
+                              {/* 向上的小三角 */}
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-px">
+                                <div className="border-4 border-transparent border-b-gray-800 dark:border-b-gray-100"></div>
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        )}
                       </div>
                     )
                   })}
@@ -559,23 +793,44 @@ export function ProfileSettings() {
 
                     return (
                       <div key={`label-${snapshot.id}`} className="flex-1 text-center text-sm">
-                        {/* 第一行：主导程度emoji + 兴趣名称(页数) */}
-                        <div className={`font-semibold ${
+                        {/* 第一行：主导程度emoji + 兴趣名称 */}
+                        <div className={`font-semibold text-sm ${
                           isLatest 
-                            ? 'text-purple-900 dark:text-purple-100' 
-                            : 'text-gray-800 dark:text-gray-200'
+                            ? 'text-gray-900 dark:text-gray-100' 
+                            : 'text-gray-700 dark:text-gray-300'
                         }`}>
-                          {levelEmoji} {getTopicName(snapshot.topic, _)} ({snapshot.basedOnPages})
+                          {levelEmoji} {getTopicName(snapshot.topic, _)}
+                          {/* AI 画像标记 */}
+                          {snapshot.aiSummary && (
+                            <span className="ml-1" title="AI 画像">🤖</span>
+                          )}
                         </div>
                         
-                        {/* 第二行：时间 */}
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {/* 第二行：分数 + 页数 */}
+                        <div className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                          {Math.round(snapshot.score * 100)}% · {snapshot.basedOnPages}页
+                        </div>
+                        
+                        {/* 第三行：统计数据（如果有）*/}
+                        {snapshot.stats && (
+                          <div className="text-[10px] text-gray-500 dark:text-gray-500 mt-0.5">
+                            {snapshot.stats.totalBrowses}浏览
+                            {snapshot.stats.totalReads > 0 && ` · ${snapshot.stats.totalReads}阅读`}
+                            {snapshot.stats.totalDismisses > 0 && ` · ${snapshot.stats.totalDismisses}拒绝`}
+                          </div>
+                        )}
+                        
+                        {/* 第四行：时间 + 触发标记 */}
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                           {new Date(snapshot.timestamp).toLocaleString(document.documentElement.lang || 'zh-CN', {
                             month: 'short',
                             day: 'numeric',
                             hour: '2-digit',
                             minute: '2-digit'
                           })}
+                          {snapshot.trigger === 'rebuild' && (
+                            <span className="ml-1 text-gray-600 dark:text-gray-400" title="重建画像">🔄</span>
+                          )}
                         </div>
                       </div>
                     )
@@ -628,16 +883,16 @@ export function ProfileSettings() {
                   
                   const getColors = () => {
                     const colorSets = [
-                      'bg-gradient-to-r from-purple-500 to-pink-500 text-white',
-                      'bg-gradient-to-r from-blue-500 to-cyan-500 text-white',
-                      'bg-gradient-to-r from-green-500 to-emerald-500 text-white',
-                      'bg-gradient-to-r from-orange-500 to-amber-500 text-white',
-                      'bg-gradient-to-r from-red-500 to-rose-500 text-white',
-                      'bg-gradient-to-r from-indigo-500 to-purple-500 text-white',
-                      'bg-gradient-to-r from-cyan-500 to-teal-500 text-white',
-                      'bg-gradient-to-r from-yellow-500 to-orange-500 text-white',
-                      'bg-gradient-to-r from-pink-500 to-red-500 text-white',
-                      'bg-gradient-to-r from-teal-500 to-green-500 text-white'
+                      'bg-primary text-white',
+                      'bg-primary/80 text-white',
+                      'bg-primary/60 text-white',
+                      'bg-primary/40 text-text-primary',
+                      'bg-primary/20 text-text-primary',
+                      'bg-primary/10 text-text-primary border border-primary/20',
+                      'bg-bg-surface text-text-secondary border border-[rgb(var(--border))]',
+                      'bg-gray-100 dark:bg-gray-700 text-text-secondary border border-[rgb(var(--border))]',
+                      'bg-gray-50 dark:bg-gray-800 text-text-tertiary border border-[rgb(var(--border))]',
+                      'bg-bg-base text-text-tertiary border border-[rgb(var(--border))]'
                     ]
                     return colorSets[index % colorSets.length]
                   }
@@ -667,6 +922,9 @@ export function ProfileSettings() {
             </div>
           )}
         </div>
+
+          </div>
+        </details>
       </div>
     )
   }

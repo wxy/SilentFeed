@@ -108,10 +108,10 @@ describe("IndexPopup 组件", () => {
 
     // 等待组件加载
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /设置/i })).toBeInTheDocument()
+      expect(screen.getByTitle("设置")).toBeInTheDocument()
     })
 
-    const settingsButton = screen.getByRole("button", { name: /设置/i })
+    const settingsButton = screen.getByTitle("设置")
     await user.click(settingsButton)
 
     expect(chrome.runtime.openOptionsPage).toHaveBeenCalled()

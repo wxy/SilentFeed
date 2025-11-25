@@ -7,6 +7,7 @@
 import { db } from "@/storage/db"
 import { profileBuilder } from "@/core/profile/ProfileBuilder"
 import { InterestSnapshotManager } from "@/core/profile/InterestSnapshotManager"
+import { semanticProfileBuilder } from "@/core/profile/SemanticProfileBuilder"
 import { logger } from "@/utils/logger"
 import { withErrorHandling } from "@/utils/error-handler"
 import type { UserProfile } from "@/types/profile"
@@ -49,18 +50,25 @@ export class ProfileManager {
           return emptyProfile
         }
 
-        // 3. 构建新的用户画像
-        const newProfile = await profileBuilder.buildFromVisits(analyzedVisits)
+        // 3. 构建新的用户画像（传入总记录数，确保 totalPages 正确）
+        const newProfile = await profileBuilder.buildFromVisits(analyzedVisits, visits.length)
         profileLogger.info(`构建完成，包含 ${newProfile.keywords.length} 个关键词，${newProfile.domains.length} 个域名`)
+        profileLogger.info(`总页面数: ${newProfile.totalPages} (基于 ${visits.length} 条确认记录，${analyzedVisits.length} 条有分析)`)
 
-        // 4. 保存到数据库
+        // 4. 保存到数据库（临时保存，可能被 AI 生成覆盖）
         await db.userProfile.put(newProfile)
         profileLogger.info('用户画像已保存到数据库')
+        
+        // 5. Phase 8: 尝试生成或更新 AI 语义画像（会更新数据库中的画像）
+        await this.tryGenerateAIProfile(newProfile, 'rebuild')
+        
+        // 6. 重新读取画像（可能包含 AI 数据）
+        const finalProfile = await db.userProfile.get('singleton') || newProfile
 
-        // 5. 处理兴趣变化追踪
-        await InterestSnapshotManager.handleProfileUpdate(newProfile, 'rebuild')
+        // 7. 处理兴趣变化追踪（使用包含 AI 的最终画像）
+        await InterestSnapshotManager.handleProfileUpdate(finalProfile, 'rebuild')
 
-        return newProfile
+        return finalProfile
       },
       {
         tag: 'ProfileManager.rebuildProfile',
@@ -99,14 +107,19 @@ export class ProfileManager {
         )
 
         // 重新构建画像（简化版本，实际可以做增量计算）
-        const updatedProfile = await profileBuilder.buildFromVisits(analyzedVisits)
+        // 传入总记录数，确保 totalPages 正确
+        const updatedProfile = await profileBuilder.buildFromVisits(analyzedVisits, allVisits.length)
 
         // 保存更新后的画像
         await db.userProfile.put(updatedProfile)
         profileLogger.info('用户画像增量更新完成')
+        profileLogger.info(`总页面数: ${updatedProfile.totalPages} (基于 ${allVisits.length} 条确认记录，${analyzedVisits.length} 条有分析)`)
 
         // 处理兴趣变化追踪
         await InterestSnapshotManager.handleProfileUpdate(updatedProfile, 'manual')
+        
+        // Phase 8: 尝试生成或更新 AI 语义画像
+        await this.tryGenerateAIProfile(updatedProfile, 'manual')
 
         return updatedProfile
       },
@@ -136,6 +149,69 @@ export class ProfileManager {
         userMessage: '清除用户画像失败'
       }
     ) as Promise<void>
+  }
+  
+  /**
+   * Phase 8: 尝试生成 AI 语义画像
+   * 
+   * 检查条件并决定是否生成 AI 画像，不阻塞主流程
+   * 
+   * 触发条件（满足任意一个）：
+   * - 浏览页面 ≥ 20 页
+   * - 阅读推荐 ≥ 5 篇
+   * - 拒绝推荐 ≥ 5 篇
+   */
+  private async tryGenerateAIProfile(
+    profile: UserProfile,
+    trigger: 'manual' | 'rebuild' | 'update'
+  ): Promise<void> {
+    try {
+      // 1. 检查是否已有 AI 画像
+      const hasAIProfile = !!profile.aiSummary
+      
+      // 2. 检查触发条件
+      const totalPages = profile.totalPages || 0
+      const readCount = profile.behaviors?.reads?.length || 0
+      const dismissCount = profile.behaviors?.dismisses?.length || 0
+      
+      const shouldGenerate = 
+        totalPages >= 20 ||   // 浏览 ≥20 页
+        readCount >= 5 ||     // 阅读 ≥5 篇
+        dismissCount >= 5     // 拒绝 ≥5 篇
+      
+      profileLogger.info('[AI Profile] 检查生成条件', {
+        hasAIProfile,
+        totalPages,
+        readCount,
+        dismissCount,
+        shouldGenerate,
+        trigger
+      })
+      
+      if (!shouldGenerate) {
+        profileLogger.info('[AI Profile] 条件不满足，跳过生成', {
+          提示: `需要：浏览≥20页(当前${totalPages}) 或 阅读≥5篇(当前${readCount}) 或 拒绝≥5篇(当前${dismissCount})`
+        })
+        return
+      }
+      
+      // 3. 如果已有 AI 画像且是普通更新（非手动触发），跳过
+      if (hasAIProfile && trigger !== 'manual') {
+        profileLogger.info('[AI Profile] 已有画像，跳过生成（非手动触发）')
+        return
+      }
+      
+      // 4. 调用 SemanticProfileBuilder 强制生成 AI 画像
+      profileLogger.info('[AI Profile] 🤖 开始生成 AI 语义画像...')
+      
+      await semanticProfileBuilder.forceGenerateAIProfile(trigger)
+      
+      profileLogger.info('[AI Profile] ✅ AI 画像生成完成')
+      
+    } catch (error) {
+      // 不阻塞主流程，只记录错误
+      profileLogger.error('[AI Profile] 生成失败（不影响基础画像）:', error)
+    }
   }
 
   /**

@@ -50,8 +50,8 @@ export class AICapabilityManager {
         return
       }
       
-      // 获取当前 Provider 的 API Key（从新的 apiKeys 字段）
-      const apiKey = config.apiKeys?.[config.provider] || config.apiKey || ""
+      // 获取当前 Provider 的 API Key
+      const apiKey = config.apiKeys?.[config.provider] || ""
       
       if (!apiKey) {
         aiLogger.warn(` No API key for provider ${config.provider}`)
@@ -166,10 +166,11 @@ export class AICapabilityManager {
         provider: 'keyword',
         model: 'keyword-v1',
         timestamp: Date.now(),
+        // Phase 8.2: 使用真实的总数而非数组长度
         basedOn: {
-          browses: request.behaviors.browses?.length || 0,
-          reads: request.behaviors.reads?.length || 0,
-          dismisses: request.behaviors.dismisses?.length || 0
+          browses: request.totalCounts?.browses || 0,
+          reads: request.totalCounts?.reads || 0,
+          dismisses: request.totalCounts?.dismisses || 0
         }
       }
     }

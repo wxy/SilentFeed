@@ -519,11 +519,13 @@ ${content}
             input: data.usage.prompt_tokens,
             output: data.usage.completion_tokens
           },
+          // Phase 8.2: 使用真实的总数而非数组长度
           basedOn: {
-            browses: request.behaviors.browses?.length || 0,
-            reads: request.behaviors.reads?.length || 0,
-            dismisses: request.behaviors.dismisses?.length || 0
-          }
+            browses: request.totalCounts?.browses || 0,
+            reads: request.totalCounts?.reads || 0,
+            dismisses: request.totalCounts?.dismisses || 0
+          },
+          cost // 添加成本信息
         }
       }
     } catch (error) {

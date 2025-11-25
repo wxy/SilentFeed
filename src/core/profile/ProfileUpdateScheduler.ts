@@ -166,8 +166,8 @@ export class ProfileUpdateScheduler {
       
       const startTime = Date.now()
       
-      // 使用增量更新策略
-      await profileManager.updateProfile([]) // 这会触发完整重建
+      // Phase 8.2: 使用完全重建策略（确保触发快照创建）
+      await profileManager.rebuildProfile()
       
       // 更新调度状态
       const currentPageCount = await getPageCount()

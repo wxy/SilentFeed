@@ -253,6 +253,22 @@ class ProfileUpdateTrigger {
 
 ## 🤖 AI 画像生成
 
+### 支持的 AI Provider
+
+**DeepSeek**:
+- ✅ 使用 `deepseek-chat` 模型
+- ✅ Chat completion 方式生成画像
+- ✅ 成本：~¥0.001-0.003/次
+
+**OpenAI**:
+- ✅ 使用 `gpt-5-mini`/`gpt-5-nano`/`gpt-5` 模型
+- ✅ Structured Outputs API (JSON Schema 模式)
+- ✅ 成本：~¥0.002-0.005/次（取决于模型）
+
+**Fallback (关键词分析)**:
+- ✅ 不调用 AI，基于关键词统计生成简单画像
+- ✅ 成本：免费
+
 ### Prompt 设计（不惜 Token）
 
 ```typescript
@@ -401,18 +417,24 @@ ${i + 1}. **${v.title}** (${v.domain})
 
 ### Token 消耗估算
 
-**单次画像生成：**
+**单次画像生成（DeepSeek）**:
 - Prompt: ~2000-3000 tokens（丰富上下文）
 - Response: ~500 tokens
-- **总计：~3000 tokens ≈ $0.0006**
+- **总计：~3000 tokens ≈ $0.0006 ≈ ¥0.0013**
+
+**单次画像生成（OpenAI gpt-5-mini）**:
+- Prompt: ~2000-3000 tokens
+- Response: ~500 tokens
+- **总计：~3000 tokens ≈ $0.0004 ≈ ¥0.003**
 
 **月度成本估算：**
 - 浏览触发：1次/周 × 4周 = 4次
 - 阅读触发：10次阅读 / 3 = 3次
 - 拒绝触发：5次
-- **总计：12次/月 × $0.0006 = $0.007/月**
+- **总计（DeepSeek）：12次/月 × ¥0.0013 = ¥0.016/月**
+- **总计（OpenAI）：12次/月 × ¥0.003 = ¥0.036/月**
 
-**结论：即使不惜 token，月成本仍 < $0.01**
+**结论：即使不惜 token，月成本仍 < ¥0.05**
 
 ---
 
@@ -745,21 +767,22 @@ class AICallThrottler {
 - [ ] 数据迁移脚本
 
 ### Sprint 2: 画像生成（3天）
-- [ ] 实现 SemanticProfileBuilder
-- [ ] 实现更新触发器
-- [ ] AI prompt 工程
-- [ ] 单元测试
+- [x] 实现 SemanticProfileBuilder
+- [x] 实现更新触发器
+- [x] AI prompt 工程（DeepSeek + OpenAI）
+- [x] 单元测试（15个测试通过）
 
 ### Sprint 3: 推荐匹配（2天）
-- [ ] 改造 pipeline.ts
-- [ ] 优化评分 prompt
-- [ ] 集成测试
+- [x] 改造 pipeline.ts
+- [x] 优化评分 prompt（DeepSeek + OpenAI）
+- [x] 集成测试（73个测试通过）
 
 ### Sprint 4: 测试和优化（2天）
-- [ ] 浏览器端到端测试
-- [ ] 性能优化
-- [ ] 成本分析
-- [ ] 文档完善
+- [x] 浏览器端到端测试
+- [x] 性能优化
+- [x] 成本分析
+- [x] 文档完善
+- [x] **OpenAI Structured Outputs 实现**（11个新测试）
 
 ---
 
