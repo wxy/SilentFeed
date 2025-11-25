@@ -438,7 +438,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 } 
               })
             } else {
-              throw new Error(`抓取失败: ${feed.title}`)
+              // 获取详细错误信息
+              const updatedFeed = await db.discoveredFeeds.get(feedId)
+              const errorDetail = updatedFeed?.lastError || '未知错误'
+              throw new Error(`抓取失败: ${feed.title} - ${errorDetail}`)
             }
             
           } catch (error) {
