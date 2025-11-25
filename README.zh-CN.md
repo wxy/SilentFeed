@@ -2,8 +2,11 @@
 
 <div align="center">
 
+<img src="assets/icons/128/base-static.png" width="128" height="128" alt="Silent Feed Logo" />
+
 **一个 AI 驱动的 RSS 阅读器，让你的信息流安静下来**
 
+[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Install-blue.svg)](https://chromewebstore.google.com/detail/pieiedlagbmcnooloibhigmidpakneca)
 [![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/wxy/SilentFeed)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Language](https://img.shields.io/badge/language-TypeScript-blue.svg)](https://www.typescriptlang.org/)

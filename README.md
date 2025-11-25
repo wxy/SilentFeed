@@ -1,11 +1,14 @@
 <div align="center">
 
+<img src="assets/icons/128/base-static.png" width="128" height="128" alt="Silent Feed Logo" />
+
 # 🤫 Silent Feed (静阅)
 
 **An AI-powered RSS reader that brings you quiet, focused reading experience.**
 
 *让信息流安静下来*
 
+[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Install-blue.svg)](https://chromewebstore.google.com/detail/pieiedlagbmcnooloibhigmidpakneca)
 [![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/wxy/SilentFeed)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
@@ -58,17 +61,52 @@
 ## 📸 预览
 
 <div align="center">
-<img src="docs/assets/screenshots/popup-recommendations.png" width="400" alt="推荐界面" />
-<img src="docs/assets/screenshots/settings-profile.png" width="400" alt="设置界面" />
+
+### 智能推荐界面
+<img src="docs/assets/screenshots/screenshot-1-recommendations-cn.png" width="800" alt="推荐界面" />
+
+*AI 智能筛选，只推荐你真正关心的内容*
+
+---
+
+### 兴趣画像可视化
+<img src="docs/assets/screenshots/screenshot-3-profile-cn.png" width="800" alt="兴趣画像" />
+
+*清晰了解你的阅读兴趣分布*
+
+---
+
+### RSS 订阅管理
+<img src="docs/assets/screenshots/screenshot-4-rss-settings-cn.png" width="800" alt="RSS 管理" />
+
+*一键订阅，批量导入 OPML，智能抓取*
+
 </div>
 
-> 更多截图见 [用户手册](docs/USER_GUIDE.md#界面预览)
+> 更多截图见 [Chrome Web Store](https://chromewebstore.google.com/detail/pieiedlagbmcnooloibhigmidpakneca) 或 [用户手册](docs/USER_GUIDE.md#界面预览)
 
 ## 🚀 快速开始
 
 ### 安装扩展
 
-**即将上线 Chrome Web Store**
+**方式一：Chrome Web Store（推荐）**
+
+[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Install-blue.svg?style=for-the-badge)](https://chromewebstore.google.com/detail/pieiedlagbmcnooloibhigmidpakneca)
+
+点击上方按钮直接安装
+
+**方式二：开发者模式安装**
+
+1. 下载最新 Release
+2. 解压 zip 文件
+3. 打开 Chrome 扩展管理页面 `chrome://extensions/`
+4. 启用"开发者模式"
+5. 点击"加载已解压的扩展程序"
+6. 选择解压后的文件夹
+
+---
+
+### 首次使用
 
 安装后首次使用：
 
