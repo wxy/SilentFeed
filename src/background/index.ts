@@ -2,32 +2,52 @@
  * 后台调度器统一管理
  * 
  * Phase 7: 后台定时任务架构重构
+ * Phase 9.1: 根据 Onboarding 状态控制任务执行
  * 
  * 提供统一的接口来启动、停止和管理所有后台调度器
  */
 
 import { feedScheduler } from './feed-scheduler'
 import { recommendationScheduler } from './recommendation-scheduler'
+import { getOnboardingState } from '@/storage/onboarding-state'
 import { logger } from '@/utils/logger'
 
 const bgLogger = logger.withTag('BackgroundSchedulers')
 
 /**
  * 启动所有后台调度器
+ * 
+ * Phase 9.1: 根据 Onboarding 状态决定启动哪些调度器
+ * - setup: 不启动任何调度器
+ * - learning: 启动 RSS 抓取（采集数据 + 画像构建在 content script 中）
+ * - ready: 启动 RSS 抓取 + 推荐生成
  */
 export async function startAllSchedulers(): Promise<void> {
   bgLogger.info('启动所有后台调度器...')
   
   try {
-    // 1. 启动 RSS 定时调度器
+    // 检查 Onboarding 状态
+    const status = await getOnboardingState()
+    bgLogger.info(`当前状态: ${status.state}`)
+    
+    if (status.state === 'setup') {
+      bgLogger.info('⏸️ 准备阶段，不启动任何调度器')
+      return
+    }
+    
+    // learning 和 ready 状态都需要 RSS 抓取
     bgLogger.info('启动 RSS 定时调度器...')
     feedScheduler.start(30) // 每 30 分钟检查一次
     
-    // 2. 启动推荐生成调度器
-    bgLogger.info('启动推荐生成调度器...')
-    await recommendationScheduler.start() // 每 20 分钟生成一次
+    // 只有 ready 状态才启动推荐生成
+    if (status.state === 'ready') {
+      bgLogger.info('启动推荐生成调度器...')
+      await recommendationScheduler.start() // 每 20 分钟生成一次
+    } else {
+      bgLogger.info('⏳ 学习阶段，暂不启动推荐生成')
+    }
     
-    bgLogger.info('✅ 所有后台调度器已启动')
+    bgLogger.info('✅ 后台调度器启动完成')
   } catch (error) {
     bgLogger.error('❌ 启动调度器失败:', error)
     throw error
@@ -68,6 +88,26 @@ export function getAllSchedulersStatus(): {
       isRunning: feedScheduler['isRunning'] || false
     },
     recommendation: recommendationScheduler.getStatus()
+  }
+}
+
+/**
+ * Phase 9.1: 根据新的 Onboarding 状态重新配置调度器
+ * 
+ * 当状态从 learning → ready 时调用，启动推荐生成
+ */
+export async function reconfigureSchedulersForState(newState: 'setup' | 'learning' | 'ready'): Promise<void> {
+  bgLogger.info(`重新配置调度器，新状态: ${newState}`)
+  
+  try {
+    // 先停止所有调度器
+    await stopAllSchedulers()
+    
+    // 根据新状态重新启动
+    await startAllSchedulers()
+  } catch (error) {
+    bgLogger.error('❌ 重新配置调度器失败:', error)
+    throw error
   }
 }
 

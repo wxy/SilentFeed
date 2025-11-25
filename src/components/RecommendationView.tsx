@@ -23,6 +23,7 @@ import type { Recommendation } from "@/types/database"
 import { logger } from "@/utils/logger"
 import { getDisplayText, formatLanguageLabel, translateOnDemand } from "@/core/translator/recommendation-translator"
 import { getUIConfig } from "@/storage/ui-config"
+import { getOnboardingState } from "@/storage/onboarding-state"
 
 const recViewLogger = logger.withTag("RecommendationView")
 
@@ -78,6 +79,7 @@ export function RecommendationView() {
   
   const [maxRecommendations, setMaxRecommendations] = useState(5)
   const [hasRSSFeeds, setHasRSSFeeds] = useState(false)
+  const [isReady, setIsReady] = useState(false)
   
   // 🔍 调试：监控推荐列表变化
   useEffect(() => {
@@ -94,6 +96,15 @@ export function RecommendationView() {
       setMaxRecommendations(config.maxRecommendations)
     }
     loadConfig()
+  }, [])
+
+  // 检查 onboarding 状态
+  useEffect(() => {
+    const checkOnboardingState = async () => {
+      const status = await getOnboardingState()
+      setIsReady(status.state === 'ready')
+    }
+    checkOnboardingState()
   }, [])
 
   // 检查是否有RSS源
@@ -267,6 +278,32 @@ export function RecommendationView() {
   }
 
   if (displayedRecommendations.length === 0) {
+    // ready 状态且无 RSS 源：提示用户添加
+    if (isReady && !hasRSSFeeds) {
+      return (
+        <div className="flex flex-col">
+          <div className="h-[300px] flex items-center justify-center">
+            <div className="text-center px-6">
+              <div className="text-4xl mb-4">📰</div>
+              <p className="text-sm text-gray-900 dark:text-gray-100 font-medium mb-2">
+                {_("popup.noRSSFeeds.title")}
+              </p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-4">
+                {_("popup.noRSSFeeds.description")}
+              </p>
+              <button
+                onClick={openRSSManagement}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors"
+              >
+                {_("popup.noRSSFeeds.action")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )
+    }
+    
+    // 其他情况：通用空状态
     return (
       <div className="flex flex-col">
         {/* 空状态 */}

@@ -41,7 +41,12 @@
       "algorithm": "Algorithm"
     },
     "showTranslation": "Translation",
-    "showOriginal": "Original"
+    "showOriginal": "Original",
+    "noRSSFeeds": {
+      "title": "Not subscribed to any RSS feeds yet.",
+      "description": "After adding an RSS feed, we can recommend great content for you.",
+      "action": "Go add RSS feeds"
+    }
   },
   "recommendation": {
     "reason": {
@@ -857,6 +862,115 @@
       "evolutionHistory": "Evolution of Interests",
       "basedOnPages": "Based on {{count}} pages",
       "lastUpdated": "Last updated"
+    }
+  },
+  "onboarding": {
+    "progress": {
+      "step": "Step {{current}}/{{total}}"
+    },
+    "buttons": {
+      "back": "Previous",
+      "next": "Next step",
+      "finish": "Complete",
+      "skip": "Skip"
+    },
+    "welcome": {
+      "title": "Welcome to Silent Feed",
+      "subtitle": "Silence the feed",
+      "features": {
+        "ai": {
+          "title": "AI Intelligent Screening",
+          "description": "Based on your browsing habits, automatically recommend content of interest."
+        },
+        "rss": {
+          "title": "RSS Subscription Management",
+          "description": "Centralize your information sources and never miss important updates."
+        },
+        "privacy": {
+          "title": "Open source transparency, privacy control",
+          "description": "Local data storage, optional remote AI (privacy ensured by the service provider)"
+        },
+        "professional": {
+          "title": "Designed for deep reading",
+          "description": "Break free from the information flood and focus on truly valuable content."
+        },
+        "intelligent": {
+          "title": "AI Intelligent Screening",
+          "description": "Precisely recommend high-quality articles that match your interests."
+        }
+      },
+      "note": "Start your smart reading journey in just 3 steps."
+    },
+    "aiConfig": {
+      "title": "Configure AI Recommendation Engine",
+      "description": "AI is the core feature of Silent Feed and requires configuration before it can be used.",
+      "labels": {
+        "model": "Select AI Model",
+        "apiKey": "API Key"
+      },
+      "placeholders": {
+        "selectModel": "Please select an AI model",
+        "enterApiKey": "Please enter the API key"
+      },
+      "help": {
+        "getApiKey": "Get API Key:"
+      },
+      "buttons": {
+        "test": "Test connection",
+        "testing": "Testing...",
+        "tested": "✓ Tested"
+      }
+    },
+    "rssSetup": {
+      "title": "Add RSS feed",
+      "description": "Add at least one RSS feed to start receiving recommendations",
+      "labels": {
+        "feedUrl": "RSS feed URL",
+        "importOpml": "Or import an OPML file"
+      },
+      "placeholders": {
+        "enterUrl": "Enter the RSS feed URL (e.g., https://example.com/feed.xml)"
+      },
+      "buttons": {
+        "add": "Add",
+        "adding": "Adding...",
+        "selectFile": "Select OPML file",
+        "addThis": "Add"
+      },
+      "exampleFeeds": {
+        "title": "Example source:",
+        "ruanyifeng": "Ruan Yifeng's Blog",
+        "solidot": "Solidot - Tech News",
+        "hackernews": "Hacker News - Tech Frontier"
+      },
+      "addedFeeds": "{{count}} feeds have been added",
+      "more": "More"
+    },
+    "completion": {
+      "title": "Ready to go!",
+      "description": "Next, Silent Feed will learn your browsing habits in the background (requires 100 pages).",
+      "learningPhase": "During the learning phase, you can browse the web normally, and we will automatically analyze your interests.",
+      "buttons": {
+        "start": "Get started",
+        "completing": "Initializing..."
+      }
+    },
+    "errors": {
+      "testConnectionFirst": "Please test the AI connection first.",
+      "selectModel": "Please select an AI model",
+      "invalidModel": "Invalid model selection",
+      "enterApiKey": "Please enter the API key",
+      "invalidApiKeyFormat": "The API key format is incorrect.",
+      "connectionFailed": "Connection failed: {{message}}",
+      "testFailed": "Test failed: {{error}}",
+      "enterRssUrl": "Please enter the RSS feed address",
+      "addFeedFailed": "Add failed: {{error}}",
+      "opmlImportFailed": "Import failed: {{error}}"
+    },
+    "success": {
+      "connectionTested": "Connection successful!",
+      "feedAdded": "Feed added",
+      "opmlImported": "Successfully imported {{count}} feeds"
     }
   }
 }

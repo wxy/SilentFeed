@@ -1,7 +1,7 @@
 {
   "app": {
-    "name": "静阅",
-    "shortName": "Silent Feed",
+    "name": "静阅（Silent Feed）",
+    "shortName": "静阅",
     "slogan": "让信息流安静下来"
   },
   "popup": {
@@ -24,6 +24,11 @@
     "confirmDismissAll": "确定要标记所有 {{count}} 条推荐为「不想读」吗？",
     "noRecommendations": "暂无推荐",
     "checkBackLater": "稍后回来查看新推荐",
+    "noRSSFeeds": {
+      "title": "还没有订阅任何 RSS 源",
+      "description": "添加 RSS 源后，我们才能为你推荐精彩内容",
+      "action": "去添加 RSS 源"
+    },
     "later": "稍后读",
     "dismiss": "不想读",
     "readLater": "稍后阅读", 
@@ -819,6 +824,106 @@
       "news": "信息收集者，关注时事和社会动态",
       "education": "终身学习者，持续自我提升",
       "other": "兴趣广泛的探索者"
+    }
+  },
+  "onboarding": {
+    "progress": {
+      "step": "第 {{current}}/{{total}} 步"
+    },
+    "buttons": {
+      "back": "上一步",
+      "next": "下一步",
+      "finish": "完成",
+      "skip": "跳过"
+    },
+    "welcome": {
+      "title": "欢迎使用静阅",
+      "subtitle": "让信息流安静下来",
+      "features": {
+        "professional": {
+          "title": "专为深度阅读而生",
+          "description": "摆脱信息洪流，聚焦真正有价值的内容"
+        },
+        "intelligent": {
+          "title": "AI 智能筛选",
+          "description": "精准推荐符合你兴趣的优质文章"
+        },
+        "privacy": {
+          "title": "开源透明，隐私可控",
+          "description": "本地存储数据，远程 AI 可选（由服务商保障隐私）"
+        }
+      },
+      "note": "只需 3 步，即可开始你的智能阅读之旅"
+    },
+    "aiConfig": {
+      "title": "配置 AI 推荐引擎",
+      "description": "AI 是静阅的核心功能，需要配置后才能开始使用",
+      "labels": {
+        "model": "选择 AI 模型",
+        "apiKey": "API 密钥"
+      },
+      "placeholders": {
+        "selectModel": "请选择一个 AI 模型",
+        "enterApiKey": "请输入 API 密钥"
+      },
+      "help": {
+        "getApiKey": "获取 API 密钥："
+      },
+      "buttons": {
+        "test": "测试连接",
+        "testing": "测试中...",
+        "tested": "✓ 已测试"
+      }
+    },
+    "rssSetup": {
+      "title": "添加 RSS 订阅源",
+      "description": "添加至少一个 RSS 源，开始接收推荐",
+      "labels": {
+        "feedUrl": "RSS 源地址",
+        "importOpml": "或导入 OPML 文件"
+      },
+      "placeholders": {
+        "enterUrl": "输入 RSS 源 URL（例如：https://example.com/feed.xml）"
+      },
+      "buttons": {
+        "add": "添加",
+        "adding": "添加中...",
+        "selectFile": "选择 OPML 文件",
+        "addThis": "添加"
+      },
+      "exampleFeeds": {
+        "title": "示例源：",
+        "solidot": "Solidot - 科技资讯",
+        "hackernews": "Hacker News - 科技前沿"
+      },
+      "addedFeeds": "已添加 {{count}} 个订阅源",
+      "more": "更多"
+    },
+    "completion": {
+      "title": "准备完成！",
+      "description": "接下来，静阅会在后台学习你的浏览习惯（需要 100 页）",
+      "learningPhase": "在学习阶段，你可以正常浏览网页，我们会自动分析你的兴趣",
+      "buttons": {
+        "start": "开始使用",
+        "completing": "正在初始化..."
+      }
+    },
+    "errors": {
+      "testConnectionFirst": "请先测试 AI 连接",
+      "selectModel": "请选择一个 AI 模型",
+      "invalidModel": "无效的模型选择",
+      "enterApiKey": "请输入 API 密钥",
+      "invalidApiKeyFormat": "API 密钥格式不正确",
+      "connectionFailed": "连接失败：{{message}}",
+      "testFailed": "测试失败：{{error}}",
+      "enterRssUrl": "请输入 RSS 源地址",
+      "addFeedFailed": "添加失败：{{error}}",
+      "opmlImportFailed": "导入失败：{{error}}"
+    },
+    "success": {
+      "connectionTested": "连接成功！",
+      "feedAdded": "订阅源已添加",
+      "opmlImported": "成功导入 {{count}} 个订阅源"
     }
   }
 }
