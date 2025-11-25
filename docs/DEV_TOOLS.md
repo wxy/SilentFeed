@@ -1,5 +1,118 @@
 # 开发者工具和调试命令
 
+## Onboarding 调试
+
+### 🎯 最可靠的重置方法
+
+**推荐步骤**（100% 有效）：
+
+1. **打开扩展管理页面**：`chrome://extensions/`
+2. **找到 SilentFeed 扩展**
+3. **打开开发者工具**：
+   - 点击 "Service Worker" 旁边的 "inspect" 按钮
+   - 或者点击扩展图标打开 popup，然后右键 → "检查"
+4. **在 Console 中运行以下命令**：
+
+```javascript
+// 完整重置到 setup 阶段
+(async () => {
+  // 1. 设置状态
+  await chrome.storage.local.set({ 
+    onboardingStatus: { 
+      state: 'setup',
+      currentStep: 1
+    } 
+  })
+  
+  // 2. 验证设置成功
+  const result = await chrome.storage.local.get('onboardingStatus')
+  console.log('✅ 已重置到 setup 阶段')
+  console.log('当前状态:', result.onboardingStatus)
+  
+  // 3. 提示用户操作
+  console.log('📌 请关闭 popup（如果已打开），然后点击扩展图标重新打开')
+})()
+```
+
+5. **关闭 popup 窗口**（如果打开了）
+6. **点击扩展图标**重新打开，即可看到引导界面
+
+---
+
+### 快速重置命令
+
+#### 重置到 setup 阶段（显示引导页面）
+
+```javascript
+(async () => {
+  await chrome.storage.local.set({ 
+    onboardingStatus: { 
+      state: 'setup',
+      currentStep: 1
+    } 
+  })
+  console.log('✅ 已重置到 setup 阶段，请重新打开 popup')
+})()
+```
+
+#### 重置到 learning 阶段
+
+```javascript
+(async () => {
+  await chrome.storage.local.set({ 
+    onboardingStatus: { 
+      state: 'learning', 
+      completedAt: Date.now()
+    } 
+  })
+  console.log('✅ 已重置到 learning 阶段，请重新打开 popup')
+})()
+```
+
+#### 重置到 ready 阶段
+
+```javascript
+(async () => {
+  await chrome.storage.local.set({ 
+    onboardingStatus: { 
+      state: 'ready', 
+      completedAt: Date.now()
+    } 
+  })
+  console.log('✅ 已重置到 ready 阶段，请重新打开 popup')
+})()
+```
+
+---
+
+### 查看和验证状态
+
+#### 查看当前状态（详细）
+
+```javascript
+(async () => {
+  const result = await chrome.storage.local.get('onboardingStatus')
+  const status = result.onboardingStatus
+  
+  console.log('📊 Onboarding 状态详情:')
+  console.log('  状态:', status?.state || '未设置')
+  console.log('  当前步骤:', status?.currentStep || 'N/A')
+  console.log('  完成时间:', status?.completedAt ? new Date(status.completedAt).toLocaleString('zh-CN') : '未完成')
+  console.log('  是否跳过:', status?.skipped ? '是' : '否')
+  console.log('  原始数据:', status)
+})()
+```
+
+#### 清除所有 Onboarding 数据
+
+```javascript
+(async () => {
+  await chrome.storage.local.remove('onboardingStatus')
+  console.log('🗑️ 已清除 Onboarding 数据（下次打开将显示引导）')
+  console.log('📌 请重新打开 popup')
+})()
+```
+
 ## RSS 源统计更新
 
 ### 问题

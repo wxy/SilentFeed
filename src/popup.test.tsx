@@ -4,6 +4,16 @@ import userEvent from "@testing-library/user-event"
 import IndexPopup from "./popup"
 import { LEARNING_COMPLETE_PAGES } from "@/constants/progress"
 
+// Mock onboarding state
+vi.mock("@/storage/onboarding-state", () => ({
+  getOnboardingState: vi.fn().mockResolvedValue({
+    state: 'learning',  // 默认已完成引导，进入学习阶段
+    completedAt: Date.now()
+  }),
+  enterReadyState: vi.fn(),
+  OnboardingState: {}
+}))
+
 // Mock i18n
 vi.mock("@/i18n/helpers", () => ({
   useI18n: () => ({

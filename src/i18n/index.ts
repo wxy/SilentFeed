@@ -10,8 +10,12 @@ import en from "../../public/locales/en/translation.json"
  * i18n 配置
  * 
  * 支持语言：简体中文（zh-CN）、英文（en）
- * 默认语言：zh-CN
+ * 默认语言：en（英文）
  * 语言检测顺序：localStorage → 浏览器语言 → HTML 标签
+ * 
+ * 语言策略：
+ * - 简体中文用户（zh-CN）→ 中文
+ * - 其他所有语言用户 → 英文
  */
 i18n
   .use(LanguageDetector) // 自动检测用户语言
@@ -22,10 +26,10 @@ i18n
       "en": { translation: en }
     },
     
-    // 默认语言（开发环境）
-    fallbackLng: "zh-CN",
+    // 默认语言（非简体中文用户都使用英文）
+    fallbackLng: "en",
     
-    // 支持的语言列表
+    // 支持的语言列表（只有简体中文会匹配，其他都回退到英文）
     supportedLngs: ["zh-CN", "en"],
     
     // 语言检测配置
@@ -67,7 +71,7 @@ export function getCurrentLanguageName(): string {
     "zh-CN": "简体中文",
     "en": "English"
   }
-  return names[lang] || names["zh-CN"]
+  return names[lang] || names["en"]
 }
 
 /**

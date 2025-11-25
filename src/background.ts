@@ -8,6 +8,7 @@ import { startAllSchedulers, feedScheduler, recommendationScheduler } from './ba
 import { IconManager } from './utils/IconManager'
 import { evaluateAndAdjust } from './core/recommender/adaptive-count'
 import { setupNotificationListeners, testNotification } from './core/recommender/notification'
+import { getOnboardingState } from './storage/onboarding-state'
 import { logger } from '@/utils/logger'
 import { LEARNING_COMPLETE_PAGES } from '@/constants/progress'
 import { aiManager } from './core/ai/AICapabilityManager'
@@ -171,6 +172,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       switch (message.type) {
         case 'SAVE_PAGE_VISIT':
           try {
+            // Phase 9.1: 检查 Onboarding 状态，setup 阶段跳过数据采集
+            const onboardingStatus = await getOnboardingState()
+            if (onboardingStatus.state === 'setup') {
+              bgLogger.debug('⏸️ 准备阶段，跳过页面访问数据采集')
+              sendResponse({ success: true, skipped: true })
+              break
+            }
+            
             const visitData = message.data as Omit<ConfirmedVisit, 'id'> & { id: string }
             await db.confirmedVisits.add(visitData)
             await updateBadge()
@@ -191,6 +200,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         case 'RECOMMENDATIONS_DISMISSED':
           await updateBadge()
           sendResponse({ success: true })
+          break
+        
+        case 'ONBOARDING_STATE_CHANGED':
+          // Phase 9.1: Onboarding 状态变化，重新配置调度器
+          try {
+            const { state } = message
+            bgLogger.info(`Onboarding 状态变化: ${state}`)
+            
+            // 导入并调用重新配置函数
+            const { reconfigureSchedulersForState } = await import('./background/index')
+            await reconfigureSchedulersForState(state)
+            
+            sendResponse({ success: true })
+          } catch (error) {
+            bgLogger.error('❌ 重新配置调度器失败:', error)
+            sendResponse({ success: false, error: String(error) })
+          }
           break
         
         case 'RSS_DETECTED':

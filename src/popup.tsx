@@ -8,6 +8,8 @@ import { getUIStyle, watchUIStyle, type UIStyle } from "@/storage/ui-config"
 import { useTheme } from "@/hooks/useTheme"
 import { ColdStartView } from "@/components/ColdStartView"
 import { RecommendationView } from "@/components/RecommendationView"
+import { OnboardingView } from "@/components/OnboardingView"
+import { getOnboardingState, enterReadyState, type OnboardingState } from "@/storage/onboarding-state"
 import { trackPopupOpen } from "@/core/recommender/adaptive-count"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
 import { LEARNING_COMPLETE_PAGES } from "@/constants/progress"
@@ -24,6 +26,7 @@ function IndexPopup() {
   useTheme() // 应用主题到 DOM
   
   const [pageCount, setPageCount] = useState<number | null>(null)
+  const [onboardingState, setOnboardingState] = useState<OnboardingState | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [uiStyle, setUiStyle] = useState<UIStyle>("sketchy")
   const [toolbarState, setToolbarState] = useState<{
@@ -73,20 +76,38 @@ function IndexPopup() {
   }, [])
 
   useEffect(() => {
-    // 加载页面计数
-    const loadPageCount = async () => {
+    // 加载页面计数和 Onboarding 状态
+    const loadData = async () => {
       try {
-        const count = await getPageCount()
-        setPageCount(count)
+        // 1. 加载 Onboarding 状态
+        const status = await getOnboardingState()
+        setOnboardingState(status.state)
+        
+        // 2. 如果已完成引导，加载页面计数
+        if (status.state !== 'setup') {
+          const count = await getPageCount()
+          setPageCount(count)
+          
+          // 3. 检查是否需要从 learning 进入 ready
+          if (status.state === 'learning' && count >= COLD_START_THRESHOLD) {
+            await enterReadyState()
+            setOnboardingState('ready')
+            
+            // 通知 background 重新配置调度器（启动推荐生成）
+            chrome.runtime.sendMessage({ type: 'ONBOARDING_STATE_CHANGED', state: 'ready' })
+          }
+        }
       } catch (error) {
-        // 首次加载时数据库可能未初始化，使用 0 作为默认值
+        console.error('Failed to load data:', error)
+        // 首次加载时数据库可能未初始化，使用默认值
+        setOnboardingState('setup')
         setPageCount(0)
       } finally {
         setIsLoading(false)
       }
     }
 
-    loadPageCount()
+    loadData()
   }, [])
 
   // 根据风格决定是否应用手绘样式
@@ -94,8 +115,8 @@ function IndexPopup() {
   const currentLang = i18n.language // 获取当前语言
   // 弹窗高度根据内容动态计算，无固定高度，无滚动条
   const containerClass = isSketchyStyle 
-    ? "sketchy-container sketchy-paper-texture w-80 flex flex-col"
-    : "w-80 flex flex-col bg-gradient-to-br from-slate-50/95 to-indigo-50/80 dark:from-gray-900 dark:to-indigo-950/30"
+    ? "sketchy-container sketchy-paper-texture w-[400px] flex flex-col"
+    : "w-[400px] flex flex-col bg-gradient-to-br from-slate-50/95 to-indigo-50/80 dark:from-gray-900 dark:to-indigo-950/30"
 
   // 加载中状态
   if (isLoading) {
@@ -127,6 +148,21 @@ function IndexPopup() {
   }
 
   const isColdStart = pageCount !== null && pageCount < COLD_START_THRESHOLD
+
+  // Onboarding 完成回调
+  const handleOnboardingComplete = () => {
+    setOnboardingState('learning')
+    setPageCount(0)  // 重新开始计数
+  }
+
+  // Phase 9.1: 如果处于 setup 状态，显示引导界面
+  if (onboardingState === 'setup') {
+    return (
+      <ErrorBoundary>
+        <OnboardingView onComplete={handleOnboardingComplete} />
+      </ErrorBoundary>
+    )
+  }
 
   return (
     <ErrorBoundary>

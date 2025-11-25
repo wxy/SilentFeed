@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-11-24T01:16:57.885Z",
+  "lastUpdate": "2025-11-25T09:48:46.723Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -10009,6 +10009,902 @@
         "value": "💡 After translation, you can switch between the original text and the translation using the language tag button.",
         "hash": "21ff29f6",
         "lastModified": "2025-11-24T01:16:57.375Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.progress.step": {
+      "zh-CN": {
+        "value": "第 {{current}}/{{total}} 步",
+        "hash": "9acd2418",
+        "lastModified": "2025-11-25T08:22:39.339Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Step {{current}}/{{total}}",
+        "hash": "932f68b7",
+        "lastModified": "2025-11-25T08:22:39.340Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.buttons.back": {
+      "zh-CN": {
+        "value": "上一步",
+        "hash": "eeb69088",
+        "lastModified": "2025-11-25T08:22:41.102Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Previous",
+        "hash": "dd1f775e",
+        "lastModified": "2025-11-25T08:22:41.102Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.buttons.next": {
+      "zh-CN": {
+        "value": "下一步",
+        "hash": "38ce27d8",
+        "lastModified": "2025-11-25T08:22:42.848Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Next step",
+        "hash": "c290a594",
+        "lastModified": "2025-11-25T08:22:42.848Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.buttons.finish": {
+      "zh-CN": {
+        "value": "完成",
+        "hash": "769d88e4",
+        "lastModified": "2025-11-25T08:22:44.589Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Complete",
+        "hash": "ae94f80b",
+        "lastModified": "2025-11-25T08:22:44.589Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.buttons.skip": {
+      "zh-CN": {
+        "value": "跳过",
+        "hash": "92636e8c",
+        "lastModified": "2025-11-25T08:22:46.433Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Skip",
+        "hash": "72ef2b9b",
+        "lastModified": "2025-11-25T08:22:46.433Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.welcome.title": {
+      "zh-CN": {
+        "value": "欢迎使用静阅",
+        "hash": "a8804a77",
+        "lastModified": "2025-11-25T08:22:48.277Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Welcome to Silent Feed",
+        "hash": "a7e883ea",
+        "lastModified": "2025-11-25T08:22:48.277Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.welcome.subtitle": {
+      "zh-CN": {
+        "value": "让信息流安静下来",
+        "hash": "538ebb91",
+        "lastModified": "2025-11-25T08:22:50.531Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Silence the feed",
+        "hash": "20476bd4",
+        "lastModified": "2025-11-25T08:22:50.531Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.welcome.features.ai.title": {
+      "zh-CN": {
+        "value": "AI 智能筛选",
+        "hash": "7097f4d8",
+        "lastModified": "2025-11-25T08:22:52.468Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "AI Intelligent Screening",
+        "hash": "e25c8b7c",
+        "lastModified": "2025-11-25T08:22:52.468Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.welcome.features.ai.description": {
+      "zh-CN": {
+        "value": "基于你的浏览习惯，自动推荐感兴趣的内容",
+        "hash": "2f45f665",
+        "lastModified": "2025-11-25T08:22:54.728Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Based on your browsing habits, automatically recommend content of interest.",
+        "hash": "759f9681",
+        "lastModified": "2025-11-25T08:22:54.728Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.welcome.features.rss.title": {
+      "zh-CN": {
+        "value": "RSS 订阅管理",
+        "hash": "299a2055",
+        "lastModified": "2025-11-25T08:22:56.724Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "RSS Subscription Management",
+        "hash": "8c8e5121",
+        "lastModified": "2025-11-25T08:22:56.724Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.welcome.features.rss.description": {
+      "zh-CN": {
+        "value": "集中管理你的信息源，不错过重要更新",
+        "hash": "42897538",
+        "lastModified": "2025-11-25T08:22:59.128Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Centralize your information sources and never miss important updates.",
+        "hash": "290f43e9",
+        "lastModified": "2025-11-25T08:22:59.128Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.welcome.features.privacy.title": {
+      "zh-CN": {
+        "value": "开源透明，隐私可控",
+        "hash": "5d74bb9f",
+        "lastModified": "2025-11-25T09:28:21.461Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Open source transparency, privacy control",
+        "hash": "14e87de0",
+        "lastModified": "2025-11-25T09:28:21.461Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.welcome.features.privacy.description": {
+      "zh-CN": {
+        "value": "本地存储数据，远程 AI 可选（由服务商保障隐私）",
+        "hash": "9fd7bdd1",
+        "lastModified": "2025-11-25T09:28:23.675Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Local data storage, optional remote AI (privacy ensured by the service provider)",
+        "hash": "4a66b959",
+        "lastModified": "2025-11-25T09:28:23.675Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.welcome.note": {
+      "zh-CN": {
+        "value": "只需 3 步，即可开始你的智能阅读之旅",
+        "hash": "dde58c4e",
+        "lastModified": "2025-11-25T08:23:04.964Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Start your smart reading journey in just 3 steps.",
+        "hash": "21264df4",
+        "lastModified": "2025-11-25T08:23:04.964Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.aiConfig.title": {
+      "zh-CN": {
+        "value": "配置 AI 推荐引擎",
+        "hash": "5e135f61",
+        "lastModified": "2025-11-25T08:23:07.015Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Configure AI Recommendation Engine",
+        "hash": "c59ab6f1",
+        "lastModified": "2025-11-25T08:23:07.015Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.aiConfig.description": {
+      "zh-CN": {
+        "value": "AI 是静阅的核心功能，需要配置后才能开始使用",
+        "hash": "dfa3a07e",
+        "lastModified": "2025-11-25T08:23:09.369Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "AI is the core feature of Silent Feed and requires configuration before it can be used.",
+        "hash": "498c180a",
+        "lastModified": "2025-11-25T08:23:09.369Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.aiConfig.labels.model": {
+      "zh-CN": {
+        "value": "选择 AI 模型",
+        "hash": "fc006110",
+        "lastModified": "2025-11-25T08:23:11.007Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Select AI Model",
+        "hash": "0fb850a1",
+        "lastModified": "2025-11-25T08:23:11.007Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.aiConfig.labels.apiKey": {
+      "zh-CN": {
+        "value": "API 密钥",
+        "hash": "482c9201",
+        "lastModified": "2025-11-25T08:23:13.054Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "API Key",
+        "hash": "d876ff8d",
+        "lastModified": "2025-11-25T08:23:13.054Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.aiConfig.placeholders.selectModel": {
+      "zh-CN": {
+        "value": "请选择一个 AI 模型",
+        "hash": "f2168793",
+        "lastModified": "2025-11-25T08:23:15.099Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Please select an AI model",
+        "hash": "ce635cdf",
+        "lastModified": "2025-11-25T08:23:15.099Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.aiConfig.placeholders.enterApiKey": {
+      "zh-CN": {
+        "value": "请输入 API 密钥",
+        "hash": "cef8018f",
+        "lastModified": "2025-11-25T08:23:17.135Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Please enter the API key",
+        "hash": "df3a51b4",
+        "lastModified": "2025-11-25T08:23:17.135Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.aiConfig.help.getApiKey": {
+      "zh-CN": {
+        "value": "获取 API 密钥：",
+        "hash": "999b281a",
+        "lastModified": "2025-11-25T08:23:19.403Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Get API Key:",
+        "hash": "7afe1bc6",
+        "lastModified": "2025-11-25T08:23:19.403Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.aiConfig.buttons.test": {
+      "zh-CN": {
+        "value": "测试连接",
+        "hash": "69e74756",
+        "lastModified": "2025-11-25T08:23:21.662Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Test connection",
+        "hash": "39838db5",
+        "lastModified": "2025-11-25T08:23:21.662Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.aiConfig.buttons.testing": {
+      "zh-CN": {
+        "value": "测试中...",
+        "hash": "6c501b52",
+        "lastModified": "2025-11-25T08:23:23.919Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Testing...",
+        "hash": "9d770c90",
+        "lastModified": "2025-11-25T08:23:23.919Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.aiConfig.buttons.tested": {
+      "zh-CN": {
+        "value": "✓ 已测试",
+        "hash": "2fc336ec",
+        "lastModified": "2025-11-25T08:23:25.850Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "✓ Tested",
+        "hash": "68348c14",
+        "lastModified": "2025-11-25T08:23:25.851Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.rssSetup.title": {
+      "zh-CN": {
+        "value": "添加 RSS 订阅源",
+        "hash": "e9e1cbcb",
+        "lastModified": "2025-11-25T08:23:27.770Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Add RSS feed",
+        "hash": "deac7e07",
+        "lastModified": "2025-11-25T08:23:27.770Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.rssSetup.description": {
+      "zh-CN": {
+        "value": "添加至少一个 RSS 源，开始接收推荐",
+        "hash": "6a2bea5c",
+        "lastModified": "2025-11-25T08:23:30.050Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Add at least one RSS feed to start receiving recommendations",
+        "hash": "6745d442",
+        "lastModified": "2025-11-25T08:23:30.050Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.rssSetup.labels.feedUrl": {
+      "zh-CN": {
+        "value": "RSS 源地址",
+        "hash": "59d58199",
+        "lastModified": "2025-11-25T08:23:31.971Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "RSS feed URL",
+        "hash": "5017b77d",
+        "lastModified": "2025-11-25T08:23:31.971Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.rssSetup.labels.importOpml": {
+      "zh-CN": {
+        "value": "或导入 OPML 文件",
+        "hash": "05f09bc3",
+        "lastModified": "2025-11-25T08:23:34.215Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Or import an OPML file",
+        "hash": "7e5fd7c8",
+        "lastModified": "2025-11-25T08:23:34.215Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.rssSetup.placeholders.enterUrl": {
+      "zh-CN": {
+        "value": "输入 RSS 源 URL（例如：https://example.com/feed.xml）",
+        "hash": "c2fca060",
+        "lastModified": "2025-11-25T08:23:36.709Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Enter the RSS feed URL (e.g., https://example.com/feed.xml)",
+        "hash": "427c40a3",
+        "lastModified": "2025-11-25T08:23:36.709Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.rssSetup.buttons.add": {
+      "zh-CN": {
+        "value": "添加",
+        "hash": "b58c7549",
+        "lastModified": "2025-11-25T08:23:38.764Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Add",
+        "hash": "ec211f7c",
+        "lastModified": "2025-11-25T08:23:38.764Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.rssSetup.buttons.adding": {
+      "zh-CN": {
+        "value": "添加中...",
+        "hash": "7453166e",
+        "lastModified": "2025-11-25T08:23:40.600Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Adding...",
+        "hash": "c303d2fa",
+        "lastModified": "2025-11-25T08:23:40.600Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.rssSetup.buttons.selectFile": {
+      "zh-CN": {
+        "value": "选择 OPML 文件",
+        "hash": "6115b816",
+        "lastModified": "2025-11-25T08:23:42.462Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Select OPML file",
+        "hash": "88c53739",
+        "lastModified": "2025-11-25T08:23:42.462Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.rssSetup.buttons.addThis": {
+      "zh-CN": {
+        "value": "添加",
+        "hash": "b58c7549",
+        "lastModified": "2025-11-25T08:23:44.492Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Add",
+        "hash": "ec211f7c",
+        "lastModified": "2025-11-25T08:23:44.492Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.rssSetup.exampleFeeds.title": {
+      "zh-CN": {
+        "value": "示例源：",
+        "hash": "a470dbbd",
+        "lastModified": "2025-11-25T08:23:46.420Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Example source:",
+        "hash": "3ad0892f",
+        "lastModified": "2025-11-25T08:23:46.420Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.rssSetup.exampleFeeds.ruanyifeng": {
+      "zh-CN": {
+        "value": "阮一峰的博客",
+        "hash": "7ae32ea8",
+        "lastModified": "2025-11-25T08:23:48.385Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Ruan Yifeng's Blog",
+        "hash": "09f6cb51",
+        "lastModified": "2025-11-25T08:23:48.385Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.rssSetup.addedFeeds": {
+      "zh-CN": {
+        "value": "已添加 {{count}} 个订阅源",
+        "hash": "bfea3421",
+        "lastModified": "2025-11-25T08:23:50.532Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{count}} feeds have been added",
+        "hash": "5a26336c",
+        "lastModified": "2025-11-25T08:23:50.532Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.rssSetup.more": {
+      "zh-CN": {
+        "value": "更多",
+        "hash": "0ec9eaf9",
+        "lastModified": "2025-11-25T08:23:52.481Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "More",
+        "hash": "d3da97e2",
+        "lastModified": "2025-11-25T08:23:52.481Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.completion.title": {
+      "zh-CN": {
+        "value": "准备完成！",
+        "hash": "731eb49e",
+        "lastModified": "2025-11-25T08:23:54.220Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Ready to go!",
+        "hash": "5f0d08f0",
+        "lastModified": "2025-11-25T08:23:54.220Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.completion.description": {
+      "zh-CN": {
+        "value": "接下来，静阅会在后台学习你的浏览习惯（需要 100 页）",
+        "hash": "287f57d8",
+        "lastModified": "2025-11-25T09:48:46.212Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Next, Silent Feed will learn your browsing habits in the background (requires 100 pages).",
+        "hash": "9d79cdcc",
+        "lastModified": "2025-11-25T09:48:46.213Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.completion.learningPhase": {
+      "zh-CN": {
+        "value": "在学习阶段，你可以正常浏览网页，我们会自动分析你的兴趣",
+        "hash": "4a0c617e",
+        "lastModified": "2025-11-25T08:23:59.273Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "During the learning phase, you can browse the web normally, and we will automatically analyze your interests.",
+        "hash": "9c257f07",
+        "lastModified": "2025-11-25T08:23:59.273Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.completion.buttons.start": {
+      "zh-CN": {
+        "value": "开始使用",
+        "hash": "85d22db7",
+        "lastModified": "2025-11-25T08:24:01.388Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Get started",
+        "hash": "be11c74c",
+        "lastModified": "2025-11-25T08:24:01.388Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.completion.buttons.completing": {
+      "zh-CN": {
+        "value": "正在初始化...",
+        "hash": "1cc496d2",
+        "lastModified": "2025-11-25T08:24:03.640Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Initializing...",
+        "hash": "0b4b9a22",
+        "lastModified": "2025-11-25T08:24:03.640Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.errors.testConnectionFirst": {
+      "zh-CN": {
+        "value": "请先测试 AI 连接",
+        "hash": "4eed9358",
+        "lastModified": "2025-11-25T08:24:05.993Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Please test the AI connection first.",
+        "hash": "1d9aa5ff",
+        "lastModified": "2025-11-25T08:24:05.993Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.errors.selectModel": {
+      "zh-CN": {
+        "value": "请选择一个 AI 模型",
+        "hash": "f2168793",
+        "lastModified": "2025-11-25T08:24:08.044Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Please select an AI model",
+        "hash": "ce635cdf",
+        "lastModified": "2025-11-25T08:24:08.044Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.errors.invalidModel": {
+      "zh-CN": {
+        "value": "无效的模型选择",
+        "hash": "1ca05a36",
+        "lastModified": "2025-11-25T08:24:09.990Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Invalid model selection",
+        "hash": "4560e18c",
+        "lastModified": "2025-11-25T08:24:09.990Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.errors.enterApiKey": {
+      "zh-CN": {
+        "value": "请输入 API 密钥",
+        "hash": "cef8018f",
+        "lastModified": "2025-11-25T08:24:11.935Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Please enter the API key",
+        "hash": "df3a51b4",
+        "lastModified": "2025-11-25T08:24:11.935Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.errors.invalidApiKeyFormat": {
+      "zh-CN": {
+        "value": "API 密钥格式不正确",
+        "hash": "fb9d3bf4",
+        "lastModified": "2025-11-25T08:24:14.187Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "The API key format is incorrect.",
+        "hash": "3077534b",
+        "lastModified": "2025-11-25T08:24:14.187Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.errors.connectionFailed": {
+      "zh-CN": {
+        "value": "连接失败：{{message}}",
+        "hash": "646e3bd0",
+        "lastModified": "2025-11-25T08:24:16.093Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Connection failed: {{message}}",
+        "hash": "1ed1e8c9",
+        "lastModified": "2025-11-25T08:24:16.093Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.errors.testFailed": {
+      "zh-CN": {
+        "value": "测试失败：{{error}}",
+        "hash": "b06d1b11",
+        "lastModified": "2025-11-25T08:24:18.382Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Test failed: {{error}}",
+        "hash": "2d29639d",
+        "lastModified": "2025-11-25T08:24:18.382Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.errors.enterRssUrl": {
+      "zh-CN": {
+        "value": "请输入 RSS 源地址",
+        "hash": "1dcd5025",
+        "lastModified": "2025-11-25T08:24:20.433Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Please enter the RSS feed address",
+        "hash": "75f824c3",
+        "lastModified": "2025-11-25T08:24:20.433Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.errors.addFeedFailed": {
+      "zh-CN": {
+        "value": "添加失败：{{error}}",
+        "hash": "6f4e5608",
+        "lastModified": "2025-11-25T08:24:22.481Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Add failed: {{error}}",
+        "hash": "69308fbf",
+        "lastModified": "2025-11-25T08:24:22.481Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.errors.opmlImportFailed": {
+      "zh-CN": {
+        "value": "导入失败：{{error}}",
+        "hash": "850dde7f",
+        "lastModified": "2025-11-25T08:24:24.635Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Import failed: {{error}}",
+        "hash": "5881e02a",
+        "lastModified": "2025-11-25T08:24:24.635Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.success.connectionTested": {
+      "zh-CN": {
+        "value": "连接成功！",
+        "hash": "835340bb",
+        "lastModified": "2025-11-25T08:24:26.402Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Connection successful!",
+        "hash": "b988ae81",
+        "lastModified": "2025-11-25T08:24:26.402Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.success.feedAdded": {
+      "zh-CN": {
+        "value": "订阅源已添加",
+        "hash": "77bfa139",
+        "lastModified": "2025-11-25T08:24:28.216Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Feed added",
+        "hash": "be2a60ed",
+        "lastModified": "2025-11-25T08:24:28.216Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.success.opmlImported": {
+      "zh-CN": {
+        "value": "成功导入 {{count}} 个订阅源",
+        "hash": "2735215c",
+        "lastModified": "2025-11-25T08:24:30.266Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Successfully imported {{count}} feeds",
+        "hash": "0e2fb9b1",
+        "lastModified": "2025-11-25T08:24:30.266Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.welcome.features.professional.title": {
+      "zh-CN": {
+        "value": "专为深度阅读而生",
+        "hash": "f011c832",
+        "lastModified": "2025-11-25T09:28:13.097Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Designed for deep reading",
+        "hash": "11170c27",
+        "lastModified": "2025-11-25T09:28:13.098Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.welcome.features.professional.description": {
+      "zh-CN": {
+        "value": "摆脱信息洪流，聚焦真正有价值的内容",
+        "hash": "088c5d75",
+        "lastModified": "2025-11-25T09:28:15.524Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Break free from the information flood and focus on truly valuable content.",
+        "hash": "1532abd6",
+        "lastModified": "2025-11-25T09:28:15.524Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.welcome.features.intelligent.title": {
+      "zh-CN": {
+        "value": "AI 智能筛选",
+        "hash": "7097f4d8",
+        "lastModified": "2025-11-25T09:28:17.807Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "AI Intelligent Screening",
+        "hash": "e25c8b7c",
+        "lastModified": "2025-11-25T09:28:17.807Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.welcome.features.intelligent.description": {
+      "zh-CN": {
+        "value": "精准推荐符合你兴趣的优质文章",
+        "hash": "f7fa6cab",
+        "lastModified": "2025-11-25T09:28:19.653Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Precisely recommend high-quality articles that match your interests.",
+        "hash": "9fc53a76",
+        "lastModified": "2025-11-25T09:28:19.653Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.rssSetup.exampleFeeds.solidot": {
+      "zh-CN": {
+        "value": "Solidot - 科技资讯",
+        "hash": "5a369820",
+        "lastModified": "2025-11-25T08:43:19.432Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Solidot - Tech News",
+        "hash": "604c10dd",
+        "lastModified": "2025-11-25T08:43:19.432Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.rssSetup.exampleFeeds.hackernews": {
+      "zh-CN": {
+        "value": "Hacker News - 科技前沿",
+        "hash": "d449dae7",
+        "lastModified": "2025-11-25T08:43:21.367Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Hacker News - Tech Frontier",
+        "hash": "c741dce1",
+        "lastModified": "2025-11-25T08:43:21.367Z",
+        "status": "ai-translated"
+      }
+    },
+    "popup.noRSSFeeds.title": {
+      "zh-CN": {
+        "value": "还没有订阅任何 RSS 源",
+        "hash": "54106f3b",
+        "lastModified": "2025-11-25T08:49:46.786Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Not subscribed to any RSS feeds yet.",
+        "hash": "3e83f420",
+        "lastModified": "2025-11-25T08:49:46.788Z",
+        "status": "ai-translated"
+      }
+    },
+    "popup.noRSSFeeds.description": {
+      "zh-CN": {
+        "value": "添加 RSS 源后，我们才能为你推荐精彩内容",
+        "hash": "78aa08e9",
+        "lastModified": "2025-11-25T08:49:49.118Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "After adding an RSS feed, we can recommend great content for you.",
+        "hash": "35238fdc",
+        "lastModified": "2025-11-25T08:49:49.118Z",
+        "status": "ai-translated"
+      }
+    },
+    "popup.noRSSFeeds.action": {
+      "zh-CN": {
+        "value": "去添加 RSS 源",
+        "hash": "0e7e0777",
+        "lastModified": "2025-11-25T08:49:50.946Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Go add RSS feeds",
+        "hash": "6a7f6604",
+        "lastModified": "2025-11-25T08:49:50.946Z",
         "status": "ai-translated"
       }
     }
