@@ -8,7 +8,7 @@
  * - 推荐数量由系统根据用户行为自动调整
  */
 
-import { getAIConfig, isAIConfigured, type AIProviderType } from './ai-config'
+import { getAIConfig, isAIConfigured, validateApiKey, type AIProviderType } from './ai-config'
 import { aiManager } from '../core/ai/AICapabilityManager'
 import { logger } from '@/utils/logger'
 import type { RecommendationAnalysisEngine, FeedAnalysisEngine } from '@/types/analysis-engine'

@@ -7,6 +7,22 @@ import { useRecommendationStore } from './recommendationStore'
 import { db } from '@/storage/db'
 import type { Recommendation } from '@/types/database'
 
+// Mock recommendationService
+vi.mock('../core/recommender/RecommendationService', () => ({
+  recommendationService: {
+    generateRecommendations: vi.fn().mockResolvedValue({
+      recommendations: [],
+      stats: {
+        totalFeeds: 0,
+        processedFeeds: 0,
+        totalArticles: 0,
+        recommendedArticles: 0
+      },
+      errors: []
+    })
+  }
+}))
+
 // Mock chrome API
 global.chrome = {
   runtime: {

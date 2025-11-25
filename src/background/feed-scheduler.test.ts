@@ -47,10 +47,12 @@ vi.mock('../storage/db', () => ({
     feedArticles: {
       where: vi.fn(() => ({
         equals: vi.fn(() => ({
+          toArray: vi.fn().mockResolvedValue([]),  // 添加 toArray 方法
           delete: vi.fn().mockResolvedValue(undefined)
         }))
       })),
-      bulkAdd: vi.fn().mockResolvedValue(undefined)
+      bulkAdd: vi.fn().mockResolvedValue(undefined),
+      bulkPut: vi.fn().mockResolvedValue(undefined)  // 添加 bulkPut 方法
     },
     transaction: vi.fn((mode, tables, callback) => {
       // 简单模拟事务：直接执行回调
