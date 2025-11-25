@@ -29,11 +29,6 @@ import { aiManager } from "@/core/ai/AICapabilityManager"
 import { FeedManager } from "@/core/rss/managers/FeedManager"
 import { OPMLImporter } from "@/core/rss/OPMLImporter"
 
-// 图标 URL - 测试环境使用占位符，生产环境由 Plasmo 编译时注入
-// @ts-ignore - Vitest 注入的全局变量
-const isTestEnv = typeof import.meta?.env?.VITEST !== "undefined"
-const iconUrl = isTestEnv ? "" : require("data-base64:../../assets/icon.png")
-
 interface OnboardingViewProps {
   onComplete: () => void  // 完成引导后的回调
 }
@@ -244,6 +239,11 @@ function ProgressBar({ currentStep, totalSteps }: { currentStep: number; totalSt
  */
 function WelcomeStep() {
   const { _ } = useI18n()
+  
+  // 获取图标 URL - 兼容测试环境
+  const iconUrl = typeof chrome !== "undefined" && chrome.runtime?.getURL
+    ? chrome.runtime.getURL("assets/icon.png")
+    : ""
 
   return (
     <div className="text-center space-y-5">
