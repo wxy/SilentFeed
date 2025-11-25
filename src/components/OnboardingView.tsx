@@ -239,11 +239,7 @@ function ProgressBar({ currentStep, totalSteps }: { currentStep: number; totalSt
  */
 function WelcomeStep() {
   const { _ } = useI18n()
-  
-  // 获取图标 URL - 兼容测试环境
-  const iconUrl = typeof chrome !== "undefined" && chrome.runtime?.getURL
-    ? chrome.runtime.getURL("assets/icon.png")
-    : ""
+  const iconUrl = "assets/icons/128/base-static.png"
 
   return (
     <div className="text-center space-y-5">
