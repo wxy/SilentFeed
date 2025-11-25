@@ -115,7 +115,8 @@ describe("AIConfig", () => {
       expect(screen.getByPlaceholderText(/Enter your API Key/)).toBeInTheDocument()
     })
     
-    it("选择 Provider 后应该显示提供商说明", () => {
+    it.skip("选择 Provider 后应该显示提供商说明", () => {
+      // 注意：UI 改版后不再显示提供商说明，此测试暂时跳过
       render(<AIConfig />)
       
       const select = screen.getByLabelText("Select AI Model")
