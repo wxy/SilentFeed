@@ -109,6 +109,13 @@ export interface UserProfileGenerationRequest {
   /** 主题分布 */
   topicDistribution: Record<string, number>
   
+  /** Phase 8.2: 真实的行为总数（用于 metadata.basedOn）*/
+  totalCounts: {
+    browses: number
+    reads: number
+    dismisses: number
+  }
+  
   /** 可选：当前画像（用于增量更新） */
   currentProfile?: {
     interests: string

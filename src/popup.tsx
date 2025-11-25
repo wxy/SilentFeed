@@ -220,10 +220,10 @@ function IndexPopup() {
 
         {/* 底部按钮 - 仅在冷启动阶段显示（推荐阶段顶部已有设置按钮） */}
         {isColdStart && (
-          <div className={isSketchyStyle ? "px-6 pb-4" : "mt-4"}>
+          <div className={isSketchyStyle ? "px-6 pb-4" : "mt-4 flex justify-center"}>
             <button
               onClick={openSettings}
-              className={isSketchyStyle ? "sketchy-button w-full" : "w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"}
+              className={isSketchyStyle ? "sketchy-button w-full" : "px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"}
             >
               ⚙️ {_("popup.settings")}
             </button>

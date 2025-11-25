@@ -55,14 +55,20 @@ export class ProfileManager {
         profileLogger.info(`构建完成，包含 ${newProfile.keywords.length} 个关键词，${newProfile.domains.length} 个域名`)
         profileLogger.info(`总页面数: ${newProfile.totalPages} (基于 ${visits.length} 条确认记录，${analyzedVisits.length} 条有分析)`)
 
-        // 4. 保存到数据库
+        // 4. 保存到数据库（临时保存，可能被 AI 生成覆盖）
         await db.userProfile.put(newProfile)
         profileLogger.info('用户画像已保存到数据库')
+        
+        // 5. Phase 8: 尝试生成或更新 AI 语义画像（会更新数据库中的画像）
+        await this.tryGenerateAIProfile(newProfile, 'rebuild')
+        
+        // 6. 重新读取画像（可能包含 AI 数据）
+        const finalProfile = await db.userProfile.get('singleton') || newProfile
 
-        // 5. 处理兴趣变化追踪
-        await InterestSnapshotManager.handleProfileUpdate(newProfile, 'rebuild')
+        // 7. 处理兴趣变化追踪（使用包含 AI 的最终画像）
+        await InterestSnapshotManager.handleProfileUpdate(finalProfile, 'rebuild')
 
-        return newProfile
+        return finalProfile
       },
       {
         tag: 'ProfileManager.rebuildProfile',

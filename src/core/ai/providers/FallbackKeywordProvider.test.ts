@@ -351,6 +351,11 @@ describe("FallbackKeywordProvider", () => {
         topicDistribution: {
           technology: 0.85,
           design: 0.15
+        },
+        totalCounts: {
+          browses: 100,
+          reads: 20,
+          dismisses: 5
         }
       }
 
@@ -369,7 +374,12 @@ describe("FallbackKeywordProvider", () => {
       const request = {
         behaviors: {},
         topKeywords: [],
-        topicDistribution: {}
+        topicDistribution: {},
+        totalCounts: {
+          browses: 0,
+          reads: 0,
+          dismisses: 0
+        }
       }
 
       const result = await provider.generateUserProfile(request)
@@ -397,7 +407,12 @@ describe("FallbackKeywordProvider", () => {
           ]
         },
         topKeywords: [{ word: 'test', weight: 0.5 }],
-        topicDistribution: { technology: 0.5 }
+        topicDistribution: { technology: 0.5 },
+        totalCounts: {
+          browses: 3,
+          reads: 2,
+          dismisses: 1
+        }
       }
 
       const result = await provider.generateUserProfile(request)

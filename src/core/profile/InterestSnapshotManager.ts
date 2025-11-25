@@ -88,6 +88,45 @@ export class InterestSnapshotManager {
         shouldCreateSnapshot = true
         changeNote = '用户主动重建画像'
         console.log('[SnapshotManager] 📸 触发条件: 强制重建')
+        console.log('[SnapshotManager] 🔍 画像状态检查:', {
+          '上次快照有AI': !!lastSnapshot.aiSummary,
+          '新画像有AI': !!newProfile.aiSummary,
+          '上次AI摘要': lastSnapshot.aiSummary?.summary?.substring(0, 50),
+          '新AI摘要': newProfile.aiSummary?.summary?.substring(0, 50)
+        })
+        
+        // Phase 8.2: 检查是否从关键词画像升级到 AI 画像
+        if (!lastSnapshot.aiSummary && newProfile.aiSummary) {
+          changeNote = '升级到 AI 语义画像'
+          trigger = 'ai_change'
+          console.log('[SnapshotManager] 🚀 检测到画像升级: 关键词 → AI')
+        }
+      } else if (newProfile.aiSummary && lastSnapshot.aiSummary) {
+        // Phase 8.2: 检查 AI 画像是否显著变化（两者都有 AI 时）
+        const similarity = this.calculateSemanticSimilarity(
+          lastSnapshot.aiSummary.interests,
+          newProfile.aiSummary.interests
+        )
+        
+        console.log('[SnapshotManager] 🤖 AI 语义相似度检测', {
+          相似度: (similarity * 100).toFixed(1) + '%',
+          阈值: '70%',
+          上次摘要: lastSnapshot.aiSummary.interests.slice(0, 30) + '...',
+          当前摘要: newProfile.aiSummary.interests.slice(0, 30) + '...'
+        })
+        
+        if (similarity < 0.7) {
+          shouldCreateSnapshot = true
+          changeNote = `AI 画像发生显著变化（相似度 ${(similarity * 100).toFixed(0)}%）`
+          trigger = 'ai_change'
+          console.log('[SnapshotManager] 📸 触发条件: AI 语义变化')
+        }
+      } else if (!lastSnapshot.aiSummary && newProfile.aiSummary) {
+        // Phase 8.2: 首次生成 AI 画像（非重建触发）
+        shouldCreateSnapshot = true
+        changeNote = '首次生成 AI 语义画像'
+        trigger = 'ai_change'
+        console.log('[SnapshotManager] 📸 触发条件: 首次 AI 画像')
       } else {
         console.log('[SnapshotManager] ⏭️ 跳过快照创建', {
           原因: '主导兴趣未变化且非强制重建',
@@ -97,8 +136,16 @@ export class InterestSnapshotManager {
       }
 
       if (shouldCreateSnapshot) {
+        console.log('[SnapshotManager] ✨ 准备创建快照:', {
+          触发类型: trigger,
+          变化说明: changeNote,
+          新画像ID: newProfile.id,
+          有AI摘要: !!newProfile.aiSummary
+        })
         await this.createSnapshot(newProfile, currentPrimary, trigger, changeNote)
         console.log('[SnapshotManager] ✅ 创建兴趣快照成功:', changeNote)
+      } else {
+        console.log('[SnapshotManager] ⚠️ 未创建快照 - shouldCreateSnapshot = false')
       }
     } catch (error) {
       console.error('[SnapshotManager] ❌ 处理兴趣变化失败:', error)
@@ -128,6 +175,32 @@ export class InterestSnapshotManager {
       basedOnPages: profile.totalPages,
       trigger,
       changeNote
+    }
+    
+    // Phase 8.2: 包含 AI 摘要（如果有）
+    if (profile.aiSummary) {
+      snapshot.aiSummary = {
+        interests: profile.aiSummary.interests.slice(0, 100), // 限制长度
+        topPreferences: profile.aiSummary.preferences.slice(0, 3), // Top 3
+        provider: profile.aiSummary.metadata.provider as "openai" | "deepseek" | "keyword"
+      }
+      
+      console.log('[SnapshotManager] ✨ 快照包含 AI 摘要', {
+        摘要长度: snapshot.aiSummary.interests.length,
+        偏好数: snapshot.aiSummary.topPreferences.length,
+        Provider: snapshot.aiSummary.provider
+      })
+    }
+    
+    // Phase 8.2: 包含行为统计（如果有）
+    if (profile.behaviors) {
+      snapshot.stats = {
+        totalBrowses: profile.totalPages,
+        totalReads: profile.behaviors.totalReads || 0,
+        totalDismisses: profile.behaviors.totalDismisses || 0
+      }
+      
+      console.log('[SnapshotManager] 📊 快照包含行为统计', snapshot.stats)
     }
 
     await saveInterestSnapshot(snapshot)
@@ -344,7 +417,12 @@ export class InterestSnapshotManager {
           description,
           isTopicChange,
           isLevelChange,
-          changeDetails
+          changeDetails,
+          // Phase 8.2: 添加 AI 摘要和统计数据
+          aiSummary: current.aiSummary,
+          stats: current.stats,
+          trigger: current.trigger,
+          changeNote: current.changeNote
         }
       })
 
@@ -433,5 +511,51 @@ export class InterestSnapshotManager {
     } catch (error) {
       console.error('[SnapshotManager] ❌ 清理旧快照失败:', error)
     }
+  }
+  
+  /**
+   * Phase 8.2: 计算两个文本的语义相似度
+   * 
+   * 使用简单的 Jaccard 相似度（词袋模型）
+   * 适用于短文本（如 AI 兴趣摘要）
+   * 
+   * @param text1 - 第一个文本
+   * @param text2 - 第二个文本
+   * @returns 相似度 (0-1)
+   */
+  private static calculateSemanticSimilarity(text1: string, text2: string): number {
+    // 分词：提取中英文词汇
+    const tokenize = (text: string): Set<string> => {
+      const words = new Set<string>()
+      
+      // 中文词（2-4个字）
+      const chineseWords = text.match(/[\u4e00-\u9fa5]{2,4}/g) || []
+      chineseWords.forEach(w => words.add(w))
+      
+      // 英文词（2+字母）
+      const englishWords = text.toLowerCase().match(/[a-z]{2,}/g) || []
+      englishWords.forEach(w => words.add(w))
+      
+      return words
+    }
+    
+    const set1 = tokenize(text1)
+    const set2 = tokenize(text2)
+    
+    // Jaccard 相似度 = |交集| / |并集|
+    const intersection = new Set([...set1].filter(x => set2.has(x)))
+    const union = new Set([...set1, ...set2])
+    
+    const similarity = union.size > 0 ? intersection.size / union.size : 0
+    
+    console.log('[SnapshotManager] 🔍 相似度计算详情', {
+      文本1词数: set1.size,
+      文本2词数: set2.size,
+      交集词数: intersection.size,
+      并集词数: union.size,
+      相似度: (similarity * 100).toFixed(1) + '%'
+    })
+    
+    return similarity
   }
 }

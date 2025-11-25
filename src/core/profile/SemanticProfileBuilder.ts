@@ -249,6 +249,9 @@ export class SemanticProfileBuilder {
     
     profileLogger.info('[AISummary] 开始生成语义摘要...')
     
+    // Phase 8.2: 确保 AI Manager 已初始化
+    await aiManager.initialize()
+    
     // === 1. 准备上下文数据 ===
     
     // 最近阅读（按权重排序，取前 10 篇）
@@ -336,6 +339,12 @@ export class SemanticProfileBuilder {
         },
         topKeywords,
         topicDistribution,
+        // Phase 8.2: 传递真实的行为总数
+        totalCounts: {
+          browses: visits.length,
+          reads: behaviors.totalReads,
+          dismisses: behaviors.totalDismisses
+        },
         currentProfile: undefined // 暂时不支持增量更新，后续可扩展
       })
       

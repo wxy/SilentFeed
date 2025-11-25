@@ -117,6 +117,8 @@ export interface ProfileBuildConfig {
 
 /**
  * 兴趣变化快照
+ * 
+ * Phase 8.2: 扩展支持 AI 语义摘要和行为统计
  */
 export interface InterestSnapshot {
   /** 快照 ID */
@@ -147,8 +149,25 @@ export interface InterestSnapshot {
   basedOnPages: number
 
   /** 快照触发原因 */
-  trigger: "manual" | "primary_change" | "periodic" | "rebuild"
+  trigger: "manual" | "primary_change" | "periodic" | "rebuild" | "ai_change"
 
   /** 变化描述（如果是因为主导兴趣变化） */
   changeNote?: string
+  
+  /** Phase 8.2: AI 语义摘要（可选）*/
+  aiSummary?: {
+    /** 兴趣理解（简短摘要，50字以内） */
+    interests: string
+    /** Top 3 偏好标签 */
+    topPreferences: string[]
+    /** Provider 类型 */
+    provider: "openai" | "deepseek" | "keyword"
+  }
+  
+  /** Phase 8.2: 行为统计（可选）*/
+  stats?: {
+    totalBrowses: number
+    totalReads: number
+    totalDismisses: number
+  }
 }

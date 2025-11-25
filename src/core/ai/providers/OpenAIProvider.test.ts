@@ -482,13 +482,19 @@ describe("OpenAIProvider", () => {
         reads: [
           {
             title: "React Hooks 深入解析",
-            summary: "详细介绍 React Hooks 的工作原理和最佳实践",
+            keywords: ["React", "Hooks", "JavaScript"],
+            topics: ["technology"],
+            readDuration: 300,
+            scrollDepth: 0.9,
             weight: 0.8,
             timestamp: Date.now()
           },
           {
             title: "TypeScript 高级技巧",
-            summary: "TypeScript 类型系统的高级用法",
+            keywords: ["TypeScript", "编程"],
+            topics: ["technology"],
+            readDuration: 240,
+            scrollDepth: 0.85,
             weight: 0.7,
             timestamp: Date.now()
           }
@@ -496,16 +502,27 @@ describe("OpenAIProvider", () => {
         dismisses: [
           {
             title: "NBA 总决赛回顾",
-            summary: "篮球比赛精彩瞬间",
+            keywords: ["篮球", "体育"],
+            topics: ["sports"],
+            weight: 0.5,
             timestamp: Date.now()
           }
         ]
       },
       topKeywords: [
-        { word: "技术", count: 50 },
-        { word: "前端", count: 30 },
-        { word: "React", count: 25 }
-      ]
+        { word: "技术", weight: 0.95 },
+        { word: "前端", weight: 0.88 },
+        { word: "React", weight: 0.82 }
+      ],
+      topicDistribution: {
+        technology: 0.85,
+        design: 0.15
+      },
+      totalCounts: {
+        browses: 100,
+        reads: 20,
+        dismisses: 5
+      }
     }
     
     const mockProfileResponse: DeepSeekResponse = {
@@ -551,8 +568,10 @@ describe("OpenAIProvider", () => {
       
       expect(result.metadata.provider).toBe("openai")
       expect(result.metadata.model).toBe("gpt-5-mini")
-      expect(result.metadata.basedOn.reads).toBe(2)
-      expect(result.metadata.basedOn.dismisses).toBe(1)
+      // Phase 8.2: basedOn 现在来自 totalCounts
+      expect(result.metadata.basedOn.browses).toBe(100)
+      expect(result.metadata.basedOn.reads).toBe(20)
+      expect(result.metadata.basedOn.dismisses).toBe(5)
       expect(result.metadata.tokensUsed?.total).toBe(620)
       expect(result.metadata.cost).toBeGreaterThan(0)
     })
@@ -604,7 +623,13 @@ describe("OpenAIProvider", () => {
           reads: [],
           dismisses: []
         },
-        topKeywords: []
+        topKeywords: [],
+        topicDistribution: {},
+        totalCounts: {
+          browses: 0,
+          reads: 0,
+          dismisses: 0
+        }
       }
       
       vi.mocked(fetch).mockResolvedValueOnce({
@@ -709,13 +734,22 @@ describe("OpenAIProvider", () => {
         behaviors: {
           reads: Array.from({ length: 20 }, (_, i) => ({
             title: `文章 ${i + 1}`,
-            summary: `摘要 ${i + 1}`,
+            keywords: ["技术"],
+            topics: ["technology"],
+            readDuration: 120,
+            scrollDepth: 0.8,
             weight: 0.5,
             timestamp: Date.now()
           })),
           dismisses: []
         },
-        topKeywords: []
+        topKeywords: [],
+        topicDistribution: {},
+        totalCounts: {
+          browses: 0,
+          reads: 20,
+          dismisses: 0
+        }
       }
       
       vi.mocked(fetch).mockResolvedValueOnce({
@@ -742,11 +776,19 @@ describe("OpenAIProvider", () => {
           reads: [],
           dismisses: Array.from({ length: 10 }, (_, i) => ({
             title: `拒绝文章 ${i + 1}`,
-            summary: `拒绝摘要 ${i + 1}`,
+            keywords: ["娱乐"],
+            topics: ["entertainment"],
+            weight: 0.5,
             timestamp: Date.now()
           }))
         },
-        topKeywords: []
+        topKeywords: [],
+        topicDistribution: {},
+        totalCounts: {
+          browses: 0,
+          reads: 0,
+          dismisses: 10
+        }
       }
       
       vi.mocked(fetch).mockResolvedValueOnce({
@@ -772,8 +814,14 @@ describe("OpenAIProvider", () => {
         behaviors: { reads: [], dismisses: [] },
         topKeywords: Array.from({ length: 50 }, (_, i) => ({
           word: `关键词${i + 1}`,
-          count: 10
-        }))
+          weight: 0.5
+        })),
+        topicDistribution: {},
+        totalCounts: {
+          browses: 0,
+          reads: 0,
+          dismisses: 0
+        }
       }
       
       vi.mocked(fetch).mockResolvedValueOnce({

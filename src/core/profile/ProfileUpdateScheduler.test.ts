@@ -137,11 +137,11 @@ describe("ProfileUpdateScheduler", () => {
       const { profileManager } = await import("@/core/profile/ProfileManager")
       
       vi.mocked(getPageCount).mockResolvedValue(15)
-      vi.mocked(profileManager.updateProfile).mockResolvedValue({} as any)
+      vi.mocked(profileManager.rebuildProfile).mockResolvedValue({} as any)
 
-      await ProfileUpdateScheduler.checkAndScheduleUpdate()
+      await ProfileUpdateScheduler.checkAndScheduleUpdate("high")
 
-      expect(profileManager.updateProfile).toHaveBeenCalled()
+      expect(profileManager.rebuildProfile).toHaveBeenCalled()
     })
 
     it("应该在中优先级时延迟执行更新", async () => {
@@ -162,7 +162,7 @@ describe("ProfileUpdateScheduler", () => {
       await vi.advanceTimersByTimeAsync(2000)
 
       // 现在应该执行了
-      expect(profileManager.updateProfile).toHaveBeenCalled()
+      expect(profileManager.rebuildProfile).toHaveBeenCalled()
     })
   })
 
@@ -172,11 +172,11 @@ describe("ProfileUpdateScheduler", () => {
       const { profileManager } = await import("@/core/profile/ProfileManager")
       
       vi.mocked(getPageCount).mockResolvedValue(100)
-      vi.mocked(profileManager.updateProfile).mockResolvedValue({} as any)
+      vi.mocked(profileManager.rebuildProfile).mockResolvedValue({} as any)
 
       await ProfileUpdateScheduler.executeUpdate("测试更新")
 
-      expect(profileManager.updateProfile).toHaveBeenCalled()
+      expect(profileManager.rebuildProfile).toHaveBeenCalled()
       
       const status = ProfileUpdateScheduler.getScheduleStatus()
       expect(status.lastUpdatePageCount).toBe(100)
@@ -196,7 +196,7 @@ describe("ProfileUpdateScheduler", () => {
     it("应该在更新失败后重置状态", async () => {
       const { profileManager } = await import("@/core/profile/ProfileManager")
       
-      vi.mocked(profileManager.updateProfile).mockRejectedValue(new Error("Update failed"))
+      vi.mocked(profileManager.rebuildProfile).mockRejectedValue(new Error("Update failed"))
 
       await ProfileUpdateScheduler.executeUpdate("测试更新")
 
@@ -211,11 +211,11 @@ describe("ProfileUpdateScheduler", () => {
       const { profileManager } = await import("@/core/profile/ProfileManager")
       
       vi.mocked(getPageCount).mockResolvedValue(100)
-      vi.mocked(profileManager.updateProfile).mockResolvedValue({} as any)
+      vi.mocked(profileManager.rebuildProfile).mockResolvedValue({} as any)
 
       await ProfileUpdateScheduler.forceUpdate()
 
-      expect(profileManager.updateProfile).toHaveBeenCalled()
+      expect(profileManager.rebuildProfile).toHaveBeenCalled()
     })
   })
 

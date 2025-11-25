@@ -190,15 +190,15 @@ describe("IndexOptions 组件", () => {
       // 先点击偏好标签确保激活
       await user.click(preferencesTab)
       
-      // Phase 8: 偏好标签应该是激活状态（手绘风格使用不同的类名）
-      expect(preferencesTab.closest("button")?.className).toContain("bg-green")
+      // Phase 8: 偏好标签应该是激活状态（渐变色样式）
+      expect(preferencesTab.closest("button")?.className).toContain("from-indigo")
 
       // Phase 8: 点击订阅源标签
       await user.click(feedsTab)
 
       // Phase 8: 订阅源标签应该变为激活状态，偏好标签应该不再激活
-      expect(feedsTab.closest("button")?.className).toContain("bg-green")
-      expect(preferencesTab.closest("button")?.className).not.toContain("bg-green")
+      expect(feedsTab.closest("button")?.className).toContain("from-indigo")
+      expect(preferencesTab.closest("button")?.className).not.toContain("from-indigo")
     })
   })
 

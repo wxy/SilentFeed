@@ -11,6 +11,7 @@ import { Topic } from './topics'
 // Mock AI Manager
 vi.mock('@/core/ai/AICapabilityManager', () => ({
   aiManager: {
+    initialize: vi.fn().mockResolvedValue(undefined),
     analyzeContent: vi.fn().mockResolvedValue({
       topicProbabilities: { technology: 0.8 },
       metadata: { provider: 'mock' }
