@@ -194,6 +194,26 @@ export class ProfileUpdateScheduler {
   }
 
   /**
+   * Phase 8.3: 用户行为立即反馈更新
+   * 
+   * 在用户阅读或拒绝推荐后立即触发画像更新，
+   * 确保用户的最新偏好能立即影响下次推荐
+   * 
+   * @param trigger - 触发原因（'user_read', 'user_dismiss'）
+   */
+  static async forceUpdateProfile(trigger: string): Promise<void> {
+    console.log(`[ProfileScheduler] 🚀 用户行为触发立即更新: ${trigger}`)
+    
+    // 防止并发更新
+    if (this.schedule.isUpdating) {
+      console.log('[ProfileScheduler] ⏭️ 画像正在更新中，跳过本次触发')
+      return
+    }
+    
+    await this.executeUpdate(trigger)
+  }
+
+  /**
    * 检查是否适合进行更新（性能检查）
    */
   static async isGoodTimeToUpdate(): Promise<boolean> {

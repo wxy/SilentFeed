@@ -175,9 +175,9 @@ export class ProfileManager {
       const dismissCount = profile.behaviors?.dismisses?.length || 0
       
       const shouldGenerate = 
-        totalPages >= 20 ||   // 浏览 ≥20 页
-        readCount >= 5 ||     // 阅读 ≥5 篇
-        dismissCount >= 5     // 拒绝 ≥5 篇
+        totalPages >= 10 ||   // 浏览 ≥10 页（降低门槛：更快生成 AI 画像）
+        readCount >= 3 ||     // 阅读 ≥3 篇（降低门槛）
+        dismissCount >= 3     // 拒绝 ≥3 篇（降低门槛）
       
       profileLogger.info('[AI Profile] 检查生成条件', {
         hasAIProfile,
