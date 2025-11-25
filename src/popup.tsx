@@ -89,10 +89,6 @@ function IndexPopup() {
     loadPageCount()
   }, [])
 
-  const openSettings = () => {
-    chrome.runtime.openOptionsPage()
-  }
-
   // 根据风格决定是否应用手绘样式
   const isSketchyStyle = uiStyle === "sketchy"
   const currentLang = i18n.language // 获取当前语言
@@ -216,18 +212,6 @@ function IndexPopup() {
           <ColdStartView pageCount={pageCount || 0} totalPages={COLD_START_THRESHOLD} uiStyle={uiStyle} />
         ) : (
           <RecommendationView />
-        )}
-
-        {/* 底部按钮 - 仅在冷启动阶段显示（推荐阶段顶部已有设置按钮） */}
-        {isColdStart && (
-          <div className={isSketchyStyle ? "px-6 pb-4" : "mt-4 flex justify-center"}>
-            <button
-              onClick={openSettings}
-              className={isSketchyStyle ? "sketchy-button w-full" : "px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"}
-            >
-              ⚙️ {_("popup.settings")}
-            </button>
-          </div>
         )}
       </div>
     </ErrorBoundary>

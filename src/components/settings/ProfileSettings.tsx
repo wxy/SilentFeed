@@ -279,7 +279,7 @@ export function ProfileSettings() {
                 </span>
               </h3>
               <div className="flex items-center gap-2">
-                <span className="text-xs bg-gray-600 dark:bg-gray-400 text-white dark:text-gray-900 px-3 py-1 rounded-full font-medium shadow-sm">
+                <span className="text-xs bg-primary/10 text-primary px-3 py-1 rounded-full font-medium border border-primary/20">
                   {profile.aiSummary.metadata.provider === 'deepseek' ? 'DeepSeek' : 
                    profile.aiSummary.metadata.provider === 'openai' ? 'OpenAI' : 
                    'AI'}
@@ -321,7 +321,7 @@ export function ProfileSettings() {
                 {profile.aiSummary.preferences.map((pref, i) => (
                   <span 
                     key={i}
-                    className="inline-flex items-center gap-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                    className="inline-flex items-center gap-1 bg-primary/5 text-primary px-3 py-1.5 rounded-lg text-sm font-medium border border-primary/20 hover:bg-primary/10 transition-colors"
                   >
                     <span>✓</span>
                     <span>{pref}</span>
@@ -452,7 +452,7 @@ export function ProfileSettings() {
                 <div className="flex items-center gap-3">
                   <a
                     href="/options.html?tab=ai"
-                    className="inline-flex items-center gap-2 text-sm bg-gray-700 hover:bg-gray-800 dark:bg-gray-600 dark:hover:bg-gray-500 text-white px-4 py-2 rounded-lg transition-colors shadow-md font-medium">
+                    className="inline-flex items-center gap-2 text-sm bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-lg transition-colors shadow-md font-medium">
                     <span>🚀</span>
                     <span>立即配置 AI</span>
                   </a>
@@ -527,7 +527,7 @@ export function ProfileSettings() {
             <span>🎯</span>
             <span>{_("options.userProfile.interests.title")}</span>
             {primaryTopic && (
-              <span className="text-xs bg-gray-600 dark:bg-gray-500 text-white px-2 py-1 rounded-full">
+              <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full font-medium">
                 {primaryTopic.primaryLevel === 'absolute' && _("options.userProfile.interests.primaryAbsolute", { topic: primaryTopic.name })}
                 {primaryTopic.primaryLevel === 'relative' && _("options.userProfile.interests.primaryRelative", { topic: primaryTopic.name })} 
                 {primaryTopic.primaryLevel === 'leading' && _("options.userProfile.interests.primaryLeading", { topic: primaryTopic.name })}
@@ -545,8 +545,8 @@ export function ProfileSettings() {
                   key={item.topic} 
                   className={`rounded-xl p-4 border transition-all duration-500 ${
                     item.isPrimary 
-                      ? 'bg-gray-100 dark:bg-gray-800 border-2 border-gray-400 dark:border-gray-600 shadow-lg' 
-                      : 'bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600'
+                      ? 'bg-bg-surface border-2 border-primary/30 shadow-lg' 
+                      : 'bg-bg-surface border border-[rgb(var(--border))]'
                   }`}
                 >
                   <div className="flex items-center gap-4">
@@ -554,12 +554,12 @@ export function ProfileSettings() {
                     <div className="flex-shrink-0">
                       <div className={`rounded-full flex items-center justify-center ${
                         item.isPrimary 
-                          ? 'w-20 h-20 text-3xl bg-gradient-to-br from-purple-200 via-pink-200 to-purple-200 shadow-xl animate-bounce'
+                          ? 'w-20 h-20 text-3xl bg-primary/10 border-2 border-primary/30 shadow-xl'
                           : index === 0 
-                          ? 'w-16 h-16 text-2xl bg-gradient-to-br from-blue-100 to-purple-100'
+                          ? 'w-16 h-16 text-2xl bg-primary/5 border border-primary/20'
                           : index === 1
-                          ? 'w-16 h-16 text-2xl bg-gradient-to-br from-green-100 to-emerald-100' 
-                          : 'w-16 h-16 text-2xl bg-gradient-to-br from-orange-100 to-amber-100'
+                          ? 'w-16 h-16 text-2xl bg-gray-100 dark:bg-gray-700 border border-[rgb(var(--border))]' 
+                          : 'w-16 h-16 text-2xl bg-gray-50 dark:bg-gray-800 border border-[rgb(var(--border))]'
                       }`}>
                         {item.animal}
                       </div>
@@ -582,7 +582,7 @@ export function ProfileSettings() {
                             {item.score.toFixed(1)}%
                           </span>
                           {item.isPrimary && (
-                            <span className="text-xs bg-gray-600 dark:bg-gray-500 text-white px-2 py-1 rounded-full font-medium">
+                            <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full font-medium border border-primary/20">
                               {item.primaryLevel === 'absolute' && _("options.userProfile.interests.levelAbsolute")}
                               {item.primaryLevel === 'relative' && _("options.userProfile.interests.levelRelative")}
                               {item.primaryLevel === 'leading' && _("options.userProfile.interests.levelLeading")}
@@ -609,12 +609,12 @@ export function ProfileSettings() {
                         <div
                           className={`h-2 rounded-full transition-all duration-500 ${
                             item.isPrimary 
-                              ? 'bg-gray-600 dark:bg-gray-400'
+                              ? 'bg-primary'
                               : index === 0 
-                              ? 'bg-gray-500 dark:bg-gray-500'
+                              ? 'bg-primary/70'
                               : index === 1
-                              ? 'bg-gray-400 dark:bg-gray-600' 
-                              : 'bg-gray-300 dark:bg-gray-700'
+                              ? 'bg-primary/50' 
+                              : 'bg-primary/30'
                           }`}
                           style={{ width: `${Math.max(item.score, 5)}%` }}
                         />
@@ -660,7 +660,7 @@ export function ProfileSettings() {
                   {/* 贯穿的时间箭头 - 在最底层，垂直居中，延伸到两端 */}
                   {evolutionHistory.snapshots.length > 1 && (
                     <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 flex items-center z-0">
-                      <div className="w-full h-0.5 bg-gray-300 dark:bg-gray-600 relative">
+                      <div className="w-full h-0.5 bg-primary/20 relative">
                         {/* 右侧箭头 */}
                         <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-0 h-0 border-l-[10px] border-l-blue-400 dark:border-l-blue-500 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent"></div>
                       </div>
@@ -755,18 +755,12 @@ export function ProfileSettings() {
                         {/* Hover 提示框 - 只显示 AI 理解 */}
                         {snapshot.aiSummary && (
                           <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                            <div className="bg-gray-800 dark:bg-gray-100 text-white dark:text-gray-900 rounded-lg px-3 py-2.5 shadow-xl border border-gray-700 dark:border-gray-300 max-w-xs">
-                              <div className="text-gray-300 dark:text-gray-600 text-xs font-medium mb-1.5 flex items-center gap-1">
+                            <div className="bg-gray-800 dark:bg-gray-100 text-white dark:text-gray-900 rounded-lg px-4 py-3 shadow-xl border border-gray-700 dark:border-gray-300 max-w-sm">
+                              <div className="text-gray-300 dark:text-gray-600 text-xs font-medium mb-2 flex items-center gap-1">
                                 <span>🤖</span>
                                 <span>AI 理解</span>
                               </div>
-                              <div 
-                                className="text-gray-100 dark:text-gray-700 text-[11px] italic leading-relaxed max-h-32 overflow-y-auto pr-2"
-                                style={{
-                                  scrollbarWidth: 'thin',
-                                  scrollbarColor: 'rgb(75, 85, 99) transparent'
-                                }}
-                              >
+                              <div className="text-gray-100 dark:text-gray-700 text-[11px] italic leading-relaxed line-clamp-4">
                                 "{snapshot.aiSummary.interests}"
                               </div>
                               {/* 向上的小三角 */}
@@ -889,16 +883,16 @@ export function ProfileSettings() {
                   
                   const getColors = () => {
                     const colorSets = [
-                      'bg-gray-600 dark:bg-gray-500 text-white',
-                      'bg-gray-500 dark:bg-gray-600 text-white',
-                      'bg-gray-400 dark:bg-gray-700 text-white',
-                      'bg-gray-300 dark:bg-gray-800 text-gray-900 dark:text-white',
-                      'bg-gray-200 dark:bg-gray-900 text-gray-900 dark:text-white',
-                      'bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-gray-400',
-                      'bg-gray-50 dark:bg-black text-gray-800 dark:text-gray-500',
-                      'bg-gradient-to-r from-yellow-500 to-orange-500 text-white',
-                      'bg-gradient-to-r from-pink-500 to-red-500 text-white',
-                      'bg-gradient-to-r from-teal-500 to-green-500 text-white'
+                      'bg-primary text-white',
+                      'bg-primary/80 text-white',
+                      'bg-primary/60 text-white',
+                      'bg-primary/40 text-text-primary',
+                      'bg-primary/20 text-text-primary',
+                      'bg-primary/10 text-text-primary border border-primary/20',
+                      'bg-bg-surface text-text-secondary border border-[rgb(var(--border))]',
+                      'bg-gray-100 dark:bg-gray-700 text-text-secondary border border-[rgb(var(--border))]',
+                      'bg-gray-50 dark:bg-gray-800 text-text-tertiary border border-[rgb(var(--border))]',
+                      'bg-bg-base text-text-tertiary border border-[rgb(var(--border))]'
                     ]
                     return colorSets[index % colorSets.length]
                   }
