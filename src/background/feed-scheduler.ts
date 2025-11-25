@@ -233,15 +233,23 @@ export async function fetchFeed(feed: DiscoveredFeed): Promise<boolean> {
       })
       
       // 8.2 更新 feedArticles 表（Phase 7: 数据库规范化）
-      // 策略：完全替换该 Feed 的所有文章（删除旧的，插入新的）
-      // 这样可以确保数据一致性，同时清理过期文章
+      // 策略：使用 bulkPut 更新/插入文章（自动处理已存在的记录）
+      // 这样可以保留已有的阅读状态等信息，同时添加新文章
       
-      // 删除该 Feed 的所有旧文章
-      await db.feedArticles.where('feedId').equals(feed.id).delete()
-      
-      // 批量插入最新文章
+      // 批量更新/插入最新文章（bulkPut 会自动更新已存在的，插入不存在的）
       if (latest.length > 0) {
-        await db.feedArticles.bulkAdd(latest)
+        await db.feedArticles.bulkPut(latest)
+      }
+      
+      // 清理该 Feed 中不在最新列表的旧文章
+      const latestIds = new Set(latest.map(a => a.id))
+      const oldArticles = await db.feedArticles.where('feedId').equals(feed.id).toArray()
+      const articlesToDelete = oldArticles
+        .filter(a => !latestIds.has(a.id))
+        .map(a => a.id)
+      
+      if (articlesToDelete.length > 0) {
+        await db.feedArticles.bulkDelete(articlesToDelete)
       }
     })
     
