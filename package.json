@@ -68,7 +68,7 @@
       "https://*/*"
     ],
     "permissions": [
-      "activeTab",
+      "tabs",
       "storage",
       "alarms",
       "notifications"
