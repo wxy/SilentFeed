@@ -123,8 +123,8 @@ describe("AIConfig", () => {
       // 选择 DeepSeek 模型
       fireEvent.change(select, { target: { value: "deepseek-chat" } })
       
-      // 描述直接来自 AVAILABLE_MODELS 配置
-      expect(screen.getByText(/国内友好|支持推理模式/)).toBeInTheDocument()
+      // 描述已国际化，测试英文版本
+      expect(screen.getByText(/Affordable|domestic-friendly/i)).toBeInTheDocument()
     })
     
     it("选择 Provider 后应该显示预算控制", () => {

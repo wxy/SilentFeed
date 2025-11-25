@@ -14,6 +14,7 @@ import {
   db
 } from '@/storage/db'
 import { semanticProfileBuilder } from '@/core/profile/SemanticProfileBuilder'
+import { recommendationService } from '@/core/recommender/RecommendationService'
 
 /**
  * 推荐统计数据
