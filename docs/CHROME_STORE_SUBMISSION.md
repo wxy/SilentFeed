@@ -62,8 +62,8 @@ Silent Feed（静阅）- 让信息流安静下来
 
 2. 智能推荐
    • AI 自动筛选出 3-5 条最相关的内容
-   • 支持多种 AI 引擎（DeepSeek/OpenAI/Anthropic）
-   • 或使用免费的规则引擎
+   • 支持多种远程 AI 引擎（DeepSeek/OpenAI/Anthropic）
+   • 未来将支持自定义的本地 AI 供应商
    • 推荐分数可视化，理由详细说明
 
 3. RSS 自动管理
@@ -97,10 +97,15 @@ Silent Feed（静阅）- 让信息流安静下来
 
 💰 成本透明
 
-• DeepSeek Chat：¥0.001/篇（推荐）
+使用你自己的 API Key，成本完全由你控制：
+
+• DeepSeek Chat：¥0.001/篇（性价比之选）
 • DeepSeek Reasoner：¥0.01/篇（深度推理）
-• 规则引擎：完全免费
-• 随时可切换引擎或查看成本统计
+• OpenAI GPT-4o-mini：$0.002/篇（约 ¥0.014）
+• Anthropic Claude 3.5 Haiku：$0.003/篇（约 ¥0.021）
+
+• 实时成本统计，随时可切换引擎
+• 未来将支持自定义的本地 AI 供应商（免费）
 
 🛠️ 技术架构
 
@@ -145,8 +150,8 @@ Not about managing RSS, but letting AI be your "information gatekeeper".
 
 2. Smart Recommendations
    • AI automatically filters out 3-5 most relevant articles
-   • Multiple AI engines supported (DeepSeek/OpenAI/Anthropic)
-   • Or use free rule-based engine
+   • Multiple remote AI engines supported (DeepSeek/OpenAI/Anthropic)
+   • Future support for custom local AI providers
    • Recommendation score visualization with detailed reasoning
 
 3. RSS Auto-Management
@@ -180,10 +185,15 @@ May not suit you if you:
 
 💰 Transparent Costs
 
-• DeepSeek Chat: $0.0001/article (Recommended)
+Use your own API Key, you control the costs:
+
+• DeepSeek Chat: $0.0001/article (Best value)
 • DeepSeek Reasoner: $0.001/article (Deep reasoning)
-• Rule Engine: Completely free
-• Switch engines anytime or check cost statistics
+• OpenAI GPT-4o-mini: $0.002/article
+• Anthropic Claude 3.5 Haiku: $0.003/article
+
+• Real-time cost statistics, switch engines anytime
+• Future support for custom local AI providers (Free)
 
 🛠️ Tech Stack
 
