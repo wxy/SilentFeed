@@ -1,8 +1,8 @@
 {
   "name": "silentfeed",
-  "displayName": "Silent Feed",
+  "displayName": "__MSG_extName__",
   "version": "0.1.0",
-  "description": "An AI-powered RSS reader that brings you quiet, focused reading experience.",
+  "description": "__MSG_extDescription__",
   "author": "xingyu.wang@gmail.com",
   "scripts": {
     "dev": "plasmo dev",
