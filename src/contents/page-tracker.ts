@@ -57,6 +57,85 @@ const THRESHOLD_SECONDS = 30
  */
 const CHECK_INTERVAL_MS = 5000
 
+// ==================== 标题状态管理 ====================
+
+/**
+ * 标题状态管理器
+ * 用于在页面标题上添加/移除学习状态 emoji
+ */
+class TitleStateManager {
+  private originalTitle: string = document.title
+  private currentEmoji: string = ''
+  
+  // Emoji 定义
+  private readonly EMOJIS = {
+    LEARNING: '⏱️',  // 学习中（计时中）
+    LEARNED: '✅',    // 已学习完成
+  }
+  
+  /**
+   * 标记页面开始学习（添加计时 emoji）
+   */
+  startLearning(): void {
+    this.originalTitle = this.getCleanTitle()
+    this.currentEmoji = this.EMOJIS.LEARNING
+    this.updateTitle()
+    logger.debug('📝 [TitleState] 开始学习', { title: document.title })
+  }
+  
+  /**
+   * 标记页面学习完成（添加完成 emoji）
+   */
+  completeLearning(): void {
+    this.currentEmoji = this.EMOJIS.LEARNED
+    this.updateTitle()
+    logger.debug('✅ [TitleState] 学习完成', { title: document.title })
+    
+    // 3 秒后移除完成标记
+    setTimeout(() => {
+      this.clearLearning()
+    }, 3000)
+  }
+  
+  /**
+   * 清除学习状态（移除 emoji）
+   */
+  clearLearning(): void {
+    this.currentEmoji = ''
+    this.updateTitle()
+    logger.debug('🧹 [TitleState] 清除状态', { title: document.title })
+  }
+  
+  /**
+   * 重置（用于 SPA 导航）
+   */
+  reset(): void {
+    this.clearLearning()
+    this.originalTitle = document.title
+  }
+  
+  /**
+   * 获取清理后的标题（移除所有学习相关 emoji）
+   */
+  private getCleanTitle(): string {
+    let title = document.title
+    Object.values(this.EMOJIS).forEach(emoji => {
+      title = title.replace(emoji + ' ', '')
+    })
+    return title
+  }
+  
+  /**
+   * 更新文档标题
+   */
+  private updateTitle(): void {
+    const cleanTitle = this.getCleanTitle()
+    document.title = this.currentEmoji ? `${this.currentEmoji} ${cleanTitle}` : cleanTitle
+  }
+}
+
+const titleManager = new TitleStateManager()
+
 // ==================== 状态管理 ====================
 
 let calculator: DwellTimeCalculator
@@ -479,6 +558,7 @@ async function recordPageVisit(): Promise<void> {
       
       if (response?.success) {
         isRecorded = true
+        titleManager.completeLearning() // 显示学习完成标记（3秒后自动消失）
         logger.info('✅ [PageTracker] 页面访问已记录到数据库（通过 Background）')
         
         // ⚠️ 不要在这里清理！
@@ -536,6 +616,9 @@ function checkThreshold(): void {
  */
 function cleanup(): void {
   logger.debug('🧹 [PageTracker] 清理资源')
+  
+  // 清除标题状态
+  titleManager.clearLearning()
   
   // 停止 DwellTimeCalculator（只在未停止时调用）
   if (calculator && !calculator['isStopped']) {
@@ -769,6 +852,9 @@ function handleUrlChange(): void {
  * 重置页面追踪状态（用于 SPA 导航）
  */
 function resetPageTracking(): void {
+  // 重置标题状态
+  titleManager.reset()
+  
   // 重置 calculator
   calculator = new DwellTimeCalculator()
   
@@ -789,6 +875,9 @@ function init(): void {
   
   // 初始化当前 URL
   currentUrl = window.location.href
+  
+  // 添加学习开始标记
+  titleManager.startLearning()
   
   logger.info('🚀 [PageTracker] 页面访问追踪已启动', {
     页面: document.title,
