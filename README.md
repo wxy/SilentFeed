@@ -2,182 +2,179 @@
 
 <img src="assets/icons/128/base-static.png" width="128" height="128" alt="Silent Feed Logo" />
 
-# 🤫 Silent Feed (静阅)
+# 🤫 Silent Feed
 
-**An AI-powered RSS reader that brings you quiet, focused reading experience.**
+**AI-powered RSS reader that learns what you love**
 
-*让信息流安静下来*
+*让信息流安静下来 · Making the feed quieter*
 
-[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Install-blue.svg)](https://chromewebstore.google.com/detail/pieiedlagbmcnooloibhigmidpakneca)
-[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/wxy/SilentFeed)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
-[![React](https://img.shields.io/badge/React-18.2-61dafb.svg)](https://reactjs.org/)
-[![Chrome Extension](https://img.shields.io/badge/Chrome%20Extension-MV3-orange.svg)](https://developer.chrome.com/docs/extensions/mv3/)
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/wxy/SilentFeed)
-[![Test Coverage](https://img.shields.io/badge/coverage-74%25-yellow.svg)](https://github.com/wxy/SilentFeed)
+[![Chrome Web Store](https://img.shields.io/badge/Chrome_Web_Store-Install-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/pieiedlagbmcnooloibhigmidpakneca)
+[![GitHub Release](https://img.shields.io/github/v/release/wxy/SilentFeed?style=for-the-badge)](https://github.com/wxy/SilentFeed/releases)
+[![License](https://img.shields.io/badge/License-Apache_2.0-green.svg?style=for-the-badge)](LICENSE)
 
-[📖 中文文档](README.zh-CN.md) | [📖 English](README.en.md)
-
-[🚀 快速开始](#快速开始) | [📚 用户手册](docs/USER_GUIDE.md) | [🤝 参与贡献](CONTRIBUTING.md)
+[English](#english) | [中文](#中文)
 
 ---
 
 </div>
 
-## 🌟 核心特性
+## English
 
-<table>
-<tr>
-<td width="50%">
+### 🎯 What is Silent Feed?
 
-### 🤫 静默学习
-在后台自动分析你的浏览行为，构建个性化兴趣画像，**完全不打扰你的日常使用**。
+Silent Feed is a **browser extension** that uses AI to understand what you're interested in by analyzing your browsing history, then automatically discovers and recommends RSS articles that match your interests.
 
-</td>
-<td width="50%">
+**No more information overload. Just the content you care about.**
 
-### 🎯 AI 智能推荐
-**AI 驱动**的个性化推荐，基于真实行为分析，只推送你**真正感兴趣**的内容，过滤 95% 的信息噪音。
+### ✨ Key Features
 
-</td>
-</tr>
-<tr>
-<td width="50%">
+- **🤖 AI-Powered Recommendations** - Understands your interests from browsing behavior
+- **🔍 Auto RSS Discovery** - Finds RSS feeds from websites you visit
+- **🎨 Clean Interface** - Minimal design for distraction-free reading
+- **🔒 Privacy First** - All data stays local, you control your API keys
+- **🌐 Bilingual** - Full support for English & 中文
 
-### 🔒 隐私优先
-**数据只保存在本地**，支持本地 AI 或自定义 AI 服务。使用远程 AI 时，数据隐私由提供商负责。
-
-</td>
-<td width="50%">
-
-### 🌱 渐进成长
-**100 页面冷启动**，逐步了解你的兴趣，成长可视化，让每一步都有意义。
-
-</td>
-</tr>
-</table>
-
-## 📸 预览
+### 📸 Screenshots
 
 <div align="center">
 
-### 智能推荐界面
-<img src="docs/assets/screenshots/screenshot-1-recommendations-cn.png" width="800" alt="推荐界面" />
+<img src="docs/assets/screenshots/screenshot-1-recommendations-en.png" width="600" alt="AI Recommendations" />
 
-*AI 智能筛选，只推荐你真正关心的内容*
+*AI-powered personalized recommendations*
 
----
+<img src="docs/assets/screenshots/screenshot-3-profile-en.png" width="600" alt="Interest Profile" />
 
-### 兴趣画像可视化
-<img src="docs/assets/screenshots/screenshot-3-profile-cn.png" width="800" alt="兴趣画像" />
-
-*清晰了解你的阅读兴趣分布*
-
----
-
-### RSS 订阅管理
-<img src="docs/assets/screenshots/screenshot-4-rss-settings-cn.png" width="800" alt="RSS 管理" />
-
-*一键订阅，批量导入 OPML，智能抓取*
+*Visual interest profile based on your reading habits*
 
 </div>
 
-> 更多截图见 [Chrome Web Store](https://chromewebstore.google.com/detail/pieiedlagbmcnooloibhigmidpakneca) 或 [用户手册](docs/USER_GUIDE.md#界面预览)
+### 🚀 Get Started
 
-## 🚀 快速开始
+1. **Install** - [Chrome Web Store](https://chromewebstore.google.com/detail/pieiedlagbmcnooloibhigmidpakneca)
+2. **Browse** - Visit websites you like (100+ pages recommended)
+3. **Configure AI** - Add your OpenAI/Anthropic/DeepSeek API key
+4. **Enjoy** - Get personalized RSS recommendations
 
-### 安装扩展
+### 📚 Learn More
 
-**方式一：Chrome Web Store（推荐）**
+- 📖 **[User Guide](docs/USER_GUIDE.md)** - Complete usage documentation for users
+  - [中文版本](docs/USER_GUIDE_ZH.md)
+- 🤝 **[Contributing Guide](CONTRIBUTING.md)** - Development guide for contributors
+  - [中文版本](CONTRIBUTING_ZH.md)
+- 🔐 [Privacy Policy](PRIVACY.md) - How we protect your data
+- 💡 [Product Overview](docs/PRD.md) - Product philosophy and vision
 
-[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Install-blue.svg?style=for-the-badge)](https://chromewebstore.google.com/detail/pieiedlagbmcnooloibhigmidpakneca)
+### 🛠️ For Developers
 
-点击上方按钮直接安装
+```bash
+# Clone repository
+git clone https://github.com/wxy/SilentFeed.git
+cd SilentFeed
 
-**方式二：开发者模式安装**
+# Install dependencies
+npm install
 
-1. 下载最新 Release
-2. 解压 zip 文件
-3. 打开 Chrome 扩展管理页面 `chrome://extensions/`
-4. 启用"开发者模式"
-5. 点击"加载已解压的扩展程序"
-6. 选择解压后的文件夹
+# Start development
+npm run dev
+
+# Run tests
+npm test
+```
+
+See [Technical Documentation](docs/TDD.md) for architecture details.
+
+### 📊 Project Status
+
+- **Version**: 0.1.0 (First Public Release)
+- **Status**: ✅ Released
+- **Test Coverage**: 74%+
+- **Supported**: Chrome/Edge (Manifest V3)
+
+### 💬 Community & Support
+
+- 🐛 [Report Issues](https://github.com/wxy/SilentFeed/issues)
+- 💡 [Feature Requests](https://github.com/wxy/SilentFeed/issues)
+- ⭐ [Star this repo](https://github.com/wxy/SilentFeed) if you find it useful!
 
 ---
 
-### 首次使用
+## 中文
 
-安装后首次使用：
+### 🎯 Silent Feed 是什么？
 
-1. **配置 AI 服务**（必需）
-   - 选择 AI 引擎（OpenAI / Anthropic / DeepSeek / 本地 AI）
-   - 配置 API Key 或本地服务地址
-   - 测试连接确保可用
+Silent Feed 是一个**浏览器扩展**，通过分析你的浏览历史，用 AI 理解你的兴趣，然后自动发现和推荐符合你兴趣的 RSS 文章。
 
-2. **订阅 RSS 源**（可选）
-   - 自动检测当前页面的 RSS 源
-   - 或手动添加感兴趣的订阅源
+**不再信息过载，只看你真正关心的内容。**
 
-3. **正常浏览网页**
-   - 扩展会在后台学习你的兴趣
-   - 100 页面后开始个性化推荐
+### ✨ 核心功能
 
-详细使用说明见 [用户手册](docs/USER_GUIDE.md)
+- **🤖 AI 智能推荐** - 从浏览行为理解你的兴趣
+- **🔍 自动发现订阅源** - 从你访问的网站发现 RSS
+- **🎨 简洁界面** - 极简设计，专注阅读
+- **🔒 隐私优先** - 数据本地存储，你掌控 API 密钥
+- **🌐 双语支持** - 完整支持 English & 中文
 
-> **开发者**: 如需参与开发，请查看 [贡献指南](CONTRIBUTING.md)
+### 📸 截图
 
-## 🛠️ 技术栈
+<div align="center">
 
-- **框架**: Plasmo (Chrome Extension MV3)
-- **语言**: TypeScript (Strict Mode)
-- **UI**: React 18 + Tailwind CSS
-- **状态管理**: Zustand
-- **数据库**: Dexie.js (IndexedDB)
-- **AI**: OpenAI / Anthropic / DeepSeek / 本地 AI（必需）
-- **测试**: Vitest + Testing Library
-- **国际化**: i18next
+<img src="docs/assets/screenshots/screenshot-1-recommendations-cn.png" width="600" alt="AI 推荐" />
 
-## 📊 项目状态
+*AI 驱动的个性化推荐*
 
-| 指标 | 状态 |
-|------|------|
-| **MVP 功能** | ✅ 已完成 (100%) |
-| **测试覆盖率** | 🟡 74% (行覆盖) |
-| **国际化** | ✅ 中英文支持 |
-| **文档完整度** | 🟡 进行中 |
-| **发布状态** | 🚧 准备中 |
+<img src="docs/assets/screenshots/screenshot-3-profile-cn.png" width="600" alt="兴趣画像" />
 
-## 📝 开发路线图
+*基于阅读习惯的可视化兴趣画像*
 
-- [x] **Phase 1-7**: MVP 核心功能
-- [x] **Phase 8**: 国际化支持
-- [x] **Phase 9**: Onboarding 引导流程
-- [ ] **Phase 10**: 发布准备（文档、商店提交）
-- [ ] **V1.0**: Chrome Web Store 发布
+</div>
 
-详见 [开发计划](docs/DEVELOPMENT_PLAN.md)
+### 🚀 快速开始
 
-## 🤝 参与贡献
+1. **安装扩展** - [Chrome 应用商店](https://chromewebstore.google.com/detail/pieiedlagbmcnooloibhigmidpakneca)
+2. **浏览网页** - 访问你喜欢的网站（建议 100+ 页面）
+3. **配置 AI** - 添加你的 OpenAI/Anthropic/DeepSeek API 密钥
+4. **开始使用** - 获取个性化 RSS 推荐
 
-我们欢迎所有形式的贡献！
+### 📚 了解更多
 
-- 🐛 [报告 Bug](https://github.com/wxy/SilentFeed/issues)
-- 💡 [提出新功能建议](https://github.com/wxy/SilentFeed/issues)
-- 📖 改进文档
-- 🔧 提交代码
+- 📖 **[用户手册](docs/USER_GUIDE_ZH.md)** - 面向用户的完整使用文档
+  - [English Version](docs/USER_GUIDE.md)
+- 🤝 **[贡献指南](CONTRIBUTING_ZH.md)** - 面向开发者的开发指南
+  - [English Version](CONTRIBUTING.md)
+- 🔐 [隐私政策](PRIVACY.md) - 我们如何保护你的数据
+- 💡 [产品概述](docs/PRD.md) - 产品理念和愿景
 
-详见 [贡献指南](CONTRIBUTING.md)
+### 🛠️ 开发者
 
-## 📄 许可证
+```bash
+# 克隆仓库
+git clone https://github.com/wxy/SilentFeed.git
+cd SilentFeed
 
-本项目采用 [MIT License](LICENSE) 开源。
+# 安装依赖
+npm install
 
-## 🙏 致谢
+# 启动开发
+npm run dev
 
-- [Plasmo](https://www.plasmo.com/) - 强大的浏览器扩展框架
-- [Dexie.js](https://dexie.org/) - 优雅的 IndexedDB 封装
-- 所有参与测试和反馈的用户
+# 运行测试
+npm test
+```
+
+详见[技术文档](docs/TDD.md)了解架构细节。
+
+### 📊 项目状态
+
+- **版本**: 0.1.0（首个公开发布版）
+- **状态**: ✅ 已发布
+- **测试覆盖率**: 74%+
+- **支持浏览器**: Chrome/Edge (Manifest V3)
+
+### 💬 社区与支持
+
+- 🐛 [报告问题](https://github.com/wxy/SilentFeed/issues)
+- 💡 [功能建议](https://github.com/wxy/SilentFeed/issues)
+- ⭐ 如果觉得有用，[给个星标](https://github.com/wxy/SilentFeed)！
 
 ---
 
@@ -185,6 +182,6 @@
 
 **Made with ❤️ by Silent Feed Team**
 
-[⭐ Star on GitHub](https://github.com/wxy/SilentFeed) | [🐛 Report Issues](https://github.com/wxy/SilentFeed/issues)
+[Website](https://github.com/wxy/SilentFeed) · [Report Bug](https://github.com/wxy/SilentFeed/issues) · [Request Feature](https://github.com/wxy/SilentFeed/issues)
 
 </div>
