@@ -265,33 +265,27 @@ export function AnalysisSettings() {
             </div>
           </label>
 
-          {/* 关键词分析（总是可用） */}
-          <label className={`flex items-start gap-4 p-4 border-2 rounded-lg transition-all cursor-pointer ${
-            config.analysisEngine === 'keyword'
-              ? 'border-gray-500 bg-gray-50 dark:bg-gray-700/20 shadow-md'
-              : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-          }`}>
-            <input
-              type="radio"
-              name="analysisEngine"
-              value="keyword"
-              checked={config.analysisEngine === 'keyword'}
-              onChange={(e) => setConfig({ ...config, analysisEngine: e.target.value as RecommendationAnalysisEngine })}
-              className="mt-1 w-4 h-4"
-            />
-            <div className="flex-1">
-              <div className="font-semibold text-gray-900 dark:text-gray-100">
-                {_("options.analysisEngine.options.keyword")}
-                {config.analysisEngine === 'keyword' && (
-                  <span className="ml-2 text-xs px-2 py-0.5 bg-gray-500 text-white rounded">{_("options.analysisEngine.currentLabel")}</span>
-                )}
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                {_("options.analysisEngine.desc.keyword")}
+        </div>
+        
+        {/* 无可用 AI 时的提示 */}
+        {!engineAvailability.remoteAI && !engineAvailability.remoteAIWithReasoning && !engineAvailability.localAI && (
+          <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
+            <div className="flex items-start gap-3">
+              <span className="text-xl">⚠️</span>
+              <div className="flex-1">
+                <div className="font-medium text-amber-900 dark:text-amber-100 mb-1">
+                  {_("options.analysisEngine.noAIAvailable.title")}
+                </div>
+                <div className="text-sm text-amber-700 dark:text-amber-300">
+                  {_("options.analysisEngine.noAIAvailable.description")}
+                </div>
+                <div className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                  💡 {_("options.analysisEngine.noAIAvailable.hint")}
+                </div>
               </div>
             </div>
-          </label>
-        </div>
+          </div>
+        )}
         
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
           {_("options.analysisEngine.hint.recommendation")}
@@ -384,33 +378,29 @@ export function AnalysisSettings() {
             </div>
           </label>
 
-          {/* 关键词分析（总是可用） */}
-          <label className={`flex items-start gap-4 p-4 border-2 rounded-lg transition-all cursor-pointer ${
-            feedAnalysisEngine === 'keyword'
-              ? 'border-gray-500 bg-gray-50 dark:bg-gray-700/20 shadow-md'
-              : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-          }`}>
-            <input
-              type="radio"
-              name="feedAnalysisEngine"
-              value="keyword"
-              checked={feedAnalysisEngine === 'keyword'}
-              onChange={(e) => setFeedAnalysisEngine(e.target.value as FeedAnalysisEngine)}
-              className="mt-1 w-4 h-4"
-            />
-            <div className="flex-1">
-              <div className="font-semibold text-gray-900 dark:text-gray-100">
-                {_("options.analysisEngine.options.keyword")}
-                {feedAnalysisEngine === 'keyword' && (
-                  <span className="ml-2 text-xs px-2 py-0.5 bg-gray-500 text-white rounded">{_("options.analysisEngine.currentLabel")}</span>
-                )}
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                {_("options.analysisEngine.desc.keyword")}
-              </div>
             </div>
           </label>
         </div>
+        
+        {/* 无可用 AI 时的提示 */}
+        {!engineAvailability.remoteAI && !engineAvailability.localAI && (
+          <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
+            <div className="flex items-start gap-3">
+              <span className="text-xl">⚠️</span>
+              <div className="flex-1">
+                <div className="font-medium text-amber-900 dark:text-amber-100 mb-1">
+                  {_("options.analysisEngine.noAIAvailable.title")}
+                </div>
+                <div className="text-sm text-amber-700 dark:text-amber-300">
+                  {_("options.analysisEngine.noAIAvailable.description")}
+                </div>
+                <div className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                  💡 {_("options.analysisEngine.noAIAvailable.hint")}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
           {_("options.analysisEngine.hint.feed")}

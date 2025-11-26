@@ -92,20 +92,17 @@
       "options": {
         "remoteAI": "远程 AI（标准）",
         "remoteAIWithReasoning": "远程 AI（推理模式）",
-        "localAI": "本地 AI",
-        "keyword": "纯关键字"
+        "localAI": "本地 AI"
       },
       "desc": {
         "remoteAI": "使用远程 AI 服务，平衡成本和质量",
         "remoteAIWithReasoning": "使用推理型 AI（DeepSeek-R1），成本约 10 倍但质量更好",
-        "localAI": "使用本地 AI（Ollama/Chrome AI），隐私保护但占用性能",
-        "keyword": "使用 TF-IDF 关键字算法，最快且无成本"
+        "localAI": "使用本地 AI（Ollama/Chrome AI），隐私保护但占用性能"
       },
       "unavailable": {
         "remoteAI": "未配置 AI API，请前往 AI 配置页面设置",
         "remoteAIWithReasoning": "需要 DeepSeek API 并启用推理能力",
-        "localAI": "未检测到本地 AI（需要安装 Ollama 或使用支持 Chrome AI 的浏览器）",
-        "keyword": "始终可用"
+        "localAI": "未检测到本地 AI（需要安装 Ollama 或使用支持 Chrome AI 的浏览器）"
       },
       "descriptions": {
         "remoteAI": "使用远程 AI 服务，平衡成本和质量",
@@ -126,8 +123,13 @@
       "recommendedLabel": "推荐",
       "currentLabel": "当前",
       "hint": {
-        "recommendation": "💡 推荐系统支持 4 种引擎：远程 AI、推理 AI、本地 AI、纯关键字",
-        "feed": "💡 订阅源分析支持 3 种引擎：远程 AI、本地 AI、纯关键字（不支持推理模式，成本和速度考虑）"
+        "recommendation": "💡 推荐系统支持3种 AI 引擎：远程 AI、推理 AI、本地 AI（默认使用远程 AI）",
+        "feed": "💡 订阅源分析支持2种 AI 引擎：远程 AI、本地 AI（不支持推理模式，成本和速度考虑）"
+      },
+      "noAIAvailable": {
+        "title": "未检测到可用的 AI 引擎",
+        "description": "静阅是 AI 驱动的阅读器，需要配置 AI 引擎才能使用推荐功能。",
+        "hint": "请先在 \"AI 引擎\" 页面配置远程 AI（OpenAI/DeepSeek）或安装本地 AI（Ollama）。"
       },
       "recommendationTitle": "文章推荐引擎",
       "feedTitle": "文章分析引擎",
