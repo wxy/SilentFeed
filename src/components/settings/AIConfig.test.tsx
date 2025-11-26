@@ -36,6 +36,17 @@ vi.mock("@/core/ai/AICapabilityManager", () => ({
   }
 }))
 
+// Mock analysis-engine-capability (避免在测试环境中访问 window 对象)
+vi.mock("@/utils/analysis-engine-capability", () => ({
+  checkLocalAI: vi.fn().mockResolvedValue({
+    available: false,
+    reason: '测试环境不支持本地 AI 检测'
+  }),
+  checkEngineCapability: vi.fn(),
+  checkAllEngineCapabilities: vi.fn(),
+  getRecommendedEngine: vi.fn()
+}))
+
 describe("AIConfig", () => {
   beforeEach(() => {
     vi.clearAllMocks()
