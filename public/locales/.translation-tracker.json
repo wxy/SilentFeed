@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-11-25T13:31:34.386Z",
+  "lastUpdate": "2025-11-26T13:34:11.826Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -2482,57 +2482,57 @@
     },
     "options.userProfile.alerts.rebuildSuccess": {
       "zh-CN": {
-        "value": "用户画像重建成功！",
-        "hash": "4ef73670",
-        "lastModified": "2025-11-09T13:55:50.815Z",
+        "value": "画像重建成功！",
+        "hash": "643b791b",
+        "lastModified": "2025-11-26T13:33:40.378Z",
         "status": "verified"
       },
       "en": {
-        "value": "User profile reconstruction successful!",
-        "hash": "970d2ab9",
-        "lastModified": "2025-11-09T13:55:50.815Z",
+        "value": "Portrait reconstruction successful!",
+        "hash": "79b3fec2",
+        "lastModified": "2025-11-26T13:33:40.378Z",
         "status": "ai-translated"
       }
     },
     "options.userProfile.alerts.rebuildFailed": {
       "zh-CN": {
-        "value": "重建失败，请稍后重试",
-        "hash": "8878448e",
-        "lastModified": "2025-11-09T13:55:53.173Z",
+        "value": "画像重建失败，请稍后重试",
+        "hash": "ef21207e",
+        "lastModified": "2025-11-26T13:33:42.521Z",
         "status": "verified"
       },
       "en": {
-        "value": "Rebuild failed, please try again later.",
-        "hash": "fd10d255",
-        "lastModified": "2025-11-09T13:55:53.173Z",
+        "value": "Portrait reconstruction failed, please try again later.",
+        "hash": "a8fe866d",
+        "lastModified": "2025-11-26T13:33:42.521Z",
         "status": "ai-translated"
       }
     },
     "options.userProfile.noData.message": {
       "zh-CN": {
-        "value": "还没有足够的浏览数据来构建用户画像",
-        "hash": "3a8f958d",
-        "lastModified": "2025-11-09T13:55:55.117Z",
+        "value": "还没有足够的数据来建立你的兴趣画像",
+        "hash": "55c7294d",
+        "lastModified": "2025-11-26T13:33:25.543Z",
         "status": "verified"
       },
       "en": {
-        "value": "There is not enough browsing data to build a user profile.",
-        "hash": "22fd32d5",
-        "lastModified": "2025-11-09T13:55:55.118Z",
+        "value": "There is not enough data yet to build your interest profile.",
+        "hash": "1a7442c1",
+        "lastModified": "2025-11-26T13:33:25.543Z",
         "status": "ai-translated"
       }
     },
     "options.userProfile.noData.hint": {
       "zh-CN": {
-        "value": "继续浏览感兴趣的内容，系统将自动分析您的兴趣偏好",
-        "hash": "58514535",
-        "lastModified": "2025-11-09T13:55:57.366Z",
+        "value": "开始浏览感兴趣的内容，我会自动学习你的偏好",
+        "hash": "947eb69d",
+        "lastModified": "2025-11-26T13:33:27.783Z",
         "status": "verified"
       },
       "en": {
-        "value": "Continue browsing content of interest, and the system will automatically analyze your preferences.",
-        "hash": "69cdb123",
-        "lastModified": "2025-11-09T13:55:57.366Z",
+        "value": "Start browsing content you're interested in, and I'll automatically learn your preferences.",
+        "hash": "6472ff25",
+        "lastModified": "2025-11-26T13:33:27.783Z",
         "status": "ai-translated"
       }
     },
@@ -2608,15 +2608,15 @@
     },
     "options.userProfile.updateTime.basedOn": {
       "zh-CN": {
-        "value": "基于 {{count}} 页面分析",
-        "hash": "11391b96",
-        "lastModified": "2025-11-09T13:56:10.069Z",
+        "value": "基于 {{count}} 个页面",
+        "hash": "a6c154b4",
+        "lastModified": "2025-11-26T13:33:30.113Z",
         "status": "verified"
       },
       "en": {
-        "value": "Based on {{count}} page analysis",
-        "hash": "ac340bbf",
-        "lastModified": "2025-11-09T13:56:10.069Z",
+        "value": "Based on {{count}} pages",
+        "hash": "9b374b8a",
+        "lastModified": "2025-11-26T13:33:30.113Z",
         "status": "ai-translated"
       }
     },
@@ -2636,15 +2636,15 @@
     },
     "options.userProfile.analysisQuality.aiAnalysis": {
       "zh-CN": {
-        "value": "AI 分析 ({{provider}})",
-        "hash": "35fc566c",
-        "lastModified": "2025-11-09T13:56:13.343Z",
+        "value": "{{provider}} AI 分析",
+        "hash": "46812b97",
+        "lastModified": "2025-11-26T13:33:31.856Z",
         "status": "verified"
       },
       "en": {
-        "value": "AI Analysis ({{provider}})",
-        "hash": "d6bfe440",
-        "lastModified": "2025-11-09T13:56:13.343Z",
+        "value": "{{provider}} AI Analysis",
+        "hash": "1afcc896",
+        "lastModified": "2025-11-26T13:33:31.856Z",
         "status": "ai-translated"
       }
     },
@@ -2664,15 +2664,15 @@
     },
     "options.userProfile.analysisQuality.aiHint": {
       "zh-CN": {
-        "value": "✨ 使用 AI 语义理解",
-        "hash": "57516a42",
-        "lastModified": "2025-11-09T13:56:18.664Z",
+        "value": "使用 AI 进行深度语义理解",
+        "hash": "b08c2ba4",
+        "lastModified": "2025-11-26T13:33:35.691Z",
         "status": "verified"
       },
       "en": {
-        "value": "✨ Using AI Semantic Understanding",
-        "hash": "bb8fa41e",
-        "lastModified": "2025-11-09T13:56:18.664Z",
+        "value": "Using AI for Deep Semantic Understanding",
+        "hash": "7ec4c02e",
+        "lastModified": "2025-11-26T13:33:35.691Z",
         "status": "ai-translated"
       }
     },
@@ -8320,29 +8320,29 @@
     },
     "options.analysisEngine.hint.recommendation": {
       "zh-CN": {
-        "value": "💡 推荐系统支持 4 种引擎：远程 AI、推理 AI、本地 AI、纯关键字",
-        "hash": "a43ab31d",
-        "lastModified": "2025-11-19T07:24:51.001Z",
+        "value": "💡 推荐系统支持3种 AI 引擎：远程 AI、推理 AI、本地 AI（默认使用远程 AI）",
+        "hash": "19f2f0b0",
+        "lastModified": "2025-11-26T13:33:14.011Z",
         "status": "verified"
       },
       "en": {
-        "value": "💡 The recommendation system supports 4 types of engines: Remote AI, Inference AI, Local AI, and Pure Keywords.",
-        "hash": "2d817bdd",
-        "lastModified": "2025-11-19T07:24:51.001Z",
+        "value": "💡 The recommendation system supports three AI engines: Remote AI, Inference AI, and Local AI (Remote AI is used by default).",
+        "hash": "16f1ff88",
+        "lastModified": "2025-11-26T13:33:14.013Z",
         "status": "ai-translated"
       }
     },
     "options.analysisEngine.hint.feed": {
       "zh-CN": {
-        "value": "💡 订阅源分析支持 3 种引擎：远程 AI、本地 AI、纯关键字（不支持推理模式，成本和速度考虑）",
-        "hash": "e18d9bcc",
-        "lastModified": "2025-11-19T07:24:53.881Z",
+        "value": "💡 订阅源分析支持2种 AI 引擎：远程 AI、本地 AI（不支持推理模式，成本和速度考虑）",
+        "hash": "30a62f62",
+        "lastModified": "2025-11-26T13:33:16.413Z",
         "status": "verified"
       },
       "en": {
-        "value": "💡 Feed analysis supports 3 types of engines: Remote AI, Local AI, and Pure Keywords (does not support inference mode, considering cost and speed factors)",
-        "hash": "296e6366",
-        "lastModified": "2025-11-19T07:24:53.881Z",
+        "value": "💡 Feed analysis supports 2 AI engines: Remote AI, Local AI (reasoning mode not supported due to cost and speed considerations)",
+        "hash": "2338788d",
+        "lastModified": "2025-11-26T13:33:16.413Z",
         "status": "ai-translated"
       }
     },
@@ -11078,29 +11078,29 @@
     },
     "options.profile.aiProfile.title": {
       "zh-CN": {
-        "value": "AI 语义画像",
-        "hash": "273d96c6",
-        "lastModified": "2025-11-25T13:06:36.522Z",
+        "value": "AI 兴趣画像",
+        "hash": "c704eb91",
+        "lastModified": "2025-11-26T13:33:46.109Z",
         "status": "verified"
       },
       "en": {
-        "value": "AI Semantic Profiling",
-        "hash": "cb95560f",
-        "lastModified": "2025-11-25T13:06:36.522Z",
+        "value": "AI Interest Profile",
+        "hash": "c02aee29",
+        "lastModified": "2025-11-26T13:33:46.110Z",
         "status": "ai-translated"
       }
     },
     "options.profile.aiProfile.understanding": {
       "zh-CN": {
-        "value": "AI 对您的理解",
-        "hash": "17742e4b",
-        "lastModified": "2025-11-25T13:06:38.673Z",
+        "value": "AI 对你的理解",
+        "hash": "6f9e8d1f",
+        "lastModified": "2025-11-26T13:33:47.684Z",
         "status": "verified"
       },
       "en": {
         "value": "AI's Understanding of You",
         "hash": "afa62907",
-        "lastModified": "2025-11-25T13:06:38.673Z",
+        "lastModified": "2025-11-26T13:33:47.684Z",
         "status": "ai-translated"
       }
     },
@@ -11288,15 +11288,15 @@
     },
     "options.profile.aiProfile.avoidTopics": {
       "zh-CN": {
-        "value": "不感兴趣的主题",
-        "hash": "cfad35e4",
-        "lastModified": "2025-11-25T13:25:32.920Z",
+        "value": "避免主题",
+        "hash": "00370ec5",
+        "lastModified": "2025-11-26T13:33:52.460Z",
         "status": "verified"
       },
       "en": {
-        "value": "Topics of no interest",
-        "hash": "173f40b5",
-        "lastModified": "2025-11-25T13:25:32.920Z",
+        "value": "Avoid topics",
+        "hash": "2ef5dfb4",
+        "lastModified": "2025-11-26T13:33:52.460Z",
         "status": "ai-translated"
       }
     },
@@ -11521,6 +11521,230 @@
         "value": "{{count}} refused",
         "hash": "7ee10083",
         "lastModified": "2025-11-25T13:31:33.877Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.analysisEngine.noAIAvailable.title": {
+      "zh-CN": {
+        "value": "未检测到可用的 AI 引擎",
+        "hash": "ec8b1194",
+        "lastModified": "2025-11-26T13:33:18.255Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "No available AI engine detected.",
+        "hash": "42d23aaf",
+        "lastModified": "2025-11-26T13:33:18.255Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.analysisEngine.noAIAvailable.description": {
+      "zh-CN": {
+        "value": "静阅是 AI 驱动的阅读器，需要配置 AI 引擎才能使用推荐功能。",
+        "hash": "59cc1480",
+        "lastModified": "2025-11-26T13:33:20.516Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Silent Feed is an AI-driven reader that requires configuring an AI engine to use recommendation features.",
+        "hash": "dc20ce07",
+        "lastModified": "2025-11-26T13:33:20.516Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.analysisEngine.noAIAvailable.hint": {
+      "zh-CN": {
+        "value": "请先在 \"AI 引擎\" 页面配置远程 AI（OpenAI/DeepSeek）或安装本地 AI（Ollama）。",
+        "hash": "b5ed88a2",
+        "lastModified": "2025-11-26T13:33:23.380Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Please first configure a remote AI (OpenAI/DeepSeek) or install a local AI (Ollama) on the \"AI Engine\" page.",
+        "hash": "c4532c36",
+        "lastModified": "2025-11-26T13:33:23.380Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.analysisQuality.notConfigured": {
+      "zh-CN": {
+        "value": "未配置 AI",
+        "hash": "0dfa1431",
+        "lastModified": "2025-11-26T13:33:33.729Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "AI not configured",
+        "hash": "58c07075",
+        "lastModified": "2025-11-26T13:33:33.729Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.analysisQuality.configureHint": {
+      "zh-CN": {
+        "value": "配置 AI 后将获得更精准的推荐",
+        "hash": "38cfe070",
+        "lastModified": "2025-11-26T13:33:38.563Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "After configuring AI, you will receive more accurate recommendations.",
+        "hash": "f5efd900",
+        "lastModified": "2025-11-26T13:33:38.563Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.actions.rebuild": {
+      "zh-CN": {
+        "value": "重建画像",
+        "hash": "c827d48a",
+        "lastModified": "2025-11-26T13:33:44.472Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Rebuild Profile",
+        "hash": "16c675f9",
+        "lastModified": "2025-11-26T13:33:44.472Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.aiProfile.contentPreferences": {
+      "zh-CN": {
+        "value": "内容偏好",
+        "hash": "8239049c",
+        "lastModified": "2025-11-26T13:33:49.589Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Content Preferences",
+        "hash": "24a298ae",
+        "lastModified": "2025-11-26T13:33:49.589Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.aiProfile.notConfiguredTitle": {
+      "zh-CN": {
+        "value": "尚未生成 AI 画像",
+        "hash": "7e87f866",
+        "lastModified": "2025-11-26T13:33:54.036Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "AI portrait has not been generated yet.",
+        "hash": "686339d0",
+        "lastModified": "2025-11-26T13:33:54.036Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.aiProfile.notConfiguredDescription": {
+      "zh-CN": {
+        "value": "系统会在积累足够数据后自动生成 AI 画像，或者你可以先配置 AI 引擎并手动重建画像。",
+        "hash": "c6268225",
+        "lastModified": "2025-11-26T13:33:56.349Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "The system will automatically generate an AI profile after accumulating sufficient data, or you can first configure the AI engine and manually rebuild the profile.",
+        "hash": "7f1518fa",
+        "lastModified": "2025-11-26T13:33:56.349Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.aiProfile.generatingTitle": {
+      "zh-CN": {
+        "value": "AI 画像生成中",
+        "hash": "b3b38dfb",
+        "lastModified": "2025-11-26T13:33:59.112Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "AI Image Generation",
+        "hash": "c23c0bed",
+        "lastModified": "2025-11-26T13:33:59.112Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.aiProfile.generatingDescription": {
+      "zh-CN": {
+        "value": "系统正在分析你的浏览历史，生成个性化兴趣画像...",
+        "hash": "8fbbbfea",
+        "lastModified": "2025-11-26T13:34:01.161Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "The system is analyzing your browsing history to generate a personalized interest profile...",
+        "hash": "d4bd61fc",
+        "lastModified": "2025-11-26T13:34:01.161Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.aiProfile.configureStep1": {
+      "zh-CN": {
+        "value": "先在「AI 引擎」页面配置 AI",
+        "hash": "ad345846",
+        "lastModified": "2025-11-26T13:34:03.619Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "First, configure AI on the \"AI Engine\" page.",
+        "hash": "5c2c030d",
+        "lastModified": "2025-11-26T13:34:03.619Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.aiProfile.configureStep2": {
+      "zh-CN": {
+        "value": "然后点击下方「重建画像」按钮",
+        "hash": "18b6ca6e",
+        "lastModified": "2025-11-26T13:34:05.768Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Then click the \"Rebuild Profile\" button below.",
+        "hash": "e150cd29",
+        "lastModified": "2025-11-26T13:34:05.768Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.basicStats.title": {
+      "zh-CN": {
+        "value": "基础统计",
+        "hash": "49e6a2ab",
+        "lastModified": "2025-11-26T13:34:07.714Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Basic Statistics",
+        "hash": "3744a8a8",
+        "lastModified": "2025-11-26T13:34:07.714Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.basicStats.totalPages": {
+      "zh-CN": {
+        "value": "浏览页面数",
+        "hash": "0f6f0186",
+        "lastModified": "2025-11-26T13:34:09.561Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Number of pages viewed",
+        "hash": "fda9443c",
+        "lastModified": "2025-11-26T13:34:09.561Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.myData.title": {
+      "zh-CN": {
+        "value": "系统数据",
+        "hash": "d2041633",
+        "lastModified": "2025-11-26T13:34:11.316Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "System Data",
+        "hash": "fbb3670f",
+        "lastModified": "2025-11-26T13:34:11.316Z",
         "status": "ai-translated"
       }
     }

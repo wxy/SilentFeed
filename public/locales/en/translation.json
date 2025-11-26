@@ -259,8 +259,8 @@
       "recommendedLabel": "Recommend",
       "currentLabel": "Current",
       "hint": {
-        "recommendation": "💡 The recommendation system supports 4 types of engines: Remote AI, Inference AI, Local AI, and Pure Keywords.",
-        "feed": "💡 Feed analysis supports 3 types of engines: Remote AI, Local AI, and Pure Keywords (does not support inference mode, considering cost and speed factors)"
+        "recommendation": "💡 The recommendation system supports three AI engines: Remote AI, Inference AI, and Local AI (Remote AI is used by default).",
+        "feed": "💡 Feed analysis supports 2 AI engines: Remote AI, Local AI (reasoning mode not supported due to cost and speed considerations)"
       },
       "label": "Analytical Engine",
       "desc": {
@@ -277,7 +277,12 @@
       },
       "feedTitle": "Article Analysis Engine",
       "feedDescription": "Select the analysis engine to be used uniformly for all feeds (reasoning mode is not supported to control costs).",
-      "recommendationTitle": "Article Recommendation Engine"
+      "recommendationTitle": "Article Recommendation Engine",
+      "noAIAvailable": {
+        "title": "No available AI engine detected.",
+        "description": "Silent Feed is an AI-driven reader that requires configuring an AI engine to use recommendation features.",
+        "hint": "Please first configure a remote AI (OpenAI/DeepSeek) or install a local AI (Ollama) on the \"AI Engine\" page."
+      }
     },
     "stats": {
       "noData": "No data available",
@@ -424,12 +429,12 @@
     },
     "userProfile": {
       "alerts": {
-        "rebuildSuccess": "User profile reconstruction successful!",
-        "rebuildFailed": "Rebuild failed, please try again later."
+        "rebuildSuccess": "Portrait reconstruction successful!",
+        "rebuildFailed": "Portrait reconstruction failed, please try again later."
       },
       "noData": {
-        "message": "There is not enough browsing data to build a user profile.",
-        "hint": "Continue browsing content of interest, and the system will automatically analyze your preferences.",
+        "message": "There is not enough data yet to build your interest profile.",
+        "hint": "Start browsing content you're interested in, and I'll automatically learn your preferences.",
         "tip": "💡 No need to wait for 100 pages, just a few valid records are enough to generate a profile."
       },
       "lastUpdated": {
@@ -439,14 +444,16 @@
       },
       "updateTime": {
         "label": "Profile Update Time",
-        "basedOn": "Based on {{count}} page analysis"
+        "basedOn": "Based on {{count}} pages"
       },
       "analysisQuality": {
         "label": "Analysis Quality",
-        "aiAnalysis": "AI Analysis ({{provider}})",
+        "aiAnalysis": "{{provider}} AI Analysis",
         "keywordAnalysis": "Keyword Analysis",
-        "aiHint": "✨ Using AI Semantic Understanding",
-        "keywordHint": "📝 Using traditional keyword extraction"
+        "aiHint": "Using AI for Deep Semantic Understanding",
+        "keywordHint": "📝 Using traditional keyword extraction",
+        "notConfigured": "AI not configured",
+        "configureHint": "After configuring AI, you will receive more accurate recommendations."
       },
       "aiPrompt": {
         "title": "Upgrade to AI analysis for more accurate profiling.",
@@ -487,6 +494,9 @@
         "noData": "No keyword data available",
         "weightLabel": "Weight: {{weight}}",
         "hint": "💡 Keyword size represents weight, hover to view detailed weight values"
+      },
+      "actions": {
+        "rebuild": "Rebuild Profile"
       }
     },
     "aiConfig": {
@@ -889,7 +899,7 @@
       "basedOnPages": "Based on {{count}} pages",
       "lastUpdated": "Last updated",
       "aiProfile": {
-        "title": "AI Semantic Profiling",
+        "title": "AI Interest Profile",
         "understanding": "AI's Understanding of You",
         "understandingHint": "Beyond Keywords, Deep Semantic Analysis",
         "accumulating": "AI semantic profiling is accumulating data.",
@@ -904,7 +914,7 @@
         "benefit2": "<strong>Preference Recognition</strong>: Accurately identifies the types and styles of content you like.",
         "benefit3": "<strong>Smart Filtering</strong>: Automatically excludes topics of no interest",
         "preferences": "Your preferred content types",
-        "avoidTopics": "Topics of no interest",
+        "avoidTopics": "Avoid topics",
         "items": "{{count}} items",
         "dataSource": "Data Sources and Costs",
         "browses": "{{count}} page views",
@@ -914,7 +924,14 @@
         "primaryTopic": "Dominant Interest",
         "viewDetails": "View detailed data →",
         "configureAI": "Configure AI Now",
-        "recommendDeepSeek": "Recommended to use DeepSeek (cost as low as ¥0.0001 per request)"
+        "recommendDeepSeek": "Recommended to use DeepSeek (cost as low as ¥0.0001 per request)",
+        "contentPreferences": "Content Preferences",
+        "notConfiguredTitle": "AI portrait has not been generated yet.",
+        "notConfiguredDescription": "The system will automatically generate an AI profile after accumulating sufficient data, or you can first configure the AI engine and manually rebuild the profile.",
+        "generatingTitle": "AI Image Generation",
+        "generatingDescription": "The system is analyzing your browsing history to generate a personalized interest profile...",
+        "configureStep1": "First, configure AI on the \"AI Engine\" page.",
+        "configureStep2": "Then click the \"Rebuild Profile\" button below."
       },
       "detailedAnalysis": {
         "title": "Detailed Data Analysis",
@@ -923,7 +940,14 @@
         "browses": "{{count}} views",
         "reads": "{{count}} reads",
         "dismisses": "{{count}} refused"
+      },
+      "basicStats": {
+        "title": "Basic Statistics",
+        "totalPages": "Number of pages viewed"
       }
+    },
+    "myData": {
+      "title": "System Data"
     }
   },
   "onboarding": {
