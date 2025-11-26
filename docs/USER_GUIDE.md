@@ -1,18 +1,58 @@
-# Silent Feed 用户手册 / User Guide
+# Silent Feed User Guide · 用户手册
 
 <div align="center">
 
-**Silent Feed - 一个 AI 驱动的 RSS 阅读器**
-
 **Silent Feed - An AI-powered RSS reader**
 
-[中文](#中文用户手册) | [English](#english-user-guide)
-
-</div>
+**Silent Feed - AI 驱动的 RSS 阅读器**
 
 ---
 
-## 中文用户手册
+**Choose your language · 选择语言:**
+
+[![English](https://img.shields.io/badge/English-blue?style=for-the-badge)](USER_GUIDE_EN.md)
+[![中文](https://img.shields.io/badge/中文-red?style=for-the-badge)](USER_GUIDE_ZH.md)
+
+---
+
+</div>
+
+## 📖 English Version
+
+For the complete English user guide, please visit:
+**[USER_GUIDE_EN.md](USER_GUIDE_EN.md)**
+
+### Quick Links
+- [Installation Guide](USER_GUIDE_EN.md#installation-guide)
+- [Getting Started](USER_GUIDE_EN.md#getting-started)
+- [Core Features](USER_GUIDE_EN.md#core-features)
+- [Settings](USER_GUIDE_EN.md#settings)
+- [FAQ](USER_GUIDE_EN.md#faq)
+
+---
+
+## 📖 中文版本
+
+完整的中文用户手册，请访问：
+**[USER_GUIDE_ZH.md](USER_GUIDE_ZH.md)**
+
+### 快速链接
+- [安装指南](USER_GUIDE_ZH.md#安装指南)
+- [首次使用](USER_GUIDE_ZH.md#首次使用)
+- [核心功能](USER_GUIDE_ZH.md#核心功能)
+- [高级设置](USER_GUIDE_ZH.md#高级设置)
+- [常见问题](USER_GUIDE_ZH.md#常见问题)
+
+---
+
+<div align="center">
+
+**Need Help?**
+
+[Report Issues](https://github.com/wxy/SilentFeed/issues) · 
+[Discussions](https://github.com/wxy/SilentFeed/discussions)
+
+</div>
 
 ### 📋 目录
 
@@ -85,7 +125,7 @@
 
 #### 冷启动过程
 
-Silent Feed 需要收集 **1000 个有效页面访问** 才能建立完整的兴趣画像：
+Silent Feed 需要收集 **100 个有效页面访问** 才能建立完整的兴趣画像：
 
 - **什么是有效页面？**
   - 停留时间 > 30 秒

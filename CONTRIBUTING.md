@@ -1,18 +1,58 @@
-# Contributing to Silent Feed
+# Contributing to Silent Feed · 贡献指南
 
-Thank you for your interest in contributing to Silent Feed! This document provides guidelines and instructions for contributing.
+<div align="center">
 
-## 📋 Table of Contents
+Thank you for your interest in contributing to Silent Feed!
 
-- [Code of Conduct](#code-of-conduct)
-- [Getting Started](#getting-started)
-- [Development Workflow](#development-workflow)
-- [Coding Standards](#coding-standards)
-- [Testing](#testing)
-- [Submitting Changes](#submitting-changes)
-- [Documentation](#documentation)
+感谢你对 Silent Feed 项目的关注！
 
-## 🤝 Code of Conduct
+---
+
+**Choose your language · 选择语言:**
+
+[![English](https://img.shields.io/badge/English-blue?style=for-the-badge)](CONTRIBUTING_EN.md)
+[![中文](https://img.shields.io/badge/中文-red?style=for-the-badge)](CONTRIBUTING_ZH.md)
+
+---
+
+</div>
+
+## 📖 English Version
+
+For the complete English contributing guide, please visit:
+**[CONTRIBUTING_EN.md](CONTRIBUTING_EN.md)**
+
+### Quick Links
+- [Getting Started](CONTRIBUTING_EN.md#getting-started)
+- [Development Workflow](CONTRIBUTING_EN.md#development-workflow)
+- [Coding Standards](CONTRIBUTING_EN.md#coding-standards)
+- [Testing](CONTRIBUTING_EN.md#testing)
+- [Submitting Changes](CONTRIBUTING_EN.md#submitting-changes)
+
+---
+
+## 📖 中文版本
+
+完整的中文贡献指南，请访问：
+**[CONTRIBUTING_ZH.md](CONTRIBUTING_ZH.md)**
+
+### 快速链接
+- [开始开发](CONTRIBUTING_ZH.md#开始开发)
+- [开发流程](CONTRIBUTING_ZH.md#开发流程)
+- [代码规范](CONTRIBUTING_ZH.md#代码规范)
+- [测试要求](CONTRIBUTING_ZH.md#测试要求)
+- [提交变更](CONTRIBUTING_ZH.md#提交变更)
+
+---
+
+<div align="center">
+
+**Questions?**
+
+[Report Issues](https://github.com/wxy/SilentFeed/issues) · 
+[Discussions](https://github.com/wxy/SilentFeed/discussions)
+
+</div>
 
 We are committed to providing a welcoming and inclusive environment. Please be respectful and constructive in all interactions.
 
