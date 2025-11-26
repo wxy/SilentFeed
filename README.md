@@ -58,9 +58,9 @@ Silent Feed is a **browser extension** that uses AI to understand what you're in
 ### 📚 Learn More
 
 - 📖 **[User Guide](docs/USER_GUIDE.md)** - Complete usage documentation for users
-  - [English Version](docs/USER_GUIDE_EN.md) | [中文版本](docs/USER_GUIDE_ZH.md)
+  - [中文版本](docs/USER_GUIDE_ZH.md)
 - 🤝 **[Contributing Guide](CONTRIBUTING.md)** - Development guide for contributors
-  - [English Version](CONTRIBUTING_EN.md) | [中文版本](CONTRIBUTING_ZH.md)
+  - [中文版本](CONTRIBUTING_ZH.md)
 - 🔐 [Privacy Policy](PRIVACY.md) - How we protect your data
 - 💡 [Product Overview](docs/PRD.md) - Product philosophy and vision
 
@@ -137,10 +137,10 @@ Silent Feed 是一个**浏览器扩展**，通过分析你的浏览历史，用 
 
 ### 📚 了解更多
 
-- 📖 **[用户手册](docs/USER_GUIDE.md)** - 面向用户的完整使用文档
-  - [English Version](docs/USER_GUIDE_EN.md) | [中文版本](docs/USER_GUIDE_ZH.md)
-- 🤝 **[贡献指南](CONTRIBUTING.md)** - 面向开发者的开发指南
-  - [English Version](CONTRIBUTING_EN.md) | [中文版本](CONTRIBUTING_ZH.md)
+- 📖 **[用户手册](docs/USER_GUIDE_ZH.md)** - 面向用户的完整使用文档
+  - [English Version](docs/USER_GUIDE.md)
+- 🤝 **[贡献指南](CONTRIBUTING_ZH.md)** - 面向开发者的开发指南
+  - [English Version](CONTRIBUTING.md)
 - 🔐 [隐私政策](PRIVACY.md) - 我们如何保护你的数据
 - 💡 [产品概述](docs/PRD.md) - 产品理念和愿景
 
