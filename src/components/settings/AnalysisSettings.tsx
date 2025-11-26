@@ -377,9 +377,6 @@ export function AnalysisSettings() {
               )}
             </div>
           </label>
-
-            </div>
-          </label>
         </div>
         
         {/* 无可用 AI 时的提示 */}
