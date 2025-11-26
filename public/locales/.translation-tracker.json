@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-11-26T13:34:11.826Z",
+  "lastUpdate": "2025-11-26T13:43:46.444Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -11745,6 +11745,160 @@
         "value": "System Data",
         "hash": "fbb3670f",
         "lastModified": "2025-11-26T13:34:11.316Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.rssArticleCountLabel": {
+      "zh-CN": {
+        "value": "RSS 文章总数",
+        "hash": "ef820c4d",
+        "lastModified": "2025-11-26T13:43:27.177Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Total number of RSS articles",
+        "hash": "f3b4a351",
+        "lastModified": "2025-11-26T13:43:27.178Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.rssArticleCountHint": {
+      "zh-CN": {
+        "value": "所有订阅源的文章数",
+        "hash": "bcc74bd7",
+        "lastModified": "2025-11-26T13:43:29.063Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Total number of articles from all feeds",
+        "hash": "5bae4081",
+        "lastModified": "2025-11-26T13:43:29.063Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.recommendationFunnelTitle": {
+      "zh-CN": {
+        "value": "推荐筛选漏斗",
+        "hash": "9f3f9ded",
+        "lastModified": "2025-11-26T13:43:30.962Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Recommended Filter Funnel",
+        "hash": "23a68cac",
+        "lastModified": "2025-11-26T13:43:30.962Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.recommendationFunnelNoData": {
+      "zh-CN": {
+        "value": "暂无推荐数据",
+        "hash": "b2f487a5",
+        "lastModified": "2025-11-26T13:43:32.845Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "No recommended data available",
+        "hash": "2f45d3c4",
+        "lastModified": "2025-11-26T13:43:32.846Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.funnelTotal": {
+      "zh-CN": {
+        "value": "RSS 文章总数",
+        "hash": "ef820c4d",
+        "lastModified": "2025-11-26T13:43:34.783Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Total number of RSS articles",
+        "hash": "f3b4a351",
+        "lastModified": "2025-11-26T13:43:34.783Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.funnelAnalyzed": {
+      "zh-CN": {
+        "value": "已分析文章",
+        "hash": "3841960f",
+        "lastModified": "2025-11-26T13:43:36.419Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Articles analyzed",
+        "hash": "53adc351",
+        "lastModified": "2025-11-26T13:43:36.419Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.funnelRecommended": {
+      "zh-CN": {
+        "value": "进入推荐池",
+        "hash": "fda3f33e",
+        "lastModified": "2025-11-26T13:43:38.191Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Enter the recommendation pool",
+        "hash": "92c14b99",
+        "lastModified": "2025-11-26T13:43:38.191Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.funnelRead": {
+      "zh-CN": {
+        "value": "已读",
+        "hash": "8ad629e5",
+        "lastModified": "2025-11-26T13:43:40.062Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Read",
+        "hash": "7a1a5f3e",
+        "lastModified": "2025-11-26T13:43:40.062Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.funnelDismissed": {
+      "zh-CN": {
+        "value": "不想读",
+        "hash": "68c2a967",
+        "lastModified": "2025-11-26T13:43:41.842Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Don't feel like reading",
+        "hash": "eb4c4db9",
+        "lastModified": "2025-11-26T13:43:41.842Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.analysisRate": {
+      "zh-CN": {
+        "value": "分析率",
+        "hash": "2f05caae",
+        "lastModified": "2025-11-26T13:43:44.170Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Analysis rate",
+        "hash": "0b65d6ea",
+        "lastModified": "2025-11-26T13:43:44.170Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.recommendationRate": {
+      "zh-CN": {
+        "value": "推荐率",
+        "hash": "ab64b54a",
+        "lastModified": "2025-11-26T13:43:45.933Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Recommendation rate",
+        "hash": "f8e22d09",
+        "lastModified": "2025-11-26T13:43:45.933Z",
         "status": "ai-translated"
       }
     }

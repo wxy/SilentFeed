@@ -425,7 +425,18 @@
       "learningStageTitle": "Exploration Learning Phase",
       "learningStageHint": "Currently viewed {{current}}/{{total}} pages, continue browsing to complete interest learning",
       "recommendationCount": "Intelligent Recommendation Quantity",
-      "learningStageNote": "Not recommended during the exploration phase, focusing on learning your interests."
+      "learningStageNote": "Not recommended during the exploration phase, focusing on learning your interests.",
+      "rssArticleCountLabel": "Total number of RSS articles",
+      "rssArticleCountHint": "Total number of articles from all feeds",
+      "recommendationFunnelTitle": "Recommended Filter Funnel",
+      "recommendationFunnelNoData": "No recommended data available",
+      "funnelTotal": "Total number of RSS articles",
+      "funnelAnalyzed": "Articles analyzed",
+      "funnelRecommended": "Enter the recommendation pool",
+      "funnelRead": "Read",
+      "funnelDismissed": "Don't feel like reading",
+      "analysisRate": "Analysis rate",
+      "recommendationRate": "Recommendation rate"
     },
     "userProfile": {
       "alerts": {

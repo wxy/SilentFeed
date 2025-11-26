@@ -1400,3 +1400,82 @@ export async function resetRecommendationData(): Promise<void> {
   }
 }
 
+/**
+ * 获取 RSS 文章总数
+ * Phase 10.2: 系统数据展示优化
+ * 
+ * @returns RSS 文章总数（从所有已发现的 Feed 的 latestArticles 聚合）
+ */
+export async function getRSSArticleCount(): Promise<number> {
+  try {
+    const allFeeds = await db.discoveredFeeds.toArray()
+    
+    let totalArticles = 0
+    for (const feed of allFeeds) {
+      if (feed.latestArticles && feed.latestArticles.length > 0) {
+        totalArticles += feed.latestArticles.length
+      }
+    }
+    
+    return totalArticles
+  } catch (error) {
+    dbLogger.error('获取 RSS 文章总数失败:', error)
+    return 0
+  }
+}
+
+/**
+ * 推荐筛选漏斗统计
+ * Phase 10.2: 系统数据展示优化
+ * 
+ * 展示推荐系统的数据流：
+ * - total: RSS 文章总数
+ * - analyzed: 已分析文章数（有 analysis 字段）
+ * - recommended: 进入推荐池的文章数
+ * - dismissed: 用户标记"不想读"的推荐数
+ * - read: 用户已读的推荐数
+ */
+export async function getRecommendationFunnel(): Promise<{
+  total: number
+  analyzed: number
+  recommended: number
+  dismissed: number
+  read: number
+}> {
+  try {
+    const allFeeds = await db.discoveredFeeds.toArray()
+    
+    let totalArticles = 0
+    let analyzedArticles = 0
+    
+    for (const feed of allFeeds) {
+      if (feed.latestArticles && feed.latestArticles.length > 0) {
+        totalArticles += feed.latestArticles.length
+        analyzedArticles += feed.latestArticles.filter(article => article.analysis).length
+      }
+    }
+    
+    // 推荐统计
+    const allRecommendations = await db.recommendations.toArray()
+    const recommendedCount = allRecommendations.length
+    const dismissedCount = allRecommendations.filter(r => r.status === 'dismissed').length
+    const readCount = allRecommendations.filter(r => r.status === 'read').length
+    
+    return {
+      total: totalArticles,
+      analyzed: analyzedArticles,
+      recommended: recommendedCount,
+      dismissed: dismissedCount,
+      read: readCount
+    }
+  } catch (error) {
+    dbLogger.error('获取推荐漏斗统计失败:', error)
+    return {
+      total: 0,
+      analyzed: 0,
+      recommended: 0,
+      dismissed: 0,
+      read: 0
+    }
+  }
+}

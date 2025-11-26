@@ -1,38 +1,49 @@
 /**
- * 采集统计组件 (Phase 10.2: AI First 优化版)
+ * 采集统计组件
  *
  * 展示数据采集相关的统计信息：
  * - 页面采集数量
- * - RSS 文章总数 (NEW)
- * - 推荐筛选漏斗 (NEW)
- * - AI 成本统计
+ * - 文本分析结果（Phase 3 完成后）
+ * - 用户画像数据（Phase 3 完成后）
  * - 存储占用
- * - 数据管理
  *
- * 移除项（AI First 简化）：
- * - 文本分析统计（关键词提取）
- * - AI 分析占比展示
+ * 注意：不包括推荐相关数据，推荐数据在 RecommendationStats 组件中
  */
 
 import React, { useEffect, useState } from "react"
 import { useI18n } from "@/i18n/helpers"
-import {
-  getStorageStats,
-  getAIAnalysisStats,
-  getRecommendationStats,
-  db,
-  getPageCount,
-  getRSSArticleCount,
-  getRecommendationFunnel
-} from "@/storage/db"
+import { getStorageStats, getAnalysisStats, getAIAnalysisStats, getRecommendationStats, db, getPageCount } from "@/storage/db"
 import { dataMigrator } from "@/core/migrator/DataMigrator"
 import { ProfileUpdateScheduler } from "@/core/profile/ProfileUpdateScheduler"
 import type { StorageStats, RecommendationStats } from "@/types/database"
+import { AnalysisDebugger } from "@/debug/AnalysisDebugger"
+import { profileManager } from "@/core/profile/ProfileManager"
 import { LEARNING_COMPLETE_PAGES } from "@/constants/progress"
 import { getAIConfig, getProviderDisplayName } from "@/storage/ai-config"
 import { logger } from "@/utils/logger"
 
 const collectionLogger = logger.withTag("CollectionStats")
+
+/**
+ * 获取语言名称的国际化文本
+ * 使用翻译键，根据当前界面语言显示对应的语言名称
+ * 例如：中文界面显示"中文""英文"，英文界面显示"Chinese""English"
+ */
+function getLanguageName(langCode: string, _: (key: string) => string): string {
+  const langMap: Record<string, string> = {
+    'zh-CN': _("options.collectionStats.languages.zhCN"),
+    'zh': _("options.collectionStats.languages.zh"),
+    'en': _("options.collectionStats.languages.en"),
+    'ja': _("options.collectionStats.languages.ja"),
+    'fr': _("options.collectionStats.languages.fr"),
+    'de': _("options.collectionStats.languages.de"),
+    'es': _("options.collectionStats.languages.es"),
+    'ko': _("options.collectionStats.languages.ko"),
+    'other': _("options.collectionStats.languages.other")
+  }
+  // 如果找不到，使用 other 作为默认值
+  return langMap[langCode] || _("options.collectionStats.languages.other")
+}
 
 /**
  * 获取AI提供者名称的国际化文本
@@ -51,7 +62,10 @@ export function CollectionStats() {
   const { _ } = useI18n()
   const [stats, setStats] = useState<StorageStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [analysisStats, setAnalysisStats] = useState<any>(null)
   const [aiQualityStats, setAiQualityStats] = useState<any>(null)
+  const [migrationStats, setMigrationStats] = useState<any>(null)
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [isRebuildingProfile, setIsRebuildingProfile] = useState(false)
   const [recommendationStats, setRecommendationStats] = useState<RecommendationStats | null>(null)
   const [aiConfigStatus, setAiConfigStatus] = useState<{
@@ -65,43 +79,26 @@ export function CollectionStats() {
   })
   const [pageCount, setPageCount] = useState<number>(0)
   const [isLearningStage, setIsLearningStage] = useState<boolean>(false)
-  const [rssArticleCount, setRssArticleCount] = useState<number>(0)
-  const [recommendationFunnel, setRecommendationFunnel] = useState<{
-    total: number
-    analyzed: number
-    recommended: number
-    dismissed: number
-    read: number
-  } | null>(null)
 
   useEffect(() => {
     const loadStats = async () => {
       try {
-        const [
-          storageData,
-          aiQualityData,
-          aiConfig,
-          recommendationData,
-          currentPageCount,
-          rssCount,
-          funnelData
-        ] = await Promise.all([
+        const [storageData, analysisData, aiQualityData, migrationData, aiConfig, recommendationData, currentPageCount] = await Promise.all([
           getStorageStats(),
+          getAnalysisStats(),
           getAIAnalysisStats(),
+          dataMigrator.getMigrationStats(),
           getAIConfig(),
-          getRecommendationStats(999999),
-          getPageCount(),
-          getRSSArticleCount(),
-          getRecommendationFunnel()
+          getRecommendationStats(999999), // 获取所有推荐统计（传入足够大的天数）
+          getPageCount() // 获取当前页面计数
         ])
-        
         setStats(storageData)
+        setAnalysisStats(analysisData)
         setAiQualityStats(aiQualityData)
+        setMigrationStats(migrationData)
         setRecommendationStats(recommendationData)
         setPageCount(currentPageCount)
         setIsLearningStage(currentPageCount < LEARNING_COMPLETE_PAGES)
-        setRssArticleCount(rssCount)
-        setRecommendationFunnel(funnelData)
         
         // 设置 AI 配置状态
         setAiConfigStatus({
@@ -119,12 +116,93 @@ export function CollectionStats() {
     loadStats()
   }, [])
 
-  // 事件处理器（数据管理）
+  const handleAnalyzeHistoricalPages = async () => {
+    if (isAnalyzing) return
+
+    setIsAnalyzing(true)
+    try {
+      const result = await dataMigrator.analyzeHistoricalPages()
+      
+      // 如果成功更新了记录，自动重建用户画像
+      if (result.updated > 0) {
+        collectionLogger.info("自动重建用户画像...")
+        await dataMigrator.rebuildUserProfile()
+      }
+      
+      // 重新加载统计数据
+      const [analysisData, migrationData] = await Promise.all([
+        getAnalysisStats(),
+        dataMigrator.getMigrationStats()
+      ])
+      setAnalysisStats(analysisData)
+      setMigrationStats(migrationData)
+      
+      const profileUpdated = result.updated > 0 ? _("options.collectionStats.alerts.profileAutoUpdated") : ""
+      alert(_("options.collectionStats.alerts.analyzeComplete", {
+        analyzed: result.analyzed,
+        updated: result.updated,
+        failed: result.failed,
+        profileUpdated
+      }))
+    } catch (error) {
+      collectionLogger.error("历史页面分析失败:", error)
+      alert(_("options.collectionStats.alerts.analyzeFailed"))
+    } finally {
+      setIsAnalyzing(false)
+    }
+  }
+
+  const handleDebugUnanalyzable = async () => {
+    try {
+      collectionLogger.info("开始诊断无法分析的记录...")
+      const unanalyzable = await AnalysisDebugger.getUnanalyzableRecords()
+      const integrity = await AnalysisDebugger.checkDataIntegrity()
+      
+      alert(_("options.collectionStats.alerts.diagnosticComplete", { count: unanalyzable.length }))
+    } catch (error) {
+      collectionLogger.error("诊断失败:", error)
+      alert(_("options.collectionStats.alerts.diagnosticFailed"))
+    }
+  }
+
+  const handleCleanInvalidRecords = async () => {
+    if (!confirm(_("options.collectionStats.alerts.cleanInvalidConfirm"))) {
+      return
+    }
+
+    try {
+      collectionLogger.info("开始清理无效记录...")
+      const result = await dataMigrator.cleanInvalidRecords()
+      
+      // 重新加载统计数据
+      const [storageData, analysisData, migrationData] = await Promise.all([
+        getStorageStats(),
+        getAnalysisStats(),
+        dataMigrator.getMigrationStats()
+      ])
+      setStats(storageData)
+      setAnalysisStats(analysisData)
+      setMigrationStats(migrationData)
+      
+      const profileUpdated = result.cleaned > 0 ? _("options.collectionStats.alerts.profileAutoUpdated") : ""
+      alert(_("options.collectionStats.alerts.cleanInvalidComplete", {
+        total: result.total,
+        cleaned: result.cleaned,
+        remaining: result.remaining,
+        profileUpdated
+      }))
+    } catch (error) {
+      collectionLogger.error("清理无效记录失败:", error)
+      alert(_("options.collectionStats.alerts.cleanInvalidFailed"))
+    }
+  }
+
   const handleRebuildProfile = async () => {
     if (isRebuildingProfile) return
 
     setIsRebuildingProfile(true)
     try {
+      // 使用调度器的强制更新，确保状态同步
       await ProfileUpdateScheduler.forceUpdate()
       alert(_("options.collectionStats.alerts.rebuildSuccess"))
     } catch (error) {
@@ -141,16 +219,22 @@ export function CollectionStats() {
     }
 
     try {
+      // 清除访问记录和用户画像
       await Promise.all([
         db.pendingVisits.clear(),
         db.confirmedVisits.clear(),
         db.userProfile.clear()
       ])
       
-      const [storageData] = await Promise.all([
-        getStorageStats()
+      // 重新加载统计数据
+      const [storageData, analysisData, migrationData] = await Promise.all([
+        getStorageStats(),
+        getAnalysisStats(),
+        dataMigrator.getMigrationStats()
       ])
       setStats(storageData)
+      setAnalysisStats(analysisData)
+      setMigrationStats(migrationData)
       
       alert(_("options.collectionStats.alerts.clearDataSuccess"))
     } catch (error) {
@@ -169,6 +253,7 @@ export function CollectionStats() {
     }
 
     try {
+      // 清除所有数据
       await Promise.all([
         db.pendingVisits.clear(),
         db.confirmedVisits.clear(),
@@ -176,28 +261,21 @@ export function CollectionStats() {
         db.recommendations.clear()
       ])
       
-      const [storageData] = await Promise.all([
-        getStorageStats()
+      // 重新加载统计数据
+      const [storageData, analysisData, migrationData] = await Promise.all([
+        getStorageStats(),
+        getAnalysisStats(),
+        dataMigrator.getMigrationStats()
       ])
       setStats(storageData)
+      setAnalysisStats(analysisData)
+      setMigrationStats(migrationData)
       
       alert(_("options.collectionStats.alerts.clearAllSuccess"))
     } catch (error) {
       collectionLogger.error("清除所有数据失败:", error)
       alert(_("options.collectionStats.alerts.clearAllFailed"))
     }
-  }
-
-  // 工具函数
-  const formatDate = (timestamp?: number): string => {
-    if (!timestamp) return _("options.collectionStats.unknownDate")
-    const date = new Date(timestamp)
-    const locale = document.documentElement.lang || 'zh-CN'
-    return date.toLocaleDateString(locale, {
-      year: 'numeric',
-      month: 'long', 
-      day: 'numeric'
-    })
   }
 
   if (isLoading) {
@@ -221,7 +299,25 @@ export function CollectionStats() {
     )
   }
 
-  // Render sections
+  const formatDuration = (seconds: number): string => {
+    if (seconds < 60) return _("options.collectionStats.durationSeconds", { seconds: Math.round(seconds) })
+    const minutes = Math.floor(seconds / 60)
+    const secs = Math.round(seconds % 60)
+    return _("options.collectionStats.durationMinutes", { minutes, seconds: secs })
+  }
+
+  const formatDate = (timestamp?: number): string => {
+    if (!timestamp) return _("options.collectionStats.unknownDate")
+    const date = new Date(timestamp)
+    // 使用当前语言环境的日期格式
+    const locale = document.documentElement.lang || 'zh-CN'
+    return date.toLocaleDateString(locale, {
+      year: 'numeric',
+      month: 'long', 
+      day: 'numeric'
+    })
+  }
+
   return (
     <div className="space-y-6">
       {/* 采集概览 */}
@@ -231,7 +327,7 @@ export function CollectionStats() {
           <span>{_("options.collectionStats.overview")}</span>
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* 总页面数 */}
           <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-4 border border-indigo-200 dark:border-indigo-800">
             <div className="text-sm text-indigo-600 dark:text-indigo-400 mb-1">
@@ -242,19 +338,6 @@ export function CollectionStats() {
             </div>
             <div className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">
               {_("options.collectionStats.dwellTimeHint")}
-            </div>
-          </div>
-
-          {/* RSS 文章总数 (NEW) */}
-          <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
-            <div className="text-sm text-purple-600 dark:text-purple-400 mb-1">
-              {_("options.collectionStats.rssArticleCountLabel")}
-            </div>
-            <div className="text-3xl font-bold text-purple-900 dark:text-purple-100">
-              {rssArticleCount}
-            </div>
-            <div className="text-xs text-purple-600 dark:text-purple-400 mt-1">
-              {_("options.collectionStats.rssArticleCountHint")}
             </div>
           </div>
 
@@ -286,14 +369,14 @@ export function CollectionStats() {
         </div>
       </div>
 
-      {/* AI 配置状态 */}
+      {/* AI 配置状态 (Phase 4 - Sprint 5.2) */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <span>🤖</span>
           <span>{_("options.collectionStats.aiQualityTitle")}</span>
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
           {/* 服务提供商 */}
           <div className={`rounded-lg p-4 border ${
             aiConfigStatus.configured
@@ -330,6 +413,19 @@ export function CollectionStats() {
                   <span>{_("options.collectionStats.providerStatusKeyword")}</span>
                 </>
               )}
+            </div>
+          </div>
+
+          {/* AI 分析占比 */}
+          <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-4 border border-indigo-200 dark:border-indigo-800">
+            <div className="text-sm text-indigo-600 dark:text-indigo-400 mb-1">
+              {_("options.collectionStats.aiPercentageLabel")}
+            </div>
+            <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+              {aiQualityStats ? _("options.collectionStats.aiPercentageValue", { percentage: aiQualityStats.aiPercentage.toFixed(1) }) : '--'}
+            </div>
+            <div className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">
+              {aiQualityStats ? _("options.collectionStats.aiPagesCount", { ai: aiQualityStats.aiAnalyzedPages, total: aiQualityStats.totalPages }) : _("options.collectionStats.noData")}
             </div>
           </div>
 
@@ -382,6 +478,37 @@ export function CollectionStats() {
             </div>
           </div>
         </div>
+
+        {/* AI 提供商使用分布（仅在有 AI 分析时显示） */}
+        {aiQualityStats && aiQualityStats.providerDistribution.length > 0 && (
+          <div className="mt-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+              {_("options.collectionStats.providerDistributionTitle")}
+            </h3>
+            <div className="space-y-2">
+              {aiQualityStats.providerDistribution.map((item: { provider: string; count: number; percentage: number }) => (
+                <div key={item.provider} className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        {getProviderName(item.provider, _)}
+                      </span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {_("options.collectionStats.providerDistributionCount", { count: item.count, percentage: item.percentage.toFixed(1) })}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                      <div
+                        className="bg-gradient-to-r from-indigo-500 to-cyan-500 h-2 rounded-full transition-all"
+                        style={{ width: `${item.percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* AI 成本按提供商分布（仅在有成本数据时显示） */}
         {aiQualityStats && aiQualityStats.providerCostDistribution && aiQualityStats.providerCostDistribution.length > 0 && (
@@ -459,160 +586,72 @@ export function CollectionStats() {
         )}
       </div>
 
-      {/* 推荐筛选漏斗 (NEW) */}
+      {/* 文本分析统计 (Phase 3.4 完成) */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <span>🔍</span>
-          <span>{_("options.collectionStats.recommendationFunnelTitle")}</span>
+          <span>🔤</span>
+          <span>{_("options.collectionStats.textAnalysis")}</span>
         </h2>
 
-        {!recommendationFunnel || recommendationFunnel.total === 0 ? (
+        {!analysisStats || analysisStats.analyzedPages === 0 ? (
           <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border-2 border-dashed border-gray-300 dark:border-gray-600">
             <p className="text-center text-gray-500 dark:text-gray-400 text-sm">
-              {_("options.collectionStats.recommendationFunnelNoData")}
+              {_("options.collectionStats.textAnalysisNoData")}
+            </p>
+            <p className="text-center text-gray-400 dark:text-gray-500 text-xs mt-1">
+              {_("options.collectionStats.textAnalysisHint")}
             </p>
           </div>
         ) : (
           <div className="space-y-4">
-            {/* 漏斗可视化 */}
-            <div className="relative">
-              {/* RSS 文章总数 */}
-              <div className="mb-3">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-sm text-gray-700 dark:text-gray-300">
-                    {_("options.collectionStats.funnelTotal")}
-                  </span>
-                  <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
-                    {recommendationFunnel.total}
-                  </span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* 提取关键词数 */}
+              <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-4 border border-emerald-200 dark:border-emerald-800">
+                <div className="text-sm text-emerald-600 dark:text-emerald-400 mb-1">
+                  {_("options.collectionStats.totalKeywordsLabel")}
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-lg h-6 overflow-hidden">
-                  <div className="bg-gradient-to-r from-blue-500 to-indigo-500 h-6 rounded-lg w-full flex items-center justify-center text-xs text-white font-medium">
-                    100%
-                  </div>
+                <div className="text-3xl font-bold text-emerald-900 dark:text-emerald-100">
+                  {analysisStats.totalKeywords}
+                </div>
+                <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+                  {_("options.collectionStats.totalKeywordsHint")}
                 </div>
               </div>
 
-              {/* 已分析文章 */}
-              <div className="mb-3 ml-4">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-sm text-gray-700 dark:text-gray-300">
-                    {_("options.collectionStats.funnelAnalyzed")}
-                  </span>
-                  <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
-                    {recommendationFunnel.analyzed} ({((recommendationFunnel.analyzed / recommendationFunnel.total) * 100).toFixed(1)}%)
-                  </span>
+              {/* 平均关键词数 */}
+              <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4 border border-amber-200 dark:border-amber-800">
+                <div className="text-sm text-amber-600 dark:text-amber-400 mb-1">
+                  {_("options.collectionStats.avgKeywordsLabel")}
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-lg h-6 overflow-hidden">
-                  <div 
-                    className="bg-gradient-to-r from-purple-500 to-pink-500 h-6 rounded-lg flex items-center justify-center text-xs text-white font-medium"
-                    style={{ width: `${(recommendationFunnel.analyzed / recommendationFunnel.total) * 100}%` }}
-                  >
-                    {((recommendationFunnel.analyzed / recommendationFunnel.total) * 100).toFixed(0)}%
-                  </div>
-                </div>
-              </div>
-
-              {/* 进入推荐池 */}
-              <div className="mb-3 ml-8">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-sm text-gray-700 dark:text-gray-300">
-                    {_("options.collectionStats.funnelRecommended")}
-                  </span>
-                  <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
-                    {recommendationFunnel.recommended} ({((recommendationFunnel.recommended / recommendationFunnel.total) * 100).toFixed(1)}%)
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-lg h-6 overflow-hidden">
-                  <div 
-                    className="bg-gradient-to-r from-green-500 to-emerald-500 h-6 rounded-lg flex items-center justify-center text-xs text-white font-medium"
-                    style={{ width: `${(recommendationFunnel.recommended / recommendationFunnel.total) * 100}%` }}
-                  >
-                    {((recommendationFunnel.recommended / recommendationFunnel.total) * 100).toFixed(0)}%
-                  </div>
-                </div>
-              </div>
-
-              {/* 用户行为分支（已读 vs 不想读） */}
-              <div className="ml-12 grid grid-cols-2 gap-4">
-                {/* 已读 */}
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-sm text-green-700 dark:text-green-300 font-medium">
-                      ✅ {_("options.collectionStats.funnelRead")}
-                    </span>
-                    <span className="text-sm font-bold text-green-900 dark:text-green-100">
-                      {recommendationFunnel.read}
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-lg h-4 overflow-hidden">
-                    <div 
-                      className="bg-green-600 h-4 rounded-lg"
-                      style={{ width: `${recommendationFunnel.recommended > 0 ? (recommendationFunnel.read / recommendationFunnel.recommended) * 100 : 0}%` }}
-                    />
-                  </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-center">
-                    {recommendationFunnel.recommended > 0 ? ((recommendationFunnel.read / recommendationFunnel.recommended) * 100).toFixed(1) : 0}%
-                  </div>
-                </div>
-
-                {/* 不想读 */}
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-sm text-orange-700 dark:text-orange-300 font-medium">
-                      ❌ {_("options.collectionStats.funnelDismissed")}
-                    </span>
-                    <span className="text-sm font-bold text-orange-900 dark:text-orange-100">
-                      {recommendationFunnel.dismissed}
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-lg h-4 overflow-hidden">
-                    <div 
-                      className="bg-orange-600 h-4 rounded-lg"
-                      style={{ width: `${recommendationFunnel.recommended > 0 ? (recommendationFunnel.dismissed / recommendationFunnel.recommended) * 100 : 0}%` }}
-                    />
-                  </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-center">
-                    {recommendationFunnel.recommended > 0 ? ((recommendationFunnel.dismissed / recommendationFunnel.recommended) * 100).toFixed(1) : 0}%
-                  </div>
+                <div className="text-3xl font-bold text-amber-900 dark:text-amber-100">
+                  {analysisStats.avgKeywordsPerPage.toFixed(1)}
                 </div>
               </div>
             </div>
 
-            {/* 转化率总结 */}
-            <div className="mt-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div>
-                  <div className="text-xs text-blue-600 dark:text-blue-400 mb-1">
-                    {_("options.collectionStats.analysisRate")}
-                  </div>
-                  <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
-                    {((recommendationFunnel.analyzed / recommendationFunnel.total) * 100).toFixed(0)}%
-                  </div>
-                </div>
-                <div>
-                  <div className="text-xs text-green-600 dark:text-green-400 mb-1">
-                    {_("options.collectionStats.recommendationRate")}
-                  </div>
-                  <div className="text-2xl font-bold text-green-900 dark:text-green-100">
-                    {recommendationFunnel.analyzed > 0 ? ((recommendationFunnel.recommended / recommendationFunnel.analyzed) * 100).toFixed(0) : 0}%
-                  </div>
-                </div>
-                <div>
-                  <div className="text-xs text-emerald-600 dark:text-emerald-400 mb-1">
-                    {_("options.collectionStats.readRate")}
-                  </div>
-                  <div className="text-2xl font-bold text-emerald-900 dark:text-emerald-100">
-                    {recommendationFunnel.recommended > 0 ? ((recommendationFunnel.read / recommendationFunnel.recommended) * 100).toFixed(0) : 0}%
-                  </div>
+            {/* 语言分布 */}
+            {analysisStats.languageDistribution.length > 0 && (
+              <div>
+                <h3 className="text-md font-medium mb-2">{_("options.collectionStats.languageDistributionTitle")}</h3>
+                <div className="space-y-2">
+                  {analysisStats.languageDistribution.map((lang: any) => (
+                    <div key={lang.language} className="flex justify-between items-center">
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        {getLanguageName(lang.language, _)}
+                      </span>
+                      <span className="text-sm font-medium">
+                        {_("options.collectionStats.languagePages", { count: lang.count })}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
-            </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* 推荐统计 */}
+      {/* 推荐统计 (Phase 7 完成) */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <span>🎯</span>
