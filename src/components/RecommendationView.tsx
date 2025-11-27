@@ -162,6 +162,13 @@ export function RecommendationView() {
     try {
       recViewLogger.debug(`点击不想读: ${recId}`)
       
+      // 立即添加视觉反馈：降低透明度，表示正在处理
+      const element = event.currentTarget.closest('[data-recommendation-id]')
+      if (element) {
+        ;(element as HTMLElement).style.opacity = '0.6'
+        ;(element as HTMLElement).style.pointerEvents = 'none'
+      }
+      
       // Phase 6: 跟踪单个不想读
       await trackDismiss()
       
@@ -173,11 +180,11 @@ export function RecommendationView() {
     } catch (error) {
       recViewLogger.error('❌ 标记不想读失败:', error)
       
-      // 如果删除失败，给用户提示
+      // 恢复视觉状态（如果操作失败）
       const element = event.currentTarget.closest('[data-recommendation-id]')
       if (element) {
-        ;(element as HTMLElement).style.opacity = '0.3'
-        ;(element as HTMLElement).style.pointerEvents = 'none'
+        ;(element as HTMLElement).style.opacity = '1'
+        ;(element as HTMLElement).style.pointerEvents = 'auto'
       }
     }
   }
