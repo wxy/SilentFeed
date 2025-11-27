@@ -133,7 +133,7 @@ export function AIEngineAssignmentComponent({
               <span className="font-medium">{preset.name}</span>
               {preset.recommended && (
                 <span className="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded">
-                  {_("options.aiEngineAssignment.recommended")}
+                  {_("options.aiConfig.aiEngineAssignment.recommended")}
                 </span>
               )}
             </div>
@@ -166,7 +166,7 @@ export function AIEngineAssignmentComponent({
       {/* 预设选择卡片 */}
       <div>
         <h3 className="text-lg font-medium mb-3">
-          🎯 {_("options.aiEngineAssignment.quickPresets")}
+          🎯 {_("options.aiConfig.aiEngineAssignment.quickPresets")}
         </h3>
         <div className="grid gap-3">
           {renderPresetCard("privacy")}
@@ -183,7 +183,7 @@ export function AIEngineAssignmentComponent({
           className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 flex items-center gap-1"
         >
           <span>{showAdvanced ? '▼' : '▶'}</span>
-          {_("options.aiEngineAssignment.advancedConfig")}
+          {_("options.aiConfig.aiEngineAssignment.advancedConfig")}
         </button>
       </div>
 
@@ -191,16 +191,16 @@ export function AIEngineAssignmentComponent({
       {showAdvanced && (
         <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
           <div className="bg-gray-50 dark:bg-gray-800 px-4 py-2 text-sm font-medium">
-            📊 {_("options.aiEngineAssignment.detailedConfig")}
+            📊 {_("options.aiConfig.aiEngineAssignment.detailedConfig")}
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 dark:bg-gray-800">
                 <tr>
-                  <th className="px-4 py-2 text-left">{_("options.aiEngineAssignment.table.task")}</th>
-                  <th className="px-4 py-2 text-left">{_("options.aiEngineAssignment.table.engine")}</th>
-                  <th className="px-4 py-2 text-left">{_("options.aiEngineAssignment.table.reasoning")}</th>
-                  <th className="px-4 py-2 text-left">{_("options.aiEngineAssignment.table.note")}</th>
+                  <th className="px-4 py-2 text-left">{_("options.aiConfig.aiEngineAssignment.table.task")}</th>
+                  <th className="px-4 py-2 text-left">{_("options.aiConfig.aiEngineAssignment.table.engine")}</th>
+                  <th className="px-4 py-2 text-left">{_("options.aiConfig.aiEngineAssignment.table.reasoning")}</th>
+                  <th className="px-4 py-2 text-left">{_("options.aiConfig.aiEngineAssignment.table.note")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -208,7 +208,7 @@ export function AIEngineAssignmentComponent({
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <span>📖</span>
-                      <span>{_("options.aiEngineAssignment.tasks.pageAnalysis")}</span>
+                      <span>{_("options.aiConfig.aiEngineAssignment.tasks.pageAnalysis")}</span>
                     </div>
                   </td>
                   <td className="px-4 py-3">
@@ -218,14 +218,14 @@ export function AIEngineAssignmentComponent({
                     {renderReasoningCheckbox("pageAnalysis", value.pageAnalysis, false)}
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-500">
-                    {_("options.aiEngineAssignment.notes.highFrequency")}
+                    {_("options.aiConfig.aiEngineAssignment.notes.highFrequency")}
                   </td>
                 </tr>
                 <tr>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <span>📰</span>
-                      <span>{_("options.aiEngineAssignment.tasks.feedAnalysis")}</span>
+                      <span>{_("options.aiConfig.aiEngineAssignment.tasks.feedAnalysis")}</span>
                     </div>
                   </td>
                   <td className="px-4 py-3">
@@ -235,41 +235,41 @@ export function AIEngineAssignmentComponent({
                     {renderReasoningCheckbox("feedAnalysis", value.feedAnalysis, false)}
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-500">
-                    {_("options.aiEngineAssignment.notes.highFrequency")}
+                    {_("options.aiConfig.aiEngineAssignment.notes.highFrequency")}
                   </td>
                 </tr>
                 <tr>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <span>👤</span>
-                      <span>{_("options.aiEngineAssignment.tasks.profileGeneration")}</span>
+                      <span>{_("options.aiConfig.aiEngineAssignment.tasks.profileGeneration")}</span>
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    {renderEngineSelect("profileGeneration", value.profileGeneration, true)}
+                    {renderEngineSelect("profileGeneration", value.profileGeneration, false)}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    {renderReasoningCheckbox("profileGeneration", value.profileGeneration, true)}
+                    {renderReasoningCheckbox("profileGeneration", value.profileGeneration, false)}
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-500">
-                    {_("options.aiEngineAssignment.notes.lowFrequencyAccurate")}
+                    {_("options.aiConfig.aiEngineAssignment.notes.lowFrequencyAccurate")}
                   </td>
                 </tr>
                 <tr>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <span>🎯</span>
-                      <span>{_("options.aiEngineAssignment.tasks.recommendation")}</span>
+                      <span>💡</span>
+                      <span>{_("options.aiConfig.aiEngineAssignment.tasks.recommendation")}</span>
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    {renderEngineSelect("recommendation", value.recommendation, true)}
+                    {renderEngineSelect("recommendation", value.recommendation, false)}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    {renderReasoningCheckbox("recommendation", value.recommendation, true)}
+                    {renderReasoningCheckbox("recommendation", value.recommendation, false)}
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-500">
-                    {_("options.aiEngineAssignment.notes.mediumFrequencyAccurate")}
+                    {_("options.aiConfig.aiEngineAssignment.notes.mediumFrequencyAccurate")}
                   </td>
                 </tr>
               </tbody>
@@ -285,18 +285,18 @@ export function AIEngineAssignmentComponent({
             <span className="text-2xl">⚠️</span>
             <div className="flex-1">
               <p className="font-medium text-yellow-800 dark:text-yellow-200 mb-1">
-                {_("options.aiEngineAssignment.performanceWarning.title")}
+                {_("options.aiConfig.aiEngineAssignment.performanceWarning.title")}
               </p>
               <p className="text-sm text-yellow-700 dark:text-yellow-300 mb-2">
-                {_("options.aiEngineAssignment.performanceWarning.description")}
+                {_("options.aiConfig.aiEngineAssignment.performanceWarning.description")}
               </p>
               <ul className="text-sm text-yellow-600 dark:text-yellow-400 space-y-1">
-                <li>• {_("options.aiEngineAssignment.performanceWarning.impact1")}</li>
-                <li>• {_("options.aiEngineAssignment.performanceWarning.impact2")}</li>
-                <li>• {_("options.aiEngineAssignment.performanceWarning.impact3")}</li>
+                <li>• {_("options.aiConfig.aiEngineAssignment.performanceWarning.impact1")}</li>
+                <li>• {_("options.aiConfig.aiEngineAssignment.performanceWarning.impact2")}</li>
+                <li>• {_("options.aiConfig.aiEngineAssignment.performanceWarning.impact3")}</li>
               </ul>
               <p className="text-sm text-yellow-800 dark:text-yellow-200 font-medium mt-2">
-                💡 {_("options.aiEngineAssignment.performanceWarning.suggestion")}
+                💡 {_("options.aiConfig.aiEngineAssignment.performanceWarning.suggestion")}
               </p>
             </div>
           </div>
