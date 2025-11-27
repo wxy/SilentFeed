@@ -131,6 +131,16 @@
         "description": "静阅是 AI 驱动的阅读器，需要配置 AI 引擎才能使用推荐功能。",
         "hint": "请先在 \"AI 引擎\" 页面配置远程 AI（OpenAI/DeepSeek）或安装本地 AI（Ollama）。"
       },
+      "localAINotReadyTitle": "本地 AI 尚未就绪",
+      "localAINotReadyHint": "请前往 \"AI 引擎\" 面板完成本地配置或确保 Ollama 服务已启动。",
+      "localAIStatus": {
+        "notEnabled": "尚未在 \"AI 引擎\" 页面启用本地 AI",
+        "missingEndpoint": "缺少本地服务地址，请填写 Ollama 接口 URL",
+        "missingModel": "缺少模型名称，请输入已下载的模型 ID",
+        "ollamaOffline": "无法连接到 Ollama，请确认服务已启动并保持运行",
+        "chromeOffline": "未检测到 Chrome AI，请检查浏览器版本并启用实验特性",
+        "generic": "本地 AI 当前不可用，请检查配置或稍后重试"
+      },
       "recommendationTitle": "文章推荐引擎",
       "feedTitle": "文章分析引擎",
       "feedDescription": "选择所有订阅源统一使用的分析引擎（不支持推理模式以控制成本）"
@@ -652,6 +662,42 @@
         },
         "hint": "本地 AI 性能受设备配置影响，建议仅在无远程 AI 配置时使用"
       },
+      "localAIForm": {
+        "endpoint": "服务地址",
+        "endpointHint": "默认 http://localhost:11434/v1（OpenAI 兼容），亦支持 http://localhost:11434/api",
+        "apiKey": "访问令牌 (Bearer Token)",
+        "apiKeyHint": "启用 Ollama OpenAI 兼容接口时需要 Bearer Token，默认值为 \"ollama\"",
+        "apiKeyPlaceholder": "例如 ollama 或自定义 token",
+        "model": "默认模型",
+        "modelPlaceholder": "点击右侧刷新按钮获取可用模型",
+        "modelHint": "使用 `ollama list` 查看已下载模型，例如 qwen2.5:7b",
+        "temperature": "温度 (0-1)",
+        "maxTokens": "最大输出 tokens",
+        "timeout": "超时 (ms)",
+        "buttons": {
+          "test": "测试连接并获取模型",
+          "testing": "测试中...",
+          "refreshModels": "刷新模型列表",
+          "refreshingModels": "刷新中..."
+        },
+        "errors": {
+          "missingEndpoint": "请输入 Ollama 服务地址",
+          "missingModel": "请输入模型名称"
+        },
+        "messages": {
+          "testSuccess": "测试成功",
+          "testFailed": "本地 AI 连接失败：{{error}}"
+        },
+        "mode": {
+          "openai": "已连接：OpenAI 兼容 /v1 接口（需授权）",
+          "legacy": "已连接：传统 /api 接口"
+        },
+        "modelListError": "无法获取模型列表：{{error}}",
+        "modelListSuccess": "已获取 {{count}} 个可用模型",
+        "selectModel": "请选择模型",
+        "advancedOptions": "高级选项",
+        "note": "💡 保存后即可在推荐设置中选择“本地 AI”分析引擎。"
+      },
       "tfidf": {
         "intro": "TF-IDF 是一种经典的文本分析算法，作为 AI 的回退方案：",
         "advantage1": "零成本",
@@ -671,7 +717,8 @@
       "placeholders": {
         "apiKey": "输入你的 API Key",
         "model": "选择模型（可选，留空使用默认模型）",
-        "selectModel": "请选择 AI 模型"
+        "selectModel": "请选择 AI 模型",
+        "disableRemoteAI": "禁用远程 AI 服务"
       },
       "hints": {
         "apiKey": "API Key 将加密存储在浏览器本地，不会上传到服务器"
@@ -756,10 +803,43 @@
       },
       "info": {
         "title": "关于 AI 分析",
+        "overview": "静阅提供远程 AI 和本地 AI 两种分析方式，你可以根据需求灵活选择：",
+        "remoteTitle": "远程 AI",
+        "remoteDesc": "更强大准确，需要 API Key 和网络，按使用量付费",
+        "localTitle": "本地 AI",
+        "localDesc": "完全离线，保护隐私，需要本地安装或启用 Chrome AI",
         "withConfig": "配置后：优先使用 AI 分析（更准确，需付费）",
         "withoutConfig": "不配置：使用免费的关键词分析（可用但准确度较低）",
         "fallback": "降级策略：API 失败或超预算时自动降级到关键词分析",
         "privacy": "隐私保护：所有数据处理在本地，API Key 加密存储"
+      },
+      "remote": {
+        "title": "远程 AI 配置"
+      },
+      "local": {
+        "title": "本地 AI 配置",
+        "checking": "检测中...",
+        "choiceTitle": "本地 AI 类型",
+        "none": "❌ 不使用本地 AI",
+        "chromeAI": "Chrome AI（内置 Gemini Nano）",
+        "ollama": "Ollama（本地服务）",
+        "available": "可用",
+        "howToEnable": "如何启用？",
+        "installOllama": "安装 Ollama",
+        "endpoint": "服务地址",
+        "model": "模型选择",
+        "noModels": "点击右侧测试按钮获取模型列表",
+        "selectModel": "请选择模型",
+        "testAndFetch": "测试连接并获取模型",
+        "testing": "测试中...",
+        "testSuccess": "测试成功",
+        "temperature": "温度 (0-1)",
+        "maxTokens": "最大输出 tokens",
+        "timeout": "超时 (ms)",
+        "advancedOptions": "高级选项",
+        "errors": {
+          "missingEndpoint": "请输入服务地址"
+        }
       },
       "cost": {
         "title": "成本参考（每百万 tokens）",

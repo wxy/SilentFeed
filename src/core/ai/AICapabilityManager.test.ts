@@ -11,11 +11,15 @@ const mockStorage = {
 }
 global.chrome = { storage: mockStorage } as any
 
+const mockFetch = vi.fn()
+global.fetch = mockFetch as any
+
 describe("AICapabilityManager", () => {
   let manager: AICapabilityManager
   
   beforeEach(() => {
     vi.clearAllMocks()
+    mockFetch.mockResolvedValue({ ok: true, json: vi.fn().mockResolvedValue({}) })
     manager = new AICapabilityManager()
   })
   
@@ -25,8 +29,8 @@ describe("AICapabilityManager", () => {
       
       await manager.initialize()
       
-      // 未配置时 primaryProvider 为 null，使用 fallbackProvider
-      expect(manager["primaryProvider"]).toBeNull()
+      // 未配置时 remoteProvider 为 null，使用 fallbackProvider
+      expect(manager["remoteProvider"]).toBeNull()
       expect(manager["fallbackProvider"]).toBeDefined()
       expect(manager["fallbackProvider"].constructor.name).toBe("FallbackKeywordProvider")
     })
@@ -42,9 +46,9 @@ describe("AICapabilityManager", () => {
       
       await manager.initialize()
       
-      expect(manager["primaryProvider"]).toBeDefined()
+      expect(manager["remoteProvider"]).toBeDefined()
       // Phase 6: 统一使用 DeepSeekProvider（支持动态模型切换）
-      expect(manager["primaryProvider"]?.constructor.name).toBe("DeepSeekProvider")
+      expect(manager["remoteProvider"]?.constructor.name).toBe("DeepSeekProvider")
     })
     
     it("应该在 AI 不可用时回退到关键词", async () => {
@@ -59,7 +63,28 @@ describe("AICapabilityManager", () => {
       await manager.initialize()
       
       // API Key 为空，不会创建 Provider
-      expect(manager["primaryProvider"]).toBeNull()
+      expect(manager["remoteProvider"]).toBeNull()
+    })
+
+    it("应该初始化本地 Ollama 提供者", async () => {
+      mockStorage.sync.get.mockResolvedValueOnce({
+        aiConfig: {
+          enabled: false,
+          provider: null,
+          apiKey: "",
+          local: {
+            enabled: true,
+            provider: "ollama",
+            endpoint: "http://localhost:11434/v1",
+            model: "qwen2.5:7b"
+          }
+        }
+      })
+
+      await manager.initialize()
+
+      expect(manager["localProvider"]).toBeDefined()
+      expect(manager["localProvider"]?.constructor.name).toBe("OllamaProvider")
     })
   })
   
@@ -96,7 +121,7 @@ describe("AICapabilityManager", () => {
       await manager.initialize()
       
       // 主提供者抛出错误
-      const mockPrimaryAnalyze = vi.spyOn(manager["primaryProvider"]!, "analyzeContent")
+      const mockPrimaryAnalyze = vi.spyOn(manager["remoteProvider"]!, "analyzeContent")
       mockPrimaryAnalyze.mockRejectedValueOnce(new Error("API Error"))
       
       // 回退提供者成功
@@ -130,7 +155,7 @@ describe("AICapabilityManager", () => {
       })
       await manager.initialize()
       
-      const mockTest = vi.spyOn(manager["primaryProvider"]!, "testConnection")
+      const mockTest = vi.spyOn(manager["remoteProvider"]!, "testConnection")
       mockTest.mockResolvedValueOnce({
         success: true,
         message: "连接成功",

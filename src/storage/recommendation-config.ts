@@ -13,6 +13,7 @@ import { aiManager } from '../core/ai/AICapabilityManager'
 import { logger } from '@/utils/logger'
 import type { RecommendationAnalysisEngine, FeedAnalysisEngine } from '@/types/analysis-engine'
 import { getAIAnalysisStats } from './db'
+import { listLocalModels } from '@/utils/local-ai-endpoint'
 
 const configLogger = logger.withTag('RecommendationConfig')
 const localAILogger = logger.withTag('LocalAI')
@@ -308,7 +309,7 @@ export async function checkAIConfigStatus(): Promise<AIConfigStatus> {
     
     // 检查本地AI可用性
     const localAIStatus = await checkLocalAIStatus()
-    status.hasLocalAI = localAIStatus.availableServices.length > 0
+    status.hasLocalAI = localAIStatus.availableServices.length > 0 || !!aiConfig.local?.enabled
     
     return status
     
@@ -359,20 +360,20 @@ export async function checkLocalAIStatus(): Promise<LocalAIStatus> {
       }
     }
     
-    // 检查Ollama（通过尝试连接本地端口）
+    // 检查Ollama（根据当前配置或默认地址）
     try {
-      const response = await fetch('http://localhost:11434/api/tags', {
-        method: 'GET',
-        signal: AbortSignal.timeout(3000) // 3秒超时
-      })
-      
-      if (response.ok) {
+      const aiConfig = await getAIConfig()
+      const localConfig = aiConfig.local
+      const endpoint = localConfig?.endpoint || 'http://localhost:11434/v1'
+      const apiKey = localConfig?.apiKey
+      const result = await listLocalModels(endpoint, apiKey)
+
+      if (result.models.length > 0) {
         status.hasOllama = true
         status.availableServices.push('ollama')
       }
     } catch (error) {
-      // Ollama不可用，这是正常的
-      localAILogger.debug("Ollama未检测到（正常）")
+      localAILogger.debug("Ollama未检测到（正常）", error)
     }
     
   } catch (error) {

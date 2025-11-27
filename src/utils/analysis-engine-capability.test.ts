@@ -10,6 +10,49 @@ import {
 } from './analysis-engine-capability'
 import type { AIConfig } from '@/storage/ai-config'
 
+const encodeApiKey = (key?: string): string | undefined => {
+  if (!key) return undefined
+  return Buffer.from(key, 'utf-8').toString('base64')
+}
+
+const createAIConfig = (overrides: Partial<AIConfig> = {}): AIConfig => {
+  const { local: localOverride, apiKeys: apiKeysOverride, ...rest } = overrides
+  const encodedApiKeys: AIConfig['apiKeys'] = {}
+  if (apiKeysOverride) {
+    for (const [provider, key] of Object.entries(apiKeysOverride)) {
+      const encoded = encodeApiKey(key)
+      if (!encoded) continue
+      if (provider === 'openai' || provider === 'deepseek') {
+        encodedApiKeys[provider] = encoded
+      }
+    }
+  }
+  return {
+    provider: null,
+    apiKeys: encodedApiKeys,
+    enabled: false,
+    monthlyBudget: 5,
+    enableReasoning: false,
+    local: {
+      enabled: false,
+      provider: 'ollama',
+      endpoint: 'http://localhost:11434/v1',
+      apiKey: 'ollama',
+      model: 'qwen2.5:7b',
+      temperature: 0.2,
+      maxOutputTokens: 768,
+      timeoutMs: 45000,
+      ...(localOverride || {})
+    },
+    ...rest
+  }
+}
+
+const createModelsResponse = () => ({
+  ok: true,
+  json: () => Promise.resolve({ data: [{ id: 'qwen2.5:7b' }] })
+})
+
 // Mock storage
 const mockStorage = {
   sync: {
@@ -73,13 +116,11 @@ describe('analysis-engine-capability', () => {
 
     it('remoteAI 已配置时可用', async () => {
       // 设置 AI 配置
-      const aiConfig: AIConfig = {
+      const aiConfig = createAIConfig({
         provider: 'openai',
-        apiKey: 'sk-test123456789',
-        enabled: true,
-        monthlyBudget: 5,
-        enableReasoning: false
-      }
+        apiKeys: { openai: 'sk-test123456789' },
+        enabled: true
+      })
       mockStorage.sync.data.aiConfig = aiConfig
       
       const result = await checkEngineCapability('remoteAI')
@@ -90,13 +131,12 @@ describe('analysis-engine-capability', () => {
 
     it('remoteAIWithReasoning 需要启用推理能力', async () => {
       // 使用 OpenAI，推理未启用
-      mockStorage.sync.data.aiConfig = {
+      mockStorage.sync.data.aiConfig = createAIConfig({
         provider: 'openai',
-        apiKey: 'sk-test123456789',
+        apiKeys: { openai: 'sk-test123456789' },
         enabled: true,
-        monthlyBudget: 5,
         enableReasoning: false
-      }
+      })
       
       let result = await checkEngineCapability('remoteAIWithReasoning')
       expect(result.available).toBe(false)
@@ -110,43 +150,58 @@ describe('analysis-engine-capability', () => {
       expect(result.reason).toContain('暂不支持推理模式')
       
       // 切换到 DeepSeek 并启用推理
-      mockStorage.sync.data.aiConfig = {
+      mockStorage.sync.data.aiConfig = createAIConfig({
         provider: 'deepseek',
-        apiKey: 'sk-test123456789012345678901234567890',
+        apiKeys: { deepseek: 'sk-test123456789012345678901234567890' },
         enabled: true,
-        monthlyBudget: 5,
         enableReasoning: true
-      }
+      })
       
       result = await checkEngineCapability('remoteAIWithReasoning')
       expect(result.available).toBe(true)
       expect(result.reason).toContain('DeepSeek-R1')
     })
 
-    it('localAI 检测 Chrome AI', async () => {
+    it('localAI 未启用时即使检测到 Chrome AI 也不可用', async () => {
       // Mock Chrome AI
       ;(window as any).ai = {
         languageModel: {
           capabilities: vi.fn().mockResolvedValue({ available: 'readily' })
         }
       }
+
+      mockStorage.sync.data.aiConfig = createAIConfig()
       
       const result = await checkEngineCapability('localAI')
       
-      expect(result.available).toBe(true)
-      expect(result.reason).toContain('Chrome AI')
+      expect(result.available).toBe(false)
+      expect(result.reason).toContain('未启用')
     })
 
     it('localAI 检测 Ollama', async () => {
       // Mock Ollama API
-      ;(global.fetch as any).mockResolvedValue({
-        ok: true
+      ;(global.fetch as any).mockResolvedValue(createModelsResponse())
+
+      mockStorage.sync.data.aiConfig = createAIConfig({
+        local: {
+          enabled: true,
+          provider: 'ollama',
+          endpoint: 'http://localhost:11434/v1',
+          model: 'qwen2.5:7b',
+          temperature: 0.2,
+          maxOutputTokens: 768,
+          timeoutMs: 45000
+        }
       })
       
       const result = await checkEngineCapability('localAI')
       
       expect(result.available).toBe(true)
       expect(result.reason).toContain('Ollama')
+      expect(global.fetch).toHaveBeenCalledWith(
+        'http://localhost:11434/v1/models',
+        expect.any(Object)
+      )
       expect(global.fetch).toHaveBeenCalledWith(
         'http://localhost:11434/api/tags',
         expect.any(Object)
@@ -162,38 +217,58 @@ describe('analysis-engine-capability', () => {
       }
       
       // Mock Ollama API
-      ;(global.fetch as any).mockResolvedValue({
-        ok: true
+      ;(global.fetch as any).mockResolvedValue(createModelsResponse())
+
+      mockStorage.sync.data.aiConfig = createAIConfig({
+        local: {
+          enabled: true,
+          provider: 'ollama',
+          endpoint: 'http://localhost:11434/v1',
+          model: 'qwen2.5:7b',
+          temperature: 0.2,
+          maxOutputTokens: 768,
+          timeoutMs: 45000
+        }
       })
       
       const result = await checkEngineCapability('localAI')
       
       expect(result.available).toBe(true)
-      expect(result.reason).toContain('Chrome AI')
       expect(result.reason).toContain('Ollama')
     })
 
     it('localAI 无可用服务时返回不可用', async () => {
       // Mock Ollama 不可用
       ;(global.fetch as any).mockRejectedValue(new Error('Connection refused'))
+
+      mockStorage.sync.data.aiConfig = createAIConfig({
+        local: {
+          enabled: true,
+          provider: 'ollama',
+          endpoint: 'http://localhost:11434/v1',
+          model: 'qwen2.5:7b',
+          temperature: 0.2,
+          maxOutputTokens: 768,
+          timeoutMs: 45000
+        }
+      })
       
       const result = await checkEngineCapability('localAI')
       
       expect(result.available).toBe(false)
-      expect(result.reason).toContain('未检测到本地 AI')
+      expect(result.reason).toContain('无法连接到 Ollama')
     })
   })
 
   describe('checkAllEngineCapabilities', () => {
     it('返回所有引擎的能力检测结果', async () => {
       // 配置远程 AI
-      mockStorage.sync.data.aiConfig = {
+      mockStorage.sync.data.aiConfig = createAIConfig({
         provider: 'openai',
-        apiKey: 'sk-test123456789',
+        apiKeys: { openai: 'sk-test123456789' },
         enabled: true,
-        monthlyBudget: 5,
         enableReasoning: false
-      }
+      })
       
       const result = await checkAllEngineCapabilities()
       
@@ -216,13 +291,12 @@ describe('analysis-engine-capability', () => {
   describe('getRecommendedEngine', () => {
     it('优先推荐远程 AI', async () => {
       // 配置远程 AI
-      mockStorage.sync.data.aiConfig = {
+      mockStorage.sync.data.aiConfig = createAIConfig({
         provider: 'openai',
-        apiKey: 'sk-test123456789',
+        apiKeys: { openai: 'sk-test123456789' },
         enabled: true,
-        monthlyBudget: 5,
         enableReasoning: false
-      }
+      })
       
       const result = await getRecommendedEngine()
       
@@ -237,11 +311,24 @@ describe('analysis-engine-capability', () => {
           capabilities: vi.fn().mockResolvedValue({ available: 'readily' })
         }
       }
+      ;(global.fetch as any).mockResolvedValue(createModelsResponse())
+
+      mockStorage.sync.data.aiConfig = createAIConfig({
+        local: {
+          enabled: true,
+          provider: 'ollama',
+          endpoint: 'http://localhost:11434/v1',
+          model: 'qwen2.5:7b',
+          temperature: 0.2,
+          maxOutputTokens: 768,
+          timeoutMs: 45000
+        }
+      })
       
       const result = await getRecommendedEngine()
       
       expect(result.engine).toBe('localAI')
-      expect(result.reason).toContain('Chrome AI') // 具体服务名
+      expect(result.reason).toContain('Ollama')
     })
 
     it('无 AI 可用时推荐关键字', async () => {
@@ -256,13 +343,12 @@ describe('analysis-engine-capability', () => {
 
     it('不主动推荐推理模式（成本考虑）', async () => {
       // 配置 DeepSeek 并启用推理
-      mockStorage.sync.data.aiConfig = {
+      mockStorage.sync.data.aiConfig = createAIConfig({
         provider: 'deepseek',
-        apiKey: 'sk-test123456789012345678901234567890',
+        apiKeys: { deepseek: 'sk-test123456789012345678901234567890' },
         enabled: true,
-        monthlyBudget: 5,
         enableReasoning: true
-      }
+      })
       
       const result = await getRecommendedEngine()
       

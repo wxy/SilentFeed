@@ -5,8 +5,8 @@
   "description": "__MSG_extDescription__",
   "author": "xingyu.wang@gmail.com",
   "scripts": {
-    "dev": "plasmo dev",
-    "build": "plasmo build && bash scripts/copy-locales.sh",
+    "dev": "plasmo dev & sleep 3 && bash scripts/setup-dnr.sh && fg",
+    "build": "plasmo build && bash scripts/copy-locales.sh && bash scripts/setup-dnr.sh",
     "package": "plasmo package",
     "test": "vitest",
     "test:ui": "vitest --ui",
@@ -65,13 +65,16 @@
   "manifest": {
     "default_locale": "en",
     "host_permissions": [
-      "https://*/*"
+      "https://*/*",
+      "http://localhost:11434/*",
+      "http://127.0.0.1:11434/*"
     ],
     "permissions": [
       "tabs",
       "storage",
       "alarms",
-      "notifications"
+      "notifications",
+      "declarativeNetRequestWithHostAccess"
     ],
     "web_accessible_resources": [
       {

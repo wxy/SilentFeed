@@ -491,6 +491,13 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
   ): Promise<RecommendedArticle | null> {
     try {
       const userInterests = convertUserProfileToUserInterests(context.userProfile)
+      const aiUserProfile = context.userProfile.aiSummary ? {
+        interests: context.userProfile.aiSummary.interests,
+        preferences: context.userProfile.aiSummary.preferences,
+        avoidTopics: context.userProfile.aiSummary.avoidTopics
+      } : undefined
+      const preferLocal = context.config?.analysisEngine === 'localAI' || context.config?.useLocalAI
+      const providerMode = preferLocal ? 'local' : 'remote'
       
       // 准备内容
       const content = article.fullContent || article.description || article.title || ''
@@ -501,11 +508,12 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
         model: 'deepseek-chat',
         timeout: context.config.useReasoning ? 120000 : 60000,
         maxTokens: 2000,
-        useReasoning: context.config.useReasoning || false
+        useReasoning: context.config.useReasoning || false,
+        userProfile: aiUserProfile
       }
       
       // 调用 AI 分析
-      const analysis = await aiManager.analyzeContent(content, analysisOptions)
+      const analysis = await aiManager.analyzeContent(content, analysisOptions, providerMode)
       
       // 保存 AI 分析结果到文章
       await this.saveArticleAnalysis(article.id, article.feedId, analysis)
@@ -615,6 +623,8 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
             preferences: context.userProfile.aiSummary.preferences,
             avoidTopics: context.userProfile.aiSummary.avoidTopics
           } : undefined
+          const preferLocal = context.config?.analysisEngine === 'localAI' || context.config?.useLocalAI
+          const providerMode = preferLocal ? 'local' : 'remote'
           
           // 构建分析上下文
           const analysisOptions = {
@@ -625,7 +635,7 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
           }
           
           // 调用AI分析（这里保持单个调用，因为aiManager暂不支持批量）
-          const analysis = await aiManager.analyzeContent(item.content, analysisOptions)
+          const analysis = await aiManager.analyzeContent(item.content, analysisOptions, providerMode)
           
           // Phase 6: 保存 AI 分析结果到文章（用于标记已分析，避免重复处理）
           await this.saveArticleAnalysis(item.article.id, item.article.feedId, analysis)

@@ -4,6 +4,7 @@
 
 import type { FeedArticle } from "@/types/rss"
 import type { UserProfile } from "@/types/profile"
+import type { RecommendationAnalysisEngine } from "@/types/analysis-engine"
 
 /**
  * 推荐输入
@@ -21,6 +22,7 @@ export interface RecommendationInput {
  * 推荐配置
  */
 export interface RecommendationConfig {
+  analysisEngine?: RecommendationAnalysisEngine
   useReasoning?: boolean
   useLocalAI?: boolean
   maxRecommendations?: number

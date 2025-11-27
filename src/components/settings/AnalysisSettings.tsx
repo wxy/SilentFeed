@@ -14,7 +14,7 @@ import {
   saveRecommendationConfig,
   type RecommendationConfig
 } from "@/storage/recommendation-config"
-import type { RecommendationAnalysisEngine, FeedAnalysisEngine } from "@/types/analysis-engine"
+import type { RecommendationAnalysisEngine, FeedAnalysisEngine, AnalysisEngineCapability } from "@/types/analysis-engine"
 import { checkEngineCapability } from "@/utils/analysis-engine-capability"
 import { getAdaptiveMetrics, type AdaptiveMetrics } from "@/core/recommender/adaptive-count"
 import { logger } from "@/utils/logger"
@@ -45,12 +45,20 @@ export function AnalysisSettings() {
   const [feedAnalysisEngine, setFeedAnalysisEngine] = useState<FeedAnalysisEngine>('remoteAI')
   
   // Phase 9: 引擎可用性状态
-  const [engineAvailability, setEngineAvailability] = useState<Record<RecommendationAnalysisEngine, boolean>>({
-    remoteAI: false,
-    remoteAIWithReasoning: false,
-    localAI: false,
-    keyword: true // 关键词总是可用
+  const [engineCapability, setEngineCapability] = useState<Record<RecommendationAnalysisEngine | 'keyword', AnalysisEngineCapability>>({
+    remoteAI: { available: false },
+    remoteAIWithReasoning: { available: false },
+    localAI: { available: false },
+    keyword: { available: true, reason: 'TF-IDF' }
   })
+
+  const getCapabilityStatus = (capability?: AnalysisEngineCapability): string | undefined => {
+    if (!capability?.details || typeof capability.details !== 'object') {
+      return undefined
+    }
+    const status = (capability.details as { status?: unknown }).status
+    return typeof status === 'string' ? status : undefined
+  }
 
   useEffect(() => {
     loadConfig()
@@ -76,17 +84,18 @@ export function AnalysisSettings() {
    * Phase 9: 检测各引擎的可用性
    */
   const checkEngineAvailability = async () => {
-    const results = await Promise.all([
+    const [remoteAI, remoteAIWithReasoning, localAI, keyword] = await Promise.all([
       checkEngineCapability('remoteAI'),
       checkEngineCapability('remoteAIWithReasoning'),
-      checkEngineCapability('localAI')
+      checkEngineCapability('localAI'),
+      checkEngineCapability('keyword')
     ])
     
-    setEngineAvailability({
-      remoteAI: results[0].available,
-      remoteAIWithReasoning: results[1].available,
-      localAI: results[2].available,
-      keyword: true
+    setEngineCapability({
+      remoteAI,
+      remoteAIWithReasoning,
+      localAI,
+      keyword
     })
   }
 
@@ -145,6 +154,27 @@ export function AnalysisSettings() {
     }
   }
 
+  const localEngineStatus = getCapabilityStatus(engineCapability.localAI)
+  const localUnavailableMessage = (() => {
+    switch (localEngineStatus) {
+      case 'not-enabled':
+        return _("options.analysisEngine.localAIStatus.notEnabled")
+      case 'missing-endpoint':
+        return _("options.analysisEngine.localAIStatus.missingEndpoint")
+      case 'missing-model':
+        return _("options.analysisEngine.localAIStatus.missingModel")
+      case 'ollama-offline':
+        return _("options.analysisEngine.localAIStatus.ollamaOffline")
+      case 'chrome-ai-offline':
+        return _("options.analysisEngine.localAIStatus.chromeOffline")
+      default:
+        return _("options.analysisEngine.localAIStatus.generic")
+    }
+  })()
+  const isLocalAvailable = engineCapability.localAI.available
+  const showLocalSelectionWarning = config.analysisEngine === 'localAI' && !isLocalAvailable
+  const showFeedLocalWarning = feedAnalysisEngine === 'localAI' && !isLocalAvailable
+
   return (
     <div className="space-y-6">
       {/* 文章推荐引擎 */}
@@ -168,14 +198,14 @@ export function AnalysisSettings() {
             config.analysisEngine === 'remoteAI'
               ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-md'
               : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-          } ${!engineAvailability.remoteAI ? 'opacity-50 cursor-not-allowed' : ''}`}>
+          } ${!engineCapability.remoteAI.available ? 'opacity-50 cursor-not-allowed' : ''}`}>
             <input
               type="radio"
               name="analysisEngine"
               value="remoteAI"
               checked={config.analysisEngine === 'remoteAI'}
               onChange={(e) => setConfig({ ...config, analysisEngine: e.target.value as RecommendationAnalysisEngine })}
-              disabled={!engineAvailability.remoteAI}
+              disabled={!engineCapability.remoteAI.available}
               className="mt-1 w-4 h-4"
             />
             <div className="flex-1">
@@ -188,7 +218,7 @@ export function AnalysisSettings() {
               <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                 {_("options.analysisEngine.desc.remoteAI")}
               </div>
-              {!engineAvailability.remoteAI && (
+              {!engineCapability.remoteAI.available && (
                 <div className="text-xs text-orange-600 dark:text-orange-400 mt-2 flex items-start gap-1">
                   <span>⚠️</span>
                   <span>{_("options.analysisEngine.unavailable.remoteAI")}</span>
@@ -202,14 +232,14 @@ export function AnalysisSettings() {
             config.analysisEngine === 'remoteAIWithReasoning'
               ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20 shadow-md'
               : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-          } ${!engineAvailability.remoteAIWithReasoning ? 'opacity-50 cursor-not-allowed' : ''}`}>
+          } ${!engineCapability.remoteAIWithReasoning.available ? 'opacity-50 cursor-not-allowed' : ''}`}>
             <input
               type="radio"
               name="analysisEngine"
               value="remoteAIWithReasoning"
               checked={config.analysisEngine === 'remoteAIWithReasoning'}
               onChange={(e) => setConfig({ ...config, analysisEngine: e.target.value as RecommendationAnalysisEngine })}
-              disabled={!engineAvailability.remoteAIWithReasoning}
+              disabled={!engineCapability.remoteAIWithReasoning.available}
               className="mt-1 w-4 h-4"
             />
             <div className="flex-1">
@@ -222,7 +252,7 @@ export function AnalysisSettings() {
               <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                 {_("options.analysisEngine.desc.remoteAIWithReasoning")}
               </div>
-              {!engineAvailability.remoteAIWithReasoning && (
+              {!engineCapability.remoteAIWithReasoning.available && (
                 <div className="text-xs text-orange-600 dark:text-orange-400 mt-2 flex items-start gap-1">
                   <span>⚠️</span>
                   <span>{_("options.analysisEngine.unavailable.remoteAIWithReasoning")}</span>
@@ -236,14 +266,14 @@ export function AnalysisSettings() {
             config.analysisEngine === 'localAI'
               ? 'border-green-500 bg-green-50 dark:bg-green-900/20 shadow-md'
               : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-          } ${!engineAvailability.localAI ? 'opacity-50 cursor-not-allowed' : ''}`}>
+          } ${!engineCapability.localAI.available ? 'opacity-50 cursor-not-allowed' : ''}`}>
             <input
               type="radio"
               name="analysisEngine"
               value="localAI"
               checked={config.analysisEngine === 'localAI'}
               onChange={(e) => setConfig({ ...config, analysisEngine: e.target.value as RecommendationAnalysisEngine })}
-              disabled={!engineAvailability.localAI}
+              disabled={!engineCapability.localAI.available}
               className="mt-1 w-4 h-4"
             />
             <div className="flex-1">
@@ -256,19 +286,32 @@ export function AnalysisSettings() {
               <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                 {_("options.analysisEngine.desc.localAI")}
               </div>
-              {!engineAvailability.localAI && (
+              {!isLocalAvailable && (
                 <div className="text-xs text-orange-600 dark:text-orange-400 mt-2 flex items-start gap-1">
                   <span>⚠️</span>
-                  <span>{_("options.analysisEngine.unavailable.localAI")}</span>
+                  <span>{localUnavailableMessage}</span>
                 </div>
               )}
             </div>
           </label>
 
         </div>
+        {showLocalSelectionWarning && (
+          <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
+            <div className="text-sm text-amber-800 dark:text-amber-200 font-medium">
+              {_("options.analysisEngine.localAINotReadyTitle")}
+            </div>
+            <div className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+              {localUnavailableMessage}
+            </div>
+            <div className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+              {_("options.analysisEngine.localAINotReadyHint")}
+            </div>
+          </div>
+        )}
         
         {/* 无可用 AI 时的提示 */}
-        {!engineAvailability.remoteAI && !engineAvailability.remoteAIWithReasoning && !engineAvailability.localAI && (
+        {!engineCapability.remoteAI.available && !engineCapability.remoteAIWithReasoning.available && !engineCapability.localAI.available && (
           <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
             <div className="flex items-start gap-3">
               <span className="text-xl">⚠️</span>
@@ -315,14 +358,14 @@ export function AnalysisSettings() {
             feedAnalysisEngine === 'remoteAI'
               ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-md'
               : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-          } ${!engineAvailability.remoteAI ? 'opacity-50 cursor-not-allowed' : ''}`}>
+          } ${!engineCapability.remoteAI.available ? 'opacity-50 cursor-not-allowed' : ''}`}>
             <input
               type="radio"
               name="feedAnalysisEngine"
               value="remoteAI"
               checked={feedAnalysisEngine === 'remoteAI'}
               onChange={(e) => setFeedAnalysisEngine(e.target.value as FeedAnalysisEngine)}
-              disabled={!engineAvailability.remoteAI}
+              disabled={!engineCapability.remoteAI.available}
               className="mt-1 w-4 h-4"
             />
             <div className="flex-1">
@@ -335,7 +378,7 @@ export function AnalysisSettings() {
               <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                 {_("options.analysisEngine.desc.remoteAI")}
               </div>
-              {!engineAvailability.remoteAI && (
+              {!engineCapability.remoteAI.available && (
                 <div className="text-xs text-orange-600 dark:text-orange-400 mt-2 flex items-start gap-1">
                   <span>⚠️</span>
                   <span>{_("options.analysisEngine.unavailable.remoteAI")}</span>
@@ -349,14 +392,14 @@ export function AnalysisSettings() {
             feedAnalysisEngine === 'localAI'
               ? 'border-green-500 bg-green-50 dark:bg-green-900/20 shadow-md'
               : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-          } ${!engineAvailability.localAI ? 'opacity-50 cursor-not-allowed' : ''}`}>
+          } ${!engineCapability.localAI.available ? 'opacity-50 cursor-not-allowed' : ''}`}>
             <input
               type="radio"
               name="feedAnalysisEngine"
               value="localAI"
               checked={feedAnalysisEngine === 'localAI'}
               onChange={(e) => setFeedAnalysisEngine(e.target.value as FeedAnalysisEngine)}
-              disabled={!engineAvailability.localAI}
+              disabled={!engineCapability.localAI.available}
               className="mt-1 w-4 h-4"
             />
             <div className="flex-1">
@@ -369,18 +412,31 @@ export function AnalysisSettings() {
               <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                 {_("options.analysisEngine.desc.localAI")}
               </div>
-              {!engineAvailability.localAI && (
+              {!isLocalAvailable && (
                 <div className="text-xs text-orange-600 dark:text-orange-400 mt-2 flex items-start gap-1">
                   <span>⚠️</span>
-                  <span>{_("options.analysisEngine.unavailable.localAI")}</span>
+                  <span>{localUnavailableMessage}</span>
                 </div>
               )}
             </div>
           </label>
         </div>
+        {showFeedLocalWarning && (
+          <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
+            <div className="text-sm text-amber-800 dark:text-amber-200 font-medium">
+              {_("options.analysisEngine.localAINotReadyTitle")}
+            </div>
+            <div className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+              {localUnavailableMessage}
+            </div>
+            <div className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+              {_("options.analysisEngine.localAINotReadyHint")}
+            </div>
+          </div>
+        )}
         
         {/* 无可用 AI 时的提示 */}
-        {!engineAvailability.remoteAI && !engineAvailability.localAI && (
+        {!engineCapability.remoteAI.available && !engineCapability.localAI.available && (
           <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
             <div className="flex items-start gap-3">
               <span className="text-xl">⚠️</span>

@@ -38,6 +38,8 @@ export interface AnalysisEngineCapability {
   available: boolean
   /** 不可用原因 */
   reason?: string
+  /** 可选的扩展信息（例如可用的本地服务类型） */
+  details?: Record<string, unknown>
 }
 
 /**

@@ -70,6 +70,7 @@ export class RecommendationService {
     try {
       // 获取推荐配置
       const recommendationConfig = await getRecommendationConfig()
+      let effectiveAnalysisEngine = recommendationConfig.analysisEngine || 'remoteAI'
       
       // 获取 AI 配置，检查模型是否支持推理
       const aiConfig = await getAIConfig()
@@ -82,7 +83,7 @@ export class RecommendationService {
       let reasoningDisabledReason: string | null = null
       
       // 如果配置要求使用推理引擎
-      if (recommendationConfig.analysisEngine === 'remoteAIWithReasoning') {
+      if (effectiveAnalysisEngine === 'remoteAIWithReasoning') {
         // 检查模型是否支持推理
         if (aiConfig.model) {
           const provider = getProviderFromModel(aiConfig.model)
@@ -119,18 +120,40 @@ export class RecommendationService {
         }
       }
       
-      const useLocalAI = recommendationConfig.analysisEngine === 'localAI'
+      let useLocalAI = effectiveAnalysisEngine === 'localAI'
+      if (useLocalAI) {
+        const localConfig = aiConfig.local
+        const endpoint = localConfig?.endpoint?.trim()
+        const model = localConfig?.model?.trim()
+        const configEnabled = !!localConfig?.enabled
+        const configValid = configEnabled && !!endpoint && !!model
+        if (!configValid) {
+          const reasonParts: string[] = []
+          if (!configEnabled) {
+            reasonParts.push('未在 AI 配置中启用本地 AI')
+          }
+          if (!endpoint) {
+            reasonParts.push('缺少本地服务地址')
+          }
+          if (!model) {
+            reasonParts.push('缺少模型名称')
+          }
+          recLogger.warn(`⚠️ 本地 AI 模式降级：${reasonParts.join('、')}（将改用远程 AI）`)
+          effectiveAnalysisEngine = 'remoteAI'
+          useLocalAI = false
+        }
+      }
       
       // 🔍 调试：检查配置读取
       recLogger.info('🔍 推荐配置详情:', {
-        analysisEngine: recommendationConfig.analysisEngine,
+        analysisEngine: effectiveAnalysisEngine,
         selectedModel: aiConfig.model,
         modelSupportsReasoning: aiConfig.model ? AVAILABLE_MODELS[getProviderFromModel(aiConfig.model) || 'deepseek']?.find(m => m.id === aiConfig.model)?.supportsReasoning : false,
         enableReasoningInAIConfig: aiConfig.enableReasoning,
         finalUseReasoning: useReasoning,
         reasoningDisabledReason,
         useLocalAI,
-        推理引擎: recommendationConfig.analysisEngine,
+        推理引擎: effectiveAnalysisEngine,
         完整配置: recommendationConfig
       })
       
@@ -169,6 +192,7 @@ export class RecommendationService {
 
       // 3. 构建推荐输入
       const config: RecommendationConfig = {
+        analysisEngine: effectiveAnalysisEngine,
         maxRecommendations,
         useReasoning,
         useLocalAI,
@@ -178,7 +202,7 @@ export class RecommendationService {
       }
       
       recLogger.info(' 推荐配置:', {
-        analysisEngine: recommendationConfig.analysisEngine,
+        analysisEngine: config.analysisEngine,
         useReasoning,
         useLocalAI,
         qualityThreshold: config.qualityThreshold,

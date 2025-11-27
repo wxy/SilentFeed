@@ -282,6 +282,16 @@
         "title": "No available AI engine detected.",
         "description": "Silent Feed is an AI-driven reader that requires configuring an AI engine to use recommendation features.",
         "hint": "Please first configure a remote AI (OpenAI/DeepSeek) or install a local AI (Ollama) on the \"AI Engine\" page."
+      },
+      "localAINotReadyTitle": "Local AI is not ready yet.",
+      "localAINotReadyHint": "Please go to the \"AI Engine\" panel to complete the local configuration or ensure the Ollama service is started.",
+      "localAIStatus": {
+        "notEnabled": "Not yet enabled local AI on the \"AI Engine\" page",
+        "missingEndpoint": "Missing local service address, please fill in the Ollama interface URL",
+        "missingModel": "Missing model name, please enter the downloaded model ID",
+        "ollamaOffline": "Unable to connect to Ollama. Please ensure the service is started and running.",
+        "chromeOffline": "Chrome AI not detected. Please check your browser version and enable experimental features.",
+        "generic": "Local AI is currently unavailable, please check the configuration or try again later."
       }
     },
     "stats": {
@@ -436,7 +446,12 @@
       "funnelRead": "Read",
       "funnelDismissed": "Don't feel like reading",
       "analysisRate": "Analysis rate",
-      "recommendationRate": "Recommendation rate"
+      "recommendationRate": "Recommendation rate",
+      "recommendationFunnelUniverse": "Internet",
+      "recommendationFunnelArticles": "Article",
+      "recommendationFunnelRecommendations": "Recommend",
+      "recommendationFunnelReading": "Read",
+      "recommendationFunnelInfinitySymbol": "∞"
     },
     "userProfile": {
       "alerts": {
@@ -508,7 +523,8 @@
       },
       "actions": {
         "rebuild": "Rebuild Profile",
-        "rebuilding": "Rebuilding..."
+        "rebuilding": "Rebuilding...",
+        "rebuildComplete": "Rebuild completed"
       }
     },
     "aiConfig": {
@@ -572,7 +588,12 @@
         "withConfig": "After configuration: Prioritize AI analysis (more accurate, paid)",
         "withoutConfig": "Not configured: Use free keyword analysis (available but with lower accuracy)",
         "fallback": "Downgrade strategy: Automatically fall back to keyword analysis when API fails or exceeds budget.",
-        "privacy": "Privacy Protection: All data processing is done locally, and API Keys are stored encrypted."
+        "privacy": "Privacy Protection: All data processing is done locally, and API Keys are stored encrypted.",
+        "overview": "Silent Feed offers both remote AI and local AI analysis methods, allowing you to choose flexibly based on your needs:",
+        "remoteTitle": "Remote AI",
+        "remoteDesc": "More powerful and accurate, requires an API Key and internet connection, pay-as-you-go",
+        "localTitle": "Local AI",
+        "localDesc": "Completely offline, protects privacy, requires local installation or enabling Chrome AI."
       },
       "cost": {
         "title": "Cost Reference (per million tokens)",
@@ -613,7 +634,8 @@
       "placeholders": {
         "apiKey": "Enter your API Key",
         "model": "Select Model (Optional, leave blank to use default model)",
-        "selectModel": "Please select an AI model"
+        "selectModel": "Please select an AI model",
+        "disableRemoteAI": "Disable remote AI services"
       },
       "hints": {
         "apiKey": "The API Key will be encrypted and stored locally in the browser, and will not be uploaded to the server."
@@ -663,14 +685,50 @@
         "ollama": {
           "feature1": "Supports multiple open-source models (Llama, Qwen, Gemma, etc.)",
           "feature2": "Data is processed entirely locally, ensuring privacy protection.",
-          "feature3": "You need to install the Ollama service (ollama.com) yourself."
+          "feature3": "Requires installing the Ollama service (ollama.com)."
         },
         "chromeAI": {
-          "feature1": "Chrome has a built-in Gemini Nano model",
-          "feature2": "No additional installation required, ready to use out of the box.",
-          "feature3": "Only supports Chrome 128+ and requires experimental features to be enabled"
+          "feature1": "Chrome ships with the Gemini Nano model",
+          "feature2": "No extra installation, ready to use immediately.",
+          "feature3": "Only supported on Chrome 128+ with experimental flags enabled."
         },
-        "hint": "Local AI performance is affected by device configuration. It is recommended to use only when no remote AI configuration is available."
+        "hint": "Local AI performance depends on your device. Consider using it when remote AI is unavailable."
+      },
+      "localAIForm": {
+        "endpoint": "Service address",
+        "endpointHint": "Default http://localhost:11434/v1 (OpenAI compatible), also supports http://localhost:11434/api",
+        "apiKey": "Access Token (Bearer Token)",
+        "apiKeyHint": "To enable the Ollama OpenAI-compatible interface, a Bearer Token is required, with the default value being \"ollama\".",
+        "apiKeyPlaceholder": "For example, ollama or custom tokens",
+        "model": "Default model",
+        "modelPlaceholder": "Click the refresh button on the right to get available models.",
+        "modelHint": "Use `ollama list` to view downloaded models, such as qwen2.5:7b",
+        "temperature": "Temperature (0-1)",
+        "maxTokens": "Maximum output tokens",
+        "timeout": "Timeout (ms)",
+        "buttons": {
+          "test": "Test connection and retrieve model",
+          "testing": "Testing...",
+          "refreshModels": "Refresh model list",
+          "refreshingModels": "Refreshing..."
+        },
+        "errors": {
+          "missingEndpoint": "Please enter the Ollama service address",
+          "missingModel": "Please enter the model name"
+        },
+        "messages": {
+          "testSuccess": "Test successful",
+          "testFailed": "Local AI connection failed: {{error}}"
+        },
+        "mode": {
+          "openai": "Connected: OpenAI-compatible /v1 interface (requires authorization)",
+          "legacy": "Connected: Traditional /api Interface"
+        },
+        "modelListError": "Failed to retrieve model list: {{error}}",
+        "note": "💡 After saving, you can select the \"Local AI\" analysis engine in the recommendation settings.",
+        "modelListSuccess": "{{count}} available models have been obtained",
+        "selectModel": "Please select a model",
+        "advancedOptions": "Advanced Options"
       },
       "tfidf": {
         "intro": "TF-IDF is a classic text analysis algorithm used as a fallback solution for AI:",
@@ -754,6 +812,34 @@
         "claude-3-5-sonnet": {
           "name": "Claude 3.5 Sonnet",
           "description": "Balancing performance and cost (Recommended)"
+        }
+      },
+      "remote": {
+        "title": "Remote AI Configuration"
+      },
+      "local": {
+        "title": "Local AI Configuration",
+        "checking": "Detecting...",
+        "choiceTitle": "Local AI Type",
+        "none": "❌ Not using local AI",
+        "chromeAI": "Chrome AI (with built-in Gemini Nano)",
+        "ollama": "Ollama (Local Service)",
+        "available": "Available",
+        "howToEnable": "How to enable?",
+        "installOllama": "Install Ollama",
+        "endpoint": "Service address",
+        "model": "Model Selection",
+        "noModels": "Click the test button on the right to get the model list",
+        "selectModel": "Please select a model",
+        "testAndFetch": "Test connection and retrieve model",
+        "testing": "Testing...",
+        "testSuccess": "Test successful",
+        "temperature": "Temperature (0-1)",
+        "maxTokens": "Maximum output tokens",
+        "timeout": "Timeout (ms)",
+        "advancedOptions": "Advanced Options",
+        "errors": {
+          "missingEndpoint": "Please enter the service address"
         }
       }
     },

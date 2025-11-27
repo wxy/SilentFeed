@@ -1,21 +1,37 @@
 import { useI18n } from "@/i18n/helpers"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import {
   getAIConfig,
   saveAIConfig,
   validateApiKey,
   type AIProviderType,
+  type LocalAIConfig,
   AVAILABLE_MODELS,
   getProviderFromModel
 } from "@/storage/ai-config"
 import { aiManager } from "@/core/ai/AICapabilityManager"
-import { checkLocalAI } from "@/utils/analysis-engine-capability"
+import { checkLocalAIStatus } from "@/storage/recommendation-config"
+import { listLocalModels, type LocalAIEndpointMode, type LocalModelSummary } from "@/utils/local-ai-endpoint"
+
+const DEFAULT_LOCAL_CONFIG: LocalAIConfig = {
+  enabled: false,
+  provider: "ollama",
+  endpoint: "http://localhost:11434/v1",
+  model: "",
+  temperature: 0.2,
+  maxOutputTokens: 768,
+  timeoutMs: 45000
+}
+
+const createDefaultLocalConfig = (): LocalAIConfig => ({ ...DEFAULT_LOCAL_CONFIG })
 
 // 本地 AI 检测结果
 interface LocalAIStatus {
   hasChromeAI: boolean
   hasOllama: boolean
   checking: boolean
+  available: boolean
+  services: Array<'chrome-ai' | 'ollama'>
 }
 
 export function AIConfig() {
@@ -30,6 +46,7 @@ export function AIConfig() {
   const [monthlyBudget, setMonthlyBudget] = useState<number>(5) // 默认 $5/月
   const [enableReasoning, setEnableReasoning] = useState(false) // Phase 9: 推理能力
   const [localAIChoice, setLocalAIChoice] = useState<'none' | 'chromeAI' | 'ollama'>('none') // Phase 9: 本地 AI 三选一
+  const [localConfig, setLocalConfig] = useState<LocalAIConfig>(createDefaultLocalConfig())
   const [isTesting, setIsTesting] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
@@ -38,8 +55,16 @@ export function AIConfig() {
   const [localAIStatus, setLocalAIStatus] = useState<LocalAIStatus>({
     hasChromeAI: false,
     hasOllama: false,
-    checking: true
+    checking: true,
+    available: false,
+    services: []
   })
+  const [localModels, setLocalModels] = useState<LocalModelSummary[]>([])
+  const [localModelsMode, setLocalModelsMode] = useState<LocalAIEndpointMode | null>(null)
+  const [isFetchingLocalModels, setIsFetchingLocalModels] = useState(false)
+  const [localModelsError, setLocalModelsError] = useState<string | null>(null)
+  const [localTestSuccess, setLocalTestSuccess] = useState(false)
+  const [showAdvancedLocalOptions, setShowAdvancedLocalOptions] = useState(false)
   const [showCostDetails, setShowCostDetails] = useState(false) // Phase 9: 成本详情浮层
   const [showChromeAIHelp, setShowChromeAIHelp] = useState(false) // Phase 9: Chrome AI 帮助浮层
 
@@ -48,6 +73,17 @@ export function AIConfig() {
   
   // 获取当前 Provider 的 API Key
   const currentApiKey = currentProvider ? apiKeys[currentProvider] : ""
+
+  const buildLocalConfigForSave = (forceEnabled?: boolean): LocalAIConfig => {
+    const enabled = typeof forceEnabled === 'boolean'
+      ? forceEnabled
+      : localAIChoice === 'ollama'
+    return {
+      ...localConfig,
+      enabled,
+      provider: "ollama"
+    }
+  }
   
   // 获取当前模型的货币符号
   const getCurrencySymbol = () => {
@@ -82,6 +118,12 @@ export function AIConfig() {
       // 加载其他配置
       setMonthlyBudget(config.monthlyBudget || 5)
       setEnableReasoning(config.enableReasoning || false)
+
+      const mergedLocal = config.local
+        ? { ...createDefaultLocalConfig(), ...config.local }
+        : createDefaultLocalConfig()
+      setLocalConfig(mergedLocal)
+      setLocalAIChoice(mergedLocal.enabled ? 'ollama' : 'none')
     })
   }, [])
 
@@ -90,21 +132,48 @@ export function AIConfig() {
     const detectLocalAI = async () => {
       setLocalAIStatus(prev => ({ ...prev, checking: true }))
       try {
-        const result = await checkLocalAI()
-        // 解析 reason 来判断具体哪些服务可用
-        const hasChromeAI = result.reason?.includes('Chrome AI') || false
-        const hasOllama = result.reason?.includes('Ollama') || false
+        const status = await checkLocalAIStatus()
         setLocalAIStatus({
-          hasChromeAI,
-          hasOllama,
-          checking: false
+          hasChromeAI: status.hasChromeAI,
+          hasOllama: status.hasOllama,
+          checking: false,
+          available: status.availableServices.length > 0,
+          services: status.availableServices
         })
       } catch (error) {
-        setLocalAIStatus({ hasChromeAI: false, hasOllama: false, checking: false })
+        setLocalAIStatus({ hasChromeAI: false, hasOllama: false, checking: false, available: false, services: [] })
       }
     }
     detectLocalAI()
   }, [])
+
+  const refreshLocalModels = useCallback(async () => {
+    if (!localConfig.endpoint?.trim()) {
+      setLocalModels([])
+      setLocalModelsMode(null)
+      setLocalModelsError(_("options.aiConfig.localAIForm.errors.missingEndpoint"))
+      return
+    }
+
+    setIsFetchingLocalModels(true)
+    setLocalModelsError(null)
+
+    try {
+      const { mode, models } = await listLocalModels(localConfig.endpoint, localConfig.apiKey)
+      setLocalModelsMode(mode)
+      setLocalModels(models)
+
+      if (models.length && (!localConfig.model || !models.some(m => m.id === localConfig.model))) {
+        setLocalConfig(prev => ({ ...prev, model: models[0].id }))
+      }
+    } catch (error) {
+      setLocalModels([])
+      setLocalModelsMode(null)
+      setLocalModelsError(error instanceof Error ? error.message : String(error))
+    } finally {
+      setIsFetchingLocalModels(false)
+    }
+  }, [localConfig.endpoint, localConfig.apiKey, _])
 
   // 测试连接
   const handleTest = async () => {
@@ -143,7 +212,8 @@ export function AIConfig() {
         enabled: true,
         monthlyBudget,
         model,
-        enableReasoning
+        enableReasoning,
+        local: buildLocalConfigForSave()
       })
 
       // 3. 重新初始化 aiManager 以加载新配置
@@ -200,7 +270,8 @@ export function AIConfig() {
         enabled: true,
         monthlyBudget,
         model,
-        enableReasoning
+        enableReasoning,
+        local: buildLocalConfigForSave()
       })
       setMessage({ type: "success", text: _("options.aiConfig.messages.saveSuccess") })
     } catch (error) {
@@ -225,11 +296,13 @@ export function AIConfig() {
         enabled: false,
         monthlyBudget: 5,
         model: undefined,
-        enableReasoning: false
+        enableReasoning: false,
+        local: buildLocalConfigForSave(false)
       })
       setModel("")
       setApiKeys({ openai: "", deepseek: "" })
       setEnableReasoning(false)
+      setLocalAIChoice('none')
       setMessage({ type: "success", text: _("options.aiConfig.messages.disableSuccess") })
     } catch (error) {
       setMessage({
@@ -272,7 +345,7 @@ export function AIConfig() {
           onChange={(e) => setModel(e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
-          <option value="">{_("options.aiConfig.placeholders.selectModel")}</option>
+          <option value="">{_("options.aiConfig.placeholders.disableRemoteAI")}</option>
           {Object.entries(AVAILABLE_MODELS).map(([providerKey, models]) => {
             const label = providerKey.toUpperCase()
             
@@ -476,7 +549,10 @@ export function AIConfig() {
                 name="localAIChoice"
                 value="none"
                 checked={localAIChoice === 'none'}
-                onChange={() => setLocalAIChoice('none')}
+                onChange={() => {
+                  setLocalAIChoice('none')
+                  setLocalConfig(prev => ({ ...prev, enabled: false, provider: "ollama" }))
+                }}
                 className="w-4 h-4"
               />
               <span className="text-sm text-gray-700 dark:text-gray-300">
@@ -492,7 +568,10 @@ export function AIConfig() {
                   name="localAIChoice"
                   value="chromeAI"
                   checked={localAIChoice === 'chromeAI'}
-                  onChange={() => setLocalAIChoice('chromeAI')}
+                  onChange={() => {
+                    setLocalAIChoice('chromeAI')
+                    setLocalConfig(prev => ({ ...prev, enabled: false, provider: "ollama" }))
+                  }}
                   disabled={!localAIStatus.hasChromeAI}
                   className="w-4 h-4"
                 />
@@ -522,7 +601,10 @@ export function AIConfig() {
                   name="localAIChoice"
                   value="ollama"
                   checked={localAIChoice === 'ollama'}
-                  onChange={() => setLocalAIChoice('ollama')}
+                  onChange={() => {
+                    setLocalAIChoice('ollama')
+                    setLocalConfig(prev => ({ ...prev, enabled: true, provider: "ollama" }))
+                  }}
                   disabled={!localAIStatus.hasOllama}
                   className="w-4 h-4"
                 />
@@ -551,6 +633,165 @@ export function AIConfig() {
           </p>
         </div>
       </div>
+
+      {/* Ollama 配置表单 */}
+      {localAIChoice === 'ollama' && (
+        <div className="mt-4 space-y-4 p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg">
+          {/* Endpoint */}
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              {_("options.aiConfig.localAIForm.endpoint")}
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={localConfig.endpoint}
+                onChange={(e) => setLocalConfig(prev => ({ ...prev, provider: "ollama", endpoint: e.target.value }))}
+                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="http://localhost:11434/v1"
+              />
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!localConfig.endpoint?.trim()) {
+                    setLocalModelsError(_("options.aiConfig.localAIForm.errors.missingEndpoint"))
+                    return
+                  }
+                  try {
+                    setIsFetchingLocalModels(true)
+                    setLocalModelsError(null)
+                    setLocalTestSuccess(false)
+                    await refreshLocalModels()
+                    setLocalTestSuccess(true)
+                    setTimeout(() => setLocalTestSuccess(false), 3000)
+                  } catch (error) {
+                    console.error('测试连接失败:', error)
+                    setLocalModelsError(error instanceof Error ? error.message : String(error))
+                  } finally {
+                    setIsFetchingLocalModels(false)
+                  }
+                }}
+                disabled={isFetchingLocalModels || !localConfig.endpoint?.trim()}
+                className={`px-4 py-2 text-sm rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap ${
+                  localTestSuccess
+                    ? 'bg-green-600 hover:bg-green-700 text-white'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
+              >
+                {localTestSuccess
+                  ? '✅ ' + _('options.aiConfig.localAIForm.messages.testSuccess')
+                  : isFetchingLocalModels
+                  ? _("options.aiConfig.localAIForm.buttons.testing")
+                  : _("options.aiConfig.localAIForm.buttons.test")}
+              </button>
+            </div>
+          </div>
+
+          {/* 模型选择 */}
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              {_("options.aiConfig.localAIForm.model")}
+            </label>
+            <select
+              value={localConfig.model}
+              onChange={(e) => setLocalConfig(prev => ({ ...prev, provider: "ollama", model: e.target.value }))}
+              disabled={localModels.length === 0}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {localModels.length === 0 ? (
+                <option value="">{_("options.aiConfig.localAIForm.modelPlaceholder")}</option>
+              ) : (
+                <>
+                  {!localConfig.model && <option value="">{_("options.aiConfig.localAIForm.selectModel")}</option>}
+                  {localModels.map((modelOption) => (
+                    <option key={modelOption.id} value={modelOption.id}>
+                      {modelOption.label}
+                    </option>
+                  ))}
+                </>
+              )}
+            </select>
+            {localModelsError && (
+              <p className="mt-1 text-xs text-red-500 dark:text-red-400">
+                {localModelsError}
+              </p>
+            )}
+          </div>
+
+          {/* 高级选项折叠 */}
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowAdvancedLocalOptions(!showAdvancedLocalOptions)}
+              className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 flex items-center gap-1"
+            >
+              <span>{showAdvancedLocalOptions ? '▼' : '▶'}</span>
+              {_("options.aiConfig.localAIForm.advancedOptions")}
+            </button>
+          </div>
+
+          {showAdvancedLocalOptions && (
+            <div className="grid gap-4 md:grid-cols-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  {_("options.aiConfig.localAIForm.temperature")}
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="1"
+                  value={localConfig.temperature ?? 0.2}
+                  onChange={(e) => setLocalConfig(prev => ({
+                    ...prev,
+                    provider: "ollama",
+                    temperature: Math.min(1, Math.max(0, Number(e.target.value)))
+                  }))}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  {_("options.aiConfig.localAIForm.maxTokens")}
+                </label>
+                <input
+                  type="number"
+                  min="128"
+                  step="32"
+                  value={localConfig.maxOutputTokens ?? 768}
+                  onChange={(e) => setLocalConfig(prev => ({
+                    ...prev,
+                    provider: "ollama",
+                    maxOutputTokens: Math.max(128, Number(e.target.value))
+                  }))}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  {_("options.aiConfig.localAIForm.timeout")}
+                </label>
+                <input
+                  type="number"
+                  min="5000"
+                  step="1000"
+                  value={localConfig.timeoutMs ?? 45000}
+                  onChange={(e) => setLocalConfig(prev => ({
+                    ...prev,
+                    provider: "ollama",
+                    timeoutMs: Math.max(5000, Number(e.target.value))
+                  }))}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+          )}
+
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {_("options.aiConfig.localAIForm.note")}
+          </p>
+        </div>
+      )}
 
       {/* 成本参考浮层模态框 */}
       {showCostDetails && (

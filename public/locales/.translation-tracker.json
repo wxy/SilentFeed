@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-11-26T15:01:04.672Z",
+  "lastUpdate": "2025-11-27T14:13:06.372Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -11913,6 +11913,958 @@
         "value": "Rebuilding...",
         "hash": "775ee99c",
         "lastModified": "2025-11-26T15:01:04.162Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.analysisEngine.localAINotReadyTitle": {
+      "zh-CN": {
+        "value": "本地 AI 尚未就绪",
+        "hash": "2cdec219",
+        "lastModified": "2025-11-27T13:32:40.700Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Local AI is not ready yet.",
+        "hash": "17910338",
+        "lastModified": "2025-11-27T13:32:40.701Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.analysisEngine.localAINotReadyHint": {
+      "zh-CN": {
+        "value": "请前往 \"AI 引擎\" 面板完成本地配置或确保 Ollama 服务已启动。",
+        "hash": "490f81f3",
+        "lastModified": "2025-11-27T13:32:43.110Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Please go to the \"AI Engine\" panel to complete the local configuration or ensure the Ollama service is started.",
+        "hash": "85525736",
+        "lastModified": "2025-11-27T13:32:43.110Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.analysisEngine.localAIStatus.notEnabled": {
+      "zh-CN": {
+        "value": "尚未在 \"AI 引擎\" 页面启用本地 AI",
+        "hash": "978e9bf2",
+        "lastModified": "2025-11-27T13:32:45.208Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Not yet enabled local AI on the \"AI Engine\" page",
+        "hash": "ab104876",
+        "lastModified": "2025-11-27T13:32:45.208Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.analysisEngine.localAIStatus.missingEndpoint": {
+      "zh-CN": {
+        "value": "缺少本地服务地址，请填写 Ollama 接口 URL",
+        "hash": "ff32f025",
+        "lastModified": "2025-11-27T13:32:47.260Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Missing local service address, please fill in the Ollama interface URL",
+        "hash": "3110eb21",
+        "lastModified": "2025-11-27T13:32:47.260Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.analysisEngine.localAIStatus.missingModel": {
+      "zh-CN": {
+        "value": "缺少模型名称，请输入已下载的模型 ID",
+        "hash": "dc2c1941",
+        "lastModified": "2025-11-27T13:32:49.264Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Missing model name, please enter the downloaded model ID",
+        "hash": "957e05c7",
+        "lastModified": "2025-11-27T13:32:49.264Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.analysisEngine.localAIStatus.ollamaOffline": {
+      "zh-CN": {
+        "value": "无法连接到 Ollama，请确认服务已启动并保持运行",
+        "hash": "f70a2e5b",
+        "lastModified": "2025-11-27T13:32:51.611Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Unable to connect to Ollama. Please ensure the service is started and running.",
+        "hash": "4c5ca144",
+        "lastModified": "2025-11-27T13:32:51.611Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.analysisEngine.localAIStatus.chromeOffline": {
+      "zh-CN": {
+        "value": "未检测到 Chrome AI，请检查浏览器版本并启用实验特性",
+        "hash": "8c9c4bba",
+        "lastModified": "2025-11-27T13:32:53.763Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Chrome AI not detected. Please check your browser version and enable experimental features.",
+        "hash": "650dfded",
+        "lastModified": "2025-11-27T13:32:53.763Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.analysisEngine.localAIStatus.generic": {
+      "zh-CN": {
+        "value": "本地 AI 当前不可用，请检查配置或稍后重试",
+        "hash": "137f0ec0",
+        "lastModified": "2025-11-27T13:32:56.018Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Local AI is currently unavailable, please check the configuration or try again later.",
+        "hash": "27057608",
+        "lastModified": "2025-11-27T13:32:56.018Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.recommendationFunnelUniverse": {
+      "zh-CN": {
+        "value": "Internet",
+        "hash": "c8205c76",
+        "lastModified": "2025-11-27T13:32:57.760Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Internet",
+        "hash": "c8205c76",
+        "lastModified": "2025-11-27T13:32:57.760Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.recommendationFunnelArticles": {
+      "zh-CN": {
+        "value": "文章",
+        "hash": "c75625dc",
+        "lastModified": "2025-11-27T13:32:59.581Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Article",
+        "hash": "5e2f8ee4",
+        "lastModified": "2025-11-27T13:32:59.581Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.recommendationFunnelRecommendations": {
+      "zh-CN": {
+        "value": "推荐",
+        "hash": "3f981012",
+        "lastModified": "2025-11-27T13:33:01.649Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Recommend",
+        "hash": "cab1fe09",
+        "lastModified": "2025-11-27T13:33:01.649Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.recommendationFunnelReading": {
+      "zh-CN": {
+        "value": "阅读",
+        "hash": "687a7e7f",
+        "lastModified": "2025-11-27T13:33:03.407Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Read",
+        "hash": "7a1a5f3e",
+        "lastModified": "2025-11-27T13:33:03.407Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.recommendationFunnelInfinitySymbol": {
+      "zh-CN": {
+        "value": "∞",
+        "hash": "b63148f5",
+        "lastModified": "2025-11-27T13:33:04.931Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "∞",
+        "hash": "b63148f5",
+        "lastModified": "2025-11-27T13:33:04.931Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.actions.rebuildComplete": {
+      "zh-CN": {
+        "value": "重建完成",
+        "hash": "5d3f399c",
+        "lastModified": "2025-11-27T13:33:06.416Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Rebuild completed",
+        "hash": "ee743026",
+        "lastModified": "2025-11-27T13:33:06.416Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.localAIForm.endpoint": {
+      "zh-CN": {
+        "value": "服务地址",
+        "hash": "f562f75c",
+        "lastModified": "2025-11-27T13:33:07.913Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Service address",
+        "hash": "42fd4991",
+        "lastModified": "2025-11-27T13:33:07.913Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.localAIForm.endpointHint": {
+      "zh-CN": {
+        "value": "默认 http://localhost:11434/v1（OpenAI 兼容），亦支持 http://localhost:11434/api",
+        "hash": "080383d2",
+        "lastModified": "2025-11-27T13:33:10.403Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Default http://localhost:11434/v1 (OpenAI compatible), also supports http://localhost:11434/api",
+        "hash": "ccbcab51",
+        "lastModified": "2025-11-27T13:33:10.403Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.localAIForm.apiKey": {
+      "zh-CN": {
+        "value": "访问令牌 (Bearer Token)",
+        "hash": "3f4f7239",
+        "lastModified": "2025-11-27T13:33:12.502Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Access Token (Bearer Token)",
+        "hash": "c5d5f059",
+        "lastModified": "2025-11-27T13:33:12.502Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.localAIForm.apiKeyHint": {
+      "zh-CN": {
+        "value": "启用 Ollama OpenAI 兼容接口时需要 Bearer Token，默认值为 \"ollama\"",
+        "hash": "ed4c9ac8",
+        "lastModified": "2025-11-27T13:33:14.757Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "To enable the Ollama OpenAI-compatible interface, a Bearer Token is required, with the default value being \"ollama\".",
+        "hash": "93583ef9",
+        "lastModified": "2025-11-27T13:33:14.757Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.localAIForm.apiKeyPlaceholder": {
+      "zh-CN": {
+        "value": "例如 ollama 或自定义 token",
+        "hash": "e119d79f",
+        "lastModified": "2025-11-27T13:33:16.905Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "For example, ollama or custom tokens",
+        "hash": "b0b714ec",
+        "lastModified": "2025-11-27T13:33:16.905Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.localAIForm.model": {
+      "zh-CN": {
+        "value": "默认模型",
+        "hash": "b11de232",
+        "lastModified": "2025-11-27T13:33:18.649Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Default model",
+        "hash": "b8821dd9",
+        "lastModified": "2025-11-27T13:33:18.649Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.localAIForm.modelPlaceholder": {
+      "zh-CN": {
+        "value": "点击右侧刷新按钮获取可用模型",
+        "hash": "f6319331",
+        "lastModified": "2025-11-27T13:33:21.617Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Click the refresh button on the right to get available models.",
+        "hash": "6a75fc79",
+        "lastModified": "2025-11-27T13:33:21.617Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.localAIForm.modelHint": {
+      "zh-CN": {
+        "value": "使用 `ollama list` 查看已下载模型，例如 qwen2.5:7b",
+        "hash": "d7af68de",
+        "lastModified": "2025-11-27T13:33:24.586Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Use `ollama list` to view downloaded models, such as qwen2.5:7b",
+        "hash": "e1d59fab",
+        "lastModified": "2025-11-27T13:33:24.586Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.localAIForm.temperature": {
+      "zh-CN": {
+        "value": "温度 (0-1)",
+        "hash": "6c4169f7",
+        "lastModified": "2025-11-27T13:33:26.533Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Temperature (0-1)",
+        "hash": "cfe7271a",
+        "lastModified": "2025-11-27T13:33:26.533Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.localAIForm.maxTokens": {
+      "zh-CN": {
+        "value": "最大输出 tokens",
+        "hash": "90e351c9",
+        "lastModified": "2025-11-27T13:33:28.375Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Maximum output tokens",
+        "hash": "c33008ae",
+        "lastModified": "2025-11-27T13:33:28.375Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.localAIForm.timeout": {
+      "zh-CN": {
+        "value": "超时 (ms)",
+        "hash": "9285ea31",
+        "lastModified": "2025-11-27T13:33:30.042Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Timeout (ms)",
+        "hash": "ffd1ab02",
+        "lastModified": "2025-11-27T13:33:30.042Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.localAIForm.buttons.test": {
+      "zh-CN": {
+        "value": "测试连接并获取模型",
+        "hash": "9717b63f",
+        "lastModified": "2025-11-27T13:59:51.331Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Test connection and retrieve model",
+        "hash": "105e5ac4",
+        "lastModified": "2025-11-27T13:59:51.332Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.localAIForm.buttons.testing": {
+      "zh-CN": {
+        "value": "测试中...",
+        "hash": "6c501b52",
+        "lastModified": "2025-11-27T13:59:53.159Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Testing...",
+        "hash": "9d770c90",
+        "lastModified": "2025-11-27T13:59:53.159Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.localAIForm.buttons.refreshModels": {
+      "zh-CN": {
+        "value": "刷新模型列表",
+        "hash": "89e67895",
+        "lastModified": "2025-11-27T13:33:35.745Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Refresh model list",
+        "hash": "c4955beb",
+        "lastModified": "2025-11-27T13:33:35.745Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.localAIForm.buttons.refreshingModels": {
+      "zh-CN": {
+        "value": "刷新中...",
+        "hash": "6441bd25",
+        "lastModified": "2025-11-27T13:33:37.438Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Refreshing...",
+        "hash": "01b08e48",
+        "lastModified": "2025-11-27T13:33:37.438Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.localAIForm.errors.missingEndpoint": {
+      "zh-CN": {
+        "value": "请输入 Ollama 服务地址",
+        "hash": "aa20b2f2",
+        "lastModified": "2025-11-27T13:33:39.126Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Please enter the Ollama service address",
+        "hash": "02b47f9f",
+        "lastModified": "2025-11-27T13:33:39.126Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.localAIForm.errors.missingModel": {
+      "zh-CN": {
+        "value": "请输入模型名称",
+        "hash": "6bb5addf",
+        "lastModified": "2025-11-27T13:33:40.866Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Please enter the model name",
+        "hash": "ea34e38f",
+        "lastModified": "2025-11-27T13:33:40.866Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.localAIForm.messages.testSuccess": {
+      "zh-CN": {
+        "value": "测试成功",
+        "hash": "86fecf36",
+        "lastModified": "2025-11-27T13:59:54.739Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Test successful",
+        "hash": "708aab3c",
+        "lastModified": "2025-11-27T13:59:54.739Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.localAIForm.messages.testFailed": {
+      "zh-CN": {
+        "value": "本地 AI 连接失败：{{error}}",
+        "hash": "5db0836c",
+        "lastModified": "2025-11-27T13:33:45.272Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Local AI connection failed: {{error}}",
+        "hash": "e9d2fb86",
+        "lastModified": "2025-11-27T13:33:45.272Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.localAIForm.mode.openai": {
+      "zh-CN": {
+        "value": "已连接：OpenAI 兼容 /v1 接口（需授权）",
+        "hash": "0eb8ebf3",
+        "lastModified": "2025-11-27T13:33:47.217Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Connected: OpenAI-compatible /v1 interface (requires authorization)",
+        "hash": "fc65ca07",
+        "lastModified": "2025-11-27T13:33:47.217Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.localAIForm.mode.legacy": {
+      "zh-CN": {
+        "value": "已连接：传统 /api 接口",
+        "hash": "9b3ee3f9",
+        "lastModified": "2025-11-27T13:33:49.156Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Connected: Traditional /api Interface",
+        "hash": "d39bcc9e",
+        "lastModified": "2025-11-27T13:33:49.156Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.localAIForm.modelListError": {
+      "zh-CN": {
+        "value": "无法获取模型列表：{{error}}",
+        "hash": "308cfc26",
+        "lastModified": "2025-11-27T13:33:50.965Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Failed to retrieve model list: {{error}}",
+        "hash": "db5647e4",
+        "lastModified": "2025-11-27T13:33:50.965Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.localAIForm.modelListSuccess": {
+      "zh-CN": {
+        "value": "已获取 {{count}} 个可用模型",
+        "hash": "871fcfb7",
+        "lastModified": "2025-11-27T13:33:53.052Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{count}} available models have been obtained",
+        "hash": "9315fd1a",
+        "lastModified": "2025-11-27T13:33:53.052Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.localAIForm.note": {
+      "zh-CN": {
+        "value": "💡 保存后即可在推荐设置中选择“本地 AI”分析引擎。",
+        "hash": "f62eae5a",
+        "lastModified": "2025-11-27T13:33:55.305Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "💡 After saving, you can select the \"Local AI\" analysis engine in the recommendation settings.",
+        "hash": "5b98bba4",
+        "lastModified": "2025-11-27T13:33:55.305Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.localAIForm.selectModel": {
+      "zh-CN": {
+        "value": "请选择模型",
+        "hash": "0e34a1fe",
+        "lastModified": "2025-11-27T13:42:40.020Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Please select a model",
+        "hash": "a7d11efe",
+        "lastModified": "2025-11-27T13:42:40.021Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.localAIForm.advancedOptions": {
+      "zh-CN": {
+        "value": "高级选项",
+        "hash": "10837303",
+        "lastModified": "2025-11-27T13:42:41.952Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Advanced Options",
+        "hash": "9dfc5d57",
+        "lastModified": "2025-11-27T13:42:41.952Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.placeholders.disableRemoteAI": {
+      "zh-CN": {
+        "value": "禁用远程 AI 服务",
+        "hash": "7de93d89",
+        "lastModified": "2025-11-27T13:59:56.287Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Disable remote AI services",
+        "hash": "62b86cc2",
+        "lastModified": "2025-11-27T13:59:56.287Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.info.overview": {
+      "zh-CN": {
+        "value": "静阅提供远程 AI 和本地 AI 两种分析方式，你可以根据需求灵活选择：",
+        "hash": "3b77c9a8",
+        "lastModified": "2025-11-27T14:12:17.537Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Silent Feed offers both remote AI and local AI analysis methods, allowing you to choose flexibly based on your needs:",
+        "hash": "0edd204f",
+        "lastModified": "2025-11-27T14:12:17.538Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.info.remoteTitle": {
+      "zh-CN": {
+        "value": "远程 AI",
+        "hash": "ad8a577b",
+        "lastModified": "2025-11-27T14:12:19.210Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Remote AI",
+        "hash": "4672ee95",
+        "lastModified": "2025-11-27T14:12:19.211Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.info.remoteDesc": {
+      "zh-CN": {
+        "value": "更强大准确，需要 API Key 和网络，按使用量付费",
+        "hash": "6a9efaea",
+        "lastModified": "2025-11-27T14:12:21.365Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "More powerful and accurate, requires an API Key and internet connection, pay-as-you-go",
+        "hash": "831623d6",
+        "lastModified": "2025-11-27T14:12:21.365Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.info.localTitle": {
+      "zh-CN": {
+        "value": "本地 AI",
+        "hash": "54ddf9a4",
+        "lastModified": "2025-11-27T14:12:23.006Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Local AI",
+        "hash": "20d2ced3",
+        "lastModified": "2025-11-27T14:12:23.006Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.info.localDesc": {
+      "zh-CN": {
+        "value": "完全离线，保护隐私，需要本地安装或启用 Chrome AI",
+        "hash": "b76fe1a6",
+        "lastModified": "2025-11-27T14:12:25.565Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Completely offline, protects privacy, requires local installation or enabling Chrome AI.",
+        "hash": "f4574c81",
+        "lastModified": "2025-11-27T14:12:25.565Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.remote.title": {
+      "zh-CN": {
+        "value": "远程 AI 配置",
+        "hash": "695b552e",
+        "lastModified": "2025-11-27T14:12:28.065Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Remote AI Configuration",
+        "hash": "dce8a957",
+        "lastModified": "2025-11-27T14:12:28.065Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.local.title": {
+      "zh-CN": {
+        "value": "本地 AI 配置",
+        "hash": "23956fca",
+        "lastModified": "2025-11-27T14:12:30.003Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Local AI Configuration",
+        "hash": "537dda09",
+        "lastModified": "2025-11-27T14:12:30.003Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.local.checking": {
+      "zh-CN": {
+        "value": "检测中...",
+        "hash": "84561cc4",
+        "lastModified": "2025-11-27T14:12:31.608Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Detecting...",
+        "hash": "cb3f4f76",
+        "lastModified": "2025-11-27T14:12:31.608Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.local.choiceTitle": {
+      "zh-CN": {
+        "value": "本地 AI 类型",
+        "hash": "83d543a8",
+        "lastModified": "2025-11-27T14:12:33.497Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Local AI Type",
+        "hash": "b3ae7f91",
+        "lastModified": "2025-11-27T14:12:33.497Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.local.none": {
+      "zh-CN": {
+        "value": "❌ 不使用本地 AI",
+        "hash": "6ec669a4",
+        "lastModified": "2025-11-27T14:12:35.065Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "❌ Not using local AI",
+        "hash": "d0ebda22",
+        "lastModified": "2025-11-27T14:12:35.065Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.local.chromeAI": {
+      "zh-CN": {
+        "value": "Chrome AI（内置 Gemini Nano）",
+        "hash": "ec68e356",
+        "lastModified": "2025-11-27T14:12:37.137Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Chrome AI (with built-in Gemini Nano)",
+        "hash": "bebbcd11",
+        "lastModified": "2025-11-27T14:12:37.137Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.local.ollama": {
+      "zh-CN": {
+        "value": "Ollama（本地服务）",
+        "hash": "6551b52c",
+        "lastModified": "2025-11-27T14:12:38.974Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Ollama (Local Service)",
+        "hash": "06628391",
+        "lastModified": "2025-11-27T14:12:38.975Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.local.available": {
+      "zh-CN": {
+        "value": "可用",
+        "hash": "ad6b7038",
+        "lastModified": "2025-11-27T14:12:40.716Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Available",
+        "hash": "78945de8",
+        "lastModified": "2025-11-27T14:12:40.716Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.local.howToEnable": {
+      "zh-CN": {
+        "value": "如何启用？",
+        "hash": "5f28e476",
+        "lastModified": "2025-11-27T14:12:42.417Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "How to enable?",
+        "hash": "52924715",
+        "lastModified": "2025-11-27T14:12:42.417Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.local.installOllama": {
+      "zh-CN": {
+        "value": "安装 Ollama",
+        "hash": "f9ca9710",
+        "lastModified": "2025-11-27T14:12:44.200Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Install Ollama",
+        "hash": "32cd2304",
+        "lastModified": "2025-11-27T14:12:44.200Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.local.endpoint": {
+      "zh-CN": {
+        "value": "服务地址",
+        "hash": "f562f75c",
+        "lastModified": "2025-11-27T14:12:45.741Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Service address",
+        "hash": "42fd4991",
+        "lastModified": "2025-11-27T14:12:45.741Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.local.model": {
+      "zh-CN": {
+        "value": "模型选择",
+        "hash": "219d9fca",
+        "lastModified": "2025-11-27T14:12:47.615Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Model Selection",
+        "hash": "2e948be4",
+        "lastModified": "2025-11-27T14:12:47.615Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.local.noModels": {
+      "zh-CN": {
+        "value": "点击右侧测试按钮获取模型列表",
+        "hash": "ddcc41d2",
+        "lastModified": "2025-11-27T14:12:49.659Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Click the test button on the right to get the model list",
+        "hash": "091bd22e",
+        "lastModified": "2025-11-27T14:12:49.659Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.local.selectModel": {
+      "zh-CN": {
+        "value": "请选择模型",
+        "hash": "0e34a1fe",
+        "lastModified": "2025-11-27T14:12:51.369Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Please select a model",
+        "hash": "a7d11efe",
+        "lastModified": "2025-11-27T14:12:51.369Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.local.testAndFetch": {
+      "zh-CN": {
+        "value": "测试连接并获取模型",
+        "hash": "9717b63f",
+        "lastModified": "2025-11-27T14:12:53.219Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Test connection and retrieve model",
+        "hash": "105e5ac4",
+        "lastModified": "2025-11-27T14:12:53.219Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.local.testing": {
+      "zh-CN": {
+        "value": "测试中...",
+        "hash": "6c501b52",
+        "lastModified": "2025-11-27T14:12:54.999Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Testing...",
+        "hash": "9d770c90",
+        "lastModified": "2025-11-27T14:12:54.999Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.local.testSuccess": {
+      "zh-CN": {
+        "value": "测试成功",
+        "hash": "86fecf36",
+        "lastModified": "2025-11-27T14:12:56.900Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Test successful",
+        "hash": "708aab3c",
+        "lastModified": "2025-11-27T14:12:56.900Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.local.temperature": {
+      "zh-CN": {
+        "value": "温度 (0-1)",
+        "hash": "6c4169f7",
+        "lastModified": "2025-11-27T14:12:58.727Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Temperature (0-1)",
+        "hash": "cfe7271a",
+        "lastModified": "2025-11-27T14:12:58.727Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.local.maxTokens": {
+      "zh-CN": {
+        "value": "最大输出 tokens",
+        "hash": "90e351c9",
+        "lastModified": "2025-11-27T14:13:00.586Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Maximum output tokens",
+        "hash": "c33008ae",
+        "lastModified": "2025-11-27T14:13:00.586Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.local.timeout": {
+      "zh-CN": {
+        "value": "超时 (ms)",
+        "hash": "9285ea31",
+        "lastModified": "2025-11-27T14:13:02.208Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Timeout (ms)",
+        "hash": "ffd1ab02",
+        "lastModified": "2025-11-27T14:13:02.208Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.local.advancedOptions": {
+      "zh-CN": {
+        "value": "高级选项",
+        "hash": "10837303",
+        "lastModified": "2025-11-27T14:13:04.170Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Advanced Options",
+        "hash": "9dfc5d57",
+        "lastModified": "2025-11-27T14:13:04.170Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.local.errors.missingEndpoint": {
+      "zh-CN": {
+        "value": "请输入服务地址",
+        "hash": "0d48f8e8",
+        "lastModified": "2025-11-27T14:13:05.862Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Please enter the service address",
+        "hash": "385315f7",
+        "lastModified": "2025-11-27T14:13:05.862Z",
         "status": "ai-translated"
       }
     }

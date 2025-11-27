@@ -1,0 +1,67 @@
+这是我们已经发现的一些问题，需要以后逐一修改：
+
+- [x] 我们的页面学习量由 1000 页降到 100 页，所有文案和逻辑已同步。
+- [x] 推荐任务看起来没有定时执行，根据我们的设计，应该每次推荐一条，这个任务间隔可以短一些。
+  - 已添加 `generate-recommendation` 定时器，每 20 分钟生成 1 条推荐
+- [x] 推理分析现在会将整篇推理输出到日志，我们已经确信推理可以工作了，就不需要输出这个推理了
+  - 已修改为只记录推理内容长度，不输出完整内容
+- [x] 我们有 storage 和 stores 两个类似的目录？
+  - 分析结论：职责不同，不需要合并
+    - `storage/`: IndexedDB 数据库层 (Dexie) + 配置持久化 (chrome.storage)
+    - `stores/`: React UI 状态管理 (Zustand)
+- [x] UI 文案问题（已修复 2025-11-19）
+  - 设置页底部显示 `静阅 - 静阅` 重复 → 改为 `Silent Feed (静阅)`
+  - 弹窗页标题显示两个"静阅" → 副标题改为显示 slogan `让信息流安静下来`
+  - 欢迎标语太普通 → 改为产品 slogan
+  - 提示文字过长换行 → 精简为`开始浏览，自动学习你的兴趣`
+- [x] UI 布局优化（已修复 2025-11-19）
+  - "让信息流安静下来" 出现两次 → 去掉头部副标题，只在欢迎语显示
+  - 欢迎语改为更温暖的"开始你的阅读之旅"
+  - 学习提示改为"我会在后台学习你的兴趣"
+  - 应用名改为居中显示
+- [x] 推荐文章时，如果该文章太老，就不需要分析和推荐，以防有些 RSS 会将很老的文章也列入（已修复 2025-11-19）
+  - 在 pipeline.ts 中添加 30 天过滤逻辑
+- [x] 在学习阶段，分析配置中的智能推荐数量，应该为 0，并说明在探索学习阶段不推荐（已修复 2025-11-19）
+  - 在 CollectionStats.tsx 中添加学习阶段检测
+  - 显示推荐数量为 0 并说明暂不推荐
+- [x] 发现 RSS 后，点击雷达图标应该直接进到设置页的订阅源标签（已修复 2025-11-22）
+  - RSSDiscoveryHint.tsx 中的 URL 从 #rss 改为 #feeds
+  - ColdStartView.tsx 中的 URL 从 #rss 改为 #feeds
+- [x] 手绘风格下，RSS/ATOM 和语言标签字体未使用手绘风格（已修复 2025-11-22）
+  - RSSSettings 组件添加 isSketchyStyle prop 支持
+  - RSS/ATOM 徽章和语言标签根据主题动态应用 sketchy-text 类
+  - 统一标签尺寸为 text-xs（从 text-[10px] 改为 text-xs）
+- [x] 弹窗雷达图标点击问题和手绘风格布局拥挤（已修复 2025-11-22）
+  - 标准风格下雷达图标现在也可点击跳转到 Feeds 标签
+  - 统一手绘和标准风格使用相同的圆环进度布局
+  - CircularProgress 组件添加 isSketchyStyle、onIconClick、iconClickable 支持
+  - 移除手绘风格拥挤的旧布局，保留手绘视觉样式（sketchy-emoji、sketchy-text、sketchy-badge、sketchy-card）
+- [x] 在学习阶段，扩展图标不能在显示了其它状态后恢复到阴影覆盖表示学习进度的样式（已修复 2025-11-22）
+  - 修复 IconManager 在停止动画后未重置 currentState 的问题
+  - stopDiscoverAnimation() 和 stopFetchingAnimation() 现在会将状态重置为 'static'
+  - updateIcon() 能正确根据当前实际情况（学习进度/推荐数）显示对应状态
+- [x] 弹窗内的条目在点击某条不想读之后，新填充的条目并不是按推荐比例倒序排列的。（已修复 2025-11-24）
+  - 在 dismissSelected() 和 markAsRead() 中添加排序逻辑
+  - 获取 maxRecommendations * 2 条推荐后按 score 倒序排列再切片
+  - 与 loadRecommendations() 保持一致的排序行为
+- [x] "❌ 推荐生成失败: 没有可用的RSS文章数据，请先订阅一些RSS源"这个消息不应该是错误，而应该是一个不打扰用户的警告，可以在弹窗里面的所有推荐条目全部消失后，要么推荐用户手动分析，要么告知用户没有足够的 RSS。（已修复 2025-11-24）
+  - RecommendationService 返回空结果和提示信息，而非抛出错误
+  - recommendationStore 区分"无数据"和"真实错误"
+  - 无数据时不设置 error 状态，让 UI 显示友好的空状态引导
+  - 用户可选择"立即生成推荐"或继续浏览
+- [ ] 验证 RSS 源时，如果 404 找不到，直接略过，无需报错
+- [x] 标准风格下，弹窗在学习阶段的设置按钮宽度太宽，占满了弹窗宽度（已修复 2025-11-25）
+  - 移除标准风格设置按钮的 w-full 类
+  - 添加居中布局 flex justify-center
+  - 调整按钮 padding 为 px-6（从 px-4）
+- [x] 本地 Ollama 返回 403 错误（已修复 2025-11-27）
+  - **根本原因**: Ollama 默认拒绝 `chrome-extension://` 来源的 CORS 请求
+  - **验证**: `curl -H "Origin: chrome-extension://test" http://localhost:11434/api/tags` 返回 403
+  - **解决方案**: 使用 declarativeNetRequest API 移除 Origin 和 Referer 请求头
+  - **实现**: 创建 `public/dnr-rules.json` 配置 DNR 规则，自动移除本地 AI 请求的 CORS 头
+  - **参考**: yesterday 项目提交 6a21608 "终于让后台支持了 ollama"
+  - **优势**: 
+    - 无需修改 Ollama 服务器配置
+    - 无需用户手动配置环境变量
+    - 使用 MV3 标准 API（declarativeNetRequest）
+    - 比 webRequest 更高效且不需要 blocking 权限
