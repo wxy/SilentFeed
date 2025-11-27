@@ -33,6 +33,11 @@ function IndexOptions() {
   const { _ } = useI18n()
   useTheme() // 自动跟随系统主题
   
+  // 设置页面标题
+  useEffect(() => {
+    document.title = _("settings.title") || "Silent Feed - Settings"
+  }, [_])
+  
   // 从 URL 参数或 hash 获取初始标签，默认为 preferences
   const getInitialTab = (): TabKey => {
     // 优先从 hash 读取（支持 #rss 这种格式）
