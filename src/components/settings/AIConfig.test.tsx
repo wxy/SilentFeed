@@ -83,7 +83,8 @@ describe("AIConfig", () => {
     it("应该渲染 AI 配置界面", () => {
       render(<AIConfig />)
       
-      expect(screen.getByText(/AI Configuration/)).toBeInTheDocument()
+      // 使用更具体的标题（页面主标题）
+      expect(screen.getByRole("heading", { name: /\ud83e\udd16 AI Configuration/ })).toBeInTheDocument()
       expect(screen.getByLabelText("Select AI Model")).toBeInTheDocument()
     })
     
@@ -95,10 +96,9 @@ describe("AIConfig", () => {
         expect(screen.getByLabelText("Select AI Model")).toBeInTheDocument()
       })
       
-      const select = screen.getByLabelText("Select AI Model")
-      
       // 检查选项（现在是按模型分组）
-      expect(screen.getByRole("option", { name: /Please select/ })).toBeInTheDocument()
+      // 检查禁用选项
+      expect(screen.getByRole("option", { name: /Disable remote AI/ })).toBeInTheDocument()
       // DeepSeek 组
       expect(screen.getByRole("option", { name: /DeepSeek/ })).toBeInTheDocument()
       // OpenAI 组（包含多个模型）
@@ -178,7 +178,16 @@ describe("AIConfig", () => {
           },
           enabled: true,
           monthlyBudget: 5,
-          enableReasoning: false
+          enableReasoning: false,
+          local: {
+            enabled: false,
+            provider: "ollama",
+            endpoint: "http://localhost:11434/v1",
+            model: "",
+            temperature: 0.2,
+            maxOutputTokens: 768,
+            timeoutMs: 45000
+          }
         })
       })
       
@@ -186,7 +195,7 @@ describe("AIConfig", () => {
       expect(screen.getByText(/Configuration saved successfully!/)).toBeInTheDocument()
     })
     
-    it("API Key 为空时保存按钮应该被禁用", async () => {
+    it("API Key 为空时应该显示错误消息", async () => {
       render(<AIConfig />)
       
       // 选择 DeepSeek 模型
@@ -196,14 +205,16 @@ describe("AIConfig", () => {
       // 等待 UI 渲染
       await screen.findByLabelText(/API Key/)
       
-      // 不输入 API Key
+      // 不输入 API Key，直接保存
       const saveButton = screen.getByText("Save Configuration")
-      
-      // 保存按钮应该被禁用
-      expect(saveButton).toBeDisabled()
-      
-      // 点击不应该有反应
       fireEvent.click(saveButton)
+      
+      // 应该显示错误消息
+      await waitFor(() => {
+        expect(screen.getByText(/Please enter the API Key/)).toBeInTheDocument()
+      })
+      
+      // 不应该调用保存函数
       expect(aiConfigModule.saveAIConfig).not.toHaveBeenCalled()
     })
   })
@@ -299,7 +310,7 @@ describe("AIConfig", () => {
   })
   
   describe("禁用 AI", () => {
-    it("应该禁用已配置的 AI", async () => {
+    it("选择空项时应该显示错误消息", async () => {
       vi.mocked(aiConfigModule.getAIConfig).mockResolvedValue({
         model: "deepseek-chat",
         apiKeys: {
@@ -317,24 +328,18 @@ describe("AIConfig", () => {
         expect(screen.getByLabelText(/API Key/)).toBeInTheDocument()
       })
       
-      // 点击禁用 AI
-      const disableButton = screen.getByText("Disable AI")
-      fireEvent.click(disableButton)
+      // 通过下拉选择禁用远程 AI
+      const select = screen.getByLabelText("Select AI Model")
+      fireEvent.change(select, { target: { value: "" } })
       
-      // 验证 saveAIConfig 被正确调用
-      await waitFor(
-        () => {
-          expect(aiConfigModule.saveAIConfig).toHaveBeenCalledWith({
-            provider: null,
-            model: undefined,
-            apiKeys: {},
-            enabled: false,
-            monthlyBudget: 5,
-            enableReasoning: false
-          })
-        },
-        { timeout: 3000 }
-      )
+      // 点击保存
+      const saveButton = screen.getByText("Save Configuration")
+      fireEvent.click(saveButton)
+      
+      // 应该显示错误消息
+      await waitFor(() => {
+        expect(screen.getByText(/Please select an AI model/)).toBeInTheDocument()
+      })
     })
   })
   
@@ -342,11 +347,13 @@ describe("AIConfig", () => {
     it("应该显示关于 AI 分析的提示信息", () => {
       render(<AIConfig />)
       
+      // 检查新的两栏布局提示
       expect(screen.getByText(/About AI Analysis/)).toBeInTheDocument()
-      expect(screen.getByText(/After configuration/)).toBeInTheDocument()
-      expect(screen.getByText(/Not configured/)).toBeInTheDocument()
-      expect(screen.getByText(/Downgrade strategy/)).toBeInTheDocument()
+      // 使用 getAllByText 来处理多次出现的文本
+      expect(screen.getAllByText(/Remote AI/).length).toBeGreaterThan(0)
+      expect(screen.getAllByText(/Local AI/).length).toBeGreaterThan(0)
+      expect(screen.getByText(/More powerful and accurate/)).toBeInTheDocument()
+      expect(screen.getByText(/Completely offline/)).toBeInTheDocument()
     })
-    
-    })
-})  
+  })
+})

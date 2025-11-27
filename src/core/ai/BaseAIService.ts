@@ -242,8 +242,7 @@ export abstract class BaseAIService implements AIProvider {
           timestamp: Date.now(),
           tokensUsed: {
             input: response.tokensUsed.input,
-            output: response.tokensUsed.output,
-            total: response.tokensUsed.input + response.tokensUsed.output
+            output: response.tokensUsed.output
           },
           basedOn: {
             browses: request.totalCounts?.browses || 0,
