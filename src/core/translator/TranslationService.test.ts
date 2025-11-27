@@ -7,7 +7,9 @@ import { TranslationService } from './TranslationService'
 
 // Mock getAIConfig
 vi.mock('@/storage/ai-config', () => ({
-  getAIConfig: vi.fn()
+  getAIConfig: vi.fn(),
+  getEngineAssignment: vi.fn().mockResolvedValue(null),
+  saveEngineAssignment: vi.fn().mockResolvedValue(undefined),
 }))
 
 // Mock logger

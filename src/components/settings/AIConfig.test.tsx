@@ -8,6 +8,8 @@ vi.mock("@/storage/ai-config", () => ({
   getAIConfig: vi.fn(),
   saveAIConfig: vi.fn(),
   validateApiKey: vi.fn(),
+  getEngineAssignment: vi.fn().mockResolvedValue(null),
+  saveEngineAssignment: vi.fn().mockResolvedValue(undefined),
   getProviderFromModel: vi.fn((modelId: string) => {
     if (modelId.startsWith("deepseek")) return "deepseek"
     if (modelId.startsWith("gpt-") || modelId.startsWith("o4-")) return "openai"

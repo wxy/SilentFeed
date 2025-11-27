@@ -45,6 +45,8 @@ vi.mock("@/storage/onboarding-state", () => ({
 vi.mock("@/storage/ai-config", () => ({
   getAIConfig: vi.fn().mockResolvedValue(null),
   saveAIConfig: vi.fn(),
+  getEngineAssignment: vi.fn().mockResolvedValue(null),
+  saveEngineAssignment: vi.fn().mockResolvedValue(undefined),
   validateApiKey: vi.fn().mockReturnValue(true),
   getProviderFromModel: vi.fn().mockReturnValue("openai"),
   AVAILABLE_MODELS: {

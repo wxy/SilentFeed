@@ -86,4 +86,3 @@
     - 优化: isAvailable() 初始化时已测试并确定最佳模式，callChatAPI 直接使用
     - 保留: legacy 模式内的 /api/chat → /api/generate 降级（合理功能）
     - 移除: 跨模式 fallback 重试，避免不必要的延迟
-    

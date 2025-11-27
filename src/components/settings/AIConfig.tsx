@@ -1,9 +1,11 @@
 import { useI18n } from "@/i18n/helpers"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import {
   getAIConfig,
   saveAIConfig,
   validateApiKey,
+  getEngineAssignment,
+  saveEngineAssignment,
   type AIProviderType,
   type LocalAIConfig,
   AVAILABLE_MODELS,
@@ -12,6 +14,8 @@ import {
 import { aiManager } from "@/core/ai/AICapabilityManager"
 import { checkLocalAIStatus } from "@/storage/recommendation-config"
 import { listLocalModels, type LocalAIEndpointMode, type LocalModelSummary } from "@/utils/local-ai-endpoint"
+import { AIEngineAssignmentComponent } from "@/components/settings/AIEngineAssignment"
+import type { AIEngineAssignment as AIEngineAssignmentType } from "@/types/ai-engine-assignment"
 
 const DEFAULT_LOCAL_CONFIG: LocalAIConfig = {
   enabled: false,
@@ -59,6 +63,9 @@ export function AIConfig() {
     available: false,
     services: []
   })
+
+  // Phase 8: AI 引擎分配
+  const [engineAssignment, setEngineAssignment] = useState<AIEngineAssignmentType | null>(null)
   const [localModels, setLocalModels] = useState<LocalModelSummary[]>([])
   const [localModelsMode, setLocalModelsMode] = useState<LocalAIEndpointMode | null>(null)
   const [isFetchingLocalModels, setIsFetchingLocalModels] = useState(false)
@@ -124,6 +131,11 @@ export function AIConfig() {
       : createDefaultLocalConfig()
     setLocalConfig(mergedLocal)
     setLocalAIChoice(mergedLocal.enabled ? 'ollama' : 'none')
+
+    // Phase 8: 加载 AI 引擎分配配置
+    getEngineAssignment().then(assignment => {
+      setEngineAssignment(assignment)
+    })
     })
   }, [])
 
@@ -154,7 +166,12 @@ export function AIConfig() {
     }
   }, [])
 
-  const refreshLocalModels = useCallback(async () => {
+  // 缓存模型列表请求结果，避免短时间内重复请求
+  const lastFetchRef = useRef<{ endpoint: string; apiKey: string; timestamp: number } | null>(null)
+  const fetchingRef = useRef(false) // 防止并发请求
+  const CACHE_DURATION = 3000 // 3秒缓存
+
+  const refreshLocalModels = useCallback(async (forceRefresh = false) => {
     if (!localConfig.endpoint?.trim()) {
       setLocalModels([])
       setLocalModelsMode(null)
@@ -162,6 +179,25 @@ export function AIConfig() {
       return
     }
 
+    // 防止并发请求
+    if (fetchingRef.current && !forceRefresh) {
+      console.log('[AIConfig] 跳过重复的模型列表请求（已在请求中）')
+      return
+    }
+
+    // 检查缓存：如果 endpoint 和 apiKey 相同，且在缓存时间内，跳过请求
+    const now = Date.now()
+    const lastFetch = lastFetchRef.current
+    if (!forceRefresh && lastFetch &&
+        lastFetch.endpoint === localConfig.endpoint &&
+        lastFetch.apiKey === (localConfig.apiKey || '') &&
+        (now - lastFetch.timestamp) < CACHE_DURATION) {
+      console.log('[AIConfig] 使用缓存的模型列表，跳过请求')
+      return // 使用缓存的模型列表
+    }
+
+    console.log('[AIConfig] 开始获取模型列表', { forceRefresh, endpoint: localConfig.endpoint })
+    fetchingRef.current = true
     setIsFetchingLocalModels(true)
     setLocalModelsError(null)
 
@@ -170,7 +206,16 @@ export function AIConfig() {
       setLocalModelsMode(mode)
       setLocalModels(models)
 
-      if (models.length && (!localConfig.model || !models.some(m => m.id === localConfig.model))) {
+      // 更新缓存
+      lastFetchRef.current = {
+        endpoint: localConfig.endpoint,
+        apiKey: localConfig.apiKey || '',
+        timestamp: now
+      }
+
+      // 只在模型列表中没有当前选中的模型时才自动选择第一个
+      // 避免循环更新
+      if (models.length > 0 && !models.some(m => m.id === localConfig.model)) {
         setLocalConfig(prev => ({ ...prev, model: models[0].id }))
       }
     } catch (error) {
@@ -179,15 +224,25 @@ export function AIConfig() {
       setLocalModelsError(error instanceof Error ? error.message : String(error))
     } finally {
       setIsFetchingLocalModels(false)
+      fetchingRef.current = false
     }
-  }, [localConfig.endpoint, localConfig.apiKey, _])
+  }, [localConfig.endpoint, localConfig.apiKey, localConfig.model, _])
+
+  // 保持最新的 refreshLocalModels 引用
+  const refreshLocalModelsRef = useRef(refreshLocalModels)
+  useEffect(() => {
+    refreshLocalModelsRef.current = refreshLocalModels
+  }, [refreshLocalModels])
 
   // 自动加载本地 AI 模型列表（页面加载时）
+  // 使用 ref 追踪是否已经自动加载过，避免重复触发
+  const hasAutoLoadedRef = useRef(false)
   useEffect(() => {
-    if (localAIChoice === 'ollama' && localConfig.endpoint?.trim()) {
-      refreshLocalModels()
+    if (localAIChoice === 'ollama' && localConfig.endpoint?.trim() && !hasAutoLoadedRef.current) {
+      hasAutoLoadedRef.current = true
+      refreshLocalModelsRef.current()
     }
-  }, [localAIChoice, localConfig.endpoint, refreshLocalModels])
+  }, [localAIChoice, localConfig.endpoint])
 
   // 测试连接
   const handleTest = async () => {
@@ -287,6 +342,12 @@ export function AIConfig() {
       enableReasoning,
       local: buildLocalConfigForSave()
     })
+    
+    // Phase 8: 保存 AI 引擎分配配置
+    if (engineAssignment) {
+      await saveEngineAssignment(engineAssignment)
+    }
+    
     setMessage({ type: "success", text: _("options.aiConfig.messages.saveSuccess") })
     } catch (error) {
     setMessage({
@@ -665,7 +726,7 @@ export function AIConfig() {
                     setIsFetchingLocalModels(true)
                     setLocalModelsError(null)
                     setLocalTestSuccess(false)
-                    await refreshLocalModels()
+                    await refreshLocalModels(true) // 强制刷新，绕过缓存
                     setLocalTestSuccess(true)
                     setTimeout(() => setLocalTestSuccess(false), 3000)
                   } catch (error) {
@@ -798,6 +859,16 @@ export function AIConfig() {
       )}
     </div>
   </div>
+
+  {/* Phase 8: AI 引擎分配 */}
+  {engineAssignment && (
+    <div className="mt-6">
+      <AIEngineAssignmentComponent
+        value={engineAssignment}
+        onChange={setEngineAssignment}
+      />
+    </div>
+  )}
 
   {/* 底部统一保存按钮 */}
   <div className="flex flex-col items-center gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
