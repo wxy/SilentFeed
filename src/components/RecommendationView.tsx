@@ -162,23 +162,27 @@ export function RecommendationView() {
     try {
       recViewLogger.debug(`点击不想读: ${recId}`)
       
+      // 立即添加视觉反馈：降低透明度，表示正在处理
+      const element = (event.target as HTMLElement).closest('article') as HTMLElement
+      if (element) {
+        element.style.opacity = '0.6'
+        element.style.pointerEvents = 'none'
+      }
+      
       // Phase 6: 跟踪单个不想读
       await trackDismiss()
       
-      // 调用store的dismissSelected方法来真正删除推荐
+      // 调用store的dismissSelected方法
+      // Store会自动：
+      // 1. 标记为不想读
+      // 2. 重新加载推荐列表（移除已拒绝的，添加新的）
+      // 3. React会自动重新渲染，条目会立即从列表消失并被新推荐替换
       recViewLogger.debug(`开始标记为不想读: ${recId}`)
       await dismissSelected([recId])
-      recViewLogger.info(`✅ 标记不想读完成: ${recId}`)
+      recViewLogger.info(`✅ 标记不想读完成，列表已自动更新: ${recId}`)
       
     } catch (error) {
       recViewLogger.error('❌ 标记不想读失败:', error)
-      
-      // 如果删除失败，给用户提示
-      const element = event.currentTarget.closest('[data-recommendation-id]')
-      if (element) {
-        ;(element as HTMLElement).style.opacity = '0.3'
-        ;(element as HTMLElement).style.pointerEvents = 'none'
-      }
     }
   }
 

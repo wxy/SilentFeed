@@ -259,8 +259,8 @@
       "recommendedLabel": "Recommend",
       "currentLabel": "Current",
       "hint": {
-        "recommendation": "💡 The recommendation system supports 4 types of engines: Remote AI, Inference AI, Local AI, and Pure Keywords.",
-        "feed": "💡 Feed analysis supports 3 types of engines: Remote AI, Local AI, and Pure Keywords (does not support inference mode, considering cost and speed factors)"
+        "recommendation": "💡 The recommendation system supports three AI engines: Remote AI, Inference AI, and Local AI (Remote AI is used by default).",
+        "feed": "💡 Feed analysis supports 2 AI engines: Remote AI, Local AI (reasoning mode not supported due to cost and speed considerations)"
       },
       "label": "Analytical Engine",
       "desc": {
@@ -277,7 +277,22 @@
       },
       "feedTitle": "Article Analysis Engine",
       "feedDescription": "Select the analysis engine to be used uniformly for all feeds (reasoning mode is not supported to control costs).",
-      "recommendationTitle": "Article Recommendation Engine"
+      "recommendationTitle": "Article Recommendation Engine",
+      "noAIAvailable": {
+        "title": "No available AI engine detected.",
+        "description": "Silent Feed is an AI-driven reader that requires configuring an AI engine to use recommendation features.",
+        "hint": "Please first configure a remote AI (OpenAI/DeepSeek) or install a local AI (Ollama) on the \"AI Engine\" page."
+      },
+      "localAINotReadyTitle": "Local AI is not ready yet.",
+      "localAINotReadyHint": "Please go to the \"AI Engine\" panel to complete the local configuration or ensure the Ollama service is started.",
+      "localAIStatus": {
+        "notEnabled": "Not yet enabled local AI on the \"AI Engine\" page",
+        "missingEndpoint": "Missing local service address, please fill in the Ollama interface URL",
+        "missingModel": "Missing model name, please enter the downloaded model ID",
+        "ollamaOffline": "Unable to connect to Ollama. Please ensure the service is started and running.",
+        "chromeOffline": "Chrome AI not detected. Please check your browser version and enable experimental features.",
+        "generic": "Local AI is currently unavailable, please check the configuration or try again later."
+      }
     },
     "stats": {
       "noData": "No data available",
@@ -420,16 +435,32 @@
       "learningStageTitle": "Exploration Learning Phase",
       "learningStageHint": "Currently viewed {{current}}/{{total}} pages, continue browsing to complete interest learning",
       "recommendationCount": "Intelligent Recommendation Quantity",
-      "learningStageNote": "Not recommended during the exploration phase, focusing on learning your interests."
+      "learningStageNote": "Not recommended during the exploration phase, focusing on learning your interests.",
+      "rssArticleCountLabel": "Total number of RSS articles",
+      "rssArticleCountHint": "Total number of articles from all feeds",
+      "recommendationFunnelTitle": "Recommended Filter Funnel",
+      "recommendationFunnelNoData": "No recommended data available",
+      "funnelTotal": "Total number of RSS articles",
+      "funnelAnalyzed": "Articles analyzed",
+      "funnelRecommended": "Enter the recommendation pool",
+      "funnelRead": "Read",
+      "funnelDismissed": "Don't feel like reading",
+      "analysisRate": "Analysis rate",
+      "recommendationRate": "Recommendation rate",
+      "recommendationFunnelUniverse": "Internet",
+      "recommendationFunnelArticles": "Article",
+      "recommendationFunnelRecommendations": "Recommend",
+      "recommendationFunnelReading": "Read",
+      "recommendationFunnelInfinitySymbol": "∞"
     },
     "userProfile": {
       "alerts": {
-        "rebuildSuccess": "User profile reconstruction successful!",
-        "rebuildFailed": "Rebuild failed, please try again later."
+        "rebuildSuccess": "Portrait reconstruction successful!",
+        "rebuildFailed": "Portrait reconstruction failed, please try again later."
       },
       "noData": {
-        "message": "There is not enough browsing data to build a user profile.",
-        "hint": "Continue browsing content of interest, and the system will automatically analyze your preferences.",
+        "message": "There is not enough data yet to build your interest profile.",
+        "hint": "Start browsing content you're interested in, and I'll automatically learn your preferences.",
         "tip": "💡 No need to wait for 100 pages, just a few valid records are enough to generate a profile."
       },
       "lastUpdated": {
@@ -439,14 +470,16 @@
       },
       "updateTime": {
         "label": "Profile Update Time",
-        "basedOn": "Based on {{count}} page analysis"
+        "basedOn": "Based on {{count}} pages"
       },
       "analysisQuality": {
         "label": "Analysis Quality",
-        "aiAnalysis": "AI Analysis ({{provider}})",
+        "aiAnalysis": "{{provider}} AI Analysis",
         "keywordAnalysis": "Keyword Analysis",
-        "aiHint": "✨ Using AI Semantic Understanding",
-        "keywordHint": "📝 Using traditional keyword extraction"
+        "aiHint": "Using AI for Deep Semantic Understanding",
+        "keywordHint": "📝 Using traditional keyword extraction",
+        "notConfigured": "AI not configured",
+        "configureHint": "After configuring AI, you will receive more accurate recommendations."
       },
       "aiPrompt": {
         "title": "Upgrade to AI analysis for more accurate profiling.",
@@ -487,6 +520,11 @@
         "noData": "No keyword data available",
         "weightLabel": "Weight: {{weight}}",
         "hint": "💡 Keyword size represents weight, hover to view detailed weight values"
+      },
+      "actions": {
+        "rebuild": "Rebuild Profile",
+        "rebuilding": "Rebuilding...",
+        "rebuildComplete": "Rebuild completed"
       }
     },
     "aiConfig": {
@@ -550,7 +588,12 @@
         "withConfig": "After configuration: Prioritize AI analysis (more accurate, paid)",
         "withoutConfig": "Not configured: Use free keyword analysis (available but with lower accuracy)",
         "fallback": "Downgrade strategy: Automatically fall back to keyword analysis when API fails or exceeds budget.",
-        "privacy": "Privacy Protection: All data processing is done locally, and API Keys are stored encrypted."
+        "privacy": "Privacy Protection: All data processing is done locally, and API Keys are stored encrypted.",
+        "overview": "Silent Feed offers both remote AI and local AI analysis methods, allowing you to choose flexibly based on your needs:",
+        "remoteTitle": "Remote AI",
+        "remoteDesc": "More powerful and accurate, requires an API Key and internet connection, pay-as-you-go",
+        "localTitle": "Local AI",
+        "localDesc": "Completely offline, protects privacy, requires local installation or enabling Chrome AI."
       },
       "cost": {
         "title": "Cost Reference (per million tokens)",
@@ -591,7 +634,8 @@
       "placeholders": {
         "apiKey": "Enter your API Key",
         "model": "Select Model (Optional, leave blank to use default model)",
-        "selectModel": "Please select an AI model"
+        "selectModel": "Please select an AI model",
+        "disableRemoteAI": "Disable remote AI services"
       },
       "hints": {
         "apiKey": "The API Key will be encrypted and stored locally in the browser, and will not be uploaded to the server."
@@ -641,14 +685,50 @@
         "ollama": {
           "feature1": "Supports multiple open-source models (Llama, Qwen, Gemma, etc.)",
           "feature2": "Data is processed entirely locally, ensuring privacy protection.",
-          "feature3": "You need to install the Ollama service (ollama.com) yourself."
+          "feature3": "Requires installing the Ollama service (ollama.com)."
         },
         "chromeAI": {
-          "feature1": "Chrome has a built-in Gemini Nano model",
-          "feature2": "No additional installation required, ready to use out of the box.",
-          "feature3": "Only supports Chrome 128+ and requires experimental features to be enabled"
+          "feature1": "Chrome ships with the Gemini Nano model",
+          "feature2": "No extra installation, ready to use immediately.",
+          "feature3": "Only supported on Chrome 128+ with experimental flags enabled."
         },
-        "hint": "Local AI performance is affected by device configuration. It is recommended to use only when no remote AI configuration is available."
+        "hint": "Local AI performance depends on your device. Consider using it when remote AI is unavailable."
+      },
+      "localAIForm": {
+        "endpoint": "Service address",
+        "endpointHint": "Default http://localhost:11434/v1 (OpenAI compatible), also supports http://localhost:11434/api",
+        "apiKey": "Access Token (Bearer Token)",
+        "apiKeyHint": "To enable the Ollama OpenAI-compatible interface, a Bearer Token is required, with the default value being \"ollama\".",
+        "apiKeyPlaceholder": "For example, ollama or custom tokens",
+        "model": "Default model",
+        "modelPlaceholder": "Click the refresh button on the right to get available models.",
+        "modelHint": "Use `ollama list` to view downloaded models, such as qwen2.5:7b",
+        "temperature": "Temperature (0-1)",
+        "maxTokens": "Maximum output tokens",
+        "timeout": "Timeout (ms)",
+        "buttons": {
+          "test": "Test connection and retrieve model",
+          "testing": "Testing...",
+          "refreshModels": "Refresh model list",
+          "refreshingModels": "Refreshing..."
+        },
+        "errors": {
+          "missingEndpoint": "Please enter the Ollama service address",
+          "missingModel": "Please enter the model name"
+        },
+        "messages": {
+          "testSuccess": "Test successful",
+          "testFailed": "Local AI connection failed: {{error}}"
+        },
+        "mode": {
+          "openai": "Connected: OpenAI-compatible /v1 interface (requires authorization)",
+          "legacy": "Connected: Traditional /api Interface"
+        },
+        "modelListError": "Failed to retrieve model list: {{error}}",
+        "note": "💡 After saving, you can select the \"Local AI\" analysis engine in the recommendation settings.",
+        "modelListSuccess": "{{count}} available models have been obtained",
+        "selectModel": "Please select a model",
+        "advancedOptions": "Advanced Options"
       },
       "tfidf": {
         "intro": "TF-IDF is a classic text analysis algorithm used as a fallback solution for AI:",
@@ -732,6 +812,34 @@
         "claude-3-5-sonnet": {
           "name": "Claude 3.5 Sonnet",
           "description": "Balancing performance and cost (Recommended)"
+        }
+      },
+      "remote": {
+        "title": "Remote AI Configuration"
+      },
+      "local": {
+        "title": "Local AI Configuration",
+        "checking": "Detecting...",
+        "choiceTitle": "Local AI Type",
+        "none": "❌ Not using local AI",
+        "chromeAI": "Chrome AI (with built-in Gemini Nano)",
+        "ollama": "Ollama (Local Service)",
+        "available": "Available",
+        "howToEnable": "How to enable?",
+        "installOllama": "Install Ollama",
+        "endpoint": "Service address",
+        "model": "Model Selection",
+        "noModels": "Click the test button on the right to get the model list",
+        "selectModel": "Please select a model",
+        "testAndFetch": "Test connection and retrieve model",
+        "testing": "Testing...",
+        "testSuccess": "Test successful",
+        "temperature": "Temperature (0-1)",
+        "maxTokens": "Maximum output tokens",
+        "timeout": "Timeout (ms)",
+        "advancedOptions": "Advanced Options",
+        "errors": {
+          "missingEndpoint": "Please enter the service address"
         }
       }
     },
@@ -889,7 +997,7 @@
       "basedOnPages": "Based on {{count}} pages",
       "lastUpdated": "Last updated",
       "aiProfile": {
-        "title": "AI Semantic Profiling",
+        "title": "AI Interest Profile",
         "understanding": "AI's Understanding of You",
         "understandingHint": "Beyond Keywords, Deep Semantic Analysis",
         "accumulating": "AI semantic profiling is accumulating data.",
@@ -904,7 +1012,7 @@
         "benefit2": "<strong>Preference Recognition</strong>: Accurately identifies the types and styles of content you like.",
         "benefit3": "<strong>Smart Filtering</strong>: Automatically excludes topics of no interest",
         "preferences": "Your preferred content types",
-        "avoidTopics": "Topics of no interest",
+        "avoidTopics": "Avoid topics",
         "items": "{{count}} items",
         "dataSource": "Data Sources and Costs",
         "browses": "{{count}} page views",
@@ -914,7 +1022,14 @@
         "primaryTopic": "Dominant Interest",
         "viewDetails": "View detailed data →",
         "configureAI": "Configure AI Now",
-        "recommendDeepSeek": "Recommended to use DeepSeek (cost as low as ¥0.0001 per request)"
+        "recommendDeepSeek": "Recommended to use DeepSeek (cost as low as ¥0.0001 per request)",
+        "contentPreferences": "Content Preferences",
+        "notConfiguredTitle": "AI portrait has not been generated yet.",
+        "notConfiguredDescription": "The system will automatically generate an AI profile after accumulating sufficient data, or you can first configure the AI engine and manually rebuild the profile.",
+        "generatingTitle": "AI Image Generation",
+        "generatingDescription": "The system is analyzing your browsing history to generate a personalized interest profile...",
+        "configureStep1": "First, configure AI on the \"AI Engine\" page.",
+        "configureStep2": "Then click the \"Rebuild Profile\" button below."
       },
       "detailedAnalysis": {
         "title": "Detailed Data Analysis",
@@ -923,7 +1038,14 @@
         "browses": "{{count}} views",
         "reads": "{{count}} reads",
         "dismisses": "{{count}} refused"
+      },
+      "basicStats": {
+        "title": "Basic Statistics",
+        "totalPages": "Number of pages viewed"
       }
+    },
+    "myData": {
+      "title": "System Data"
     }
   },
   "onboarding": {

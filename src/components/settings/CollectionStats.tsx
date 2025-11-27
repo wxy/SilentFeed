@@ -1,49 +1,36 @@
 /**
- * 采集统计组件
+ * 采集统计组件 (Phase 10.2: AI First 优化版)
  *
  * 展示数据采集相关的统计信息：
  * - 页面采集数量
- * - 文本分析结果（Phase 3 完成后）
- * - 用户画像数据（Phase 3 完成后）
+ * - RSS 文章总数 (NEW)
+ * - 推荐筛选漏斗 (NEW)
+ * - AI 成本统计
  * - 存储占用
+ * - 数据管理
  *
- * 注意：不包括推荐相关数据，推荐数据在 RecommendationStats 组件中
+ * 移除项（AI First 简化）：
+ * - 文本分析统计（关键词提取）
+ * - AI 分析占比展示
  */
 
 import React, { useEffect, useState } from "react"
 import { useI18n } from "@/i18n/helpers"
-import { getStorageStats, getAnalysisStats, getAIAnalysisStats, getRecommendationStats, db, getPageCount } from "@/storage/db"
+import {
+  getStorageStats,
+  getAIAnalysisStats,
+  db,
+  getPageCount,
+  getRecommendationFunnel
+} from "@/storage/db"
 import { dataMigrator } from "@/core/migrator/DataMigrator"
 import { ProfileUpdateScheduler } from "@/core/profile/ProfileUpdateScheduler"
-import type { StorageStats, RecommendationStats } from "@/types/database"
-import { AnalysisDebugger } from "@/debug/AnalysisDebugger"
-import { profileManager } from "@/core/profile/ProfileManager"
+import type { StorageStats } from "@/types/database"
 import { LEARNING_COMPLETE_PAGES } from "@/constants/progress"
 import { getAIConfig, getProviderDisplayName } from "@/storage/ai-config"
 import { logger } from "@/utils/logger"
 
 const collectionLogger = logger.withTag("CollectionStats")
-
-/**
- * 获取语言名称的国际化文本
- * 使用翻译键，根据当前界面语言显示对应的语言名称
- * 例如：中文界面显示"中文""英文"，英文界面显示"Chinese""English"
- */
-function getLanguageName(langCode: string, _: (key: string) => string): string {
-  const langMap: Record<string, string> = {
-    'zh-CN': _("options.collectionStats.languages.zhCN"),
-    'zh': _("options.collectionStats.languages.zh"),
-    'en': _("options.collectionStats.languages.en"),
-    'ja': _("options.collectionStats.languages.ja"),
-    'fr': _("options.collectionStats.languages.fr"),
-    'de': _("options.collectionStats.languages.de"),
-    'es': _("options.collectionStats.languages.es"),
-    'ko': _("options.collectionStats.languages.ko"),
-    'other': _("options.collectionStats.languages.other")
-  }
-  // 如果找不到，使用 other 作为默认值
-  return langMap[langCode] || _("options.collectionStats.languages.other")
-}
 
 /**
  * 获取AI提供者名称的国际化文本
@@ -62,12 +49,8 @@ export function CollectionStats() {
   const { _ } = useI18n()
   const [stats, setStats] = useState<StorageStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [analysisStats, setAnalysisStats] = useState<any>(null)
   const [aiQualityStats, setAiQualityStats] = useState<any>(null)
-  const [migrationStats, setMigrationStats] = useState<any>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [isRebuildingProfile, setIsRebuildingProfile] = useState(false)
-  const [recommendationStats, setRecommendationStats] = useState<RecommendationStats | null>(null)
   const [aiConfigStatus, setAiConfigStatus] = useState<{
     enabled: boolean
     provider: string
@@ -78,27 +61,36 @@ export function CollectionStats() {
     configured: false
   })
   const [pageCount, setPageCount] = useState<number>(0)
-  const [isLearningStage, setIsLearningStage] = useState<boolean>(false)
+  const [recommendationFunnel, setRecommendationFunnel] = useState<{
+    rssArticles: number
+    inPool: number
+    notified: number
+    read: number
+    learningPages: number
+    dismissed: number
+  } | null>(null)
 
   useEffect(() => {
     const loadStats = async () => {
       try {
-        const [storageData, analysisData, aiQualityData, migrationData, aiConfig, recommendationData, currentPageCount] = await Promise.all([
+        const [
+          storageData,
+          aiQualityData,
+          aiConfig,
+          currentPageCount,
+          funnelData
+        ] = await Promise.all([
           getStorageStats(),
-          getAnalysisStats(),
           getAIAnalysisStats(),
-          dataMigrator.getMigrationStats(),
           getAIConfig(),
-          getRecommendationStats(999999), // 获取所有推荐统计（传入足够大的天数）
-          getPageCount() // 获取当前页面计数
+          getPageCount(),
+          getRecommendationFunnel()
         ])
+        
         setStats(storageData)
-        setAnalysisStats(analysisData)
         setAiQualityStats(aiQualityData)
-        setMigrationStats(migrationData)
-        setRecommendationStats(recommendationData)
         setPageCount(currentPageCount)
-        setIsLearningStage(currentPageCount < LEARNING_COMPLETE_PAGES)
+        setRecommendationFunnel(funnelData)
         
         // 设置 AI 配置状态
         setAiConfigStatus({
@@ -116,93 +108,12 @@ export function CollectionStats() {
     loadStats()
   }, [])
 
-  const handleAnalyzeHistoricalPages = async () => {
-    if (isAnalyzing) return
-
-    setIsAnalyzing(true)
-    try {
-      const result = await dataMigrator.analyzeHistoricalPages()
-      
-      // 如果成功更新了记录，自动重建用户画像
-      if (result.updated > 0) {
-        collectionLogger.info("自动重建用户画像...")
-        await dataMigrator.rebuildUserProfile()
-      }
-      
-      // 重新加载统计数据
-      const [analysisData, migrationData] = await Promise.all([
-        getAnalysisStats(),
-        dataMigrator.getMigrationStats()
-      ])
-      setAnalysisStats(analysisData)
-      setMigrationStats(migrationData)
-      
-      const profileUpdated = result.updated > 0 ? _("options.collectionStats.alerts.profileAutoUpdated") : ""
-      alert(_("options.collectionStats.alerts.analyzeComplete", {
-        analyzed: result.analyzed,
-        updated: result.updated,
-        failed: result.failed,
-        profileUpdated
-      }))
-    } catch (error) {
-      collectionLogger.error("历史页面分析失败:", error)
-      alert(_("options.collectionStats.alerts.analyzeFailed"))
-    } finally {
-      setIsAnalyzing(false)
-    }
-  }
-
-  const handleDebugUnanalyzable = async () => {
-    try {
-      collectionLogger.info("开始诊断无法分析的记录...")
-      const unanalyzable = await AnalysisDebugger.getUnanalyzableRecords()
-      const integrity = await AnalysisDebugger.checkDataIntegrity()
-      
-      alert(_("options.collectionStats.alerts.diagnosticComplete", { count: unanalyzable.length }))
-    } catch (error) {
-      collectionLogger.error("诊断失败:", error)
-      alert(_("options.collectionStats.alerts.diagnosticFailed"))
-    }
-  }
-
-  const handleCleanInvalidRecords = async () => {
-    if (!confirm(_("options.collectionStats.alerts.cleanInvalidConfirm"))) {
-      return
-    }
-
-    try {
-      collectionLogger.info("开始清理无效记录...")
-      const result = await dataMigrator.cleanInvalidRecords()
-      
-      // 重新加载统计数据
-      const [storageData, analysisData, migrationData] = await Promise.all([
-        getStorageStats(),
-        getAnalysisStats(),
-        dataMigrator.getMigrationStats()
-      ])
-      setStats(storageData)
-      setAnalysisStats(analysisData)
-      setMigrationStats(migrationData)
-      
-      const profileUpdated = result.cleaned > 0 ? _("options.collectionStats.alerts.profileAutoUpdated") : ""
-      alert(_("options.collectionStats.alerts.cleanInvalidComplete", {
-        total: result.total,
-        cleaned: result.cleaned,
-        remaining: result.remaining,
-        profileUpdated
-      }))
-    } catch (error) {
-      collectionLogger.error("清理无效记录失败:", error)
-      alert(_("options.collectionStats.alerts.cleanInvalidFailed"))
-    }
-  }
-
+  // 事件处理器（数据管理）
   const handleRebuildProfile = async () => {
     if (isRebuildingProfile) return
 
     setIsRebuildingProfile(true)
     try {
-      // 使用调度器的强制更新，确保状态同步
       await ProfileUpdateScheduler.forceUpdate()
       alert(_("options.collectionStats.alerts.rebuildSuccess"))
     } catch (error) {
@@ -219,22 +130,16 @@ export function CollectionStats() {
     }
 
     try {
-      // 清除访问记录和用户画像
       await Promise.all([
         db.pendingVisits.clear(),
         db.confirmedVisits.clear(),
         db.userProfile.clear()
       ])
       
-      // 重新加载统计数据
-      const [storageData, analysisData, migrationData] = await Promise.all([
-        getStorageStats(),
-        getAnalysisStats(),
-        dataMigrator.getMigrationStats()
+      const [storageData] = await Promise.all([
+        getStorageStats()
       ])
       setStats(storageData)
-      setAnalysisStats(analysisData)
-      setMigrationStats(migrationData)
       
       alert(_("options.collectionStats.alerts.clearDataSuccess"))
     } catch (error) {
@@ -253,7 +158,6 @@ export function CollectionStats() {
     }
 
     try {
-      // 清除所有数据
       await Promise.all([
         db.pendingVisits.clear(),
         db.confirmedVisits.clear(),
@@ -261,21 +165,28 @@ export function CollectionStats() {
         db.recommendations.clear()
       ])
       
-      // 重新加载统计数据
-      const [storageData, analysisData, migrationData] = await Promise.all([
-        getStorageStats(),
-        getAnalysisStats(),
-        dataMigrator.getMigrationStats()
+      const [storageData] = await Promise.all([
+        getStorageStats()
       ])
       setStats(storageData)
-      setAnalysisStats(analysisData)
-      setMigrationStats(migrationData)
       
       alert(_("options.collectionStats.alerts.clearAllSuccess"))
     } catch (error) {
       collectionLogger.error("清除所有数据失败:", error)
       alert(_("options.collectionStats.alerts.clearAllFailed"))
     }
+  }
+
+  // 工具函数
+  const formatDate = (timestamp?: number): string => {
+    if (!timestamp) return _("options.collectionStats.unknownDate")
+    const date = new Date(timestamp)
+    const locale = document.documentElement.lang || 'zh-CN'
+    return date.toLocaleDateString(locale, {
+      year: 'numeric',
+      month: 'long', 
+      day: 'numeric'
+    })
   }
 
   if (isLoading) {
@@ -299,45 +210,27 @@ export function CollectionStats() {
     )
   }
 
-  const formatDuration = (seconds: number): string => {
-    if (seconds < 60) return _("options.collectionStats.durationSeconds", { seconds: Math.round(seconds) })
-    const minutes = Math.floor(seconds / 60)
-    const secs = Math.round(seconds % 60)
-    return _("options.collectionStats.durationMinutes", { minutes, seconds: secs })
-  }
-
-  const formatDate = (timestamp?: number): string => {
-    if (!timestamp) return _("options.collectionStats.unknownDate")
-    const date = new Date(timestamp)
-    // 使用当前语言环境的日期格式
-    const locale = document.documentElement.lang || 'zh-CN'
-    return date.toLocaleDateString(locale, {
-      year: 'numeric',
-      month: 'long', 
-      day: 'numeric'
-    })
-  }
-
+  // Render sections
   return (
     <div className="space-y-6">
-      {/* 采集概览 */}
+      {/* AI 学习概览 */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <span>📊</span>
-          <span>{_("options.collectionStats.overview")}</span>
+          <span>🧠</span>
+          <span>AI 学习概览</span>
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* 总页面数 */}
+          {/* 学习页面数 */}
           <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-4 border border-indigo-200 dark:border-indigo-800">
             <div className="text-sm text-indigo-600 dark:text-indigo-400 mb-1">
-              {_("options.collectionStats.totalPagesLabel")}
+              学习页面数
             </div>
             <div className="text-3xl font-bold text-indigo-900 dark:text-indigo-100">
               {stats.pageCount}
             </div>
             <div className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">
-              {_("options.collectionStats.dwellTimeHint")}
+              停留超过30秒的页面
             </div>
           </div>
 
@@ -354,95 +247,60 @@ export function CollectionStats() {
             </div>
           </div>
 
-          {/* 开始采集时间 */}
+          {/* 开始学习时间 */}
           <div className="bg-cyan-50 dark:bg-cyan-900/20 rounded-lg p-4 border border-cyan-200 dark:border-cyan-800">
             <div className="text-sm text-cyan-600 dark:text-cyan-400 mb-1">
-              {_("options.collectionStats.firstCollectionLabel")}
+              开始学习时间
             </div>
             <div className="text-lg font-bold text-cyan-900 dark:text-cyan-100">
               {formatDate(stats.firstCollectionTime)}
             </div>
             <div className="text-xs text-cyan-600 dark:text-cyan-400 mt-1">
-              {_("options.collectionStats.avgDailyPages", { count: stats.avgDailyPages.toFixed(1) })}
+              平均每日 {stats.avgDailyPages.toFixed(1)} 页
             </div>
           </div>
         </div>
       </div>
 
-      {/* AI 配置状态 (Phase 4 - Sprint 5.2) */}
+      {/* AI 成本分析 */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <span>🤖</span>
-          <span>{_("options.collectionStats.aiQualityTitle")}</span>
+          <span>💰</span>
+          <span>AI 成本分析</span>
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-          {/* 服务提供商 */}
-          <div className={`rounded-lg p-4 border ${
-            aiConfigStatus.configured
-              ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
-              : "bg-gray-50 dark:bg-gray-700/20 border-gray-200 dark:border-gray-600"
-          }`}>
-            <div className={`text-sm mb-1 ${
-              aiConfigStatus.configured
-                ? "text-green-600 dark:text-green-400"
-                : "text-gray-600 dark:text-gray-400"
-            }`}>
-              {_("options.collectionStats.providerLabel")}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          {/* Token 总用量 */}
+          <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4 border border-amber-200 dark:border-amber-800">
+            <div className="text-sm text-amber-600 dark:text-amber-400 mb-1">
+              Token 总用量
             </div>
-            <div className={`text-2xl font-bold ${
-              aiConfigStatus.configured
-                ? "text-green-900 dark:text-green-100"
-                : "text-gray-900 dark:text-gray-100"
-            }`}>
-              {aiConfigStatus.configured ? aiConfigStatus.provider : _("options.collectionStats.providerKeyword")}
+            <div className="text-3xl font-bold text-amber-900 dark:text-amber-100">
+              {aiQualityStats && aiQualityStats.totalTokens > 0
+                ? `${(aiQualityStats.totalTokens / 1000).toFixed(1)}K`
+                : '--'}
             </div>
-            <div className={`text-xs mt-1 flex items-center gap-1 ${
-              aiConfigStatus.configured
-                ? "text-green-600 dark:text-green-400"
-                : "text-gray-500 dark:text-gray-400"
-            }`}>
-              {aiConfigStatus.configured ? (
-                <>
-                  <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                  <span>{_("options.collectionStats.providerStatusAI")}</span>
-                </>
-              ) : (
-                <>
-                  <span className="inline-block w-2 h-2 bg-gray-400 rounded-full"></span>
-                  <span>{_("options.collectionStats.providerStatusKeyword")}</span>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* AI 分析占比 */}
-          <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-4 border border-indigo-200 dark:border-indigo-800">
-            <div className="text-sm text-indigo-600 dark:text-indigo-400 mb-1">
-              {_("options.collectionStats.aiPercentageLabel")}
-            </div>
-            <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
-              {aiQualityStats ? _("options.collectionStats.aiPercentageValue", { percentage: aiQualityStats.aiPercentage.toFixed(1) }) : '--'}
-            </div>
-            <div className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">
-              {aiQualityStats ? _("options.collectionStats.aiPagesCount", { ai: aiQualityStats.aiAnalyzedPages, total: aiQualityStats.totalPages }) : _("options.collectionStats.noData")}
+            <div className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+              {aiQualityStats && aiQualityStats.aiAnalyzedPages > 0
+                ? `均 ${Math.round(aiQualityStats.totalTokens / aiQualityStats.aiAnalyzedPages)} tokens/页`
+                : '暂无数据'}
             </div>
           </div>
 
           {/* 累计费用 */}
           <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-4 border border-indigo-200 dark:border-indigo-800">
             <div className="text-sm text-indigo-600 dark:text-indigo-400 mb-1">
-              {_("options.collectionStats.totalCostLabel")}
+              累计费用
             </div>
-            <div className="text-2xl font-bold text-indigo-900 dark:text-indigo-100">
+            <div className="text-3xl font-bold text-indigo-900 dark:text-indigo-100">
               {aiQualityStats ? (
                 <div className="space-y-0.5">
                   {aiQualityStats.totalCostUSD > 0 && (
-                    <div>{_("options.collectionStats.totalCostUSD", { cost: aiQualityStats.totalCostUSD.toFixed(4) })}</div>
+                    <div>${aiQualityStats.totalCostUSD.toFixed(4)}</div>
                   )}
                   {aiQualityStats.totalCostCNY > 0 && (
                     <div className={aiQualityStats.totalCostUSD > 0 ? 'text-lg' : ''}>
-                      {_("options.collectionStats.totalCostCNY", { cost: aiQualityStats.totalCostCNY.toFixed(4) })}
+                      ¥{aiQualityStats.totalCostCNY.toFixed(4)}
                     </div>
                   )}
                   {aiQualityStats.totalCostUSD === 0 && aiQualityStats.totalCostCNY === 0 && (
@@ -453,62 +311,11 @@ export function CollectionStats() {
             </div>
             <div className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">
               {aiQualityStats && aiQualityStats.aiAnalyzedPages > 0 && aiQualityStats.primaryCurrency
-                ? _("options.collectionStats.avgCostPerPage", { 
-                    currency: aiQualityStats.primaryCurrency === 'CNY' ? '¥' : '$',
-                    cost: aiQualityStats.avgCostPerPage.toFixed(6)
-                  })
-                : _("options.collectionStats.noCost")}
-            </div>
-          </div>
-
-          {/* Token 用量 */}
-          <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4 border border-amber-200 dark:border-amber-800">
-            <div className="text-sm text-amber-600 dark:text-amber-400 mb-1">
-              {_("options.collectionStats.tokenUsageLabel")}
-            </div>
-            <div className="text-2xl font-bold text-amber-900 dark:text-amber-100">
-              {aiQualityStats && aiQualityStats.totalTokens > 0
-                ? _("options.collectionStats.tokenUsageK", { tokens: (aiQualityStats.totalTokens / 1000).toFixed(1) })
-                : '--'}
-            </div>
-            <div className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-              {aiQualityStats && aiQualityStats.aiAnalyzedPages > 0
-                ? _("options.collectionStats.avgTokensPerPage", { tokens: Math.round(aiQualityStats.totalTokens / aiQualityStats.aiAnalyzedPages) })
-                : _("options.collectionStats.noData")}
+                ? `均 ${aiQualityStats.primaryCurrency === 'CNY' ? '¥' : '$'}${aiQualityStats.avgCostPerPage.toFixed(6)}/页`
+                : '暂无消费'}
             </div>
           </div>
         </div>
-
-        {/* AI 提供商使用分布（仅在有 AI 分析时显示） */}
-        {aiQualityStats && aiQualityStats.providerDistribution.length > 0 && (
-          <div className="mt-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-              {_("options.collectionStats.providerDistributionTitle")}
-            </h3>
-            <div className="space-y-2">
-              {aiQualityStats.providerDistribution.map((item: { provider: string; count: number; percentage: number }) => (
-                <div key={item.provider} className="flex items-center gap-3">
-                  <div className="flex-1">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-sm text-gray-700 dark:text-gray-300">
-                        {getProviderName(item.provider, _)}
-                      </span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {_("options.collectionStats.providerDistributionCount", { count: item.count, percentage: item.percentage.toFixed(1) })}
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
-                      <div
-                        className="bg-gradient-to-r from-indigo-500 to-cyan-500 h-2 rounded-full transition-all"
-                        style={{ width: `${item.percentage}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* AI 成本按提供商分布（仅在有成本数据时显示） */}
         {aiQualityStats && aiQualityStats.providerCostDistribution && aiQualityStats.providerCostDistribution.length > 0 && (
@@ -586,193 +393,403 @@ export function CollectionStats() {
         )}
       </div>
 
-      {/* 文本分析统计 (Phase 3.4 完成) */}
+      {/* 推荐筛选漏斗 (NEW) */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <span>🔤</span>
-          <span>{_("options.collectionStats.textAnalysis")}</span>
+          <span>🔍</span>
+          <span>{_("options.collectionStats.recommendationFunnelTitle")}</span>
         </h2>
 
-        {!analysisStats || analysisStats.analyzedPages === 0 ? (
+        {!recommendationFunnel || recommendationFunnel.rssArticles === 0 ? (
           <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border-2 border-dashed border-gray-300 dark:border-gray-600">
             <p className="text-center text-gray-500 dark:text-gray-400 text-sm">
-              {_("options.collectionStats.textAnalysisNoData")}
-            </p>
-            <p className="text-center text-gray-400 dark:text-gray-500 text-xs mt-1">
-              {_("options.collectionStats.textAnalysisHint")}
+              暂无推荐数据
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* 提取关键词数 */}
-              <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-4 border border-emerald-200 dark:border-emerald-800">
-                <div className="text-sm text-emerald-600 dark:text-emerald-400 mb-1">
-                  {_("options.collectionStats.totalKeywordsLabel")}
-                </div>
-                <div className="text-3xl font-bold text-emerald-900 dark:text-emerald-100">
-                  {analysisStats.totalKeywords}
-                </div>
-                <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
-                  {_("options.collectionStats.totalKeywordsHint")}
-                </div>
-              </div>
+          <div className="space-y-6">
+            {/* 立体漏斗可视化 - 曲面圆锥结构 */}
+            <div className="rounded-2xl bg-[#333333] p-6 md:p-8 shadow-2xl">
+              <div className="flex flex-col xl:flex-row justify-center items-center gap-8">
+              <svg
+                width="420"
+                height="540"
+                viewBox="0 0 420 540"
+                className="max-w-full h-auto"
+              >
+                {(() => {
+                  if (!recommendationFunnel) {
+                    return null
+                  }
 
-              {/* 平均关键词数 */}
-              <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4 border border-amber-200 dark:border-amber-800">
-                <div className="text-sm text-amber-600 dark:text-amber-400 mb-1">
-                  {_("options.collectionStats.avgKeywordsLabel")}
+                  const funnel = recommendationFunnel
+                  const svgWidth = 420
+                  const centerX = svgWidth / 2
+                  const baseBottomY = 440
+                  const baseHeight = 85
+                  const baseRadius = 48
+                  const radiusStep = 34
+                  const extensionIconUrl = typeof chrome !== 'undefined' && chrome.runtime?.getURL
+                    ? chrome.runtime.getURL('assets/icons/128/base-static.png')
+                    : 'assets/icons/128/base-static.png'
+
+                  const getEllipseRy = (radius: number) => Math.max(12, radius * 0.28)
+
+                  type SegmentConfig = {
+                    key: string
+                    label: string
+                    color: string
+                    ellipseColor: string
+                    textColor: string
+                    value?: number
+                    percent?: string
+                    displayValue?: string
+                    heightScale: number
+                    radiusScale: number
+                    isCap?: boolean
+                    bodyOpacity: number
+                    ellipseOpacity: number
+                  }
+
+                  const segmentsConfig: SegmentConfig[] = [
+                    {
+                      key: 'reading',
+                      label: _('options.collectionStats.recommendationFunnelReading'),
+                      color: 'rgba(254, 240, 138, 0.85)',
+                      ellipseColor: 'rgba(255, 249, 196, 0.8)',
+                      textColor: '#1f2937',
+                      value: funnel.read,
+                      percent: funnel.inPool > 0 ? `${((funnel.read / funnel.inPool) * 100).toFixed(1)}%` : '0%',
+                      heightScale: 0.65,
+                      radiusScale: 0.7,
+                      bodyOpacity: 0.65,
+                      ellipseOpacity: 0.5
+                    },
+                    {
+                      key: 'recommendations',
+                      label: _('options.collectionStats.recommendationFunnelRecommendations'),
+                      color: 'rgba(190, 242, 100, 0.85)',
+                      ellipseColor: 'rgba(220, 252, 162, 0.78)',
+                      textColor: '#1f2937',
+                      value: funnel.inPool,
+                      percent: funnel.rssArticles > 0 ? `${((funnel.inPool / funnel.rssArticles) * 100).toFixed(1)}%` : '0%',
+                      heightScale: 0.78,
+                      radiusScale: 0.85,
+                      bodyOpacity: 0.62,
+                      ellipseOpacity: 0.45
+                    },
+                    {
+                      key: 'articles',
+                      label: _('options.collectionStats.recommendationFunnelArticles'),
+                      color: 'rgba(125, 211, 252, 0.85)',
+                      ellipseColor: 'rgba(191, 232, 255, 0.78)',
+                      textColor: '#0f172a',
+                      value: funnel.rssArticles,
+                      percent: '100%',
+                      heightScale: 0.92,
+                      radiusScale: 1.05,
+                      bodyOpacity: 0.6,
+                      ellipseOpacity: 0.42
+                    },
+                    {
+                      key: 'universe',
+                      label: _('options.collectionStats.recommendationFunnelUniverse'),
+                      color: 'rgba(226, 232, 240, 0.8)',
+                      ellipseColor: 'rgba(241, 245, 249, 0.85)',
+                      textColor: '#111827',
+                      displayValue: _('options.collectionStats.recommendationFunnelInfinitySymbol'),
+                      heightScale: 1.15,
+                      radiusScale: 1.4,
+                      isCap: true,
+                      bodyOpacity: 0.55,
+                      ellipseOpacity: 0.55
+                    }
+                  ]
+
+                  type SegmentWithLayout = SegmentConfig & {
+                    yTop: number
+                    yBottom: number
+                    topRadius: number
+                    bottomRadius: number
+                    topRy: number
+                    bottomRy: number
+                    midY: number
+                    height: number
+                  }
+
+                  let currentBottomY = baseBottomY
+                  let currentBottomRadius = baseRadius
+
+                  const segmentsWithLayout: SegmentWithLayout[] = segmentsConfig.map((segment) => {
+                    const height = baseHeight * segment.heightScale
+                    const radiusDelta = radiusStep * segment.radiusScale
+                    const yBottom = currentBottomY
+                    const yTop = yBottom - height
+                    const bottomRadius = currentBottomRadius
+                    const topRadius = bottomRadius + radiusDelta
+                    const layout: SegmentWithLayout = {
+                      ...segment,
+                      yTop,
+                      yBottom,
+                      topRadius,
+                      bottomRadius,
+                      topRy: getEllipseRy(topRadius),
+                      bottomRy: getEllipseRy(bottomRadius),
+                      midY: (yTop + yBottom) / 2,
+                      height
+                    }
+                    currentBottomY = yTop
+                    currentBottomRadius = topRadius
+                    return layout
+                  })
+
+                  const buildFrontPath = (segment: SegmentWithLayout) => {
+                    const leftBottomX = centerX - segment.bottomRadius
+                    const rightBottomX = centerX + segment.bottomRadius
+                    const leftTopX = centerX - segment.topRadius
+                    const rightTopX = centerX + segment.topRadius
+                    return [
+                      `M ${leftBottomX} ${segment.yBottom}`,
+                      `A ${segment.bottomRadius} ${segment.bottomRy} 0 0 1 ${rightBottomX} ${segment.yBottom}`,
+                      `L ${rightTopX} ${segment.yTop}`,
+                      `A ${segment.topRadius} ${segment.topRy} 0 0 0 ${leftTopX} ${segment.yTop}`,
+                      'Z'
+                    ].join(' ')
+                  }
+
+                  return (
+                    <>
+                      <defs>
+                        <filter id="funnelShadow" x="-20%" y="-20%" width="140%" height="160%">
+                          <feDropShadow dx="0" dy="12" stdDeviation="18" floodColor="#000" floodOpacity="0.28" />
+                        </filter>
+                      </defs>
+                      <g filter="url(#funnelShadow)">
+                      {segmentsWithLayout.map((segment) => (
+                        <g key={`segment-${segment.key}`}>
+                          <ellipse
+                            cx={centerX}
+                            cy={segment.yBottom}
+                            rx={segment.bottomRadius}
+                            ry={segment.bottomRy}
+                            fill={segment.ellipseColor}
+                            opacity={segment.ellipseOpacity}
+                          />
+                          <path
+                            d={buildFrontPath(segment)}
+                            fill={segment.color}
+                            opacity={segment.bodyOpacity}
+                          />
+                          <ellipse
+                            cx={centerX}
+                            cy={segment.yTop}
+                            rx={segment.topRadius}
+                            ry={segment.topRy}
+                            fill={segment.ellipseColor}
+                            opacity={Math.min(segment.ellipseOpacity + 0.1, 1)}
+                          />
+                        </g>
+                      ))}
+                      </g>
+                      <g>
+                        {[ -70, 0, 70 ].map((offset, index) => (
+                          <image
+                            key={`rss-icon-${index}`}
+                            href={extensionIconUrl}
+                            x={centerX + offset - 24}
+                            y={segmentsWithLayout[segmentsWithLayout.length - 1].yTop - 60}
+                            width={48}
+                            height={48}
+                            opacity={0.95 - index * 0.15}
+                          />
+                        ))}
+                      </g>
+                      <g pointerEvents="none">
+                        {segmentsWithLayout.map((segment) => {
+                          const labelFontSize = Math.min(Math.max(segment.height * 0.16, 11), 18)
+                          const infoFontSize = Math.min(Math.max(segment.height * 0.2, 13), 22)
+                          const labelY = segment.yBottom + labelFontSize * 0.45
+                          const infoY = Math.min(segment.yBottom - segment.bottomRy * 0.2, segment.yTop + segment.height * 0.75)
+                          const infoSpacing = Math.min(segment.topRadius * 0.45, 90)
+                          if (segment.isCap) {
+                            return (
+                              <g key={`segment-text-${segment.key}`}>
+                                <text
+                                  x={centerX}
+                                  y={segment.yTop + segment.height * 0.45}
+                                  textAnchor="middle"
+                                  fill={segment.textColor}
+                                  fontSize={infoFontSize + 10}
+                                  fontWeight="600"
+                                >
+                                  {segment.displayValue}
+                                </text>
+                                <text
+                                  x={centerX}
+                                  y={labelY}
+                                  textAnchor="middle"
+                                  fill={segment.textColor}
+                                  fontSize={labelFontSize + 2}
+                                  fontWeight="600"
+                                >
+                                  {segment.label}
+                                </text>
+                              </g>
+                            )
+                          }
+                          return (
+                            <g key={`segment-text-${segment.key}`}>
+                              <text
+                                x={centerX}
+                                y={labelY}
+                                textAnchor="middle"
+                                fill={segment.textColor}
+                                fontSize={labelFontSize}
+                                fontWeight="600"
+                              >
+                                {segment.label}
+                              </text>
+                              <text
+                                x={centerX - infoSpacing / 2}
+                                y={infoY}
+                                textAnchor="middle"
+                                fill={segment.textColor}
+                                fontSize={infoFontSize}
+                                fontWeight="700"
+                              >
+                                {segment.value ?? 0}
+                              </text>
+                              <text
+                                x={centerX + infoSpacing / 2}
+                                y={infoY}
+                                textAnchor="middle"
+                                fill={segment.textColor}
+                                fontSize={infoFontSize - 2}
+                                fontWeight="600"
+                              >
+                                {segment.percent ?? '0%'}
+                              </text>
+                            </g>
+                          )
+                        })}
+                      </g>
+                      <g>
+                        <text x={centerX} y={baseBottomY + 70} textAnchor="middle" fontSize="32">
+                          🧑
+                        </text>
+                      </g>
+                    </>
+                  )
+                })()}
+              </svg>
+
+              {/* 侧边数据球 */}
+              <div className="flex flex-col gap-6">
+                <div className="relative">
+                  <svg width="120" height="120" viewBox="0 0 120 120">
+                    <defs>
+                      <radialGradient id="sphereGradient1" cx="40%" cy="35%">
+                        <stop offset="0%" stopColor="#FFFBEB" stopOpacity="1" />
+                        <stop offset="25%" stopColor="#FEF3C7" stopOpacity="0.95" />
+                        <stop offset="50%" stopColor="#FDE68A" stopOpacity="0.9" />
+                        <stop offset="75%" stopColor="#FCD34D" stopOpacity="0.75" />
+                        <stop offset="100%" stopColor="#F59E0B" stopOpacity="0.6" />
+                      </radialGradient>
+                      <radialGradient id="sphereHighlight1" cx="35%" cy="30%">
+                        <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.8" />
+                        <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.3" />
+                        <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
+                      </radialGradient>
+                      <filter id="sphereShadow1">
+                        <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+                        <feOffset dx="2" dy="5"/>
+                        <feComponentTransfer>
+                          <feFuncA type="linear" slope="0.5"/>
+                        </feComponentTransfer>
+                        <feMerge>
+                          <feMergeNode/>
+                          <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                      </filter>
+                    </defs>
+                    <circle cx="60" cy="55" r="45" fill="url(#sphereGradient1)" filter="url(#sphereShadow1)"/>
+                    <ellipse cx="48" cy="42" rx="20" ry="15" fill="url(#sphereHighlight1)" opacity="0.8"/>
+                    <text x="52" y="44" textAnchor="middle" fill="#78350F" fontSize="18" fontWeight="700">
+                      {recommendationFunnel.learningPages}
+                    </text>
+                    <text x="60" y="70" textAnchor="middle" fill="#78350F" fontSize="12" fontWeight="600">
+                      📚 学习页面
+                    </text>
+                  </svg>
                 </div>
-                <div className="text-3xl font-bold text-amber-900 dark:text-amber-100">
-                  {analysisStats.avgKeywordsPerPage.toFixed(1)}
+                <div className="relative">
+                  <svg width="120" height="120" viewBox="0 0 120 120">
+                    <defs>
+                      <radialGradient id="sphereGradient2" cx="40%" cy="35%">
+                        <stop offset="0%" stopColor="#FFF7ED" stopOpacity="1" />
+                        <stop offset="25%" stopColor="#FFEDD5" stopOpacity="0.95" />
+                        <stop offset="50%" stopColor="#FDBA74" stopOpacity="0.9" />
+                        <stop offset="75%" stopColor="#FB923C" stopOpacity="0.75" />
+                        <stop offset="100%" stopColor="#F97316" stopOpacity="0.6" />
+                      </radialGradient>
+                      <radialGradient id="sphereHighlight2" cx="35%" cy="30%">
+                        <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.8" />
+                        <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.3" />
+                        <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
+                      </radialGradient>
+                      <filter id="sphereShadow2">
+                        <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+                        <feOffset dx="2" dy="5"/>
+                        <feComponentTransfer>
+                          <feFuncA type="linear" slope="0.5"/>
+                        </feComponentTransfer>
+                        <feMerge>
+                          <feMergeNode/>
+                          <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                      </filter>
+                    </defs>
+                    <circle cx="60" cy="55" r="45" fill="url(#sphereGradient2)" filter="url(#sphereShadow2)"/>
+                    <ellipse cx="48" cy="42" rx="20" ry="15" fill="url(#sphereHighlight2)" opacity="0.8"/>
+                    <text x="52" y="44" textAnchor="middle" fill="#7C2D12" fontSize="18" fontWeight="700">
+                      {recommendationFunnel.dismissed}
+                    </text>
+                    <text x="60" y="70" textAnchor="middle" fill="#7C2D12" fontSize="12" fontWeight="600">
+                      ❌ 不想读
+                    </text>
+                  </svg>
+                </div>
                 </div>
               </div>
             </div>
 
-            {/* 语言分布 */}
-            {analysisStats.languageDistribution.length > 0 && (
-              <div>
-                <h3 className="text-md font-medium mb-2">{_("options.collectionStats.languageDistributionTitle")}</h3>
-                <div className="space-y-2">
-                  {analysisStats.languageDistribution.map((lang: any) => (
-                    <div key={lang.language} className="flex justify-between items-center">
-                      <span className="text-sm text-gray-700 dark:text-gray-300">
-                        {getLanguageName(lang.language, _)}
-                      </span>
-                      <span className="text-sm font-medium">
-                        {_("options.collectionStats.languagePages", { count: lang.count })}
-                      </span>
-                    </div>
-                  ))}
+            {/* 转化率总结 */}
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-5 border border-blue-200 dark:border-blue-700">
+              <div className="grid grid-cols-2 gap-6 text-center">
+                <div>
+                  <div className="text-xs text-green-600 dark:text-green-400 mb-2 font-medium">
+                    推荐率
+                  </div>
+                  <div className="text-2xl font-bold text-green-900 dark:text-green-100">
+                    {recommendationFunnel.rssArticles > 0 ? ((recommendationFunnel.inPool / recommendationFunnel.rssArticles) * 100).toFixed(1) : 0}%
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    RSS → 推荐池
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* 推荐统计 (Phase 7 完成) */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <span>🎯</span>
-          <span>{_("options.collectionStats.recommendationStats")}</span>
-        </h2>
-
-        {/* 学习阶段提示 */}
-        {isLearningStage ? (
-          <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-4 border-2 border-dashed border-indigo-300 dark:border-indigo-700">
-            <div className="flex items-start gap-3">
-              <span className="text-2xl">📚</span>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
-                  {_("options.collectionStats.learningStageTitle")}
-                </p>
-                <p className="text-sm text-indigo-700 dark:text-indigo-300 mb-2">
-                  {_("options.collectionStats.learningStageHint", { 
-                    current: pageCount, 
-                    total: LEARNING_COMPLETE_PAGES 
-                  })}
-                </p>
-                <div className="bg-indigo-100 dark:bg-indigo-900/40 rounded p-3 mt-2">
-                  <div className="text-xs text-indigo-800 dark:text-blue-200">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium">{_("options.collectionStats.recommendationCount")}:</span>
-                      <span className="font-bold text-lg">0</span>
-                    </div>
-                    <p className="mt-1 text-indigo-600 dark:text-indigo-300">
-                      {_("options.collectionStats.learningStageNote")}
-                    </p>
+                <div>
+                  <div className="text-xs text-purple-600 dark:text-purple-400 mb-2 font-medium">
+                    阅读率
+                  </div>
+                  <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">
+                    {recommendationFunnel.inPool > 0 ? ((recommendationFunnel.read / recommendationFunnel.inPool) * 100).toFixed(1) : 0}%
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    推荐池 → 已读
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        ) : !recommendationStats || recommendationStats.totalCount === 0 ? (
-          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border-2 border-dashed border-gray-300 dark:border-gray-600">
-            <p className="text-center text-gray-500 dark:text-gray-400 text-sm">
-              {_("options.collectionStats.recommendationStatsNoData")}
-            </p>
-            <p className="text-center text-gray-400 dark:text-gray-500 text-xs mt-1">
-              {_("options.collectionStats.recommendationStatsHint")}
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* 总推荐数 */}
-              <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-4 border border-indigo-200 dark:border-indigo-800">
-                <div className="text-sm text-indigo-600 dark:text-indigo-400 mb-1">
-                  {_("options.collectionStats.totalRecommendationsLabel")}
-                </div>
-                <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">
-                  {recommendationStats.totalCount}
-                </div>
-              </div>
-
-              {/* 已读数 */}
-              <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
-                <div className="text-sm text-green-600 dark:text-green-400 mb-1">
-                  {_("options.collectionStats.readRecommendationsLabel")}
-                </div>
-                <div className="text-3xl font-bold text-green-900 dark:text-green-100">
-                  {recommendationStats.readCount}
-                </div>
-                <div className="text-xs text-green-600 dark:text-green-400 mt-1">
-                  {_("options.collectionStats.readRate", { 
-                    rate: ((recommendationStats.readCount / recommendationStats.totalCount) * 100).toFixed(1) 
-                  })}
-                </div>
-              </div>
-
-              {/* 不想读 */}
-              <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
-                <div className="text-sm text-orange-600 dark:text-orange-400 mb-1">
-                  {_("options.collectionStats.dismissedRecommendationsLabel")}
-                </div>
-                <div className="text-3xl font-bold text-orange-900 dark:text-orange-100">
-                  {recommendationStats.dismissedCount}
-                </div>
-                <div className="text-xs text-orange-600 dark:text-orange-400 mt-1">
-                  {_("options.collectionStats.dismissedRate", { 
-                    rate: ((recommendationStats.dismissedCount / recommendationStats.totalCount) * 100).toFixed(1) 
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* 来源分布 */}
-            {recommendationStats.topSources.length > 0 && (
-              <div className="mt-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  {_("options.collectionStats.topSourcesTitle")}
-                </h3>
-                <div className="space-y-2">
-                  {recommendationStats.topSources.slice(0, 5).map((item: { source: string; count: number; readRate: number }) => (
-                    <div key={item.source} className="flex items-center gap-3">
-                      <div className="flex-1">
-                        <div className="flex justify-between items-center mb-1">
-                          <span className="text-sm text-gray-700 dark:text-gray-300 truncate max-w-[300px]">
-                            {item.source}
-                          </span>
-                          <span className="text-xs text-gray-500 dark:text-gray-400">
-                            {_("options.collectionStats.sourceStats", { 
-                              count: item.count, 
-                              readRate: item.readRate.toFixed(1) 
-                            })}
-                          </span>
-                        </div>
-                        <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
-                          <div
-                            className="bg-gradient-to-r from-indigo-500 to-cyan-500 h-2 rounded-full transition-all"
-                            style={{ width: `${Math.min(100, item.readRate)}%` }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         )}
       </div>

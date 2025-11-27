@@ -33,6 +33,11 @@ function IndexOptions() {
   const { _ } = useI18n()
   useTheme() // 自动跟随系统主题
   
+  // 设置页面标题
+  useEffect(() => {
+    document.title = _("options.title") || "Silent Feed - Settings"
+  }, [_])
+  
   // 从 URL 参数或 hash 获取初始标签，默认为 preferences
   const getInitialTab = (): TabKey => {
     // 优先从 hash 读取（支持 #rss 这种格式）
@@ -337,7 +342,7 @@ function IndexOptions() {
         {/* 页脚 */}
         <div className="max-w-6xl mx-auto px-6 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
           <p>
-            {_("app.shortName")} ({_("app.name")})
+            {_("app.name")} v{chrome.runtime.getManifest().version}
           </p>
         </div>
       </div>

@@ -92,20 +92,17 @@
       "options": {
         "remoteAI": "远程 AI（标准）",
         "remoteAIWithReasoning": "远程 AI（推理模式）",
-        "localAI": "本地 AI",
-        "keyword": "纯关键字"
+        "localAI": "本地 AI"
       },
       "desc": {
         "remoteAI": "使用远程 AI 服务，平衡成本和质量",
         "remoteAIWithReasoning": "使用推理型 AI（DeepSeek-R1），成本约 10 倍但质量更好",
-        "localAI": "使用本地 AI（Ollama/Chrome AI），隐私保护但占用性能",
-        "keyword": "使用 TF-IDF 关键字算法，最快且无成本"
+        "localAI": "使用本地 AI（Ollama/Chrome AI），隐私保护但占用性能"
       },
       "unavailable": {
         "remoteAI": "未配置 AI API，请前往 AI 配置页面设置",
         "remoteAIWithReasoning": "需要 DeepSeek API 并启用推理能力",
-        "localAI": "未检测到本地 AI（需要安装 Ollama 或使用支持 Chrome AI 的浏览器）",
-        "keyword": "始终可用"
+        "localAI": "未检测到本地 AI（需要安装 Ollama 或使用支持 Chrome AI 的浏览器）"
       },
       "descriptions": {
         "remoteAI": "使用远程 AI 服务，平衡成本和质量",
@@ -126,8 +123,23 @@
       "recommendedLabel": "推荐",
       "currentLabel": "当前",
       "hint": {
-        "recommendation": "💡 推荐系统支持 4 种引擎：远程 AI、推理 AI、本地 AI、纯关键字",
-        "feed": "💡 订阅源分析支持 3 种引擎：远程 AI、本地 AI、纯关键字（不支持推理模式，成本和速度考虑）"
+        "recommendation": "💡 推荐系统支持3种 AI 引擎：远程 AI、推理 AI、本地 AI（默认使用远程 AI）",
+        "feed": "💡 订阅源分析支持2种 AI 引擎：远程 AI、本地 AI（不支持推理模式，成本和速度考虑）"
+      },
+      "noAIAvailable": {
+        "title": "未检测到可用的 AI 引擎",
+        "description": "静阅是 AI 驱动的阅读器，需要配置 AI 引擎才能使用推荐功能。",
+        "hint": "请先在 \"AI 引擎\" 页面配置远程 AI（OpenAI/DeepSeek）或安装本地 AI（Ollama）。"
+      },
+      "localAINotReadyTitle": "本地 AI 尚未就绪",
+      "localAINotReadyHint": "请前往 \"AI 引擎\" 面板完成本地配置或确保 Ollama 服务已启动。",
+      "localAIStatus": {
+        "notEnabled": "尚未在 \"AI 引擎\" 页面启用本地 AI",
+        "missingEndpoint": "缺少本地服务地址，请填写 Ollama 接口 URL",
+        "missingModel": "缺少模型名称，请输入已下载的模型 ID",
+        "ollamaOffline": "无法连接到 Ollama，请确认服务已启动并保持运行",
+        "chromeOffline": "未检测到 Chrome AI，请检查浏览器版本并启用实验特性",
+        "generic": "本地 AI 当前不可用，请检查配置或稍后重试"
       },
       "recommendationTitle": "文章推荐引擎",
       "feedTitle": "文章分析引擎",
@@ -386,6 +398,8 @@
       "firstCollectionLabel": "开始采集时间",
       "avgDailyPages": "平均每日 {{count}} 页",
       "unknownDate": "未知",
+      "rssArticleCountLabel": "RSS 文章总数",
+      "rssArticleCountHint": "所有订阅源的文章数",
       "durationSeconds": "{{seconds}}秒",
       "durationMinutes": "{{minutes}}分{{seconds}}秒",
       "aiQualityTitle": "AI 分析质量",
@@ -411,6 +425,20 @@
       "aiConfigPromptTitle": "想要更准确的内容分析？",
       "aiConfigPromptDesc": "配置 AI 提供商（OpenAI、Anthropic、DeepSeek），获得更精准的语义理解和主题分类。",
       "aiConfigPromptLink": "前往配置",
+      "recommendationFunnelTitle": "推荐筛选漏斗",
+      "recommendationFunnelNoData": "暂无推荐数据",
+      "recommendationFunnelUniverse": "Internet",
+      "recommendationFunnelArticles": "文章",
+      "recommendationFunnelRecommendations": "推荐",
+      "recommendationFunnelReading": "阅读",
+      "recommendationFunnelInfinitySymbol": "∞",
+      "funnelTotal": "RSS 文章总数",
+      "funnelAnalyzed": "已分析文章",
+      "funnelRecommended": "进入推荐池",
+      "funnelRead": "已读",
+      "funnelDismissed": "不想读",
+      "analysisRate": "分析率",
+      "recommendationRate": "推荐率",
       "textAnalysis": "文本分析统计",
       "textAnalysisNoData": "暂无文本分析数据",
       "textAnalysisHint": "继续浏览网页，系统将自动提取和分析内容",
@@ -483,6 +511,15 @@
       "userProfile": "用户画像"
     },
     "userProfile": {
+      "chat": {
+        "intro": "我是 {{providerName}}，通过分析你从 {{startDate}} 以来的 {{totalPages}} 次浏览，我发现你{{interests}}",
+        "preferences": "根据这些理解，我会为你推荐 {{preferences}} 等方面的内容。",
+        "avoidTopics": "同时，我也注意到你不感兴趣的内容，会避免推荐 {{topics}} 等话题。",
+        "generating": "AI 画像生成中，请稍候...",
+        "userRebuildLabel": "🔄 重建画像",
+        "tipConfigured": "点击\"重建画像\"按钮，AI 会重新分析你的浏览习惯",
+        "tipNotConfigured": "请先在\"AI 引擎\"标签页配置 AI 服务"
+      },
       "alerts": {
         "rebuildSuccess": "用户画像重建成功！",
         "rebuildFailed": "重建失败，请稍后重试"
@@ -625,6 +662,42 @@
         },
         "hint": "本地 AI 性能受设备配置影响，建议仅在无远程 AI 配置时使用"
       },
+      "localAIForm": {
+        "endpoint": "服务地址",
+        "endpointHint": "默认 http://localhost:11434/v1（OpenAI 兼容），亦支持 http://localhost:11434/api",
+        "apiKey": "访问令牌 (Bearer Token)",
+        "apiKeyHint": "启用 Ollama OpenAI 兼容接口时需要 Bearer Token，默认值为 \"ollama\"",
+        "apiKeyPlaceholder": "例如 ollama 或自定义 token",
+        "model": "默认模型",
+        "modelPlaceholder": "点击右侧刷新按钮获取可用模型",
+        "modelHint": "使用 `ollama list` 查看已下载模型，例如 qwen2.5:7b",
+        "temperature": "温度 (0-1)",
+        "maxTokens": "最大输出 tokens",
+        "timeout": "超时 (ms)",
+        "buttons": {
+          "test": "测试连接并获取模型",
+          "testing": "测试中...",
+          "refreshModels": "刷新模型列表",
+          "refreshingModels": "刷新中..."
+        },
+        "errors": {
+          "missingEndpoint": "请输入 Ollama 服务地址",
+          "missingModel": "请输入模型名称"
+        },
+        "messages": {
+          "testSuccess": "测试成功",
+          "testFailed": "本地 AI 连接失败：{{error}}"
+        },
+        "mode": {
+          "openai": "已连接：OpenAI 兼容 /v1 接口（需授权）",
+          "legacy": "已连接：传统 /api 接口"
+        },
+        "modelListError": "无法获取模型列表：{{error}}",
+        "modelListSuccess": "已获取 {{count}} 个可用模型",
+        "selectModel": "请选择模型",
+        "advancedOptions": "高级选项",
+        "note": "💡 保存后即可在推荐设置中选择“本地 AI”分析引擎。"
+      },
       "tfidf": {
         "intro": "TF-IDF 是一种经典的文本分析算法，作为 AI 的回退方案：",
         "advantage1": "零成本",
@@ -644,7 +717,8 @@
       "placeholders": {
         "apiKey": "输入你的 API Key",
         "model": "选择模型（可选，留空使用默认模型）",
-        "selectModel": "请选择 AI 模型"
+        "selectModel": "请选择 AI 模型",
+        "disableRemoteAI": "禁用远程 AI 服务"
       },
       "hints": {
         "apiKey": "API Key 将加密存储在浏览器本地，不会上传到服务器"
@@ -729,10 +803,43 @@
       },
       "info": {
         "title": "关于 AI 分析",
+        "overview": "静阅提供远程 AI 和本地 AI 两种分析方式，你可以根据需求灵活选择：",
+        "remoteTitle": "远程 AI",
+        "remoteDesc": "更强大准确，需要 API Key 和网络，按使用量付费",
+        "localTitle": "本地 AI",
+        "localDesc": "完全离线，保护隐私，需要本地安装或启用 Chrome AI",
         "withConfig": "配置后：优先使用 AI 分析（更准确，需付费）",
         "withoutConfig": "不配置：使用免费的关键词分析（可用但准确度较低）",
         "fallback": "降级策略：API 失败或超预算时自动降级到关键词分析",
         "privacy": "隐私保护：所有数据处理在本地，API Key 加密存储"
+      },
+      "remote": {
+        "title": "远程 AI 配置"
+      },
+      "local": {
+        "title": "本地 AI 配置",
+        "checking": "检测中...",
+        "choiceTitle": "本地 AI 类型",
+        "none": "❌ 不使用本地 AI",
+        "chromeAI": "Chrome AI（内置 Gemini Nano）",
+        "ollama": "Ollama（本地服务）",
+        "available": "可用",
+        "howToEnable": "如何启用？",
+        "installOllama": "安装 Ollama",
+        "endpoint": "服务地址",
+        "model": "模型选择",
+        "noModels": "点击右侧测试按钮获取模型列表",
+        "selectModel": "请选择模型",
+        "testAndFetch": "测试连接并获取模型",
+        "testing": "测试中...",
+        "testSuccess": "测试成功",
+        "temperature": "温度 (0-1)",
+        "maxTokens": "最大输出 tokens",
+        "timeout": "超时 (ms)",
+        "advancedOptions": "高级选项",
+        "errors": {
+          "missingEndpoint": "请输入服务地址"
+        }
       },
       "cost": {
         "title": "成本参考（每百万 tokens）",
@@ -796,47 +903,56 @@
       "weight": "权重",
       "topKeywords": "关键词云",
       "topDomains": "常访问域名",
-      "visitCount": "访问次数",
-      "avgDwellTime": "平均停留",
-      "evolutionHistory": "兴趣演化历程",
-      "basedOnPages": "基于 {{count}} 页",
-      "lastUpdated": "最后更新",
-      "detailedAnalysis": {
-        "title": "详细数据分析",
-        "subtitle": "主题分布 · 关键词云 · 兴趣演化 · 访问偏好",
-        "pages": "{{count}}页",
-        "browses": "{{count}}浏览",
-        "reads": "{{count}}阅读",
-        "dismisses": "{{count}}拒绝"
-      },
       "aiProfile": {
-        "title": "AI 语义画像",
-        "understanding": "AI 对您的理解",
-        "understandingHint": "超越关键词，深度语义分析",
-        "accumulating": "AI 语义画像正在积累数据",
-        "accumulatingDesc": "系统会在满足以下任一条件后自动生成 AI 画像：",
-        "condition1": "浏览 ≥20 个页面（当前: {{count}} 页）",
-        "condition2": "阅读 ≥5 篇推荐（当前: {{count}} 篇）",
-        "condition3": "拒绝 ≥5 篇推荐（当前: {{count}} 篇）",
-        "accumulatingHint": "💡 提示：每个页面需要停留 30 秒以上才会被记录",
-        "fallbackTitle": "当前使用基础画像（关键词分析）",
-        "fallbackBenefit": "💡 配置 AI 可获得 <strong>3-5 倍更精准</strong>的推荐效果：",
-        "benefit1": "<strong>语义理解</strong>：深度理解内容含义，而非简单关键词匹配",
-        "benefit2": "<strong>偏好识别</strong>：精准识别你喜欢的内容类型和风格",
-        "benefit3": "<strong>智能过滤</strong>：自动排除不感兴趣的主题",
-        "preferences": "您偏好的内容类型",
-        "avoidTopics": "不感兴趣的主题",
-        "items": "{{count}} 项",
-        "dataSource": "数据来源和成本",
-        "browses": "{{count}} 页浏览",
-        "reads": "{{count}} 次阅读",
-        "dismisses": "{{count}} 次拒绝",
-        "cost": "成本 ¥{{cost}}",
-        "primaryTopic": "主导兴趣",
-        "viewDetails": "查看详细数据 →",
-        "configureAI": "立即配置 AI",
-        "recommendDeepSeek": "推荐使用 DeepSeek（成本低至 ¥0.0001/次）"
+        "title": "AI 兴趣画像",
+        "understanding": "AI 对你的理解",
+        "contentPreferences": "内容偏好",
+        "avoidTopics": "避免主题",
+        "notConfiguredTitle": "尚未生成 AI 画像",
+        "notConfiguredDescription": "系统会在积累足够数据后自动生成 AI 画像，或者你可以先配置 AI 引擎并手动重建画像。",
+        "generatingTitle": "AI 画像生成中",
+        "generatingDescription": "系统正在分析你的浏览历史，生成个性化兴趣画像...",
+        "configureStep1": "先在「AI 引擎」页面配置 AI",
+        "configureStep2": "然后点击下方「重建画像」按钮"
+      },
+      "basicStats": {
+        "title": "基础统计",
+        "totalPages": "浏览页面数"
       }
+    },
+    "userProfile": {
+      "noData": {
+        "message": "还没有足够的数据来建立你的兴趣画像",
+        "hint": "开始浏览感兴趣的内容，我会自动学习你的偏好"
+      },
+      "lastUpdated": {
+        "justNow": "刚刚更新",
+        "hoursAgo": "{{hours}} 小时前",
+        "daysAgo": "{{days}} 天前"
+      },
+      "updateTime": {
+        "label": "画像更新时间",
+        "basedOn": "基于 {{count}} 个页面"
+      },
+      "analysisQuality": {
+        "label": "分析质量",
+        "aiAnalysis": "{{provider}} AI 分析",
+        "notConfigured": "未配置 AI",
+        "aiHint": "使用 AI 进行深度语义理解",
+        "configureHint": "配置 AI 后将获得更精准的推荐"
+      },
+      "alerts": {
+        "rebuildSuccess": "画像重建成功！",
+        "rebuildFailed": "画像重建失败，请稍后重试"
+      },
+      "actions": {
+        "rebuild": "重建画像",
+        "rebuilding": "重建中...",
+        "rebuildComplete": "重建完成"
+      }
+    },
+    "myData": {
+      "title": "系统数据"
     }
   },
   "common": {

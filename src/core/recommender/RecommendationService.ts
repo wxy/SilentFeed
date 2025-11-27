@@ -70,6 +70,7 @@ export class RecommendationService {
     try {
       // 获取推荐配置
       const recommendationConfig = await getRecommendationConfig()
+      let effectiveAnalysisEngine = recommendationConfig.analysisEngine || 'remoteAI'
       
       // 获取 AI 配置，检查模型是否支持推理
       const aiConfig = await getAIConfig()
@@ -82,7 +83,7 @@ export class RecommendationService {
       let reasoningDisabledReason: string | null = null
       
       // 如果配置要求使用推理引擎
-      if (recommendationConfig.analysisEngine === 'remoteAIWithReasoning') {
+      if (effectiveAnalysisEngine === 'remoteAIWithReasoning') {
         // 检查模型是否支持推理
         if (aiConfig.model) {
           const provider = getProviderFromModel(aiConfig.model)
@@ -119,18 +120,40 @@ export class RecommendationService {
         }
       }
       
-      const useLocalAI = recommendationConfig.analysisEngine === 'localAI'
+      let useLocalAI = effectiveAnalysisEngine === 'localAI'
+      if (useLocalAI) {
+        const localConfig = aiConfig.local
+        const endpoint = localConfig?.endpoint?.trim()
+        const model = localConfig?.model?.trim()
+        const configEnabled = !!localConfig?.enabled
+        const configValid = configEnabled && !!endpoint && !!model
+        if (!configValid) {
+          const reasonParts: string[] = []
+          if (!configEnabled) {
+            reasonParts.push('未在 AI 配置中启用本地 AI')
+          }
+          if (!endpoint) {
+            reasonParts.push('缺少本地服务地址')
+          }
+          if (!model) {
+            reasonParts.push('缺少模型名称')
+          }
+          recLogger.warn(`⚠️ 本地 AI 模式降级：${reasonParts.join('、')}（将改用远程 AI）`)
+          effectiveAnalysisEngine = 'remoteAI'
+          useLocalAI = false
+        }
+      }
       
       // 🔍 调试：检查配置读取
       recLogger.info('🔍 推荐配置详情:', {
-        analysisEngine: recommendationConfig.analysisEngine,
+        analysisEngine: effectiveAnalysisEngine,
         selectedModel: aiConfig.model,
         modelSupportsReasoning: aiConfig.model ? AVAILABLE_MODELS[getProviderFromModel(aiConfig.model) || 'deepseek']?.find(m => m.id === aiConfig.model)?.supportsReasoning : false,
         enableReasoningInAIConfig: aiConfig.enableReasoning,
         finalUseReasoning: useReasoning,
         reasoningDisabledReason,
         useLocalAI,
-        推理引擎: recommendationConfig.analysisEngine,
+        推理引擎: effectiveAnalysisEngine,
         完整配置: recommendationConfig
       })
       
@@ -151,8 +174,8 @@ export class RecommendationService {
       // 2. 获取RSS文章数据（Phase 6: 优先获取未分析的文章）
       const articles = await this.collectArticles(sources, batchSize)
       if (articles.length === 0) {
-        // 无数据时返回温和提示，而非抛出错误
-        recLogger.warn('没有可用的RSS文章数据，请先订阅一些RSS源')
+        // 无数据时返回温和提示：所有文章都已分析，需要等待新文章
+        recLogger.warn('所有订阅的RSS文章都已分析，请等待新文章或添加更多RSS源')
         return {
           recommendations: [],
           stats: {
@@ -160,7 +183,7 @@ export class RecommendationService {
             analyzed: 0,
             recommended: 0,
             filtered: 0,
-            reason: '没有可用的RSS文章数据，请先订阅一些RSS源'
+            reason: '所有订阅的RSS文章都已分析，请等待新文章或添加更多RSS源'
           }
         }
       }
@@ -169,6 +192,7 @@ export class RecommendationService {
 
       // 3. 构建推荐输入
       const config: RecommendationConfig = {
+        analysisEngine: effectiveAnalysisEngine,
         maxRecommendations,
         useReasoning,
         useLocalAI,
@@ -178,7 +202,7 @@ export class RecommendationService {
       }
       
       recLogger.info(' 推荐配置:', {
-        analysisEngine: recommendationConfig.analysisEngine,
+        analysisEngine: config.analysisEngine,
         useReasoning,
         useLocalAI,
         qualityThreshold: config.qualityThreshold,

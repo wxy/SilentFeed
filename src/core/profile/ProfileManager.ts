@@ -55,6 +55,14 @@ export class ProfileManager {
         profileLogger.info(`构建完成，包含 ${newProfile.keywords.length} 个关键词，${newProfile.domains.length} 个域名`)
         profileLogger.info(`总页面数: ${newProfile.totalPages} (基于 ${visits.length} 条确认记录，${analyzedVisits.length} 条有分析)`)
 
+        // 3.5. ⚠️ 关键修复：从数据库重建 behaviors（而不是从内存读取）
+        // 这样即使 userProfile.behaviors 为空，也能从 recommendations 表恢复
+        newProfile.behaviors = await semanticProfileBuilder.rebuildBehaviorsFromDatabase()
+        profileLogger.info(`从数据库重建行为数据：${newProfile.behaviors.reads.length} 条阅读记录，${newProfile.behaviors.dismisses.length} 条拒绝记录`)
+        
+        // ⚠️ 重要：不保留旧的 aiSummary，让 tryGenerateAIProfile 重新生成
+        // 这样 rebuild 才会真正重建 AI 画像
+
         // 4. 保存到数据库（临时保存，可能被 AI 生成覆盖）
         await db.userProfile.put(newProfile)
         profileLogger.info('用户画像已保存到数据库')
@@ -65,8 +73,8 @@ export class ProfileManager {
         // 6. 重新读取画像（可能包含 AI 数据）
         const finalProfile = await db.userProfile.get('singleton') || newProfile
 
-        // 7. 处理兴趣变化追踪（使用包含 AI 的最终画像）
-        await InterestSnapshotManager.handleProfileUpdate(finalProfile, 'rebuild')
+        // 7. Phase 10: 不再创建快照（已移除兴趣演化历程功能）
+        // await InterestSnapshotManager.handleProfileUpdate(finalProfile, 'rebuild')
 
         return finalProfile
       },
@@ -196,7 +204,9 @@ export class ProfileManager {
       }
       
       // 3. 如果已有 AI 画像且是普通更新（非手动触发），跳过
-      if (hasAIProfile && trigger !== 'manual') {
+      // ⚠️ 'rebuild' 和 'manual' 都应该视为手动触发，必须重新生成
+      const isManualTrigger = trigger === 'manual' || trigger === 'rebuild'
+      if (hasAIProfile && !isManualTrigger) {
         profileLogger.info('[AI Profile] 已有画像，跳过生成（非手动触发）')
         return
       }

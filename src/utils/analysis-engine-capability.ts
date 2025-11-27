@@ -5,6 +5,7 @@
 
 import { getAIConfig, isAIConfigured } from '@/storage/ai-config'
 import { logger } from './logger'
+import { listLocalModels } from './local-ai-endpoint'
 import type { 
   AnalysisEngine, 
   AnalysisEngineCapability, 
@@ -38,13 +39,10 @@ async function checkChromeAI(): Promise<boolean> {
 /**
  * 检测 Ollama 是否可用
  */
-async function checkOllama(): Promise<boolean> {
+async function checkOllama(endpoint?: string, apiKey?: string): Promise<boolean> {
   try {
-    const response = await fetch('http://localhost:11434/api/tags', {
-      method: 'GET',
-      signal: AbortSignal.timeout(2000) // 2秒超时
-    })
-    return response.ok
+    const result = await listLocalModels(endpoint, apiKey)
+    return result.models.length > 0
   } catch (error) {
     capabilityLogger.debug('Ollama 不可用（正常）')
     return false
@@ -56,28 +54,82 @@ async function checkOllama(): Promise<boolean> {
  * 导出供 UI 组件使用
  */
 export async function checkLocalAI(): Promise<AnalysisEngineCapability> {
-  const hasChromeAI = await checkChromeAI()
-  const hasOllama = await checkOllama()
-  
-  if (hasChromeAI && hasOllama) {
+  try {
+    const aiConfig = await getAIConfig()
+    const localConfig = aiConfig.local
+
+    if (!localConfig?.enabled) {
+      return {
+        available: false,
+        reason: '本地 AI 未启用，请先在 AI 引擎页面打开',
+        details: { configEnabled: false, status: 'not-enabled' }
+      }
+    }
+
+    const endpoint = (localConfig.endpoint || '').trim()
+    if (!endpoint) {
+      return {
+        available: false,
+        reason: '本地 AI 服务地址未填写',
+        details: { configEnabled: true, status: 'missing-endpoint' }
+      }
+    }
+
+    const model = (localConfig.model || '').trim()
+    if (!model) {
+      return {
+        available: false,
+        reason: '本地 AI 模型名称未填写',
+        details: { configEnabled: true, status: 'missing-model' }
+      }
+    }
+
+    const hasChromeAI = await checkChromeAI()
+    const hasOllama = await checkOllama(endpoint, localConfig.apiKey)
+    const provider = localConfig.provider || 'ollama'
+    const providerAvailable = provider === 'ollama'
+      ? hasOllama
+      : hasChromeAI
+
+    if (!providerAvailable) {
+      const reason = provider === 'ollama'
+        ? '无法连接到 Ollama，请确认服务已启动且地址正确'
+        : '未检测到 Chrome AI，请检查浏览器版本与实验特性设置'
+      return {
+        available: false,
+        reason,
+        details: {
+          provider,
+          endpoint,
+          model,
+          hasChromeAI,
+          hasOllama,
+          status: provider === 'ollama' ? 'ollama-offline' : 'chrome-ai-offline'
+        }
+      }
+    }
+
+    const detectedReason = provider === 'ollama'
+      ? `检测到 Ollama (${model})`
+      : '检测到 Chrome AI'
+
     return {
       available: true,
-      reason: '检测到 Chrome AI 和 Ollama'
+      reason: detectedReason,
+      details: {
+        provider,
+        endpoint,
+        model,
+        hasChromeAI,
+        hasOllama,
+        status: 'ready'
+      }
     }
-  } else if (hasChromeAI) {
-    return {
-      available: true,
-      reason: '检测到 Chrome AI'
-    }
-  } else if (hasOllama) {
-    return {
-      available: true,
-      reason: '检测到 Ollama'
-    }
-  } else {
+  } catch (error) {
+    capabilityLogger.error('本地 AI 检测失败:', error)
     return {
       available: false,
-      reason: '未检测到本地 AI（需要安装 Ollama 或使用支持 Chrome AI 的浏览器）'
+      reason: error instanceof Error ? error.message : '本地 AI 检测失败'
     }
   }
 }

@@ -20,15 +20,12 @@ vi.mock("react-i18next", () => ({
         "options.analysisEngine.options.remoteAI": "Remote AI (Standard)",
         "options.analysisEngine.options.remoteAIWithReasoning": "Remote AI (Inference Mode)",
         "options.analysisEngine.options.localAI": "Local AI",
-        "options.analysisEngine.options.keyword": "Pure keywords",
         "options.analysisEngine.desc.remoteAI": "Using remote AI services to balance cost and quality.",
         "options.analysisEngine.desc.remoteAIWithReasoning": "Using reasoning AI (DeepSeek-R1), costs about 10 times more but delivers better quality.",
         "options.analysisEngine.desc.localAI": "Using local AI (Ollama/Chrome AI), protects privacy but consumes performance",
-        "options.analysisEngine.desc.keyword": "Using the TF-IDF keyword algorithm, fastest and cost-free.",
         "options.analysisEngine.unavailable.remoteAI": "AI API is not configured",
         "options.analysisEngine.unavailable.remoteAIWithReasoning": "Requires DeepSeek API with inference capability enabled",
         "options.analysisEngine.unavailable.localAI": "No local AI detected",
-        "options.analysisEngine.unavailable.keyword": "Always available",
         "options.analysisEngine.hint.recommendation": "💡 The recommendation system supports 4 types of engines",
         "options.analysisEngine.hint.feed": "💡 Feed analysis supports 3 types of engines",
         // Recommendation Settings
@@ -122,12 +119,10 @@ describe("AnalysisSettings 组件", () => {
         const remoteAI = screen.getAllByText("Remote AI (Standard)")
         const reasoning = screen.getAllByText("Remote AI (Inference Mode)")
         const localAI = screen.getAllByText("Local AI")
-        const keyword = screen.getAllByText("Pure keywords")
         
         expect(remoteAI.length).toBeGreaterThan(0)
         expect(reasoning.length).toBeGreaterThan(0)
         expect(localAI.length).toBeGreaterThan(0)
-        expect(keyword.length).toBeGreaterThan(0)
       })
     })
 
@@ -153,21 +148,6 @@ describe("AnalysisSettings 组件", () => {
   })
 
   describe("引擎选择", () => {
-    it("应该能够选择关键词引擎", async () => {
-      const user = userEvent.setup()
-      render(<AnalysisSettings />)
-      
-      await waitFor(() => {
-        expect(screen.getAllByText("Pure keywords").length).toBeGreaterThan(0)
-      })
-      
-      // 获取第一个（推荐引擎的）关键词 radio
-      const keywordRadios = screen.getAllByRole("radio", { name: /Pure keywords/i })
-      await user.click(keywordRadios[0])
-      
-      expect(keywordRadios[0]).toBeChecked()
-    })
-
     it("应该能够选择本地AI引擎", async () => {
       const user = userEvent.setup()
       render(<AnalysisSettings />)

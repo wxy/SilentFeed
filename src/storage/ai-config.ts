@@ -91,6 +91,25 @@ export interface AIModelConfig {
   costMultiplier: number
 }
 
+export interface LocalAIConfig {
+  /** 是否启用本地 AI */
+  enabled: boolean
+  /** 当前本地 AI 提供商（Phase 10 先支持 Ollama） */
+  provider: "ollama"
+  /** Ollama 接口地址，默认 http://localhost:11434/v1（OpenAI 兼容模式） */
+  endpoint: string
+  /** 默认模型名称（例如 qwen2.5:7b） */
+  model: string
+  /** OpenAI 兼容接口可选 API Key */
+  apiKey?: string
+  /** 推理温度 */
+  temperature?: number
+  /** 单次输出最大 token 数 */
+  maxOutputTokens?: number
+  /** 请求超时（毫秒） */
+  timeoutMs?: number
+}
+
 /**
  * AI 配置数据结构
  */
@@ -112,6 +131,9 @@ export interface AIConfig {
   
   /** Phase 9: 是否启用推理能力（DeepSeek-R1，成本约10倍但质量更好） */
   enableReasoning?: boolean
+
+  /** Phase 10: 本地 AI 配置（Ollama 等） */
+  local?: LocalAIConfig
 }
 
 /**
@@ -123,7 +145,17 @@ const DEFAULT_CONFIG: AIConfig = {
   enabled: false,
   monthlyBudget: 5, // 默认 $5/月
   model: undefined, // 不设置则使用 Provider 默认模型
-  enableReasoning: false // Phase 9: 默认不启用推理（成本考虑）
+  enableReasoning: false, // Phase 9: 默认不启用推理（成本考虑）
+  local: {
+    enabled: false,
+    provider: "ollama",
+    endpoint: "http://localhost:11434/v1",
+    model: "qwen2.5:7b",
+    apiKey: "ollama",
+    temperature: 0.2,
+    maxOutputTokens: 768,
+    timeoutMs: 45000
+  }
 }
 
 /**
@@ -162,7 +194,11 @@ export async function getAIConfig(): Promise<AIConfig> {
         return {
           ...DEFAULT_CONFIG,
           ...config,
-          apiKeys: decryptedApiKeys
+          apiKeys: decryptedApiKeys,
+          local: {
+            ...DEFAULT_CONFIG.local!,
+            ...config.local
+          }
         }
       }
       

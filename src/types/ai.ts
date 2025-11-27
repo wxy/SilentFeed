@@ -55,12 +55,13 @@ export interface RecommendationReasonResult {
 
   /** 生成元数据 */
   metadata: {
-    provider: "openai" | "anthropic" | "deepseek" | "keyword"
+    provider: "openai" | "anthropic" | "deepseek" | "keyword" | "ollama"
     model: string
     timestamp: number
     tokensUsed?: {
       input: number
       output: number
+      total?: number
     }
   }
 }
@@ -139,7 +140,7 @@ export interface UserProfileGenerationResult {
   
   /** 生成元数据 */
   metadata: {
-    provider: "openai" | "anthropic" | "deepseek" | "keyword"
+    provider: "openai" | "anthropic" | "deepseek" | "keyword" | "ollama"
     model: string
     timestamp: number
     tokensUsed?: {
@@ -188,7 +189,7 @@ export interface UnifiedAnalysisResult {
    */
   metadata: {
     /** 提供商名称 */
-    provider: "openai" | "anthropic" | "deepseek" | "keyword"
+    provider: "openai" | "anthropic" | "deepseek" | "keyword" | "ollama"
 
     /** 使用的模型 */
     model: string

@@ -286,51 +286,71 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
     if (ids.length === 0) return
     
     console.log('[RecommendationStore] 开始标记不想读:', ids)
-    set({ isLoading: true, error: null })
     
+    // === 第一步：立即从 UI 移除被拒绝的条目 ===
+    const currentRecs = get().recommendations
+    const remainingRecs = currentRecs.filter(r => !ids.includes(r.id))
+    
+    console.log('[RecommendationStore] 立即移除已拒绝条目:', {
+      before: currentRecs.length,
+      removed: ids.length,
+      remaining: remainingRecs.length
+    })
+    
+    // === 第二步：立即从现有推荐池填充新条目（不等待异步操作）===
+    const config = await getRecommendationConfig()
+    const needCount = config.maxRecommendations - remainingRecs.length
+    
+    // 同步获取现有的未读推荐（已经在数据库中的）
+    const freshRecommendations = await getUnreadRecommendations(config.maxRecommendations * 2)
+    const newRecs = freshRecommendations
+      .filter(r => !remainingRecs.some(existing => existing.id === r.id))
+      .filter(r => !ids.includes(r.id)) // 排除刚拒绝的
+      .sort((a: Recommendation, b: Recommendation) => b.score - a.score)
+      .slice(0, needCount)
+    
+    // 立即更新 UI，显示剩余的 + 新填充的
+    const updatedRecommendations = [...remainingRecs, ...newRecs]
+      .sort((a, b) => b.score - a.score)
+      .slice(0, config.maxRecommendations)
+    
+    console.log('[RecommendationStore] 立即填充新推荐:', {
+      remaining: remainingRecs.length,
+      filled: newRecs.length,
+      total: updatedRecommendations.length
+    })
+    
+    set({ 
+      recommendations: updatedRecommendations,
+      isLoading: false, // ✅ 立即结束 loading 状态
+      error: null 
+    })
+    
+    // === 第三步：异步执行后台任务（不阻塞UI）===
     try {
-      // 🆕 Phase 8: 获取推荐对象用于用户画像学习（在删除前）
+      // 🆕 Phase 8: 获取推荐对象用于用户画像学习
       const dismissedRecs = await db.recommendations.bulkGet(ids)
       
       // 调用数据库标记为不想读
       await dismissRecommendations(ids)
-      console.log('[RecommendationStore] 数据库标记不想读成功:', ids)
+      console.log('[RecommendationStore] ✅ 数据库标记不想读成功')
       
-      // 🆕 Phase 8: 更新用户画像（拒绝行为）
-      for (const recommendation of dismissedRecs) {
+      // 🆕 Phase 8: 异步更新用户画像（拒绝行为）
+      // 不阻塞UI，在后台执行
+      const profileUpdatePromises = dismissedRecs.map(async (recommendation) => {
         if (recommendation) {
           try {
             await semanticProfileBuilder.onDismiss(recommendation)
-            console.log('[RecommendationStore] ✅ 用户画像已更新（拒绝）:', recommendation.title.substring(0, 20))
+            console.log('[RecommendationStore] ✅ 画像已更新（拒绝）:', recommendation.title.substring(0, 30))
           } catch (profileError) {
             console.warn('[RecommendationStore] 画像更新失败（不影响主流程）:', profileError)
           }
         }
-      }
-      
-      // 🔧 关键修复：从数据库重新加载未读推荐
-      const config = await getRecommendationConfig()
-      const recommendations = await getUnreadRecommendations(config.maxRecommendations * 2)
-      
-      // ✅ 按评分降序排序并限制数量
-      // 注意：getUnreadRecommendations 已按分数排序，这里再次排序确保一致性
-      const sortedRecommendations = recommendations
-        .sort((a: Recommendation, b: Recommendation) => b.score - a.score)
-        .slice(0, config.maxRecommendations)
-      
-      console.log('[RecommendationStore] 重新加载未读推荐:', {
-        beforeCount: get().recommendations.length,
-        afterCount: sortedRecommendations.length,
-        dismissedIds: ids,
-        sorted: true
       })
       
-      set({
-        recommendations: sortedRecommendations,
-        isLoading: false
-      })
-      
-      console.log('[RecommendationStore] UI状态更新完成')
+      // 等待所有画像更新完成（并行执行）
+      await Promise.all(profileUpdatePromises)
+      console.log('[RecommendationStore] ✅ 所有画像更新完成')
       
       // 刷新统计
       await get().refreshStats()

@@ -43,7 +43,18 @@ describe("ai-config", () => {
         apiKeys: {},
         enabled: false,
         enableReasoning: false,
-        monthlyBudget: 5
+        monthlyBudget: 5,
+        model: undefined,
+        local: {
+          enabled: false,
+          provider: "ollama",
+          endpoint: "http://localhost:11434/v1",
+          model: "qwen2.5:7b",
+          apiKey: "ollama",
+          temperature: 0.2,
+          maxOutputTokens: 768,
+          timeoutMs: 45000
+        }
       })
     })
     

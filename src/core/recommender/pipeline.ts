@@ -92,7 +92,6 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
     
     try {
       // 初始化AI管理器（确保配置正确加载）
-      console.log('[Pipeline] 🤖 正在初始化AI管理器...')
       await aiManager.initialize()
       
       // 初始化统计信息
@@ -120,9 +119,32 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
         }
       }
 
+      const {
+        articles: rawArticles,
+        userProfile,
+        config,
+        options,
+        visitHistory = [],
+        alreadyRecommended = []
+      } = input as RecommendationInput & {
+        visitHistory?: unknown[]
+        alreadyRecommended?: unknown[]
+      }
+
+      const articles = options?.maxArticles
+        ? rawArticles.slice(0, options.maxArticles)
+        : rawArticles
+
+      const maxRecommendations = config.maxRecommendations ?? 5
+      const tfidfThreshold = config.tfidfThreshold ?? this.config.tfidf.minScore
+      const qualityThreshold = config.qualityThreshold ?? 0.65
+      const batchSize = config.batchSize ?? this.config.ai.batchSize
+
+      this.stats.inputCount = articles.length
+
       const context: ProcessingContext = {
-        config: input.config,
-        userProfile: input.userProfile,
+        config,
+        userProfile,
         stats: this.stats,
         abortSignal: this.abortController.signal,
         onProgress: this.updateProgress.bind(this),
@@ -130,17 +152,14 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
       }
 
       // Phase 6: 新流程 - TF-IDF 初筛 → 逐篇处理（低分跳过，高分 AI 分析）
-      console.log('[Pipeline] 📊 开始新推荐流程：TF-IDF 初筛 → 逐篇 AI 分析')
-      
-      const articles = input.articles.slice(0, input.options?.maxArticles || 200)
-      this.stats.inputCount = articles.length
-      
-      const tfidfThreshold = input.config.tfidfThreshold ?? 0.1
-      const qualityThreshold = input.config.qualityThreshold ?? 0.6  // Phase 6: 默认 0.6（基于实际评分分布）
-      const maxRecommendations = input.config.maxRecommendations || 3
-      const batchSize = input.config.batchSize || 1
-      
-      console.log(`[Pipeline] 配置: TF-IDF阈值=${tfidfThreshold}, 质量阈值=${qualityThreshold}, 批次大小=${batchSize}`)
+      console.log('[Pipeline] 📊 开始推荐流程:', {
+        输入文章: articles.length,
+        浏览历史: visitHistory.length,
+        已推荐: alreadyRecommended.length,
+        目标数量: maxRecommendations,
+        TF阈值: tfidfThreshold,
+        质量阈值: qualityThreshold
+      })
       
       // Phase 6: 新策略 - 逐篇抓取全文 + TF-IDF 评分 + 高分送 AI
       // 优势：
@@ -193,10 +212,6 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
           
           // 3. 保存 TF-IDF 分数到数据库（缓存以避免重复计算）
           await this.saveTFIDFScore(article.id, article.feedId, tfidfScore)
-          
-          console.log(`[Pipeline] 📊 计算并保存 TF-IDF 分数 (${tfidfScore.toFixed(4)}): ${article.title}`)
-        } else {
-          console.log(`[Pipeline] ♻️  使用已缓存的 TF-IDF 分数 (${tfidfScore.toFixed(4)}): ${article.title}`)
         }
         
         // 更新进度
@@ -205,8 +220,6 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
         
         // 4. 检查 TF-IDF 分数
         if (tfidfScore < tfidfThreshold) {
-          console.log(`[Pipeline] ⏭️  跳过低分文章 (${tfidfScore.toFixed(4)}): ${article.title}`)
-          console.log(`[Pipeline] 📝 保存 TF-IDF 跳过标记: ${article.id}`)
           skippedLowScore++
           
           // 标记为已分析（低质量，不值得 AI 分析）
@@ -217,8 +230,6 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
           
           continue  // 跳过，不计入 aiAnalyzedCount，继续下一篇
         }
-        
-        console.log(`[Pipeline] 🔍 发现高分文章 (TF-IDF: ${tfidfScore.toFixed(4)}): ${article.title}`)
         
         // 5. AI 分析高分文章（需要全文）
         // 如果使用了缓存的 TF-IDF 分数，现在才抓取全文
@@ -236,18 +247,13 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
           aiAnalyzedCount++  // 完成一次 AI 分析
           
           if (aiResult && aiResult.score >= qualityThreshold) {
-            console.log(`[Pipeline] ✅ 高质量文章 (最终得分: ${aiResult.score.toFixed(2)} >= ${qualityThreshold}): ${article.title}`)
             recommendedArticles.push(aiResult)
             
             // 达到推荐数量，提前退出
             if (recommendedArticles.length >= maxRecommendations) {
-              console.log(`[Pipeline] 🎯 已找到 ${maxRecommendations} 篇高质量推荐，提前结束`)
+              console.log(`[Pipeline] 🎯 已找到 ${maxRecommendations} 篇高质量推荐`)
               break
             }
-          } else if (aiResult) {
-            console.log(`[Pipeline] ⚠️ 低质量文章 (最终得分: ${aiResult.score.toFixed(2)} < ${qualityThreshold}): ${article.title}`)
-          } else {
-            console.log(`[Pipeline] ❌ AI 分析失败: ${article.title}`)
           }
         }
       }
@@ -485,15 +491,16 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
   ): Promise<RecommendedArticle | null> {
     try {
       const userInterests = convertUserProfileToUserInterests(context.userProfile)
+      const aiUserProfile = context.userProfile.aiSummary ? {
+        interests: context.userProfile.aiSummary.interests,
+        preferences: context.userProfile.aiSummary.preferences,
+        avoidTopics: context.userProfile.aiSummary.avoidTopics
+      } : undefined
+      const preferLocal = context.config?.analysisEngine === 'localAI' || context.config?.useLocalAI
+      const providerMode = preferLocal ? 'local' : 'remote'
       
       // 准备内容
       const content = article.fullContent || article.description || article.title || ''
-      
-      // 🔍 调试：检查推理模式配置
-      console.log('[Pipeline] 🔍 推理模式配置检查:', {
-        'context.config.useReasoning': context.config.useReasoning,
-        '推理模式状态': context.config.useReasoning ? '启用' : '禁用'
-      })
       
       // AI 分析选项
       // 统一使用 deepseek-chat，通过 useReasoning 参数控制推理模式
@@ -501,13 +508,12 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
         model: 'deepseek-chat',
         timeout: context.config.useReasoning ? 120000 : 60000,
         maxTokens: 2000,
-        useReasoning: context.config.useReasoning || false
+        useReasoning: context.config.useReasoning || false,
+        userProfile: aiUserProfile
       }
       
-      console.log('[Pipeline] 🤖 AI分析选项:', analysisOptions)
-      
       // 调用 AI 分析
-      const analysis = await aiManager.analyzeContent(content, analysisOptions)
+      const analysis = await aiManager.analyzeContent(content, analysisOptions, providerMode)
       
       // 保存 AI 分析结果到文章
       await this.saveArticleAnalysis(article.id, article.feedId, analysis)
@@ -516,12 +522,6 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
       const aiRelevanceScore = this.calculateAIRelevanceScore(analysis, userInterests)
       const tfidfScore = (article as ScoredArticle).tfidfScore || article.tfidfScore || 0
       const combinedScore = tfidfScore * 0.3 + aiRelevanceScore * 0.7
-      
-      console.log(`[Pipeline] 📊 评分详情 - ${article.title}:`, {
-        'TF-IDF': tfidfScore.toFixed(4),
-        'AI相关性': aiRelevanceScore.toFixed(4),
-        '最终得分': `${combinedScore.toFixed(4)} (TF-IDF*0.3 + AI*0.7)`
-      })
       
       // 生成推荐理由
       const reason = this.generateRecommendationReason(analysis, userInterests, combinedScore, context.config)
@@ -602,7 +602,7 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
     const userInterests = convertUserProfileToUserInterests(context.userProfile)
     
     try {
-      console.log(`[Pipeline] 🤖 处理AI批次: ${articles.length} 篇文章`)
+      // 处理AI批次
       
       // 批量构建内容
       const contentList = articles.map(article => ({
@@ -623,6 +623,8 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
             preferences: context.userProfile.aiSummary.preferences,
             avoidTopics: context.userProfile.aiSummary.avoidTopics
           } : undefined
+          const preferLocal = context.config?.analysisEngine === 'localAI' || context.config?.useLocalAI
+          const providerMode = preferLocal ? 'local' : 'remote'
           
           // 构建分析上下文
           const analysisOptions = {
@@ -633,7 +635,7 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
           }
           
           // 调用AI分析（这里保持单个调用，因为aiManager暂不支持批量）
-          const analysis = await aiManager.analyzeContent(item.content, analysisOptions)
+          const analysis = await aiManager.analyzeContent(item.content, analysisOptions, providerMode)
           
           // Phase 6: 保存 AI 分析结果到文章（用于标记已分析，避免重复处理）
           await this.saveArticleAnalysis(item.article.id, item.article.feedId, analysis)
@@ -700,7 +702,6 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
     userInterests: { keywords: Array<{word: string, weight: number}> }
   ): number {
     if (!analysis.topicProbabilities) {
-      console.log('[Pipeline] ⚠️ 无主题概率，返回默认分数 0.3')
       return 0.3 // 默认分数
     }
     
@@ -734,16 +735,9 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
     // 这样，如果文章的主要主题都匹配用户兴趣，分数会接近用户兴趣权重
     if (totalProbability > 0) {
       const normalizedScore = totalScore / totalProbability
-      console.log('[Pipeline] 🎯 AI相关性计算:', {
-        匹配详情: matchDetails,
-        总分: totalScore.toFixed(4),
-        总概率: totalProbability.toFixed(4),
-        最终分数: normalizedScore.toFixed(4)
-      })
       return Math.min(1.0, normalizedScore)
     }
     
-    console.log('[Pipeline] ⚠️ 无匹配主题，返回默认分数 0.3')
     return 0.3 // 没有匹配时的默认分数
   }
 
@@ -958,7 +952,7 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
         }
       })
       
-      console.log(`[Pipeline] 💾 已保存文章分析结果: ${articleId}, provider: ${analysis.metadata?.provider || 'unknown'}`)
+      // 已保存分析结果
     } catch (error) {
       console.warn(`[Pipeline] ⚠️ 保存文章分析失败: ${articleId}`, error)
       // 不抛出错误，保存失败不影响推荐流程
@@ -984,7 +978,7 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
         tfidfScore
       })
       
-      console.log(`[Pipeline] 💾 已保存 TF-IDF 分数: ${articleId}, score: ${tfidfScore.toFixed(4)}`)
+      // 已保存TF-IDF分数
       
     } catch (error) {
       console.warn(`[Pipeline] ⚠️ 保存 TF-IDF 分数失败: ${articleId}`, error)

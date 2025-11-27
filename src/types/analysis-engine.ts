@@ -8,7 +8,7 @@
  * - remoteAI: 使用远程 AI 服务（OpenAI、Anthropic、DeepSeek）
  * - remoteAIWithReasoning: 使用带推理能力的远程 AI（DeepSeek Reasoner等）
  * - localAI: 使用本地 AI（Ollama、Chrome AI）
- * - keyword: 仅使用关键字匹配（TF-IDF算法）
+ * - keyword: 仅使用关键字匹配（TF-IDF算法，内部降级使用，不对用户暴露）
  */
 export type AnalysisEngine = 
   | 'remoteAI'
@@ -18,6 +18,7 @@ export type AnalysisEngine =
 
 /**
  * 订阅源分析引擎类型（不包含推理AI，因为成本高、速度慢）
+ * keyword 仅作为内部降级选项，不在 UI 中暴露
  */
 export type FeedAnalysisEngine = 
   | 'remoteAI'
@@ -37,6 +38,8 @@ export interface AnalysisEngineCapability {
   available: boolean
   /** 不可用原因 */
   reason?: string
+  /** 可选的扩展信息（例如可用的本地服务类型） */
+  details?: Record<string, unknown>
 }
 
 /**

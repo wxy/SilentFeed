@@ -27,6 +27,11 @@ const mockChromeStorage = {
   }
 }
 
+const createModelsResponse = () => ({
+  ok: true,
+  json: () => Promise.resolve({ data: [{ id: 'qwen2.5:7b' }] })
+})
+
 // Mock fetch (for connection tests)
 global.fetch = vi.fn()
 
@@ -70,6 +75,7 @@ const mockAIManager = vi.mocked(aiManager)
 describe('AI配置检查机制', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    global.fetch = vi.fn()
     
     // 默认mock返回值
     mockChromeStorage.local.get.mockResolvedValue({})
@@ -186,9 +192,7 @@ describe('AI配置检查机制', () => {
 
     it('应该检测Ollama可用性', async () => {
       // Mock successful Ollama response
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true
-      })
+      global.fetch = vi.fn().mockResolvedValue(createModelsResponse())
 
       const status = await checkLocalAIStatus()
       

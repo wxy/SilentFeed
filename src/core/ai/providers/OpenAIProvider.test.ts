@@ -572,7 +572,9 @@ describe("OpenAIProvider", () => {
       expect(result.metadata.basedOn.browses).toBe(100)
       expect(result.metadata.basedOn.reads).toBe(20)
       expect(result.metadata.basedOn.dismisses).toBe(5)
-      expect(result.metadata.tokensUsed?.total).toBe(620)
+      // UserProfileGenerationResult 类型只有 input/output，没有 total
+      expect(result.metadata.tokensUsed?.input).toBe(500)
+      expect(result.metadata.tokensUsed?.output).toBe(120)
       expect(result.metadata.cost).toBeGreaterThan(0)
     })
     

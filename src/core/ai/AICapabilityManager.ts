@@ -23,14 +23,18 @@ import type {
 import { DeepSeekProvider } from "./providers/DeepSeekProvider"
 import { OpenAIProvider } from "./providers/OpenAIProvider"
 import { FallbackKeywordProvider } from "./providers/FallbackKeywordProvider"
-import { getAIConfig, type AIProviderType } from "@/storage/ai-config"
+import { OllamaProvider } from "./providers/OllamaProvider"
+import { getAIConfig, type AIProviderType, type LocalAIConfig } from "@/storage/ai-config"
 import { logger } from '../../utils/logger'
 
 // 创建带标签的 logger
 const aiLogger = logger.withTag('AICapabilityManager')
 
+type ProviderSelectionMode = "auto" | "remote" | "local"
+
 export class AICapabilityManager {
-  private primaryProvider: AIProvider | null = null
+  private remoteProvider: AIProvider | null = null
+  private localProvider: AIProvider | null = null
   private fallbackProvider: FallbackKeywordProvider
   
   constructor() {
@@ -44,36 +48,14 @@ export class AICapabilityManager {
     try {
       const config = await getAIConfig()
       
-      if (!config.enabled || !config.provider) {
-        aiLogger.info(" AI not configured, using keyword analysis")
-        this.primaryProvider = null
-        return
-      }
-      
-      // 获取当前 Provider 的 API Key
-      const apiKey = config.apiKeys?.[config.provider] || ""
-      
-      if (!apiKey) {
-        aiLogger.warn(` No API key for provider ${config.provider}`)
-        this.primaryProvider = null
-        return
-      }
-      
-      // 创建对应的 Provider（传递模型配置）
-      this.primaryProvider = this.createProvider(
-        config.provider, 
-        apiKey,
-        config.model // 可选模型配置
-      )
-      
-      // 检查可用性
-      const available = await this.primaryProvider.isAvailable()
-      if (!available) {
-        aiLogger.warn(" Primary provider not available, will use fallback")
-      }
+      const providerType = config.provider ?? null
+      const apiKey = providerType ? (config.apiKeys?.[providerType] || "") : ""
+      await this.initializeRemoteProvider(config.enabled, providerType, apiKey, config.model)
+      await this.initializeLocalProvider(config.local)
     } catch (error) {
       aiLogger.error(" Initialization failed:", error)
-      this.primaryProvider = null
+      this.remoteProvider = null
+      this.localProvider = null
     }
   }
   
@@ -84,29 +66,21 @@ export class AICapabilityManager {
    */
   async analyzeContent(
     content: string,
-    options?: AnalyzeOptions
+    options?: AnalyzeOptions,
+    mode: ProviderSelectionMode = "auto"
   ): Promise<UnifiedAnalysisResult> {
-    // 1. 尝试使用主 Provider
-    if (this.primaryProvider) {
+    const providers = await this.getProviderChain(mode)
+    for (const provider of providers) {
       try {
-        const available = await this.primaryProvider.isAvailable()
-        if (available) {
-          aiLogger.info(` Using primary provider: ${this.primaryProvider.name}`)
-          const result = await this.primaryProvider.analyzeContent(content, options)
-          
-          // 记录使用情况
-          this.recordUsage(result)
-          
-          return result
-        } else {
-          aiLogger.warn(" Primary provider not available, using fallback")
-        }
+        aiLogger.info(` Using provider: ${provider.name} (${mode})`)
+        const result = await provider.analyzeContent(content, options)
+        this.recordUsage(result)
+        return result
       } catch (error) {
-        aiLogger.error(" Primary provider failed, using fallback:", error)
+        aiLogger.error(` Provider ${provider.name} failed, trying next option`, error)
       }
     }
-    
-    // 2. 降级到关键词分析
+
     aiLogger.info(" Using fallback provider: Keyword Analysis")
     return await this.fallbackProvider.analyzeContent(content, options)
   }
@@ -117,42 +91,32 @@ export class AICapabilityManager {
    * 基于用户行为数据生成语义化的用户兴趣画像
    */
   async generateUserProfile(
-    request: UserProfileGenerationRequest
+    request: UserProfileGenerationRequest,
+    mode: ProviderSelectionMode = "auto"
   ): Promise<UserProfileGenerationResult> {
-    // 1. 尝试使用主 Provider（如果支持）
-    if (this.primaryProvider?.generateUserProfile) {
-      aiLogger.debug(` Checking if ${this.primaryProvider.name} supports profile generation...`)
-      try {
-        const available = await this.primaryProvider.isAvailable()
-        aiLogger.debug(` ${this.primaryProvider.name} availability: ${available}`)
-        
-        if (available) {
-          aiLogger.info(` Generating user profile with: ${this.primaryProvider.name}`)
-          const result = await this.primaryProvider.generateUserProfile(request)
-          
-          // 记录使用情况
-          if (result.metadata.tokensUsed) {
-            aiLogger.debug(' Tokens used:', result.metadata.tokensUsed)
-          }
-          
-          return result
-        } else {
-          aiLogger.warn(` Primary provider ${this.primaryProvider.name} not available, using fallback`)
-        }
-      } catch (error) {
-        aiLogger.error(` Primary provider ${this.primaryProvider.name} failed for profile generation:`, error)
+    const providers = await this.getProviderChain(mode)
+    for (const provider of providers) {
+      if (!provider.generateUserProfile) {
+        continue
       }
-    } else {
-      aiLogger.warn(` Primary provider does not support generateUserProfile method`)
+
+      try {
+        aiLogger.info(` Generating user profile with: ${provider.name}`)
+        const result = await provider.generateUserProfile(request)
+        if (result.metadata.tokensUsed) {
+          aiLogger.debug(' Tokens used:', result.metadata.tokensUsed)
+        }
+        return result
+      } catch (error) {
+        aiLogger.error(` Provider ${provider.name} failed for profile generation`, error)
+      }
     }
-    
-    // 2. 降级到关键词分析
+
     if (this.fallbackProvider.generateUserProfile) {
       aiLogger.info(" Using fallback provider for profile generation")
       return await this.fallbackProvider.generateUserProfile(request)
     }
     
-    // 3. 最终降级：基于关键词生成简单画像
     aiLogger.warn(" No provider supports profile generation, using basic keyword summary")
     const topKeywords = request.topKeywords.slice(0, 10).map(k => k.word)
     
@@ -179,32 +143,40 @@ export class AICapabilityManager {
   /**
    * 测试连接
    */
-  async testConnection(): Promise<{
+  async testConnection(target: ProviderSelectionMode = "remote"): Promise<{
     success: boolean
     message: string
     latency?: number
   }> {
-    if (!this.primaryProvider) {
+    const provider = target === "local" ? this.localProvider : this.remoteProvider
+
+    if (!provider) {
       return {
         success: false,
-        message: "未配置 AI Provider"
+        message: target === "local" ? "未配置本地 AI" : "未配置 AI Provider"
       }
     }
     
-    return await this.primaryProvider.testConnection()
+    return await provider.testConnection()
   }
   
   /**
    * 获取当前使用的 Provider 名称
    */
   getCurrentProviderName(): string {
-    return this.primaryProvider?.name || "Keyword Analysis"
+    if (this.remoteProvider) {
+      return this.remoteProvider.name
+    }
+    if (this.localProvider) {
+      return `${this.localProvider.name} (Local)`
+    }
+    return "Keyword Analysis"
   }
   
   /**
    * 创建 Provider 实例
    */
-  private createProvider(type: AIProviderType, apiKey: string, model?: string): AIProvider {
+  private createRemoteProvider(type: AIProviderType, apiKey: string, model?: string): AIProvider {
     switch (type) {
       case "deepseek":
         // Phase 6: 使用统一的 DeepSeekProvider
@@ -224,6 +196,21 @@ export class AICapabilityManager {
         throw new Error(`Unknown provider type: ${type}`)
     }
   }
+
+  private createLocalProvider(config: LocalAIConfig): AIProvider {
+    switch (config.provider) {
+      case "ollama":
+      default:
+        return new OllamaProvider({
+          apiKey: config.apiKey || "ollama",
+          endpoint: config.endpoint,
+          model: config.model,
+          temperature: config.temperature,
+          maxOutputTokens: config.maxOutputTokens,
+          timeoutMs: config.timeoutMs
+        })
+    }
+  }
   
   /**
    * 生成推荐理由
@@ -232,26 +219,19 @@ export class AICapabilityManager {
     request: RecommendationReasonRequest
   ): Promise<RecommendationReasonResult> {
     try {
-      // 尝试使用主要 AI Provider
-      if (this.primaryProvider) {
-        const available = await this.primaryProvider.isAvailable()
-        if (available && this.primaryProvider.generateRecommendationReason) {
-          const result = await this.primaryProvider.generateRecommendationReason(request)
-          
-          // 记录成本
-          this.recordRecommendationUsage(result)
-          
-          return result
+      const providers = await this.getProviderChain("auto")
+      for (const provider of providers) {
+        if (!provider.generateRecommendationReason) {
+          continue
         }
+        const result = await provider.generateRecommendationReason(request)
+        this.recordRecommendationUsage(result)
+        return result
       }
-      
-      // 降级到关键词策略
+
       return this.generateKeywordRecommendationReason(request)
-      
     } catch (error) {
-      aiLogger.warn(" Primary provider failed for recommendation:", error)
-      
-      // 降级到关键词策略
+      aiLogger.warn(" Provider failed for recommendation:", error)
       return this.generateKeywordRecommendationReason(request)
     }
   }
@@ -329,6 +309,83 @@ export class AICapabilityManager {
       }
     } catch (error) {
       aiLogger.error(" Failed to record recommendation usage:", error)
+    }
+  }
+
+  private async initializeRemoteProvider(
+    enabled: boolean,
+    providerType: AIProviderType | null | undefined,
+    apiKey: string,
+    model?: string
+  ): Promise<void> {
+    if (!enabled || !providerType) {
+      this.remoteProvider = null
+      aiLogger.info(" Remote AI disabled, fallback to keyword/local if available")
+      return
+    }
+
+    if (!apiKey) {
+      aiLogger.warn(` No API key for provider ${providerType}`)
+      this.remoteProvider = null
+      return
+    }
+
+    this.remoteProvider = this.createRemoteProvider(providerType, apiKey, model)
+    const available = await this.remoteProvider.isAvailable()
+    if (!available) {
+      aiLogger.warn(" Remote provider not available, will rely on fallback/local")
+    }
+  }
+
+  private async initializeLocalProvider(localConfig?: LocalAIConfig): Promise<void> {
+    if (!localConfig?.enabled) {
+      this.localProvider = null
+      return
+    }
+
+    this.localProvider = this.createLocalProvider(localConfig)
+    const available = await this.localProvider.isAvailable()
+    if (!available) {
+      aiLogger.warn(" Local provider not available, please ensure Ollama is running")
+    }
+  }
+
+  private async getProviderChain(mode: ProviderSelectionMode): Promise<AIProvider[]> {
+    const providers: AIProvider[] = []
+
+    if (mode === "remote") {
+      const remote = await this.ensureProviderAvailable(this.remoteProvider, "remote")
+      if (remote) providers.push(remote)
+      return providers
+    }
+
+    if (mode === "local") {
+      const local = await this.ensureProviderAvailable(this.localProvider, "local")
+      if (local) providers.push(local)
+      return providers
+    }
+
+    const remote = await this.ensureProviderAvailable(this.remoteProvider, "remote")
+    if (remote) providers.push(remote)
+    const local = await this.ensureProviderAvailable(this.localProvider, "local")
+    if (local) providers.push(local)
+    return providers
+  }
+
+  private async ensureProviderAvailable(provider: AIProvider | null, label: "remote" | "local"): Promise<AIProvider | null> {
+    if (!provider) {
+      return null
+    }
+    try {
+      const available = await provider.isAvailable()
+      if (!available) {
+        aiLogger.warn(` ${label} provider ${provider.name} not available`)
+        return null
+      }
+      return provider
+    } catch (error) {
+      aiLogger.error(` Failed to check ${label} provider availability`, error)
+      return null
     }
   }
 }
