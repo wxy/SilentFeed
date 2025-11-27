@@ -792,15 +792,13 @@
           "note": "Note"
         },
         "tasks": {
-          "pageAnalysis": "Learn Articles",
-          "feedAnalysis": "Feed Analysis",
-          "profileGeneration": "User Profile",
-          "recommendation": "Recommendation"
+          "pageAnalysis": "Page Browsing Learning",
+          "feedAnalysis": "Recommend Feed Articles",
+          "profileGeneration": "User Profile Generation"
         },
         "notes": {
-          "highFrequency": "High frequency",
-          "lowFrequencyAccurate": "Low frequency, accurate",
-          "mediumFrequencyAccurate": "Medium frequency, accurate"
+          "highFrequency": "High frequency, reasoning not supported",
+          "lowFrequency": "Low frequency, reasoning optional"
         },
         "performanceWarning": {
           "title": "Performance Impact Warning",
@@ -1070,15 +1068,13 @@
           "note": "Note"
         },
         "tasks": {
-          "pageAnalysis": "Learn Articles",
-          "feedAnalysis": "Feed Analysis",
-          "profileGeneration": "User Profile",
-          "recommendation": "Recommendation"
+          "pageAnalysis": "Page Browsing Learning",
+          "feedAnalysis": "Recommend Feed Articles",
+          "profileGeneration": "User Profile Generation"
         },
         "notes": {
-          "highFrequency": "High frequency",
-          "lowFrequencyAccurate": "Low frequency, accurate",
-          "mediumFrequencyAccurate": "Medium frequency, accurate"
+          "highFrequency": "High frequency, reasoning not supported",
+          "lowFrequency": "Low frequency, reasoning optional"
         },
         "performanceWarning": {
           "title": "Performance Impact Warning",

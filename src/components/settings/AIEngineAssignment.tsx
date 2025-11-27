@@ -77,7 +77,6 @@ export function AIEngineAssignmentComponent({
         <option value="deepseek">DeepSeek</option>
         <option value="openai">OpenAI</option>
         <option value="ollama">本地 Ollama</option>
-        <option value="keyword">关键词</option>
       </select>
     )
   }
@@ -101,8 +100,8 @@ export function AIEngineAssignmentComponent({
           onChange({ ...value, [taskKey]: newConfig })
           setSelectedPreset("custom")
         }}
-        disabled={disabled || config.provider === "keyword"}
-        className="rounded"
+        disabled={disabled}
+        className="w-4 h-4 cursor-pointer"
       />
     )
   }
@@ -246,30 +245,13 @@ export function AIEngineAssignmentComponent({
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    {renderEngineSelect("profileGeneration", value.profileGeneration, false)}
+                    {renderEngineSelect("profileGeneration", value.profileGeneration, true)}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    {renderReasoningCheckbox("profileGeneration", value.profileGeneration, false)}
+                    {renderReasoningCheckbox("profileGeneration", value.profileGeneration, true)}
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-500">
-                    {_("options.aiConfig.aiEngineAssignment.notes.lowFrequencyAccurate")}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <span>💡</span>
-                      <span>{_("options.aiConfig.aiEngineAssignment.tasks.recommendation")}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    {renderEngineSelect("recommendation", value.recommendation, false)}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    {renderReasoningCheckbox("recommendation", value.recommendation, false)}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-gray-500">
-                    {_("options.aiConfig.aiEngineAssignment.notes.mediumFrequencyAccurate")}
+                    {_("options.aiConfig.aiEngineAssignment.notes.lowFrequency")}
                   </td>
                 </tr>
               </tbody>

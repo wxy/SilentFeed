@@ -5,7 +5,7 @@
  */
 
 /** AI 提供商类型 */
-export type AIProvider = "ollama" | "deepseek" | "openai" | "keyword"
+export type AIProvider = "ollama" | "deepseek" | "openai"
 
 /** AI 引擎配置 */
 export interface AIEngineConfig {
@@ -19,17 +19,14 @@ export interface AIEngineConfig {
 
 /** AI 引擎分配配置 */
 export interface AIEngineAssignment {
-  /** 学习文章（浏览历史分析） - 高频任务，不支持推理 */
+  /** 页面浏览学习（浏览历史分析） - 高频任务，不支持推理 */
   pageAnalysis: Omit<AIEngineConfig, "useReasoning">
   
-  /** 订阅源文章分析 - 高频任务，不支持推理 */
+  /** 推荐订阅文章（Feed分析） - 高频任务，不支持推理 */
   feedAnalysis: Omit<AIEngineConfig, "useReasoning">
   
   /** 用户画像生成 - 低频任务，支持推理 */
   profileGeneration: AIEngineConfig
-  
-  /** 推荐理由生成 - 中频任务，支持推理 */
-  recommendation: AIEngineConfig
 }
 
 /** 预设方案名称 */
@@ -81,11 +78,6 @@ export const AI_ENGINE_PRESETS: Record<PresetName, PresetDefinition> = {
         provider: "ollama",
         model: "qwen2.5:7b",
         useReasoning: false
-      },
-      recommendation: {
-        provider: "ollama",
-        model: "qwen2.5:7b",
-        useReasoning: false
       }
     },
     benefits: [
@@ -118,10 +110,6 @@ export const AI_ENGINE_PRESETS: Record<PresetName, PresetDefinition> = {
       profileGeneration: {
         provider: "deepseek",
         useReasoning: true  // 启用推理，深度理解
-      },
-      recommendation: {
-        provider: "deepseek",
-        useReasoning: true  // 启用推理，个性化精准
       }
     },
     benefits: [
@@ -153,10 +141,6 @@ export const AI_ENGINE_PRESETS: Record<PresetName, PresetDefinition> = {
       profileGeneration: {
         provider: "deepseek",
         useReasoning: false  // 不用推理，省钱
-      },
-      recommendation: {
-        provider: "deepseek",
-        useReasoning: false  // 不用推理，省钱
       }
     },
     benefits: [
@@ -183,13 +167,8 @@ export function getDefaultEngineAssignment(): AIEngineAssignment {
  */
 export function validateEngineConfig(config: AIEngineConfig): boolean {
   // 检查 provider 是否有效
-  const validProviders: AIProvider[] = ["ollama", "deepseek", "openai", "keyword"]
+  const validProviders: AIProvider[] = ["ollama", "deepseek", "openai"]
   if (!validProviders.includes(config.provider)) {
-    return false
-  }
-
-  // keyword provider 不支持推理
-  if (config.provider === "keyword" && config.useReasoning) {
     return false
   }
 
@@ -208,9 +187,6 @@ export function validateEngineAssignment(assignment: AIEngineAssignment): boolea
     return false
   }
   if (!validateEngineConfig(assignment.profileGeneration)) {
-    return false
-  }
-  if (!validateEngineConfig(assignment.recommendation)) {
     return false
   }
 

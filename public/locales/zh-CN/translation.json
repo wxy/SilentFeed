@@ -863,15 +863,13 @@
           "note": "说明"
         },
         "tasks": {
-          "pageAnalysis": "学习文章",
-          "feedAnalysis": "订阅分析",
-          "profileGeneration": "用户画像",
-          "recommendation": "推荐理由"
+          "pageAnalysis": "页面浏览学习",
+          "feedAnalysis": "推荐订阅文章",
+          "profileGeneration": "用户画像生成"
         },
         "notes": {
-          "highFrequency": "高频任务",
-          "lowFrequencyAccurate": "低频准确",
-          "mediumFrequencyAccurate": "中频准确"
+          "highFrequency": "高频任务，不支持推理",
+          "lowFrequency": "低频任务，可启用推理"
         },
         "performanceWarning": {
           "title": "性能影响提醒",
@@ -1014,15 +1012,13 @@
           "note": "说明"
         },
         "tasks": {
-          "pageAnalysis": "学习文章",
-          "feedAnalysis": "订阅分析",
-          "profileGeneration": "用户画像",
-          "recommendation": "推荐理由"
+          "pageAnalysis": "页面浏览学习",
+          "feedAnalysis": "推荐订阅文章",
+          "profileGeneration": "用户画像生成"
         },
         "notes": {
-          "highFrequency": "高频任务",
-          "lowFrequencyAccurate": "低频准确",
-          "mediumFrequencyAccurate": "中频准确"
+          "highFrequency": "高频任务，不支持推理",
+          "lowFrequency": "低频任务，可启用推理"
         },
         "performanceWarning": {
           "title": "性能影响提醒",
