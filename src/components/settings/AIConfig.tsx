@@ -131,22 +131,22 @@ export function AIConfig() {
   useEffect(() => {
     let isMounted = true
     const detectLocalAI = async () => {
-    if (!isMounted) return
-    setLocalAIStatus(prev => ({ ...prev, checking: true }))
-    try {
-      const status = await checkLocalAIStatus()
       if (!isMounted) return
-      setLocalAIStatus({
-        hasChromeAI: status.hasChromeAI,
-        hasOllama: status.hasOllama,
-        checking: false,
-        available: status.availableServices.length > 0,
-        services: status.availableServices
-      })
-    } catch (error) {
-      if (!isMounted) return
-      setLocalAIStatus({ hasChromeAI: false, hasOllama: false, checking: false, available: false, services: [] })
-    }
+      setLocalAIStatus(prev => ({ ...prev, checking: true }))
+      try {
+        const status = await checkLocalAIStatus()
+        if (!isMounted) return
+        setLocalAIStatus({
+          hasChromeAI: status.hasChromeAI,
+          hasOllama: status.hasOllama,
+          checking: false,
+          available: status.availableServices.length > 0,
+          services: status.availableServices
+        })
+      } catch (error) {
+        if (!isMounted) return
+        setLocalAIStatus({ hasChromeAI: false, hasOllama: false, checking: false, available: false, services: [] })
+      }
     }
     detectLocalAI()
     return () => {
@@ -156,31 +156,38 @@ export function AIConfig() {
 
   const refreshLocalModels = useCallback(async () => {
     if (!localConfig.endpoint?.trim()) {
-    setLocalModels([])
-    setLocalModelsMode(null)
-    setLocalModelsError(_("options.aiConfig.localAIForm.errors.missingEndpoint"))
-    return
+      setLocalModels([])
+      setLocalModelsMode(null)
+      setLocalModelsError(_("options.aiConfig.localAIForm.errors.missingEndpoint"))
+      return
     }
 
     setIsFetchingLocalModels(true)
     setLocalModelsError(null)
 
     try {
-    const { mode, models } = await listLocalModels(localConfig.endpoint, localConfig.apiKey)
-    setLocalModelsMode(mode)
-    setLocalModels(models)
+      const { mode, models } = await listLocalModels(localConfig.endpoint, localConfig.apiKey)
+      setLocalModelsMode(mode)
+      setLocalModels(models)
 
-    if (models.length && (!localConfig.model || !models.some(m => m.id === localConfig.model))) {
-      setLocalConfig(prev => ({ ...prev, model: models[0].id }))
-    }
+      if (models.length && (!localConfig.model || !models.some(m => m.id === localConfig.model))) {
+        setLocalConfig(prev => ({ ...prev, model: models[0].id }))
+      }
     } catch (error) {
-    setLocalModels([])
-    setLocalModelsMode(null)
-    setLocalModelsError(error instanceof Error ? error.message : String(error))
+      setLocalModels([])
+      setLocalModelsMode(null)
+      setLocalModelsError(error instanceof Error ? error.message : String(error))
     } finally {
-    setIsFetchingLocalModels(false)
+      setIsFetchingLocalModels(false)
     }
   }, [localConfig.endpoint, localConfig.apiKey, _])
+
+  // 自动加载本地 AI 模型列表（页面加载时）
+  useEffect(() => {
+    if (localAIChoice === 'ollama' && localConfig.endpoint?.trim()) {
+      refreshLocalModels()
+    }
+  }, [localAIChoice, localConfig.endpoint, refreshLocalModels])
 
   // 测试连接
   const handleTest = async () => {
