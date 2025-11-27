@@ -121,6 +121,10 @@ export function ProfileSettings() {
   const renderAIMessage = (profile: UserProfile, timestamp: number) => {
     const aiSummary = profile.aiSummary
     
+    // 计算开始浏览时间（假设平均每天浏览10页）
+    const estimatedDays = Math.max(1, Math.floor(profile.totalPages / 10))
+    const startDate = new Date(timestamp - estimatedDays * 24 * 60 * 60 * 1000)
+    
     return (
       <div className="flex items-start gap-4 mb-6">
         {/* AI 头像 */}
@@ -142,7 +146,9 @@ export function ProfileSettings() {
                      aiSummary.metadata.provider === 'openai' ? 'OpenAI' : 
                      aiSummary.metadata.provider === 'anthropic' ? 'Anthropic' : 'AI'}
                   </span>，
-                  通过分析你的 <span className="font-medium text-orange-600 dark:text-orange-400">{profile.totalPages} 次</span>浏览，
+                  通过分析你从 <span className="font-medium text-cyan-600 dark:text-cyan-400">
+                    {startDate.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })}
+                  </span> 以来的 <span className="font-medium text-orange-600 dark:text-orange-400">{profile.totalPages} 次</span>浏览，
                   我发现你{aiSummary.interests}
                 </p>
                 
@@ -200,7 +206,7 @@ export function ProfileSettings() {
         {/* 用户头像（扩展图标） */}
         <div className="flex-shrink-0">
           <img 
-            src={chrome.runtime.getURL('assets/icons/128/icon-128.png')}
+            src={chrome.runtime.getURL('assets/icons/128/base-static.png')}
             alt="User"
             className="w-12 h-12 rounded-full shadow-md"
           />

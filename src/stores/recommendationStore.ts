@@ -310,11 +310,10 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
       
       // 🔧 关键修复：从数据库重新加载未读推荐
       const config = await getRecommendationConfig()
-      const recommendations = await getUnreadRecommendations(config.maxRecommendations * 2)
+      const freshRecommendations = await getUnreadRecommendations(config.maxRecommendations * 2)
       
       // ✅ 按评分降序排序并限制数量
-      // 注意：getUnreadRecommendations 已按分数排序，这里再次排序确保一致性
-      const sortedRecommendations = [...recommendations]
+      const sortedRecommendations = freshRecommendations
         .sort((a: Recommendation, b: Recommendation) => b.score - a.score)
         .slice(0, config.maxRecommendations)
       
@@ -322,12 +321,12 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
         beforeCount: get().recommendations.length,
         afterCount: sortedRecommendations.length,
         dismissedIds: ids,
-        sorted: true
+        newRecommendations: sortedRecommendations.map(r => ({ id: r.id, title: r.title.substring(0, 20) }))
       })
       
-      // ⚠️ 关键：使用新数组引用触发 React 重新渲染
+      // ⚠️ 关键：直接使用新数组引用，Zustand会自动检测变化
       set({
-        recommendations: [...sortedRecommendations],
+        recommendations: sortedRecommendations,
         isLoading: false
       })
       

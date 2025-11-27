@@ -55,11 +55,16 @@ export class ProfileManager {
         profileLogger.info(`构建完成，包含 ${newProfile.keywords.length} 个关键词，${newProfile.domains.length} 个域名`)
         profileLogger.info(`总页面数: ${newProfile.totalPages} (基于 ${visits.length} 条确认记录，${analyzedVisits.length} 条有分析)`)
 
-        // 3.5. 保留现有的behaviors数据（重建画像不应清空用户行为记录）
+        // 3.5. 保留现有的behaviors和aiSummary数据（重建画像不应清空这些数据）
         const existingProfile = await db.userProfile.get('singleton')
         if (existingProfile?.behaviors) {
           newProfile.behaviors = existingProfile.behaviors
           profileLogger.info(`保留现有行为数据：${newProfile.behaviors.reads.length} 条阅读记录，${newProfile.behaviors.dismisses.length} 条拒绝记录`)
+        }
+        // 保留现有的 aiSummary（在 tryGenerateAIProfile 之前暂存）
+        if (existingProfile?.aiSummary) {
+          newProfile.aiSummary = existingProfile.aiSummary
+          profileLogger.info(`保留现有 AI 画像（将在生成新画像时更新）`)
         }
 
         // 4. 保存到数据库（临时保存，可能被 AI 生成覆盖）
