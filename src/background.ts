@@ -86,10 +86,13 @@ async function updateBadge(): Promise<void> {
     } else {
       // 推荐阶段：显示推荐波纹
       const unreadRecs = await getUnreadRecommendations(50)
+      // ⚠️ 注意：unreadCount 是图标波纹动画的数量（最多3条），不是总推荐数
+      // - 图标上最多显示3个波纹表示有推荐
+      // - 实际弹窗内的推荐条目数由 config.maxRecommendations 控制（通常是5条）
       const unreadCount = Math.min(unreadRecs.length, 3)  // 最多3条波纹
       bgLogger.info(`🔔 推荐阶段: unreadRecs.length=${unreadRecs.length}, unreadCount=${unreadCount}`)
       iconManager.setBadgeState(LEARNING_COMPLETE_PAGES, unreadCount)  // 批量更新：学习完成 + 推荐数
-      bgLogger.debug(`📬 未读推荐：${unreadCount}`)
+      bgLogger.debug(`📬 未读推荐：${unreadCount} (图标波纹数，实际推荐数=${unreadRecs.length})`)
     }
     
     // 3. RSS 发现动画（优先级最高，会覆盖上面的状态）

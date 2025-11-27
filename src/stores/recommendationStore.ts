@@ -314,7 +314,7 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
       
       // ✅ 按评分降序排序并限制数量
       // 注意：getUnreadRecommendations 已按分数排序，这里再次排序确保一致性
-      const sortedRecommendations = recommendations
+      const sortedRecommendations = [...recommendations]
         .sort((a: Recommendation, b: Recommendation) => b.score - a.score)
         .slice(0, config.maxRecommendations)
       
@@ -325,8 +325,9 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
         sorted: true
       })
       
+      // ⚠️ 关键：使用新数组引用触发 React 重新渲染
       set({
-        recommendations: sortedRecommendations,
+        recommendations: [...sortedRecommendations],
         isLoading: false
       })
       
