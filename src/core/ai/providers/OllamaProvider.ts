@@ -171,26 +171,12 @@ export class OllamaProvider extends BaseAIService {
     }
     model?: string
   }> {
-    const order = this.getModeOrder()
-    let lastError: Error | null = null
-
-    for (const mode of order) {
-      try {
-        const result = mode === "openai"
-          ? await this.callOpenAICompatibleAPI(prompt, options)
-          : await this.callLegacyAPI(prompt, options)
-        this.endpointMode = mode
-        return result
-      } catch (error) {
-        lastError = error instanceof Error ? error : new Error(String(error))
-        if (!this.shouldFallback(error)) {
-          throw lastError
-        }
-        ollamaLogger.warn(`Ollama ${mode} 调用失败，将尝试其他模式`, lastError)
-      }
+    // 直接使用当前配置的模式，不再尝试 fallback
+    if (this.endpointMode === "openai") {
+      return await this.callOpenAICompatibleAPI(prompt, options)
+    } else {
+      return await this.callLegacyAPI(prompt, options)
     }
-
-    throw lastError ?? new Error("无法连接到 Ollama")
   }
 
   private extractJsonContent(raw: string): string {
@@ -204,16 +190,6 @@ export class OllamaProvider extends BaseAIService {
 
   private getModeOrder(): LocalAIEndpointMode[] {
     return this.endpointMode === "openai" ? ["openai", "legacy"] : ["legacy", "openai"]
-  }
-
-  private shouldFallback(error: unknown): boolean {
-    if (!(error instanceof Error)) {
-      return true
-    }
-    if (/Ollama API error: (401|403|404|405)/.test(error.message)) {
-      return true
-    }
-    return error.name === "TypeError" || /fetch/i.test(error.message)
   }
 
   private shouldSwitchToGenerate(status: number): boolean {
@@ -428,18 +404,6 @@ export class OllamaProvider extends BaseAIService {
     const timeout = options?.timeout || this.defaultTimeout
     const url = this.getChatEndpoint("openai")
     const headers = buildLocalAIHeaders("openai", this.config.apiKey)
-
-    // 记录完整的 HTTP 请求细节（可直接用于 curl 测试）
-    ollamaLogger.info("=== OpenAI-Compatible API 请求详情 ===")
-    ollamaLogger.info(`URL: ${url}`)
-    ollamaLogger.info(`Headers: ${JSON.stringify(headers)}`)
-    ollamaLogger.info(`Body: ${JSON.stringify(body, null, 2)}`)
-    ollamaLogger.info("等效 curl 命令:")
-    ollamaLogger.info(`curl -X POST '${url}' \\`)
-    Object.entries(headers).forEach(([key, value]) => {
-      ollamaLogger.info(`  -H '${key}: ${value}' \\`)
-    })
-    ollamaLogger.info(`  -d '${JSON.stringify(body)}'`)
 
     const response = await fetch(url, {
       method: "POST",

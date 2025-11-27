@@ -71,7 +71,18 @@
   - 在 zh-CN/translation.json 添加 userProfile.chat 翻译
   - 在 en/translation.json 添加对应英文翻译
   - 修复国际化占位符解析问题
-- [x] ollama 引擎的调试日志没删除（已修复 2025-11-28）
-  - recommendation-config.ts: 删除 "Ollama未检测到（正常）" debug 日志
-  - analysis-engine-capability.ts: 删除 "Ollama 不可用（正常）" debug 日志
-  - 统一改为静默处理，无需输出日志
+- [x] ollama 引擎的调试日志和优化（已修复 2025-11-28）
+  - **调试日志清理**:
+    - recommendation-config.ts: 删除 "Ollama未检测到（正常）" debug 日志
+    - analysis-engine-capability.ts: 删除 "Ollama 不可用（正常）" debug 日志
+    - OllamaProvider.ts: 删除 curl 命令调试日志（等效 curl 命令、URL、Headers、Body）
+  - **DNR 配置修复**:
+    - 问题: npm run dev 时 DNR 配置未正确应用到 manifest.json，导致 403 错误
+    - 根本原因: package.json 的 dev 脚本中 setup-dnr.sh 执行时机不对
+    - 解决方案: 创建 watch-dnr.sh 脚本监听构建目录，自动配置 DNR
+    - 修改: package.json dev 脚本改为 `bash scripts/watch-dnr.sh & plasmo dev`
+  - **模式切换优化**:
+    - 问题: callChatAPI 在错误时会跨模式重试（legacy ↔ openai）
+    - 优化: isAvailable() 初始化时已测试并确定最佳模式，callChatAPI 直接使用
+    - 保留: legacy 模式内的 /api/chat → /api/generate 降级（合理功能）
+    - 移除: 跨模式 fallback 重试，避免不必要的延迟
