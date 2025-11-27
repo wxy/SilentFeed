@@ -1045,6 +1045,38 @@
     "aiConfig": {
       "title": "配置 AI 推荐引擎",
       "description": "AI 是静阅的核心功能，需要配置后才能开始使用",
+      "aiEngineAssignment": {
+        "quickPresets": "快速预设",
+        "recommended": "推荐",
+        "advancedConfig": "高级配置",
+        "detailedConfig": "详细配置",
+        "advancedConfigHint": "自定义每个任务使用的 AI 引擎",
+        "table": {
+          "task": "任务",
+          "engine": "AI 引擎",
+          "reasoning": "推理",
+          "note": "说明"
+        },
+        "tasks": {
+          "pageAnalysis": "学习文章",
+          "feedAnalysis": "订阅分析",
+          "profileGeneration": "用户画像",
+          "recommendation": "推荐理由"
+        },
+        "notes": {
+          "highFrequency": "高频任务",
+          "lowFrequencyAccurate": "低频准确",
+          "mediumFrequencyAccurate": "中频准确"
+        },
+        "performanceWarning": {
+          "title": "性能影响提醒",
+          "description": "学习文章或订阅分析使用本地 AI 会导致：",
+          "impact1": "每次浏览等待 3-5 秒",
+          "impact2": "CPU 占用 30-50%",
+          "impact3": "电池续航显著下降",
+          "suggestion": "建议：高频任务使用远程 AI，每月仅需 ¥0.5"
+        }
+      },
       "labels": {
         "model": "选择 AI 模型",
         "apiKey": "API 密钥"

@@ -1,5 +1,5 @@
 import { useI18n } from "@/i18n/helpers"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   AI_ENGINE_PRESETS,
   getDefaultEngineAssignment,
@@ -27,6 +27,11 @@ export function AIEngineAssignmentComponent({
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [selectedPreset, setSelectedPreset] = useState<PresetName | "custom">("intelligence")
 
+  // 初始化时检测当前配置匹配的预设
+  useEffect(() => {
+    setSelectedPreset(detectPreset())
+  }, [value])
+
   // 预设选择处理
   const handlePresetSelect = (presetName: PresetName) => {
     setSelectedPreset(presetName)
@@ -46,6 +51,116 @@ export function AIEngineAssignmentComponent({
     return "custom"
   }
 
+  // 检测是否需要显示性能警告
+  const shouldShowPerformanceWarning = (): boolean => {
+    return value.pageAnalysis.provider === "ollama" || 
+           value.feedAnalysis.provider === "ollama"
+  }
+
+  // 渲染引擎选择下拉框
+  const renderEngineSelect = (
+    taskKey: keyof AIEngineAssignment,
+    config: AIEngineConfig,
+    allowReasoning: boolean
+  ) => {
+    return (
+      <select
+        value={config.provider}
+        onChange={(e) => {
+          const newConfig = { ...config, provider: e.target.value as any }
+          onChange({ ...value, [taskKey]: newConfig })
+          setSelectedPreset("custom")
+        }}
+        disabled={disabled}
+        className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-sm"
+      >
+        <option value="deepseek">DeepSeek</option>
+        <option value="openai">OpenAI</option>
+        <option value="ollama">本地 Ollama</option>
+        <option value="keyword">关键词</option>
+      </select>
+    )
+  }
+
+  // 渲染推理复选框
+  const renderReasoningCheckbox = (
+    taskKey: keyof AIEngineAssignment,
+    config: AIEngineConfig,
+    allowReasoning: boolean
+  ) => {
+    if (!allowReasoning) {
+      return <span className="text-gray-400 text-xs">-</span>
+    }
+    
+    return (
+      <input
+        type="checkbox"
+        checked={config.useReasoning || false}
+        onChange={(e) => {
+          const newConfig = { ...config, useReasoning: e.target.checked }
+          onChange({ ...value, [taskKey]: newConfig })
+          setSelectedPreset("custom")
+        }}
+        disabled={disabled || config.provider === "keyword"}
+        className="rounded"
+      />
+    )
+  }
+
+  // 渲染预设卡片
+  const renderPresetCard = (presetName: PresetName) => {
+    const preset = AI_ENGINE_PRESETS[presetName]
+    const isSelected = selectedPreset === presetName
+    
+    return (
+      <button
+        key={presetName}
+        onClick={() => handlePresetSelect(presetName)}
+        disabled={disabled}
+        className={`
+          w-full p-4 rounded-lg border-2 text-left transition-all
+          ${isSelected 
+            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
+            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+          }
+          ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+        `}
+      >
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-2xl">{preset.icon}</span>
+              <span className="font-medium">{preset.name}</span>
+              {preset.recommended && (
+                <span className="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded">
+                  {_("options.aiEngineAssignment.recommended")}
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+              {preset.description}
+            </p>
+            <div className="flex items-center gap-4 text-xs">
+              <span className="text-gray-500 dark:text-gray-400">
+                💰 {preset.estimatedCost}
+              </span>
+              <span className="text-gray-500 dark:text-gray-400">
+                {preset.performanceImpact}
+              </span>
+            </div>
+          </div>
+          {isSelected && (
+            <div className="ml-2">
+              <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-sm">✓</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </button>
+    )
+  }
+
   return (
     <div className="space-y-6">
       {/* 预设选择卡片 */}
@@ -54,11 +169,139 @@ export function AIEngineAssignmentComponent({
           🎯 {_("options.aiEngineAssignment.quickPresets")}
         </h3>
         <div className="grid gap-3">
-          {/* 三个预设卡片将在下一步添加 */}
+          {renderPresetCard("privacy")}
+          {renderPresetCard("intelligence")}
+          {renderPresetCard("economic")}
         </div>
       </div>
 
-      {/* 详细配置表格（高级） - 将在后续添加 */}
+      {/* 高级配置折叠按钮 */}
+      <div>
+        <button
+          type="button"
+          onClick={() => setShowAdvanced(!showAdvanced)}
+          className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 flex items-center gap-1"
+        >
+          <span>{showAdvanced ? '▼' : '▶'}</span>
+          {_("options.aiEngineAssignment.advancedConfig")}
+        </button>
+      </div>
+
+      {/* 详细配置表格（高级） */}
+      {showAdvanced && (
+        <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+          <div className="bg-gray-50 dark:bg-gray-800 px-4 py-2 text-sm font-medium">
+            📊 {_("options.aiEngineAssignment.detailedConfig")}
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 dark:bg-gray-800">
+                <tr>
+                  <th className="px-4 py-2 text-left">{_("options.aiEngineAssignment.table.task")}</th>
+                  <th className="px-4 py-2 text-left">{_("options.aiEngineAssignment.table.engine")}</th>
+                  <th className="px-4 py-2 text-left">{_("options.aiEngineAssignment.table.reasoning")}</th>
+                  <th className="px-4 py-2 text-left">{_("options.aiEngineAssignment.table.note")}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                <tr>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <span>📖</span>
+                      <span>{_("options.aiEngineAssignment.tasks.pageAnalysis")}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    {renderEngineSelect("pageAnalysis", value.pageAnalysis, false)}
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    {renderReasoningCheckbox("pageAnalysis", value.pageAnalysis, false)}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-gray-500">
+                    {_("options.aiEngineAssignment.notes.highFrequency")}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <span>📰</span>
+                      <span>{_("options.aiEngineAssignment.tasks.feedAnalysis")}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    {renderEngineSelect("feedAnalysis", value.feedAnalysis, false)}
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    {renderReasoningCheckbox("feedAnalysis", value.feedAnalysis, false)}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-gray-500">
+                    {_("options.aiEngineAssignment.notes.highFrequency")}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <span>👤</span>
+                      <span>{_("options.aiEngineAssignment.tasks.profileGeneration")}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    {renderEngineSelect("profileGeneration", value.profileGeneration, true)}
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    {renderReasoningCheckbox("profileGeneration", value.profileGeneration, true)}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-gray-500">
+                    {_("options.aiEngineAssignment.notes.lowFrequencyAccurate")}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <span>🎯</span>
+                      <span>{_("options.aiEngineAssignment.tasks.recommendation")}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    {renderEngineSelect("recommendation", value.recommendation, true)}
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    {renderReasoningCheckbox("recommendation", value.recommendation, true)}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-gray-500">
+                    {_("options.aiEngineAssignment.notes.mediumFrequencyAccurate")}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* 性能警告 */}
+      {shouldShowPerformanceWarning() && (
+        <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">⚠️</span>
+            <div className="flex-1">
+              <p className="font-medium text-yellow-800 dark:text-yellow-200 mb-1">
+                {_("options.aiEngineAssignment.performanceWarning.title")}
+              </p>
+              <p className="text-sm text-yellow-700 dark:text-yellow-300 mb-2">
+                {_("options.aiEngineAssignment.performanceWarning.description")}
+              </p>
+              <ul className="text-sm text-yellow-600 dark:text-yellow-400 space-y-1">
+                <li>• {_("options.aiEngineAssignment.performanceWarning.impact1")}</li>
+                <li>• {_("options.aiEngineAssignment.performanceWarning.impact2")}</li>
+                <li>• {_("options.aiEngineAssignment.performanceWarning.impact3")}</li>
+              </ul>
+              <p className="text-sm text-yellow-800 dark:text-yellow-200 font-medium mt-2">
+                💡 {_("options.aiEngineAssignment.performanceWarning.suggestion")}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

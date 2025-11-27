@@ -1099,6 +1099,38 @@
     "aiConfig": {
       "title": "Configure AI Recommendation Engine",
       "description": "AI is the core feature of Silent Feed and requires configuration before it can be used.",
+      "aiEngineAssignment": {
+        "quickPresets": "Quick Presets",
+        "recommended": "Recommended",
+        "advancedConfig": "Advanced Configuration",
+        "detailedConfig": "Detailed Configuration",
+        "advancedConfigHint": "Customize AI engine for each task",
+        "table": {
+          "task": "Task",
+          "engine": "AI Engine",
+          "reasoning": "Reasoning",
+          "note": "Note"
+        },
+        "tasks": {
+          "pageAnalysis": "Learn Articles",
+          "feedAnalysis": "Feed Analysis",
+          "profileGeneration": "User Profile",
+          "recommendation": "Recommendation"
+        },
+        "notes": {
+          "highFrequency": "High frequency",
+          "lowFrequencyAccurate": "Low frequency, accurate",
+          "mediumFrequencyAccurate": "Medium frequency, accurate"
+        },
+        "performanceWarning": {
+          "title": "Performance Impact Warning",
+          "description": "Using local AI for learning or feed analysis will cause:",
+          "impact1": "Wait 3-5 seconds each browsing",
+          "impact2": "CPU usage 30-50%",
+          "impact3": "Significantly reduced battery life",
+          "suggestion": "Recommendation: Use remote AI for high-frequency tasks, only ¥0.5/month"
+        }
+      },
       "labels": {
         "model": "Select AI Model",
         "apiKey": "API Key"
