@@ -35,7 +35,7 @@ function IndexOptions() {
   
   // 设置页面标题
   useEffect(() => {
-    document.title = _("settings.title") || "Silent Feed - Settings"
+    document.title = _("options.title") || "Silent Feed - Settings"
   }, [_])
   
   // 从 URL 参数或 hash 获取初始标签，默认为 preferences

@@ -162,6 +162,13 @@ export function RecommendationView() {
     try {
       recViewLogger.debug(`点击不想读: ${recId}`)
       
+      // 立即添加视觉反馈：降低透明度，表示正在处理
+      const element = (event.target as HTMLElement).closest('article') as HTMLElement
+      if (element) {
+        element.style.opacity = '0.6'
+        element.style.pointerEvents = 'none'
+      }
+      
       // Phase 6: 跟踪单个不想读
       await trackDismiss()
       
