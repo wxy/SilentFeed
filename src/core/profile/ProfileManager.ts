@@ -55,17 +55,13 @@ export class ProfileManager {
         profileLogger.info(`构建完成，包含 ${newProfile.keywords.length} 个关键词，${newProfile.domains.length} 个域名`)
         profileLogger.info(`总页面数: ${newProfile.totalPages} (基于 ${visits.length} 条确认记录，${analyzedVisits.length} 条有分析)`)
 
-        // 3.5. 保留现有的behaviors和aiSummary数据（重建画像不应清空这些数据）
-        const existingProfile = await db.userProfile.get('singleton')
-        if (existingProfile?.behaviors) {
-          newProfile.behaviors = existingProfile.behaviors
-          profileLogger.info(`保留现有行为数据：${newProfile.behaviors.reads.length} 条阅读记录，${newProfile.behaviors.dismisses.length} 条拒绝记录`)
-        }
-        // 保留现有的 aiSummary（在 tryGenerateAIProfile 之前暂存）
-        if (existingProfile?.aiSummary) {
-          newProfile.aiSummary = existingProfile.aiSummary
-          profileLogger.info(`保留现有 AI 画像（将在生成新画像时更新）`)
-        }
+        // 3.5. ⚠️ 关键修复：从数据库重建 behaviors（而不是从内存读取）
+        // 这样即使 userProfile.behaviors 为空，也能从 recommendations 表恢复
+        newProfile.behaviors = await semanticProfileBuilder.rebuildBehaviorsFromDatabase()
+        profileLogger.info(`从数据库重建行为数据：${newProfile.behaviors.reads.length} 条阅读记录，${newProfile.behaviors.dismisses.length} 条拒绝记录`)
+        
+        // ⚠️ 重要：不保留旧的 aiSummary，让 tryGenerateAIProfile 重新生成
+        // 这样 rebuild 才会真正重建 AI 画像
 
         // 4. 保存到数据库（临时保存，可能被 AI 生成覆盖）
         await db.userProfile.put(newProfile)
@@ -208,7 +204,9 @@ export class ProfileManager {
       }
       
       // 3. 如果已有 AI 画像且是普通更新（非手动触发），跳过
-      if (hasAIProfile && trigger !== 'manual') {
+      // ⚠️ 'rebuild' 和 'manual' 都应该视为手动触发，必须重新生成
+      const isManualTrigger = trigger === 'manual' || trigger === 'rebuild'
+      if (hasAIProfile && !isManualTrigger) {
         profileLogger.info('[AI Profile] 已有画像，跳过生成（非手动触发）')
         return
       }

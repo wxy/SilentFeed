@@ -268,6 +268,12 @@ export class IconManager {
    * 更新图标(根据优先级决定显示哪个状态)
    */
   private updateIcon(): void {
+    // 检查 composer 是否已经 preload
+    if (!this.composer || !(this.composer as any).loaded) {
+      // 还未加载完成，跳过本次更新
+      return
+    }
+    
     let state: IconState
     
     // 优先级 1: 错误状态(叠加到任何状态上)

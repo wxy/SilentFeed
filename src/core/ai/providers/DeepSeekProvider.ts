@@ -500,7 +500,7 @@ ${content}
         data.usage.completion_tokens
       )
       
-      deepseekLogger.debug(' User profile generated:', {
+      deepseekLogger.debug('✅ User profile generated:', {
         interests: profileData.interests.substring(0, 50) + '...',
         preferences: profileData.preferences,
         avoidTopics: profileData.avoidTopics,
@@ -574,9 +574,11 @@ ${content}
     // 4. 拒绝行为（用户不感兴趣的内容）
     if (request.behaviors.dismisses && request.behaviors.dismisses.length > 0) {
       const recentDismisses = request.behaviors.dismisses.slice(0, 5)
-      parts.push(`\n**拒绝的文章**（用户不感兴趣，最近 ${recentDismisses.length} 篇）：\n${recentDismisses.map(d => 
-        `- "${d.title}"`
-      ).join('\n')}`)
+      parts.push(`\n**拒绝的文章**（用户不感兴趣，最近 ${recentDismisses.length} 篇）：\n${recentDismisses.map(d => {
+        // 如果有摘要，一起输出帮助 AI 理解
+        const summary = (d as any).summary ? ` - ${(d as any).summary.substring(0, 100)}` : ''
+        return `- "${d.title}"${summary}`
+      }).join('\n')}`)
     }
     
     return parts.join('\n')
@@ -606,14 +608,31 @@ ${behaviorSummary}
 1. 分析新行为数据与当前画像的一致性
 2. 如果发现新的兴趣点，适当扩展兴趣领域描述
 3. 根据深度阅读的内容，更新或补充内容偏好
-4. 根据拒绝的文章，更新避免主题列表
+4. **根据拒绝的文章，更新避免主题列表**
 5. 保持画像的连贯性和准确性
+
+=== ⚠️ 输出格式要求 ===
+**关键规则**：
+1. **interests 字段必须直接描述，不要加主语**
+   - ✅ 正确示例："对技术领域有浓厚兴趣，特别关注开源软件、开发工具..."
+   - ✅ 正确示例："在前端开发领域表现出强烈的学习意愿，经常阅读..."
+   - ❌ 错误示例："你用户对技术领域有浓厚兴趣"
+   - ❌ 错误示例："该用户在前端开发..."
+   - ❌ 错误示例："你对技术领域..."
+   
+2. **preferences 字段**：返回 5-10 个具体的内容类型
+   - 示例：["技术深度分析", "开源软件实践", "产品设计案例"]
+   
+3. **avoidTopics 字段**：从拒绝的文章中提取避免主题
+   - 如果有拒绝记录，提取 3-5 个避免主题关键词
+   - 如果没有拒绝记录，返回空数组 []
+   - 示例：["娱乐八卦", "广告营销", "低质量内容"]
 
 # 输出格式（JSON）
 {
   "interests": "简洁的兴趣领域描述（50-200字，自然语言）",
-  "preferences": ["偏好1", "偏好2", "偏好3"], // 3-5条
-  "avoidTopics": ["避免1", "避免2"] // 0-5条
+  "preferences": ["偏好1", "偏好2", "偏好3"],
+  "avoidTopics": ["避免1", "避免2"]
 }
 
 只输出 JSON，不要其他内容。`
@@ -627,14 +646,31 @@ ${behaviorSummary}
 # 任务要求
 1. 分析高频关键词和主题分布，识别用户的核心兴趣领域
 2. 结合深度阅读的文章，理解用户的内容偏好（如：深度分析、实践案例、新闻资讯等）
-3. 根据拒绝的文章，识别用户避免的主题
+3. **根据拒绝的文章，提取用户避免的主题**（如果有拒绝记录）
 4. 用自然、简洁的语言描述用户兴趣，避免生硬的关键词堆砌
+
+=== ⚠️ 输出格式要求 ===
+**关键规则**：
+1. **interests 字段必须直接描述，不要加主语**
+   - ✅ 正确示例："对技术领域有浓厚兴趣，特别关注开源软件、开发工具..."
+   - ✅ 正确示例："在前端开发领域表现出强烈的学习意愿，经常阅读..."
+   - ❌ 错误示例："你用户对技术领域有浓厚兴趣"
+   - ❌ 错误示例："该用户在前端开发..."
+   - ❌ 错误示例："你对技术领域..."
+   
+2. **preferences 字段**：返回 5-10 个具体的内容类型
+   - 示例：["技术深度分析", "开源软件实践", "产品设计案例"]
+   
+3. **avoidTopics 字段**：从拒绝的文章中提取避免主题
+   - 如果有拒绝记录，提取 3-5 个避免主题关键词
+   - 如果没有拒绝记录，返回空数组 []
+   - 示例：["娱乐八卦", "广告营销", "低质量内容"]
 
 # 输出格式（JSON）
 {
-  "interests": "简洁的兴趣领域描述（50-200字，自然语言，例如：'对前端技术、React框架、性能优化感兴趣，关注Web标准和开发工具'）",
-  "preferences": ["偏好1", "偏好2", "偏好3"], // 3-5条，例如：["深度技术文章", "实践案例分享", "新技术趋势"]
-  "avoidTopics": ["避免1", "避免2"] // 0-5条，例如：["娱乐八卦", "体育新闻"]
+  "interests": "简洁的兴趣领域描述（50-200字，自然语言）",
+  "preferences": ["偏好1", "偏好2", "偏好3"],
+  "avoidTopics": ["避免1", "避免2"]
 }
 
 只输出 JSON，不要其他内容。`

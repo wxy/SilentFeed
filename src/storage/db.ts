@@ -1426,56 +1426,72 @@ export async function getRSSArticleCount(): Promise<number> {
 
 /**
  * 推荐筛选漏斗统计
- * Phase 10.2: 系统数据展示优化
+ * Phase 10.3: 重构漏斗数据结构
  * 
- * 展示推荐系统的数据流：
- * - total: RSS 文章总数
- * - analyzed: 已分析文章数（有 analysis 字段）
- * - recommended: 进入推荐池的文章数
- * - dismissed: 用户标记"不想读"的推荐数
- * - read: 用户已读的推荐数
+ * 漏斗层级：
+ * - rssArticles: RSS 累计读取的文章总数（去重）
+ * - inPool: 累计放入推荐池的文章数
+ * - notified: 累计进入弹窗的文章数
+ * - read: 累计阅读数
+ * 
+ * 侧边数据：
+ * - learningPages: 学习页面总数
+ * - dismissed: 不想读总数
  */
 export async function getRecommendationFunnel(): Promise<{
-  total: number
-  analyzed: number
-  recommended: number
-  dismissed: number
+  rssArticles: number
+  inPool: number
+  notified: number
   read: number
+  learningPages: number
+  dismissed: number
 }> {
   try {
+    // 统计 RSS 文章总数（去重）
     const allFeeds = await db.discoveredFeeds.toArray()
-    
-    let totalArticles = 0
-    let analyzedArticles = 0
-    
+    const articleUrls = new Set<string>()
     for (const feed of allFeeds) {
       if (feed.latestArticles && feed.latestArticles.length > 0) {
-        totalArticles += feed.latestArticles.length
-        analyzedArticles += feed.latestArticles.filter(article => article.analysis).length
+        feed.latestArticles.forEach(article => {
+          if (article.link) articleUrls.add(article.link)
+        })
       }
     }
+    const rssArticlesCount = articleUrls.size
     
     // 推荐统计
     const allRecommendations = await db.recommendations.toArray()
-    const recommendedCount = allRecommendations.length
+    const inPoolCount = allRecommendations.length
+    
+    // 统计弹窗通知数（所有 active 状态的推荐在创建时都会被通知）
+    const notifiedCount = allRecommendations.filter(r => r.status === 'active').length
+    
+    // 统计已读数（使用 isRead 字段）
+    const readCount = allRecommendations.filter(r => r.isRead === true).length
+    
+    // 统计不想读（status 为 dismissed）
     const dismissedCount = allRecommendations.filter(r => r.status === 'dismissed').length
-    const readCount = allRecommendations.filter(r => r.status === 'read').length
+    
+    // 统计学习页面数
+    const learningPagesCount = await db.confirmedVisits.count()
     
     return {
-      total: totalArticles,
-      analyzed: analyzedArticles,
-      recommended: recommendedCount,
-      dismissed: dismissedCount,
-      read: readCount
+      rssArticles: rssArticlesCount,
+      inPool: inPoolCount,
+      notified: notifiedCount,
+      read: readCount,
+      learningPages: learningPagesCount,
+      dismissed: dismissedCount
     }
   } catch (error) {
     dbLogger.error('获取推荐漏斗统计失败:', error)
     return {
-      total: 0,
-      analyzed: 0,
-      recommended: 0,
-      dismissed: 0,
-      read: 0
+      rssArticles: 0,
+      inPool: 0,
+      notified: 0,
+      read: 0,
+      learningPages: 0,
+      dismissed: 0
     }
   }
 }

@@ -507,7 +507,8 @@
         "hint": "💡 Keyword size represents weight, hover to view detailed weight values"
       },
       "actions": {
-        "rebuild": "Rebuild Profile"
+        "rebuild": "Rebuild Profile",
+        "rebuilding": "Rebuilding..."
       }
     },
     "aiConfig": {

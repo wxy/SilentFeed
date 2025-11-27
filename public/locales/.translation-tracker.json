@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-11-26T13:43:46.444Z",
+  "lastUpdate": "2025-11-26T15:01:04.672Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -11899,6 +11899,20 @@
         "value": "Recommendation rate",
         "hash": "f8e22d09",
         "lastModified": "2025-11-26T13:43:45.933Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.actions.rebuilding": {
+      "zh-CN": {
+        "value": "重建中...",
+        "hash": "f282cfb7",
+        "lastModified": "2025-11-26T15:01:04.160Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Rebuilding...",
+        "hash": "775ee99c",
+        "lastModified": "2025-11-26T15:01:04.162Z",
         "status": "ai-translated"
       }
     }

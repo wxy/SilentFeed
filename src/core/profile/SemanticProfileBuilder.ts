@@ -11,6 +11,8 @@
 import type { ConfirmedVisit } from "@/types/database"
 import type { UserProfile } from "@/types/profile"
 import type { Recommendation } from "@/types/database"
+import type { TopicDistribution } from "@/core/profile/TopicClassifier"
+import { Topic } from "@/core/profile/topics"
 import { db } from "@/storage/db"
 import { aiManager } from "@/core/ai/AICapabilityManager"
 import { logger } from "@/utils/logger"
@@ -161,20 +163,16 @@ export class SemanticProfileBuilder {
    * 全量更新：重新生成 AI 摘要
    */
   private async triggerFullUpdate(
-    trigger: 'browse' | 'read' | 'dismiss'
+    trigger: 'browse' | 'read' | 'dismiss' | 'manual' | 'rebuild'
   ): Promise<void> {
     try {
       profileLogger.info('[FullUpdate] 开始全量更新', { trigger })
       
       // 1. 获取数据
       const visits = await db.confirmedVisits.toArray()
-      const profile = await db.userProfile.get('singleton')
-      const behaviors = profile?.behaviors || {
-        reads: [],
-        dismisses: [],
-        totalReads: 0,
-        totalDismisses: 0
-      }
+      
+      // ⚠️ 关键修复：从数据库重建 behaviors（而不是只从内存读取）
+      const behaviors = await this.rebuildBehaviorsFromDatabase()
       
       profileLogger.debug('[FullUpdate] 数据准备完成', {
         访问页面数: visits.length,
@@ -491,6 +489,64 @@ export class SemanticProfileBuilder {
   }
 
   /**
+   * ⚠️ 关键修复：从数据库重建 behaviors
+   * 
+   * 读取所有已读和已拒绝的推荐记录，重新构建 behaviors 对象
+   * 这样即使 userProfile.behaviors 被清空，也能从数据库恢复
+   * 
+   * @public 供 ProfileManager 调用
+   */
+  async rebuildBehaviorsFromDatabase(): Promise<NonNullable<UserProfile['behaviors']>> {
+    // 1. 查询所有已读的推荐
+    const allRecommendations = await db.recommendations.toArray()
+    const readRecommendations = allRecommendations
+      .filter(r => r.isRead) // ✅ 修复：使用 filter 代替 where
+      .sort((a, b) => (b.recommendedAt || 0) - (a.recommendedAt || 0)) // 按推荐时间倒序
+    
+    // 2. 查询所有已拒绝的推荐（使用 status 字段，它有索引）
+    const dismissedRecommendations = await db.recommendations
+      .where('status').equals('dismissed')
+      .reverse()
+      .sortBy('feedbackAt')
+    
+    // 3. 构建 reads 数组
+    const reads = readRecommendations.map(rec => ({
+      articleId: rec.id,
+      title: rec.title,
+      summary: rec.summary || '',
+      feedUrl: rec.sourceUrl, // 使用 sourceUrl 作为 feedUrl
+      weight: 1.0, // 默认权重
+      readDuration: rec.readDuration || 0,
+      scrollDepth: rec.scrollDepth || 0,
+      timestamp: rec.clickedAt || rec.recommendedAt || Date.now()
+    }))
+    
+    // 4. 构建 dismisses 数组
+    const dismisses = dismissedRecommendations.map(rec => ({
+      articleId: rec.id,
+      title: rec.title,
+      summary: rec.summary || '',
+      feedUrl: rec.sourceUrl, // 使用 sourceUrl 作为 feedUrl
+      weight: 1.0, // 默认权重
+      timestamp: rec.feedbackAt || rec.recommendedAt || Date.now()
+    }))
+    
+    profileLogger.info('[RebuildBehaviors] 从数据库重建 behaviors', {
+      reads: reads.length,
+      dismisses: dismisses.length
+    })
+    
+    return {
+      reads: reads.slice(0, 50), // 最多保留 50 条
+      dismisses: dismisses.slice(0, 50), // 最多保留 50 条
+      totalReads: reads.length,
+      totalDismisses: dismisses.length,
+      lastReadAt: reads[0]?.timestamp,
+      lastDismissAt: dismisses[0]?.timestamp
+    }
+  }
+
+  /**
    * 增量更新关键词
    */
   private updateKeywordsIncremental(
@@ -547,8 +603,29 @@ export class SemanticProfileBuilder {
     weight: number
   ): Promise<void> {
     
-    const profile = await db.userProfile.get('singleton')
-    const behaviors = profile?.behaviors || {
+    let profile = await db.userProfile.get('singleton')
+    
+    // ⚠️ 关键修复：如果画像不存在，先创建一个空画像
+    if (!profile) {
+      const emptyTopics: TopicDistribution = Object.values(Topic).reduce((acc, topic) => {
+        acc[topic] = 0
+        return acc
+      }, {} as TopicDistribution)
+      
+      profile = {
+        id: 'singleton',
+        topics: emptyTopics,
+        keywords: [],
+        domains: [],
+        totalPages: 0,
+        lastUpdated: Date.now(),
+        version: 2
+      }
+      await db.userProfile.put(profile)
+      profileLogger.info('创建空画像以保存 behaviors 数据')
+    }
+    
+    const behaviors = profile.behaviors || {
       reads: [],
       dismisses: [],
       totalReads: 0,
@@ -579,8 +656,29 @@ export class SemanticProfileBuilder {
    * 记录拒绝行为
    */
   private async recordDismissBehavior(article: Recommendation): Promise<void> {
-    const profile = await db.userProfile.get('singleton')
-    const behaviors = profile?.behaviors || {
+    let profile = await db.userProfile.get('singleton')
+    
+    // ⚠️ 关键修复：如果画像不存在，先创建一个空画像
+    if (!profile) {
+      const emptyTopics: TopicDistribution = Object.values(Topic).reduce((acc, topic) => {
+        acc[topic] = 0
+        return acc
+      }, {} as TopicDistribution)
+      
+      profile = {
+        id: 'singleton',
+        topics: emptyTopics,
+        keywords: [],
+        domains: [],
+        totalPages: 0,
+        lastUpdated: Date.now(),
+        version: 2
+      }
+      await db.userProfile.put(profile)
+      profileLogger.info('创建空画像以保存 behaviors 数据')
+    }
+    
+    const behaviors = profile.behaviors || {
       reads: [],
       dismisses: [],
       totalReads: 0,
@@ -603,6 +701,7 @@ export class SemanticProfileBuilder {
     behaviors.lastDismissAt = Date.now()
     
     await db.userProfile.update('singleton', { behaviors })
+    profileLogger.debug(`✅ 拒绝行为已保存: ${article.title.substring(0, 30)}, 总拒绝数: ${behaviors.totalDismisses}`)
   }
 }
 

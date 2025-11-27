@@ -244,12 +244,15 @@ TypeScript 示例:
 
 1. 开发前: 从 master 创建功能分支 (git checkout -b feature/xxx)
 2. 开发中: 频繁提交,保持提交原子化,运行测试确保通过
-3. 提交代码: git add . && git commit -m "feat: xxx"
-4. **推送前检查**: 运行 `npm run pre-push` 确保测试和覆盖率通过
-5. 推送分支: git push origin feature/xxx
-6. **等待用户明确指令**: 不要主动创建 PR，等待用户明确要求
-7. 创建 PR: 使用 `gh pr create` 命令，标题和描述使用中文
-8. 合并后: 删除功能分支 (git branch -d feature/xxx)
+3. **⛔ 禁止自行提交代码**: 完成修改后，**必须等待用户明确指令才能提交**
+   - ✅ 正确：完成修改后提示 "修改已完成，是否需要提交？"
+   - ❌ 错误：自动执行 `git add` 和 `git commit`
+4. 提交代码（用户确认后）: git add . && git commit -m "feat: xxx"
+5. **推送前检查**: 运行 `npm run pre-push` 确保测试和覆盖率通过
+6. 推送分支: git push origin feature/xxx
+7. **等待用户明确指令**: 不要主动创建 PR，等待用户明确要求
+8. 创建 PR: 使用 `gh pr create` 命令，标题和描述使用中文
+9. 合并后: 删除功能分支 (git branch -d feature/xxx)
 
 ### 推送前检查 ⚠️ 重要
 

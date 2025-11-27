@@ -111,20 +111,41 @@ describe("ProfileSettings 组件", () => {
       })
     })
 
-    it("应该显示总页面数", async () => {
-      render(<ProfileSettings />)
-
-      await waitFor(() => {
-        expect(screen.getByText("100")).toBeInTheDocument()
-        expect(screen.getByText(/options.profile.basicStats.totalPages/)).toBeInTheDocument()
-      })
-    })
-
     it("应该显示更新时间", async () => {
+      // Phase 10.3: 元数据已融入对话式 AI 画像中，不再单独展示
+      // 此测试调整为验证 AI 对话中包含时间信息
+      mockGetAIConfig.mockResolvedValue({
+        enabled: true,
+        provider: "openai",
+        apiKeys: { openai: "test-key" },
+        monthlyBudget: 100,
+      })
+      mockGetUserProfile.mockResolvedValue({
+        id: "singleton",
+        version: 1,
+        totalPages: 100,
+        topics: createTopics(),
+        keywords: [],
+        domains: [],
+        lastUpdated: Date.now(),
+        aiSummary: {
+          interests: "用户兴趣",
+          preferences: [],
+          avoidTopics: [],
+          metadata: {
+            provider: "openai",
+            model: "gpt-4",
+            timestamp: Date.now(),
+            basedOn: { browses: 100, reads: 50, dismisses: 10 },
+          },
+        },
+      })
+
       render(<ProfileSettings />)
 
       await waitFor(() => {
-        expect(screen.getByText(/options.userProfile.updateTime.label/)).toBeInTheDocument()
+        // 验证 AI 对话中包含浏览页面数信息
+        expect(screen.getByText(/从你对/)).toBeInTheDocument()
       })
     })
   })
@@ -151,32 +172,6 @@ describe("ProfileSettings 组件", () => {
 
       await waitFor(() => {
         expect(screen.getByText(/options.profile.aiProfile.notConfiguredTitle/)).toBeInTheDocument()
-        expect(screen.getByText(/options.userProfile.analysisQuality.notConfigured/)).toBeInTheDocument()
-      })
-    })
-
-    it("应该显示 AI 已配置状态", async () => {
-      mockGetUserProfile.mockResolvedValue({
-        id: "singleton",
-        version: 1,
-        totalPages: 100,
-        topics: createTopics(),
-        keywords: [],
-        domains: [],
-        lastUpdated: Date.now(),
-      })
-      mockGetAIConfig.mockResolvedValue({
-        enabled: true,
-        provider: "openai",
-        apiKeys: { openai: "test-key" },
-        monthlyBudget: 100,
-      })
-
-      render(<ProfileSettings />)
-
-      await waitFor(() => {
-        expect(screen.getByText(/options.userProfile.analysisQuality.aiAnalysis/)).toBeInTheDocument()
-        expect(screen.getByText(/options.userProfile.analysisQuality.aiHint/)).toBeInTheDocument()
       })
     })
   })
@@ -224,7 +219,7 @@ describe("ProfileSettings 组件", () => {
       render(<ProfileSettings />)
 
       await waitFor(() => {
-        expect(screen.getByText(/options.profile.aiProfile.title/)).toBeInTheDocument()
+        expect(screen.getByText(/我是/)).toBeInTheDocument()
         expect(screen.getByText(/人工智能/)).toBeInTheDocument()
         expect(screen.getByText(/机器学习/)).toBeInTheDocument()
       })
@@ -258,8 +253,8 @@ describe("ProfileSettings 组件", () => {
       render(<ProfileSettings />)
 
       await waitFor(() => {
-        expect(screen.getByText(/偏好深度技术文章/)).toBeInTheDocument()
-        expect(screen.getByText(/喜欢实践案例/)).toBeInTheDocument()
+        // 新的UI将 preferences 合并在一句话中
+        expect(screen.getByText(/我将会为你推荐/)).toBeInTheDocument()
       })
     })
 

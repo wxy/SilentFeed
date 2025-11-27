@@ -158,7 +158,7 @@ const DEFAULT_CONFIG: RecommendationConfig = {
   maxRecommendations: 3, // 初始值3条，后续自动调整
   batchSize: 1, // Phase 6: 默认每次处理 1 篇文章（避免超时）
   qualityThreshold: 0.6, // Phase 6: 根据实际评分分布调整（观察最高分 0.65）
-  tfidfThreshold: 0.1 // Phase 6: TF-IDF 阈值（0.1 = 有一定相关性，过滤明显不相关的）
+  tfidfThreshold: 0.01 // Phase 6: TF-IDF 阈值（降低到 0.01，初步筛选，只过滤完全不相关的）
 }
 
 /**
@@ -201,8 +201,8 @@ export async function getRecommendationConfig(): Promise<RecommendationConfig> {
     
     // 如果缺少 tfidfThreshold，添加默认值
     if (merged.tfidfThreshold === undefined) {
-      configLogger.info('添加缺失的 tfidfThreshold=0.1')
-      merged.tfidfThreshold = 0.1
+      configLogger.info('添加缺失的 tfidfThreshold=0.01')
+      merged.tfidfThreshold = 0.01
       needsUpdate = true
     }
     
