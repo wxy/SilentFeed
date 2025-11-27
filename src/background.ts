@@ -278,7 +278,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               const result = await RSSValidator.validateURL(feed.url)
               
               if (!result.valid || !result.metadata) {
-                bgLogger.debug('❌ 验证失败，跳过:', { url: feed.url, error: result.error })
+                // 404 等错误静默跳过，不干扰用户
+                bgLogger.debug('验证失败，已跳过:', feed.url)
                 continue
               }
               

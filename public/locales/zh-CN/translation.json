@@ -925,6 +925,15 @@
         "message": "还没有足够的数据来建立你的兴趣画像",
         "hint": "开始浏览感兴趣的内容，我会自动学习你的偏好"
       },
+      "chat": {
+        "intro": "嗨！我是 {{providerName}}。从 {{startDate}} 开始，我已经观察你浏览了 {{totalPages}} 个页面。你的主要兴趣是：{{interests}}",
+        "preferences": "你似乎更偏好：{{preferences}}",
+        "avoidTopics": "你可能对这些话题不太感兴趣：{{topics}}",
+        "generating": "我正在分析你的浏览数据，马上就能更好地了解你的兴趣了...",
+        "userRebuildLabel": "帮我重新分析一下我的兴趣画像",
+        "tipConfigured": "基于你的浏览历史，AI 会自动更新你的兴趣画像",
+        "tipNotConfigured": "配置 AI 后可以获得更精准的兴趣分析"
+      },
       "lastUpdated": {
         "justNow": "刚刚更新",
         "hoursAgo": "{{hours}} 小时前",

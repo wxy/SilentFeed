@@ -975,6 +975,17 @@
       "exportOPML": "Export OPML",
       "noSubscribedFeeds": "No subscribed sources yet"
     },
+    "userProfile": {
+      "chat": {
+        "intro": "Hi! I'm {{providerName}}. Since {{startDate}}, I've observed you browsing {{totalPages}} pages. Your main interests are: {{interests}}",
+        "preferences": "You seem to prefer: {{preferences}}",
+        "avoidTopics": "You might not be interested in these topics: {{topics}}",
+        "generating": "I'm analyzing your browsing data, and I'll understand your interests better soon...",
+        "userRebuildLabel": "Help me re-analyze my interest profile",
+        "tipConfigured": "Based on your browsing history, AI will automatically update your interest profile",
+        "tipNotConfigured": "Configure AI to get more accurate interest analysis"
+      }
+    },
     "profile": {
       "title": "User Profile",
       "description": "Interest profile built based on your browsing history",

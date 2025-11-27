@@ -49,7 +49,9 @@
   - recommendationStore 区分"无数据"和"真实错误"
   - 无数据时不设置 error 状态，让 UI 显示友好的空状态引导
   - 用户可选择"立即生成推荐"或继续浏览
-- [ ] 验证 RSS 源时，如果 404 找不到，直接略过，无需报错
+- [x] 验证 RSS 源时，如果 404 找不到，直接略过，无需报错（已修复 2025-11-28）
+  - background.ts: 将 404 等错误从 "❌ 验证失败" 改为 "验证失败，已跳过"
+  - 移除干扰性的错误图标，静默跳过无效源
 - [x] 标准风格下，弹窗在学习阶段的设置按钮宽度太宽，占满了弹窗宽度（已修复 2025-11-25）
   - 移除标准风格设置按钮的 w-full 类
   - 添加居中布局 flex justify-center
@@ -65,3 +67,11 @@
     - 无需用户手动配置环境变量
     - 使用 MV3 标准 API（declarativeNetRequest）
     - 比 webRequest 更高效且不需要 blocking 权限
+- [x] 用户画像现在不能显示，文字都是国际化字符串（已修复 2025-11-28）
+  - 在 zh-CN/translation.json 添加 userProfile.chat 翻译
+  - 在 en/translation.json 添加对应英文翻译
+  - 修复国际化占位符解析问题
+- [x] ollama 引擎的调试日志没删除（已修复 2025-11-28）
+  - recommendation-config.ts: 删除 "Ollama未检测到（正常）" debug 日志
+  - analysis-engine-capability.ts: 删除 "Ollama 不可用（正常）" debug 日志
+  - 统一改为静默处理，无需输出日志
