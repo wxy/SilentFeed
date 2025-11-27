@@ -322,6 +322,7 @@ export class SemanticProfileBuilder {
           })),
           reads: topReads.map(r => ({
             title: r.title,
+            summary: r.summary || '',  // 包含文章摘要
             keywords: this.extractWords(r.title),
             topics: [], // 从标题提取的主题
             readDuration: r.readDuration,
@@ -331,6 +332,7 @@ export class SemanticProfileBuilder {
           })),
           dismisses: topDismisses.map(d => ({
             title: d.title,
+            summary: d.summary || '',  // ⚠️ 关键：包含拒绝文章摘要，用于生成 avoidTopics
             keywords: this.extractWords(d.title),
             topics: [],
             weight: d.weight,
@@ -352,10 +354,11 @@ export class SemanticProfileBuilder {
         provider: result.metadata.provider,
         兴趣摘要长度: result.interests.length,
         偏好数: result.preferences.length,
-        避免主题数: result.avoidTopics.length
+        避免主题数: result.avoidTopics.length,
+        避免主题: result.avoidTopics
       })
       
-      // 直接返回 AI 生成结果（已包含完整 metadata）
+      // 直接返回 AI 生成结果（已包含完整 metadata 和 avoidTopics）
       return result
       
     } catch (error) {

@@ -65,8 +65,8 @@ export class ProfileManager {
         // 6. 重新读取画像（可能包含 AI 数据）
         const finalProfile = await db.userProfile.get('singleton') || newProfile
 
-        // 7. 处理兴趣变化追踪（使用包含 AI 的最终画像）
-        await InterestSnapshotManager.handleProfileUpdate(finalProfile, 'rebuild')
+        // 7. Phase 10: 不再创建快照（已移除兴趣演化历程功能）
+        // await InterestSnapshotManager.handleProfileUpdate(finalProfile, 'rebuild')
 
         return finalProfile
       },

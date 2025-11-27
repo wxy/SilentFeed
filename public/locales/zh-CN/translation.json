@@ -852,7 +852,9 @@
         "rebuildFailed": "画像重建失败，请稍后重试"
       },
       "actions": {
-        "rebuild": "重建画像"
+        "rebuild": "重建画像",
+        "rebuilding": "重建中...",
+        "rebuildComplete": "重建完成"
       }
     },
     "myData": {

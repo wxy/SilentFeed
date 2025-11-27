@@ -24,6 +24,7 @@ export function ProfileSettings() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isRebuilding, setIsRebuilding] = useState(false)
+  const [rebuildSuccess, setRebuildSuccess] = useState(false)
   const [aiConfigured, setAiConfigured] = useState(false)
   const [aiProvider, setAiProvider] = useState("")
 
@@ -58,10 +59,13 @@ export function ProfileSettings() {
     if (isRebuilding) return
 
     setIsRebuilding(true)
+    setRebuildSuccess(false)
     try {
       const newProfile = await profileManager.rebuildProfile()
       setProfile(newProfile)
-      alert(_("options.userProfile.alerts.rebuildSuccess"))
+      setRebuildSuccess(true)
+      // 3秒后隐藏成功提示
+      setTimeout(() => setRebuildSuccess(false), 3000)
     } catch (error) {
       profileViewLogger.error("重建用户画像失败:", error)
       alert(_("options.userProfile.alerts.rebuildFailed"))
@@ -109,136 +113,50 @@ export function ProfileSettings() {
 
   return (
     <div className="space-y-6">
-      {/* 基本统计 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* 数据采集统计 */}
-        <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
-          <div className="text-sm text-orange-600 dark:text-orange-400 mb-1">
-            📊 {_("options.userProfile.updateTime.label")}
-          </div>
-          <div className="text-lg font-bold text-orange-900 dark:text-orange-100">
-            {formatLastUpdated(profile.lastUpdated)}
-          </div>
-          <div className="text-xs text-orange-600 dark:text-orange-400 mt-1">
-            {_("options.userProfile.updateTime.basedOn", { count: profile.totalPages })}
-          </div>
-        </div>
-
-        {/* AI 分析状态 */}
-        <div className={`rounded-lg p-4 border ${
-          aiConfigured
-            ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
-            : "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800"
-        }`}>
-          <div className={`text-sm mb-1 ${
-            aiConfigured
-              ? "text-blue-600 dark:text-blue-400"
-              : "text-amber-600 dark:text-amber-400"
-          }`}>
-            🤖 {_("options.userProfile.analysisQuality.label")}
-          </div>
-          <div className={`text-lg font-bold ${
-            aiConfigured
-              ? "text-blue-900 dark:text-blue-100"
-              : "text-amber-900 dark:text-amber-100"
-          }`}>
-            {aiConfigured 
-              ? _("options.userProfile.analysisQuality.aiAnalysis", { provider: aiProvider })
-              : _("options.userProfile.analysisQuality.notConfigured")
-            }
-          </div>
-          <div className={`text-xs mt-1 ${
-            aiConfigured
-              ? "text-blue-600 dark:text-blue-400"
-              : "text-amber-600 dark:text-amber-400"
-          }`}>
-            {aiConfigured 
-              ? _("options.userProfile.analysisQuality.aiHint")
-              : _("options.userProfile.analysisQuality.configureHint")
-            }
-          </div>
-        </div>
-      </div>
-
       {/* AI 画像区域 */}
       {aiConfigured && profile.aiSummary ? (
-        // 有 AI 画像时显示
-        <div className="bg-gradient-to-br from-blue-50 to-slate-50 dark:from-blue-900/20 dark:to-slate-900/20 rounded-xl p-6 border-2 border-blue-200 dark:border-blue-700 shadow-lg">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold flex items-center gap-2">
-              <span className="text-2xl">🤖</span>
-              <span className="bg-gradient-to-r from-blue-600 to-slate-600 bg-clip-text text-transparent">
-                {_("options.profile.aiProfile.title")}
-              </span>
-            </h3>
-            <div className="flex items-center gap-2">
-              <span className="text-xs bg-primary/10 text-primary px-3 py-1 rounded-full font-medium border border-primary/20">
-                {profile.aiSummary.metadata.provider === 'deepseek' ? 'DeepSeek' : 
-                 profile.aiSummary.metadata.provider === 'openai' ? 'OpenAI' : 
-                 profile.aiSummary.metadata.provider === 'anthropic' ? 'Anthropic' :
-                 'AI'}
-              </span>
-              <span className="text-xs text-blue-600 dark:text-blue-400">
-                {new Date(profile.aiSummary.metadata.timestamp).toLocaleDateString('zh-CN')}
-              </span>
+        // 有 AI 画像时显示 - 连贯的自我介绍
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-6 border-2 border-blue-200 dark:border-blue-700 shadow-lg">
+          <div className="flex items-start gap-4">
+            {/* AI 头像 */}
+            <div className="flex-shrink-0">
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-2xl flex items-center justify-center text-3xl shadow-lg">
+                🤖
+              </div>
+            </div>
+            
+            {/* AI 的完整自我介绍 */}
+            <div className="flex-1">
+              <div className="bg-white/70 dark:bg-gray-800/70 rounded-2xl rounded-tl-sm p-5 border border-blue-100 dark:border-blue-800 shadow-sm">
+                <p className="text-gray-800 dark:text-gray-200 leading-relaxed space-y-2">
+                  <span className="block">
+                    我是 <span className="font-semibold text-blue-600 dark:text-blue-400">
+                      {profile.aiSummary.metadata.provider === 'deepseek' ? 'DeepSeek' : 
+                       profile.aiSummary.metadata.provider === 'openai' ? 'OpenAI' : 
+                       profile.aiSummary.metadata.provider === 'anthropic' ? 'Anthropic' : 'AI'}
+                    </span>，
+                    从 <span className="font-medium text-cyan-600 dark:text-cyan-400">{new Date(profile.lastUpdated - 7 * 24 * 60 * 60 * 1000).toLocaleDateString('zh-CN')}</span> 开始，
+                    截止到 <span className="font-medium text-cyan-600 dark:text-cyan-400">{new Date(profile.aiSummary.metadata.timestamp).toLocaleDateString('zh-CN')}</span>，
+                    我从你对 <span className="font-medium text-orange-600 dark:text-orange-400">{profile.totalPages} 个页面</span>的浏览中发现，
+                    你{profile.aiSummary.interests}
+                  </span>
+                  
+                  {profile.aiSummary.preferences && profile.aiSummary.preferences.length > 0 && (
+                    <span className="block mt-3">
+                      根据这些理解，我将会为你推荐 <span className="font-medium text-green-600 dark:text-green-400">{profile.aiSummary.preferences.join('、')}</span>等方面的内容
+                      {profile.aiSummary.avoidTopics && profile.aiSummary.avoidTopics.length > 0 ? '；' : '。'}
+                    </span>
+                  )}
+                  
+                  {profile.aiSummary.avoidTopics && profile.aiSummary.avoidTopics.length > 0 && (
+                    <span className="block">
+                      而根据你不想读的文章，我也会忽略 <span className="font-medium text-orange-600 dark:text-orange-400">{profile.aiSummary.avoidTopics.join('、')}</span>等方面的内容，不将这方面的内容推荐给你。
+                    </span>
+                  )}
+                </p>
+              </div>
             </div>
           </div>
-
-          {/* 兴趣理解 */}
-          <div className="mb-5">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
-                💭 {_("options.profile.aiProfile.understanding")}
-              </span>
-            </div>
-            <div className="bg-white/50 dark:bg-gray-800/50 rounded-lg p-4 border border-blue-100 dark:border-blue-800">
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed italic">
-                "{profile.aiSummary.interests}"
-              </p>
-            </div>
-          </div>
-
-          {/* 内容偏好 */}
-          {profile.aiSummary.preferences && profile.aiSummary.preferences.length > 0 && (
-            <div className="mb-5">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
-                  📚 {_("options.profile.aiProfile.contentPreferences")}
-                </span>
-              </div>
-              <div className="bg-white/50 dark:bg-gray-800/50 rounded-lg p-4 border border-blue-100 dark:border-blue-800">
-                <ul className="space-y-2">
-                  {profile.aiSummary.preferences.map((pref, index) => (
-                    <li key={index} className="flex items-start gap-2 text-gray-700 dark:text-gray-300">
-                      <span className="text-blue-500 dark:text-blue-400">•</span>
-                      <span>{pref}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          )}
-
-          {/* 避免主题 */}
-          {profile.aiSummary.avoidTopics && profile.aiSummary.avoidTopics.length > 0 && (
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
-                  🚫 {_("options.profile.aiProfile.avoidTopics")}
-                </span>
-              </div>
-              <div className="bg-white/50 dark:bg-gray-800/50 rounded-lg p-4 border border-blue-100 dark:border-blue-800">
-                <ul className="space-y-2">
-                  {profile.aiSummary.avoidTopics.map((topic, index) => (
-                    <li key={index} className="flex items-start gap-2 text-gray-700 dark:text-gray-300">
-                      <span className="text-red-500 dark:text-red-400">•</span>
-                      <span>{topic}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          )}
         </div>
       ) : (
         // 无 AI 画像时的提示
@@ -267,41 +185,25 @@ export function ProfileSettings() {
         </div>
       )}
 
-      {/* 基础数据展示 */}
-      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-          📊 {_("options.profile.basicStats.title")}
-        </h3>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-          <div>
-            <div className="text-gray-500 dark:text-gray-400 text-xs mb-1">
-              {_("options.profile.basicStats.totalPages")}
-            </div>
-            <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
-              {profile.totalPages}
-            </div>
-          </div>
-          {profile.domains && profile.domains.length > 0 && (
-            <div>
-              <div className="text-gray-500 dark:text-gray-400 text-xs mb-1">
-                {_("options.profile.basicStats.topDomain")}
-              </div>
-              <div className="text-lg font-bold text-gray-900 dark:text-gray-100 truncate">
-                {profile.domains[0].domain}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
       {/* 重建按钮 */}
       <div className="flex justify-end">
         <button
           onClick={handleRebuildProfile}
           disabled={isRebuilding}
-          className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white rounded-lg transition-colors flex items-center gap-2"
+          className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+            rebuildSuccess 
+              ? 'bg-green-500 text-white cursor-default'
+              : isRebuilding
+                ? 'bg-gray-400 text-white cursor-wait'
+                : 'bg-blue-500 hover:bg-blue-600 text-white'
+          }`}
         >
-          {isRebuilding ? (
+          {rebuildSuccess ? (
+            <>
+              <span>✅</span>
+              <span>{_("options.userProfile.actions.rebuildComplete") || "重建完成"}</span>
+            </>
+          ) : isRebuilding ? (
             <>
               <span className="animate-spin">⏳</span>
               <span>{_("options.userProfile.actions.rebuilding")}</span>
