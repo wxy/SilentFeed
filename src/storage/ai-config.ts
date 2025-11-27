@@ -9,6 +9,8 @@
 
 import { logger } from "@/utils/logger"
 import { withErrorHandling, withErrorHandlingSync } from "@/utils/error-handler"
+import type { AIEngineAssignment } from "@/types/ai-engine-assignment"
+import { getDefaultEngineAssignment } from "@/types/ai-engine-assignment"
 
 const configLogger = logger.withTag('AIConfig')
 
@@ -134,6 +136,9 @@ export interface AIConfig {
 
   /** Phase 10: 本地 AI 配置（Ollama 等） */
   local?: LocalAIConfig
+
+  /** Phase 11: AI 引擎分配（为不同用途分配不同的 AI 引擎） */
+  engineAssignment?: AIEngineAssignment
 }
 
 /**
@@ -155,7 +160,8 @@ const DEFAULT_CONFIG: AIConfig = {
     temperature: 0.2,
     maxOutputTokens: 768,
     timeoutMs: 45000
-  }
+  },
+  engineAssignment: getDefaultEngineAssignment() // Phase 11: 默认智能优先方案
 }
 
 /**
@@ -198,7 +204,9 @@ export async function getAIConfig(): Promise<AIConfig> {
           local: {
             ...DEFAULT_CONFIG.local!,
             ...config.local
-          }
+          },
+          // Phase 11: 如果没有 engineAssignment，使用默认智能优先方案
+          engineAssignment: config.engineAssignment || getDefaultEngineAssignment()
         }
       }
       
@@ -416,4 +424,23 @@ export function getProviderModel(provider: AIProviderType): string {
     default:
       throw new Error(`Unknown provider: ${provider}`)
   }
+}
+
+/**
+ * Phase 11: 获取 AI 引擎分配配置
+ */
+export async function getEngineAssignment(): Promise<AIEngineAssignment> {
+  const config = await getAIConfig()
+  return config.engineAssignment || getDefaultEngineAssignment()
+}
+
+/**
+ * Phase 11: 保存 AI 引擎分配配置
+ */
+export async function saveEngineAssignment(assignment: AIEngineAssignment): Promise<void> {
+  const config = await getAIConfig()
+  await saveAIConfig({
+    ...config,
+    engineAssignment: assignment
+  })
 }
