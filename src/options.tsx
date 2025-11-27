@@ -6,7 +6,6 @@ import i18n from "@/i18n"
 import { CollectionStats } from "@/components/settings/CollectionStats"
 import { AIConfig } from "@/components/settings/AIConfig"
 import { RSSSettings } from "@/components/settings/RSSSettings"
-import { AnalysisSettings } from "@/components/settings/AnalysisSettings"
 import { NotificationSettings } from "@/components/settings/NotificationSettings"
 import { ProfileSettings } from "@/components/settings/ProfileSettings"
 import { getUIStyle, setUIStyle, watchUIStyle, getUIConfig, updateUIConfig, type UIStyle } from "@/storage/ui-config"
@@ -15,7 +14,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary"
 import "@/styles/global.css"
 import "@/styles/sketchy.css"
 
-type TabKey = "preferences" | "feeds" | "ai-engine" | "analysis" | "profile" | "data"
+type TabKey = "preferences" | "feeds" | "ai-engine" | "profile" | "data"
 
 /**
  * Silent Feed - 设置页面
@@ -42,14 +41,14 @@ function IndexOptions() {
   const getInitialTab = (): TabKey => {
     // 优先从 hash 读取（支持 #rss 这种格式）
     const hash = window.location.hash.slice(1) as TabKey
-    if (['preferences', 'feeds', 'ai-engine', 'analysis', 'profile', 'data'].includes(hash)) {
+    if (['preferences', 'feeds', 'ai-engine', 'profile', 'data'].includes(hash)) {
       return hash
     }
     
     // 其次从 URL 参数读取
     const urlParams = new URLSearchParams(window.location.search)
     const tab = urlParams.get('tab') as TabKey
-    return ['preferences', 'feeds', 'ai-engine', 'analysis', 'profile', 'data'].includes(tab) ? tab : 'preferences'
+    return ['preferences', 'feeds', 'ai-engine', 'profile', 'data'].includes(tab) ? tab : 'preferences'
   }
 
   const [activeTab, setActiveTab] = useState<TabKey>(getInitialTab)
@@ -126,7 +125,6 @@ function IndexOptions() {
     { key: "preferences", icon: "⚙️" },
     { key: "feeds", icon: "📡" },
     { key: "ai-engine", icon: "🤖" },
-    { key: "analysis", icon: "🎯" },
     { key: "profile", icon: "👤" },
     { key: "data", icon: "📊" }
   ]
@@ -313,16 +311,6 @@ function IndexOptions() {
               {activeTab === "ai-engine" && (
                 <div className={isSketchyStyle ? "sketchy-card" : "bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg"}>
                   <AIConfig />
-                </div>
-              )}
-
-              {/* 分析配置 - Phase 9: 推荐引擎 + 分析引擎 */}
-              {activeTab === "analysis" && (
-                <div className={isSketchyStyle ? "sketchy-card p-6" : "bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg"}>
-                  <h2 className="text-lg font-semibold mb-4 bg-gradient-to-r from-indigo-600 to-cyan-600 dark:from-indigo-400 dark:to-cyan-400 bg-clip-text text-transparent">
-                    {_("options.tabs.analysis")}
-                  </h2>
-                  <AnalysisSettings />
                 </div>
               )}
 

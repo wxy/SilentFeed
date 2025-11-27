@@ -38,6 +38,40 @@ vi.mock("@/core/ai/AICapabilityManager", () => ({
   }
 }))
 
+// Mock recommendation-config
+vi.mock("@/storage/recommendation-config", () => ({
+  checkLocalAIStatus: vi.fn().mockResolvedValue({
+    hasChromeAI: false,
+    hasOllama: false,
+    available: false,
+    availableServices: []
+  }),
+  getRecommendationConfig: vi.fn().mockResolvedValue({
+    analysisEngine: 'remoteAI',
+    feedAnalysisEngine: 'remoteAI',
+    maxRecommendations: 3
+  }),
+  saveRecommendationConfig: vi.fn().mockResolvedValue(undefined)
+}))
+
+// Mock db
+vi.mock("@/storage/db", () => ({
+  getPageCount: vi.fn().mockResolvedValue(50)
+}))
+
+// Mock constants/progress
+vi.mock("@/constants/progress", () => ({
+  LEARNING_COMPLETE_PAGES: 100
+}))
+
+// Mock local-ai-endpoint
+vi.mock("@/utils/local-ai-endpoint", () => ({
+  listLocalModels: vi.fn().mockResolvedValue({
+    mode: 'openai',
+    models: []
+  })
+}))
+
 // Mock analysis-engine-capability (避免在测试环境中访问 window 对象)
 vi.mock("@/utils/analysis-engine-capability", () => ({
   checkLocalAI: vi.fn().mockResolvedValue({

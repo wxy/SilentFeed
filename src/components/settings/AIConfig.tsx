@@ -12,10 +12,12 @@ import {
   getProviderFromModel
 } from "@/storage/ai-config"
 import { aiManager } from "@/core/ai/AICapabilityManager"
-import { checkLocalAIStatus } from "@/storage/recommendation-config"
+import { checkLocalAIStatus, getRecommendationConfig, saveRecommendationConfig } from "@/storage/recommendation-config"
 import { listLocalModels, type LocalAIEndpointMode, type LocalModelSummary } from "@/utils/local-ai-endpoint"
 import { AIEngineAssignmentComponent } from "@/components/settings/AIEngineAssignment"
 import type { AIEngineAssignment as AIEngineAssignmentType } from "@/types/ai-engine-assignment"
+import { getPageCount } from "@/storage/db"
+import { LEARNING_COMPLETE_PAGES } from "@/constants/progress"
 
 const DEFAULT_LOCAL_CONFIG: LocalAIConfig = {
   enabled: false,
@@ -66,6 +68,12 @@ export function AIConfig() {
 
   // Phase 8: AI 引擎分配
   const [engineAssignment, setEngineAssignment] = useState<AIEngineAssignmentType | null>(null)
+  
+  // 推荐配置
+  const [maxRecommendations, setMaxRecommendations] = useState(3)
+  const [isLearningStage, setIsLearningStage] = useState(false)
+  const [pageCount, setPageCount] = useState(0)
+  
   const [localModels, setLocalModels] = useState<LocalModelSummary[]>([])
   const [localModelsMode, setLocalModelsMode] = useState<LocalAIEndpointMode | null>(null)
   const [isFetchingLocalModels, setIsFetchingLocalModels] = useState(false)
@@ -136,6 +144,17 @@ export function AIConfig() {
     getEngineAssignment().then(assignment => {
       setEngineAssignment(assignment)
     })
+    
+    // 加载推荐配置
+    getRecommendationConfig().then(recConfig => {
+      setMaxRecommendations(recConfig.maxRecommendations || 3)
+    })
+    
+    // 检查学习阶段
+    getPageCount().then(count => {
+      setPageCount(count)
+      setIsLearningStage(count < LEARNING_COMPLETE_PAGES)
+    })
     })
   }, [])
 
@@ -181,7 +200,6 @@ export function AIConfig() {
 
     // 防止并发请求
     if (fetchingRef.current && !forceRefresh) {
-      console.log('[AIConfig] 跳过重复的模型列表请求（已在请求中）')
       return
     }
 
@@ -192,11 +210,9 @@ export function AIConfig() {
         lastFetch.endpoint === localConfig.endpoint &&
         lastFetch.apiKey === (localConfig.apiKey || '') &&
         (now - lastFetch.timestamp) < CACHE_DURATION) {
-      console.log('[AIConfig] 使用缓存的模型列表，跳过请求')
       return // 使用缓存的模型列表
     }
 
-    console.log('[AIConfig] 开始获取模型列表', { forceRefresh, endpoint: localConfig.endpoint })
     fetchingRef.current = true
     setIsFetchingLocalModels(true)
     setLocalModelsError(null)
@@ -347,6 +363,13 @@ export function AIConfig() {
     if (engineAssignment) {
       await saveEngineAssignment(engineAssignment)
     }
+    
+    // 保存推荐配置
+    const recConfig = await getRecommendationConfig()
+    await saveRecommendationConfig({
+      ...recConfig,
+      maxRecommendations
+    })
     
     setMessage({ type: "success", text: _("options.aiConfig.messages.saveSuccess") })
     } catch (error) {
@@ -869,6 +892,44 @@ export function AIConfig() {
       />
     </div>
   )}
+
+  {/* 智能推荐数量 */}
+  <div className="mt-6 p-6 bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 rounded-lg">
+    <h3 className="text-lg font-semibold mb-4">{_("options.recommendation.smartCount")}</h3>
+    {isLearningStage ? (
+      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <span className="text-2xl">📚</span>
+          <div className="flex-1">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                {_("options.recommendation.learningStageTitle")}
+              </span>
+              <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">0</span>
+            </div>
+            <p className="text-xs text-blue-700 dark:text-blue-300 mb-2">
+              {_("options.recommendation.learningStageHint", { current: pageCount, total: LEARNING_COMPLETE_PAGES })}
+            </p>
+            <p className="text-xs text-blue-600 dark:text-blue-400">
+              {_("options.recommendation.learningStageNote")}
+            </p>
+          </div>
+        </div>
+      </div>
+    ) : (
+      <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-gray-600 dark:text-gray-400">{_("options.recommendation.currentCount")}</span>
+          <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+            {_("options.recommendation.countItems", { count: maxRecommendations })}
+          </span>
+        </div>
+        <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
+          {_("options.recommendation.countHint")}
+        </p>
+      </div>
+    )}
+  </div>
 
   {/* 底部统一保存按钮 */}
   <div className="flex flex-col items-center gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">

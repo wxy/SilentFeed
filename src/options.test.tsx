@@ -26,7 +26,6 @@ vi.mock("@/i18n/helpers", () => ({
         "options.tabs.preferences": "偏好",
         "options.tabs.feeds": "订阅源",
         "options.tabs.ai-engine": "AI 引擎",
-        "options.tabs.analysis": "分析配置",
         "options.tabs.profile": "用户画像",
         "options.tabs.data": "采集统计",
         // 旧标签名称（向后兼容）
@@ -89,11 +88,10 @@ describe("IndexOptions 组件", () => {
 
     it("应该显示五个标签按钮", () => {
       render(<IndexOptions />)
-      // Phase 8: 新标签名称
+      // Phase 8: 新标签名称（移除了分析配置标签）
       expect(screen.getByText("偏好")).toBeInTheDocument()
       expect(screen.getByText("订阅源")).toBeInTheDocument()
       expect(screen.getByText("AI 引擎")).toBeInTheDocument()
-      expect(screen.getByText("分析配置")).toBeInTheDocument()
       expect(screen.getByText("用户画像")).toBeInTheDocument()
       expect(screen.getByText("采集统计")).toBeInTheDocument()
     })
