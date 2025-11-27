@@ -13,6 +13,8 @@ export interface RecommendationInput {
   userProfile: UserProfile
   config: RecommendationConfig
   options?: RecommendationOptions
+  visitHistory?: unknown[]
+  alreadyRecommended?: unknown[]
 }
 
 /**

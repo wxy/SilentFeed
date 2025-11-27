@@ -36,17 +36,40 @@ function createTopics(partial: Partial<TopicDistribution> = {}): TopicDistributi
 vi.mock("@/storage/db")
 vi.mock("@/storage/ai-config")
 vi.mock("@/core/profile/ProfileManager")
-vi.mock("@/i18n/helpers", () => ({
-  useI18n: () => ({
-    _: (key: string) => key, // 直接返回 key，便于测试
-  }),
-}))
+vi.mock("@/i18n/helpers", () => {
+  const translators: Record<string, (params?: Record<string, any>) => string> = {
+    "options.userProfile.chat.intro": (params) =>
+      `我是 ${params?.providerName ?? "AI"}，通过分析你从 ${params?.startDate ?? ""} 以来的 ${params?.totalPages ?? 0} 次浏览，我发现你${params?.interests ?? ""}`,
+    "options.userProfile.chat.preferences": (params) =>
+      `根据这些理解，我会为你推荐 ${params?.preferences ?? ""} 等方面的内容。`,
+    "options.userProfile.chat.avoidTopics": (params) =>
+      `同时，我也注意到你不感兴趣的内容，会避免推荐 ${params?.topics ?? ""} 等话题。`,
+    "options.userProfile.chat.generating": () => "AI 画像生成中，请稍候...",
+    "options.userProfile.chat.userRebuildLabel": () => "🔄 重建画像",
+    "options.userProfile.chat.tipConfigured": () => "点击\"重建画像\"按钮，AI 会重新分析你的浏览习惯",
+    "options.userProfile.chat.tipNotConfigured": () => "请先在\"AI 引擎\"标签页配置 AI 服务"
+  }
+
+  return {
+    useI18n: () => ({
+      _: (key: string, params?: Record<string, any>) => {
+        const handler = translators[key]
+        if (handler) {
+          return handler(params)
+        }
+        return key
+      }
+    })
+  }
+})
 
 const mockGetUserProfile = vi.mocked(getUserProfile)
 const mockGetAIConfig = vi.mocked(getAIConfig)
 const mockRebuildProfile = vi.fn()
 
 vi.mocked(profileManager).rebuildProfile = mockRebuildProfile
+
+vi.stubGlobal("alert", vi.fn())
 
 describe("ProfileSettings 组件", () => {
   beforeEach(() => {
@@ -145,7 +168,7 @@ describe("ProfileSettings 组件", () => {
 
       await waitFor(() => {
         // 验证 AI 对话中包含浏览页面数信息
-        expect(screen.getByText(/从你对/)).toBeInTheDocument()
+        expect(screen.getByText(/通过分析你从/)).toBeInTheDocument()
       })
     })
   })
@@ -171,7 +194,7 @@ describe("ProfileSettings 组件", () => {
       render(<ProfileSettings />)
 
       await waitFor(() => {
-        expect(screen.getByText(/options.profile.aiProfile.notConfiguredTitle/)).toBeInTheDocument()
+        expect(screen.getByText(/请先在"AI 引擎"标签页配置 AI 服务/)).toBeInTheDocument()
       })
     })
   })
@@ -253,8 +276,8 @@ describe("ProfileSettings 组件", () => {
       render(<ProfileSettings />)
 
       await waitFor(() => {
-        // 新的UI将 preferences 合并在一句话中
-        expect(screen.getByText(/我将会为你推荐/)).toBeInTheDocument()
+        // 新的 UI 将 preferences 合并在一句话中
+        expect(screen.getByText(/根据这些理解/)).toBeInTheDocument()
       })
     })
 
@@ -302,6 +325,12 @@ describe("ProfileSettings 组件", () => {
         keywords: [],
         domains: [],
         lastUpdated: Date.now(),
+      })
+      mockGetAIConfig.mockResolvedValue({
+        enabled: true,
+        provider: "openai",
+        apiKeys: { openai: "test-key" },
+        monthlyBudget: 100,
       })
     })
 

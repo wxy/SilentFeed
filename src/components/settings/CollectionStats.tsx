@@ -408,241 +408,422 @@ export function CollectionStats() {
           </div>
         ) : (
           <div className="space-y-6">
-            {/* 立体漏斗可视化 - 椭圆分层设计（对数比例） */}
+            {/* 立体漏斗可视化 - 半透明玻璃风格 */}
             <div className="flex justify-center items-center gap-8">
               {/* 主漏斗 */}
-              <svg 
-                width="400" 
-                height="500" 
-                viewBox="0 0 400 500" 
+              <svg
+                width="480"
+                height="520"
+                viewBox="0 0 480 520"
                 className="max-w-full h-auto"
               >
                 <defs>
-                  {/* 椭圆顶部渐变（3D立体感）- 三层配色 */}
-                  <radialGradient id="ellipseTop1">
-                    <stop offset="0%" stopColor="#BFDBFE" />
-                    <stop offset="50%" stopColor="#93C5FD" />
-                    <stop offset="100%" stopColor="#60A5FA" />
+                  {/* 顶部椭圆的柔和光晕 */}
+                  <radialGradient id="ellipseTopGlow" cx="50%" cy="35%" r="70%">
+                    <stop offset="0%" stopColor="#FFF8DC" stopOpacity="0.98" />
+                    <stop offset="60%" stopColor="#FFE69A" stopOpacity="0.85" />
+                    <stop offset="100%" stopColor="#F5C654" stopOpacity="0.65" />
                   </radialGradient>
-                  <radialGradient id="ellipseTop2">
-                    <stop offset="0%" stopColor="#BBF7D0" />
-                    <stop offset="50%" stopColor="#86EFAC" />
-                    <stop offset="100%" stopColor="#4ADE80" />
-                  </radialGradient>
-                  <radialGradient id="ellipseTop4">
-                    <stop offset="0%" stopColor="#DDD6FE" />
-                    <stop offset="50%" stopColor="#C4B5FD" />
-                    <stop offset="100%" stopColor="#A78BFA" />
+
+                  <radialGradient id="sliceGlow" cx="50%" cy="20%" r="90%">
+                    <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.9" />
+                    <stop offset="45%" stopColor="#FFFFFF" stopOpacity="0.35" />
+                    <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
                   </radialGradient>
                   
-                  {/* 阴影 */}
-                  <filter id="layerShadow">
-                    <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
-                    <feOffset dx="0" dy="4" result="offsetblur"/>
+                  {/* 漏斗主体的垂直渐变：参考示例配色 */}
+                  <linearGradient id="completeFunnelFill" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#F8DD6B" stopOpacity="0.78" />
+                    <stop offset="28%" stopColor="#7CC464" stopOpacity="0.76" />
+                    <stop offset="55%" stopColor="#FDAB4C" stopOpacity="0.7" />
+                    <stop offset="78%" stopColor="#3CB1E6" stopOpacity="0.66" />
+                    <stop offset="100%" stopColor="#143F78" stopOpacity="0.62" />
+                  </linearGradient>
+                  
+                  {/* 左侧高光，制造玻璃质感 */}
+                  <linearGradient id="glassHighlight" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.8" />
+                    <stop offset="30%" stopColor="#FFFFFF" stopOpacity="0.35" />
+                    <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
+                  </linearGradient>
+                  
+                  {/* 右侧阴影，增强体积感 */}
+                  <linearGradient id="glassShade" x1="100%" y1="0%" x2="0%" y2="0%">
+                    <stop offset="0%" stopColor="#3A2A61" stopOpacity="0.28" />
+                    <stop offset="45%" stopColor="#3A2A61" stopOpacity="0.06" />
+                    <stop offset="100%" stopColor="#3A2A61" stopOpacity="0" />
+                  </linearGradient>
+
+                  {/* 软阴影 */}
+                  <filter id="coneShadow" x="-40%" y="-40%" width="180%" height="200%">
+                    <feGaussianBlur in="SourceAlpha" stdDeviation="4" />
+                    <feOffset dx="1.5" dy="5" />
                     <feComponentTransfer>
-                      <feFuncA type="linear" slope="0.25"/>
+                      <feFuncA type="linear" slope="0.28" />
                     </feComponentTransfer>
-                    <feMerge> 
-                      <feMergeNode/>
-                      <feMergeNode in="SourceGraphic"/> 
+                    <feMerge>
+                      <feMergeNode />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                  
+                  {/* 切片阴影 */}
+                  <filter id="sliceShadow" x="-30%" y="-30%" width="160%" height="200%">
+                    <feGaussianBlur in="SourceAlpha" stdDeviation="2" />
+                    <feOffset dy="3" />
+                    <feComponentTransfer>
+                      <feFuncA type="linear" slope="0.2" />
+                    </feComponentTransfer>
+                    <feMerge>
+                      <feMergeNode />
+                      <feMergeNode in="SourceGraphic" />
                     </feMerge>
                   </filter>
                 </defs>
 
                 {(() => {
-                  // 完整圆锥漏斗：从文章到用户，一气呵成
-                  const topRadius = 140  // 顶部半径（文章）
-                  const topRy = 18  // 顶部椭圆高度
-                  const topY = 100  // 顶部 Y 位置
-                  const bottomY = 470  // 底部 Y 位置（圆锥顶尖）
-                  
-                  // 三层数据位置（在圆锥上）
-                  const layerYs = [100, 250, 400]
-                  
-                  // 根据圆锥线性缩小计算每层半径（吻合圆锥切面）
-                  const totalHeight = bottomY - topY
-                  const layers = layerYs.map((y, i) => {
-                    const progress = (y - topY) / totalHeight  // 从顶部到底部的进度 (0-1)
-                    const radius = topRadius * (1 - progress)  // 线性缩小到 0
-                    const ry = topRy * (1 - progress)  // 高度也线性缩小
-                    
-                    return {
-                      label: ['文章', '推荐', '阅读'][i],
-                      y,
-                      radius: Math.max(radius, 1),  // 避免为 0
-                      ry: Math.max(ry, 1),
-                      value: [
-                        recommendationFunnel.rssArticles,
-                        recommendationFunnel.inPool,
-                        recommendationFunnel.read
-                      ][i]
+                  const centerX = 240
+                  const topRadius = 150
+                  const bottomRadius = 10
+                  const topY = 80
+                  const bottomY = 470
+                  const funnelHeight = bottomY - topY
+
+                  const getYFromRatio = (ratio: number) => topY + funnelHeight * ratio
+
+                  const getFunnelRadius = (y: number) => {
+                    const progress = Math.min(Math.max((y - topY) / funnelHeight, 0), 1)
+                    const smoothStep = progress * progress * (3 - 2 * progress)
+                    const blendedEase = 0.6 * smoothStep + 0.4 * Math.pow(progress, 1.35)
+                    const baseRadius = topRadius - (topRadius - bottomRadius) * blendedEase
+                    const inwardBend = (topRadius - bottomRadius) * 0.14 * Math.sin(Math.PI * progress) * (1 - progress * 0.6)
+                    return Math.max(bottomRadius, baseRadius - inwardBend)
+                  }
+
+                  const generateFunnelPath = () => {
+                    const steps = 90
+                    const commands: string[] = []
+
+                    for (let i = 0; i <= steps; i++) {
+                      const y = topY + (funnelHeight * i) / steps
+                      const radius = getFunnelRadius(y)
+                      commands.push(`${i === 0 ? 'M' : 'L'} ${centerX - radius},${y}`)
                     }
-                  })
-                  
-                  return (
-                    <>
-                      {/* 顶部互联网符号 */}
-                      <text x="250" y="30" textAnchor="middle" fontSize="32">
-                        🌐
-                      </text>
-                      <text x="250" y="55" textAnchor="middle" fill="#64748B" fontSize="11" fontWeight="500">
-                        互联网海量信息
-                      </text>
-                      
-                      {/* 内部切面（在圆锥后面）- 第二、三层 */}
-                      {layers.slice(1).map((layer, idx) => {
-                        const i = idx + 1  // 实际索引（1, 2）
-                        const colors = [
-                          { fill: '#3B82F6', bg: '#E0F2FE', text: '#1E3A8A', stroke: '#3B82F6' },
-                          { fill: '#10B981', bg: '#D1FAE5', text: '#064E3B', stroke: '#10B981' },
-                          { fill: '#8B5CF6', bg: '#EDE9FE', text: '#4C1D95', stroke: '#8B5CF6' }
-                        ][i]
-                        
-                        const percentage = i === 1 
-                          ? (layers[0].value > 0 ? ((layer.value / layers[0].value) * 100).toFixed(1) : 0)
-                          : (layers[1].value > 0 ? ((layer.value / layers[1].value) * 100).toFixed(1) : 0)
-                        
-                        return (
-                          <g key={i}>
-                            {/* 阴影层 */}
-                            <ellipse cx="250" cy={layer.y + 3} rx={layer.radius} ry={layer.ry} fill={colors.fill} opacity="0.2"/>
-                            {/* 主体层 - 纯色不透明，无边线 */}
-                            <ellipse cx="250" cy={layer.y} rx={layer.radius} ry={layer.ry} fill={colors.bg}/>
-                            
-                            {/* 标签在左侧 */}
-                            <text x="40" y={layer.y + 4} textAnchor="start" fill={colors.text} fontSize="12" fontWeight="600">
-                              {layer.label}
-                            </text>
-                            
-                            {/* 数字在中心（较小）*/}
-                            <text x="250" y={layer.y + 5} textAnchor="middle" fill={colors.text} fontSize="15" fontWeight="bold">
-                              {layer.value}
-                            </text>
-                            
-                            {/* 百分比 */}
-                            <text x="250" y={layer.y + 17} textAnchor="middle" fill={colors.stroke} fontSize="9" opacity="0.8">
-                              {percentage}%
-                            </text>
-                          </g>
-                        )
-                      })}
-                      
-                      {/* 漏斗立体填充 - 在 defs 之前绘制 */}
-                      <defs>
-                        {/* 圆锥阴影滚镜 */}
-                        <filter id="coneShadow" x="-50%" y="-50%" width="200%" height="200%">
-                          <feGaussianBlur in="SourceAlpha" stdDeviation="4"/>
-                          <feOffset dx="3" dy="6"/>
-                          <feComponentTransfer>
-                            <feFuncA type="linear" slope="0.4"/>
-                          </feComponentTransfer>
-                          <feMerge>
-                            <feMergeNode/>
-                            <feMergeNode in="SourceGraphic"/>
-                          </feMerge>
-                        </filter>
-                        
-                        {/* 漏斗段渐变（从上到下）- 三层配色，颜色更深 */}
-                        <linearGradient id="funnelFill1" x1="0%" y1="0%" x2="0%" y2="100%">
-                          <stop offset="0%" stopColor="#60A5FA" stopOpacity="0.6" />
-                          <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.4" />
-                        </linearGradient>
-                        <linearGradient id="funnelFill2" x1="0%" y1="0%" x2="0%" y2="100%">
-                          <stop offset="0%" stopColor="#4ADE80" stopOpacity="0.6" />
-                          <stop offset="100%" stopColor="#10B981" stopOpacity="0.4" />
-                        </linearGradient>
-                        <linearGradient id="funnelFill3" x1="0%" y1="0%" x2="0%" y2="100%">
-                          <stop offset="0%" stopColor="#A78BFA" stopOpacity="0.6" />
-                          <stop offset="100%" stopColor="#8B5CF6" stopOpacity="0.4" />
-                        </linearGradient>
-                        
-                        {/* 漏斗外侧打光（从左到右） */}
-                        <linearGradient id="funnelLightLeft" x1="0%" y1="0%" x2="100%" y2="0%">
-                          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.3" />
-                          <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
-                        </linearGradient>
-                        <linearGradient id="funnelLightRight" x1="100%" y1="0%" x2="0%" y2="0%">
-                          <stop offset="0%" stopColor="#000000" stopOpacity="0.15" />
-                          <stop offset="100%" stopColor="#000000" stopOpacity="0" />
-                        </linearGradient>
-                        
-                        {/* 完整圆锥渐变（从蓝到紫） */}
-                        <linearGradient id="completeFunnelFill" x1="0%" y1="0%" x2="0%" y2="100%">
-                          <stop offset="0%" stopColor="#60A5FA" stopOpacity="0.6" />
-                          <stop offset="33%" stopColor="#4ADE80" stopOpacity="0.5" />
-                          <stop offset="66%" stopColor="#A78BFA" stopOpacity="0.4" />
-                          <stop offset="100%" stopColor="#8B5CF6" stopOpacity="0.3" />
-                        </linearGradient>
-                      </defs>
-                      
-                      {/* 完整圆锥填充（从顶部到底部）*/}
-                      <g filter="url(#coneShadow)">
+
+                    commands.push(`L ${centerX + bottomRadius},${bottomY}`)
+
+                    for (let i = steps; i >= 0; i--) {
+                      const y = topY + (funnelHeight * i) / steps
+                      const radius = getFunnelRadius(y)
+                      commands.push(`L ${centerX + radius},${y}`)
+                    }
+
+                    commands.push('Z')
+                    return commands.join(' ')
+                  }
+
+                  const generateBandPath = (yStart: number, yEnd: number) => {
+                    const steps = 60
+                    const cmds: string[] = []
+
+                    for (let i = 0; i <= steps; i++) {
+                      const ratio = i / steps
+                      const y = yStart + (yEnd - yStart) * ratio
+                      const radius = getFunnelRadius(y)
+                      cmds.push(`${i === 0 ? 'M' : 'L'} ${centerX - radius},${y}`)
+                    }
+
+                    for (let i = steps; i >= 0; i--) {
+                      const ratio = i / steps
+                      const y = yStart + (yEnd - yStart) * ratio
+                      const radius = getFunnelRadius(y)
+                      cmds.push(`L ${centerX + radius},${y}`)
+                    }
+
+                    cmds.push('Z')
+                    return cmds.join(' ')
+                  }
+
+                  const dropletSpecs = [
+                    { key: 'rss-1', x: centerX - 120, color: '#FF9F43' },
+                    { key: 'rss-2', x: centerX - 60, color: '#FFB955' },
+                    { key: 'rss-3', x: centerX, color: '#FFC870' },
+                    { key: 'rss-4', x: centerX + 60, color: '#FF9F43' },
+                    { key: 'rss-5', x: centerX + 120, color: '#FFB955' }
+                  ]
+
+                  const getDropletPath = (cx: number, cy: number, size: number) => {
+                    const top = cy - size
+                    const bottom = cy + size * 1.2
+                    const controlOffset = size * 0.9
+                    return `M ${cx} ${top} C ${cx + controlOffset} ${top + size * 0.8}, ${cx + controlOffset} ${bottom - size * 0.4}, ${cx} ${bottom} C ${cx - controlOffset} ${bottom - size * 0.4}, ${cx - controlOffset} ${top + size * 0.8}, ${cx} ${top} Z`
+                  }
+
+                  const renderRssIcon = (cx: number, cy: number, size: number) => {
+                    const dotX = cx - size * 0.2
+                    const dotY = cy + size * 0.45
+                    const outerStartX = cx - size * 0.45
+                    const outerStartY = cy + size * 0.35
+                    const outerEndX = cx + size * 0.55
+                    const outerEndY = cy - size * 0.35
+                    const innerStartX = cx - size * 0.35
+                    const innerStartY = cy + size * 0.25
+                    const innerEndX = cx + size * 0.35
+                    const innerEndY = cy - size * 0.2
+                    return (
+                      <g>
+                        <circle cx={dotX} cy={dotY} r={size * 0.12} fill="#FFFFFF" />
                         <path
-                          d={`
-                            M ${250 - topRadius},${topY}
-                            L 250,${bottomY}
-                            L ${250 + topRadius},${topY}
-                            Z
-                          `}
-                          fill="url(#completeFunnelFill)"
-                          opacity="0.7"
+                          d={`M ${outerStartX} ${outerStartY} A ${size * 0.95} ${size * 0.95} 0 0 1 ${outerEndX} ${outerEndY}`}
+                          fill="none"
+                          stroke="#FFFFFF"
+                          strokeWidth={size * 0.14}
+                          strokeLinecap="round"
+                        />
+                        <path
+                          d={`M ${innerStartX} ${innerStartY} A ${size * 0.7} ${size * 0.7} 0 0 1 ${innerEndX} ${innerEndY}`}
+                          fill="none"
+                          stroke="#FFFFFF"
+                          strokeWidth={size * 0.12}
+                          strokeLinecap="round"
                         />
                       </g>
-                      
-                      {/* 圆锥左侧打光 */}
-                      <path
-                        d={`
-                          M ${250 - topRadius},${topY}
-                          L 250,${bottomY}
-                          L ${250 - topRadius + 40},${topY}
-                          Z
-                        `}
-                        fill="url(#funnelLightLeft)"
-                      />
-                      
-                      {/* 圆锥右侧阴影 */}
-                      <path
-                        d={`
-                          M ${250 + topRadius - 40},${topY}
-                          L 250,${bottomY}
-                          L ${250 + topRadius},${topY}
-                          Z
-                        `}
-                        fill="url(#funnelLightRight)"
-                      />
+                    )
+                  }
 
-                      {/* 第一层椭圆（顶层，在圆锥上方） */}
-                      {(() => {
-                        const layer = layers[0]
-                        const colors = { fill: '#3B82F6', text: '#1E3A8A', stroke: '#3B82F6' }
-                        
-                        return (
-                          <g filter="url(#layerShadow)">
-                            {/* 阴影层 */}
-                            <ellipse cx="250" cy={layer.y + 5} rx={layer.radius} ry={layer.ry} fill={colors.fill} opacity="0.3"/>
-                            {/* 主体层 - 无边线 */}
-                            <ellipse cx="250" cy={layer.y} rx={layer.radius} ry={layer.ry} fill={`url(#ellipseTop1)`}/>
-                            
-                            {/* 标签在左侧 */}
-                            <text x="40" y={layer.y + 5} textAnchor="start" fill={colors.text} fontSize="14" fontWeight="600">
-                              {layer.label}
+                  const segments = [
+                    {
+                      key: 'infinite',
+                      startRatio: 0,
+                      endRatio: 0.18,
+                      fill: '#F6D96C',
+                      border: '#E4BB27',
+                      textColor: '#8F5C00',
+                      label: null,
+                      value: null,
+                      percentText: null
+                    },
+                    {
+                      key: 'articles',
+                      startRatio: 0.18,
+                      endRatio: 0.45,
+                      fill: '#73C062',
+                      border: '#3C8F34',
+                      textColor: '#104019',
+                      label: '文章',
+                      value: recommendationFunnel.rssArticles,
+                      percentText: '100%'
+                    },
+                    {
+                      key: 'recommendations',
+                      startRatio: 0.45,
+                      endRatio: 0.7,
+                      fill: '#FD9F3C',
+                      border: '#E46900',
+                      textColor: '#7A2C00',
+                      label: '推荐',
+                      value: recommendationFunnel.inPool,
+                      percentText: recommendationFunnel.rssArticles > 0
+                        ? `${((recommendationFunnel.inPool / recommendationFunnel.rssArticles) * 100).toFixed(1)}%`
+                        : '0%'
+                    },
+                    {
+                      key: 'reading',
+                      startRatio: 0.7,
+                      endRatio: 0.9,
+                      fill: '#3AA8E0',
+                      border: '#1872B0',
+                      textColor: '#073655',
+                      label: '阅读',
+                      value: recommendationFunnel.read,
+                      percentText: recommendationFunnel.inPool > 0
+                        ? `${((recommendationFunnel.read / recommendationFunnel.inPool) * 100).toFixed(1)}%`
+                        : '0%'
+                    },
+                    {
+                      key: 'base',
+                      startRatio: 0.9,
+                      endRatio: 0.99,
+                      fill: '#143F78',
+                      border: '#0F2B4F',
+                      textColor: '#E2E8F0',
+                      label: null,
+                      value: null,
+                      percentText: null
+                    }
+                  ]
+
+                  const segmentSpecs = segments.map((segment) => {
+                    const yStart = getYFromRatio(segment.startRatio)
+                    const yEnd = getYFromRatio(segment.endRatio)
+                    const midY = (yStart + yEnd) / 2
+                    return {
+                      ...segment,
+                      yStart,
+                      yEnd,
+                      midY,
+                      midRadius: getFunnelRadius(midY)
+                    }
+                  })
+
+                  const boundaryEllipses = segmentSpecs
+                    .filter((segment) => segment.key !== 'infinite')
+                    .map((segment) => {
+                      const radius = getFunnelRadius(segment.yStart)
+                      const ratio = Math.min(Math.max((segment.yStart - topY) / funnelHeight, 0), 1)
+                      // 通过增大短轴长度增强切面厚度
+                      const ry = Math.max(3, radius * 0.09 * (1 - ratio * 0.35))
+                      return {
+                        y: segment.yStart,
+                        radius,
+                        color: segment.border,
+                        ry,
+                        segmentKey: segment.key
+                      }
+                    })
+
+                  const funnelPath = generateFunnelPath()
+
+                  return (
+                    <>
+                      {/* 顶部信息流水滴 */}
+                      {dropletSpecs.map((droplet) => (
+                        <g key={droplet.key}>
+                          <path
+                            d={getDropletPath(droplet.x, topY - 55, 20)}
+                            fill={droplet.color}
+                            opacity="0.9"
+                            stroke="#FFFFFF"
+                            strokeWidth={1.2}
+                          />
+                          {renderRssIcon(droplet.x, topY - 60, 12)}
+                        </g>
+                      ))}
+
+                      {/* 顶部椭圆及阴影 */}
+                      <ellipse cx={centerX} cy={topY + 4} rx={topRadius + 5} ry={20} fill="#000" opacity="0.08" />
+                      <ellipse cx={centerX} cy={topY} rx={topRadius} ry={18} fill="url(#ellipseTopGlow)" stroke="none" opacity="0.9" />
+
+                      {/* 分段切片 */}
+                      {segmentSpecs.map((segment) => (
+                        <path
+                          key={segment.key}
+                          d={generateBandPath(segment.yStart, segment.yEnd)}
+                          fill={segment.fill}
+                          opacity={segment.key === 'infinite' ? 0.55 : 0.82}
+                          filter={segment.key === 'infinite' ? undefined : 'url(#sliceShadow)'}
+                        />
+                      ))}
+
+                      {/* 漏斗主体半透明包裹 */}
+                      <path d={funnelPath} fill="url(#completeFunnelFill)" opacity="0.8" filter="url(#coneShadow)" />
+                      <path d={funnelPath} fill="url(#glassHighlight)" opacity="0.35" />
+                      <path d={funnelPath} fill="url(#glassShade)" opacity="0.55" />
+
+                      {/* 切面椭圆边界 */}
+                      {boundaryEllipses.map((boundary) => (
+                        <ellipse
+                          key={`boundary-${boundary.y}`}
+                          cx={centerX}
+                          cy={boundary.y}
+                          rx={boundary.radius}
+                          ry={boundary.ry}
+                          fill={`url(#sliceGlow)`}
+                          opacity={0.15}
+                          stroke={boundary.color}
+                          strokeOpacity={0.45}
+                          strokeWidth={boundary.segmentKey === 'reading' ? 1.2 : 0.9}
+                        />
+                      ))}
+
+                      {/* 内部标签与数值 */}
+                      {segmentSpecs.map((segment) => (
+                        <g key={`${segment.key}-labels`}>
+                          {segment.label ? (
+                            <text
+                              x={centerX}
+                              y={segment.value === null ? segment.midY : segment.midY - 16}
+                              textAnchor="middle"
+                              fill={segment.textColor}
+                              fontSize={segment.value === null ? 16 : 15}
+                              fontWeight="600"
+                              stroke={segment.key === 'infinite' ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.35)'}
+                              strokeWidth={0.4}
+                              style={{ paintOrder: 'stroke fill' }}
+                            >
+                              {segment.label}
                             </text>
-                            
-                            {/* 数字在中心 */}
-                            <text x="250" y={layer.y + 5} textAnchor="middle" fill={colors.text} fontSize="20" fontWeight="bold">
-                              {layer.value}
-                            </text>
-                          </g>
-                        )
-                      })()}
-                      
-                      {/* 用户符号在圆锥顶尖之下（增加距离） */}
-                      <text x="250" y="500" textAnchor="middle" fontSize="24">
+                          ) : null}
+                          {segment.value !== null && (
+                            <>
+                              <text
+                                x={centerX}
+                                y={segment.midY + 4}
+                                textAnchor="middle"
+                                fill={segment.textColor}
+                                fontSize="22"
+                                fontWeight="700"
+                                stroke="rgba(255,255,255,0.45)"
+                                strokeWidth={0.8}
+                                style={{ paintOrder: 'stroke fill' }}
+                              >
+                                {segment.value}
+                              </text>
+                              <text
+                                x={centerX}
+                                y={segment.midY + 24}
+                                textAnchor="middle"
+                                fill={segment.border}
+                                fontSize="12"
+                                fontWeight="600"
+                                stroke="rgba(0,0,0,0.25)"
+                                strokeWidth={0.4}
+                                style={{ paintOrder: 'stroke fill' }}
+                              >
+                                {segment.percentText}
+                              </text>
+                            </>
+                          )}
+                        </g>
+                      ))}
+
+                      {/* 底部用户符号 */}
+                      <text x={centerX} y={bottomY + 24} textAnchor="middle" fontSize="26">
                         👤
                       </text>
-                      <text x="250" y="520" textAnchor="middle" fill="#64748B" fontSize="10" fontWeight="500">
+                      <text x={centerX} y={bottomY + 44} textAnchor="middle" fill="#475569" fontSize="12" fontWeight="500">
                         你
                       </text>
+
+                      {/* 出口水滴，展示阅读量 */}
+                      <g>
+                        <path
+                          d={getDropletPath(centerX, bottomY + 100, 26)}
+                          fill="#1F7BBE"
+                          opacity="0.85"
+                          stroke="#E0F2FE"
+                          strokeWidth={1.4}
+                        />
+                        <text
+                          x={centerX}
+                          y={bottomY + 96}
+                          textAnchor="middle"
+                          fill="#E0F2FE"
+                          fontSize="11"
+                        >
+                          阅读完成
+                        </text>
+                        <text
+                          x={centerX}
+                          y={bottomY + 116}
+                          textAnchor="middle"
+                          fill="#FFFFFF"
+                          fontSize="16"
+                          fontWeight="700"
+                        >
+                          {recommendationFunnel.read}
+                        </text>
+                      </g>
                     </>
                   )
                 })()}

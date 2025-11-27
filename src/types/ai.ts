@@ -61,6 +61,7 @@ export interface RecommendationReasonResult {
     tokensUsed?: {
       input: number
       output: number
+      total?: number
     }
   }
 }

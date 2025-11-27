@@ -99,6 +99,9 @@ export function ProfileSettings() {
     setIsRebuilding(true)
     try {
       const newProfile = await profileManager.rebuildProfile()
+      if (!newProfile) {
+        throw new Error('EMPTY_PROFILE')
+      }
       
       // 2. 添加 AI 回复消息：新画像
       const aiMessage: ChatMessage = {
@@ -120,6 +123,13 @@ export function ProfileSettings() {
   // 渲染 AI 消息气泡
   const renderAIMessage = (profile: UserProfile, timestamp: number) => {
     const aiSummary = profile.aiSummary
+    const providerName = aiSummary?.metadata?.provider === 'deepseek'
+      ? 'DeepSeek'
+      : aiSummary?.metadata?.provider === 'openai'
+        ? 'OpenAI'
+        : aiSummary?.metadata?.provider === 'anthropic'
+          ? 'Anthropic'
+          : 'AI'
     
     // 计算开始浏览时间（假设平均每天浏览10页）
     const estimatedDays = Math.max(1, Math.floor(profile.totalPages / 10))
@@ -141,37 +151,34 @@ export function ProfileSettings() {
               // 有 AI 画像
               <div className="text-gray-800 dark:text-gray-200 leading-relaxed space-y-3">
                 <p>
-                  我是 <span className="font-semibold text-blue-600 dark:text-blue-400">
-                    {aiSummary.metadata.provider === 'deepseek' ? 'DeepSeek' : 
-                     aiSummary.metadata.provider === 'openai' ? 'OpenAI' : 
-                     aiSummary.metadata.provider === 'anthropic' ? 'Anthropic' : 'AI'}
-                  </span>，
-                  通过分析你从 <span className="font-medium text-cyan-600 dark:text-cyan-400">
-                    {startDate.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })}
-                  </span> 以来的 <span className="font-medium text-orange-600 dark:text-orange-400">{profile.totalPages} 次</span>浏览，
-                  我发现你{aiSummary.interests}
+                  {_("options.userProfile.chat.intro", {
+                    providerName,
+                    startDate: startDate.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' }),
+                    totalPages: profile.totalPages,
+                    interests: aiSummary.interests
+                  })}
                 </p>
                 
                 {aiSummary.preferences && aiSummary.preferences.length > 0 && (
                   <p>
-                    根据这些理解，我会为你推荐 <span className="font-medium text-green-600 dark:text-green-400">
-                      {aiSummary.preferences.join('、')}
-                    </span> 等方面的内容。
+                    {_("options.userProfile.chat.preferences", {
+                      preferences: aiSummary.preferences.join('、')
+                    })}
                   </p>
                 )}
                 
                 {aiSummary.avoidTopics && aiSummary.avoidTopics.length > 0 && (
                   <p>
-                    同时，我也注意到你不感兴趣的内容，会避免推荐 <span className="font-medium text-red-600 dark:text-red-400">
-                      {aiSummary.avoidTopics.join('、')}
-                    </span> 等话题。
+                    {_("options.userProfile.chat.avoidTopics", {
+                      topics: aiSummary.avoidTopics.join('、')
+                    })}
                   </p>
                 )}
               </div>
             ) : (
               // AI 画像生成中
               <p className="text-gray-600 dark:text-gray-400">
-                AI 画像生成中，请稍候...
+                {_("options.userProfile.chat.generating")}
               </p>
             )}
           </div>
@@ -198,7 +205,7 @@ export function ProfileSettings() {
         <div className="max-w-3xl">
           <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl rounded-tr-sm p-4 border border-green-100 dark:border-green-800 shadow-sm">
             <p className="text-gray-800 dark:text-gray-200">
-              🔄 重建画像
+              {_("options.userProfile.chat.userRebuildLabel")}
             </p>
           </div>
         </div>
@@ -259,8 +266,8 @@ export function ProfileSettings() {
       <div className="flex justify-between items-center">
         <div className="text-xs text-gray-500 dark:text-gray-400">
           💡 {aiConfigured 
-            ? '点击"重建画像"按钮，AI会重新分析你的浏览习惯' 
-            : '请先在"AI引擎"标签页配置AI服务'
+            ? _("options.userProfile.chat.tipConfigured") 
+            : _("options.userProfile.chat.tipNotConfigured")
           }
         </div>
         

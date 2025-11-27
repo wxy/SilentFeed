@@ -47,7 +47,7 @@ interface DeepSeekResponse {
 }
 
 export class DeepSeekProvider extends BaseAIService {
-  readonly name = "deepseek"
+  readonly name = "DeepSeek"
   
   private endpoint = "https://api.deepseek.com/v1/chat/completions"
   private model = "deepseek-chat"
@@ -59,12 +59,11 @@ export class DeepSeekProvider extends BaseAIService {
   
   constructor(config: AIProviderConfig) {
     super(config)
+    this.model = (config.model as string) || this.model
+    this.config.model = this.model
     
     if (config.endpoint) {
       this.endpoint = config.endpoint
-    }
-    if (config.model) {
-      this.model = config.model
     }
   }
   
@@ -78,6 +77,8 @@ export class DeepSeekProvider extends BaseAIService {
       timeout?: number
       jsonMode?: boolean
       useReasoning?: boolean
+      responseFormat?: Record<string, unknown>
+      temperature?: number
     }
   ): Promise<{
     content: string
@@ -85,6 +86,7 @@ export class DeepSeekProvider extends BaseAIService {
       input: number
       output: number
     }
+    model?: string
   }> {
     const request: DeepSeekRequest = {
       model: this.model,
@@ -99,7 +101,9 @@ export class DeepSeekProvider extends BaseAIService {
     }
     
     // 启用 JSON Mode
-    if (options?.jsonMode) {
+    if (options?.responseFormat) {
+      request.response_format = options.responseFormat as { type: "json_object" }
+    } else if (options?.jsonMode) {
       request.response_format = {
         type: "json_object"
       }
@@ -146,7 +150,8 @@ export class DeepSeekProvider extends BaseAIService {
         tokensUsed: {
           input: data.usage.prompt_tokens,
           output: data.usage.completion_tokens
-        }
+        },
+        model: request.model
       }
     } catch (error) {
       deepseekLogger.error("API call failed:", error)

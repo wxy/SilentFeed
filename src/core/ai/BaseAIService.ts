@@ -85,6 +85,8 @@ export abstract class BaseAIService implements AIProvider {
       timeout?: number
       jsonMode?: boolean
       useReasoning?: boolean
+      responseFormat?: Record<string, unknown>
+      temperature?: number
     }
   ): Promise<{
     content: string
@@ -92,6 +94,7 @@ export abstract class BaseAIService implements AIProvider {
       input: number
       output: number
     }
+    model?: string
   }>
   
   /**
@@ -145,14 +148,19 @@ export abstract class BaseAIService implements AIProvider {
       
       // 3. 调用 API
       const response = await this.callChatAPI(prompt, {
-        maxTokens: options?.useReasoning ? 4000 : 1000,
+        maxTokens: options?.useReasoning ? 4000 : 500,
         timeout: options?.timeout,
-        jsonMode: true,
+        jsonMode: !options?.useReasoning,
         useReasoning: options?.useReasoning
       })
       
-      // 4. 解析响应
+      if (!response.content || response.content.trim().length === 0) {
+        throw new Error("Empty response")
+      }
+      
+      // 4. 解析响应并归一化概率
       const analysis = JSON.parse(response.content) as { topics: Record<string, number> }
+      const normalizedTopics = this.normalizeTopicProbabilities(analysis.topics)
       
       // 5. 计算成本
       const cost = this.calculateCost(
@@ -162,10 +170,10 @@ export abstract class BaseAIService implements AIProvider {
       
       // 6. 返回结果
       return {
-        topicProbabilities: analysis.topics,
+        topicProbabilities: normalizedTopics,
         metadata: {
           provider: this.name.toLowerCase() as any,
-          model: this.config.model || 'default',
+          model: this.resolveModelName(response.model),
           timestamp: Date.now(),
           tokensUsed: {
             prompt: response.tokensUsed.input,
@@ -190,19 +198,27 @@ export abstract class BaseAIService implements AIProvider {
       // 1. 构建用户行为摘要
       const behaviorSummary = this.buildBehaviorSummary(request)
       
-      // 2. 构建 Prompt
+      // 3. 构建 Prompt
       const prompt = request.currentProfile
         ? this.prompts.generateProfileIncremental(behaviorSummary, request.currentProfile)
         : this.prompts.generateProfileFull(behaviorSummary)
       
-      // 3. 调用 API
+      const responseFormat = this.getProfileResponseFormat()
+
+      // 4. 调用 API
       const response = await this.callChatAPI(prompt, {
         maxTokens: 1000,
         timeout: 30000,
-        jsonMode: true
+        jsonMode: !responseFormat,
+        responseFormat: responseFormat || undefined,
+        temperature: 0.3
       })
       
-      // 4. 解析响应
+      if (!response.content || response.content.trim().length === 0) {
+        throw new Error("Empty response")
+      }
+      
+      // 5. 解析响应
       const profileData = JSON.parse(response.content) as {
         interests: string
         preferences: string[]
@@ -222,11 +238,12 @@ export abstract class BaseAIService implements AIProvider {
         avoidTopics: profileData.avoidTopics,
         metadata: {
           provider: this.name.toLowerCase() as any,
-          model: this.config.model || 'default',
+          model: this.resolveModelName(response.model),
           timestamp: Date.now(),
           tokensUsed: {
             input: response.tokensUsed.input,
-            output: response.tokensUsed.output
+            output: response.tokensUsed.output,
+            total: response.tokensUsed.input + response.tokensUsed.output
           },
           basedOn: {
             browses: request.totalCounts?.browses || 0,
@@ -278,7 +295,7 @@ export abstract class BaseAIService implements AIProvider {
     const parts: string[] = []
     
     // 1. 关键词分析
-    const topKeywords = request.topKeywords.slice(0, 15)
+    const topKeywords = request.topKeywords.slice(0, 20)
     if (topKeywords.length > 0) {
       parts.push(`**高频关键词**（权重降序）：\n${topKeywords.map(k => 
         `- ${k.word} (权重: ${k.weight.toFixed(2)})`
@@ -297,24 +314,18 @@ export abstract class BaseAIService implements AIProvider {
     
     // 3. 阅读行为（最近的高质量阅读）
     if (request.behaviors.reads && request.behaviors.reads.length > 0) {
-      const topReads = request.behaviors.reads
-        .filter(r => r.weight > 0.6) // 只看深度阅读
-        .slice(0, 5)
-      
-      if (topReads.length > 0) {
-        parts.push(`\n**深度阅读的文章**（最近 ${topReads.length} 篇）：\n${topReads.map(r => 
-          `- "${r.title}" (阅读深度: ${(r.scrollDepth * 100).toFixed(0)}%, 时长: ${Math.round(r.readDuration)}s)`
-        ).join('\n')}`)
-      }
+      const topReads = request.behaviors.reads.slice(0, 10)
+      parts.push(`\n**深度阅读的文章**（最近 ${topReads.length} 篇）：\n${topReads.map(r => 
+        `- \"${r.title}\" (阅读深度: ${(r.scrollDepth * 100).toFixed(0)}%, 时长: ${Math.round(r.readDuration)}s)`
+      ).join('\n')}`)
     }
     
     // 4. 拒绝行为（用户不感兴趣的内容）
     if (request.behaviors.dismisses && request.behaviors.dismisses.length > 0) {
       const recentDismisses = request.behaviors.dismisses.slice(0, 5)
       parts.push(`\n**拒绝的文章**（用户不感兴趣，最近 ${recentDismisses.length} 篇）：\n${recentDismisses.map(d => {
-        // 如果有摘要，一起输出帮助 AI 理解
         const summary = (d as any).summary ? ` - ${(d as any).summary.substring(0, 100)}` : ''
-        return `- "${d.title}"${summary}`
+        return `- \"${d.title}\"${summary}`
       }).join('\n')}`)
     }
     
@@ -351,6 +362,48 @@ export abstract class BaseAIService implements AIProvider {
         message: `连接失败: ${error instanceof Error ? error.message : String(error)}`
       }
     }
+  }
+
+  /**
+   * 子类可覆盖：返回默认模型名称
+   */
+  protected getDefaultModelName(): string {
+    return 'default'
+  }
+
+  /**
+   * 解析实际使用的模型
+   */
+  protected resolveModelName(modelFromResponse?: string): string {
+    if (modelFromResponse) {
+      return modelFromResponse
+    }
+    if (this.config.model) {
+      return this.config.model
+    }
+    return this.getDefaultModelName()
+  }
+
+  /**
+   * Structured Output 配置，子类可覆盖
+   */
+  protected getProfileResponseFormat(): Record<string, unknown> | null {
+    return null
+  }
+
+  /**
+   * 归一化主题概率
+   */
+  protected normalizeTopicProbabilities(topics: Record<string, number>): Record<string, number> {
+    const entries = Object.entries(topics || {})
+    const total = entries.reduce((sum, [, value]) => sum + Math.max(0, value), 0)
+    if (total <= 0) {
+      return topics
+    }
+    return entries.reduce((acc, [key, value]) => {
+      acc[key] = Math.max(0, value) / total
+      return acc
+    }, {} as Record<string, number>)
   }
 }
 

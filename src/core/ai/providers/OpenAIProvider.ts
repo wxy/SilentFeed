@@ -22,31 +22,42 @@ const openaiLogger = logger.withTag("OpenAIProvider")
  * 数据来源: https://openai.com/api/pricing/ (2025-11)
  */
 const MODEL_PRICING = {
-  "gpt-4o-mini": {
-    input: 0.150,
-    inputCached: 0.075,  // Prompt Caching (50% 折扣)
-    output: 0.600
+  "gpt-5-nano": {
+    input: 0.050,
+    inputCached: 0.005,
+    output: 0.400
   },
-  "gpt-4o": {
-    input: 2.50,
-    inputCached: 1.25,   // Prompt Caching (50% 折扣)
+  "gpt-5-mini": {
+    input: 0.250,
+    inputCached: 0.025,
+    output: 2.0
+  },
+  "gpt-5": {
+    input: 1.25,
+    inputCached: 0.125,
     output: 10.0
   },
-  "o1-mini": {
-    // 推理模型
-    input: 3.0,
-    inputCached: 1.5,    // Prompt Caching (50% 折扣)
-    output: 12.0
-  },
-  "o1": {
-    // 高级推理模型
-    input: 15.0,
-    inputCached: 7.5,    // Prompt Caching (50% 折扣)
-    output: 60.0
+  "o4-mini": {
+    input: 4.0,
+    inputCached: 1.0,
+    output: 16.0
   }
 } as const
 
 type OpenAIModel = keyof typeof MODEL_PRICING
+
+type OpenAIResponseFormat =
+  | {
+      type: "json_object"
+    }
+  | {
+      type: "json_schema"
+      json_schema: {
+        name: string
+        strict?: boolean
+        schema: Record<string, unknown>
+      }
+    }
 
 /**
  * OpenAI API 请求类型
@@ -57,9 +68,7 @@ interface OpenAIRequest {
     role: "user" | "assistant" | "system"
     content: string
   }>
-  response_format?: {
-    type: "json_object"
-  }
+  response_format?: OpenAIResponseFormat
   max_tokens?: number
   temperature?: number
   stream?: boolean
@@ -88,22 +97,25 @@ interface OpenAIResponse {
 }
 
 export class OpenAIProvider extends BaseAIService {
-  readonly name = "openai"
+  readonly name = "OpenAI"
   
   private endpoint = "https://api.openai.com/v1/chat/completions"
-  private model: OpenAIModel = "gpt-4o-mini"
+  private model: OpenAIModel = "gpt-5-mini"
+  private lastUsedModel: OpenAIModel = this.model
   
   // 假设缓存命中率（用于成本估算）
   private readonly CACHE_HIT_RATE = 0.1 // 10%
   
   constructor(config: AIProviderConfig) {
     super(config)
+    if (config.model && config.model in MODEL_PRICING) {
+      this.model = config.model as OpenAIModel
+    }
+    this.lastUsedModel = this.model
+    this.config.model = this.model
     
     if (config.endpoint) {
       this.endpoint = config.endpoint
-    }
-    if (config.model && config.model in MODEL_PRICING) {
-      this.model = config.model as OpenAIModel
     }
   }
   
@@ -117,6 +129,8 @@ export class OpenAIProvider extends BaseAIService {
       timeout?: number
       jsonMode?: boolean
       useReasoning?: boolean
+      responseFormat?: Record<string, unknown>
+      temperature?: number
     }
   ): Promise<{
     content: string
@@ -124,9 +138,12 @@ export class OpenAIProvider extends BaseAIService {
       input: number
       output: number
     }
+    model?: string
   }> {
+    const isReasoning = options?.useReasoning ?? false
+    const requestModel: OpenAIModel = isReasoning ? "o4-mini" : this.model
     const request: OpenAIRequest = {
-      model: this.model,
+      model: requestModel,
       messages: [
         {
           role: "user",
@@ -134,17 +151,18 @@ export class OpenAIProvider extends BaseAIService {
         }
       ],
       max_tokens: options?.maxTokens || 1000,
-      temperature: 0.7,
+      temperature: options?.temperature ?? (isReasoning ? undefined : 0.7),
       stream: false
     }
     
-    // 启用 JSON Mode
-    if (options?.jsonMode) {
+    if (options?.responseFormat) {
+      request.response_format = options.responseFormat as OpenAIRequest["response_format"]
+    } else if (options?.jsonMode) {
       request.response_format = { type: "json_object" }
     }
     
     // 推理模型不支持某些参数
-    if (this.model.startsWith('o1') || this.model.startsWith('o3')) {
+    if (isReasoning) {
       delete request.temperature
       delete request.response_format // o1 系列不支持 JSON Mode
     }
@@ -178,12 +196,14 @@ export class OpenAIProvider extends BaseAIService {
       // 对于推理模型，可能需要特殊处理
       // o1 模型会在 reasoning 字段返回思维链，但我们只需要最终答案
       
+      this.lastUsedModel = requestModel
       return {
         content,
         tokensUsed: {
           input: data.usage.prompt_tokens,
           output: data.usage.completion_tokens
-        }
+        },
+        model: requestModel
       }
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
@@ -197,7 +217,7 @@ export class OpenAIProvider extends BaseAIService {
    * 实现：计算成本（人民币）
    */
   protected calculateCost(inputTokens: number, outputTokens: number): number {
-    const pricing = MODEL_PRICING[this.model]
+    const pricing = MODEL_PRICING[this.lastUsedModel] || MODEL_PRICING["gpt-5-mini"]
     
     // 假设部分输入 tokens 命中缓存
     const cachedTokens = Math.floor(inputTokens * this.CACHE_HIT_RATE)
@@ -215,6 +235,48 @@ export class OpenAIProvider extends BaseAIService {
     openaiLogger.debug(`💰 成本计算: ${inputTokens} input (${cachedTokens} cached) + ${outputTokens} output = $${totalCostUSD.toFixed(4)} ≈ ¥${totalCostCNY.toFixed(4)}`)
     
     return totalCostCNY
+  }
+
+  protected getProfileResponseFormat(): Record<string, unknown> | null {
+    return {
+      type: "json_schema",
+      json_schema: {
+        name: "user_profile",
+        strict: true,
+        schema: {
+          type: "object",
+          additionalProperties: false,
+          required: ["interests", "preferences", "avoidTopics"],
+          properties: {
+            interests: {
+              type: "string",
+              minLength: 20,
+              maxLength: 400
+            },
+            preferences: {
+              type: "array",
+              minItems: 3,
+              maxItems: 10,
+              items: {
+                type: "string",
+                minLength: 2,
+                maxLength: 80
+              }
+            },
+            avoidTopics: {
+              type: "array",
+              minItems: 0,
+              maxItems: 5,
+              items: {
+                type: "string",
+                minLength: 2,
+                maxLength: 60
+              }
+            }
+          }
+        }
+      }
+    }
   }
   
   /**

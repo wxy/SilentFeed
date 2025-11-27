@@ -497,20 +497,43 @@ export class SemanticProfileBuilder {
    * @public 供 ProfileManager 调用
    */
   async rebuildBehaviorsFromDatabase(): Promise<NonNullable<UserProfile['behaviors']>> {
-    // 1. 查询所有已读的推荐
-    const allRecommendations = await db.recommendations.toArray()
-    const readRecommendations = allRecommendations
-      .filter(r => r.isRead) // ✅ 修复：使用 filter 代替 where
-      .sort((a, b) => (b.recommendedAt || 0) - (a.recommendedAt || 0)) // 按推荐时间倒序
-    
-    // 2. 查询所有已拒绝的推荐（使用 status 字段，它有索引）
-    const dismissedRecommendations = await db.recommendations
-      .where('status').equals('dismissed')
-      .reverse()
-      .sortBy('feedbackAt')
+    const profile = await db.userProfile.get('singleton')
+    const storedBehaviors = profile?.behaviors || {
+      reads: [],
+      dismisses: [],
+      totalReads: 0,
+      totalDismisses: 0
+    }
+
+    const recommendationsTable = db.recommendations
+    if (!recommendationsTable || typeof recommendationsTable.toArray !== 'function') {
+      profileLogger.warn('[RebuildBehaviors] 推荐表不可用，回退到存储的 behaviors')
+      return storedBehaviors
+    }
+
+    let readRecommendations: Recommendation[] = []
+    let dismissedRecommendations: Recommendation[] = []
+
+    try {
+      const rawRecommendations = await recommendationsTable.toArray()
+      const allRecommendations = Array.isArray(rawRecommendations) ? rawRecommendations : []
+      readRecommendations = allRecommendations
+        .filter(r => r?.isRead)
+        .sort((a, b) => (b?.recommendedAt || 0) - (a?.recommendedAt || 0))
+      
+      if (typeof recommendationsTable.where === 'function') {
+        dismissedRecommendations = await recommendationsTable
+          .where('status').equals('dismissed')
+          .reverse()
+          .sortBy('feedbackAt')
+      }
+    } catch (error) {
+      profileLogger.warn('[RebuildBehaviors] 查询推荐记录失败，使用存储行为回退', error)
+      return storedBehaviors
+    }
     
     // 3. 构建 reads 数组
-    const reads = readRecommendations.map(rec => ({
+    const readsFromRecommendations = readRecommendations.map(rec => ({
       articleId: rec.id,
       title: rec.title,
       summary: rec.summary || '',
@@ -522,7 +545,7 @@ export class SemanticProfileBuilder {
     }))
     
     // 4. 构建 dismisses 数组
-    const dismisses = dismissedRecommendations.map(rec => ({
+    const dismissesFromRecommendations = dismissedRecommendations.map(rec => ({
       articleId: rec.id,
       title: rec.title,
       summary: rec.summary || '',
@@ -530,6 +553,13 @@ export class SemanticProfileBuilder {
       weight: 1.0, // 默认权重
       timestamp: rec.feedbackAt || rec.recommendedAt || Date.now()
     }))
+
+    const reads = readsFromRecommendations.length > 0
+      ? readsFromRecommendations
+      : storedBehaviors.reads || []
+    const dismisses = dismissesFromRecommendations.length > 0
+      ? dismissesFromRecommendations
+      : storedBehaviors.dismisses || []
     
     profileLogger.info('[RebuildBehaviors] 从数据库重建 behaviors', {
       reads: reads.length,
@@ -537,12 +567,16 @@ export class SemanticProfileBuilder {
     })
     
     return {
-      reads: reads.slice(0, 50), // 最多保留 50 条
-      dismisses: dismisses.slice(0, 50), // 最多保留 50 条
-      totalReads: reads.length,
-      totalDismisses: dismisses.length,
-      lastReadAt: reads[0]?.timestamp,
-      lastDismissAt: dismisses[0]?.timestamp
+      reads: reads.slice(0, 50),
+      dismisses: dismisses.slice(0, 50),
+      totalReads: readsFromRecommendations.length > 0
+        ? readsFromRecommendations.length
+        : storedBehaviors.totalReads || reads.length,
+      totalDismisses: dismissesFromRecommendations.length > 0
+        ? dismissesFromRecommendations.length
+        : storedBehaviors.totalDismisses || dismisses.length,
+      lastReadAt: reads[0]?.timestamp || storedBehaviors.lastReadAt,
+      lastDismissAt: dismisses[0]?.timestamp || storedBehaviors.lastDismissAt
     }
   }
 
