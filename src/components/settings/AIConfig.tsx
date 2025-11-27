@@ -129,10 +129,13 @@ export function AIConfig() {
 
   // Phase 9: 检测本地 AI 可用性
   useEffect(() => {
+    let isMounted = true
     const detectLocalAI = async () => {
+    if (!isMounted) return
     setLocalAIStatus(prev => ({ ...prev, checking: true }))
     try {
       const status = await checkLocalAIStatus()
+      if (!isMounted) return
       setLocalAIStatus({
         hasChromeAI: status.hasChromeAI,
         hasOllama: status.hasOllama,
@@ -141,10 +144,14 @@ export function AIConfig() {
         services: status.availableServices
       })
     } catch (error) {
+      if (!isMounted) return
       setLocalAIStatus({ hasChromeAI: false, hasOllama: false, checking: false, available: false, services: [] })
     }
     }
     detectLocalAI()
+    return () => {
+      isMounted = false
+    }
   }, [])
 
   const refreshLocalModels = useCallback(async () => {
