@@ -88,10 +88,22 @@ export function OnboardingView({ onComplete }: OnboardingViewProps) {
     setError(null)
     setSuccess(null)
     
-    // 验证当前步骤
-    if (currentStep === 2 && !connectionTested) {
-      setError(_("onboarding.errors.testConnectionFirst"))
-      return
+    // Step 2 AI 配置：如果已测试通过，保存配置；否则允许跳过
+    if (currentStep === 2 && connectionTested && model && apiKey) {
+      try {
+        const provider = getProviderFromModel(model) as AIProviderType
+        await saveAIConfig({
+          provider,
+          apiKey,
+          model,
+          endpoint: "",
+          temperature: 0.7,
+          maxTokens: 4096,
+          timeout: 30000
+        })
+      } catch (error) {
+        console.error("Failed to save AI config:", error)
+      }
     }
     
     const newStep = currentStep + 1
@@ -487,6 +499,13 @@ function AIConfigStep({
             : _("onboarding.aiConfig.buttons.test")}
         </button>
       )}
+
+      {/* 跳过说明 */}
+      <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+        <p className="text-sm text-blue-700 dark:text-blue-300">
+          💡 {_("onboarding.aiConfig.skipHint")}
+        </p>
+      </div>
     </div>
   )
 }

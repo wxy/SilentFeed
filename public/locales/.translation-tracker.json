@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-11-28T15:05:24.313Z",
+  "lastUpdate": "2025-11-28T15:30:11.199Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -14419,6 +14419,20 @@
         "value": "✅ None",
         "hash": "fcd4e594",
         "lastModified": "2025-11-28T15:05:23.803Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.aiConfig.skipHint": {
+      "zh-CN": {
+        "value": "也可以点击'下一步'跳过，稍后在设置页面配置远程 AI 或本地 Ollama",
+        "hash": "311192b3",
+        "lastModified": "2025-11-28T15:30:10.688Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "You can also click 'Next' to skip and configure the remote AI or local Ollama later in the settings page.",
+        "hash": "b2d53b1d",
+        "lastModified": "2025-11-28T15:30:10.689Z",
         "status": "ai-translated"
       }
     }

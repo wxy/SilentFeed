@@ -1056,6 +1056,7 @@
     "aiConfig": {
       "title": "配置 AI 推荐引擎",
       "description": "AI 是静阅的核心功能，需要配置后才能开始使用",
+      "skipHint": "也可以点击'下一步'跳过，稍后在设置页面配置远程 AI 或本地 Ollama",
       "aiEngineAssignment": {
         "quickPresets": "快速预设",
         "recommended": "推荐",
