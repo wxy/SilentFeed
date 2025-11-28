@@ -9,7 +9,7 @@
  * @module storage/singletons
  */
 
-import { db } from './db'
+import { db } from './db/index'
 import type { UserProfile } from '@/types/profile'
 import type { UserSettings } from '@/types/config'
 import { logger } from '@/utils/logger'

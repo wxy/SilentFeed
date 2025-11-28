@@ -12,7 +12,7 @@ import { getAIConfig, isAIConfigured, validateApiKey, type AIProviderType } from
 import { aiManager } from '../core/ai/AICapabilityManager'
 import { logger } from '@/utils/logger'
 import type { RecommendationAnalysisEngine, FeedAnalysisEngine } from '@/types/analysis-engine'
-import { getAIAnalysisStats } from './db'
+import { getAIAnalysisStats } from './db/index'
 import { listLocalModels } from '@/utils/local-ai-endpoint'
 
 const configLogger = logger.withTag('RecommendationConfig')
