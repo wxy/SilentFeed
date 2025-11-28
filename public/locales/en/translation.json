@@ -824,7 +824,8 @@
           "missingEndpoint": "Please enter the service address"
         },
         "chromeAIComingSoon": "Support after the stable version",
-        "howToInstall": "How to install?"
+        "howToInstall": "How to install?",
+        "viewGuide": "(View Installation Guide)"
       },
       "aiEngineAssignment": {
         "quickPresets": "Quick Presets",

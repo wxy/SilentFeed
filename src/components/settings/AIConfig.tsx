@@ -1,5 +1,6 @@
 import { useI18n } from "@/i18n/helpers"
 import { useCallback, useEffect, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 import {
   getAIConfig,
   saveAIConfig,
@@ -697,9 +698,18 @@ export function AIConfig() {
               </span>
             </label>
             {localAIStatus.hasOllama ? (
-              <span className="text-xs text-green-600 dark:text-green-400">
-                ✓ {_("options.aiConfig.local.available")}
-              </span>
+              <>
+                <span className="text-xs text-green-600 dark:text-green-400">
+                  ✓ {_("options.aiConfig.local.available")}
+                </span>
+                {/* 临时添加：即使已安装也显示帮助按钮，用于测试浮层 */}
+                <button
+                  onClick={() => setShowOllamaHelp(true)}
+                  className="ml-2 text-xs text-gray-500 dark:text-gray-400 hover:underline"
+                >
+                  {_("options.aiConfig.local.viewGuide")}
+                </button>
+              </>
             ) : (
               <button
                 onClick={() => setShowOllamaHelp(true)}
@@ -1024,13 +1034,13 @@ export function AIConfig() {
     )}
 
     {/* Chrome AI 说明浮层 */}
-    {showChromeAIHelp && (
+    {showChromeAIHelp && createPortal(
       <div 
-        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
         onClick={() => setShowChromeAIHelp(false)}
       >
         <div 
-          className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-lg m-4"
+          className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between mb-4">
@@ -1097,17 +1107,18 @@ export function AIConfig() {
             {_("options.aiConfig.chromeAI.viewOllamaGuide")}
           </button>
         </div>
-      </div>
+      </div>,
+      document.body
     )}
 
     {/* Ollama 安装帮助浮层 */}
-    {showOllamaHelp && (
+    {showOllamaHelp && createPortal(
       <div 
-        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto"
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
         onClick={() => setShowOllamaHelp(false)}
       >
         <div 
-          className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl m-4 my-8 max-h-[90vh] overflow-y-auto"
+          className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between mb-4 sticky top-0 bg-white dark:bg-gray-800 pb-2 border-b border-gray-200 dark:border-gray-700">
@@ -1300,7 +1311,8 @@ export function AIConfig() {
             {_("options.aiConfig.ollama.closeButton")}
           </button>
         </div>
-      </div>
+      </div>,
+      document.body
     )}
     </div>
   )

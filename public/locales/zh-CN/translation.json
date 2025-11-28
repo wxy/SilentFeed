@@ -791,6 +791,7 @@
         "available": "可用",
         "howToEnable": "如何启用？",
         "howToInstall": "如何安装？",
+        "viewGuide": "(查看安装指南)",
         "installOllama": "安装 Ollama",
         "endpoint": "服务地址",
         "model": "模型选择",

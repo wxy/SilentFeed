@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-11-28T14:24:48.187Z",
+  "lastUpdate": "2025-11-28T14:39:02.285Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -14069,6 +14069,20 @@
         "value": "Suggestion: Use remote AI for high-frequency tasks, costing only ¥0.5 per month.",
         "hash": "53b96747",
         "lastModified": "2025-11-28T14:24:47.678Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.local.viewGuide": {
+      "zh-CN": {
+        "value": "(查看安装指南)",
+        "hash": "d01dc920",
+        "lastModified": "2025-11-28T14:39:01.771Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "(View Installation Guide)",
+        "hash": "fc86e354",
+        "lastModified": "2025-11-28T14:39:01.772Z",
         "status": "ai-translated"
       }
     }
