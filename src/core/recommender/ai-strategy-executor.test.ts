@@ -20,7 +20,9 @@ vi.mock('@/storage/ai-config', () => ({
     apiKey: 'sk-test-key',
     enabled: true,
     monthlyBudget: 5.0
-  })
+  }),
+  getEngineAssignment: vi.fn().mockResolvedValue(null),
+  saveEngineAssignment: vi.fn().mockResolvedValue(undefined)
 }))
 
 describe('AI策略执行器', () => {

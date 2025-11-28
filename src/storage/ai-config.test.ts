@@ -8,8 +8,11 @@ import {
   getProviderDisplayName,
   getProviderEndpoint,
   getProviderModel,
+  getEngineAssignment,
+  saveEngineAssignment,
   type AIConfig
 } from "./ai-config"
+import { AI_ENGINE_PRESETS, type AIEngineAssignment } from "@/types/ai-engine-assignment"
 
 // Mock chrome.storage.sync
 const mockChromeStorage = {
@@ -54,7 +57,8 @@ describe("ai-config", () => {
           temperature: 0.2,
           maxOutputTokens: 768,
           timeoutMs: 45000
-        }
+        },
+        engineAssignment: AI_ENGINE_PRESETS.intelligence.config
       })
     })
     
@@ -236,6 +240,135 @@ describe("ai-config", () => {
       expect(getProviderModel("openai")).toBe("gpt-4o-mini")
       expect(getProviderModel("anthropic")).toBe("claude-3-haiku-20240307")
       expect(getProviderModel("deepseek")).toBe("deepseek-chat")
+    })
+  })
+
+  describe("Phase 11: 引擎分配", () => {
+    describe("getEngineAssignment", () => {
+      it("应该返回默认的引擎分配（智能优先）", async () => {
+        mockChromeStorage.sync.get.mockResolvedValue({})
+        
+        const assignment = await getEngineAssignment()
+        
+        expect(assignment).toEqual(AI_ENGINE_PRESETS.intelligence.config)
+      })
+
+      it("应该返回已保存的引擎分配", async () => {
+        const customAssignment: AIEngineAssignment = {
+          pageAnalysis: { provider: "ollama", model: "qwen2.5:7b" },
+          feedAnalysis: { provider: "ollama", model: "qwen2.5:7b" },
+          profileGeneration: { provider: "deepseek", useReasoning: true },
+          recommendation: { provider: "deepseek", useReasoning: false }
+        }
+
+        mockChromeStorage.sync.get.mockResolvedValue({
+          aiConfig: {
+            provider: "deepseek",
+            apiKeys: {},
+            enabled: true,
+            monthlyBudget: 5,
+            engineAssignment: customAssignment
+          }
+        })
+        
+        const assignment = await getEngineAssignment()
+        
+        expect(assignment).toEqual(customAssignment)
+      })
+
+      it("旧配置迁移时应该使用默认引擎分配", async () => {
+        // 模拟旧配置（没有 engineAssignment 字段）
+        mockChromeStorage.sync.get.mockResolvedValue({
+          aiConfig: {
+            provider: "deepseek",
+            apiKeys: { deepseek: "c2stdGVzdC1rZXk=" },
+            enabled: true,
+            monthlyBudget: 5
+          }
+        })
+        
+        const assignment = await getEngineAssignment()
+        
+        // 应该返回默认的智能优先方案
+        expect(assignment).toEqual(AI_ENGINE_PRESETS.intelligence.config)
+      })
+    })
+
+    describe("saveEngineAssignment", () => {
+      it("应该保存引擎分配到配置", async () => {
+        const existingConfig: AIConfig = {
+          provider: "deepseek",
+          apiKeys: { deepseek: "test-key" },
+          enabled: true,
+          monthlyBudget: 10,
+          model: "deepseek-chat",
+          enableReasoning: false,
+          local: {
+            enabled: false,
+            provider: "ollama",
+            endpoint: "http://localhost:11434/v1",
+            model: "qwen2.5:7b",
+            temperature: 0.2,
+            maxOutputTokens: 768,
+            timeoutMs: 45000
+          },
+          engineAssignment: AI_ENGINE_PRESETS.intelligence.config
+        }
+
+        mockChromeStorage.sync.get.mockResolvedValue({
+          aiConfig: existingConfig
+        })
+
+        const newAssignment = AI_ENGINE_PRESETS.privacy.config
+
+        await saveEngineAssignment(newAssignment)
+
+        expect(mockChromeStorage.sync.set).toHaveBeenCalledWith({
+          aiConfig: expect.objectContaining({
+            engineAssignment: newAssignment
+          })
+        })
+      })
+
+      it("应该保留其他配置字段", async () => {
+        const existingConfig: AIConfig = {
+          provider: "deepseek",
+          apiKeys: { deepseek: "test-key" },
+          enabled: true,
+          monthlyBudget: 10,
+          model: "deepseek-chat",
+          enableReasoning: true,
+          local: {
+            enabled: true,
+            provider: "ollama",
+            endpoint: "http://localhost:11434/v1",
+            model: "qwen2.5:14b",
+            temperature: 0.3,
+            maxOutputTokens: 1024,
+            timeoutMs: 60000
+          },
+          engineAssignment: AI_ENGINE_PRESETS.intelligence.config
+        }
+
+        mockChromeStorage.sync.get.mockResolvedValue({
+          aiConfig: existingConfig
+        })
+
+        const newAssignment = AI_ENGINE_PRESETS.economic.config
+
+        await saveEngineAssignment(newAssignment)
+
+        expect(mockChromeStorage.sync.set).toHaveBeenCalledWith({
+          aiConfig: expect.objectContaining({
+            provider: "deepseek",
+            enabled: true,
+            monthlyBudget: 10,
+            model: "deepseek-chat",
+            enableReasoning: true,
+            engineAssignment: newAssignment
+          })
+        })
+      })
     })
   })
 })

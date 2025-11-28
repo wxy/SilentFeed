@@ -8,6 +8,8 @@ vi.mock("@/storage/ai-config", () => ({
   getAIConfig: vi.fn(),
   saveAIConfig: vi.fn(),
   validateApiKey: vi.fn(),
+  getEngineAssignment: vi.fn().mockResolvedValue(null),
+  saveEngineAssignment: vi.fn().mockResolvedValue(undefined),
   getProviderFromModel: vi.fn((modelId: string) => {
     if (modelId.startsWith("deepseek")) return "deepseek"
     if (modelId.startsWith("gpt-") || modelId.startsWith("o4-")) return "openai"
@@ -34,6 +36,40 @@ vi.mock("@/core/ai/AICapabilityManager", () => ({
     initialize: vi.fn(),
     testConnection: vi.fn()
   }
+}))
+
+// Mock recommendation-config
+vi.mock("@/storage/recommendation-config", () => ({
+  checkLocalAIStatus: vi.fn().mockResolvedValue({
+    hasChromeAI: false,
+    hasOllama: false,
+    available: false,
+    availableServices: []
+  }),
+  getRecommendationConfig: vi.fn().mockResolvedValue({
+    analysisEngine: 'remoteAI',
+    feedAnalysisEngine: 'remoteAI',
+    maxRecommendations: 3
+  }),
+  saveRecommendationConfig: vi.fn().mockResolvedValue(undefined)
+}))
+
+// Mock db
+vi.mock("@/storage/db", () => ({
+  getPageCount: vi.fn().mockResolvedValue(50)
+}))
+
+// Mock constants/progress
+vi.mock("@/constants/progress", () => ({
+  LEARNING_COMPLETE_PAGES: 100
+}))
+
+// Mock local-ai-endpoint
+vi.mock("@/utils/local-ai-endpoint", () => ({
+  listLocalModels: vi.fn().mockResolvedValue({
+    mode: 'openai',
+    models: []
+  })
 }))
 
 // Mock analysis-engine-capability (避免在测试环境中访问 window 对象)

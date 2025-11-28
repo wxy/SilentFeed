@@ -120,7 +120,37 @@ export function ProfileSettings() {
     }
   }
 
-  // 渲染 AI 消息气泡
+  // 高亮关键字的辅助函数
+  const highlightKeywords = (text: string, keywords: string[]) => {
+    if (!keywords || keywords.length === 0) return text
+    
+    // 创建正则表达式匹配所有关键字
+    const pattern = keywords.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')
+    const regex = new RegExp(`(${pattern})`, 'gi')
+    
+    const parts = text.split(regex)
+    return (
+      <>
+        {parts.map((part, index) => {
+          const isKeyword = keywords.some(k => 
+            k.toLowerCase() === part.toLowerCase()
+          )
+          return isKeyword ? (
+            <span 
+              key={index}
+              className="text-blue-600 dark:text-blue-400 font-semibold"
+            >
+              {part}
+            </span>
+          ) : (
+            <span key={index}>{part}</span>
+          )
+        })}
+      </>
+    )
+  }
+
+  // 渲染 AI 消息气泡（三个独立气泡）
   const renderAIMessage = (profile: UserProfile, timestamp: number) => {
     const aiSummary = profile.aiSummary
     const providerName = aiSummary?.metadata?.provider === 'deepseek'
@@ -135,56 +165,100 @@ export function ProfileSettings() {
     const estimatedDays = Math.max(1, Math.floor(profile.totalPages / 10))
     const startDate = new Date(timestamp - estimatedDays * 24 * 60 * 60 * 1000)
     
-    return (
-      <div className="flex items-start gap-4 mb-6">
-        {/* AI 头像 */}
-        <div className="flex-shrink-0">
-          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-2xl shadow-md">
-            🤖
+    if (!aiSummary) {
+      // AI 画像生成中 - 单个气泡
+      return (
+        <div className="flex items-start gap-4 mb-6">
+          <div className="flex-shrink-0">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-2xl shadow-md">
+              🤖
+            </div>
+          </div>
+          <div className="flex-1 max-w-3xl">
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl rounded-tl-sm p-5 border border-blue-100 dark:border-blue-800 shadow-sm">
+              <p className="text-gray-600 dark:text-gray-400">
+                {_("options.userProfile.chat.generating")}
+              </p>
+            </div>
           </div>
         </div>
-        
-        {/* AI 消息气泡 */}
-        <div className="flex-1 max-w-3xl">
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl rounded-tl-sm p-5 border border-blue-100 dark:border-blue-800 shadow-sm">
-            {aiSummary ? (
-              // 有 AI 画像
-              <div className="text-gray-800 dark:text-gray-200 leading-relaxed space-y-3">
-                <p>
-                  {_("options.userProfile.chat.intro", {
+      )
+    }
+
+    // 提取关键字用于高亮（从 interests 中提取）
+    const interestKeywords = aiSummary.interests
+      .split(/[、，,。]/g)
+      .map(s => s.trim())
+      .filter(s => s.length > 1 && s.length < 10)
+    
+    return (
+      <div className="space-y-3 mb-6">
+        {/* 气泡 1: 兴趣介绍 */}
+        <div className="flex items-start gap-4">
+          <div className="flex-shrink-0">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-2xl shadow-md">
+              🤖
+            </div>
+          </div>
+          <div className="flex-1 max-w-3xl">
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl rounded-tl-sm p-5 border border-blue-100 dark:border-blue-800 shadow-sm">
+              <p className="text-gray-800 dark:text-gray-200 leading-relaxed">
+                {highlightKeywords(
+                  _("options.userProfile.chat.intro", {
                     providerName,
                     startDate: startDate.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' }),
                     totalPages: profile.totalPages,
                     interests: aiSummary.interests
-                  })}
-                </p>
-                
-                {aiSummary.preferences && aiSummary.preferences.length > 0 && (
-                  <p>
-                    {_("options.userProfile.chat.preferences", {
-                      preferences: aiSummary.preferences.join('、')
-                    })}
-                  </p>
+                  }),
+                  interestKeywords
                 )}
-                
-                {aiSummary.avoidTopics && aiSummary.avoidTopics.length > 0 && (
-                  <p>
-                    {_("options.userProfile.chat.avoidTopics", {
-                      topics: aiSummary.avoidTopics.join('、')
-                    })}
-                  </p>
-                )}
-              </div>
-            ) : (
-              // AI 画像生成中
-              <p className="text-gray-600 dark:text-gray-400">
-                {_("options.userProfile.chat.generating")}
               </p>
-            )}
+            </div>
           </div>
-          
-          {/* 时间戳 */}
-          <div className="text-xs text-gray-400 dark:text-gray-500 mt-1 ml-2">
+        </div>
+
+        {/* 气泡 2: 内容偏好 */}
+        {aiSummary.preferences && aiSummary.preferences.length > 0 && (
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0 w-12"></div>
+            <div className="flex-1 max-w-3xl">
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl rounded-tl-sm p-5 border border-blue-100 dark:border-blue-800 shadow-sm">
+                <p className="text-gray-800 dark:text-gray-200 leading-relaxed">
+                  {highlightKeywords(
+                    _("options.userProfile.chat.preferences", {
+                      preferences: aiSummary.preferences.join('、')
+                    }),
+                    aiSummary.preferences
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 气泡 3: 回避话题 */}
+        {aiSummary.avoidTopics && aiSummary.avoidTopics.length > 0 && (
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0 w-12"></div>
+            <div className="flex-1 max-w-3xl">
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl rounded-tl-sm p-5 border border-blue-100 dark:border-blue-800 shadow-sm">
+                <p className="text-gray-800 dark:text-gray-200 leading-relaxed">
+                  {highlightKeywords(
+                    _("options.userProfile.chat.avoidTopics", {
+                      topics: aiSummary.avoidTopics.join('、')
+                    }),
+                    aiSummary.avoidTopics
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 时间戳（只在最后一个气泡下方显示） */}
+        <div className="flex items-start gap-4">
+          <div className="flex-shrink-0 w-12"></div>
+          <div className="text-xs text-gray-400 dark:text-gray-500 ml-2">
             {new Date(timestamp).toLocaleString('zh-CN', {
               month: 'numeric',
               day: 'numeric',

@@ -44,7 +44,7 @@ async function checkOllama(endpoint?: string, apiKey?: string): Promise<boolean>
     const result = await listLocalModels(endpoint, apiKey)
     return result.models.length > 0
   } catch (error) {
-    capabilityLogger.debug('Ollama 不可用（正常）')
+    // Ollama 未安装是正常情况，静默处理
     return false
   }
 }

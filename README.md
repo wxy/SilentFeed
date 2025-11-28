@@ -32,6 +32,7 @@ Silent Feed is a **browser extension** that uses AI to understand what you're in
 - **🔍 Auto RSS Discovery** - Finds RSS feeds from websites you visit
 - **🎨 Clean Interface** - Minimal design for distraction-free reading
 - **🔒 Privacy First** - All data stays local, you control your API keys
+- **⚡ Smart Engine Assignment** - Optimize cost by assigning different AI engines for different tasks
 - **🌐 Bilingual** - Full support for English & 中文
 
 ### 📸 Screenshots
@@ -112,6 +113,7 @@ Silent Feed 是一个**浏览器扩展**，通过分析你的浏览历史，用 
 - **🔍 自动发现订阅源** - 从你访问的网站发现 RSS
 - **🎨 简洁界面** - 极简设计，专注阅读
 - **🔒 隐私优先** - 数据本地存储，你掌控 API 密钥
+- **⚡ 智能引擎分配** - 为不同任务分配不同 AI 引擎，优化成本
 - **🌐 双语支持** - 完整支持 English & 中文
 
 ### 📸 截图

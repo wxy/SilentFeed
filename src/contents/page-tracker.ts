@@ -310,13 +310,9 @@ async function analyzePageContent() {
       const detectedLang = detectLanguage(fullText)
       language = detectedLang === 'zh' || detectedLang === 'en' ? detectedLang : 'other'
       
-      // Phase 10: 从 AI 配置中获取推理模式设置
-      const aiConfig = await getAIConfig()
-      
-      // 调用 AI 分析（传递推理模式参数）
-      const aiResult = await aiManager.analyzeContent(fullText, {
-        useReasoning: aiConfig.enableReasoning
-      })
+      // Phase 8: 使用 pageAnalysis 任务类型（会从引擎分配配置中自动读取 useReasoning）
+      // 注意：taskType 参数会覆盖旧的 AI 配置，实现更精细的控制
+      const aiResult = await aiManager.analyzeContent(fullText, {}, "pageAnalysis")
       
       logger.debug('🤖 [PageTracker] AI 分析完成', {
         provider: aiResult.metadata.provider,

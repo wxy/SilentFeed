@@ -618,6 +618,7 @@ async function updateProfile(feedback: Feedback) {
 - Plasmo 框架（开发效率）
 
 ### 9.3 AI 集成
+
 **必须支持**：
 - OpenAI API (gpt-4o-mini)
 - Anthropic API (claude-3-haiku)
@@ -625,7 +626,65 @@ async function updateProfile(feedback: Feedback) {
 
 **可选支持**：
 - Chrome Built-in AI (Gemini Nano)
+- Ollama 本地 AI
 - 任何 OpenAI 兼容的 API
+
+**AI 引擎分配功能** (Phase 8)：
+
+用户可以根据不同任务类型选择不同的 AI 引擎，实现成本优化和性能平衡：
+
+```typescript
+// 任务类型定义
+type AITaskType = 
+  | 'pageAnalysis'        // 页面浏览学习（高频）
+  | 'feedAnalysis'        // 订阅源文章分析（高频）
+  | 'profileGeneration'   // 用户画像生成（低频）
+
+// 引擎分配配置
+interface AIEngineAssignment {
+  pageAnalysis: {
+    provider: 'deepseek' | 'openai' | 'ollama'
+    useReasoning: boolean
+  }
+  feedAnalysis: {
+    provider: 'deepseek' | 'openai' | 'ollama'
+    useReasoning: boolean
+  }
+  profileGeneration: {
+    provider: 'deepseek' | 'openai' | 'ollama'
+    useReasoning: boolean
+  }
+}
+```
+
+**预设方案**：
+
+1. **智能优先**（默认）:
+   - 页面分析：DeepSeek (无推理，快速+便宜)
+   - 订阅源分析：DeepSeek (无推理，批量处理)
+   - 用户画像：DeepSeek (推理模式，高质量)
+   - 成本：~$0.005/天
+
+2. **平衡方案**:
+   - 页面分析：DeepSeek (无推理)
+   - 订阅源分析：OpenAI GPT-4o-mini (推理，准确度高)
+   - 用户画像：OpenAI (推理模式)
+   - 成本：~$0.02/天
+
+3. **隐私优先**:
+   - 所有任务：Ollama 本地 AI
+   - 成本：$0（需本地部署）
+   - 隐私：100% 本地处理
+
+**任务路由机制**：
+- 自动根据任务类型选择对应引擎
+- 支持渐进式降级（配置 → 模式 → 备用）
+- 向后兼容原有 mode 参数
+
+**技术优势**：
+- 成本优化：高频任务用便宜引擎，低频任务用高性能引擎
+- 性能平衡：速度与准确度动态调整
+- 用户自主：完全由用户控制引擎选择
 
 ### 9.4 数据存储
 - 用户画像: IndexedDB（本地）

@@ -454,77 +454,14 @@
       "recommendationFunnelInfinitySymbol": "∞"
     },
     "userProfile": {
-      "alerts": {
-        "rebuildSuccess": "Portrait reconstruction successful!",
-        "rebuildFailed": "Portrait reconstruction failed, please try again later."
-      },
-      "noData": {
-        "message": "There is not enough data yet to build your interest profile.",
-        "hint": "Start browsing content you're interested in, and I'll automatically learn your preferences.",
-        "tip": "💡 No need to wait for 100 pages, just a few valid records are enough to generate a profile."
-      },
-      "lastUpdated": {
-        "justNow": "Just updated",
-        "hoursAgo": "{{hours}} hours ago",
-        "daysAgo": "{{days}} days ago"
-      },
-      "updateTime": {
-        "label": "Profile Update Time",
-        "basedOn": "Based on {{count}} pages"
-      },
-      "analysisQuality": {
-        "label": "Analysis Quality",
-        "aiAnalysis": "{{provider}} AI Analysis",
-        "keywordAnalysis": "Keyword Analysis",
-        "aiHint": "Using AI for Deep Semantic Understanding",
-        "keywordHint": "📝 Using traditional keyword extraction",
-        "notConfigured": "AI not configured",
-        "configureHint": "After configuring AI, you will receive more accurate recommendations."
-      },
-      "aiPrompt": {
-        "title": "Upgrade to AI analysis for more accurate profiling.",
-        "description": "Currently using keyword analysis. After configuring AI, the system will be able to:",
-        "benefit1": "• More accurately understand the article's topic and semantics",
-        "benefit2": "• Identify implicit interest tendencies",
-        "benefit3": "• Provide more personalized recommendations",
-        "configureButton": "Configure AI Now"
-      },
-      "interests": {
-        "title": "Your Interest Profile",
-        "primaryAbsolute": "⭐ Absolute Dominance: {{topic}}",
-        "primaryRelative": "🎯 Relative Dominance: {{topic}}",
-        "primaryLeading": "📈 Significantly Ahead: {{topic}}",
-        "noData": "No theme classification data available",
-        "levelAbsolute": "👑 Absolute Dominance",
-        "levelRelative": "🎯 Relative Dominance",
-        "levelLeading": "📈 Significantly Ahead",
-        "levelAbsoluteHint": "✨ Absolute Dominant Interest! Accounting for over 33.3%, this is your core interest area.",
-        "levelRelativeHint": "🎯 Relatively Dominant Interest! Significantly surpasses other interests and is the current key focus area.",
-        "levelLeadingHint": "📈 Significantly ahead in interests! Stand out among many interests, worth delving deeper into."
-      },
-      "evolution": {
-        "title": "Evolution of Interests",
-        "totalSnapshots": "Total {{count}} record points",
-        "rebuildLabel": "🔄 Rebuild",
-        "scoreLabel": "Proportion: {{score}}%",
-        "pagesLabel": "Page: {{pages}}",
-        "rebuildTrigger": "User-initiated profile reconstruction",
-        "stable": "Maintain stability",
-        "moreRecords": "There are {{count}} earlier records",
-        "legend": "💡 Arranged chronologically from left to right | Circle size indicates dominance level | 🔥Absolute ⭐Relative 💫Leading | 🔄Rebuilding/Interest Shift 📊Intensity Change",
-        "noData": "No interest change records yet.",
-        "noDataHint": "As you browse more pages, the system automatically records the evolution of your interests."
-      },
-      "keywords": {
-        "title": "Interest Keyword Cloud",
-        "noData": "No keyword data available",
-        "weightLabel": "Weight: {{weight}}",
-        "hint": "💡 Keyword size represents weight, hover to view detailed weight values"
-      },
-      "actions": {
-        "rebuild": "Rebuild Profile",
-        "rebuilding": "Rebuilding...",
-        "rebuildComplete": "Rebuild completed"
+      "chat": {
+        "intro": "Hi! I'm {{providerName}}. Since {{startDate}}, I've observed you browsing {{totalPages}} pages. Your main interests are: {{interests}}",
+        "preferences": "You seem to prefer: {{preferences}}",
+        "avoidTopics": "You might not be interested in these topics: {{topics}}",
+        "generating": "I'm analyzing your browsing data, and I'll understand your interests better soon...",
+        "userRebuildLabel": "Help me re-analyze my interest profile",
+        "tipConfigured": "Based on your browsing history, AI will automatically update your interest profile",
+        "tipNotConfigured": "Configure AI to get more accurate interest analysis"
       }
     },
     "aiConfig": {
@@ -841,6 +778,36 @@
         "errors": {
           "missingEndpoint": "Please enter the service address"
         }
+      },
+      "aiEngineAssignment": {
+        "quickPresets": "Quick Presets",
+        "recommended": "Recommended",
+        "advancedConfig": "Advanced Configuration",
+        "detailedConfig": "Detailed Configuration",
+        "advancedConfigHint": "Customize AI engine for each task",
+        "table": {
+          "task": "Task",
+          "engine": "AI Engine",
+          "reasoning": "Reasoning",
+          "note": "Note"
+        },
+        "tasks": {
+          "pageAnalysis": "Page Browsing Learning",
+          "feedAnalysis": "Recommend Feed Articles",
+          "profileGeneration": "User Profile Generation"
+        },
+        "notes": {
+          "highFrequency": "High frequency (reasoning optional)",
+          "lowFrequency": "Low frequency (reasoning optional)"
+        },
+        "performanceWarning": {
+          "title": "Performance Impact Warning",
+          "description": "Using local AI for learning or feed analysis will cause:",
+          "impact1": "Wait 3-5 seconds each browsing",
+          "impact2": "CPU usage 30-50%",
+          "impact3": "Significantly reduced battery life",
+          "suggestion": "Recommendation: Use remote AI for high-frequency tasks, only ¥0.5/month"
+        }
       }
     },
     "rssManager": {
@@ -1088,6 +1055,36 @@
     "aiConfig": {
       "title": "Configure AI Recommendation Engine",
       "description": "AI is the core feature of Silent Feed and requires configuration before it can be used.",
+      "aiEngineAssignment": {
+        "quickPresets": "Quick Presets",
+        "recommended": "Recommended",
+        "advancedConfig": "Advanced Configuration",
+        "detailedConfig": "Detailed Configuration",
+        "advancedConfigHint": "Customize AI engine for each task",
+        "table": {
+          "task": "Task",
+          "engine": "AI Engine",
+          "reasoning": "Reasoning",
+          "note": "Note"
+        },
+        "tasks": {
+          "pageAnalysis": "Page Browsing Learning",
+          "feedAnalysis": "Recommend Feed Articles",
+          "profileGeneration": "User Profile Generation"
+        },
+        "notes": {
+          "highFrequency": "High frequency (reasoning optional)",
+          "lowFrequency": "Low frequency (reasoning optional)"
+        },
+        "performanceWarning": {
+          "title": "Performance Impact Warning",
+          "description": "Using local AI for learning or feed analysis will cause:",
+          "impact1": "Wait 3-5 seconds each browsing",
+          "impact2": "CPU usage 30-50%",
+          "impact3": "Significantly reduced battery life",
+          "suggestion": "Recommendation: Use remote AI for high-frequency tasks, only ¥0.5/month"
+        }
+      },
       "labels": {
         "model": "Select AI Model",
         "apiKey": "API Key"

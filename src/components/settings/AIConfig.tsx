@@ -1,17 +1,23 @@
 import { useI18n } from "@/i18n/helpers"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import {
   getAIConfig,
   saveAIConfig,
   validateApiKey,
+  getEngineAssignment,
+  saveEngineAssignment,
   type AIProviderType,
   type LocalAIConfig,
   AVAILABLE_MODELS,
   getProviderFromModel
 } from "@/storage/ai-config"
 import { aiManager } from "@/core/ai/AICapabilityManager"
-import { checkLocalAIStatus } from "@/storage/recommendation-config"
+import { checkLocalAIStatus, getRecommendationConfig, saveRecommendationConfig } from "@/storage/recommendation-config"
 import { listLocalModels, type LocalAIEndpointMode, type LocalModelSummary } from "@/utils/local-ai-endpoint"
+import { AIEngineAssignmentComponent } from "@/components/settings/AIEngineAssignment"
+import type { AIEngineAssignment as AIEngineAssignmentType } from "@/types/ai-engine-assignment"
+import { getPageCount } from "@/storage/db"
+import { LEARNING_COMPLETE_PAGES } from "@/constants/progress"
 
 const DEFAULT_LOCAL_CONFIG: LocalAIConfig = {
   enabled: false,
@@ -59,6 +65,15 @@ export function AIConfig() {
     available: false,
     services: []
   })
+
+  // Phase 8: AI 引擎分配
+  const [engineAssignment, setEngineAssignment] = useState<AIEngineAssignmentType | null>(null)
+  
+  // 推荐配置
+  const [maxRecommendations, setMaxRecommendations] = useState(3)
+  const [isLearningStage, setIsLearningStage] = useState(false)
+  const [pageCount, setPageCount] = useState(0)
+  
   const [localModels, setLocalModels] = useState<LocalModelSummary[]>([])
   const [localModelsMode, setLocalModelsMode] = useState<LocalAIEndpointMode | null>(null)
   const [isFetchingLocalModels, setIsFetchingLocalModels] = useState(false)
@@ -124,6 +139,22 @@ export function AIConfig() {
       : createDefaultLocalConfig()
     setLocalConfig(mergedLocal)
     setLocalAIChoice(mergedLocal.enabled ? 'ollama' : 'none')
+
+    // Phase 8: 加载 AI 引擎分配配置
+    getEngineAssignment().then(assignment => {
+      setEngineAssignment(assignment)
+    })
+    
+    // 加载推荐配置
+    getRecommendationConfig().then(recConfig => {
+      setMaxRecommendations(recConfig.maxRecommendations || 3)
+    })
+    
+    // 检查学习阶段
+    getPageCount().then(count => {
+      setPageCount(count)
+      setIsLearningStage(count < LEARNING_COMPLETE_PAGES)
+    })
     })
   }, [])
 
@@ -131,22 +162,22 @@ export function AIConfig() {
   useEffect(() => {
     let isMounted = true
     const detectLocalAI = async () => {
-    if (!isMounted) return
-    setLocalAIStatus(prev => ({ ...prev, checking: true }))
-    try {
-      const status = await checkLocalAIStatus()
       if (!isMounted) return
-      setLocalAIStatus({
-        hasChromeAI: status.hasChromeAI,
-        hasOllama: status.hasOllama,
-        checking: false,
-        available: status.availableServices.length > 0,
-        services: status.availableServices
-      })
-    } catch (error) {
-      if (!isMounted) return
-      setLocalAIStatus({ hasChromeAI: false, hasOllama: false, checking: false, available: false, services: [] })
-    }
+      setLocalAIStatus(prev => ({ ...prev, checking: true }))
+      try {
+        const status = await checkLocalAIStatus()
+        if (!isMounted) return
+        setLocalAIStatus({
+          hasChromeAI: status.hasChromeAI,
+          hasOllama: status.hasOllama,
+          checking: false,
+          available: status.availableServices.length > 0,
+          services: status.availableServices
+        })
+      } catch (error) {
+        if (!isMounted) return
+        setLocalAIStatus({ hasChromeAI: false, hasOllama: false, checking: false, available: false, services: [] })
+      }
     }
     detectLocalAI()
     return () => {
@@ -154,33 +185,80 @@ export function AIConfig() {
     }
   }, [])
 
-  const refreshLocalModels = useCallback(async () => {
+  // 缓存模型列表请求结果，避免短时间内重复请求
+  const lastFetchRef = useRef<{ endpoint: string; apiKey: string; timestamp: number } | null>(null)
+  const fetchingRef = useRef(false) // 防止并发请求
+  const CACHE_DURATION = 3000 // 3秒缓存
+
+  const refreshLocalModels = useCallback(async (forceRefresh = false) => {
     if (!localConfig.endpoint?.trim()) {
-    setLocalModels([])
-    setLocalModelsMode(null)
-    setLocalModelsError(_("options.aiConfig.localAIForm.errors.missingEndpoint"))
-    return
+      setLocalModels([])
+      setLocalModelsMode(null)
+      setLocalModelsError(_("options.aiConfig.localAIForm.errors.missingEndpoint"))
+      return
     }
 
+    // 防止并发请求
+    if (fetchingRef.current && !forceRefresh) {
+      return
+    }
+
+    // 检查缓存：如果 endpoint 和 apiKey 相同，且在缓存时间内，跳过请求
+    const now = Date.now()
+    const lastFetch = lastFetchRef.current
+    if (!forceRefresh && lastFetch &&
+        lastFetch.endpoint === localConfig.endpoint &&
+        lastFetch.apiKey === (localConfig.apiKey || '') &&
+        (now - lastFetch.timestamp) < CACHE_DURATION) {
+      return // 使用缓存的模型列表
+    }
+
+    fetchingRef.current = true
     setIsFetchingLocalModels(true)
     setLocalModelsError(null)
 
     try {
-    const { mode, models } = await listLocalModels(localConfig.endpoint, localConfig.apiKey)
-    setLocalModelsMode(mode)
-    setLocalModels(models)
+      const { mode, models } = await listLocalModels(localConfig.endpoint, localConfig.apiKey)
+      setLocalModelsMode(mode)
+      setLocalModels(models)
 
-    if (models.length && (!localConfig.model || !models.some(m => m.id === localConfig.model))) {
-      setLocalConfig(prev => ({ ...prev, model: models[0].id }))
-    }
+      // 更新缓存
+      lastFetchRef.current = {
+        endpoint: localConfig.endpoint,
+        apiKey: localConfig.apiKey || '',
+        timestamp: now
+      }
+
+      // 只在模型列表中没有当前选中的模型时才自动选择第一个
+      // 避免循环更新
+      if (models.length > 0 && !models.some(m => m.id === localConfig.model)) {
+        setLocalConfig(prev => ({ ...prev, model: models[0].id }))
+      }
     } catch (error) {
-    setLocalModels([])
-    setLocalModelsMode(null)
-    setLocalModelsError(error instanceof Error ? error.message : String(error))
+      setLocalModels([])
+      setLocalModelsMode(null)
+      setLocalModelsError(error instanceof Error ? error.message : String(error))
     } finally {
-    setIsFetchingLocalModels(false)
+      setIsFetchingLocalModels(false)
+      fetchingRef.current = false
     }
-  }, [localConfig.endpoint, localConfig.apiKey, _])
+  }, [localConfig.endpoint, localConfig.apiKey, localConfig.model, _])
+
+  // 保持最新的 refreshLocalModels 引用
+  const refreshLocalModelsRef = useRef(refreshLocalModels)
+  useEffect(() => {
+    refreshLocalModelsRef.current = refreshLocalModels
+  }, [refreshLocalModels])
+
+  // 自动加载本地 AI 模型列表（页面加载时）
+  // 使用 ref 追踪是否已经自动加载过，避免重复触发
+  const hasAutoLoadedRef = useRef(false)
+  useEffect(() => {
+    if (localAIChoice === 'ollama' && localConfig.endpoint?.trim() && !hasAutoLoadedRef.current) {
+      hasAutoLoadedRef.current = true
+      refreshLocalModelsRef.current()
+    }
+  }, [localAIChoice, localConfig.endpoint])
 
   // 测试连接
   const handleTest = async () => {
@@ -280,6 +358,19 @@ export function AIConfig() {
       enableReasoning,
       local: buildLocalConfigForSave()
     })
+    
+    // Phase 8: 保存 AI 引擎分配配置
+    if (engineAssignment) {
+      await saveEngineAssignment(engineAssignment)
+    }
+    
+    // 保存推荐配置
+    const recConfig = await getRecommendationConfig()
+    await saveRecommendationConfig({
+      ...recConfig,
+      maxRecommendations
+    })
+    
     setMessage({ type: "success", text: _("options.aiConfig.messages.saveSuccess") })
     } catch (error) {
     setMessage({
@@ -658,7 +749,7 @@ export function AIConfig() {
                     setIsFetchingLocalModels(true)
                     setLocalModelsError(null)
                     setLocalTestSuccess(false)
-                    await refreshLocalModels()
+                    await refreshLocalModels(true) // 强制刷新，绕过缓存
                     setLocalTestSuccess(true)
                     setTimeout(() => setLocalTestSuccess(false), 3000)
                   } catch (error) {
@@ -790,6 +881,54 @@ export function AIConfig() {
         </div>
       )}
     </div>
+  </div>
+
+  {/* Phase 8: AI 引擎分配 */}
+  {engineAssignment && (
+    <div className="mt-6">
+      <AIEngineAssignmentComponent
+        value={engineAssignment}
+        onChange={setEngineAssignment}
+      />
+    </div>
+  )}
+
+  {/* 智能推荐数量 */}
+  <div className="mt-6 p-6 bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 rounded-lg">
+    <h3 className="text-lg font-semibold mb-4">{_("options.recommendation.smartCount")}</h3>
+    {isLearningStage ? (
+      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <span className="text-2xl">📚</span>
+          <div className="flex-1">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                {_("options.recommendation.learningStageTitle")}
+              </span>
+              <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">0</span>
+            </div>
+            <p className="text-xs text-blue-700 dark:text-blue-300 mb-2">
+              {_("options.recommendation.learningStageHint", { current: pageCount, total: LEARNING_COMPLETE_PAGES })}
+            </p>
+            <p className="text-xs text-blue-600 dark:text-blue-400">
+              {_("options.recommendation.learningStageNote")}
+            </p>
+          </div>
+        </div>
+      </div>
+    ) : (
+      <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-gray-600 dark:text-gray-400">{_("options.recommendation.currentCount")}</span>
+          <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+            {_("options.recommendation.countItems", { count: maxRecommendations })}
+          </span>
+        </div>
+        <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
+          {_("options.recommendation.countHint")}
+        </p>
+      </div>
+    )}
   </div>
 
   {/* 底部统一保存按钮 */}

@@ -373,7 +373,7 @@ export async function checkLocalAIStatus(): Promise<LocalAIStatus> {
         status.availableServices.push('ollama')
       }
     } catch (error) {
-      localAILogger.debug("Ollama未检测到（正常）", error)
+      // Ollama 未安装是正常情况，静默处理
     }
     
   } catch (error) {
