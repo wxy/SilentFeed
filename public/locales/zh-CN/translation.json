@@ -868,8 +868,8 @@
           "profileGeneration": "用户画像生成"
         },
         "notes": {
-          "highFrequency": "高频任务，不支持推理",
-          "lowFrequency": "低频任务，可启用推理"
+          "highFrequency": "高频任务（可选推理）",
+          "lowFrequency": "低频任务（可选推理）"
         },
         "performanceWarning": {
           "title": "性能影响提醒",
@@ -1017,8 +1017,8 @@
           "profileGeneration": "用户画像生成"
         },
         "notes": {
-          "highFrequency": "高频任务，不支持推理",
-          "lowFrequency": "低频任务，可启用推理"
+          "highFrequency": "高频任务（可选推理）",
+          "lowFrequency": "低频任务（可选推理）"
         },
         "performanceWarning": {
           "title": "性能影响提醒",

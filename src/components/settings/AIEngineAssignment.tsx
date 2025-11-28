@@ -211,10 +211,10 @@ export function AIEngineAssignmentComponent({
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    {renderEngineSelect("pageAnalysis", value.pageAnalysis, false)}
+                    {renderEngineSelect("pageAnalysis", value.pageAnalysis, true)}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    {renderReasoningCheckbox("pageAnalysis", value.pageAnalysis, false)}
+                    {renderReasoningCheckbox("pageAnalysis", value.pageAnalysis, true)}
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-500">
                     {_("options.aiConfig.aiEngineAssignment.notes.highFrequency")}
@@ -228,10 +228,10 @@ export function AIEngineAssignmentComponent({
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    {renderEngineSelect("feedAnalysis", value.feedAnalysis, false)}
+                    {renderEngineSelect("feedAnalysis", value.feedAnalysis, true)}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    {renderReasoningCheckbox("feedAnalysis", value.feedAnalysis, false)}
+                    {renderReasoningCheckbox("feedAnalysis", value.feedAnalysis, true)}
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-500">
                     {_("options.aiConfig.aiEngineAssignment.notes.highFrequency")}

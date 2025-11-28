@@ -19,13 +19,13 @@ export interface AIEngineConfig {
 
 /** AI 引擎分配配置 */
 export interface AIEngineAssignment {
-  /** 页面浏览学习（浏览历史分析） - 高频任务，不支持推理 */
-  pageAnalysis: Omit<AIEngineConfig, "useReasoning">
+  /** 页面浏览学习（浏览历史分析） - 高频任务 */
+  pageAnalysis: AIEngineConfig
   
-  /** 推荐订阅文章（Feed分析） - 高频任务，不支持推理 */
-  feedAnalysis: Omit<AIEngineConfig, "useReasoning">
+  /** 推荐订阅文章（Feed分析） - 高频任务 */
+  feedAnalysis: AIEngineConfig
   
-  /** 用户画像生成 - 低频任务，支持推理 */
+  /** 用户画像生成 - 低频任务 */
   profileGeneration: AIEngineConfig
 }
 
@@ -68,11 +68,13 @@ export const AI_ENGINE_PRESETS: Record<PresetName, PresetDefinition> = {
     config: {
       pageAnalysis: {
         provider: "ollama",
-        model: "qwen2.5:7b"
+        model: "qwen2.5:7b",
+        useReasoning: false
       },
       feedAnalysis: {
         provider: "ollama",
-        model: "qwen2.5:7b"
+        model: "qwen2.5:7b",
+        useReasoning: false
       },
       profileGeneration: {
         provider: "ollama",
@@ -102,10 +104,12 @@ export const AI_ENGINE_PRESETS: Record<PresetName, PresetDefinition> = {
     performanceImpact: "🔥 低（仅低频任务稍慢）",
     config: {
       pageAnalysis: {
-        provider: "deepseek"
+        provider: "deepseek",
+        useReasoning: false
       },
       feedAnalysis: {
-        provider: "deepseek"
+        provider: "deepseek",
+        useReasoning: false
       },
       profileGeneration: {
         provider: "deepseek",
@@ -133,10 +137,12 @@ export const AI_ENGINE_PRESETS: Record<PresetName, PresetDefinition> = {
     performanceImpact: "✅ 无",
     config: {
       pageAnalysis: {
-        provider: "deepseek"
+        provider: "deepseek",
+        useReasoning: false
       },
       feedAnalysis: {
-        provider: "deepseek"
+        provider: "deepseek",
+        useReasoning: false
       },
       profileGeneration: {
         provider: "deepseek",

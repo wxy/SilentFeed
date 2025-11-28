@@ -797,8 +797,8 @@
           "profileGeneration": "User Profile Generation"
         },
         "notes": {
-          "highFrequency": "High frequency, reasoning not supported",
-          "lowFrequency": "Low frequency, reasoning optional"
+          "highFrequency": "High frequency (reasoning optional)",
+          "lowFrequency": "Low frequency (reasoning optional)"
         },
         "performanceWarning": {
           "title": "Performance Impact Warning",
@@ -1073,8 +1073,8 @@
           "profileGeneration": "User Profile Generation"
         },
         "notes": {
-          "highFrequency": "High frequency, reasoning not supported",
-          "lowFrequency": "Low frequency, reasoning optional"
+          "highFrequency": "High frequency (reasoning optional)",
+          "lowFrequency": "Low frequency (reasoning optional)"
         },
         "performanceWarning": {
           "title": "Performance Impact Warning",
