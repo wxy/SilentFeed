@@ -216,21 +216,21 @@ export function CollectionStats() {
       {/* AI 学习概览 */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <span>🧠</span>
-          <span>AI 学习概览</span>
+          <span>📚</span>
+          <span>{_("options.collectionStats.aiLearningOverview")}</span>
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* 学习页面数 */}
           <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-4 border border-indigo-200 dark:border-indigo-800">
             <div className="text-sm text-indigo-600 dark:text-indigo-400 mb-1">
-              学习页面数
+              {_("options.collectionStats.learningPagesLabel")}
             </div>
             <div className="text-3xl font-bold text-indigo-900 dark:text-indigo-100">
               {stats.pageCount}
             </div>
             <div className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">
-              停留超过30秒的页面
+              {_("options.collectionStats.learningPagesHint")}
             </div>
           </div>
 
@@ -250,13 +250,13 @@ export function CollectionStats() {
           {/* 开始学习时间 */}
           <div className="bg-cyan-50 dark:bg-cyan-900/20 rounded-lg p-4 border border-cyan-200 dark:border-cyan-800">
             <div className="text-sm text-cyan-600 dark:text-cyan-400 mb-1">
-              开始学习时间
+              {_("options.collectionStats.startLearningTimeLabel")}
             </div>
             <div className="text-lg font-bold text-cyan-900 dark:text-cyan-100">
               {formatDate(stats.firstCollectionTime)}
             </div>
             <div className="text-xs text-cyan-600 dark:text-cyan-400 mt-1">
-              平均每日 {stats.avgDailyPages.toFixed(1)} 页
+              {_("options.collectionStats.avgDailyPagesShort", { count: stats.avgDailyPages.toFixed(1) })}
             </div>
           </div>
         </div>
@@ -266,14 +266,14 @@ export function CollectionStats() {
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <span>💰</span>
-          <span>AI 成本分析</span>
+          <span>{_("options.collectionStats.aiCostAnalysisTitle")}</span>
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           {/* Token 总用量 */}
           <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4 border border-amber-200 dark:border-amber-800">
             <div className="text-sm text-amber-600 dark:text-amber-400 mb-1">
-              Token 总用量
+              {_("options.collectionStats.totalTokenUsageLabel")}
             </div>
             <div className="text-3xl font-bold text-amber-900 dark:text-amber-100">
               {aiQualityStats && aiQualityStats.totalTokens > 0
@@ -282,8 +282,8 @@ export function CollectionStats() {
             </div>
             <div className="text-xs text-amber-600 dark:text-amber-400 mt-1">
               {aiQualityStats && aiQualityStats.aiAnalyzedPages > 0
-                ? `均 ${Math.round(aiQualityStats.totalTokens / aiQualityStats.aiAnalyzedPages)} tokens/页`
-                : '暂无数据'}
+                ? _("options.collectionStats.avgTokensPerPage", { tokens: Math.round(aiQualityStats.totalTokens / aiQualityStats.aiAnalyzedPages) })
+                : _("options.collectionStats.noData")}
             </div>
           </div>
 
@@ -721,7 +721,11 @@ export function CollectionStats() {
                       {recommendationFunnel.learningPages}
                     </text>
                     <text x="60" y="70" textAnchor="middle" fill="#78350F" fontSize="12" fontWeight="600">
-                      📚 学习页面
+                      {_("options.collectionStats.funnelLearningPages").split("\n").map((line, i) => (
+                        <tspan key={i} x="60" dy={i === 0 ? 0 : "1.2em"}>
+                          {i === 0 ? "📚 " : ""}{line}
+                        </tspan>
+                      ))}
                     </text>
                   </svg>
                 </div>
@@ -758,7 +762,11 @@ export function CollectionStats() {
                       {recommendationFunnel.dismissed}
                     </text>
                     <text x="60" y="70" textAnchor="middle" fill="#7C2D12" fontSize="12" fontWeight="600">
-                      ❌ 不想读
+                      {_("options.collectionStats.funnelDismissed").split("\n").map((line, i) => (
+                        <tspan key={i} x="60" dy={i === 0 ? 0 : "1.2em"}>
+                          {i === 0 ? "❌ " : ""}{line}
+                        </tspan>
+                      ))}
                     </text>
                   </svg>
                 </div>
@@ -771,24 +779,24 @@ export function CollectionStats() {
               <div className="grid grid-cols-2 gap-6 text-center">
                 <div>
                   <div className="text-xs text-green-600 dark:text-green-400 mb-2 font-medium">
-                    推荐率
+                    {_("options.collectionStats.funnelRecommendationRate")}
                   </div>
                   <div className="text-2xl font-bold text-green-900 dark:text-green-100">
                     {recommendationFunnel.rssArticles > 0 ? ((recommendationFunnel.inPool / recommendationFunnel.rssArticles) * 100).toFixed(1) : 0}%
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    RSS → 推荐池
+                    {_("options.collectionStats.funnelRssToPool")}
                   </div>
                 </div>
                 <div>
                   <div className="text-xs text-purple-600 dark:text-purple-400 mb-2 font-medium">
-                    阅读率
+                    {_("options.collectionStats.funnelReadingRate")}
                   </div>
                   <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">
                     {recommendationFunnel.inPool > 0 ? ((recommendationFunnel.read / recommendationFunnel.inPool) * 100).toFixed(1) : 0}%
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    推荐池 → 已读
+                    {_("options.collectionStats.funnelPoolToRead")}
                   </div>
                 </div>
               </div>
