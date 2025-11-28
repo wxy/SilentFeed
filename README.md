@@ -53,7 +53,9 @@ Silent Feed is a **browser extension** that uses AI to understand what you're in
 
 1. **Install** - [Chrome Web Store](https://chromewebstore.google.com/detail/pieiedlagbmcnooloibhigmidpakneca)
 2. **Browse** - Visit websites you like (100+ pages recommended)
-3. **Configure AI** - Add your OpenAI/Anthropic/DeepSeek API key
+3. **Configure AI** - Choose your preferred option:
+   - **Option 1**: [Install Ollama](docs/OLLAMA_SETUP_GUIDE.md) for free local AI (recommended)
+   - **Option 2**: Add your OpenAI/Anthropic/DeepSeek API key
 4. **Enjoy** - Get personalized RSS recommendations
 
 ### 📚 Learn More
@@ -134,7 +136,9 @@ Silent Feed 是一个**浏览器扩展**，通过分析你的浏览历史，用 
 
 1. **安装扩展** - [Chrome 应用商店](https://chromewebstore.google.com/detail/pieiedlagbmcnooloibhigmidpakneca)
 2. **浏览网页** - 访问你喜欢的网站（建议 100+ 页面）
-3. **配置 AI** - 添加你的 OpenAI/Anthropic/DeepSeek API 密钥
+3. **配置 AI** - 选择你喜欢的方式：
+   - **方式一**：[安装 Ollama](docs/OLLAMA_SETUP_GUIDE.md) 获得免费本地 AI（推荐）
+   - **方式二**：添加你的 OpenAI/Anthropic/DeepSeek API 密钥
 4. **开始使用** - 获取个性化 RSS 推荐
 
 ### 📚 了解更多

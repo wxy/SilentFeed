@@ -201,10 +201,11 @@ AI 自动筛选出最相关的 3-5 条，其余静默处理
 | OPML 导入 | ⭐⭐⭐⭐ | ⭐ | ✅ | | |
 | 基础推荐引擎 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ✅ | | |
 | 用户 API 支持 | ⭐⭐⭐⭐ | ⭐⭐ | ✅ | | |
+| Ollama 本地 AI | ⭐⭐⭐⭐ | ⭐⭐ | ✅ | | |
 | 简单通知 | ⭐⭐⭐⭐⭐ | ⭐⭐ | ✅ | | |
 | 反馈机制 | ⭐⭐⭐⭐ | ⭐ | ✅ | | |
 | 倒计数 UI | ⭐⭐⭐⭐ | ⭐ | ✅ | | |
-| Chrome AI | ⭐⭐⭐ | ⭐⭐⭐ | | ✅ | |
+| Chrome AI | ⭐⭐ | ⭐⭐⭐ | | | 🚧 |
 | 智能通知时机 | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | | ✅ | |
 | 数据可视化 | ⭐⭐⭐ | ⭐⭐⭐ | | ✅ | |
 | 云端 AI 服务 | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | | | ✅ |
@@ -219,10 +220,11 @@ AI 自动筛选出最相关的 3-5 条，其余静默处理
 4. ✅ OPML 导入/导出
 5. ✅ AI 智能推荐算法（支持 OpenAI/Anthropic/DeepSeek）
 6. ✅ 用户 API 支持（OpenAI/Anthropic/DeepSeek）
-7. ✅ 扩展图标通知
-8. ✅ 弹窗推荐列表
-9. ✅ 反馈（喜欢/忽略/稍后）
-10. ✅ 1000 页面倒计数
+7. ✅ Ollama 本地 AI 支持
+8. ✅ 扩展图标通知
+9. ✅ 弹窗推荐列表
+10. ✅ 反馈（喜欢/忽略/稍后）
+11. ✅ 1000 页面倒计数
 
 #### 应该有（Should Have）
 - 域名黑名单/白名单
@@ -238,7 +240,7 @@ AI 自动筛选出最相关的 3-5 条，其余静默处理
 - 云端同步
 - 团队协作
 - 高级统计
-- Chrome AI 支持（检测到后自动启用即可）
+- Chrome AI 支持（🚧 待 API 成熟后再实现，详见 [Ollama 安装指南](./OLLAMA_SETUP_GUIDE.md)）
 
 ---
 
@@ -460,23 +462,26 @@ Layer 1: 本地预筛选（TF-IDF）
   输出: 30 条候选（Top 15%）
   优点: 快速、隐私、免费
   
-Layer 2: 用户 API 评分（可选）
+Layer 2: 用户 API 或 Ollama 评分（可选）
   输入: 30 条候选
   处理: LLM 深度理解内容和用户兴趣
   输出: 每条内容的匹配度分数（0-1）
   优点: 准确度高（85-95%）
-  成本: 极低（< $0.01/天）
+  成本: 
+    - 用户 API（OpenAI/Anthropic/DeepSeek）: < $0.01/天
+    - Ollama（本地）: 免费无限制
   
-Layer 3: Chrome AI 增强（可选）
-  输入: AI 评分结果
-  处理: 本地 AI 二次验证
-  输出: 最终推荐列表
-  优点: 完全免费、隐私
+Layer 3: 未来增强（规划中）
+  Chrome AI（Gemini Nano）- 待 API 成熟后支持
+  优点: 浏览器内置、零配置
+  状态: 🚧 实验阶段，暂不可用
 ```
 
 **推荐质量对比**：
 - 纯 TF-IDF：准确率 ~50%，召回率 ~40%
 - TF-IDF + LLM：准确率 ~85%，召回率 ~75%
+
+**本地 AI 推荐**: 使用 [Ollama](./OLLAMA_SETUP_GUIDE.md) 获得免费、隐私友好的 AI 推荐能力。
 
 ### 7.5 智能通知机制
 
@@ -623,11 +628,13 @@ async function updateProfile(feedback: Feedback) {
 - OpenAI API (gpt-4o-mini)
 - Anthropic API (claude-3-haiku)
 - DeepSeek API (便宜，国内可用)
+- Ollama 本地 AI（免费、隐私友好）
 
-**可选支持**：
-- Chrome Built-in AI (Gemini Nano)
-- Ollama 本地 AI
-- 任何 OpenAI 兼容的 API
+**未来计划**：
+- Chrome Built-in AI (Gemini Nano) - 🚧 待 API 成熟后支持
+- 其他 OpenAI 兼容的 API
+
+**推荐**: 优先配置 [Ollama](./OLLAMA_SETUP_GUIDE.md) 获得免费的本地 AI 能力。
 
 **AI 引擎分配功能** (Phase 8)：
 
