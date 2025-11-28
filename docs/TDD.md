@@ -568,7 +568,200 @@ ${items.map(i => `- ${i.title}`).join('\n')}
 }
 ```
 
-### 5.4 混合推荐策略
+### 5.4 AI 引擎任务路由机制（Phase 8）
+
+**设计目标**：为不同任务类型分配最优 AI 引擎，实现成本与性能的平衡。
+
+**任务类型定义**：
+
+```typescript
+// src/types/ai-engine-assignment.ts
+
+export type AITaskType = 
+  | 'pageAnalysis'        // 页面浏览学习（高频，需快速）
+  | 'feedAnalysis'        // 订阅源文章分析（高频，批量处理）
+  | 'profileGeneration'   // 用户画像生成（低频，需高质量）
+
+export type AIProvider = 'deepseek' | 'openai' | 'ollama'
+
+export interface AIEngineConfig {
+  provider: AIProvider
+  useReasoning: boolean
+}
+
+export interface AIEngineAssignment {
+  pageAnalysis: AIEngineConfig
+  feedAnalysis: AIEngineConfig
+  profileGeneration: AIEngineConfig
+}
+```
+
+**预设方案**：
+
+```typescript
+// 1. 智能优先（默认）
+const intelligenceFirst: AIEngineAssignment = {
+  pageAnalysis: { provider: 'deepseek', useReasoning: false },     // 快速+便宜
+  feedAnalysis: { provider: 'deepseek', useReasoning: false },     // 批量处理
+  profileGeneration: { provider: 'deepseek', useReasoning: true }  // 深度思考
+}
+
+// 2. 平衡方案
+const balanced: AIEngineAssignment = {
+  pageAnalysis: { provider: 'deepseek', useReasoning: false },
+  feedAnalysis: { provider: 'openai', useReasoning: true },        // GPT-4o-mini
+  profileGeneration: { provider: 'openai', useReasoning: true }
+}
+
+// 3. 隐私优先
+const privacyFirst: AIEngineAssignment = {
+  pageAnalysis: { provider: 'ollama', useReasoning: false },
+  feedAnalysis: { provider: 'ollama', useReasoning: false },
+  profileGeneration: { provider: 'ollama', useReasoning: true }
+}
+```
+
+**任务路由实现**：
+
+```typescript
+// src/core/ai/AICapabilityManager.ts
+
+class AICapabilityManager {
+  private engineAssignment: AIEngineAssignment | null = null
+  
+  async initialize() {
+    this.engineAssignment = await getEngineAssignment()
+    // 初始化各个 provider...
+  }
+  
+  // 核心路由方法
+  private getProviderForTask(taskType: AITaskType): {
+    provider: BaseAIService | null
+    useReasoning: boolean
+  } {
+    if (!this.engineAssignment) {
+      // 回退到默认模式
+      return { provider: this.remoteProvider, useReasoning: false }
+    }
+    
+    const config = this.engineAssignment[taskType]
+    const { provider: providerType, useReasoning = false } = config
+    
+    // 根据配置选择 provider
+    switch (providerType) {
+      case 'deepseek':
+      case 'openai':
+        return { provider: this.remoteProvider, useReasoning }
+      case 'ollama':
+        return { provider: this.localProvider, useReasoning }
+      default:
+        return { provider: this.remoteProvider, useReasoning: false }
+    }
+  }
+  
+  // 页面分析（高频）
+  async analyzeContent(
+    content: string, 
+    options?: AnalysisOptions,
+    taskType?: AITaskType
+  ): Promise<AnalysisResult> {
+    if (taskType) {
+      const { provider, useReasoning } = this.getProviderForTask(taskType)
+      options = { ...options, useReasoning: useReasoning || options?.useReasoning }
+      
+      if (provider && await provider.isAvailable()) {
+        return provider.analyzeContent(content, options)
+      }
+    }
+    
+    // 渐进式降级
+    return this.analyzeWithProviders(content, options)
+  }
+  
+  // 用户画像生成（低频）
+  async generateUserProfile(
+    request: ProfileGenerationRequest
+  ): Promise<ProfileGenerationResult> {
+    // 优先使用任务路由
+    const { provider, useReasoning } = this.getProviderForTask('profileGeneration')
+    
+    if (provider && await provider.isAvailable()) {
+      const enhancedRequest = {
+        ...request,
+        useReasoning: useReasoning || request.useReasoning
+      }
+      return provider.generateUserProfile(enhancedRequest)
+    }
+    
+    // 降级处理
+    return this.generateWithProviders(request)
+  }
+}
+```
+
+**调用示例**：
+
+```typescript
+// 页面浏览分析（使用 pageAnalysis 配置）
+const result = await aiManager.analyzeContent(
+  pageContent, 
+  {}, 
+  'pageAnalysis'  // 自动使用 DeepSeek 无推理模式
+)
+
+// 订阅源文章分析（使用 feedAnalysis 配置）
+const analysis = await aiManager.analyzeContent(
+  feedContent,
+  { maxTokens: 500 },
+  'feedAnalysis'  // 根据用户配置选择引擎
+)
+
+// 用户画像生成（使用 profileGeneration 配置）
+const profile = await aiManager.generateUserProfile(request)
+// 自动使用 DeepSeek 推理模式（默认）或用户自定义配置
+```
+
+**成本对比**：
+
+| 场景 | 智能优先 | 平衡方案 | 隐私优先 |
+|------|---------|---------|---------|
+| 页面分析 (50次/天) | $0.001 | $0.001 | $0 |
+| 订阅源分析 (200条/天) | $0.004 | $0.015 | $0 |
+| 画像生成 (1次/天) | $0.0005 | $0.002 | $0 |
+| **日总成本** | **$0.005** | **$0.018** | **$0** |
+| **月总成本** | **$0.15** | **$0.54** | **$0** |
+
+**技术优势**：
+
+1. **成本优化**：高频任务用便宜引擎（DeepSeek），低频任务用高性能引擎（GPT-4）
+2. **性能平衡**：速度需求高的任务关闭推理，质量需求高的任务开启推理
+3. **用户自主**：完全由用户控制引擎选择和推理开关
+4. **向后兼容**：保留原有 mode 参数，渐进式升级
+5. **降级策略**：配置失败时自动回退到默认 provider 链
+
+**存储设计**：
+
+```typescript
+// chrome.storage.local
+{
+  "ai_engine_assignment": {
+    "pageAnalysis": {
+      "provider": "deepseek",
+      "useReasoning": false
+    },
+    "feedAnalysis": {
+      "provider": "deepseek",
+      "useReasoning": false
+    },
+    "profileGeneration": {
+      "provider": "deepseek",
+      "useReasoning": true
+    }
+  }
+}
+```
+
+### 5.5 混合推荐策略
 
 ```typescript
 // src/core/recommender/HybridRecommender.ts
