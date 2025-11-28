@@ -720,8 +720,11 @@ export function CollectionStats() {
                     <text x="52" y="44" textAnchor="middle" fill="#78350F" fontSize="18" fontWeight="700">
                       {recommendationFunnel.learningPages}
                     </text>
-                    <text x="60" y="70" textAnchor="middle" fill="#78350F" fontSize="12" fontWeight="600">
-                      📚 {_("options.collectionStats.funnelLearningPages")}
+                    <text x="60" y="65" textAnchor="middle" fill="#78350F" fontSize="10" fontWeight="600">
+                      📚
+                    </text>
+                    <text x="60" y="76" textAnchor="middle" fill="#78350F" fontSize="10" fontWeight="600">
+                      {_("options.collectionStats.funnelLearningPages")}
                     </text>
                   </svg>
                 </div>
@@ -757,8 +760,11 @@ export function CollectionStats() {
                     <text x="52" y="44" textAnchor="middle" fill="#7C2D12" fontSize="18" fontWeight="700">
                       {recommendationFunnel.dismissed}
                     </text>
-                    <text x="60" y="70" textAnchor="middle" fill="#7C2D12" fontSize="12" fontWeight="600">
-                      ❌ {_("options.collectionStats.funnelDismissed")}
+                    <text x="60" y="65" textAnchor="middle" fill="#7C2D12" fontSize="10" fontWeight="600">
+                      ❌
+                    </text>
+                    <text x="60" y="76" textAnchor="middle" fill="#7C2D12" fontSize="10" fontWeight="600">
+                      {_("options.collectionStats.funnelDismissed")}
                     </text>
                   </svg>
                 </div>

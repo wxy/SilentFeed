@@ -845,6 +845,26 @@
         "advancedConfig": "Advanced Configuration",
         "detailedConfig": "Detailed Configuration",
         "advancedConfigHint": "Customize the AI engine used for each task",
+        "presets": {
+          "privacy": {
+            "name": "Privacy First",
+            "description": "All data is processed locally and never uploaded.",
+            "estimatedCost": "¥0/month",
+            "performanceImpact": "🔥🔥🔥 High"
+          },
+          "intelligence": {
+            "name": "Intelligent Priority",
+            "description": "Best AI capabilities, reasoning mode ensures quality",
+            "estimatedCost": "¥5-8/month",
+            "performanceImpact": "🔥 Low (only slightly slower for low-frequency tasks)"
+          },
+          "economic": {
+            "name": "Economic Priority",
+            "description": "Lowest cost, standard quality is good enough.",
+            "estimatedCost": "¥0.5-1/month",
+            "performanceImpact": "✅ None"
+          }
+        },
         "table": {
           "task": "Task",
           "engine": "AI Engine",
