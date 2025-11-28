@@ -409,7 +409,7 @@ export function CollectionStats() {
         ) : (
           <div className="space-y-6">
             {/* 立体漏斗可视化 - 曲面圆锥结构 */}
-            <div className="rounded-2xl bg-[#333333] p-6 md:p-8 shadow-2xl">
+            <div className="rounded-2xl bg-gray-50 dark:bg-gray-800 p-6 md:p-8">
               <div className="flex flex-col xl:flex-row justify-center items-center gap-8">
               <svg
                 width="420"
@@ -429,9 +429,12 @@ export function CollectionStats() {
                   const baseHeight = 85
                   const baseRadius = 48
                   const radiusStep = 34
+                  // 漏斗顶部：扩展图标（代表RSS订阅源）
                   const extensionIconUrl = typeof chrome !== 'undefined' && chrome.runtime?.getURL
                     ? chrome.runtime.getURL('assets/icons/128/base-static.png')
                     : 'assets/icons/128/base-static.png'
+                  // 漏斗底部：专业人士头像（用户应该是专业人士）
+                  const professionalIconUrl = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%234B5563"%3E%3Cpath d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/%3E%3C/svg%3E'
 
                   const getEllipseRy = (radius: number) => Math.max(12, radius * 0.28)
 
@@ -675,7 +678,7 @@ export function CollectionStats() {
                       </g>
                       <g>
                         <text x={centerX} y={baseBottomY + 70} textAnchor="middle" fontSize="32">
-                          🧑
+                          👨‍💻
                         </text>
                       </g>
                     </>

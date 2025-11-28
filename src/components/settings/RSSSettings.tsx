@@ -766,7 +766,7 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
           </a>
         </div>
         
-        {/* 第二行：订阅/发现信息 + 操作按钮 */}
+        {/* 第二行：订阅/发现信息 + 文章统计 + 操作按钮 */}
         <div className="flex items-center justify-between gap-2 text-xs text-gray-600 dark:text-gray-400">
           <div className="flex items-center gap-2 flex-1 min-w-0">
             {/* 已订阅源：订阅时间 */}
@@ -921,7 +921,7 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                   for (let i = 0; i < unanalyzedBlocks; i++) {
                     blocks.push({
                       type: 'unanalyzed',
-                      className: 'bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600',
+                      className: 'bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600',
                       tooltip: `📰 总文章: ${total} 篇`
                     })
                   }
@@ -978,41 +978,6 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                     </div>
                   )
                 })()}
-                
-                
-                {/* 上次抓取时间/下次抓取时间 */}
-                {feed.lastFetchedAt && (
-                  <>
-                    {feed.articleCount > 0 && <span className="text-gray-300 dark:text-gray-600">•</span>}
-                    <span className="flex items-center gap-1">
-                      <span>⏱️</span>
-                      <span>
-                        {_('options.rssManager.fetch.last')}: {formatRelativeTime(feed.lastFetchedAt)}
-                        {nextFetchTime && feed.isActive && (
-                          <span className="ml-1 text-blue-600 dark:text-blue-400">
-                            → {formatTimeUntil(nextFetchTime)}
-                          </span>
-                        )}
-                      </span>
-                    </span>
-                  </>
-                )}
-                
-                {/* 平均每周文章数 */}
-                {/* Phase 7.1: 优先使用 feed.updateFrequency */}
-                {((feed.updateFrequency && feed.updateFrequency > 0) || 
-                  (feed.quality && feed.quality.updateFrequency > 0)) && (
-                  <>
-                    <span>•</span>
-                    <span className="flex items-center gap-1">
-                      <span>📊</span>
-                      <span>
-                        {(feed.updateFrequency || feed.quality?.updateFrequency || 0).toFixed(1)}{' '}
-                        {_('options.rssManager.fetch.perWeek')}
-                      </span>
-                    </span>
-                  </>
-                )}
               </>
             )}
             
@@ -1060,20 +1025,74 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
             )}
           </div>
           
-          {/* 第三行操作按钮 */}
-          {row3Actions.length > 0 && (
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              {row3Actions.map((action, index) => (
-                <button
-                  key={index}
-                  onClick={action.onClick}
-                  className={`${action.className} text-white text-xs px-2 py-1 rounded hover:opacity-90 transition-opacity whitespace-nowrap`}
-                >
-                  {action.label}
-                </button>
-              ))}
-            </div>
-          )}
+          {/* 右侧：时间进度条 + 每周篇数 (仅已订阅源) + 操作按钮 */}
+          <div className="flex items-center gap-3 flex-shrink-0">
+            {/* 时间进度条 + 每周篇数 */}
+            {feed.status === 'subscribed' && (
+              <>
+                {/* 时间进度条 */}
+                {feed.lastFetchedAt && nextFetchTime && feed.isActive && (() => {
+                  const lastFetch = feed.lastFetchedAt
+                  const nextFetch = nextFetchTime
+                  const now = Date.now()
+                  const totalDuration = nextFetch - lastFetch
+                  const elapsed = now - lastFetch
+                  const progress = Math.max(0, Math.min(100, (elapsed / totalDuration) * 100))
+                  const durationDays = totalDuration / (24 * 60 * 60 * 1000)
+                  // 增加进度条长度范围：60-180px，更好地反映不同周期
+                  // 系数60：0.3天→18→60px(min), 1天→60px, 2天→120px, 3天→180px(max)
+                  const barWidth = Math.min(180, Math.max(60, durationDays * 60))
+                  
+                  return (
+                    <div className="flex items-center gap-1.5">
+                      <span>⏱️</span>
+                      {/* 进度条容器 - tooltip移到这里，鼠标移到任何位置都显示 */}
+                      <div 
+                        className="h-px bg-gray-200 dark:bg-gray-700 rounded-full relative overflow-visible cursor-help"
+                        style={{ width: `${barWidth}px` }}
+                        title={`进度: ${progress.toFixed(1)}%\n周期: ${durationDays.toFixed(1)} 天\n上次: ${new Date(lastFetch).toLocaleString('zh-CN')}\n当前: ${new Date(now).toLocaleString('zh-CN')}\n下次: ${new Date(nextFetch).toLocaleString('zh-CN')}`}
+                      >
+                        <div 
+                          className="absolute left-0 top-0 h-full bg-gradient-to-r from-gray-400 to-green-500 dark:from-gray-500 dark:to-green-600 rounded-full transition-all duration-300"
+                          style={{ width: `${progress}%` }}
+                        />
+                        <div 
+                          className="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-blue-500 dark:bg-blue-400 rounded-full border-2 border-white dark:border-gray-800 shadow-sm transition-all duration-300"
+                          style={{ left: `calc(${progress}% - 4px)` }}
+                        />
+                      </div>
+                      <span className="text-xs text-blue-600 dark:text-blue-400 whitespace-nowrap">
+                        {formatTimeUntil(nextFetch)}
+                      </span>
+                    </div>
+                  )
+                })()}
+                
+                {/* 每周篇数 */}
+                {((feed.updateFrequency && feed.updateFrequency > 0) || 
+                  (feed.quality && feed.quality.updateFrequency > 0)) && (
+                  <span className="flex items-center gap-1 whitespace-nowrap">
+                    <span>📊</span>
+                    <span>
+                      {(feed.updateFrequency || feed.quality?.updateFrequency || 0).toFixed(1)}{' '}
+                      {_('options.rssManager.fetch.perWeek')}
+                    </span>
+                  </span>
+                )}
+              </>
+            )}
+            
+            {/* 第三行操作按钮 (row3Actions) */}
+            {row3Actions.length > 0 && row3Actions.map((action, index) => (
+              <button
+                key={index}
+                onClick={action.onClick}
+                className={`${action.className} text-white text-xs px-2 py-1 rounded hover:opacity-90 transition-opacity whitespace-nowrap`}
+              >
+                {action.label}
+              </button>
+            ))}
+          </div>
         </div>
         
         {/* 文章预览区域 */}
