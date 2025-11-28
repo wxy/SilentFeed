@@ -529,48 +529,10 @@ export async function initializeDatabase(): Promise<void> {
   }
 }
 
-/**
- * 获取用户设置
- */
-export async function getSettings(): Promise<UserSettings> {
-  const settings = await db.settings.get('singleton')
-  if (!settings) {
-    throw new Error('设置不存在，请先初始化数据库')
-  }
-  return settings
-}
-
-/**
- * 更新用户设置
- */
-export async function updateSettings(
-  updates: Partial<Omit<UserSettings, 'id'>>
-): Promise<void> {
-  await db.settings.update('singleton', updates)
-}
-
-/**
- * 辅助函数：获取页面计数
- * 
- * 用于判断冷启动阶段
- */
-export async function getPageCount(): Promise<number> {
-  try {
-    // 确保数据库已打开
-    if (!db.isOpen()) {
-      dbLogger.debug('数据库未打开，尝试打开...')
-      await db.open()
-    }
-    
-    const count = await db.confirmedVisits.count()
-    dbLogger.debug('页面计数:', count)
-    return count
-  } catch (error) {
-    dbLogger.warn('⚠️ 获取页面计数失败，返回 0:', error)
-    // 数据库未初始化或出错时返回 0
-    return 0
-  }
-}
+// ========================================
+// 设置管理模块 - 重新导出自 db-settings.ts
+// ========================================
+export { getSettings, updateSettings, getPageCount } from './db-settings'
 
 /**
  * Phase 2.7: 推荐统计辅助函数
