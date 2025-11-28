@@ -786,9 +786,11 @@
         "choiceTitle": "本地 AI 类型",
         "none": "❌ 不使用本地 AI",
         "chromeAI": "Chrome AI（内置 Gemini Nano）",
+        "chromeAIComingSoon": "等稳定版后支持",
         "ollama": "Ollama（本地服务）",
         "available": "可用",
         "howToEnable": "如何启用？",
+        "howToInstall": "如何安装？",
         "installOllama": "安装 Ollama",
         "endpoint": "服务地址",
         "model": "模型选择",
@@ -827,28 +829,70 @@
         "reference": "成本参考"
       },
       "chromeAI": {
-        "title": "如何启用 Chrome AI",
-        "description": "Chrome AI 是 Google 在 Chrome 浏览器中内置的 Gemini Nano 模型，完全离线运行，保护隐私。",
-        "howToEnable": "如何启用",
-        "urlCopied": "已复制到剪贴板！请粘贴到地址栏打开",
-        "clickToCopy": "点击复制",
-        "step1": {
-          "title": "检查浏览器版本",
-          "content": "确保你的 Chrome 版本 ≥ 128（访问 chrome://version 查看）"
+        "title": "Chrome AI 状态",
+        "notAvailableYet": "Chrome AI (Gemini Nano) 目前仍处于实验早期阶段，暂未在 Silent Feed 中提供支持。",
+        "currentStatus": "当前状态",
+        "status": {
+          "earlyPreview": "Early Preview 阶段，API 不稳定",
+          "limitedPlatform": "部分平台（如 macOS）不可用",
+          "unstableAPI": "接口可能随时变更"
         },
-        "step2": {
-          "title": "开启实验特性",
-          "content": "访问以下地址并设置为 Enabled："
+        "whenAvailable": "何时可用？",
+        "condition": {
+          "stableRelease": "Chrome 138+ 稳定版普及",
+          "crossPlatform": "全平台（Windows/macOS/Linux）支持",
+          "stableAPI": "API 正式发布，不再变更"
         },
-        "step3": {
-          "title": "重启浏览器",
-          "content": "点击 Relaunch 按钮重启 Chrome"
+        "learnMore": "了解更多",
+        "useOllamaInstead": "当前推荐：使用 Ollama 作为本地 AI 方案",
+        "viewOllamaGuide": "查看 Ollama 安装指南"
+      },
+      "ollama": {
+        "title": "Ollama 安装指南",
+        "description": "Ollama 是一个开源的本地大语言模型运行工具，可以在你的电脑上运行 Llama、Qwen 等开源模型，完全离线使用，保护隐私。",
+        "installation": {
+          "title": "安装 Ollama",
+          "macOS": {
+            "alternative": "或"
+          },
+          "downloadInstaller": "下载安装包",
+          "windows": {
+            "instruction": "下载 Windows 安装包"
+          }
         },
-        "step4": {
-          "title": "验证可用性",
-          "content": "返回此页面，检查 Chrome AI 状态是否变为\"可用\""
+        "startService": {
+          "title": "启动 Ollama 服务",
+          "note": "💡 服务会在后台运行，默认监听 11434 端口"
         },
-        "note": "💡 首次使用时，Chrome 会下载模型文件（约 1.5GB），请耐心等待"
+        "downloadModel": {
+          "title": "下载推荐模型",
+          "recommended": "推荐",
+          "chineseOptimized": "中文优化",
+          "llama": {
+            "description": "Meta 官方模型，速度快，英文能力强（约 2GB）"
+          },
+          "qwen": {
+            "description": "阿里巴巴开源，中文理解更好（约 2GB）"
+          }
+        },
+        "verify": {
+          "title": "验证安装",
+          "success": "✅ 如果返回版本信息，说明安装成功"
+        },
+        "configure": {
+          "title": "在 Silent Feed 中配置",
+          "step1": "返回此设置页面",
+          "step2": "选择「Ollama（本地服务）」",
+          "step3": "点击「测试连接并获取模型」按钮",
+          "step4": "选择你刚才下载的模型，保存设置"
+        },
+        "resources": {
+          "title": "更多资源",
+          "officialDocs": "Ollama 官方文档",
+          "modelLibrary": "模型库",
+          "detailedGuide": "详细安装指南"
+        },
+        "closeButton": "我知道了"
       },
       "aiEngineAssignment": {
         "quickPresets": "快速预设",

@@ -458,10 +458,39 @@
         "intro": "Hi! I'm {{providerName}}. Since {{startDate}}, I've observed you browsing {{totalPages}} pages. Your main interests are: {{interests}}",
         "preferences": "You seem to prefer: {{preferences}}",
         "avoidTopics": "You might not be interested in these topics: {{topics}}",
-        "generating": "I'm analyzing your browsing data, and I'll understand your interests better soon...",
-        "userRebuildLabel": "Help me re-analyze my interest profile",
-        "tipConfigured": "Based on your browsing history, AI will automatically update your interest profile",
-        "tipNotConfigured": "Configure AI to get more accurate interest analysis"
+        "generating": "I'm analyzing your browsing data and will soon understand your interests better...",
+        "userRebuildLabel": "Help me reanalyze my interest profile.",
+        "tipConfigured": "Based on your browsing history, AI will automatically update your interest profile.",
+        "tipNotConfigured": "After configuring AI, you can obtain more accurate interest analysis."
+      },
+      "noData": {
+        "message": "There is not enough data yet to build your interest profile.",
+        "hint": "Start browsing content you're interested in, and I'll automatically learn your preferences."
+      },
+      "lastUpdated": {
+        "justNow": "Just updated",
+        "hoursAgo": "{{hours}} hours ago",
+        "daysAgo": "{{days}} days ago"
+      },
+      "updateTime": {
+        "label": "Profile Update Time",
+        "basedOn": "Based on {{count}} pages"
+      },
+      "analysisQuality": {
+        "label": "Analysis Quality",
+        "aiAnalysis": "{{provider}} AI Analysis",
+        "notConfigured": "AI not configured",
+        "aiHint": "Using AI for deep semantic understanding",
+        "configureHint": "After configuring AI, you will receive more accurate recommendations."
+      },
+      "alerts": {
+        "rebuildSuccess": "Portrait reconstruction successful!",
+        "rebuildFailed": "Portrait reconstruction failed, please try again later."
+      },
+      "actions": {
+        "rebuild": "Rebuild Profile",
+        "rebuilding": "Rebuilding...",
+        "rebuildComplete": "Rebuild completed"
       }
     },
     "aiConfig": {
@@ -684,7 +713,7 @@
       "reasoningAvailableDeepSeek": "DeepSeek-R1 inference mode is available.",
       "reasoningFutureSupport": "{{provider}} does not currently support inference mode, which may be available in future versions.",
       "chromeAI": {
-        "title": "How to enable Chrome AI",
+        "title": "Chrome AI Status",
         "description": "Chrome AI is Google's built-in Gemini Nano model in the Chrome browser, running entirely offline to protect privacy.",
         "howToEnable": "How to enable",
         "step1": {
@@ -705,7 +734,23 @@
         },
         "note": "💡 On first use, Chrome will download the model file (about 1.5GB), please be patient.",
         "urlCopied": "Copied to clipboard! Please paste it into the address bar to open.",
-        "clickToCopy": "Click to copy"
+        "clickToCopy": "Click to copy",
+        "notAvailableYet": "Chrome AI (Gemini Nano) is still in the early experimental stage and is not yet supported in Silent Feed.",
+        "currentStatus": "Current status",
+        "status": {
+          "earlyPreview": "Early Preview stage, API is unstable",
+          "limitedPlatform": "Some platforms (such as macOS) are not available.",
+          "unstableAPI": "The interface may change at any time."
+        },
+        "whenAvailable": "When will it be available?",
+        "condition": {
+          "stableRelease": "Chrome 138+ stable version widespread adoption",
+          "crossPlatform": "Full platform (Windows/macOS/Linux) support",
+          "stableAPI": "API officially released, no further changes."
+        },
+        "learnMore": "Learn more",
+        "useOllamaInstead": "Current recommendation: Use Ollama as the local AI solution.",
+        "viewOllamaGuide": "View the Ollama installation guide"
       },
       "localAITitle": "Local AI (Optional)",
       "localAIControl": {
@@ -777,37 +822,86 @@
         "advancedOptions": "Advanced Options",
         "errors": {
           "missingEndpoint": "Please enter the service address"
-        }
+        },
+        "chromeAIComingSoon": "Support after the stable version",
+        "howToInstall": "How to install?"
       },
       "aiEngineAssignment": {
         "quickPresets": "Quick Presets",
-        "recommended": "Recommended",
+        "recommended": "Recommend",
         "advancedConfig": "Advanced Configuration",
         "detailedConfig": "Detailed Configuration",
-        "advancedConfigHint": "Customize AI engine for each task",
+        "advancedConfigHint": "Customize the AI engine used for each task",
         "table": {
           "task": "Task",
           "engine": "AI Engine",
           "reasoning": "Reasoning",
-          "note": "Note"
+          "note": "Instructions"
         },
         "tasks": {
-          "pageAnalysis": "Page Browsing Learning",
-          "feedAnalysis": "Recommend Feed Articles",
+          "pageAnalysis": "Page View Learning",
+          "feedAnalysis": "Recommended subscription articles",
           "profileGeneration": "User Profile Generation"
         },
         "notes": {
-          "highFrequency": "High frequency (reasoning optional)",
-          "lowFrequency": "Low frequency (reasoning optional)"
+          "highFrequency": "High-Frequency Tasks (Optional Reasoning)",
+          "lowFrequency": "Low-frequency tasks (optional reasoning)"
         },
         "performanceWarning": {
-          "title": "Performance Impact Warning",
-          "description": "Using local AI for learning or feed analysis will cause:",
-          "impact1": "Wait 3-5 seconds each browsing",
+          "title": "Performance Impact Alert",
+          "description": "Learning articles or subscribing to analytics using local AI will result in:",
+          "impact1": "Wait 3-5 seconds for each browse",
           "impact2": "CPU usage 30-50%",
-          "impact3": "Significantly reduced battery life",
-          "suggestion": "Recommendation: Use remote AI for high-frequency tasks, only ¥0.5/month"
+          "impact3": "Battery life has significantly decreased.",
+          "suggestion": "Suggestion: Use remote AI for high-frequency tasks, costing only ¥0.5 per month."
         }
+      },
+      "ollama": {
+        "title": "Ollama Installation Guide",
+        "description": "Ollama is an open-source tool for running large language models locally, allowing you to run open-source models like Llama and Qwen entirely offline on your computer, ensuring privacy protection.",
+        "installation": {
+          "title": "Install Ollama",
+          "macOS": {
+            "alternative": "Or"
+          },
+          "downloadInstaller": "Download the installation package",
+          "windows": {
+            "instruction": "Download Windows installation package"
+          }
+        },
+        "startService": {
+          "title": "Start the Ollama service",
+          "note": "💡 The service runs in the background and listens on port 11434 by default."
+        },
+        "downloadModel": {
+          "title": "Download recommended models",
+          "recommended": "Recommend",
+          "chineseOptimized": "Chinese optimization",
+          "llama": {
+            "description": "Meta official model, fast speed, strong English capability (approx. 2GB)"
+          },
+          "qwen": {
+            "description": "Alibaba open-source, better Chinese understanding (approx. 2GB)"
+          }
+        },
+        "verify": {
+          "title": "Verify installation",
+          "success": "✅ If version information is returned, the installation is successful"
+        },
+        "configure": {
+          "title": "Configure in Silent Feed",
+          "step1": "Return to this settings page",
+          "step2": "Select \"Ollama (Local Service)\"",
+          "step3": "Click the \"Test Connection and Get Models\" button",
+          "step4": "Select the model you just downloaded and save the settings"
+        },
+        "resources": {
+          "title": "More resources",
+          "officialDocs": "Ollama Official Documentation",
+          "modelLibrary": "Model Library",
+          "detailedGuide": "Detailed Installation Guide"
+        },
+        "closeButton": "I see."
       }
     },
     "rssManager": {
@@ -1057,32 +1151,32 @@
       "description": "AI is the core feature of Silent Feed and requires configuration before it can be used.",
       "aiEngineAssignment": {
         "quickPresets": "Quick Presets",
-        "recommended": "Recommended",
+        "recommended": "Recommend",
         "advancedConfig": "Advanced Configuration",
         "detailedConfig": "Detailed Configuration",
-        "advancedConfigHint": "Customize AI engine for each task",
+        "advancedConfigHint": "Customize the AI engine used for each task",
         "table": {
           "task": "Task",
           "engine": "AI Engine",
           "reasoning": "Reasoning",
-          "note": "Note"
+          "note": "Instructions"
         },
         "tasks": {
-          "pageAnalysis": "Page Browsing Learning",
-          "feedAnalysis": "Recommend Feed Articles",
+          "pageAnalysis": "Page View Learning",
+          "feedAnalysis": "Recommended subscription articles",
           "profileGeneration": "User Profile Generation"
         },
         "notes": {
-          "highFrequency": "High frequency (reasoning optional)",
-          "lowFrequency": "Low frequency (reasoning optional)"
+          "highFrequency": "High-Frequency Tasks (Optional Reasoning)",
+          "lowFrequency": "Low-frequency tasks (optional reasoning)"
         },
         "performanceWarning": {
-          "title": "Performance Impact Warning",
-          "description": "Using local AI for learning or feed analysis will cause:",
-          "impact1": "Wait 3-5 seconds each browsing",
+          "title": "Performance Impact Alert",
+          "description": "Studying articles or subscribing to analytics using local AI results in:",
+          "impact1": "Wait 3-5 seconds for each browse",
           "impact2": "CPU usage 30-50%",
-          "impact3": "Significantly reduced battery life",
-          "suggestion": "Recommendation: Use remote AI for high-frequency tasks, only ¥0.5/month"
+          "impact3": "Battery life significantly decreased.",
+          "suggestion": "Suggestion: Use remote AI for high-frequency tasks, costing only ¥0.5 per month."
         }
       },
       "labels": {

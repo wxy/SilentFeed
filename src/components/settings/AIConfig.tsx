@@ -82,6 +82,7 @@ export function AIConfig() {
   const [showAdvancedLocalOptions, setShowAdvancedLocalOptions] = useState(false)
   const [showCostDetails, setShowCostDetails] = useState(false) // Phase 9: 成本详情浮层
   const [showChromeAIHelp, setShowChromeAIHelp] = useState(false) // Phase 9: Chrome AI 帮助浮层
+  const [showOllamaHelp, setShowOllamaHelp] = useState(false) // Ollama 安装帮助浮层
 
   // 从模型推导当前 Provider
   const currentProvider = model ? getProviderFromModel(model) : null
@@ -654,7 +655,7 @@ export function AIConfig() {
           
           {/* Chrome AI */}
           <div className="flex items-center gap-2">
-            <label className="flex items-center gap-2 cursor-pointer">
+            <label className="flex items-center gap-2 cursor-not-allowed opacity-50">
               <input
                 type="radio"
                 name="localAIChoice"
@@ -664,25 +665,16 @@ export function AIConfig() {
                   setLocalAIChoice('chromeAI')
                   setLocalConfig(prev => ({ ...prev, enabled: false, provider: "ollama" }))
                 }}
-                disabled={!localAIStatus.hasChromeAI}
+                disabled={true}
                 className="w-4 h-4"
               />
               <span className="text-sm text-gray-700 dark:text-gray-300">
                 {_("options.aiConfig.local.chromeAI")}
               </span>
             </label>
-            {localAIStatus.hasChromeAI ? (
-              <span className="text-xs text-green-600 dark:text-green-400">
-                ✓ {_("options.aiConfig.local.available")}
-              </span>
-            ) : (
-              <button
-                onClick={() => setShowChromeAIHelp(true)}
-                className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                {_("options.aiConfig.local.howToEnable")}
-              </button>
-            )}
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              🚧 {_("options.aiConfig.local.chromeAIComingSoon")}
+            </span>
           </div>
           
           {/* Ollama */}
@@ -709,14 +701,12 @@ export function AIConfig() {
                 ✓ {_("options.aiConfig.local.available")}
               </span>
             ) : (
-              <a
-                href="https://ollama.ai"
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                onClick={() => setShowOllamaHelp(true)}
                 className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
               >
-                {_("options.aiConfig.local.installOllama")}
-              </a>
+                {_("options.aiConfig.local.howToInstall")}
+              </button>
             )}
           </div>
         </div>
@@ -1033,7 +1023,7 @@ export function AIConfig() {
       </div>
     )}
 
-    {/* Chrome AI 帮助浮层模态框 */}
+    {/* Chrome AI 说明浮层 */}
     {showChromeAIHelp && (
       <div 
         className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
@@ -1044,7 +1034,7 @@ export function AIConfig() {
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-bold">❓ {_("options.aiConfig.chromeAI.title")}</h3>
+            <h3 className="text-xl font-bold">🚧 {_("options.aiConfig.chromeAI.title")}</h3>
             <button
               onClick={() => setShowChromeAIHelp(false)}
               className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 text-2xl"
@@ -1053,62 +1043,262 @@ export function AIConfig() {
             </button>
           </div>
           
-          <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">
-            {_("options.aiConfig.chromeAI.description")}
-          </p>
-
-          <div className="space-y-3 text-sm">
-            <div>
-              <div className="font-semibold text-gray-800 dark:text-gray-200 mb-1">
-                1️⃣ {_("options.aiConfig.chromeAI.step1.title")}
+          <div className="space-y-4 text-sm text-gray-700 dark:text-gray-300">
+            <p>
+              {_("options.aiConfig.chromeAI.notAvailableYet")}
+            </p>
+            
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+              <div className="font-semibold text-blue-900 dark:text-blue-200 mb-2">
+                📊 {_("options.aiConfig.chromeAI.currentStatus")}
               </div>
-              <p className="text-gray-700 dark:text-gray-300 ml-6">
-                {_("options.aiConfig.chromeAI.step1.content")}
-              </p>
+              <ul className="space-y-1 text-blue-800 dark:text-blue-300 text-xs">
+                <li>• {_("options.aiConfig.chromeAI.status.earlyPreview")}</li>
+                <li>• {_("options.aiConfig.chromeAI.status.limitedPlatform")}</li>
+                <li>• {_("options.aiConfig.chromeAI.status.unstableAPI")}</li>
+              </ul>
             </div>
 
-            <div>
-              <div className="font-semibold text-gray-800 dark:text-gray-200 mb-1">
-                2️⃣ {_("options.aiConfig.chromeAI.step2.title")}
+            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+              <div className="font-semibold text-green-900 dark:text-green-200 mb-2">
+                ✅ {_("options.aiConfig.chromeAI.whenAvailable")}
               </div>
-              <p className="text-gray-700 dark:text-gray-300 ml-6">
-                {_("options.aiConfig.chromeAI.step2.content")}
-              </p>
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText('chrome://flags/#optimization-guide-on-device-model')
-                  alert(_("options.aiConfig.chromeAI.urlCopied"))
-                }}
-                title={_("options.aiConfig.chromeAI.clickToCopy")}
-                className="ml-6 mt-2 p-2 bg-gray-100 dark:bg-gray-700 rounded font-mono text-xs text-blue-600 dark:text-blue-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors block"
+              <ul className="space-y-1 text-green-800 dark:text-green-300 text-xs">
+                <li>• {_("options.aiConfig.chromeAI.condition.stableRelease")}</li>
+                <li>• {_("options.aiConfig.chromeAI.condition.crossPlatform")}</li>
+                <li>• {_("options.aiConfig.chromeAI.condition.stableAPI")}</li>
+              </ul>
+            </div>
+
+            <p className="text-xs text-gray-600 dark:text-gray-400">
+              📖 {_("options.aiConfig.chromeAI.learnMore")}: {" "}
+              <a 
+                href="https://developer.chrome.com/docs/ai/built-in-apis"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 dark:text-blue-400 hover:underline"
               >
-                chrome://flags/#optimization-guide-on-device-model
-                <span className="ml-2 text-[10px]">📋</span>
-              </button>
+                Chrome Built-in AI APIs
+              </a>
+            </p>
+
+            <p className="font-semibold">
+              💡 {_("options.aiConfig.chromeAI.useOllamaInstead")}
+            </p>
+          </div>
+
+          <button
+            onClick={() => {
+              setShowChromeAIHelp(false)
+              setShowOllamaHelp(true)
+            }}
+            className="mt-4 w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            {_("options.aiConfig.chromeAI.viewOllamaGuide")}
+          </button>
+        </div>
+      </div>
+    )}
+
+    {/* Ollama 安装帮助浮层 */}
+    {showOllamaHelp && (
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto"
+        onClick={() => setShowOllamaHelp(false)}
+      >
+        <div 
+          className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl m-4 my-8 max-h-[90vh] overflow-y-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between mb-4 sticky top-0 bg-white dark:bg-gray-800 pb-2 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-xl font-bold">🦙 {_("options.aiConfig.ollama.title")}</h3>
+            <button
+              onClick={() => setShowOllamaHelp(false)}
+              className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 text-2xl"
+            >
+              ×
+            </button>
+          </div>
+          
+          <div className="space-y-4 text-sm">
+            <p className="text-gray-700 dark:text-gray-300">
+              {_("options.aiConfig.ollama.description")}
+            </p>
+
+            {/* 安装步骤 */}
+            <div className="space-y-3">
+              <div className="font-semibold text-gray-800 dark:text-gray-200">
+                📥 {_("options.aiConfig.ollama.installation.title")}
+              </div>
+              
+              {/* macOS */}
+              <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+                <div className="font-medium text-gray-800 dark:text-gray-200 mb-2">
+                  🍎 macOS
+                </div>
+                <code className="block bg-gray-900 text-gray-100 p-3 rounded text-xs font-mono overflow-x-auto">
+                  brew install ollama
+                </code>
+                <p className="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                  {_("options.aiConfig.ollama.installation.macOS.alternative")}:{" "}
+                  <a 
+                    href="https://ollama.com/download"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    {_("options.aiConfig.ollama.installation.downloadInstaller")}
+                  </a>
+                </p>
+              </div>
+
+              {/* Linux */}
+              <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+                <div className="font-medium text-gray-800 dark:text-gray-200 mb-2">
+                  🐧 Linux
+                </div>
+                <code className="block bg-gray-900 text-gray-100 p-3 rounded text-xs font-mono overflow-x-auto">
+                  curl -fsSL https://ollama.com/install.sh | sh
+                </code>
+              </div>
+
+              {/* Windows */}
+              <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+                <div className="font-medium text-gray-800 dark:text-gray-200 mb-2">
+                  🪟 Windows
+                </div>
+                <p className="text-gray-700 dark:text-gray-300 text-xs">
+                  {_("options.aiConfig.ollama.installation.windows.instruction")}:{" "}
+                  <a 
+                    href="https://ollama.com/download"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    ollama.com/download
+                  </a>
+                </p>
+              </div>
             </div>
 
-            <div>
-              <div className="font-semibold text-gray-800 dark:text-gray-200 mb-1">
-                3️⃣ {_("options.aiConfig.chromeAI.step3.title")}
+            {/* 启动服务 */}
+            <div className="space-y-2">
+              <div className="font-semibold text-gray-800 dark:text-gray-200">
+                🚀 {_("options.aiConfig.ollama.startService.title")}
               </div>
-              <p className="text-gray-700 dark:text-gray-300 ml-6">
-                {_("options.aiConfig.chromeAI.step3.content")}
+              <code className="block bg-gray-900 text-gray-100 p-3 rounded text-xs font-mono overflow-x-auto">
+                ollama serve
+              </code>
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                {_("options.aiConfig.ollama.startService.note")}
               </p>
             </div>
 
-            <div>
-              <div className="font-semibold text-gray-800 dark:text-gray-200 mb-1">
-                4️⃣ {_("options.aiConfig.chromeAI.step4.title")}
+            {/* 下载模型 */}
+            <div className="space-y-2">
+              <div className="font-semibold text-gray-800 dark:text-gray-200">
+                📦 {_("options.aiConfig.ollama.downloadModel.title")}
               </div>
-              <p className="text-gray-700 dark:text-gray-300 ml-6">
-                {_("options.aiConfig.chromeAI.step4.content")}
+              
+              <div className="space-y-2">
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                  <div className="font-medium text-blue-900 dark:text-blue-200 text-xs mb-1">
+                    ⭐ {_("options.aiConfig.ollama.downloadModel.recommended")}
+                  </div>
+                  <code className="block bg-gray-900 text-gray-100 p-2 rounded text-xs font-mono overflow-x-auto mt-2">
+                    ollama pull llama3.2
+                  </code>
+                  <p className="text-xs text-blue-800 dark:text-blue-300 mt-2">
+                    {_("options.aiConfig.ollama.downloadModel.llama.description")}
+                  </p>
+                </div>
+
+                <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
+                  <div className="font-medium text-gray-800 dark:text-gray-200 text-xs mb-1">
+                    🇨🇳 {_("options.aiConfig.ollama.downloadModel.chineseOptimized")}
+                  </div>
+                  <code className="block bg-gray-900 text-gray-100 p-2 rounded text-xs font-mono overflow-x-auto mt-2">
+                    ollama pull qwen2.5:3b
+                  </code>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                    {_("options.aiConfig.ollama.downloadModel.qwen.description")}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* 验证安装 */}
+            <div className="space-y-2">
+              <div className="font-semibold text-gray-800 dark:text-gray-200">
+                ✅ {_("options.aiConfig.ollama.verify.title")}
+              </div>
+              <code className="block bg-gray-900 text-gray-100 p-3 rounded text-xs font-mono overflow-x-auto">
+                curl http://localhost:11434/api/version
+              </code>
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                {_("options.aiConfig.ollama.verify.success")}
               </p>
+            </div>
+
+            {/* 配置扩展 */}
+            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+              <div className="font-semibold text-green-900 dark:text-green-200 mb-2">
+                ⚙️ {_("options.aiConfig.ollama.configure.title")}
+              </div>
+              <ol className="space-y-1 text-green-800 dark:text-green-300 text-xs list-decimal list-inside">
+                <li>{_("options.aiConfig.ollama.configure.step1")}</li>
+                <li>{_("options.aiConfig.ollama.configure.step2")}</li>
+                <li>{_("options.aiConfig.ollama.configure.step3")}</li>
+                <li>{_("options.aiConfig.ollama.configure.step4")}</li>
+              </ol>
+            </div>
+
+            {/* 更多资源 */}
+            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                📚 {_("options.aiConfig.ollama.resources.title")}
+              </div>
+              <ul className="space-y-1 text-xs">
+                <li>
+                  <a 
+                    href="https://github.com/ollama/ollama"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    📖 {_("options.aiConfig.ollama.resources.officialDocs")}
+                  </a>
+                </li>
+                <li>
+                  <a 
+                    href="https://ollama.com/library"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    🤗 {_("options.aiConfig.ollama.resources.modelLibrary")}
+                  </a>
+                </li>
+                <li>
+                  <a 
+                    href="https://github.com/wxy/SilentFeed/blob/master/docs/OLLAMA_SETUP_GUIDE.md"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    📄 {_("options.aiConfig.ollama.resources.detailedGuide")}
+                  </a>
+                </li>
+              </ul>
             </div>
           </div>
 
-          <p className="mt-4 text-xs text-gray-600 dark:text-gray-400">
-            {_("options.aiConfig.chromeAI.note")}
-          </p>
+          <button
+            onClick={() => setShowOllamaHelp(false)}
+            className="mt-6 w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            {_("options.aiConfig.ollama.closeButton")}
+          </button>
         </div>
       </div>
     )}
