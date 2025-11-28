@@ -762,7 +762,6 @@ export function AIConfig() {
                   ? _("options.aiConfig.localAIForm.testing")
                   : _("options.aiConfig.localAIForm.testAndFetch")}
               </button>
-            </div>
           </div>
 
           {/* 模型选择 */}
