@@ -40,11 +40,24 @@ export function AIEngineAssignmentComponent({
 
   // 检测当前配置是否匹配某个预设
   const detectPreset = (): PresetName | "custom" => {
+    if (!value) return "intelligence" // 默认选中智能优先
+    
     for (const [key, preset] of Object.entries(AI_ENGINE_PRESETS)) {
       const presetConfig = preset.config
-      if (
-        JSON.stringify(presetConfig) === JSON.stringify(value)
-      ) {
+      
+      // 深度比较每个任务的配置
+      const matches = Object.entries(presetConfig).every(([taskKey, taskConfig]) => {
+        const currentConfig = value[taskKey as keyof AIEngineAssignment]
+        if (!currentConfig) return false
+        
+        // 比较 provider 和 useReasoning
+        return (
+          currentConfig.provider === taskConfig.provider &&
+          (currentConfig.useReasoning ?? false) === (taskConfig.useReasoning ?? false)
+        )
+      })
+      
+      if (matches) {
         return key as PresetName
       }
     }

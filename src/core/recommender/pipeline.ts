@@ -512,8 +512,8 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
         userProfile: aiUserProfile
       }
       
-      // 调用 AI 分析
-      const analysis = await aiManager.analyzeContent(content, analysisOptions, providerMode)
+      // Phase 8: 使用 feedAnalysis 任务类型（会从引擎分配配置中自动读取引擎和推理设置）
+      const analysis = await aiManager.analyzeContent(content, analysisOptions, "feedAnalysis")
       
       // 保存 AI 分析结果到文章
       await this.saveArticleAnalysis(article.id, article.feedId, analysis)
@@ -634,8 +634,8 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
             userProfile  // Phase 8: 传递用户画像
           }
           
-          // 调用AI分析（这里保持单个调用，因为aiManager暂不支持批量）
-          const analysis = await aiManager.analyzeContent(item.content, analysisOptions, providerMode)
+          // Phase 8: 使用 feedAnalysis 任务类型（会从引擎分配配置中自动读取引擎和推理设置）
+          const analysis = await aiManager.analyzeContent(item.content, analysisOptions, "feedAnalysis")
           
           // Phase 6: 保存 AI 分析结果到文章（用于标记已分析，避免重复处理）
           await this.saveArticleAnalysis(item.article.id, item.article.feedId, analysis)

@@ -27,7 +27,6 @@ describe("ai-engine-assignment", () => {
       expect(preset.config.pageAnalysis.provider).toBe("ollama")
       expect(preset.config.feedAnalysis.provider).toBe("ollama")
       expect(preset.config.profileGeneration.provider).toBe("ollama")
-      expect(preset.config.recommendation.provider).toBe("ollama")
     })
 
     it("智能优先方案应该使用远程AI+推理", () => {
@@ -36,8 +35,6 @@ describe("ai-engine-assignment", () => {
       expect(preset.config.feedAnalysis.provider).toBe("deepseek")
       expect(preset.config.profileGeneration.provider).toBe("deepseek")
       expect(preset.config.profileGeneration.useReasoning).toBe(true)
-      expect(preset.config.recommendation.provider).toBe("deepseek")
-      expect(preset.config.recommendation.useReasoning).toBe(true)
     })
 
     it("经济优先方案应该使用远程AI标准模式", () => {
@@ -46,8 +43,6 @@ describe("ai-engine-assignment", () => {
       expect(preset.config.feedAnalysis.provider).toBe("deepseek")
       expect(preset.config.profileGeneration.provider).toBe("deepseek")
       expect(preset.config.profileGeneration.useReasoning).toBe(false)
-      expect(preset.config.recommendation.provider).toBe("deepseek")
-      expect(preset.config.recommendation.useReasoning).toBe(false)
     })
 
     it("智能优先方案应该标记为推荐", () => {
@@ -82,7 +77,6 @@ describe("ai-engine-assignment", () => {
       expect(defaultAssignment.pageAnalysis).toBeDefined()
       expect(defaultAssignment.feedAnalysis).toBeDefined()
       expect(defaultAssignment.profileGeneration).toBeDefined()
-      expect(defaultAssignment.recommendation).toBeDefined()
     })
   })
 
@@ -105,17 +99,9 @@ describe("ai-engine-assignment", () => {
       expect(validateEngineConfig(invalidConfig)).toBe(false)
     })
 
-    it("应该拒绝 keyword + 推理的组合", () => {
-      const invalidConfig: AIEngineConfig = {
-        provider: "keyword",
-        useReasoning: true
-      }
-      expect(validateEngineConfig(invalidConfig)).toBe(false)
-    })
-
-    it("应该接受 keyword 不启用推理", () => {
+    it("应该接受 ollama 不启用推理", () => {
       const validConfig: AIEngineConfig = {
-        provider: "keyword",
+        provider: "ollama",
         useReasoning: false
       }
       expect(validateEngineConfig(validConfig)).toBe(true)
@@ -139,8 +125,7 @@ describe("ai-engine-assignment", () => {
       const customAssignment: AIEngineAssignment = {
         pageAnalysis: { provider: "deepseek" },
         feedAnalysis: { provider: "ollama", model: "llama3.2:3b" },
-        profileGeneration: { provider: "deepseek", useReasoning: true },
-        recommendation: { provider: "ollama", model: "qwen2.5:7b" }
+        profileGeneration: { provider: "deepseek", useReasoning: true }
       }
       expect(validateEngineAssignment(customAssignment)).toBe(true)
     })
@@ -149,8 +134,7 @@ describe("ai-engine-assignment", () => {
       const invalidAssignment: AIEngineAssignment = {
         pageAnalysis: { provider: "invalid" as any },
         feedAnalysis: { provider: "deepseek" },
-        profileGeneration: { provider: "deepseek" },
-        recommendation: { provider: "deepseek" }
+        profileGeneration: { provider: "deepseek" }
       }
       expect(validateEngineAssignment(invalidAssignment)).toBe(false)
     })

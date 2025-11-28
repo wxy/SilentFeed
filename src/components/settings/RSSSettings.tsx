@@ -695,7 +695,7 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
     return (
       <div 
         key={feed.id}
-        className="flex flex-col gap-1.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 border border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 transition-colors"
+        className="group flex flex-col gap-1.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 border border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 transition-colors"
       >
         {/* 第一行：RSS 本身属性 */}
         <div className="flex items-center gap-2 text-sm">
@@ -851,43 +851,139 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
             {/* 已订阅源：抓取统计 */}
             {feed.status === 'subscribed' && (
               <>
-                {/* 文章统计：总数 / 已分析 / 已推荐 / 推荐已读 / 不想读 */}
-                {feed.articleCount > 0 && (
-                  <span className="flex items-center gap-1">
-                    <span>📰</span>
-                    <span className="text-sm">
-                      <span className="font-medium">{feed.articleCount}</span>
-                      <span className="text-gray-500 dark:text-gray-400 ml-1">
-                        (
-                        {/* 已分析 */}
-                        <span className="text-blue-600 dark:text-blue-400">
-                          ✓{feed.analyzedCount || 0}
-                        </span>
-                        {/* 已推荐 */}
-                        <span className="mx-1">/</span>
-                        <span className="text-green-600 dark:text-green-400">
-                          ⭐{feed.recommendedCount || 0}
-                        </span>
-                        {/* 推荐已读（推荐池中被阅读的数量）*/}
-                        <span className="mx-1">/</span>
-                        <span className="text-gray-600 dark:text-gray-300">
-                          👁{feed.recommendedReadCount || 0}
-                        </span>
-                        {/* 不想读 */}
-                        <span className="mx-1">/</span>
-                        <span className="text-red-600 dark:text-red-400">
-                          👎{feed.dislikedCount || 0}
-                        </span>
-                        )
+                {/* 文章统计：可视化方块 */}
+                {feed.articleCount > 0 && (() => {
+                  const total = feed.articleCount
+                  const analyzed = feed.analyzedCount || 0
+                  const recommended = feed.recommendedCount || 0
+                  const read = feed.recommendedReadCount || 0
+                  const disliked = feed.dislikedCount || 0
+                  
+                  const blocksPerUnit = 5 // 每个方块代表 5 篇
+                  const totalBlocks = Math.ceil(total / blocksPerUnit)
+                  
+                  // 计算各类型方块数量
+                  const recommendedBlocks = Math.ceil(recommended / blocksPerUnit)
+                  const readBlocks = Math.ceil(read / blocksPerUnit)
+                  const dislikedBlocks = Math.ceil(disliked / blocksPerUnit)
+                  const analyzedBlocks = Math.ceil(analyzed / blocksPerUnit)
+                  
+                  // 已分析但未分类的方块
+                  const otherAnalyzedBlocks = Math.max(0, analyzedBlocks - recommendedBlocks - readBlocks - dislikedBlocks)
+                  
+                  // 未分析的方块
+                  const unanalyzedBlocks = Math.max(0, totalBlocks - analyzedBlocks)
+                  
+                  // 构建方块数组（按优先级排列：推荐 > 已读 > 不想读 > 其他已分析 > 未分析）
+                  const blocks: Array<{
+                    type: 'recommended' | 'read' | 'disliked' | 'analyzed' | 'unanalyzed'
+                    className: string
+                    tooltip: string
+                  }> = []
+                  
+                  // 推荐（绿色）
+                  for (let i = 0; i < recommendedBlocks; i++) {
+                    blocks.push({
+                      type: 'recommended',
+                      className: 'bg-green-400 dark:bg-green-500 border border-green-500 dark:border-green-600',
+                      tooltip: `⭐ 已推荐: ${recommended} 篇`
+                    })
+                  }
+                  
+                  // 已读（蓝色）
+                  for (let i = 0; i < readBlocks; i++) {
+                    blocks.push({
+                      type: 'read',
+                      className: 'bg-blue-400 dark:bg-blue-500 border border-blue-500 dark:border-blue-600',
+                      tooltip: `👁 推荐已读: ${read} 篇`
+                    })
+                  }
+                  
+                  // 不想读（红色）
+                  for (let i = 0; i < dislikedBlocks; i++) {
+                    blocks.push({
+                      type: 'disliked',
+                      className: 'bg-red-400 dark:bg-red-500 border border-red-500 dark:border-red-600',
+                      tooltip: `👎 不想读: ${disliked} 篇`
+                    })
+                  }
+                  
+                  // 其他已分析（灰色实心）
+                  for (let i = 0; i < otherAnalyzedBlocks; i++) {
+                    blocks.push({
+                      type: 'analyzed',
+                      className: 'bg-gray-400 dark:bg-gray-500 border border-gray-500 dark:border-gray-600',
+                      tooltip: `✓ 已分析: ${analyzed} 篇`
+                    })
+                  }
+                  
+                  // 未分析（白色边框）
+                  for (let i = 0; i < unanalyzedBlocks; i++) {
+                    blocks.push({
+                      type: 'unanalyzed',
+                      className: 'bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600',
+                      tooltip: `📰 总文章: ${total} 篇`
+                    })
+                  }
+                  
+                  // 最多显示 20 个方块
+                  const visibleBlocks = blocks.slice(0, 20)
+                  const hiddenCount = blocks.length - visibleBlocks.length
+                  
+                  return (
+                    <div className="flex items-center gap-2">
+                      {/* 总数标签 */}
+                      <span className="flex items-center gap-1">
+                        <span>📰</span>
+                        <span className="font-medium text-gray-700 dark:text-gray-300">{total}</span>
                       </span>
-                    </span>
-                  </span>
-                )}
+                      
+                      {/* 方块可视化 */}
+                      <div className="flex items-center gap-0.5 flex-wrap">
+                        {visibleBlocks.map((block, idx) => (
+                          <div
+                            key={idx}
+                            className={`w-3 h-3 rounded-sm cursor-help transition-transform hover:scale-150 ${block.className}`}
+                            title={block.tooltip}
+                          />
+                        ))}
+                        {hiddenCount > 0 && (
+                          <span className="text-xs text-gray-400 dark:text-gray-500 ml-1">
+                            +{hiddenCount}
+                          </span>
+                        )}
+                      </div>
+                      
+                      {/* 图例（鼠标悬浮卡片显示）*/}
+                      <div className="hidden group-hover:flex items-center gap-2 text-xs ml-1">
+                        {recommended > 0 && (
+                          <span className="flex items-center gap-1">
+                            <span className="w-2 h-2 bg-green-400 dark:bg-green-500 rounded-sm"></span>
+                            <span>{recommended}</span>
+                          </span>
+                        )}
+                        {read > 0 && (
+                          <span className="flex items-center gap-1">
+                            <span className="w-2 h-2 bg-blue-400 dark:bg-blue-500 rounded-sm"></span>
+                            <span>{read}</span>
+                          </span>
+                        )}
+                        {disliked > 0 && (
+                          <span className="flex items-center gap-1">
+                            <span className="w-2 h-2 bg-red-400 dark:bg-red-500 rounded-sm"></span>
+                            <span>{disliked}</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })()}
+                
                 
                 {/* 上次抓取时间/下次抓取时间 */}
                 {feed.lastFetchedAt && (
                   <>
-                    {feed.articleCount > 0 && <span>•</span>}
+                    {feed.articleCount > 0 && <span className="text-gray-300 dark:text-gray-600">•</span>}
                     <span className="flex items-center gap-1">
                       <span>⏱️</span>
                       <span>

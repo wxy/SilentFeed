@@ -24,7 +24,8 @@ import { DeepSeekProvider } from "./providers/DeepSeekProvider"
 import { OpenAIProvider } from "./providers/OpenAIProvider"
 import { FallbackKeywordProvider } from "./providers/FallbackKeywordProvider"
 import { OllamaProvider } from "./providers/OllamaProvider"
-import { getAIConfig, type AIProviderType, type LocalAIConfig } from "@/storage/ai-config"
+import { getAIConfig, getEngineAssignment, type AIProviderType, type LocalAIConfig } from "@/storage/ai-config"
+import type { AIEngineAssignment } from "@/types/ai-engine-assignment"
 import { logger } from '../../utils/logger'
 
 // 创建带标签的 logger
@@ -32,10 +33,18 @@ const aiLogger = logger.withTag('AICapabilityManager')
 
 type ProviderSelectionMode = "auto" | "remote" | "local"
 
+/**
+ * AI 任务类型
+ * Phase 8: 根据任务类型选择不同的 AI 引擎
+ */
+export type AITaskType = "pageAnalysis" | "feedAnalysis" | "profileGeneration"
+
 export class AICapabilityManager {
   private remoteProvider: AIProvider | null = null
   private localProvider: AIProvider | null = null
   private fallbackProvider: FallbackKeywordProvider
+  /** Phase 8: AI 引擎分配配置 */
+  private engineAssignment: AIEngineAssignment | null = null
   
   constructor() {
     this.fallbackProvider = new FallbackKeywordProvider()
@@ -52,6 +61,15 @@ export class AICapabilityManager {
       const apiKey = providerType ? (config.apiKeys?.[providerType] || "") : ""
       await this.initializeRemoteProvider(config.enabled, providerType, apiKey, config.model)
       await this.initializeLocalProvider(config.local)
+      
+      // Phase 8: 加载 AI 引擎分配配置
+      try {
+        this.engineAssignment = await getEngineAssignment()
+        aiLogger.info('🎯 Engine assignment loaded:', this.engineAssignment)
+      } catch (error) {
+        aiLogger.warn('⚠️ Failed to load engine assignment, using default logic', error)
+        this.engineAssignment = null
+      }
     } catch (error) {
       aiLogger.error(" Initialization failed:", error)
       this.remoteProvider = null
@@ -61,14 +79,49 @@ export class AICapabilityManager {
   
   /**
    * 分析内容
+   * Phase 8: 支持按任务类型路由到指定引擎
    * 
-   * 自动选择最佳 Provider 并处理降级
+   * @param content - 要分析的内容
+   * @param options - 分析选项
+   * @param taskType - 任务类型（用于引擎路由），如果不提供则使用旧的 mode 参数
+   * @param mode - 旧的 provider 选择模式（向后兼容）
    */
   async analyzeContent(
     content: string,
     options?: AnalyzeOptions,
+    taskType?: AITaskType,
     mode: ProviderSelectionMode = "auto"
   ): Promise<UnifiedAnalysisResult> {
+    // Phase 8: 如果提供了 taskType，使用新的任务路由逻辑
+    if (taskType) {
+      const { provider, useReasoning } = await this.getProviderForTask(taskType)
+      
+      if (provider) {
+        try {
+          aiLogger.info(`🚀 Analyzing with ${provider.name} (task: ${taskType}, reasoning: ${useReasoning})`)
+          
+          // 将 useReasoning 配置合并到 options 中
+          const mergedOptions: AnalyzeOptions = {
+            ...options,
+            useReasoning: useReasoning || options?.useReasoning || false
+          }
+          
+          const result = await provider.analyzeContent(content, mergedOptions)
+          this.recordUsage(result)
+          return result
+        } catch (error) {
+          aiLogger.error(`❌ Provider ${provider.name} failed for ${taskType}`, error)
+          // 失败后降级到 fallback
+          aiLogger.info("📌 Using fallback provider: Keyword Analysis")
+          return await this.fallbackProvider.analyzeContent(content, options)
+        }
+      } else {
+        aiLogger.warn(`⚠️ No provider available for ${taskType}, using fallback`)
+        return await this.fallbackProvider.analyzeContent(content, options)
+      }
+    }
+
+    // 向后兼容：没有提供 taskType 时使用旧的 mode 逻辑
     const providers = await this.getProviderChain(mode)
     for (const provider of providers) {
       try {
@@ -89,11 +142,36 @@ export class AICapabilityManager {
    * Phase 8: 生成用户画像
    * 
    * 基于用户行为数据生成语义化的用户兴趣画像
+   * Phase 8: 使用 profileGeneration 任务配置
+   * 
+   * @param request - 用户画像生成请求
+   * @param mode - 旧的 provider 选择模式（向后兼容，优先使用任务配置）
    */
   async generateUserProfile(
     request: UserProfileGenerationRequest,
     mode: ProviderSelectionMode = "auto"
   ): Promise<UserProfileGenerationResult> {
+    // Phase 8: 优先使用 profileGeneration 任务配置
+    const { provider: taskProvider, useReasoning } = await this.getProviderForTask("profileGeneration")
+    
+    if (taskProvider && taskProvider.generateUserProfile) {
+      try {
+        aiLogger.info(`🎨 Generating user profile with: ${taskProvider.name} (reasoning: ${useReasoning})`)
+        
+        // 将 useReasoning 配置传递给 provider（如果支持）
+        // 注意：当前接口不支持 useReasoning 参数，未来可以扩展
+        const result = await taskProvider.generateUserProfile(request)
+        if (result.metadata.tokensUsed) {
+          aiLogger.debug('✅ Tokens used:', result.metadata.tokensUsed)
+        }
+        return result
+      } catch (error) {
+        aiLogger.error(`❌ Provider ${taskProvider.name} failed for profile generation`, error)
+        // 继续尝试降级逻辑
+      }
+    }
+
+    // 降级逻辑：使用旧的 mode 参数
     const providers = await this.getProviderChain(mode)
     for (const provider of providers) {
       if (!provider.generateUserProfile) {
@@ -101,23 +179,24 @@ export class AICapabilityManager {
       }
 
       try {
-        aiLogger.info(` Generating user profile with: ${provider.name}`)
+        aiLogger.info(`🔄 Generating user profile with: ${provider.name}`)
         const result = await provider.generateUserProfile(request)
         if (result.metadata.tokensUsed) {
-          aiLogger.debug(' Tokens used:', result.metadata.tokensUsed)
+          aiLogger.debug('✅ Tokens used:', result.metadata.tokensUsed)
         }
         return result
       } catch (error) {
-        aiLogger.error(` Provider ${provider.name} failed for profile generation`, error)
+        aiLogger.error(`❌ Provider ${provider.name} failed for profile generation`, error)
       }
     }
 
+    // Fallback 逻辑
     if (this.fallbackProvider.generateUserProfile) {
-      aiLogger.info(" Using fallback provider for profile generation")
+      aiLogger.info("📌 Using fallback provider for profile generation")
       return await this.fallbackProvider.generateUserProfile(request)
     }
     
-    aiLogger.warn(" No provider supports profile generation, using basic keyword summary")
+    aiLogger.warn("⚠️ No provider supports profile generation, using basic keyword summary")
     const topKeywords = request.topKeywords.slice(0, 10).map(k => k.word)
     
     return {
@@ -140,6 +219,69 @@ export class AICapabilityManager {
     }
   }
   
+  /**
+   * Phase 8: 根据任务类型获取对应的 AI Provider
+   * 
+   * 从引擎分配配置中读取指定任务应该使用的引擎，并返回对应的 provider 实例
+   * 
+   * @param taskType - 任务类型（pageAnalysis/feedAnalysis/profileGeneration）
+   * @returns provider 实例和是否使用推理的配置
+   */
+  private async getProviderForTask(taskType: AITaskType): Promise<{
+    provider: AIProvider | null
+    useReasoning: boolean
+  }> {
+    if (!this.engineAssignment) {
+      aiLogger.debug(`⚙️ No engine assignment, using default provider for ${taskType}`)
+      return {
+        provider: this.remoteProvider || this.localProvider,
+        useReasoning: false
+      }
+    }
+
+    const engineConfig = this.engineAssignment[taskType]
+    if (!engineConfig) {
+      aiLogger.warn(`⚠️ No engine config for task: ${taskType}`)
+      return {
+        provider: this.remoteProvider || this.localProvider,
+        useReasoning: false
+      }
+    }
+
+    const { provider: providerType, useReasoning = false } = engineConfig
+    aiLogger.debug(`🎯 Task ${taskType} → Engine: ${providerType}, Reasoning: ${useReasoning}`)
+
+    let provider: AIProvider | null = null
+
+    switch (providerType) {
+      case "deepseek":
+      case "openai":
+        provider = this.remoteProvider
+        if (!provider) {
+          aiLogger.warn(`⚠️ Remote provider not available for ${providerType}, falling back`)
+          provider = this.localProvider
+        }
+        break
+
+      case "ollama":
+        provider = this.localProvider
+        if (!provider) {
+          aiLogger.warn(`⚠️ Local provider not available, falling back to remote`)
+          provider = this.remoteProvider
+        }
+        break
+
+      default:
+        aiLogger.error(`❌ Unknown engine type: ${providerType}`)
+        provider = this.remoteProvider || this.localProvider
+    }
+
+    return {
+      provider,
+      useReasoning: useReasoning ?? false
+    }
+  }
+
   /**
    * 测试连接
    */
