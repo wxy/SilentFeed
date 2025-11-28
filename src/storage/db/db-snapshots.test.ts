@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { db, initializeDatabase } from './db'
+import { db, initializeDatabase } from './index'
 import { Topic } from "@/core/profile/topics"
 
 describe('兴趣快照管理', () => {
@@ -19,7 +19,7 @@ describe('兴趣快照管理', () => {
 
   describe('saveInterestSnapshot & getInterestHistory', () => {
     it('应该保存并获取兴趣快照', async () => {
-      const { saveInterestSnapshot, getInterestHistory } = await import('./db')
+      const { saveInterestSnapshot, getInterestHistory } = await import('./index')
       
       const snapshot = {
         id: 'snapshot-1',
@@ -46,8 +46,8 @@ describe('兴趣快照管理', () => {
       expect(history[0].primaryTopic).toBe(Topic.TECHNOLOGY)
     })
 
-    it('应该按时间倒序返回快照', async () => {
-      const { saveInterestSnapshot, getInterestHistory } = await import('./db')
+    it('应该按时间顺序返回快照', async () => {
+      const { saveInterestSnapshot, getInterestHistory } = await import('./index')
       
       const now = Date.now()
       
@@ -84,7 +84,7 @@ describe('兴趣快照管理', () => {
 
   describe('getPrimaryTopicChanges', () => {
     it('应该只返回主导兴趣变化的快照', async () => {
-      const { saveInterestSnapshot, getPrimaryTopicChanges } = await import('./db')
+      const { saveInterestSnapshot, getPrimaryTopicChanges } = await import('./index')
       
       await saveInterestSnapshot({
         id: 'snapshot-1',
@@ -132,7 +132,7 @@ describe('兴趣快照管理', () => {
 
   describe('getTopicHistory', () => {
     it('应该返回特定主题的快照历史', async () => {
-      const { saveInterestSnapshot, getTopicHistory } = await import('./db')
+      const { saveInterestSnapshot, getTopicHistory } = await import('./index')
       
       await saveInterestSnapshot({
         id: 'snapshot-1',
@@ -166,7 +166,7 @@ describe('兴趣快照管理', () => {
 
   describe('cleanOldSnapshots', () => {
     it('应该删除超过指定月数的快照', async () => {
-      const { saveInterestSnapshot, getInterestHistory, cleanOldSnapshots } = await import('./db')
+      const { saveInterestSnapshot, getInterestHistory, cleanOldSnapshots } = await import('./index')
       
       const now = Date.now()
       const sevenMonthsAgo = now - 7 * 30 * 24 * 60 * 60 * 1000

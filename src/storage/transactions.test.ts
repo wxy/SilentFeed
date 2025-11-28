@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { db } from './db'
+import { db } from './db/index'
 import {
   saveRecommendationsWithStats,
   markRecommendationsAsRead,

@@ -11,7 +11,7 @@ import {
   markAsRead,
   dismissRecommendations,
   getUnreadRecommendations
-} from './db'
+} from './index'
 import type { Recommendation } from "@/types/database"
 
 describe('Phase 2.7 推荐功能', () => {
@@ -23,7 +23,7 @@ describe('Phase 2.7 推荐功能', () => {
 
   afterEach(async () => {
     // 清理缓存避免测试间污染
-    const { statsCache } = await import('./db')
+    const { statsCache } = await import('./index')
     statsCache.clear()
     await db.close()
   })

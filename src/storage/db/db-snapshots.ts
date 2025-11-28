@@ -5,7 +5,7 @@
  */
 
 import type { InterestSnapshot } from "@/types/profile"
-import { db } from './db'
+import { db } from './index'
 
 /**
  * 保存兴趣快照

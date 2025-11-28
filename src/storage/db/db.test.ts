@@ -9,7 +9,7 @@ import {
   getSettings, 
   updateSettings, 
   getPageCount
-} from './db'
+} from './index'
 import type { ConfirmedVisit } from "@/types/database"
 
 describe('设置管理', () => {

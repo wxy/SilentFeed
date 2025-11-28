@@ -4,7 +4,7 @@
  * 负责数据库的初始化和默认设置创建
  */
 
-import { db } from './db'
+import { db } from './index'
 import { logger } from '@/utils/logger'
 
 const dbLogger = logger.withTag('DB')

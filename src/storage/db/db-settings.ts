@@ -5,7 +5,7 @@
  */
 
 import type { UserSettings } from "@/types/config"
-import { db } from './db'
+import { db } from './index'
 
 /**
  * 获取用户设置

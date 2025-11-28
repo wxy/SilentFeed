@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { db, initializeDatabase } from './db'
+import { db, initializeDatabase } from './index'
 
 describe('数据库初始化', () => {
   beforeEach(async () => {

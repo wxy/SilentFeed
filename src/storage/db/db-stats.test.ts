@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { db, getUnrecommendedArticleCount } from './db'
+import { db, getUnrecommendedArticleCount } from './index'
 import { Topic } from "@/core/profile/topics"
 
 describe('getUnrecommendedArticleCount', () => {

@@ -5,7 +5,7 @@
  */
 
 import type { UserProfile } from "@/types/profile"
-import { db } from './db'
+import { db } from './index'
 
 /**
  * 保存或更新用户画像

@@ -11,7 +11,7 @@
  */
 
 import type { RecommendationStats, StorageStats } from "@/types/database"
-import { db } from './db'
+import { db } from './index'
 import { statsCache } from '@/utils/cache'
 import { logger } from '@/utils/logger'
 

@@ -6,7 +6,7 @@
 
 import type { Recommendation } from "@/types/database"
 import type { DiscoveredFeed } from "@/types/rss"
-import { db } from './db'
+import { db } from './index'
 import { logger } from '@/utils/logger'
 import { statsCache } from '@/utils/cache'
 import { updateFeedStats } from './db-feeds'

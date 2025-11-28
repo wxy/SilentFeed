@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { db, initializeDatabase } from './db'
+import { db, initializeDatabase } from './index'
 import type { ConfirmedVisit } from "@/types/database"
 import type { UserProfile } from "@/types/profile"
 import { Topic } from "@/core/profile/topics"
@@ -20,8 +20,8 @@ describe('用户画像管理', () => {
   })
 
   describe('saveUserProfile', () => {
-    it('应该保存用户画像', async () => {
-      const { saveUserProfile, getUserProfile } = await import('./db')
+    it('应该保存并检索用户画像', async () => {
+      const { saveUserProfile, getUserProfile } = await import('./index')
       
       const profile: UserProfile = {
         id: 'singleton' as const,
@@ -61,7 +61,7 @@ describe('用户画像管理', () => {
 
   describe('getUserProfile', () => {
     it('应该在没有画像时返回null', async () => {
-      const { getUserProfile } = await import('./db')
+      const { getUserProfile } = await import('./index')
       
       const profile = await getUserProfile()
       expect(profile).toBeNull()
@@ -70,7 +70,7 @@ describe('用户画像管理', () => {
 
   describe('deleteUserProfile', () => {
     it('应该删除用户画像', async () => {
-      const { saveUserProfile, getUserProfile, deleteUserProfile } = await import('./db')
+      const { saveUserProfile, getUserProfile, deleteUserProfile } = await import('./index')
       
       const profile: UserProfile = {
         id: 'singleton' as const,
@@ -104,7 +104,7 @@ describe('用户画像管理', () => {
 
   describe('getAnalysisStats', () => {
     it('应该返回分析统计信息', async () => {
-      const { getAnalysisStats } = await import('./db')
+      const { getAnalysisStats } = await import('./index')
       
       // 添加测试数据
       const visit: ConfirmedVisit = {
@@ -139,7 +139,7 @@ describe('用户画像管理', () => {
     })
 
     it('应该处理空数据', async () => {
-      const { getAnalysisStats } = await import('./db')
+      const { getAnalysisStats } = await import('./index')
       
       const stats = await getAnalysisStats()
       

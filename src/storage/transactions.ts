@@ -8,7 +8,7 @@
  * @module storage/transactions
  */
 
-import { db } from './db'
+import { db } from './db/index'
 import type { Recommendation } from '@/types/database'
 import type { DiscoveredFeed, FeedArticle } from '@/types/rss'
 import { logger } from '@/utils/logger'

@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest"
-import { db } from "./db"
+import { db } from "./db/index"
 import type { DiscoveredFeed } from "@/types/rss"
 import { Topic } from "../core/profile/topics"
 

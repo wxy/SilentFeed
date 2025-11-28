@@ -4,7 +4,7 @@
  * 负责 RSS 源和文章的统计更新
  */
 
-import { db } from './db'
+import { db } from './index'
 import { logger } from '@/utils/logger'
 
 // 创建模块专用日志器
