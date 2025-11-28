@@ -142,7 +142,7 @@ export function AIEngineAssignmentComponent({
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-2xl">{preset.icon}</span>
-              <span className="font-medium">{preset.name}</span>
+              <span className="font-medium">{_(`options.aiConfig.aiEngineAssignment.presets.${presetName}.name`)}</span>
               {preset.recommended && (
                 <span className="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded">
                   {_("options.aiConfig.aiEngineAssignment.recommended")}
@@ -150,14 +150,14 @@ export function AIEngineAssignmentComponent({
               )}
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-              {preset.description}
+              {_(`options.aiConfig.aiEngineAssignment.presets.${presetName}.description`)}
             </p>
             <div className="flex items-center gap-4 text-xs">
               <span className="text-gray-500 dark:text-gray-400">
-                💰 {preset.estimatedCost}
+                💰 {_(`options.aiConfig.aiEngineAssignment.presets.${presetName}.estimatedCost`)}
               </span>
               <span className="text-gray-500 dark:text-gray-400">
-                {preset.performanceImpact}
+                {_(`options.aiConfig.aiEngineAssignment.presets.${presetName}.performanceImpact`)}
               </span>
             </div>
           </div>

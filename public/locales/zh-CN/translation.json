@@ -444,6 +444,11 @@
       "funnelRecommended": "进入推荐池",
       "funnelRead": "已读",
       "funnelDismissed": "不想读",
+      "funnelLearningPages": "学习页面",
+      "funnelRecommendationRate": "推荐率",
+      "funnelReadingRate": "阅读率",
+      "funnelRssToPool": "RSS → 推荐池",
+      "funnelPoolToRead": "推荐池 → 已读",
       "analysisRate": "分析率",
       "recommendationRate": "推荐率",
       "textAnalysis": "文本分析统计",
@@ -1057,6 +1062,26 @@
         "advancedConfig": "高级配置",
         "detailedConfig": "详细配置",
         "advancedConfigHint": "自定义每个任务使用的 AI 引擎",
+        "presets": {
+          "privacy": {
+            "name": "隐私优先",
+            "description": "所有数据在本地处理，绝不上传",
+            "estimatedCost": "¥0/月",
+            "performanceImpact": "🔥🔥🔥 高"
+          },
+          "intelligence": {
+            "name": "智能优先",
+            "description": "最佳AI能力，推理模式保证质量",
+            "estimatedCost": "¥5-8/月",
+            "performanceImpact": "🔥 低（仅低频任务稍慢）"
+          },
+          "economic": {
+            "name": "经济优先",
+            "description": "成本最低，标准质量足够好",
+            "estimatedCost": "¥0.5-1/月",
+            "performanceImpact": "✅ 无"
+          }
+        },
         "table": {
           "task": "任务",
           "engine": "AI 引擎",

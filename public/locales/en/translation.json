@@ -458,7 +458,12 @@
       "startLearningTimeLabel": "Start learning time",
       "avgDailyPagesShort": "Average {{count}} pages per day",
       "aiCostAnalysisTitle": "AI Cost Analysis",
-      "totalTokenUsageLabel": "Total Token Usage"
+      "totalTokenUsageLabel": "Total Token Usage",
+      "funnelLearningPages": "Learning page",
+      "funnelRecommendationRate": "Recommendation Rate",
+      "funnelReadingRate": "Read rate",
+      "funnelRssToPool": "RSS → Recommendation Pool",
+      "funnelPoolToRead": "Recommendation Pool → Read"
     },
     "userProfile": {
       "chat": {
@@ -1185,6 +1190,26 @@
           "impact2": "CPU usage 30-50%",
           "impact3": "Battery life significantly decreased.",
           "suggestion": "Suggestion: Use remote AI for high-frequency tasks, costing only ¥0.5 per month."
+        },
+        "presets": {
+          "privacy": {
+            "name": "Privacy First",
+            "description": "All data is processed locally and never uploaded.",
+            "estimatedCost": "¥0/month",
+            "performanceImpact": "🔥🔥🔥 High"
+          },
+          "intelligence": {
+            "name": "Intelligent Priority",
+            "description": "Best AI capabilities, reasoning mode ensures quality",
+            "estimatedCost": "¥5-8/month",
+            "performanceImpact": "🔥 Low (only slightly slower for low-frequency tasks)"
+          },
+          "economic": {
+            "name": "Economic Priority",
+            "description": "Lowest cost, standard quality is good enough.",
+            "estimatedCost": "¥0.5-1/month",
+            "performanceImpact": "✅ None"
+          }
         }
       },
       "labels": {

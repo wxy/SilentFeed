@@ -721,7 +721,7 @@ export function CollectionStats() {
                       {recommendationFunnel.learningPages}
                     </text>
                     <text x="60" y="70" textAnchor="middle" fill="#78350F" fontSize="12" fontWeight="600">
-                      📚 学习页面
+                      📚 {_("options.collectionStats.funnelLearningPages")}
                     </text>
                   </svg>
                 </div>
@@ -758,7 +758,7 @@ export function CollectionStats() {
                       {recommendationFunnel.dismissed}
                     </text>
                     <text x="60" y="70" textAnchor="middle" fill="#7C2D12" fontSize="12" fontWeight="600">
-                      ❌ 不想读
+                      ❌ {_("options.collectionStats.funnelDismissed")}
                     </text>
                   </svg>
                 </div>
@@ -771,24 +771,24 @@ export function CollectionStats() {
               <div className="grid grid-cols-2 gap-6 text-center">
                 <div>
                   <div className="text-xs text-green-600 dark:text-green-400 mb-2 font-medium">
-                    推荐率
+                    {_("options.collectionStats.funnelRecommendationRate")}
                   </div>
                   <div className="text-2xl font-bold text-green-900 dark:text-green-100">
                     {recommendationFunnel.rssArticles > 0 ? ((recommendationFunnel.inPool / recommendationFunnel.rssArticles) * 100).toFixed(1) : 0}%
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    RSS → 推荐池
+                    {_("options.collectionStats.funnelRssToPool")}
                   </div>
                 </div>
                 <div>
                   <div className="text-xs text-purple-600 dark:text-purple-400 mb-2 font-medium">
-                    阅读率
+                    {_("options.collectionStats.funnelReadingRate")}
                   </div>
                   <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">
                     {recommendationFunnel.inPool > 0 ? ((recommendationFunnel.read / recommendationFunnel.inPool) * 100).toFixed(1) : 0}%
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    推荐池 → 已读
+                    {_("options.collectionStats.funnelPoolToRead")}
                   </div>
                 </div>
               </div>

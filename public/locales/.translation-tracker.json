@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-11-28T14:55:25.494Z",
+  "lastUpdate": "2025-11-28T15:05:24.313Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -14181,6 +14181,244 @@
         "value": "Total Token Usage",
         "hash": "5968a1f8",
         "lastModified": "2025-11-28T14:55:24.980Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.funnelLearningPages": {
+      "zh-CN": {
+        "value": "学习页面",
+        "hash": "af73eb16",
+        "lastModified": "2025-11-28T15:04:53.715Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Learning page",
+        "hash": "6fc8f183",
+        "lastModified": "2025-11-28T15:04:53.716Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.funnelRecommendationRate": {
+      "zh-CN": {
+        "value": "推荐率",
+        "hash": "ab64b54a",
+        "lastModified": "2025-11-28T15:04:55.302Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Recommendation Rate",
+        "hash": "8b17457b",
+        "lastModified": "2025-11-28T15:04:55.302Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.funnelReadingRate": {
+      "zh-CN": {
+        "value": "阅读率",
+        "hash": "43729218",
+        "lastModified": "2025-11-28T15:04:57.073Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Read rate",
+        "hash": "a6bbe83a",
+        "lastModified": "2025-11-28T15:04:57.073Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.funnelRssToPool": {
+      "zh-CN": {
+        "value": "RSS → 推荐池",
+        "hash": "0cfe54b4",
+        "lastModified": "2025-11-28T15:04:58.755Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "RSS → Recommendation Pool",
+        "hash": "0f467d6a",
+        "lastModified": "2025-11-28T15:04:58.755Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.funnelPoolToRead": {
+      "zh-CN": {
+        "value": "推荐池 → 已读",
+        "hash": "d46f9312",
+        "lastModified": "2025-11-28T15:05:00.552Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Recommendation Pool → Read",
+        "hash": "64471dc4",
+        "lastModified": "2025-11-28T15:05:00.553Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.aiConfig.aiEngineAssignment.presets.privacy.name": {
+      "zh-CN": {
+        "value": "隐私优先",
+        "hash": "4eec134a",
+        "lastModified": "2025-11-28T15:05:02.190Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Privacy First",
+        "hash": "7ff43884",
+        "lastModified": "2025-11-28T15:05:02.190Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.aiConfig.aiEngineAssignment.presets.privacy.description": {
+      "zh-CN": {
+        "value": "所有数据在本地处理，绝不上传",
+        "hash": "5bd40f6f",
+        "lastModified": "2025-11-28T15:05:04.033Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "All data is processed locally and never uploaded.",
+        "hash": "81f2955e",
+        "lastModified": "2025-11-28T15:05:04.033Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.aiConfig.aiEngineAssignment.presets.privacy.estimatedCost": {
+      "zh-CN": {
+        "value": "¥0/月",
+        "hash": "bc6e4a05",
+        "lastModified": "2025-11-28T15:05:05.545Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "¥0/month",
+        "hash": "546c4867",
+        "lastModified": "2025-11-28T15:05:05.545Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.aiConfig.aiEngineAssignment.presets.privacy.performanceImpact": {
+      "zh-CN": {
+        "value": "🔥🔥🔥 高",
+        "hash": "864ee309",
+        "lastModified": "2025-11-28T15:05:07.415Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "🔥🔥🔥 High",
+        "hash": "0897a29e",
+        "lastModified": "2025-11-28T15:05:07.415Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.aiConfig.aiEngineAssignment.presets.intelligence.name": {
+      "zh-CN": {
+        "value": "智能优先",
+        "hash": "3a112e87",
+        "lastModified": "2025-11-28T15:05:10.281Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Intelligent Priority",
+        "hash": "5fa70dcf",
+        "lastModified": "2025-11-28T15:05:10.281Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.aiConfig.aiEngineAssignment.presets.intelligence.description": {
+      "zh-CN": {
+        "value": "最佳AI能力，推理模式保证质量",
+        "hash": "08fa1293",
+        "lastModified": "2025-11-28T15:05:12.741Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Best AI capabilities, reasoning mode ensures quality",
+        "hash": "89b78728",
+        "lastModified": "2025-11-28T15:05:12.741Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.aiConfig.aiEngineAssignment.presets.intelligence.estimatedCost": {
+      "zh-CN": {
+        "value": "¥5-8/月",
+        "hash": "b87ed8cb",
+        "lastModified": "2025-11-28T15:05:14.478Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "¥5-8/month",
+        "hash": "ac1e3d9a",
+        "lastModified": "2025-11-28T15:05:14.478Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.aiConfig.aiEngineAssignment.presets.intelligence.performanceImpact": {
+      "zh-CN": {
+        "value": "🔥 低（仅低频任务稍慢）",
+        "hash": "9c1b58c6",
+        "lastModified": "2025-11-28T15:05:16.217Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "🔥 Low (only slightly slower for low-frequency tasks)",
+        "hash": "43729b9f",
+        "lastModified": "2025-11-28T15:05:16.217Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.aiConfig.aiEngineAssignment.presets.economic.name": {
+      "zh-CN": {
+        "value": "经济优先",
+        "hash": "c815e535",
+        "lastModified": "2025-11-28T15:05:17.959Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Economic Priority",
+        "hash": "8e718c50",
+        "lastModified": "2025-11-28T15:05:17.959Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.aiConfig.aiEngineAssignment.presets.economic.description": {
+      "zh-CN": {
+        "value": "成本最低，标准质量足够好",
+        "hash": "9c5e2e87",
+        "lastModified": "2025-11-28T15:05:20.008Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Lowest cost, standard quality is good enough.",
+        "hash": "28627ddc",
+        "lastModified": "2025-11-28T15:05:20.008Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.aiConfig.aiEngineAssignment.presets.economic.estimatedCost": {
+      "zh-CN": {
+        "value": "¥0.5-1/月",
+        "hash": "a93666a1",
+        "lastModified": "2025-11-28T15:05:21.952Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "¥0.5-1/month",
+        "hash": "eea973fc",
+        "lastModified": "2025-11-28T15:05:21.952Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.aiConfig.aiEngineAssignment.presets.economic.performanceImpact": {
+      "zh-CN": {
+        "value": "✅ 无",
+        "hash": "ff883afe",
+        "lastModified": "2025-11-28T15:05:23.803Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "✅ None",
+        "hash": "fcd4e594",
+        "lastModified": "2025-11-28T15:05:23.803Z",
         "status": "ai-translated"
       }
     }
