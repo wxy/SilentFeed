@@ -390,6 +390,13 @@
     "collectionStats": {
       "noData": "暂无数据",
       "overview": "采集概览",
+      "aiLearningOverview": "AI 学习概览",
+      "learningPagesLabel": "学习页面数",
+      "learningPagesHint": "停留超过30秒的页面",
+      "startLearningTimeLabel": "开始学习时间",
+      "avgDailyPagesShort": "平均每日 {{count}} 页",
+      "aiCostAnalysisTitle": "AI 成本分析",
+      "totalTokenUsageLabel": "Token 总用量",
       "totalPagesLabel": "累计采集页面",
       "dwellTimeHint": "停留超过30秒的页面",
       "storageLabel": "存储占用",

@@ -451,7 +451,14 @@
       "recommendationFunnelArticles": "Article",
       "recommendationFunnelRecommendations": "Recommend",
       "recommendationFunnelReading": "Read",
-      "recommendationFunnelInfinitySymbol": "∞"
+      "recommendationFunnelInfinitySymbol": "∞",
+      "aiLearningOverview": "AI Learning Overview",
+      "learningPagesLabel": "Number of learning pages",
+      "learningPagesHint": "Pages with a dwell time exceeding 30 seconds",
+      "startLearningTimeLabel": "Start learning time",
+      "avgDailyPagesShort": "Average {{count}} pages per day",
+      "aiCostAnalysisTitle": "AI Cost Analysis",
+      "totalTokenUsageLabel": "Total Token Usage"
     },
     "userProfile": {
       "chat": {

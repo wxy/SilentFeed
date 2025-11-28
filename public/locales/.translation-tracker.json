@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-11-28T14:39:02.285Z",
+  "lastUpdate": "2025-11-28T14:55:25.494Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -14083,6 +14083,104 @@
         "value": "(View Installation Guide)",
         "hash": "fc86e354",
         "lastModified": "2025-11-28T14:39:01.772Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiLearningOverview": {
+      "zh-CN": {
+        "value": "AI 学习概览",
+        "hash": "b99bdd1d",
+        "lastModified": "2025-11-28T14:55:14.065Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "AI Learning Overview",
+        "hash": "71d6d06c",
+        "lastModified": "2025-11-28T14:55:14.067Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.learningPagesLabel": {
+      "zh-CN": {
+        "value": "学习页面数",
+        "hash": "df0156b0",
+        "lastModified": "2025-11-28T14:55:15.636Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Number of learning pages",
+        "hash": "f1e6cf5c",
+        "lastModified": "2025-11-28T14:55:15.636Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.learningPagesHint": {
+      "zh-CN": {
+        "value": "停留超过30秒的页面",
+        "hash": "7b328ec1",
+        "lastModified": "2025-11-28T14:55:17.378Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Pages with a dwell time exceeding 30 seconds",
+        "hash": "02f3d36a",
+        "lastModified": "2025-11-28T14:55:17.379Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.startLearningTimeLabel": {
+      "zh-CN": {
+        "value": "开始学习时间",
+        "hash": "4bde6639",
+        "lastModified": "2025-11-28T14:55:19.324Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Start learning time",
+        "hash": "84e91e00",
+        "lastModified": "2025-11-28T14:55:19.324Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.avgDailyPagesShort": {
+      "zh-CN": {
+        "value": "平均每日 {{count}} 页",
+        "hash": "c5f60400",
+        "lastModified": "2025-11-28T14:55:21.476Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Average {{count}} pages per day",
+        "hash": "e1cd71f1",
+        "lastModified": "2025-11-28T14:55:21.476Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiCostAnalysisTitle": {
+      "zh-CN": {
+        "value": "AI 成本分析",
+        "hash": "2488a64f",
+        "lastModified": "2025-11-28T14:55:23.318Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "AI Cost Analysis",
+        "hash": "22306384",
+        "lastModified": "2025-11-28T14:55:23.318Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.totalTokenUsageLabel": {
+      "zh-CN": {
+        "value": "Token 总用量",
+        "hash": "496fa555",
+        "lastModified": "2025-11-28T14:55:24.980Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Total Token Usage",
+        "hash": "5968a1f8",
+        "lastModified": "2025-11-28T14:55:24.980Z",
         "status": "ai-translated"
       }
     }

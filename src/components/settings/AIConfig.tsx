@@ -698,18 +698,9 @@ export function AIConfig() {
               </span>
             </label>
             {localAIStatus.hasOllama ? (
-              <>
-                <span className="text-xs text-green-600 dark:text-green-400">
-                  ✓ {_("options.aiConfig.local.available")}
-                </span>
-                {/* 临时添加：即使已安装也显示帮助按钮，用于测试浮层 */}
-                <button
-                  onClick={() => setShowOllamaHelp(true)}
-                  className="ml-2 text-xs text-gray-500 dark:text-gray-400 hover:underline"
-                >
-                  {_("options.aiConfig.local.viewGuide")}
-                </button>
-              </>
+              <span className="text-xs text-green-600 dark:text-green-400">
+                ✓ {_("options.aiConfig.local.available")}
+              </span>
             ) : (
               <button
                 onClick={() => setShowOllamaHelp(true)}
@@ -730,15 +721,14 @@ export function AIConfig() {
             <label className="block text-sm font-medium mb-1">
               {_("options.aiConfig.localAIForm.endpoint")}
             </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={localConfig.endpoint}
-                onChange={(e) => setLocalConfig(prev => ({ ...prev, provider: "ollama", endpoint: e.target.value }))}
-                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="http://localhost:11434/v1"
-              />
-              <button
+            <input
+              type="text"
+              value={localConfig.endpoint}
+              onChange={(e) => setLocalConfig(prev => ({ ...prev, provider: "ollama", endpoint: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="http://localhost:11434/v1"
+            />
+            <button
                 type="button"
                 onClick={async () => {
                   if (!localConfig.endpoint?.trim()) {
@@ -760,17 +750,17 @@ export function AIConfig() {
                   }
                 }}
                 disabled={isFetchingLocalModels || !localConfig.endpoint?.trim()}
-                className={`px-4 py-2 text-sm rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap ${
+                className={`mt-2 w-full px-4 py-2 text-sm rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
                   localTestSuccess
                     ? 'bg-green-600 hover:bg-green-700 text-white'
                     : 'bg-blue-600 hover:bg-blue-700 text-white'
                 }`}
               >
                 {localTestSuccess
-                  ? '✅ ' + _('options.aiConfig.localAIForm.messages.testSuccess')
+                  ? '✅ ' + _('options.aiConfig.localAIForm.testSuccess')
                   : isFetchingLocalModels
-                  ? _("options.aiConfig.localAIForm.buttons.testing")
-                  : _("options.aiConfig.localAIForm.buttons.test")}
+                  ? _("options.aiConfig.localAIForm.testing")
+                  : _("options.aiConfig.localAIForm.testAndFetch")}
               </button>
             </div>
           </div>
@@ -819,7 +809,7 @@ export function AIConfig() {
           </div>
 
           {showAdvancedLocalOptions && (
-            <div className="grid gap-4 md:grid-cols-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+            <div className="space-y-4 pt-2 border-t border-gray-200 dark:border-gray-700">
               <div>
                 <label className="block text-sm font-medium mb-1">
                   {_("options.aiConfig.localAIForm.temperature")}
