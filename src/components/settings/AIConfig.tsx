@@ -757,9 +757,9 @@ export function AIConfig() {
                 }`}
               >
                 {localTestSuccess
-                  ? '✅ ' + _('options.aiConfig.localAIForm.testSuccess')
+                  ? '✅ ' + _('options.aiConfig.localAIForm.messages.testSuccess')
                   : isFetchingLocalModels
-                  ? _("options.aiConfig.localAIForm.testing")
+                  ? _("options.aiConfig.localAIForm.buttons.testing")
                   : _("options.aiConfig.localAIForm.testAndFetch")}
               </button>
           </div>
