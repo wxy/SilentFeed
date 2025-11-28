@@ -187,6 +187,52 @@ Silent Feed needs **100 valid page visits** before full recommendations:
 - **Theme**: Follow system / Dark / Light
 - **Language**: 中文 / English
 
+### AI Engine Assignment
+
+**Feature**: Assign different AI engines for different task types to balance cost and performance.
+
+**Task Types**:
+
+1. **Page Browsing Analysis**: Analyze web pages you visit (high frequency)
+2. **Feed Article Analysis**: Evaluate RSS article quality and relevance (high frequency)
+3. **User Profile Generation**: Generate interest profile summary (low frequency)
+
+**Available Engines**:
+
+- **DeepSeek AI**: Cheap and fast, ideal for high-frequency tasks (recommended)
+- **OpenAI GPT**: High accuracy, suitable for important tasks
+- **Ollama Local**: Completely free, requires local deployment
+
+**Preset Plans**:
+
+1. **Intelligence First** (default):
+   - All tasks use DeepSeek
+   - Profile generation enables reasoning mode
+   - Cost: ~$0.15/month
+
+2. **Balanced**:
+   - Page analysis uses DeepSeek
+   - Feed analysis and profile generation use OpenAI
+   - Cost: ~$0.54/month
+
+3. **Privacy First**:
+   - All tasks use local Ollama
+   - Cost: $0 (requires local deployment)
+
+**Advanced Customization**:
+
+You can independently select engine and enable reasoning mode for each task:
+
+- **Engine Selection**: DeepSeek / OpenAI / Ollama
+- **Reasoning Mode**: More accurate when enabled, but slightly slower and costlier
+
+**Usage Recommendations**:
+
+- Beginners: Choose "Intelligence First" preset, low cost and good results
+- Quality Seekers: Choose "Balanced" plan, use OpenAI for important tasks
+- Privacy Conscious: Choose "Privacy First", but requires local Ollama deployment
+- Advanced Users: Custom configuration for fine-grained control
+
 ### Analysis Settings
 
 - **Recommendation Count**: Articles per recommendation (3-10)
@@ -208,6 +254,29 @@ Silent Feed needs **100 valid page visits** before full recommendations:
 ### Q: Why 100 pages required for recommendations?
 
 A: Building an accurate interest profile requires sufficient data samples. 100 pages is the tested minimum threshold ensuring recommendation quality. You can check current progress in settings.
+
+### Q: How does AI engine assignment affect cost?
+
+A: Different engines have vastly different costs:
+- DeepSeek: Cheapest (~$0.001/1K tokens)
+- OpenAI GPT-4o-mini: Medium (~$0.015/1K tokens)
+- Ollama: Free (runs locally)
+
+Using cheap engines for high-frequency tasks (page analysis, feed analysis) significantly reduces costs. Typical user monthly costs:
+- Intelligence First: ~$0.15
+- Balanced: ~$0.54
+- Privacy First: $0
+
+### Q: What's the difference with reasoning mode?
+
+A: Reasoning mode makes AI think deeply:
+- Advantages: More accurate results, better logic
+- Disadvantages: Slightly slower, higher cost (about 1.5-2x)
+
+Recommendations:
+- Page analysis: Disable reasoning (needs speed)
+- Feed analysis: Optional (depends on budget)
+- Profile generation: Enable reasoning (low frequency and important)
 
 ### Q: Is my browsing data secure?
 
