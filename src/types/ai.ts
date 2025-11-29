@@ -269,8 +269,10 @@ export interface AIProvider {
    * 测试连接
    *
    * 发送最小请求测试 API 是否可用
+   * 
+   * @param useReasoning - 是否启用推理模式进行测试
    */
-  testConnection(): Promise<{
+  testConnection(useReasoning?: boolean): Promise<{
     success: boolean
     message: string
     latency?: number

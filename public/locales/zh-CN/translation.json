@@ -686,26 +686,26 @@
       },
       "labels": {
         "provider": "AI 提供商",
-        "apiKey": "API Key",
+        "apiKey": "API 密钥",
         "model": "模型选择",
         "modelAndProvider": "选择 AI 模型"
       },
       "placeholders": {
-        "apiKey": "输入你的 API Key",
+        "apiKey": "输入你的 API 密钥",
         "model": "选择模型（可选，留空使用默认模型）",
         "selectModel": "请选择 AI 模型",
         "disableRemoteAI": "禁用远程 AI 服务"
       },
       "hints": {
-        "apiKey": "API Key 将加密存储在浏览器本地，不会上传到服务器"
+        "apiKey": "API 密钥将加密存储在浏览器本地，不会上传到服务器"
       },
       "providerLabel": "AI 提供商",
-      "apiKeyLabel": "API Key",
+      "apiKeyLabel": "API 密钥",
       "budgetLabel": "月度预算限制",
       "budgetUnit": "/ 月",
       "selectProviderPlaceholder": "请选择 AI 提供商",
-      "apiKeyPlaceholder": "输入你的 {{provider}} API Key",
-      "apiKeyHint": "API Key 将加密存储在浏览器本地，不会上传到服务器",
+      "apiKeyPlaceholder": "输入你的 {{provider}} API 密钥",
+      "apiKeyHint": "API 密钥将加密存储在浏览器本地，不会上传到服务器",
       "budgetHint": "超出预算后将自动降级到免费的关键词分析",
       "budgetWarning": "建议设置合理预算以避免意外费用（推荐 {{range}}）",
       "providers": {
@@ -769,25 +769,25 @@
         "selectProvider": "请选择 AI 提供商",
         "selectModel": "请选择 AI 模型",
         "invalidModel": "无效的模型选择",
-        "enterApiKey": "请输入 API Key",
-        "selectProviderAndKey": "请选择提供商并输入 API Key",
-        "selectProviderAndKeyFirst": "请先选择提供商并输入 API Key",
-        "invalidApiKeyFormat": "API Key 格式不正确",
+        "enterApiKey": "请输入 API 密钥",
+        "selectProviderAndKey": "请选择提供商并输入 API 密钥",
+        "selectProviderAndKeyFirst": "请先选择提供商并输入 API 密钥",
+        "invalidApiKeyFormat": "API 密钥格式不正确",
         "saveFailed": "保存失败：{{error}}",
         "testFailed": "测试失败：{{error}}",
         "disableFailed": "禁用失败：{{error}}"
       },
       "info": {
-        "title": "关于 AI 分析",
+        "title": "如何选择 AI 提供商",
         "overview": "静阅提供远程 AI 和本地 AI 两种分析方式，你可以根据需求灵活选择：",
         "remoteTitle": "远程 AI",
-        "remoteDesc": "更强大准确，需要 API Key 和网络，按使用量付费",
+        "remoteDesc": "更强大准确，需要 API 密钥和网络，按使用量付费",
         "localTitle": "本地 AI",
         "localDesc": "完全离线，保护隐私，需要本地安装或启用 Chrome AI",
         "withConfig": "配置后：优先使用 AI 分析（更准确，需付费）",
         "withoutConfig": "不配置：使用免费的关键词分析（可用但准确度较低）",
         "fallback": "降级策略：API 失败或超预算时自动降级到关键词分析",
-        "privacy": "隐私保护：所有数据处理在本地，API Key 加密存储"
+        "privacy": "隐私保护：所有数据处理在本地，API 密钥加密存储"
       },
       "remote": {
         "title": "远程 AI 配置"
@@ -913,6 +913,26 @@
         "advancedConfig": "高级配置",
         "detailedConfig": "详细配置",
         "advancedConfigHint": "自定义每个任务使用的 AI 引擎",
+        "presets": {
+          "privacy": {
+            "name": "隐私优先",
+            "description": "所有数据在本地处理，绝不上传",
+            "estimatedCost": "¥0/月",
+            "performanceImpact": "🔥🔥🔥 高"
+          },
+          "intelligence": {
+            "name": "智能优先",
+            "description": "最佳AI能力，推理模式保证质量",
+            "estimatedCost": "¥5-8/月",
+            "performanceImpact": "🔥 低（仅低频任务稍慢）"
+          },
+          "economic": {
+            "name": "经济优先",
+            "description": "成本最低，标准质量足够好",
+            "estimatedCost": "¥0.5-1/月",
+            "performanceImpact": "✅ 无"
+          }
+        },
         "table": {
           "task": "任务",
           "engine": "AI 引擎",
@@ -935,6 +955,76 @@
           "impact2": "CPU 占用 30-50%",
           "impact3": "电池续航显著下降",
           "suggestion": "建议：高频任务使用远程 AI，每月仅需 ¥0.5"
+        }
+      },
+      "card": {
+        "active": "使用中",
+        "supportsReasoning": "支持推理能力",
+        "typeLocal": "本地",
+        "typeRemote": "远程",
+        "statusAvailable": "可用",
+        "statusUnavailable": "不可用",
+        "statusNotConfigured": "未配置",
+        "latency": "延迟: {{value}}",
+        "lastChecked": "上次检测: {{time}}",
+        "check": "检测",
+        "checking": "检测中...",
+        "configure": "配置"
+      },
+      "providerPanel": {
+        "title": "AI 提供商状态",
+        "checkAll": "检测全部",
+        "checking": "检测中..."
+      },
+      "configModal": {
+        "title": "配置 {{provider}}",
+        "close": "关闭",
+        "save": "保存",
+        "saving": "保存中...",
+        "testConnection": "测试连接",
+        "testing": "测试中...",
+        "testSuccess": "✓ 连接成功",
+        "testConnectionAndLoadModels": "测试连接并加载模型",
+        "loadingModels": "加载模型中...",
+        "apiKey": "API 密钥",
+        "apiKeyPlaceholder": "请输入 {{provider}} API 密钥",
+        "selectModel": "选择模型",
+        "selectModelPlaceholder": "-- 选择模型 --",
+        "enableReasoning": "启用推理模式（成本约10倍，但质量更高）",
+        "ollamaEnabled": "启用本地 AI (Ollama)",
+        "ollamaEndpoint": "Ollama 端点",
+        "ollamaEndpointHint": "OpenAI 兼容接口地址",
+        "modelName": "模型名称",
+        "loadModelsHint": "点击上方按钮加载可用模型",
+        "testResult": {
+          "success": "连接成功！延迟: {{latency}}ms",
+          "successWithReasoning": "连接成功！延迟: {{latency}}ms（已启用推理模式）",
+          "error": "{{message}}",
+          "missingConfig": "请先配置 API Key 和选择模型",
+          "missingEndpoint": "请先配置 Ollama 端点",
+          "connectionFailed": "连接失败",
+          "modelsLoaded": "连接成功！发现 {{count}} 个模型",
+          "modelsLoadFailed": "连接成功，但加载模型列表失败: {{error}}",
+          "unknownError": "未知错误"
+        }
+      },
+      "card": {
+        "active": "在用",
+        "supportsReasoning": "支持推理能力",
+        "typeLocal": "本地",
+        "typeRemote": "远程",
+        "statusAvailable": "可用",
+        "statusUnavailable": "不可用",
+        "statusNotConfigured": "未配置",
+        "latency": "延迟: {{value}}",
+        "lastChecked": "检测: {{time}}",
+        "check": "检测",
+        "checking": "检测中...",
+        "configure": "配置",
+        "errors": {
+          "notConfigured": "未配置 API Key",
+          "localNotEnabled": "未启用本地 AI",
+          "checkFailed": "检测失败"
         }
       }
     },

@@ -890,6 +890,62 @@
           "suggestion": "Suggestion: Use remote AI for high-frequency tasks, costing only ¥0.5 per month."
         }
       },
+      "card": {
+        "active": "Active",
+        "supportsReasoning": "Supports reasoning capability",
+        "typeLocal": "Local",
+        "typeRemote": "Remote",
+        "statusAvailable": "Available",
+        "statusUnavailable": "Unavailable",
+        "statusNotConfigured": "Not Configured",
+        "latency": "Latency: {{value}}",
+        "lastChecked": "Last Checked: {{time}}",
+        "check": "Check",
+        "checking": "Checking...",
+        "configure": "Configure",
+        "errors": {
+          "notConfigured": "API key not configured",
+          "localNotEnabled": "Local AI not enabled",
+          "checkFailed": "Check failed"
+        }
+      },
+      "providerPanel": {
+        "title": "AI Provider Status",
+        "checkAll": "Check All",
+        "checking": "Checking..."
+      },
+      "configModal": {
+        "title": "Configure {{provider}}",
+        "close": "Close",
+        "save": "Save",
+        "saving": "Saving...",
+        "testConnection": "Test Connection",
+        "testing": "Testing...",
+        "testSuccess": "✓ Connection Successful",
+        "testConnectionAndLoadModels": "Test Connection and Load Models",
+        "loadingModels": "Loading models...",
+        "apiKey": "API Key",
+        "apiKeyPlaceholder": "Please enter {{provider}} API key",
+        "selectModel": "Select Model",
+        "selectModelPlaceholder": "-- Select a model --",
+        "enableReasoning": "Enable reasoning mode (about 10x cost, but higher quality)",
+        "ollamaEnabled": "Enable Local AI (Ollama)",
+        "ollamaEndpoint": "Ollama Endpoint",
+        "ollamaEndpointPlaceholder": "http://localhost:11434/v1",
+        "ollamaModel": "Model Name",
+        "ollamaModelPlaceholder": "e.g., qwen2.5:7b",
+        "testResult": {
+          "success": "Connection successful! Latency: {{latency}}ms",
+          "successWithReasoning": "Connection successful! Latency: {{latency}}ms (Reasoning enabled)",
+          "error": "{{message}}",
+          "missingConfig": "Please configure API Key and select model first",
+          "missingEndpoint": "Please configure Ollama endpoint first",
+          "connectionFailed": "Connection failed",
+          "modelsLoaded": "Connection successful! Found {{count}} models",
+          "modelsLoadFailed": "Connection successful, but failed to load model list: {{error}}",
+          "unknownError": "Unknown error"
+        }
+      },
       "ollama": {
         "title": "Ollama Installation Guide",
         "description": "Ollama is an open-source tool for running large language models locally, allowing you to run open-source models like Llama and Qwen entirely offline on your computer, ensuring privacy protection.",
@@ -1189,6 +1245,26 @@
         "advancedConfig": "Advanced Configuration",
         "detailedConfig": "Detailed Configuration",
         "advancedConfigHint": "Customize the AI engine used for each task",
+        "presets": {
+          "privacy": {
+            "name": "Privacy First",
+            "description": "All data processed locally, never uploaded",
+            "estimatedCost": "$0/month",
+            "performanceImpact": "🔥🔥🔥 High"
+          },
+          "intelligence": {
+            "name": "Intelligence First",
+            "description": "Best AI capability, reasoning mode ensures quality",
+            "estimatedCost": "$0.7-1.2/month",
+            "performanceImpact": "🔥 Low (only low-freq tasks slower)"
+          },
+          "economic": {
+            "name": "Economic First",
+            "description": "Lowest cost, standard quality is good enough",
+            "estimatedCost": "$0.07-0.15/month",
+            "performanceImpact": "✅ None"
+          }
+        },
         "table": {
           "task": "Task",
           "engine": "AI Engine",
@@ -1211,6 +1287,53 @@
           "impact2": "CPU usage 30-50%",
           "impact3": "Battery life significantly decreased.",
           "suggestion": "Suggestion: Use remote AI for high-frequency tasks, costing only ¥0.5 per month."
+        },
+        "providerPanel": {
+          "title": "AI Provider Status",
+          "checkAll": "Check All",
+          "checking": "Checking..."
+        },
+        "configModal": {
+          "title": "Configure {{provider}}",
+          "close": "Close",
+          "save": "Save",
+          "saving": "Saving...",
+          "testConnection": "Test Connection",
+          "testing": "Testing...",
+          "testSuccess": "✓ Connection Successful",
+          "testConnectionAndLoadModels": "Test Connection and Load Models",
+          "loadingModels": "Loading models...",
+          "apiKey": "API Key",
+          "apiKeyPlaceholder": "Enter {{provider}} API key",
+          "selectModel": "Select Model",
+          "selectModelPlaceholder": "-- Select a model --",
+          "enableReasoning": "Enable reasoning mode (about 10x cost, but higher quality)",
+          "ollamaEnabled": "Enable Local AI (Ollama)",
+          "ollamaEndpoint": "Ollama Endpoint",
+          "ollamaEndpointHint": "OpenAI compatible interface address",
+          "modelName": "Model Name",
+          "loadModelsHint": "Click the button above to load available models",
+          "modelsLoaded": "{{count}} models loaded",
+          "pleaseTestFirst": "Please test the connection first to get the model list",
+          "testResult": {
+            "success": "Connection successful! Latency: {{latency}}ms",
+            "successWithReasoning": "Connection successful! Latency: {{latency}}ms (Reasoning mode enabled)",
+            "error": "{{message}}"
+          }
+        },
+        "card": {
+          "active": "Active",
+          "supportsReasoning": "Supports reasoning capability",
+          "typeLocal": "Local",
+          "typeRemote": "Remote",
+          "statusAvailable": "Available",
+          "statusUnavailable": "Unavailable",
+          "statusNotConfigured": "Not Configured",
+          "latency": "Latency: {{value}}",
+          "lastChecked": "Last Checked: {{time}}",
+          "check": "Check",
+          "checking": "Checking...",
+          "configure": "Configure"
         },
         "presets": {
           "privacy": {

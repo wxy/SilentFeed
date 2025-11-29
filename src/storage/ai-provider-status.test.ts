@@ -1,0 +1,361 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
+import {
+  getAllProviderStatus,
+  getProviderStatus,
+  saveProviderStatus,
+  saveAllProviderStatus,
+  deleteProviderStatus,
+  clearAllProviderStatus,
+  isStatusExpired,
+  formatLatency,
+  formatLastChecked,
+  getStatusIcon,
+  getReasoningIcon,
+  type AIProviderStatus,
+  type AIProvidersStatus
+} from "./ai-provider-status"
+
+// Mock logger
+vi.mock("@/utils/logger", () => ({
+  logger: {
+    withTag: vi.fn(() => ({
+      debug: vi.fn(),
+      error: vi.fn()
+    }))
+  }
+}))
+
+// Mock chrome.storage.local
+global.chrome = {
+  storage: {
+    local: {
+      get: vi.fn() as any,
+      set: vi.fn() as any,
+      remove: vi.fn() as any
+    }
+  }
+} as any
+
+describe("ai-provider-status", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  describe("getAllProviderStatus", () => {
+    it("应该返回所有 Provider 状态", async () => {
+      const mockStatus: AIProvidersStatus = {
+        deepseek: {
+          providerId: "deepseek",
+          type: "remote",
+          available: true,
+          lastChecked: Date.now()
+        }
+      }
+
+      vi.mocked(chrome.storage.local.get).mockResolvedValue({
+        aiProvidersStatus: mockStatus
+      })
+
+      const result = await getAllProviderStatus()
+      expect(result).toEqual(mockStatus)
+    })
+
+    it("应该返回空对象当没有数据时", async () => {
+      vi.mocked(chrome.storage.local.get).mockResolvedValue({})
+
+      const result = await getAllProviderStatus()
+      expect(result).toEqual({})
+    })
+
+    it("应该处理错误", async () => {
+      vi.mocked(chrome.storage.local.get).mockRejectedValue(new Error("Storage error"))
+
+      const result = await getAllProviderStatus()
+      expect(result).toEqual({})
+    })
+  })
+
+  describe("getProviderStatus", () => {
+    it("应该返回指定 Provider 的状态", async () => {
+      const mockStatus: AIProviderStatus = {
+        providerId: "deepseek",
+        type: "remote",
+        available: true,
+        lastChecked: Date.now()
+      }
+
+      vi.mocked(chrome.storage.local.get).mockResolvedValue({
+        aiProvidersStatus: { deepseek: mockStatus }
+      })
+
+      const result = await getProviderStatus("deepseek")
+      expect(result).toEqual(mockStatus)
+    })
+
+    it("应该返回 null 当 Provider 不存在时", async () => {
+      vi.mocked(chrome.storage.local.get).mockResolvedValue({
+        aiProvidersStatus: {}
+      })
+
+      const result = await getProviderStatus("nonexistent")
+      expect(result).toBeNull()
+    })
+  })
+
+  describe("saveProviderStatus", () => {
+    it("应该保存 Provider 状态", async () => {
+      const status: AIProviderStatus = {
+        providerId: "deepseek",
+        type: "remote",
+        available: true,
+        lastChecked: Date.now()
+      }
+
+      vi.mocked(chrome.storage.local.get).mockResolvedValue({
+        aiProvidersStatus: {}
+      })
+      vi.mocked(chrome.storage.local.set).mockResolvedValue()
+
+      await saveProviderStatus(status)
+
+      expect(chrome.storage.local.set).toHaveBeenCalledWith({
+        aiProvidersStatus: {
+          deepseek: expect.objectContaining({
+            providerId: "deepseek",
+            type: "remote",
+            available: true
+          })
+        }
+      })
+    })
+
+    it("应该更新 lastChecked 时间戳", async () => {
+      const now = Date.now()
+      const status: AIProviderStatus = {
+        providerId: "deepseek",
+        type: "remote",
+        available: true,
+        lastChecked: now - 10000 // 10秒前
+      }
+
+      vi.mocked(chrome.storage.local.get).mockResolvedValue({
+        aiProvidersStatus: {}
+      })
+      vi.mocked(chrome.storage.local.set).mockResolvedValue()
+
+      await saveProviderStatus(status)
+
+      const saved = vi.mocked(chrome.storage.local.set).mock.calls[0][0]
+      expect(saved.aiProvidersStatus.deepseek.lastChecked).toBeGreaterThanOrEqual(now)
+    })
+  })
+
+  describe("saveAllProviderStatus", () => {
+    it("应该保存所有 Provider 状态", async () => {
+      const statuses: AIProvidersStatus = {
+        deepseek: {
+          providerId: "deepseek",
+          type: "remote",
+          available: true,
+          lastChecked: Date.now()
+        },
+        ollama: {
+          providerId: "ollama",
+          type: "local",
+          available: false,
+          lastChecked: Date.now()
+        }
+      }
+
+      vi.mocked(chrome.storage.local.set).mockResolvedValue()
+
+      await saveAllProviderStatus(statuses)
+
+      expect(chrome.storage.local.set).toHaveBeenCalledWith({
+        aiProvidersStatus: statuses
+      })
+    })
+  })
+
+  describe("deleteProviderStatus", () => {
+    it("应该删除指定 Provider 状态", async () => {
+      const existing: AIProvidersStatus = {
+        deepseek: {
+          providerId: "deepseek",
+          type: "remote",
+          available: true,
+          lastChecked: Date.now()
+        },
+        ollama: {
+          providerId: "ollama",
+          type: "local",
+          available: false,
+          lastChecked: Date.now()
+        }
+      }
+
+      vi.mocked(chrome.storage.local.get).mockResolvedValue({
+        aiProvidersStatus: existing
+      })
+      vi.mocked(chrome.storage.local.set).mockResolvedValue()
+
+      await deleteProviderStatus("deepseek")
+
+      expect(chrome.storage.local.set).toHaveBeenCalledWith({
+        aiProvidersStatus: { ollama: existing.ollama }
+      })
+    })
+  })
+
+  describe("clearAllProviderStatus", () => {
+    it("应该清空所有 Provider 状态", async () => {
+      vi.mocked(chrome.storage.local.remove).mockResolvedValue()
+
+      await clearAllProviderStatus()
+
+      expect(chrome.storage.local.remove).toHaveBeenCalledWith("aiProvidersStatus")
+    })
+  })
+
+  describe("isStatusExpired", () => {
+    it("应该返回 true 当状态过期时", () => {
+      const status: AIProviderStatus = {
+        providerId: "deepseek",
+        type: "remote",
+        available: true,
+        lastChecked: Date.now() - 6 * 60 * 1000 // 6分钟前
+      }
+
+      expect(isStatusExpired(status)).toBe(true)
+    })
+
+    it("应该返回 false 当状态未过期时", () => {
+      const status: AIProviderStatus = {
+        providerId: "deepseek",
+        type: "remote",
+        available: true,
+        lastChecked: Date.now() - 3 * 60 * 1000 // 3分钟前
+      }
+
+      expect(isStatusExpired(status)).toBe(false)
+    })
+
+    it("应该返回 true 当没有 lastChecked 时", () => {
+      const status: AIProviderStatus = {
+        providerId: "deepseek",
+        type: "remote",
+        available: true,
+        lastChecked: 0
+      }
+
+      expect(isStatusExpired(status)).toBe(true)
+    })
+
+    it("应该支持自定义缓存时间", () => {
+      const status: AIProviderStatus = {
+        providerId: "deepseek",
+        type: "remote",
+        available: true,
+        lastChecked: Date.now() - 2 * 60 * 1000 // 2分钟前
+      }
+
+      expect(isStatusExpired(status, 1 * 60 * 1000)).toBe(true) // 1分钟缓存
+      expect(isStatusExpired(status, 3 * 60 * 1000)).toBe(false) // 3分钟缓存
+    })
+  })
+
+  describe("formatLatency", () => {
+    it("应该格式化毫秒延迟", () => {
+      expect(formatLatency(123)).toBe("123ms")
+      expect(formatLatency(999)).toBe("999ms")
+    })
+
+    it("应该格式化秒级延迟", () => {
+      expect(formatLatency(1000)).toBe("1.0s")
+      expect(formatLatency(1500)).toBe("1.5s")
+      expect(formatLatency(2300)).toBe("2.3s")
+    })
+
+    it("应该返回未知当延迟为undefined时", () => {
+      expect(formatLatency(undefined)).toBe("未知")
+      expect(formatLatency()).toBe("未知")
+    })
+  })
+
+  describe("formatLastChecked", () => {
+    it("应该显示刚刚", () => {
+      const now = Date.now()
+      expect(formatLastChecked(now)).toBe("刚刚")
+      expect(formatLastChecked(now - 30 * 1000)).toBe("刚刚") // 30秒前
+    })
+
+    it("应该显示分钟", () => {
+      const now = Date.now()
+      expect(formatLastChecked(now - 2 * 60 * 1000)).toBe("2分钟前")
+      expect(formatLastChecked(now - 30 * 60 * 1000)).toBe("30分钟前")
+    })
+
+    it("应该显示小时", () => {
+      const now = Date.now()
+      expect(formatLastChecked(now - 2 * 60 * 60 * 1000)).toBe("2小时前")
+      expect(formatLastChecked(now - 12 * 60 * 60 * 1000)).toBe("12小时前")
+    })
+
+    it("应该显示天", () => {
+      const now = Date.now()
+      expect(formatLastChecked(now - 2 * 24 * 60 * 60 * 1000)).toBe("2天前")
+      expect(formatLastChecked(now - 7 * 24 * 60 * 60 * 1000)).toBe("7天前")
+    })
+  })
+
+  describe("getStatusIcon", () => {
+    it("应该返回红色图标当不可用时", () => {
+      const status: AIProviderStatus = {
+        providerId: "deepseek",
+        type: "remote",
+        available: false,
+        lastChecked: Date.now()
+      }
+
+      expect(getStatusIcon(status)).toBe("🔴")
+    })
+
+    it("应该返回黄色图标当延迟过高时", () => {
+      const status: AIProviderStatus = {
+        providerId: "deepseek",
+        type: "remote",
+        available: true,
+        lastChecked: Date.now(),
+        latency: 2500 // 超过2秒
+      }
+
+      expect(getStatusIcon(status)).toBe("🟡")
+    })
+
+    it("应该返回绿色图标当正常可用时", () => {
+      const status: AIProviderStatus = {
+        providerId: "deepseek",
+        type: "remote",
+        available: true,
+        lastChecked: Date.now(),
+        latency: 120
+      }
+
+      expect(getStatusIcon(status)).toBe("🟢")
+    })
+  })
+
+  describe("getReasoningIcon", () => {
+    it("应该返回白色图标当没有推理信息时", () => {
+      expect(getReasoningIcon(undefined)).toBe("⚪")
+    })
+
+    it("应该返回警告图标当推理不可用时", () => {
+      expect(getReasoningIcon({ available: false })).toBe("⚠️")
+    })
+
+    it("应该返回勾选图标当推理可用时", () => {
+      expect(getReasoningIcon({ available: true })).toBe("✅")
+    })
+  })
+})
