@@ -262,6 +262,15 @@ export class RecommendationService {
       // 6. 跟踪推荐生成
       await trackRecommendationGenerated(recommendations.length)
 
+      // 6.5. 更新所有 Feed 的统计信息（反映新的分析结果）
+      try {
+        await updateAllFeedStats()
+        recLogger.info('✅ Feed 统计已更新')
+      } catch (error) {
+        recLogger.error('❌ 更新 Feed 统计失败:', error)
+        // 统计更新失败不影响推荐流程
+      }
+
       // 7. 自动翻译推荐（如果启用）
       const uiConfig = await getUIConfig()
       if (uiConfig.autoTranslate && recommendations.length > 0) {

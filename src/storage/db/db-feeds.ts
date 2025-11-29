@@ -38,11 +38,14 @@ export async function updateFeedStats(feedUrl: string): Promise<void> {
       .where('feedId').equals(feed.id)
       .toArray()
     
-    // 3. 计算文章统计
+    // 3. 计算文章统计（基于当前文章）
     const totalCount = articles.length
     const analyzedCount = articles.filter(a => a.analysis).length
     const readCount = articles.filter(a => a.read).length
     const unreadCount = articles.filter(a => !a.read).length
+    const currentRecommendedCount = articles.filter(a => a.recommended).length  // 当前文章中推荐状态的数量
+    const currentDislikedCount = articles.filter(a => a.disliked).length       // 当前文章中不想读的数量
+    const currentRecommendedReadCount = articles.filter(a => a.recommended && a.read).length  // 当前推荐文章中已读的数量
     
     // 4. 从推荐池统计（Phase 7: 统计所有历史，不过滤 status）
     const recommendationsFromThisFeed = await db.recommendations
@@ -61,11 +64,14 @@ export async function updateFeedStats(feedUrl: string): Promise<void> {
     await db.discoveredFeeds.update(feed.id, {
       articleCount: totalCount,
       analyzedCount,
-      recommendedCount,      // 所有历史推荐（包括被替换的）
+      recommendedCount,          // 所有历史推荐（包括被替换的）- 保留用于历史统计
       readCount,
-      dislikedCount,         // 所有历史不想读（包括被替换的）
+      dislikedCount,             // 所有历史不想读（包括被替换的）- 保留用于历史统计
       unreadCount,
-      recommendedReadCount   // 所有历史已读推荐
+      recommendedReadCount,      // 所有历史已读推荐 - 保留用于历史统计
+      currentRecommendedCount,   // 当前文章中推荐状态的数量（用于UI显示）
+      currentDislikedCount,      // 当前文章中不想读的数量（用于UI显示）
+      currentRecommendedReadCount  // 当前推荐文章中已读的数量（用于UI显示）
     })
     
     dbLogger.debug('更新 RSS 源统计:', {
@@ -73,11 +79,14 @@ export async function updateFeedStats(feedUrl: string): Promise<void> {
       feedTitle: feed.title,
       总文章数: totalCount,
       已分析: analyzedCount,
-      已推荐: recommendedCount,
+      当前推荐: currentRecommendedCount,
+      当前推荐已读: currentRecommendedReadCount,
+      当前不想读: currentDislikedCount,
       已阅读: readCount,
-      不想读: dislikedCount,
       未读: unreadCount,
-      推荐已读: recommendedReadCount
+      历史推荐总数: recommendedCount,
+      历史不想读总数: dislikedCount,
+      历史推荐已读: recommendedReadCount
     })
   } catch (error) {
     dbLogger.error('更新 RSS 源统计失败:', error)

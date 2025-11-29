@@ -800,6 +800,62 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                     </span>
                   </>
                 )}
+                
+                {/* 更新进度条（已订阅且活跃的源）*/}
+                {feed.isActive && feed.lastFetchedAt && (() => {
+                  const nextFetchTime = calculateNextFetchTime(feed)
+                  if (!nextFetchTime) return null
+                  
+                  const lastFetch = feed.lastFetchedAt
+                  const nextFetch = nextFetchTime
+                  const now = Date.now()
+                  const totalDuration = nextFetch - lastFetch
+                  const elapsed = now - lastFetch
+                  const progress = Math.max(0, Math.min(100, (elapsed / totalDuration) * 100))
+                  const durationDays = totalDuration / (24 * 60 * 60 * 1000)
+                  const barWidth = Math.min(180, Math.max(60, durationDays * 60))
+                  
+                  return (
+                    <>
+                      <span>•</span>
+                      <div className="flex items-center gap-1.5">
+                        <span>⏱️</span>
+                        <div 
+                          className="h-px bg-gray-200 dark:bg-gray-700 rounded-full relative overflow-visible cursor-help"
+                          style={{ width: `${barWidth}px` }}
+                          title={`${_('options.rssManager.stats.progress')}: ${progress.toFixed(1)}%\n${_('options.rssManager.stats.cycle')}: ${durationDays.toFixed(1)} ${_('options.rssManager.stats.days')}\n${_('options.rssManager.stats.lastFetch')}: ${new Date(lastFetch).toLocaleString('zh-CN')}\n${_('options.rssManager.stats.currentTime')}: ${new Date(now).toLocaleString('zh-CN')}\n${_('options.rssManager.stats.nextFetch')}: ${new Date(nextFetch).toLocaleString('zh-CN')}`}
+                        >
+                          <div 
+                            className="absolute left-0 top-0 h-full bg-gradient-to-r from-gray-400 to-green-500 dark:from-gray-500 dark:to-green-600 rounded-full transition-all duration-300"
+                            style={{ width: `${progress}%` }}
+                          />
+                          <div 
+                            className="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-blue-500 dark:bg-blue-400 rounded-full border-2 border-white dark:border-gray-800 shadow-sm transition-all duration-300"
+                            style={{ left: `calc(${progress}% - 4px)` }}
+                          />
+                        </div>
+                        <span className="text-xs text-blue-600 dark:text-blue-400 whitespace-nowrap">
+                          {formatTimeUntil(nextFetch)}
+                        </span>
+                      </div>
+                    </>
+                  )
+                })()}
+                
+                {/* 每周篇数（已订阅的源）*/}
+                {((feed.updateFrequency && feed.updateFrequency > 0) || 
+                  (feed.quality && feed.quality.updateFrequency > 0)) && (
+                  <>
+                    <span>•</span>
+                    <span className="flex items-center gap-1 whitespace-nowrap">
+                      <span>📊</span>
+                      <span>
+                        {(feed.updateFrequency || feed.quality?.updateFrequency || 0).toFixed(1)}{' '}
+                        {_('options.rssManager.fetch.perWeek')}
+                      </span>
+                    </span>
+                  </>
+                )}
               </>
             ) : (
               /* 候选源和忽略源：发现信息 */
@@ -845,254 +901,183 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
           )}
         </div>
         
-        {/* 第三行：统计信息 + 操作按钮 */}
-        <div className="flex items-center justify-between gap-2 text-xs text-gray-500 dark:text-gray-400">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            {/* 已订阅源：抓取统计 */}
-            {feed.status === 'subscribed' && (
-              <>
-                {/* 文章统计：可视化方块 */}
-                {feed.articleCount > 0 && (() => {
-                  const total = feed.articleCount
-                  const analyzed = feed.analyzedCount || 0
-                  const recommended = feed.recommendedCount || 0
-                  const read = feed.recommendedReadCount || 0
-                  const disliked = feed.dislikedCount || 0
-                  
-                  const blocksPerUnit = 5 // 每个方块代表 5 篇
-                  const totalBlocks = Math.ceil(total / blocksPerUnit)
-                  
-                  // 计算各类型方块数量
-                  const recommendedBlocks = Math.ceil(recommended / blocksPerUnit)
-                  const readBlocks = Math.ceil(read / blocksPerUnit)
-                  const dislikedBlocks = Math.ceil(disliked / blocksPerUnit)
-                  const analyzedBlocks = Math.ceil(analyzed / blocksPerUnit)
-                  
-                  // 已分析但未分类的方块
-                  const otherAnalyzedBlocks = Math.max(0, analyzedBlocks - recommendedBlocks - readBlocks - dislikedBlocks)
-                  
-                  // 未分析的方块
-                  const unanalyzedBlocks = Math.max(0, totalBlocks - analyzedBlocks)
-                  
-                  // 构建方块数组（按优先级排列：推荐 > 已读 > 不想读 > 其他已分析 > 未分析）
-                  const blocks: Array<{
-                    type: 'recommended' | 'read' | 'disliked' | 'analyzed' | 'unanalyzed'
-                    className: string
-                    tooltip: string
-                  }> = []
-                  
-                  // 推荐（绿色）
-                  for (let i = 0; i < recommendedBlocks; i++) {
-                    blocks.push({
-                      type: 'recommended',
-                      className: 'bg-green-400 dark:bg-green-500 border border-green-500 dark:border-green-600',
-                      tooltip: `⭐ 已推荐: ${recommended} 篇`
-                    })
-                  }
-                  
-                  // 已读（蓝色）
-                  for (let i = 0; i < readBlocks; i++) {
-                    blocks.push({
-                      type: 'read',
-                      className: 'bg-blue-400 dark:bg-blue-500 border border-blue-500 dark:border-blue-600',
-                      tooltip: `👁 推荐已读: ${read} 篇`
-                    })
-                  }
-                  
-                  // 不想读（红色）
-                  for (let i = 0; i < dislikedBlocks; i++) {
-                    blocks.push({
-                      type: 'disliked',
-                      className: 'bg-red-400 dark:bg-red-500 border border-red-500 dark:border-red-600',
-                      tooltip: `👎 不想读: ${disliked} 篇`
-                    })
-                  }
-                  
-                  // 其他已分析（灰色实心）
-                  for (let i = 0; i < otherAnalyzedBlocks; i++) {
-                    blocks.push({
-                      type: 'analyzed',
-                      className: 'bg-gray-400 dark:bg-gray-500 border border-gray-500 dark:border-gray-600',
-                      tooltip: `✓ 已分析: ${analyzed} 篇`
-                    })
-                  }
-                  
-                  // 未分析（白色边框）
-                  for (let i = 0; i < unanalyzedBlocks; i++) {
-                    blocks.push({
-                      type: 'unanalyzed',
-                      className: 'bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600',
-                      tooltip: `📰 总文章: ${total} 篇`
-                    })
-                  }
-                  
-                  // 最多显示 20 个方块
-                  const visibleBlocks = blocks.slice(0, 20)
-                  const hiddenCount = blocks.length - visibleBlocks.length
-                  
-                  return (
-                    <div className="flex items-center gap-2">
-                      {/* 总数标签 */}
-                      <span className="flex items-center gap-1">
-                        <span>📰</span>
-                        <span className="font-medium text-gray-700 dark:text-gray-300">{total}</span>
-                      </span>
-                      
-                      {/* 方块可视化 */}
-                      <div className="flex items-center gap-0.5 flex-wrap">
-                        {visibleBlocks.map((block, idx) => (
-                          <div
-                            key={idx}
-                            className={`w-3 h-3 rounded-sm cursor-help transition-transform hover:scale-150 ${block.className}`}
-                            title={block.tooltip}
-                          />
-                        ))}
-                        {hiddenCount > 0 && (
-                          <span className="text-xs text-gray-400 dark:text-gray-500 ml-1">
-                            +{hiddenCount}
-                          </span>
-                        )}
-                      </div>
-                      
-                      {/* 图例（鼠标悬浮卡片显示）*/}
-                      <div className="hidden group-hover:flex items-center gap-2 text-xs ml-1">
-                        {recommended > 0 && (
-                          <span className="flex items-center gap-1">
-                            <span className="w-2 h-2 bg-green-400 dark:bg-green-500 rounded-sm"></span>
-                            <span>{recommended}</span>
-                          </span>
-                        )}
-                        {read > 0 && (
-                          <span className="flex items-center gap-1">
-                            <span className="w-2 h-2 bg-blue-400 dark:bg-blue-500 rounded-sm"></span>
-                            <span>{read}</span>
-                          </span>
-                        )}
-                        {disliked > 0 && (
-                          <span className="flex items-center gap-1">
-                            <span className="w-2 h-2 bg-red-400 dark:bg-red-500 rounded-sm"></span>
-                            <span>{disliked}</span>
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })()}
-              </>
-            )}
+        {/* 第三行：文章统计数据条（完整宽度）*/}
+        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+          {/* 已订阅源：文章统计可视化 */}
+          {feed.status === 'subscribed' && feed.articleCount > 0 && (() => {
+            const total = feed.articleCount
+            const analyzed = feed.analyzedCount || 0
+            const currentRecommended = feed.currentRecommendedCount || 0     // 当前文章中推荐状态的数量
+            const currentDisliked = feed.currentDislikedCount || 0           // 当前文章中不想读的数量
+            const currentRecommendedRead = feed.currentRecommendedReadCount || 0  // 当前推荐文章中已读的数量
             
-            {/* 候选源和忽略源：发现时的统计 */}
-            {(feed.status === 'candidate' || feed.status === 'ignored') && (
-              <>
-                {/* 分析中状态 */}
-                {!feed.quality ? (
-                  <div className="text-blue-600 dark:text-blue-400 animate-pulse">
-                    🔍 {_('options.rssManager.quality.analyzing')}
-                  </div>
-                ) : (
-                  <>
-                    {/* 发现时的文章数 */}
-                    {feed.itemCount && feed.itemCount > 0 && (
-                      <span className="flex items-center gap-1">
-                        <span>📰</span>
-                        <span>{feed.itemCount} {_('options.rssManager.fetch.articles')}</span>
-                      </span>
-                    )}
-                    
-                    {/* 预估每周文章数 */}
-                    {feed.quality.updateFrequency > 0 && (
-                      <>
-                        {feed.itemCount && feed.itemCount > 0 && <span>•</span>}
-                        <span className="flex items-center gap-1">
-                          <span>📊</span>
-                          <span>{feed.quality.updateFrequency.toFixed(1)} {_('options.rssManager.fetch.perWeek')}</span>
-                        </span>
-                      </>
-                    )}
-                  </>
-                )}
-              </>
-            )}
+            // 每块代表 1 篇文章，最直观展示过滤效果
+            const blocksPerUnit = 1
+            const totalBlocks = total  // 总方块数 = 总文章数
             
-            {/* 格式警告（所有源） */}
-            {feed.quality && !feed.quality.formatValid && (
-              <>
-                <span>•</span>
-                <span className="text-amber-600 dark:text-amber-400">
-                  ⚠️ {_('options.rssManager.quality.formatInvalid')}
+            // 计算各类型方块数量
+            // 推荐待处理 = 当前推荐数 - 推荐已读 - 不想读
+            const recommendedUnprocessed = Math.max(0, currentRecommended - currentRecommendedRead - currentDisliked)
+            
+            const recommendedBlocks = recommendedUnprocessed
+            const readBlocks = currentRecommendedRead  // 推荐中已读的
+            const dislikedBlocks = currentDisliked
+            const analyzedBlocks = analyzed
+            
+            // 已分析但未推荐的方块
+            const otherAnalyzedBlocks = Math.max(0, analyzed - currentRecommended)
+            
+            // 未分析的方块
+            const unanalyzedBlocks = Math.max(0, total - analyzed)
+            
+            // 构建方块数组（按优先级排列：推荐 > 已读 > 不想读 > 其他已分析 > 未分析）
+            const blocks: Array<{
+              type: 'recommended' | 'read' | 'disliked' | 'analyzed' | 'unanalyzed'
+              className: string
+              tooltip: string
+            }> = []
+            
+            // 已推荐（绿色）
+            for (let i = 0; i < recommendedBlocks; i++) {
+              blocks.push({
+                type: 'recommended',
+                className: 'bg-green-400 dark:bg-green-500 border border-green-500 dark:border-green-600',
+                tooltip: `${_('options.rssManager.stats.recommended')}: ${recommendedUnprocessed} ${_('options.rssManager.stats.articles')}`
+              })
+            }
+            
+            // 已阅读（蓝色）
+            for (let i = 0; i < readBlocks; i++) {
+              blocks.push({
+                type: 'read',
+                className: 'bg-blue-400 dark:bg-blue-500 border border-blue-500 dark:border-blue-600',
+                tooltip: `${_('options.rssManager.stats.read')}: ${readBlocks} ${_('options.rssManager.stats.articles')}`
+              })
+            }
+            
+            // 不想读（红色）
+            for (let i = 0; i < dislikedBlocks; i++) {
+              blocks.push({
+                type: 'disliked',
+                className: 'bg-red-400 dark:bg-red-500 border border-red-500 dark:border-red-600',
+                tooltip: `${_('options.rssManager.stats.disliked')}: ${currentDisliked} ${_('options.rssManager.stats.articles')}`
+              })
+            }
+            
+            // 已分析（灰色实心）
+            for (let i = 0; i < otherAnalyzedBlocks; i++) {
+              blocks.push({
+                type: 'analyzed',
+                className: 'bg-gray-400 dark:bg-gray-500 border border-gray-500 dark:border-gray-600',
+                tooltip: `${_('options.rssManager.stats.analyzed')}: ${otherAnalyzedBlocks} ${_('options.rssManager.stats.articles')}`
+              })
+            }
+            
+            // 未分析（白色边框）
+            for (let i = 0; i < unanalyzedBlocks; i++) {
+              blocks.push({
+                type: 'unanalyzed',
+                className: 'bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600',
+                tooltip: `${_('options.rssManager.stats.unanalyzed')}: ${unanalyzedBlocks} ${_('options.rssManager.stats.articles')}`
+              })
+            }
+            
+            // 最多显示 50 个方块（每块=1篇，更详细）
+            const maxVisible = 50
+            const visibleBlocks = blocks.slice(0, maxVisible)
+            const hiddenCount = blocks.length - visibleBlocks.length
+            
+            return (
+              <div className="flex items-center gap-2 flex-1">
+                {/* 总数标签 */}
+                <span className="flex items-center gap-1 flex-shrink-0">
+                  <span>📰</span>
+                  <span className="font-medium text-gray-700 dark:text-gray-300">{total}</span>
                 </span>
-              </>
-            )}
-          </div>
-          
-          {/* 右侧：时间进度条 + 每周篇数 (仅已订阅源) + 操作按钮 */}
-          <div className="flex items-center gap-3 flex-shrink-0">
-            {/* 时间进度条 + 每周篇数 */}
-            {feed.status === 'subscribed' && (
-              <>
-                {/* 时间进度条 */}
-                {feed.lastFetchedAt && nextFetchTime && feed.isActive && (() => {
-                  const lastFetch = feed.lastFetchedAt
-                  const nextFetch = nextFetchTime
-                  const now = Date.now()
-                  const totalDuration = nextFetch - lastFetch
-                  const elapsed = now - lastFetch
-                  const progress = Math.max(0, Math.min(100, (elapsed / totalDuration) * 100))
-                  const durationDays = totalDuration / (24 * 60 * 60 * 1000)
-                  // 增加进度条长度范围：60-180px，更好地反映不同周期
-                  // 系数60：0.3天→18→60px(min), 1天→60px, 2天→120px, 3天→180px(max)
-                  const barWidth = Math.min(180, Math.max(60, durationDays * 60))
-                  
-                  return (
-                    <div className="flex items-center gap-1.5">
-                      <span>⏱️</span>
-                      {/* 进度条容器 - tooltip移到这里，鼠标移到任何位置都显示 */}
-                      <div 
-                        className="h-px bg-gray-200 dark:bg-gray-700 rounded-full relative overflow-visible cursor-help"
-                        style={{ width: `${barWidth}px` }}
-                        title={`进度: ${progress.toFixed(1)}%\n周期: ${durationDays.toFixed(1)} 天\n上次: ${new Date(lastFetch).toLocaleString('zh-CN')}\n当前: ${new Date(now).toLocaleString('zh-CN')}\n下次: ${new Date(nextFetch).toLocaleString('zh-CN')}`}
-                      >
-                        <div 
-                          className="absolute left-0 top-0 h-full bg-gradient-to-r from-gray-400 to-green-500 dark:from-gray-500 dark:to-green-600 rounded-full transition-all duration-300"
-                          style={{ width: `${progress}%` }}
-                        />
-                        <div 
-                          className="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-blue-500 dark:bg-blue-400 rounded-full border-2 border-white dark:border-gray-800 shadow-sm transition-all duration-300"
-                          style={{ left: `calc(${progress}% - 4px)` }}
-                        />
-                      </div>
-                      <span className="text-xs text-blue-600 dark:text-blue-400 whitespace-nowrap">
-                        {formatTimeUntil(nextFetch)}
-                      </span>
-                    </div>
-                  )
-                })()}
                 
-                {/* 每周篇数 */}
-                {((feed.updateFrequency && feed.updateFrequency > 0) || 
-                  (feed.quality && feed.quality.updateFrequency > 0)) && (
-                  <span className="flex items-center gap-1 whitespace-nowrap">
-                    <span>📊</span>
-                    <span>
-                      {(feed.updateFrequency || feed.quality?.updateFrequency || 0).toFixed(1)}{' '}
-                      {_('options.rssManager.fetch.perWeek')}
+                {/* 方块可视化 - 完整宽度 */}
+                <div className="flex items-center gap-0.5 flex-wrap flex-1">
+                  {visibleBlocks.map((block, idx) => (
+                    <div
+                      key={idx}
+                      className={`w-2 h-2 rounded-sm cursor-help transition-transform hover:scale-150 ${block.className}`}
+                      title={block.tooltip}
+                    />
+                  ))}
+                  {hiddenCount > 0 && (
+                    <span className="text-xs text-gray-400 dark:text-gray-500 ml-1">
+                      +{hiddenCount}
                     </span>
-                  </span>
-                )}
-              </>
-            )}
+                  )}
+                </div>
+                
+                {/* 简洁数字图例 */}
+                <div className="flex items-center gap-2 text-xs flex-shrink-0">
+                  {currentRecommended > 0 && (
+                    <span className="flex items-center gap-1">
+                      <span className="w-2 h-2 bg-green-400 dark:bg-green-500 rounded-sm"></span>
+                      <span>{recommendedUnprocessed}</span>
+                    </span>
+                  )}
+                  {readBlocks > 0 && (
+                    <span className="flex items-center gap-1">
+                      <span className="w-2 h-2 bg-blue-400 dark:bg-blue-500 rounded-sm"></span>
+                      <span>{readBlocks}</span>
+                    </span>
+                  )}
+                  {currentDisliked > 0 && (
+                    <span className="flex items-center gap-1">
+                      <span className="w-2 h-2 bg-red-400 dark:bg-red-500 rounded-sm"></span>
+                      <span>{currentDisliked}</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+            )
+          })()}
+          
+          {/* 候选源和忽略源：发现时的统计（保持原样）*/}
+          {(feed.status === 'candidate' || feed.status === 'ignored') && (
+            <div className="flex items-center gap-2 flex-1">
             
-            {/* 第三行操作按钮 (row3Actions) */}
-            {row3Actions.length > 0 && row3Actions.map((action, index) => (
-              <button
-                key={index}
-                onClick={action.onClick}
-                className={`${action.className} text-white text-xs px-2 py-1 rounded hover:opacity-90 transition-opacity whitespace-nowrap`}
-              >
-                {action.label}
-              </button>
-            ))}
-          </div>
+              {/* 分析中状态 */}
+              {!feed.quality ? (
+                <div className="text-blue-600 dark:text-blue-400 animate-pulse">
+                  🔍 {_('options.rssManager.quality.analyzing')}
+                </div>
+              ) : (
+                <>
+                  {/* 发现时的文章数 */}
+                  {feed.itemCount && feed.itemCount > 0 && (
+                    <span className="flex items-center gap-1">
+                      <span>📰</span>
+                      <span>{feed.itemCount} {_('options.rssManager.fetch.articles')}</span>
+                    </span>
+                  )}
+                  
+                  {/* 预估每周文章数 */}
+                  {feed.quality.updateFrequency > 0 && (
+                    <>
+                      {feed.itemCount && feed.itemCount > 0 && <span>•</span>}
+                      <span className="flex items-center gap-1">
+                        <span>📊</span>
+                        <span>{feed.quality.updateFrequency.toFixed(1)} {_('options.rssManager.fetch.perWeek')}</span>
+                      </span>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+          
+          {/* 格式警告（所有源） */}
+          {feed.quality && !feed.quality.formatValid && (
+            <div className="flex items-center gap-2">
+              <span className="text-amber-600 dark:text-amber-400">
+                ⚠️ {_('options.rssManager.quality.formatInvalid')}
+              </span>
+            </div>
+          )}
         </div>
         
         {/* 文章预览区域 */}

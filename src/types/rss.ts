@@ -73,11 +73,14 @@ export interface DiscoveredFeed {
   lastError?: string
   articleCount: number         // 总文章数
   analyzedCount?: number       // Phase 7: 已分析数量（有 analysis 字段）
-  recommendedCount: number     // 被推荐数量（已推荐）
+  recommendedCount: number     // 历史推荐总数（包括被替换的）- 用于历史统计
   readCount?: number           // Phase 7: 已阅读数量（read=true）
-  dislikedCount?: number       // Phase 7: 不想读数量（disliked=true）
+  dislikedCount?: number       // 历史不想读总数（包括被替换的）- 用于历史统计
   unreadCount: number
-  recommendedReadCount?: number
+  recommendedReadCount?: number  // 历史推荐已读数 - 用于历史统计
+  currentRecommendedCount?: number  // 当前文章中推荐状态的数量 - 用于UI显示
+  currentDislikedCount?: number     // 当前文章中不想读的数量 - 用于UI显示
+  currentRecommendedReadCount?: number  // 当前推荐文章中已读的数量 - 用于UI显示
   latestArticles?: FeedArticle[]
   
   /** Phase 9: 分析引擎选择（默认 remoteAI） */

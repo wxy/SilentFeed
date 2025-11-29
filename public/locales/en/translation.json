@@ -514,8 +514,8 @@
       "budgetLabel": "Monthly budget limit",
       "budgetUnit": "/ month",
       "selectProviderPlaceholder": "Please select an AI provider",
-      "apiKeyPlaceholder": "Enter your {{provider}} API Key",
-      "apiKeyHint": "The API Key will be encrypted and stored locally in the browser, and will not be uploaded to the server.",
+      "apiKeyPlaceholder": "Enter your {{provider}} API key",
+      "apiKeyHint": "The API key will be encrypted and stored locally in the browser, and will not be uploaded to the server.",
       "budgetHint": "Will automatically downgrade to free keyword analysis after exceeding the budget",
       "budgetWarning": "It is recommended to set a reasonable budget to avoid unexpected costs (suggested {{range}})",
       "providers": {
@@ -550,26 +550,26 @@
         "latency": "(Delay: {{ms}}ms)"
       },
       "errors": {
-        "selectProviderAndKey": "Please select a provider and enter the API Key",
-        "selectProviderAndKeyFirst": "请先选择提供商并输入 API Key",
-        "invalidApiKeyFormat": "The API Key format is incorrect.",
+        "selectProviderAndKey": "Please select a provider and enter the API key",
+        "selectProviderAndKeyFirst": "Please select a provider and enter the API key first.",
+        "invalidApiKeyFormat": "The API key format is incorrect.",
         "saveFailed": "Save failed: {{error}}",
         "testFailed": "Test failed: {{error}}",
         "disableFailed": "Disable failed: {{error}}",
         "selectProvider": "Please select an AI provider",
-        "enterApiKey": "Please enter the API Key",
+        "enterApiKey": "Please enter the API key",
         "selectModel": "Please select an AI model",
         "invalidModel": "Invalid model selection"
       },
       "info": {
-        "title": "About AI Analysis",
+        "title": "How to Choose an AI Provider",
         "withConfig": "After configuration: Prioritize AI analysis (more accurate, paid)",
         "withoutConfig": "Not configured: Use free keyword analysis (available but with lower accuracy)",
         "fallback": "Downgrade strategy: Automatically fall back to keyword analysis when API fails or exceeds budget.",
-        "privacy": "Privacy Protection: All data processing is done locally, and API Keys are stored encrypted.",
+        "privacy": "Privacy Protection: All data processing is performed locally, and API keys are stored encrypted.",
         "overview": "Silent Feed offers both remote AI and local AI analysis methods, allowing you to choose flexibly based on your needs:",
         "remoteTitle": "Remote AI",
-        "remoteDesc": "More powerful and accurate, requires an API Key and internet connection, pay-as-you-go",
+        "remoteDesc": "More powerful and accurate, requires an API key and internet, pay-as-you-go",
         "localTitle": "Local AI",
         "localDesc": "Completely offline, protects privacy, requires local installation or enabling Chrome AI."
       },
@@ -610,13 +610,13 @@
         "modelAndProvider": "Select AI Model"
       },
       "placeholders": {
-        "apiKey": "Enter your API Key",
+        "apiKey": "Enter your API key",
         "model": "Select Model (Optional, leave blank to use default model)",
         "selectModel": "Please select an AI model",
         "disableRemoteAI": "Disable remote AI services"
       },
       "hints": {
-        "apiKey": "The API Key will be encrypted and stored locally in the browser, and will not be uploaded to the server."
+        "apiKey": "The API key will be encrypted and stored locally in the browser, and will not be uploaded to the server."
       },
       "engineTitle": "AI Engine Configuration",
       "remoteAI": "Remote AI Service Provider",
@@ -891,60 +891,63 @@
         }
       },
       "card": {
-        "active": "Active",
-        "supportsReasoning": "Supports reasoning capability",
+        "active": "In use",
+        "supportsReasoning": "Supports reasoning capabilities",
         "typeLocal": "Local",
         "typeRemote": "Remote",
         "statusAvailable": "Available",
         "statusUnavailable": "Unavailable",
-        "statusNotConfigured": "Not Configured",
-        "latency": "Latency: {{value}}",
-        "lastChecked": "Last Checked: {{time}}",
-        "check": "Check",
-        "checking": "Checking...",
-        "configure": "Configure",
+        "statusNotConfigured": "Not configured",
+        "latency": "Delay: {{value}}",
+        "lastChecked": "Detection: {{time}}",
+        "check": "Detect",
+        "checking": "Detecting...",
+        "configure": "Configuration",
         "errors": {
-          "notConfigured": "API key not configured",
+          "notConfigured": "API Key not configured",
           "localNotEnabled": "Local AI not enabled",
-          "checkFailed": "Check failed"
+          "checkFailed": "Detection failed"
         }
       },
       "providerPanel": {
         "title": "AI Provider Status",
         "checkAll": "Check All",
-        "checking": "Checking..."
+        "checking": "Detecting..."
       },
       "configModal": {
         "title": "Configure {{provider}}",
-        "close": "Close",
+        "close": "Turn off",
         "save": "Save",
         "saving": "Saving...",
-        "testConnection": "Test Connection",
+        "testConnection": "Test connection",
         "testing": "Testing...",
-        "testSuccess": "✓ Connection Successful",
-        "testConnectionAndLoadModels": "Test Connection and Load Models",
-        "loadingModels": "Loading models...",
+        "testSuccess": "✓ Connection successful",
+        "testConnectionAndLoadModels": "Test connection and load model",
+        "loadingModels": "Loading model...",
         "apiKey": "API Key",
-        "apiKeyPlaceholder": "Please enter {{provider}} API key",
+        "apiKeyPlaceholder": "Please enter the {{provider}} API key",
         "selectModel": "Select Model",
-        "selectModelPlaceholder": "-- Select a model --",
-        "enableReasoning": "Enable reasoning mode (about 10x cost, but higher quality)",
+        "selectModelPlaceholder": "-- Select Model --",
+        "enableReasoning": "Enable inference mode (costs about 10x more, but with higher quality)",
         "ollamaEnabled": "Enable Local AI (Ollama)",
-        "ollamaEndpoint": "Ollama Endpoint",
+        "ollamaEndpoint": "Ollama endpoint",
         "ollamaEndpointPlaceholder": "http://localhost:11434/v1",
         "ollamaModel": "Model Name",
         "ollamaModelPlaceholder": "e.g., qwen2.5:7b",
         "testResult": {
           "success": "Connection successful! Latency: {{latency}}ms",
-          "successWithReasoning": "Connection successful! Latency: {{latency}}ms (Reasoning enabled)",
-          "error": "{{message}}",
-          "missingConfig": "Please configure API Key and select model first",
-          "missingEndpoint": "Please configure Ollama endpoint first",
+          "successWithReasoning": "Connection successful! Latency: {{latency}}ms (Inference mode enabled)",
+          "error": "Translate the following Chinese text into English:\n{{message}}",
+          "missingConfig": "Please configure the API Key and select a model first.",
+          "missingEndpoint": "Please configure the Ollama endpoint first.",
           "connectionFailed": "Connection failed",
-          "modelsLoaded": "Connection successful! Found {{count}} models",
+          "modelsLoaded": "Connection successful! {{count}} models found.",
           "modelsLoadFailed": "Connection successful, but failed to load model list: {{error}}",
           "unknownError": "Unknown error"
-        }
+        },
+        "ollamaEndpointHint": "OpenAI compatible interface address",
+        "modelName": "Model Name",
+        "loadModelsHint": "Click the button above to load available models."
       },
       "ollama": {
         "title": "Ollama Installation Guide",
@@ -1124,7 +1127,21 @@
       },
       "importExportOPML": "Batch Import/Export (OPML File)",
       "exportOPML": "Export OPML",
-      "noSubscribedFeeds": "No subscribed sources yet"
+      "noSubscribedFeeds": "No subscribed sources yet",
+      "stats": {
+        "progress": "Progress",
+        "cycle": "Cycle",
+        "lastFetch": "Last",
+        "currentTime": "Now",
+        "nextFetch": "Next",
+        "days": "days",
+        "articles": "articles",
+        "recommended": "Recommended",
+        "read": "Read",
+        "disliked": "Dismissed",
+        "analyzed": "Analyzed",
+        "unanalyzed": "Unanalyzed"
+      }
     },
     "profile": {
       "title": "User Profile",
@@ -1248,20 +1265,20 @@
         "presets": {
           "privacy": {
             "name": "Privacy First",
-            "description": "All data processed locally, never uploaded",
-            "estimatedCost": "$0/month",
+            "description": "All data is processed locally and never uploaded.",
+            "estimatedCost": "¥0/month",
             "performanceImpact": "🔥🔥🔥 High"
           },
           "intelligence": {
-            "name": "Intelligence First",
-            "description": "Best AI capability, reasoning mode ensures quality",
-            "estimatedCost": "$0.7-1.2/month",
-            "performanceImpact": "🔥 Low (only low-freq tasks slower)"
+            "name": "Intelligent Priority",
+            "description": "Best AI capabilities, reasoning mode ensures quality",
+            "estimatedCost": "¥5-8/month",
+            "performanceImpact": "🔥 Low (only slightly slower for low-frequency tasks)"
           },
           "economic": {
-            "name": "Economic First",
-            "description": "Lowest cost, standard quality is good enough",
-            "estimatedCost": "$0.07-0.15/month",
+            "name": "Economic Priority",
+            "description": "Lowest cost, standard quality is good enough.",
+            "estimatedCost": "¥0.5-1/month",
             "performanceImpact": "✅ None"
           }
         },
@@ -1334,26 +1351,6 @@
           "check": "Check",
           "checking": "Checking...",
           "configure": "Configure"
-        },
-        "presets": {
-          "privacy": {
-            "name": "Privacy First",
-            "description": "All data is processed locally and never uploaded.",
-            "estimatedCost": "¥0/month",
-            "performanceImpact": "🔥🔥🔥 High"
-          },
-          "intelligence": {
-            "name": "Intelligent Priority",
-            "description": "Best AI capabilities, reasoning mode ensures quality",
-            "estimatedCost": "¥5-8/month",
-            "performanceImpact": "🔥 Low (only slightly slower for low-frequency tasks)"
-          },
-          "economic": {
-            "name": "Economic Priority",
-            "description": "Lowest cost, standard quality is good enough.",
-            "estimatedCost": "¥0.5-1/month",
-            "performanceImpact": "✅ None"
-          }
         }
       },
       "labels": {
