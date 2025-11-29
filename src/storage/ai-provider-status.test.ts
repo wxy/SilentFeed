@@ -26,12 +26,16 @@ vi.mock("@/utils/logger", () => ({
 }))
 
 // Mock chrome.storage.local
+const mockGet = vi.fn()
+const mockSet = vi.fn()
+const mockRemove = vi.fn()
+
 global.chrome = {
   storage: {
     local: {
-      get: vi.fn() as any,
-      set: vi.fn() as any,
-      remove: vi.fn() as any
+      get: mockGet,
+      set: mockSet,
+      remove: mockRemove
     }
   }
 } as any
@@ -52,7 +56,7 @@ describe("ai-provider-status", () => {
         }
       }
 
-      vi.mocked(chrome.storage.local.get).mockResolvedValue({
+      mockGet.mockResolvedValue({
         aiProvidersStatus: mockStatus
       })
 
@@ -61,14 +65,14 @@ describe("ai-provider-status", () => {
     })
 
     it("应该返回空对象当没有数据时", async () => {
-      vi.mocked(chrome.storage.local.get).mockResolvedValue({})
+      mockGet.mockResolvedValue({})
 
       const result = await getAllProviderStatus()
       expect(result).toEqual({})
     })
 
     it("应该处理错误", async () => {
-      vi.mocked(chrome.storage.local.get).mockRejectedValue(new Error("Storage error"))
+      mockGet.mockRejectedValue(new Error("Storage error"))
 
       const result = await getAllProviderStatus()
       expect(result).toEqual({})
@@ -84,7 +88,7 @@ describe("ai-provider-status", () => {
         lastChecked: Date.now()
       }
 
-      vi.mocked(chrome.storage.local.get).mockResolvedValue({
+      mockGet.mockResolvedValue({
         aiProvidersStatus: { deepseek: mockStatus }
       })
 
@@ -93,7 +97,7 @@ describe("ai-provider-status", () => {
     })
 
     it("应该返回 null 当 Provider 不存在时", async () => {
-      vi.mocked(chrome.storage.local.get).mockResolvedValue({
+      mockGet.mockResolvedValue({
         aiProvidersStatus: {}
       })
 
@@ -111,14 +115,14 @@ describe("ai-provider-status", () => {
         lastChecked: Date.now()
       }
 
-      vi.mocked(chrome.storage.local.get).mockResolvedValue({
+      mockGet.mockResolvedValue({
         aiProvidersStatus: {}
       })
-      vi.mocked(chrome.storage.local.set).mockResolvedValue()
+      mockSet.mockResolvedValue(undefined)
 
       await saveProviderStatus(status)
 
-      expect(chrome.storage.local.set).toHaveBeenCalledWith({
+      expect(mockSet).toHaveBeenCalledWith({
         aiProvidersStatus: {
           deepseek: expect.objectContaining({
             providerId: "deepseek",
@@ -138,14 +142,14 @@ describe("ai-provider-status", () => {
         lastChecked: now - 10000 // 10秒前
       }
 
-      vi.mocked(chrome.storage.local.get).mockResolvedValue({
+      mockGet.mockResolvedValue({
         aiProvidersStatus: {}
       })
-      vi.mocked(chrome.storage.local.set).mockResolvedValue()
+      mockSet.mockResolvedValue(undefined)
 
       await saveProviderStatus(status)
 
-      const saved = vi.mocked(chrome.storage.local.set).mock.calls[0][0]
+      const saved = mockSet.mock.calls[0][0]
       expect(saved.aiProvidersStatus.deepseek.lastChecked).toBeGreaterThanOrEqual(now)
     })
   })
@@ -167,11 +171,11 @@ describe("ai-provider-status", () => {
         }
       }
 
-      vi.mocked(chrome.storage.local.set).mockResolvedValue()
+      mockSet.mockResolvedValue(undefined)
 
       await saveAllProviderStatus(statuses)
 
-      expect(chrome.storage.local.set).toHaveBeenCalledWith({
+      expect(mockSet).toHaveBeenCalledWith({
         aiProvidersStatus: statuses
       })
     })
@@ -194,14 +198,14 @@ describe("ai-provider-status", () => {
         }
       }
 
-      vi.mocked(chrome.storage.local.get).mockResolvedValue({
+      mockGet.mockResolvedValue({
         aiProvidersStatus: existing
       })
-      vi.mocked(chrome.storage.local.set).mockResolvedValue()
+      mockSet.mockResolvedValue(undefined)
 
       await deleteProviderStatus("deepseek")
 
-      expect(chrome.storage.local.set).toHaveBeenCalledWith({
+      expect(mockSet).toHaveBeenCalledWith({
         aiProvidersStatus: { ollama: existing.ollama }
       })
     })
@@ -209,11 +213,11 @@ describe("ai-provider-status", () => {
 
   describe("clearAllProviderStatus", () => {
     it("应该清空所有 Provider 状态", async () => {
-      vi.mocked(chrome.storage.local.remove).mockResolvedValue()
+      mockRemove.mockResolvedValue(undefined)
 
       await clearAllProviderStatus()
 
-      expect(chrome.storage.local.remove).toHaveBeenCalledWith("aiProvidersStatus")
+      expect(mockRemove).toHaveBeenCalledWith("aiProvidersStatus")
     })
   })
 
