@@ -863,13 +863,16 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                   const totalBlocks = Math.ceil(total / blocksPerUnit)
                   
                   // 计算各类型方块数量
-                  const recommendedBlocks = Math.ceil(recommended / blocksPerUnit)
+                  // 注意：recommendedCount 包含了 recommendedReadCount 和 dislikedCount
+                  // 所以推荐未处理 = 总推荐数 - 已读 - 不想读
+                  const recommendedUnprocessed = Math.max(0, recommended - read - disliked)
+                  const recommendedBlocks = Math.ceil(recommendedUnprocessed / blocksPerUnit)
                   const readBlocks = Math.ceil(read / blocksPerUnit)
                   const dislikedBlocks = Math.ceil(disliked / blocksPerUnit)
                   const analyzedBlocks = Math.ceil(analyzed / blocksPerUnit)
                   
-                  // 已分析但未分类的方块
-                  const otherAnalyzedBlocks = Math.max(0, analyzedBlocks - recommendedBlocks - readBlocks - dislikedBlocks)
+                  // 已分析但未推荐的方块（已分析 - 所有推荐）
+                  const otherAnalyzedBlocks = Math.max(0, analyzedBlocks - Math.ceil(recommended / blocksPerUnit))
                   
                   // 未分析的方块
                   const unanalyzedBlocks = Math.max(0, totalBlocks - analyzedBlocks)
@@ -881,12 +884,12 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                     tooltip: string
                   }> = []
                   
-                  // 推荐（绿色）
+                  // 推荐（绿色）- 未处理的推荐
                   for (let i = 0; i < recommendedBlocks; i++) {
                     blocks.push({
                       type: 'recommended',
                       className: 'bg-green-400 dark:bg-green-500 border border-green-500 dark:border-green-600',
-                      tooltip: `⭐ 已推荐: ${recommended} 篇`
+                      tooltip: `⭐ 推荐待处理: ${recommendedUnprocessed} 篇（总推荐 ${recommended} 篇）`
                     })
                   }
                   
