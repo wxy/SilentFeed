@@ -13,6 +13,36 @@ vi.mock("@/utils/logger", () => ({
   }
 }))
 
+// Mock i18n
+vi.mock("@/i18n/helpers", () => ({
+  useI18n: () => ({
+    _: (key: string, params?: Record<string, any>) => {
+      const translations: Record<string, string> = {
+        "options.aiConfig.card.statusAvailable": "可用",
+        "options.aiConfig.card.statusUnavailable": "不可用",
+        "options.aiConfig.card.statusNotConfigured": "未配置",
+        "options.aiConfig.card.typeLocal": "本地",
+        "options.aiConfig.card.typeRemote": "远程",
+        "options.aiConfig.card.active": "在用",
+        "options.aiConfig.card.supportsReasoning": "支持推理能力",
+        "options.aiConfig.card.latency": "延迟: {{value}}",
+        "options.aiConfig.card.lastChecked": "检测: {{time}}",
+        "options.aiConfig.card.check": "检测",
+        "options.aiConfig.card.checking": "检测中...",
+        "options.aiConfig.card.configure": "配置"
+      }
+      let result = translations[key] || key
+      // 简单的模板替换
+      if (params) {
+        Object.keys(params).forEach(paramKey => {
+          result = result.replace(`{{${paramKey}}}`, params[paramKey])
+        })
+      }
+      return result
+    }
+  })
+}))
+
 describe("AIProviderCard", () => {
   const mockOnCheck = vi.fn()
   const mockOnConfigure = vi.fn()

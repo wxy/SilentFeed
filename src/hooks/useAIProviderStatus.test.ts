@@ -4,6 +4,18 @@ import { useAIProviderStatus } from "./useAIProviderStatus"
 import * as aiProviderStatus from "@/storage/ai-provider-status"
 import type { AIConfig } from "@/storage/ai-config"
 
+// Mock i18n
+vi.mock("@/i18n/helpers", () => ({
+  translate: (key: string) => {
+    const translations: Record<string, string> = {
+      "options.aiConfig.card.errors.notConfigured": "未配置 API Key",
+      "options.aiConfig.card.errors.localNotEnabled": "未启用本地 AI",
+      "options.aiConfig.card.errors.checkFailed": "检测失败"
+    }
+    return translations[key] || key
+  }
+}))
+
 // Mock 依赖
 vi.mock("@/storage/ai-provider-status", () => ({
   getAllProviderStatus: vi.fn(),
