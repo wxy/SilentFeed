@@ -823,7 +823,7 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                         <div 
                           className="h-px bg-gray-200 dark:bg-gray-700 rounded-full relative overflow-visible cursor-help"
                           style={{ width: `${barWidth}px` }}
-                          title={`进度: ${progress.toFixed(1)}%\n周期: ${durationDays.toFixed(1)} 天\n上次: ${new Date(lastFetch).toLocaleString('zh-CN')}\n当前: ${new Date(now).toLocaleString('zh-CN')}\n下次: ${new Date(nextFetch).toLocaleString('zh-CN')}`}
+                          title={`${_('options.rssManager.stats.progress')}: ${progress.toFixed(1)}%\n${_('options.rssManager.stats.cycle')}: ${durationDays.toFixed(1)} ${_('options.rssManager.stats.days')}\n${_('options.rssManager.stats.lastFetch')}: ${new Date(lastFetch).toLocaleString('zh-CN')}\n${_('options.rssManager.stats.currentTime')}: ${new Date(now).toLocaleString('zh-CN')}\n${_('options.rssManager.stats.nextFetch')}: ${new Date(nextFetch).toLocaleString('zh-CN')}`}
                         >
                           <div 
                             className="absolute left-0 top-0 h-full bg-gradient-to-r from-gray-400 to-green-500 dark:from-gray-500 dark:to-green-600 rounded-full transition-all duration-300"
@@ -942,7 +942,7 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
               blocks.push({
                 type: 'recommended',
                 className: 'bg-green-400 dark:bg-green-500 border border-green-500 dark:border-green-600',
-                tooltip: `已推荐: ${recommendedUnprocessed} 篇`
+                tooltip: `${_('options.rssManager.stats.recommended')}: ${recommendedUnprocessed} ${_('options.rssManager.stats.articles')}`
               })
             }
             
@@ -951,7 +951,7 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
               blocks.push({
                 type: 'read',
                 className: 'bg-blue-400 dark:bg-blue-500 border border-blue-500 dark:border-blue-600',
-                tooltip: `已阅读: ${readBlocks} 篇`
+                tooltip: `${_('options.rssManager.stats.read')}: ${readBlocks} ${_('options.rssManager.stats.articles')}`
               })
             }
             
@@ -960,7 +960,7 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
               blocks.push({
                 type: 'disliked',
                 className: 'bg-red-400 dark:bg-red-500 border border-red-500 dark:border-red-600',
-                tooltip: `不想读: ${currentDisliked} 篇`
+                tooltip: `${_('options.rssManager.stats.disliked')}: ${currentDisliked} ${_('options.rssManager.stats.articles')}`
               })
             }
             
@@ -969,7 +969,7 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
               blocks.push({
                 type: 'analyzed',
                 className: 'bg-gray-400 dark:bg-gray-500 border border-gray-500 dark:border-gray-600',
-                tooltip: `已分析: ${otherAnalyzedBlocks} 篇`
+                tooltip: `${_('options.rssManager.stats.analyzed')}: ${otherAnalyzedBlocks} ${_('options.rssManager.stats.articles')}`
               })
             }
             
@@ -978,7 +978,7 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
               blocks.push({
                 type: 'unanalyzed',
                 className: 'bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600',
-                tooltip: `未分析: ${unanalyzedBlocks} 篇`
+                tooltip: `${_('options.rssManager.stats.unanalyzed')}: ${unanalyzedBlocks} ${_('options.rssManager.stats.articles')}`
               })
             }
             
