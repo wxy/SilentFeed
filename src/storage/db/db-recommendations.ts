@@ -77,14 +77,6 @@ export async function markAsRead(
   // 清除统计缓存
   statsCache.invalidate('rec-stats-7d')
   
-  // 验证更新结果
-  const updated = await db.recommendations.get(id)
-  dbLogger.debug('验证更新结果:', {
-    id,
-    isRead: updated?.isRead,
-    clickedAt: updated?.clickedAt
-  })
-  
   // Phase 6: 立即更新 RSS 源统计（会重新计算 recommendedReadCount）
   // Phase 7 优化: recommendedReadCount 直接从推荐池统计，无需同步 latestArticles
   if (recommendation.sourceUrl) {
@@ -182,9 +174,11 @@ export async function getUnreadRecommendations(limit: number = 50): Promise<Reco
     .toArray()
   
   // 按推荐分数降序排序，取前 N 条
-  return recommendations
+  const result = recommendations
     .sort((a, b) => (b.score || 0) - (a.score || 0))
     .slice(0, limit)
+  
+  return result
 }
 
 /**

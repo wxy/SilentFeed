@@ -214,24 +214,9 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
         .sort((a: Recommendation, b: Recommendation) => b.score - a.score)
         .slice(0, config.maxRecommendations)
       
-      console.log('[RecommendationStore] 🔄 重新加载未读推荐:', {
-        更新前数量: beforeState.length,
-        更新后数量: sortedRecommendations.length,
-        移除的ID: id,
-        sorted: true,
-        新推荐列表: sortedRecommendations.map(r => ({ id: r.id, title: r.title.substring(0, 20), score: r.score }))
-      })
-      
       // 更新 store 状态
       set({
         recommendations: sortedRecommendations
-      })
-      
-      const afterState = get().recommendations
-      console.log('[RecommendationStore] ✅ Store状态已更新:', {
-        更新后的推荐数: afterState.length,
-        是否变化: afterState.length !== beforeState.length,
-        推荐列表: afterState.map(r => ({ id: r.id, title: r.title.substring(0, 20) }))
       })
       
       // 通知背景脚本更新图标
