@@ -138,13 +138,14 @@ export function RecommendationView() {
       // Phase 6: 跟踪推荐点击
       await trackRecommendationClick()
       
-      // 打开链接
-      await chrome.tabs.create({ url: rec.url })
-      
-      // 标记为已读（这会立即从列表中移除该条目）
+      // ⚠️ 关键修复：先标记为已读，再打开链接
+      // 因为 chrome.tabs.create() 会关闭弹窗，导致后续异步操作被中断
       recViewLogger.debug(`开始标记为已读: ${rec.id}`)
       await markAsRead(rec.id)
-      recViewLogger.info(`✅ 标记已读完成，条目已从列表移除: ${rec.id}`)
+      recViewLogger.info(`✅ 标记已读完成: ${rec.id}`)
+      
+      // 最后打开链接（这会关闭弹窗）
+      await chrome.tabs.create({ url: rec.url })
       
     } catch (error) {
       recViewLogger.error('❌ 处理点击失败:', error)

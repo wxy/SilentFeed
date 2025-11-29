@@ -59,8 +59,16 @@ export class AICapabilityManager {
       
       const providerType = config.provider ?? null
       const apiKey = providerType ? (config.apiKeys?.[providerType] || "") : ""
-      await this.initializeRemoteProvider(config.enabled, providerType, apiKey, config.model)
-      await this.initializeLocalProvider(config.local)
+      
+      // 只有启用了才初始化
+      if (config.enabled) {
+        await this.initializeRemoteProvider(config.enabled, providerType, apiKey, config.model)
+      }
+      
+      // 只有本地 AI 启用了才初始化
+      if (config.local?.enabled) {
+        await this.initializeLocalProvider(config.local)
+      }
       
       // Phase 8: 加载 AI 引擎分配配置
       try {
@@ -473,10 +481,7 @@ export class AICapabilityManager {
     }
 
     this.remoteProvider = this.createRemoteProvider(providerType, apiKey, model)
-    const available = await this.remoteProvider.isAvailable()
-    if (!available) {
-      aiLogger.warn(" Remote provider not available, will rely on fallback/local")
-    }
+    aiLogger.info(`✅ Remote provider initialized: ${this.remoteProvider.name}`)
   }
 
   private async initializeLocalProvider(localConfig?: LocalAIConfig): Promise<void> {
@@ -486,10 +491,7 @@ export class AICapabilityManager {
     }
 
     this.localProvider = this.createLocalProvider(localConfig)
-    const available = await this.localProvider.isAvailable()
-    if (!available) {
-      aiLogger.warn(" Local provider not available, please ensure Ollama is running")
-    }
+    aiLogger.info(`✅ Local provider initialized: ${this.localProvider.name}`)
   }
 
   private async getProviderChain(mode: ProviderSelectionMode): Promise<AIProvider[]> {

@@ -159,7 +159,20 @@ export abstract class BaseAIService implements AIProvider {
       }
       
       // 4. 解析响应并归一化概率
-      const analysis = JSON.parse(response.content) as { topics: Record<string, number> }
+      // ⚠️ 修复：移除可能的 markdown 代码块标记
+      let jsonContent = response.content.trim()
+      
+      // 移除开头的 ```json 或 ```
+      if (jsonContent.startsWith('```')) {
+        jsonContent = jsonContent.replace(/^```(?:json)?\s*\n/, '')
+      }
+      
+      // 移除结尾的 ```
+      if (jsonContent.endsWith('```')) {
+        jsonContent = jsonContent.replace(/\n```\s*$/, '')
+      }
+      
+      const analysis = JSON.parse(jsonContent) as { topics: Record<string, number> }
       const normalizedTopics = this.normalizeTopicProbabilities(analysis.topics)
       
       // 5. 计算成本
@@ -219,7 +232,20 @@ export abstract class BaseAIService implements AIProvider {
       }
       
       // 5. 解析响应
-      const profileData = JSON.parse(response.content) as {
+      // ⚠️ 修复：移除可能的 markdown 代码块标记
+      let jsonContent = response.content.trim()
+      
+      // 移除开头的 ```json 或 ```
+      if (jsonContent.startsWith('```')) {
+        jsonContent = jsonContent.replace(/^```(?:json)?\s*\n/, '')
+      }
+      
+      // 移除结尾的 ```
+      if (jsonContent.endsWith('```')) {
+        jsonContent = jsonContent.replace(/\n```\s*$/, '')
+      }
+      
+      const profileData = JSON.parse(jsonContent) as {
         interests: string
         preferences: string[]
         avoidTopics: string[]

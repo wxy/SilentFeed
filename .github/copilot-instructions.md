@@ -220,6 +220,16 @@ TypeScript 示例:
 - **主分支**: master (受保护,仅通过 PR 合并)
 - **开发分支**: feature/功能名, fix/问题描述, test/测试范围, docs/文档主题, chore/任务说明
 
+**⚠️ 强制规则**: 
+- **禁止在 master 分支直接开发**: 任何修改都必须先创建功能分支
+- **自动分支创建**: 当用户在 master 分支请求修改时，必须先提示并创建对应的功能分支
+- **分支命名规范**: 
+  - 新功能: `feature/功能描述` (如 `feature/rss-discovery`)
+  - Bug 修复: `fix/问题描述` (如 `fix/recommendation-click`)
+  - 测试: `test/测试范围` (如 `test/profile-builder`)
+  - 文档: `docs/文档主题` (如 `docs/api-design`)
+  - 工具/构建: `chore/任务说明` (如 `chore/update-deps`)
+
 ### Commit Messages (中文)
 
 遵循约定式提交格式:
