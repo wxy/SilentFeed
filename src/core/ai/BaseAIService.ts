@@ -360,7 +360,7 @@ export abstract class BaseAIService implements AIProvider {
   /**
    * 测试连接（默认实现，子类可覆盖）
    */
-  async testConnection(): Promise<{
+  async testConnection(useReasoning: boolean = false): Promise<{
     success: boolean
     message: string
     latency?: number
@@ -371,7 +371,8 @@ export abstract class BaseAIService implements AIProvider {
       await this.callChatAPI("测试连接", {
         maxTokens: 10,
         timeout: 10000,
-        jsonMode: false
+        jsonMode: false,
+        useReasoning
       })
       
       const latency = Date.now() - startTime

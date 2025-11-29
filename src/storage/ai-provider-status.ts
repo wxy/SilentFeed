@@ -6,7 +6,7 @@
 
 import { logger } from '@/utils/logger'
 
-const statusLogger = logger.extend('AIProviderStatus')
+const statusLogger = logger.withTag('AIProviderStatus')
 
 /**
  * AI Provider 推理能力状态

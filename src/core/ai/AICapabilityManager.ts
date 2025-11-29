@@ -293,7 +293,7 @@ export class AICapabilityManager {
   /**
    * 测试连接
    */
-  async testConnection(target: ProviderSelectionMode = "remote"): Promise<{
+  async testConnection(target: ProviderSelectionMode = "remote", useReasoning: boolean = false): Promise<{
     success: boolean
     message: string
     latency?: number
@@ -307,7 +307,7 @@ export class AICapabilityManager {
       }
     }
     
-    return await provider.testConnection()
+    return await provider.testConnection(useReasoning)
   }
   
   /**
