@@ -509,7 +509,8 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
         timeout: context.config.useReasoning ? 120000 : 60000,
         maxTokens: 2000,
         useReasoning: context.config.useReasoning || false,
-        userProfile: aiUserProfile
+        userProfile: aiUserProfile,
+        purpose: 'recommend-content' as const  // 指定为RSS推荐任务
       }
       
       // Phase 8: 使用 feedAnalysis 任务类型（会从引擎分配配置中自动读取引擎和推理设置）
@@ -631,7 +632,8 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
             maxLength: 3000,
             timeout: this.config.ai.timeout || 60000,  // Phase 6: 默认 60 秒
             useReasoning: context.config?.useReasoning || false,  // Phase 6: 传递推理模式参数
-            userProfile  // Phase 8: 传递用户画像
+            userProfile,  // Phase 8: 传递用户画像
+            purpose: 'recommend-content' as const  // 指定为RSS推荐任务
           }
           
           // Phase 8: 使用 feedAnalysis 任务类型（会从引擎分配配置中自动读取引擎和推理设置）

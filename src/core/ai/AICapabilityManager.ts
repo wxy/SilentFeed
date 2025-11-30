@@ -27,6 +27,7 @@ import { OllamaProvider } from "./providers/OllamaProvider"
 import { getAIConfig, getEngineAssignment, type AIProviderType, type LocalAIConfig } from "@/storage/ai-config"
 import type { AIEngineAssignment } from "@/types/ai-engine-assignment"
 import { logger } from '../../utils/logger'
+import { AIUsageTracker } from './AIUsageTracker'
 
 // 创建带标签的 logger
 const aiLogger = logger.withTag('AICapabilityManager')
@@ -375,7 +376,7 @@ export class AICapabilityManager {
           continue
         }
         const result = await provider.generateRecommendationReason(request)
-        this.recordRecommendationUsage(result)
+        await this.recordRecommendationUsage(result)  // 异步记录
         return result
       }
 
@@ -448,7 +449,7 @@ export class AICapabilityManager {
   /**
    * 记录推荐理由使用情况
    */
-  private recordRecommendationUsage(result: RecommendationReasonResult): void {
+  private async recordRecommendationUsage(result: RecommendationReasonResult): Promise<void> {
     try {
       const { metadata } = result
       
@@ -456,6 +457,31 @@ export class AICapabilityManager {
         aiLogger.info(
           `推荐理由生成 - tokens: ${metadata.tokensUsed.input + metadata.tokensUsed.output}`
         )
+        
+        // 记录到 AIUsageTracker
+        await AIUsageTracker.recordUsage({
+          provider: metadata.provider,
+          model: metadata.model,
+          purpose: 'recommend-content',  // 使用推荐内容类型
+          tokens: {
+            input: metadata.tokensUsed.input,
+            output: metadata.tokensUsed.output,
+            total: metadata.tokensUsed.total || metadata.tokensUsed.input + metadata.tokensUsed.output,
+            estimated: false
+          },
+          cost: {
+            input: 0,  // 成本计算由 AIUsageTracker 根据 provider 和 model 自动计算
+            output: 0,
+            total: 0,
+            estimated: true
+          },
+          latency: 0,  // 推荐理由生成通常很快，这里暂不记录延迟
+          success: true,
+          metadata: {
+            confidence: result.confidence,
+            matchedInterestsCount: result.matchedInterests.length
+          }
+        })
       }
     } catch (error) {
       aiLogger.error(" Failed to record recommendation usage:", error)

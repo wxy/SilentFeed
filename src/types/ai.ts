@@ -296,6 +296,12 @@ export interface AnalyzeOptions {
   useReasoning?: boolean
 
   /** 
+   * AI 用量记录用途（可选）
+   * 如果不提供，默认为 'analyze-content'
+   */
+  purpose?: import('./ai-usage').AIUsagePurpose
+
+  /** 
    * Phase 8: 语义化用户画像（可选）
    * 如果提供，AI 将根据用户兴趣评估内容相关性
    */
