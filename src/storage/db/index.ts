@@ -2,11 +2,12 @@
  * IndexedDB 数据库定义（使用 Dexie.js）
  * 
  * 数据库名称: SilentFeedDB
- * 当前版本: 14
+ * 当前版本: 15
  * 
  * ⚠️ 版本管理说明：
  * - 开发过程中如果遇到版本冲突，请删除旧数据库
  * - 生产环境版本号应该只增不减
+ * - 版本 15（Phase 9: AI 用量计费 - 添加 aiUsage 表）
  * - 版本 14（Phase 8: 语义化用户画像 - 添加 aiSummary、behaviors 字段）
  * - 版本 13（Phase 7: 推荐软删除机制 - 添加 status 字段，保留历史记录）
  * 
@@ -30,6 +31,7 @@ import type {
 import type { UserSettings } from "@/types/config"
 import type { InterestSnapshot, UserProfile } from "@/types/profile"
 import type { DiscoveredFeed, FeedArticle } from "@/types/rss"
+import type { AIUsageRecord } from "@/types/ai-usage"
 import { logger } from '@/utils/logger'
 import { statsCache } from '@/utils/cache'
 
@@ -66,6 +68,9 @@ export class SilentFeedDB extends Dexie {
 
   // 表 9: RSS 文章（Phase 7 - 数据库规范化）
   feedArticles!: Table<FeedArticle, string>
+
+  // 表 10: AI 用量记录（Phase 9 - AI 用量计费）
+  aiUsage!: Table<AIUsageRecord, string>
 
   constructor() {
     super('SilentFeedDB')
@@ -347,6 +352,23 @@ export class SilentFeedDB extends Dexie {
       } else {
         dbLogger.info('[Phase 8] 未找到现有画像，将在首次构建时创建 v2 版本')
       }
+    })
+
+    // 版本 15: AI 用量计费表（Phase 9）
+    this.version(15).stores({
+      pendingVisits: 'id, url, startTime, expiresAt',
+      confirmedVisits: 'id, visitTime, domain, *analysis.keywords, [visitTime+domain]',
+      settings: 'id',
+      recommendations: 'id, recommendedAt, isRead, source, sourceUrl, status, replacedAt, [isRead+recommendedAt], [isRead+source], [status+recommendedAt]',
+      userProfile: 'id, lastUpdated, version',
+      interestSnapshots: 'id, timestamp, primaryTopic, trigger, [primaryTopic+timestamp]',
+      discoveredFeeds: 'id, url, status, discoveredAt, subscribedAt, discoveredFrom, isActive, lastFetchedAt, [status+discoveredAt], [isActive+lastFetchedAt]',
+      feedArticles: 'id, feedId, link, published, recommended, read, [feedId+published], [recommended+published], [read+published]',
+      aiUsage: 'id, timestamp, provider, purpose, success, [provider+timestamp], [purpose+timestamp]'
+    }).upgrade(async tx => {
+      dbLogger.info('[Phase 9] 创建 AI 用量计费表...')
+      // 表会自动创建，无需迁移数据
+      dbLogger.info('[Phase 9] ✅ AI 用量计费表创建完成')
     })
   }
 }

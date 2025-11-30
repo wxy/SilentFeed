@@ -7,6 +7,7 @@
  * 1. 提示词统一管理（避免重复）
  * 2. Provider 只负责 API 调用（Chat-GPT 兼容接口）
  * 3. 通用逻辑复用（预处理、后处理、成本计算）
+ * 4. 自动追踪 AI 用量和费用
  */
 
 import type {
@@ -17,6 +18,8 @@ import type {
   UserProfileGenerationRequest,
   UserProfileGenerationResult
 } from "@/types/ai"
+import { AIUsageTracker } from "./AIUsageTracker"
+import type { AIUsagePurpose } from "@/types/ai-usage"
 
 /**
  * 提示词模板配置
@@ -138,6 +141,10 @@ export abstract class BaseAIService implements AIProvider {
     options?: AnalyzeOptions
   ): Promise<UnifiedAnalysisResult> {
     const startTime = Date.now()
+    let success = false
+    let error: string | undefined
+    let tokensUsed = { input: 0, output: 0, total: 0 }
+    let cost = { input: 0, output: 0, total: 0 }
     
     try {
       // 1. 内容预处理
@@ -158,6 +165,13 @@ export abstract class BaseAIService implements AIProvider {
         throw new Error("Empty response")
       }
       
+      // 记录 token 用量
+      tokensUsed = {
+        input: response.tokensUsed.input,
+        output: response.tokensUsed.output,
+        total: response.tokensUsed.input + response.tokensUsed.output
+      }
+      
       // 4. 解析响应并归一化概率
       // ⚠️ 修复：移除可能的 markdown 代码块标记
       let jsonContent = response.content.trim()
@@ -176,12 +190,43 @@ export abstract class BaseAIService implements AIProvider {
       const normalizedTopics = this.normalizeTopicProbabilities(analysis.topics)
       
       // 5. 计算成本
-      const cost = this.calculateCost(
+      const calculatedCost = this.calculateCost(
         response.tokensUsed.input,
         response.tokensUsed.output
       )
       
-      // 6. 返回结果
+      cost = {
+        input: calculatedCost, // 简化：这里只有总成本
+        output: 0,
+        total: calculatedCost
+      }
+      
+      success = true
+      
+      // 6. 记录用量
+      await AIUsageTracker.recordUsage({
+        provider: this.name.toLowerCase() as any,
+        model: this.resolveModelName(response.model),
+        purpose: options?.purpose || 'analyze-content',  // 使用调用方指定的purpose，默认为analyze-content
+        tokens: {
+          ...tokensUsed,
+          estimated: false // API 返回的是准确值
+        },
+        cost: {
+          ...cost,
+          estimated: false
+        },
+        reasoning: options?.useReasoning,  // 记录是否使用推理模式
+        latency: Date.now() - startTime,
+        success: true,
+        metadata: {
+          contentLength: content.length,
+          topicCount: Object.keys(normalizedTopics).length,
+          useReasoning: options?.useReasoning
+        }
+      })
+      
+      // 7. 返回结果
       return {
         topicProbabilities: normalizedTopics,
         metadata: {
@@ -193,11 +238,36 @@ export abstract class BaseAIService implements AIProvider {
             completion: response.tokensUsed.output,
             total: response.tokensUsed.input + response.tokensUsed.output
           },
-          cost
+          cost: calculatedCost
         }
       }
-    } catch (error) {
-      throw new Error(`${this.name} analyzeContent failed: ${error instanceof Error ? error.message : String(error)}`)
+    } catch (err) {
+      error = err instanceof Error ? err.message : String(err)
+      success = false
+      
+      // 记录失败的调用
+      await AIUsageTracker.recordUsage({
+        provider: this.name.toLowerCase() as any,
+        model: this.config.model || 'unknown',
+        purpose: options?.purpose || 'analyze-content',  // 使用调用方指定的purpose
+        tokens: {
+          ...tokensUsed,
+          estimated: true
+        },
+        cost: {
+          ...cost,
+          estimated: true
+        },
+        reasoning: options?.useReasoning,  // 记录是否使用推理模式
+        latency: Date.now() - startTime,
+        success: false,
+        error,
+        metadata: {
+          contentLength: content.length
+        }
+      })
+      
+      throw new Error(`${this.name} analyzeContent failed: ${error}`)
     }
   }
   
@@ -207,6 +277,12 @@ export abstract class BaseAIService implements AIProvider {
   async generateUserProfile(
     request: UserProfileGenerationRequest
   ): Promise<UserProfileGenerationResult> {
+    const startTime = Date.now()
+    let success = false
+    let error: string | undefined
+    let tokensUsed = { input: 0, output: 0, total: 0 }
+    let cost = { input: 0, output: 0, total: 0 }
+    
     try {
       // 1. 构建用户行为摘要
       const behaviorSummary = this.buildBehaviorSummary(request)
@@ -231,6 +307,13 @@ export abstract class BaseAIService implements AIProvider {
         throw new Error("Empty response")
       }
       
+      // 记录 token 用量
+      tokensUsed = {
+        input: response.tokensUsed.input,
+        output: response.tokensUsed.output,
+        total: response.tokensUsed.input + response.tokensUsed.output
+      }
+      
       // 5. 解析响应
       // ⚠️ 修复：移除可能的 markdown 代码块标记
       let jsonContent = response.content.trim()
@@ -252,10 +335,42 @@ export abstract class BaseAIService implements AIProvider {
       }
       
       // 5. 计算成本
-      const cost = this.calculateCost(
+      const calculatedCost = this.calculateCost(
         response.tokensUsed.input,
         response.tokensUsed.output
       )
+      
+      cost = {
+        input: calculatedCost,
+        output: 0,
+        total: calculatedCost
+      }
+      
+      success = true
+      
+      // 记录用量
+      await AIUsageTracker.recordUsage({
+        provider: this.name.toLowerCase() as any,
+        model: this.resolveModelName(response.model),
+        purpose: 'generate-profile',
+        tokens: {
+          ...tokensUsed,
+          estimated: false
+        },
+        cost: {
+          ...cost,
+          estimated: false
+        },
+        latency: Date.now() - startTime,
+        success: true,
+        metadata: {
+          profileType: request.currentProfile ? 'incremental' : 'full',
+          keywordsCount: request.topKeywords.length,
+          browsesCount: request.totalCounts?.browses || 0,
+          readsCount: request.totalCounts?.reads || 0,
+          dismissesCount: request.totalCounts?.dismisses || 0
+        }
+      })
       
       // 6. 返回结果
       return {
@@ -275,11 +390,35 @@ export abstract class BaseAIService implements AIProvider {
             reads: request.totalCounts?.reads || 0,
             dismisses: request.totalCounts?.dismisses || 0
           },
-          cost
+          cost: calculatedCost
         }
       }
-    } catch (error) {
-      throw new Error(`${this.name} generateUserProfile failed: ${error instanceof Error ? error.message : String(error)}`)
+    } catch (err) {
+      error = err instanceof Error ? err.message : String(err)
+      success = false
+      
+      // 记录失败的调用
+      await AIUsageTracker.recordUsage({
+        provider: this.name.toLowerCase() as any,
+        model: this.config.model || 'unknown',
+        purpose: 'generate-profile',
+        tokens: {
+          ...tokensUsed,
+          estimated: true
+        },
+        cost: {
+          ...cost,
+          estimated: true
+        },
+        latency: Date.now() - startTime,
+        success: false,
+        error,
+        metadata: {
+          profileType: request.currentProfile ? 'incremental' : 'full'
+        }
+      })
+      
+      throw new Error(`${this.name} generateUserProfile failed: ${error}`)
     }
   }
   
@@ -365,9 +504,11 @@ export abstract class BaseAIService implements AIProvider {
     message: string
     latency?: number
   }> {
+    const startTime = Date.now()
+    let success = false
+    let error: string | undefined
+    
     try {
-      const startTime = Date.now()
-      
       await this.callChatAPI("测试连接", {
         maxTokens: 10,
         timeout: 10000,
@@ -376,16 +517,63 @@ export abstract class BaseAIService implements AIProvider {
       })
       
       const latency = Date.now() - startTime
+      success = true
+      
+      // 记录测试连接用量（通常很少的 tokens）
+      await AIUsageTracker.recordUsage({
+        provider: this.name.toLowerCase() as any,
+        model: this.config.model || 'default',
+        purpose: 'test-connection',
+        tokens: {
+          input: 5,  // 估算
+          output: 5, // 估算
+          total: 10,
+          estimated: true // 测试连接不需要精确统计
+        },
+        cost: {
+          input: 0,
+          output: 0,
+          total: 0,
+          estimated: true
+        },
+        latency,
+        success: true
+      })
       
       return {
         success: true,
         message: `连接成功！${this.name} API 正常工作`,
         latency
       }
-    } catch (error) {
+    } catch (err) {
+      error = err instanceof Error ? err.message : String(err)
+      success = false
+      
+      // 记录失败的测试
+      await AIUsageTracker.recordUsage({
+        provider: this.name.toLowerCase() as any,
+        model: this.config.model || 'default',
+        purpose: 'test-connection',
+        tokens: {
+          input: 0,
+          output: 0,
+          total: 0,
+          estimated: true
+        },
+        cost: {
+          input: 0,
+          output: 0,
+          total: 0,
+          estimated: true
+        },
+        latency: Date.now() - startTime,
+        success: false,
+        error
+      })
+      
       return {
         success: false,
-        message: `连接失败: ${error instanceof Error ? error.message : String(error)}`
+        message: `连接失败: ${error}`
       }
     }
   }
