@@ -15,6 +15,7 @@ import { profileManager } from "@/core/profile/ProfileManager"
 import { getAIConfig, getProviderDisplayName } from "@/storage/ai-config"
 import type { UserProfile } from "@/types/profile"
 import { logger } from "@/utils/logger"
+import { formatMonthDay, formatDateTime } from "@/utils/date-formatter"
 
 const profileViewLogger = logger.withTag("ProfileView")
 
@@ -206,7 +207,7 @@ export function ProfileSettings() {
                 {highlightKeywords(
                   _("options.userProfile.chat.intro", {
                     providerName,
-                    startDate: startDate.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' }),
+                    startDate: formatMonthDay(startDate),
                     totalPages: profile.totalPages,
                     interests: aiSummary.interests
                   }),
@@ -259,7 +260,7 @@ export function ProfileSettings() {
         <div className="flex items-start gap-4">
           <div className="flex-shrink-0 w-12"></div>
           <div className="text-xs text-gray-400 dark:text-gray-500 ml-2">
-            {new Date(timestamp).toLocaleString('zh-CN', {
+            {formatDateTime(timestamp, {
               month: 'numeric',
               day: 'numeric',
               hour: '2-digit',

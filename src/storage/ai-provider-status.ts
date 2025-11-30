@@ -5,6 +5,7 @@
  */
 
 import { logger } from '@/utils/logger'
+import { formatRelativeTime } from '@/utils/date-formatter'
 
 const statusLogger = logger.withTag('AIProviderStatus')
 
@@ -138,13 +139,7 @@ export function formatLatency(latency?: number): string {
  * 格式化上次检测时间
  */
 export function formatLastChecked(timestamp: number): string {
-  const now = Date.now()
-  const diff = now - timestamp
-  
-  if (diff < 60 * 1000) return '刚刚'
-  if (diff < 60 * 60 * 1000) return `${Math.floor(diff / 60 / 1000)}分钟前`
-  if (diff < 24 * 60 * 60 * 1000) return `${Math.floor(diff / 60 / 60 / 1000)}小时前`
-  return `${Math.floor(diff / 24 / 60 / 60 / 1000)}天前`
+  return formatRelativeTime(timestamp)
 }
 
 /**

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
+import i18n from "@/i18n"
 import {
   getAllProviderStatus,
   getProviderStatus,
@@ -287,6 +288,15 @@ describe("ai-provider-status", () => {
   })
 
   describe("formatLastChecked", () => {
+    beforeEach(() => {
+      // Mock i18n 语言为中文
+      vi.spyOn(i18n, 'language', 'get').mockReturnValue('zh-CN')
+    })
+
+    afterEach(() => {
+      vi.clearAllMocks()
+    })
+
     it("应该显示刚刚", () => {
       const now = Date.now()
       expect(formatLastChecked(now)).toBe("刚刚")
@@ -308,7 +318,22 @@ describe("ai-provider-status", () => {
     it("应该显示天", () => {
       const now = Date.now()
       expect(formatLastChecked(now - 2 * 24 * 60 * 60 * 1000)).toBe("2天前")
-      expect(formatLastChecked(now - 7 * 24 * 60 * 60 * 1000)).toBe("7天前")
+      expect(formatLastChecked(now - 5 * 24 * 60 * 60 * 1000)).toBe("5天前")
+      // 7天或更久前会显示完整日期
+      const result = formatLastChecked(now - 10 * 24 * 60 * 60 * 1000)
+      expect(result).toMatch(/\d{4}/) // 包含年份
+    })
+
+    it("应该在英文环境显示英文", () => {
+      vi.spyOn(i18n, 'language', 'get').mockReturnValue('en')
+      const now = Date.now()
+      expect(formatLastChecked(now)).toBe("just now")
+      expect(formatLastChecked(now - 2 * 60 * 1000)).toBe("2 minutes ago")
+      expect(formatLastChecked(now - 1 * 60 * 1000)).toBe("1 minute ago")
+      expect(formatLastChecked(now - 2 * 60 * 60 * 1000)).toBe("2 hours ago")
+      expect(formatLastChecked(now - 1 * 60 * 60 * 1000)).toBe("1 hour ago")
+      expect(formatLastChecked(now - 2 * 24 * 60 * 60 * 1000)).toBe("2 days ago")
+      expect(formatLastChecked(now - 1 * 24 * 60 * 60 * 1000)).toBe("1 day ago")
     })
   })
 

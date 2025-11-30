@@ -20,35 +20,9 @@ import type {
 } from "@/types/ai"
 import { AIUsageTracker } from "./AIUsageTracker"
 import type { AIUsagePurpose } from "@/types/ai-usage"
-
-/**
- * 提示词模板配置
- */
-export interface PromptTemplates {
-  /** 内容分析提示词（标准模式） */
-  analyzeContent: (content: string, userProfile?: {
-    interests: string
-    preferences: string[]
-    avoidTopics: string[]
-  }) => string
-  
-  /** 内容分析提示词（推理模式，可选） */
-  analyzeContentReasoning?: (content: string, userProfile?: {
-    interests: string
-    preferences: string[]
-    avoidTopics: string[]
-  }) => string
-  
-  /** 用户画像生成提示词（全量） */
-  generateProfileFull: (behaviorSummary: string) => string
-  
-  /** 用户画像生成提示词（增量更新） */
-  generateProfileIncremental: (behaviorSummary: string, currentProfile: {
-    interests: string
-    preferences: string[]
-    avoidTopics: string[]
-  }) => string
-}
+import { promptManager } from "./prompts"
+import type { SupportedLanguage } from "./prompts"
+import ChromeStorageBackend from "@/i18n/chrome-storage-backend"
 
 /**
  * AI 服务基类
@@ -60,18 +34,34 @@ export interface PromptTemplates {
 export abstract class BaseAIService implements AIProvider {
   abstract readonly name: string
   protected config: AIProviderConfig
-  protected prompts: PromptTemplates
+  protected language: SupportedLanguage = 'zh-CN'
   
   constructor(config: AIProviderConfig) {
     this.config = config
-    this.prompts = this.getPromptTemplates()
+    this.initializeLanguage()
   }
   
   /**
-   * 获取提示词模板（子类可覆盖以自定义）
+   * 初始化语言设置
+   * 
+   * 从 chrome.storage 读取用户的语言偏好（与 i18n 保持一致）
    */
-  protected getPromptTemplates(): PromptTemplates {
-    return createDefaultPromptTemplates()
+  private async initializeLanguage(): Promise<void> {
+    try {
+      const lng = await ChromeStorageBackend.loadLanguage()
+      
+      // 将 i18n 语言代码映射到支持的语言
+      if (lng === 'en') {
+        this.language = 'en'
+      } else {
+        // 默认或 'zh-CN' 都使用中文
+        this.language = 'zh-CN'
+      }
+    } catch (error) {
+      // 如果读取失败，使用默认语言（中文）
+      console.warn('[AI] Failed to load language config, using zh-CN:', error)
+      this.language = 'zh-CN'
+    }
   }
   
   /**
@@ -150,8 +140,13 @@ export abstract class BaseAIService implements AIProvider {
       // 1. 内容预处理
       const processedContent = this.preprocessContent(content, options)
       
-      // 2. 构建提示词
-      const prompt = this.buildAnalyzePrompt(processedContent, options)
+      // 2. 使用 promptManager 构建提示词
+      const prompt = promptManager.getAnalyzeContentPrompt(
+        this.language,
+        processedContent,
+        options?.userProfile,
+        options?.useReasoning
+      )
       
       // 3. 调用 API
       const response = await this.callChatAPI(prompt, {
@@ -287,10 +282,17 @@ export abstract class BaseAIService implements AIProvider {
       // 1. 构建用户行为摘要
       const behaviorSummary = this.buildBehaviorSummary(request)
       
-      // 3. 构建 Prompt
+      // 2. 使用 promptManager 构建提示词
       const prompt = request.currentProfile
-        ? this.prompts.generateProfileIncremental(behaviorSummary, request.currentProfile)
-        : this.prompts.generateProfileFull(behaviorSummary)
+        ? promptManager.getGenerateProfileIncrementalPrompt(
+            this.language,
+            behaviorSummary,
+            request.currentProfile
+          )
+        : promptManager.getGenerateProfileFullPrompt(
+            this.language,
+            behaviorSummary
+          )
       
       const responseFormat = this.getProfileResponseFormat()
 
@@ -435,21 +437,6 @@ export abstract class BaseAIService implements AIProvider {
     processed = processed.replace(/\s+/g, " ").trim()
     
     return processed
-  }
-  
-  /**
-   * 构建内容分析提示词
-   */
-  protected buildAnalyzePrompt(content: string, options?: AnalyzeOptions): string {
-    const userProfile = options?.userProfile
-    
-    // 如果支持推理模式且启用了推理
-    if (options?.useReasoning && this.prompts.analyzeContentReasoning) {
-      return this.prompts.analyzeContentReasoning(content, userProfile)
-    }
-    
-    // 标准模式
-    return this.prompts.analyzeContent(content, userProfile)
   }
   
   /**
@@ -621,205 +608,4 @@ export abstract class BaseAIService implements AIProvider {
   }
 }
 
-/**
- * 创建默认提示词模板
- */
-export function createDefaultPromptTemplates(): PromptTemplates {
-  return {
-    // 标准内容分析
-    analyzeContent: (content, userProfile) => {
-      if (userProfile && userProfile.interests) {
-        return `你是一个智能内容分析助手，需要根据用户兴趣分析文章的主题和相关性。
 
-# 用户画像
-- **兴趣领域**: ${userProfile.interests}
-- **内容偏好**: ${userProfile.preferences.join('、')}
-- **避免主题**: ${userProfile.avoidTopics.join('、')}
-
-# 文章内容
-${content}
-
-# 分析要求
-1. 识别文章的 3-5 个主要主题
-2. 评估每个主题与用户兴趣的相关性
-3. 给出每个主题的概率（0-1之间，总和为1）
-4. 避免的主题应该给予更低的概率
-
-# 输出格式（JSON）
-{
-  "topics": {
-    "主题1": 0.5,
-    "主题2": 0.3,
-    "主题3": 0.2
-  }
-}
-
-只输出 JSON，不要其他内容。`
-      }
-      
-      // 无用户画像
-      return `分析以下文本的主题分布，输出 JSON 格式结果。
-
-文本：
-${content}
-
-请识别 3-5 个主要主题（如"技术"、"设计"、"商业"等），并给出每个主题的概率（0-1之间，总和为1）。
-
-输出格式（JSON）：
-{
-  "topics": {
-    "技术": 0.6,
-    "API": 0.3,
-    "教程": 0.1
-  }
-}
-
-只输出 JSON，不要其他内容。`
-    },
-    
-    // 推理模式内容分析
-    analyzeContentReasoning: (content, userProfile) => {
-      if (userProfile && userProfile.interests) {
-        return `你是一个智能内容分析助手，需要根据用户兴趣分析文章的主题和相关性。
-
-# 用户画像
-- **兴趣领域**: ${userProfile.interests}
-- **内容偏好**: ${userProfile.preferences.join('、')}
-- **避免主题**: ${userProfile.avoidTopics.join('、')}
-
-# 文章内容
-${content}
-
-请仔细思考：
-1. 这篇文章的主要主题是什么？
-2. 哪些主题与用户的兴趣相关？
-3. 是否包含用户避免的主题？
-4. 每个主题的重要性如何？
-
-以 JSON 格式返回分析结果，包含主题及其概率（0-1之间的数字，总和为1）。
-避免的主题应该给予更低的概率。
-
-返回格式示例：
-{
-  "topics": {
-    "技术": 0.7,
-    "开源": 0.2,
-    "教程": 0.1
-  }
-}
-
-只返回 JSON，不要其他解释。`
-      }
-      
-      // 无用户画像
-      return `仔细分析以下文本，识别主要主题并评估其重要性。
-
-文本：
-${content}
-
-思考步骤：
-1. 文本的核心内容是什么？
-2. 涉及哪些具体主题领域？
-3. 每个主题在文本中的比重如何？
-
-返回 JSON 格式结果，包含主题及其概率（0-1之间，总和为1）。
-
-示例格式：
-{
-  "topics": {
-    "技术": 0.6,
-    "开源": 0.3,
-    "教程": 0.1
-  }
-}
-
-只返回 JSON。`
-    },
-    
-    // 全量生成用户画像
-    generateProfileFull: (behaviorSummary) => {
-      return `你是一个用户兴趣分析专家。基于用户的浏览和阅读行为，生成用户的兴趣画像。
-
-# 用户行为数据
-${behaviorSummary}
-
-# 任务要求
-1. 综合分析用户的兴趣领域（50-200字，详细且具体）
-2. 提炼用户的内容偏好（5-10条具体特征）
-3. 从拒绝的文章中识别避免的主题（3-5条关键词）
-4. 确保画像准确、具体、可操作
-
-=== ⚠️ 输出格式要求 ===
-**关键规则**：
-1. **interests 字段必须直接描述，不要加主语**
-   - ✅ 正确示例："对技术领域有浓厚兴趣，特别关注开源软件、开发工具..."
-   - ✅ 正确示例："在前端开发领域表现出强烈的学习意愿，经常阅读..."
-   - ❌ 错误示例："用户对技术领域有浓厚兴趣"
-   - ❌ 错误示例："该用户在前端开发..."
-   - ❌ 错误示例:"你对技术领域..."
-   
-2. **preferences 字段**：返回 5-10 个具体的内容类型
-   - 示例：["技术深度分析", "开源软件实践", "产品设计案例"]
-   
-3. **avoidTopics 字段**：从拒绝的文章中提取避免主题
-   - 如果有拒绝记录，提取 3-5 个避免主题关键词
-   - 如果没有拒绝记录，返回空数组 []
-   - 示例：["娱乐八卦", "广告营销", "低质量内容"]
-
-# 输出格式（JSON）
-{
-  "interests": "简洁的兴趣领域描述（50-200字，自然语言）",
-  "preferences": ["偏好1", "偏好2", "偏好3"],
-  "avoidTopics": ["避免1", "避免2"]
-}
-
-只输出 JSON，不要其他内容。`
-    },
-    
-    // 增量更新用户画像
-    generateProfileIncremental: (behaviorSummary, currentProfile) => {
-      return `你是一个用户兴趣分析专家。基于用户的最新行为数据，更新用户的兴趣画像。
-
-# 当前画像
-- **兴趣领域**: ${currentProfile.interests}
-- **内容偏好**: ${currentProfile.preferences.join('、')}
-- **避免主题**: ${currentProfile.avoidTopics.join('、')}
-
-# 最新用户行为数据
-${behaviorSummary}
-
-# 任务要求
-1. 分析新行为数据与当前画像的一致性
-2. 如果发现新的兴趣点，适当扩展兴趣领域描述
-3. 根据深度阅读的内容，更新或补充内容偏好
-4. **根据拒绝的文章，更新避免主题列表**
-5. 保持画像的连贯性和准确性
-
-=== ⚠️ 输出格式要求 ===
-**关键规则**：
-1. **interests 字段必须直接描述，不要加主语**
-   - ✅ 正确示例："对技术领域有浓厚兴趣，特别关注开源软件、开发工具..."
-   - ✅ 正确示例："在前端开发领域表现出强烈的学习意愿，经常阅读..."
-   - ❌ 错误示例："用户对技术领域有浓厚兴趣"
-   - ❌ 错误示例："该用户在前端开发..."
-   - ❌ 错误示例："你对技术领域..."
-   
-2. **preferences 字段**：返回 5-10 个具体的内容类型
-   - 示例：["技术深度分析", "开源软件实践", "产品设计案例"]
-   
-3. **avoidTopics 字段**：从拒绝的文章中提取避免主题
-   - 如果有拒绝记录，提取 3-5 个避免主题关键词
-   - 如果没有拒绝记录，返回空数组 []
-   - 示例：["娱乐八卦", "广告营销", "低质量内容"]
-
-# 输出格式（JSON）
-{
-  "interests": "简洁的兴趣领域描述（50-200字，自然语言）",
-  "preferences": ["偏好1", "偏好2", "偏好3"],
-  "avoidTopics": ["避免1", "避免2"]
-}
-
-只输出 JSON，不要其他内容。`
-    }
-  }
-}

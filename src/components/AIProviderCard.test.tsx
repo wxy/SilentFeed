@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen, fireEvent } from "@testing-library/react"
 import { AIProviderCard } from "./AIProviderCard"
 import type { AIProviderStatus } from "@/storage/ai-provider-status"
+import i18n from "@/i18n"
 
 // Mock logger
 vi.mock("@/utils/logger", () => ({
@@ -180,6 +181,9 @@ describe("AIProviderCard", () => {
   })
 
   it("应该显示最后检测时间", () => {
+    // Mock i18n 语言为中文
+    vi.spyOn(i18n, 'language', 'get').mockReturnValue('zh-CN')
+    
     const now = Date.now()
     const status: AIProviderStatus = {
       providerId: "deepseek",
@@ -190,6 +194,6 @@ describe("AIProviderCard", () => {
 
     render(<AIProviderCard {...defaultProps} status={status} />)
 
-    expect(screen.getByText(/分钟前/)).toBeInTheDocument()
+    expect(screen.getByText(/1分钟前/)).toBeInTheDocument()
   })
 })

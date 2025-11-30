@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { useTranslation } from "react-i18next"
+import i18n from "@/i18n"
 import { FeedManager } from "@/core/rss/managers/FeedManager"
 import { RSSValidator } from "@/core/rss/RSSValidator"
 import { RSSFetcher, type FeedItem } from "@/core/rss/RSSFetcher"
@@ -7,6 +8,7 @@ import { OPMLImporter } from "@/core/rss/OPMLImporter"
 import { getFaviconUrl, handleFaviconError } from "@/utils/favicon"
 import type { DiscoveredFeed } from "@/types/rss"
 import { logger } from "@/utils/logger"
+import { formatDateTime as formatDateTimeI18n } from "@/utils/date-formatter"
 
 const rssManagerLogger = logger.withTag("RSSManager")
 
@@ -355,7 +357,7 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
 
   // 格式化时间（日期 + 时间）
   const formatDateTime = (timestamp: number) => {
-    return new Date(timestamp).toLocaleString('zh-CN', {
+    return formatDateTimeI18n(timestamp, {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -619,8 +621,11 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
         category: feed.category,
       }))
       
-      // 生成 OPML XML
-      const opmlContent = OPMLImporter.generate(opmlFeeds)
+      // 获取当前语言（从 i18n）
+      const currentLang = i18n.language as 'zh-CN' | 'en'
+      
+      // 生成 OPML XML（使用当前界面语言）
+      const opmlContent = OPMLImporter.generate(opmlFeeds, undefined, currentLang)
       
       // 创建下载
       const blob = new Blob([opmlContent], { type: 'application/xml' })
@@ -823,7 +828,7 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                         <div 
                           className="h-px bg-gray-200 dark:bg-gray-700 rounded-full relative overflow-visible cursor-help"
                           style={{ width: `${barWidth}px` }}
-                          title={`${_('options.rssManager.stats.progress')}: ${progress.toFixed(1)}%\n${_('options.rssManager.stats.cycle')}: ${durationDays.toFixed(1)} ${_('options.rssManager.stats.days')}\n${_('options.rssManager.stats.lastFetch')}: ${new Date(lastFetch).toLocaleString('zh-CN')}\n${_('options.rssManager.stats.currentTime')}: ${new Date(now).toLocaleString('zh-CN')}\n${_('options.rssManager.stats.nextFetch')}: ${new Date(nextFetch).toLocaleString('zh-CN')}`}
+                          title={`${_('options.rssManager.stats.progress')}: ${progress.toFixed(1)}%\n${_('options.rssManager.stats.cycle')}: ${durationDays.toFixed(1)} ${_('options.rssManager.stats.days')}\n${_('options.rssManager.stats.lastFetch')}: ${formatDateTime(lastFetch)}\n${_('options.rssManager.stats.currentTime')}: ${formatDateTime(now)}\n${_('options.rssManager.stats.nextFetch')}: ${formatDateTime(nextFetch)}`}
                         >
                           <div 
                             className="absolute left-0 top-0 h-full bg-gradient-to-r from-gray-400 to-green-500 dark:from-gray-500 dark:to-green-600 rounded-full transition-all duration-300"
@@ -1100,7 +1105,7 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                     </a>
                     {item.pubDate && (
                       <span className="text-[10px] text-gray-500 dark:text-gray-400 mt-1 block">
-                        {item.pubDate.toLocaleString('zh-CN')}
+                        {formatDateTimeI18n(item.pubDate.getTime())}
                       </span>
                     )}
                     {item.description && (

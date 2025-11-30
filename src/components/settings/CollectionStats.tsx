@@ -16,6 +16,7 @@
 
 import React, { useEffect, useState } from "react"
 import { useI18n } from "@/i18n/helpers"
+import { formatDate as formatDateI18n } from "@/utils/date-formatter"
 import {
   getStorageStats,
   getAIAnalysisStats,
@@ -241,9 +242,7 @@ export function CollectionStats() {
   // 工具函数
   const formatDate = (timestamp?: number): string => {
     if (!timestamp) return _("options.collectionStats.unknownDate")
-    const date = new Date(timestamp)
-    const locale = document.documentElement.lang || 'zh-CN'
-    return date.toLocaleDateString(locale, {
+    return formatDateI18n(timestamp, {
       year: 'numeric',
       month: 'long', 
       day: 'numeric'
