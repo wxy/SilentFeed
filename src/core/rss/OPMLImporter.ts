@@ -106,16 +106,36 @@ export class OPMLImporter {
    * 生成 OPML 文件内容（导出功能）
    * 
    * @param feeds - 源列表
-   * @param title - OPML 文件标题
+   * @param title - OPML 文件标题（可选，留空则使用翻译后的默认标题）
+   * @param language - 导出时使用的语言（'zh-CN' 或 'en'），默认为 'zh-CN'
    * @returns OPML XML 文本
    */
-  static generate(feeds: OPMLFeed[], title: string = "Silent Feed 订阅列表"): string {
+  static generate(
+    feeds: OPMLFeed[], 
+    title?: string,
+    language: 'zh-CN' | 'en' = 'zh-CN'
+  ): string {
     const date = new Date().toUTCString()
+    
+    // 默认标题和"未分类"标签的翻译
+    const translations = {
+      'zh-CN': {
+        defaultTitle: 'Silent Feed 订阅列表',
+        uncategorized: '未分类'
+      },
+      'en': {
+        defaultTitle: 'Silent Feed Subscriptions',
+        uncategorized: 'Uncategorized'
+      }
+    }
+    
+    const t = translations[language]
+    const opmlTitle = title || t.defaultTitle
     
     // 按分类分组
     const grouped: Record<string, OPMLFeed[]> = {}
     feeds.forEach((feed) => {
-      const category = feed.category || "未分类"
+      const category = feed.category || t.uncategorized
       if (!grouped[category]) {
         grouped[category] = []
       }
@@ -126,7 +146,7 @@ export class OPMLImporter {
     let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`
     xml += `<opml version="2.0">\n`
     xml += `  <head>\n`
-    xml += `    <title>${escapeXml(title)}</title>\n`
+    xml += `    <title>${escapeXml(opmlTitle)}</title>\n`
     xml += `    <dateCreated>${date}</dateCreated>\n`
     xml += `  </head>\n`
     xml += `  <body>\n`

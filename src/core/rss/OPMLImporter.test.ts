@@ -314,5 +314,66 @@ describe('OPMLImporter', () => {
       expect(opml).toContain('<dateCreated>')
       expect(opml).toMatch(/<dateCreated>[^<]+<\/dateCreated>/)
     })
+
+    it('应该使用中文作为默认语言', () => {
+      const feeds = [
+        {
+          title: 'Test Feed',
+          xmlUrl: 'https://test.com/feed'
+        }
+      ]
+
+      const opml = OPMLImporter.generate(feeds)
+
+      expect(opml).toContain('<title>Silent Feed 订阅列表</title>')
+      expect(opml).toContain('text="未分类"')
+    })
+
+    it('应该支持英文语言', () => {
+      const feeds = [
+        {
+          title: 'Test Feed',
+          xmlUrl: 'https://test.com/feed'
+        }
+      ]
+
+      const opml = OPMLImporter.generate(feeds, undefined, 'en')
+
+      expect(opml).toContain('<title>Silent Feed Subscriptions</title>')
+      expect(opml).toContain('text="Uncategorized"')
+    })
+
+    it('应该在指定标题时使用指定标题', () => {
+      const feeds = [
+        {
+          title: 'Test Feed',
+          xmlUrl: 'https://test.com/feed'
+        }
+      ]
+
+      const opml = OPMLImporter.generate(feeds, 'My Custom Title', 'en')
+
+      expect(opml).toContain('<title>My Custom Title</title>')
+      // 分类标签仍然使用英文
+      expect(opml).toContain('text="Uncategorized"')
+    })
+
+    it('应该为有分类的 Feed 保留原分类名', () => {
+      const feeds = [
+        {
+          title: 'Test Feed',
+          xmlUrl: 'https://test.com/feed',
+          category: 'Technology'
+        }
+      ]
+
+      const opmlZh = OPMLImporter.generate(feeds, undefined, 'zh-CN')
+      const opmlEn = OPMLImporter.generate(feeds, undefined, 'en')
+
+      // 两种语言都应该保留原分类名
+      expect(opmlZh).toContain('text="Technology"')
+      expect(opmlEn).toContain('text="Technology"')
+    })
   })
 })
+

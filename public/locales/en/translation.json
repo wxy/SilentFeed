@@ -1153,6 +1153,10 @@
         "imported": "Import successful! {{count}} feeds imported in total.",
         "importedWithErrors": "Import completed: Success {{successCount}}, Skipped {{skipCount}}, Failed {{failCount}}"
       },
+      "opml": {
+        "defaultTitle": "Silent Feed Subscriptions",
+        "uncategorized": "Uncategorized"
+      },
       "opmlHint": "Support import/export subscription lists from other RSS readers",
       "loading": "Loading...",
       "discoveredFrom": "From",

@@ -313,6 +313,10 @@
         "subscribed": "订阅成功！",
         "imported": "导入成功！共导入 {{count}} 个订阅源",
         "importedWithErrors": "导入完成: 成功 {{successCount}}, 跳过 {{skipCount}}, 失败 {{failCount}}"
+      },
+      "opml": {
+        "defaultTitle": "Silent Feed 订阅列表",
+        "uncategorized": "未分类"
       }
     },
     "ai": {
