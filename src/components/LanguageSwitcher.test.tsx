@@ -8,12 +8,21 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { LanguageSwitcher } from "./LanguageSwitcher"
 
-// Mock i18n
-const mockChangeLanguage = vi.fn()
-const mockI18n = {
-  language: "zh-CN",
+// Mock i18n 模块 - 使用 vi.hoisted
+const { mockI18n, mockChangeLanguage } = vi.hoisted(() => {
+  const mockI18n = {
+    language: "zh-CN",
+  }
+  return {
+    mockI18n,
+    mockChangeLanguage: vi.fn(),
+  }
+})
+
+vi.mock("@/i18n", () => ({
+  default: mockI18n,
   changeLanguage: mockChangeLanguage,
-}
+}))
 
 vi.mock("@/i18n/helpers", () => ({
   useI18n: () => ({
@@ -100,6 +109,7 @@ describe("LanguageSwitcher 组件", () => {
   describe("语言切换", () => {
     it("切换到英文时应该调用 changeLanguage", async () => {
       const user = userEvent.setup()
+      mockChangeLanguage.mockClear()
       render(<LanguageSwitcher />)
 
       const select = screen.getByRole("combobox")
@@ -111,6 +121,7 @@ describe("LanguageSwitcher 组件", () => {
     it("切换到中文时应该调用 changeLanguage", async () => {
       const user = userEvent.setup()
       mockI18n.language = "en"
+      mockChangeLanguage.mockClear()
       render(<LanguageSwitcher />)
 
       const select = screen.getByRole("combobox")
@@ -119,14 +130,16 @@ describe("LanguageSwitcher 组件", () => {
       expect(mockChangeLanguage).toHaveBeenCalledWith("zh-CN")
     })
 
-    it("应该保存语言选择到 localStorage", async () => {
+    it("应该自动保存到 chrome.storage", async () => {
       const user = userEvent.setup()
+      mockChangeLanguage.mockClear()
       render(<LanguageSwitcher />)
 
       const select = screen.getByRole("combobox")
       await user.selectOptions(select, "en")
 
-      expect(mockLocalStorage.getItem("i18nextLng")).toBe("en")
+      // 验证调用了 changeLanguage，它会自动保存到 chrome.storage
+      expect(mockChangeLanguage).toHaveBeenCalledWith("en")
     })
   })
 

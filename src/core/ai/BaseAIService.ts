@@ -45,22 +45,24 @@ export abstract class BaseAIService implements AIProvider {
    * 初始化语言设置
    * 
    * 从 chrome.storage 读取用户的语言偏好（与 i18n 保持一致）
+   * 
+   * 默认语言：英文（国际化标准）
    */
   private async initializeLanguage(): Promise<void> {
     try {
       const lng = await ChromeStorageBackend.loadLanguage()
       
       // 将 i18n 语言代码映射到支持的语言
-      if (lng === 'en') {
-        this.language = 'en'
-      } else {
-        // 默认或 'zh-CN' 都使用中文
+      if (lng === 'zh-CN' || lng === 'zh') {
         this.language = 'zh-CN'
+      } else {
+        // 默认使用英文（国际化标准）
+        this.language = 'en'
       }
     } catch (error) {
-      // 如果读取失败，使用默认语言（中文）
-      console.warn('[AI] Failed to load language config, using zh-CN:', error)
-      this.language = 'zh-CN'
+      // 如果读取失败，使用默认语言（英文）
+      console.warn('[AI] Failed to load language config, using en:', error)
+      this.language = 'en'
     }
   }
   

@@ -1,4 +1,5 @@
 import { useI18n } from "@/i18n/helpers"
+import { changeLanguage as changeLanguageHelper } from "@/i18n"
 import { logger } from "@/utils/logger"
 
 const i18nLogger = logger.withTag("LanguageSwitcher")
@@ -15,16 +16,15 @@ export function LanguageSwitcher() {
     { code: "en", name: "English" }
   ]
   
-  const changeLanguage = (lng: string) => {
+  const handleChangeLanguage = async (lng: string) => {
     i18nLogger.info(`切换语言到: ${lng}`)
-    i18n.changeLanguage(lng)
-    localStorage.setItem("i18nextLng", lng)
+    await changeLanguageHelper(lng)  // 自动保存到 chrome.storage.sync
   }
   
   return (
     <select
       value={i18n.language}
-      onChange={(e) => changeLanguage(e.target.value)}
+      onChange={(e) => handleChangeLanguage(e.target.value)}
       className="px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
       aria-label={_("common.selectLanguage")}
     >

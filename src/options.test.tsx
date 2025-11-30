@@ -8,11 +8,22 @@ vi.mock("@/components/settings/RSSSettings", () => ({
   RSSSettings: () => <div>RSS Manager Loaded</div>
 }))
 
-// Mock i18n
+// Mock i18n 模块 - 使用 vi.hoisted
+const { mockI18n, mockChangeLanguage } = vi.hoisted(() => {
+  const mockChangeLanguage = vi.fn()
+  const mockI18n = {
+    language: "zh-CN",
+    changeLanguage: mockChangeLanguage,  // 添加原生方法
+  }
+  return {
+    mockI18n,
+    mockChangeLanguage,
+  }
+})
+
 vi.mock("@/i18n", () => ({
-  default: {
-    changeLanguage: vi.fn(),
-  },
+  default: mockI18n,
+  changeLanguage: mockChangeLanguage,
 }))
 
 vi.mock("@/i18n/helpers", () => ({
@@ -230,9 +241,9 @@ describe("IndexOptions 组件", () => {
       expect(options[2]).toHaveTextContent("English")
     })
 
-    it("选择中文应该调用 changeLanguage", async () => {
+    it("应该能选择中文", async () => {
       const user = userEvent.setup()
-      const { default: i18n } = await import("@/i18n")
+      mockChangeLanguage.mockClear()
 
       render(<IndexOptions />)
       
@@ -244,12 +255,12 @@ describe("IndexOptions 组件", () => {
 
       await user.selectOptions(select, "zh-CN")
 
-      expect(i18n.changeLanguage).toHaveBeenCalledWith("zh-CN")
+      expect(mockChangeLanguage).toHaveBeenCalledWith("zh-CN")
     })
 
-    it("选择英文应该调用 changeLanguage", async () => {
+    it("应该能选择英文", async () => {
       const user = userEvent.setup()
-      const { default: i18n } = await import("@/i18n")
+      mockChangeLanguage.mockClear()
 
       render(<IndexOptions />)
       
@@ -261,12 +272,12 @@ describe("IndexOptions 组件", () => {
 
       await user.selectOptions(select, "en")
 
-      expect(i18n.changeLanguage).toHaveBeenCalledWith("en")
+      expect(mockChangeLanguage).toHaveBeenCalledWith("en")
     })
 
-    it("选择跟随浏览器应该清除 localStorage", async () => {
+    it("选择跟随浏览器应该重新检测语言", async () => {
       const user = userEvent.setup()
-      localStorage.setItem("i18nextLng", "zh-CN")
+      mockChangeLanguage.mockClear()
 
       render(<IndexOptions />)
       
@@ -278,22 +289,35 @@ describe("IndexOptions 组件", () => {
 
       await user.selectOptions(select, "auto")
 
-      expect(localStorage.getItem("i18nextLng")).toBeNull()
+      // 选择 auto 时会清除 storage，然后检测浏览器语言（测试环境是 en-US）
+      expect(mockChangeLanguage).toHaveBeenCalledWith("en")
     })
 
-    it("localStorage 有语言设置时应该显示对应值", async () => {
+    it("chrome.storage 有语言设置时应该显示对应值", async () => {
       const user = userEvent.setup()
-      localStorage.setItem("i18nextLng", "zh-CN")
+      const mockGet = vi.fn().mockResolvedValue({ i18nextLng: "zh-CN" })
+      global.chrome = {
+        ...global.chrome,
+        storage: {
+          ...global.chrome.storage,
+          sync: {
+            ...global.chrome.storage.sync,
+            get: mockGet,
+            set: vi.fn()
+          }
+        }
+      } as any
 
       render(<IndexOptions />)
       
       // Phase 8: 确保在偏好标签页
       const preferencesTab = screen.getByText("偏好")
       await user.click(preferencesTab)
-      
-      const select = screen.getByLabelText("语言") as HTMLSelectElement
 
-      expect(select.value).toBe("zh-CN")
+      await waitFor(() => {
+        const select = screen.getByLabelText("语言") as HTMLSelectElement
+        expect(select.value).toBe("zh-CN")
+      })
     })
   })
 

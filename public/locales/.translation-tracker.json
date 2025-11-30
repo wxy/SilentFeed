@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-11-30T13:01:49.052Z",
+  "lastUpdate": "2025-11-30T15:14:36.908Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -16239,6 +16239,48 @@
         "value": "time",
         "hash": "07cc694b",
         "lastModified": "2025-11-30T12:51:20.379Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.opml.defaultTitle": {
+      "zh-CN": {
+        "value": "Silent Feed 订阅列表",
+        "hash": "cff6380b",
+        "lastModified": "2025-11-30T15:14:33.231Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Silent Feed Subscription List",
+        "hash": "bc31b1e3",
+        "lastModified": "2025-11-30T15:14:33.232Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.opml.uncategorized": {
+      "zh-CN": {
+        "value": "未分类",
+        "hash": "ecf7ebb5",
+        "lastModified": "2025-11-30T15:14:34.726Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Uncategorized",
+        "hash": "0d015d96",
+        "lastModified": "2025-11-30T15:14:34.726Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.autoSaving": {
+      "zh-CN": {
+        "value": "正在自动保存...",
+        "hash": "3ec1015b",
+        "lastModified": "2025-11-30T15:14:36.394Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Auto-saving...",
+        "hash": "fea8e59c",
+        "lastModified": "2025-11-30T15:14:36.394Z",
         "status": "ai-translated"
       }
     }
