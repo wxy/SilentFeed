@@ -83,3 +83,31 @@ global.chrome = {
 
 // Mock IndexedDB for Dexie.js testing
 import 'fake-indexeddb/auto';
+
+// Mock AIUsageTracker to prevent circular dependency issues in tests
+vi.mock('../core/ai/AIUsageTracker', () => ({
+  AIUsageTracker: {
+    recordUsage: vi.fn().mockResolvedValue(undefined),
+    correctUsage: vi.fn().mockResolvedValue(undefined),
+    getStats: vi.fn().mockResolvedValue({
+      period: { start: 0, end: Date.now() },
+      totalCalls: 0,
+      successfulCalls: 0,
+      failedCalls: 0,
+      tokens: { input: 0, output: 0, total: 0 },
+      cost: { input: 0, output: 0, total: 0 },
+      byCurrency: {
+        CNY: { input: 0, output: 0, total: 0 },
+        USD: { input: 0, output: 0, total: 0 },
+        FREE: { input: 0, output: 0, total: 0 }
+      },
+      byProvider: {},
+      byPurpose: {},
+      avgLatency: 0
+    }),
+    getRecentRecords: vi.fn().mockResolvedValue([]),
+    getTotalCost: vi.fn().mockResolvedValue(0),
+    cleanOldRecords: vi.fn().mockResolvedValue(0),
+    exportToCSV: vi.fn().mockResolvedValue('')
+  }
+}));

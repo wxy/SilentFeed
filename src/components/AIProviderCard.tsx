@@ -68,7 +68,7 @@ export function AIProviderCard({
             </h3>
             <span className="text-sm" title={typeText}>{typeIcon}</span>
             {supportsReasoning && (
-              <span className="text-sm" title={_("options.aiConfig.card.supportsReasoning")}>⚡</span>
+              <span className="text-sm" title={_("options.aiConfig.card.supportsReasoning")}>🔬</span>
             )}
             {isActive && (
               <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded">

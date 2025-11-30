@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-11-29T14:56:32.417Z",
+  "lastUpdate": "2025-11-30T13:01:49.052Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -13640,43 +13640,43 @@
     },
     "options.aiConfig.aiEngineAssignment.tasks.pageAnalysis": {
       "zh-CN": {
-        "value": "页面浏览学习",
-        "hash": "f5de46c1",
-        "lastModified": "2025-11-28T14:23:50.024Z",
+        "value": "内容分析",
+        "hash": "37e7ac50",
+        "lastModified": "2025-11-30T13:01:39.102Z",
         "status": "verified"
       },
       "en": {
-        "value": "Page View Learning",
-        "hash": "aef95b25",
-        "lastModified": "2025-11-28T14:23:50.024Z",
+        "value": "Content Analysis",
+        "hash": "b3f58d39",
+        "lastModified": "2025-11-30T13:01:39.104Z",
         "status": "ai-translated"
       }
     },
     "options.aiConfig.aiEngineAssignment.tasks.feedAnalysis": {
       "zh-CN": {
-        "value": "推荐订阅文章",
-        "hash": "73f97453",
-        "lastModified": "2025-11-28T14:23:51.871Z",
+        "value": "内容推荐",
+        "hash": "45964a68",
+        "lastModified": "2025-11-30T13:01:40.752Z",
         "status": "verified"
       },
       "en": {
-        "value": "Recommended subscription articles",
-        "hash": "8538c6b4",
-        "lastModified": "2025-11-28T14:23:51.871Z",
+        "value": "Content Recommendation",
+        "hash": "b4d01c06",
+        "lastModified": "2025-11-30T13:01:40.752Z",
         "status": "ai-translated"
       }
     },
     "options.aiConfig.aiEngineAssignment.tasks.profileGeneration": {
       "zh-CN": {
-        "value": "用户画像生成",
-        "hash": "f7dac432",
-        "lastModified": "2025-11-28T14:23:53.610Z",
+        "value": "画像生成",
+        "hash": "635ec4ac",
+        "lastModified": "2025-11-30T13:01:42.355Z",
         "status": "verified"
       },
       "en": {
-        "value": "User Profile Generation",
-        "hash": "53b0739e",
-        "lastModified": "2025-11-28T14:23:53.610Z",
+        "value": "Image Generation",
+        "hash": "c7a4b1be",
+        "lastModified": "2025-11-30T13:01:42.355Z",
         "status": "ai-translated"
       }
     },
@@ -13920,43 +13920,43 @@
     },
     "onboarding.aiConfig.aiEngineAssignment.tasks.pageAnalysis": {
       "zh-CN": {
-        "value": "页面浏览学习",
-        "hash": "f5de46c1",
-        "lastModified": "2025-11-28T14:24:27.604Z",
+        "value": "内容分析",
+        "hash": "37e7ac50",
+        "lastModified": "2025-11-30T13:01:44.365Z",
         "status": "verified"
       },
       "en": {
-        "value": "Page View Learning",
-        "hash": "aef95b25",
-        "lastModified": "2025-11-28T14:24:27.604Z",
+        "value": "Content Analysis",
+        "hash": "b3f58d39",
+        "lastModified": "2025-11-30T13:01:44.365Z",
         "status": "ai-translated"
       }
     },
     "onboarding.aiConfig.aiEngineAssignment.tasks.feedAnalysis": {
       "zh-CN": {
-        "value": "推荐订阅文章",
-        "hash": "73f97453",
-        "lastModified": "2025-11-28T14:24:29.349Z",
+        "value": "内容推荐",
+        "hash": "45964a68",
+        "lastModified": "2025-11-30T13:01:46.653Z",
         "status": "verified"
       },
       "en": {
-        "value": "Recommended subscription articles",
-        "hash": "8538c6b4",
-        "lastModified": "2025-11-28T14:24:29.349Z",
+        "value": "Content Recommendation",
+        "hash": "b4d01c06",
+        "lastModified": "2025-11-30T13:01:46.653Z",
         "status": "ai-translated"
       }
     },
     "onboarding.aiConfig.aiEngineAssignment.tasks.profileGeneration": {
       "zh-CN": {
-        "value": "用户画像生成",
-        "hash": "f7dac432",
-        "lastModified": "2025-11-28T14:24:31.102Z",
+        "value": "画像生成",
+        "hash": "635ec4ac",
+        "lastModified": "2025-11-30T13:01:48.541Z",
         "status": "verified"
       },
       "en": {
-        "value": "User Profile Generation",
-        "hash": "53b0739e",
-        "lastModified": "2025-11-28T14:24:31.102Z",
+        "value": "Image Generation",
+        "hash": "c7a4b1be",
+        "lastModified": "2025-11-30T13:01:48.541Z",
         "status": "ai-translated"
       }
     },
@@ -15413,6 +15413,832 @@
         "value": "Unknown error",
         "hash": "aee9784c",
         "lastModified": "2025-11-29T14:56:31.905Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.title": {
+      "zh-CN": {
+        "value": "AI 用量统计",
+        "hash": "b5d8f70a",
+        "lastModified": "2025-11-30T10:59:17.593Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "AI Usage Statistics",
+        "hash": "d539b214",
+        "lastModified": "2025-11-30T10:59:17.594Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.noData": {
+      "zh-CN": {
+        "value": "暂无 AI 用量数据",
+        "hash": "82f5442b",
+        "lastModified": "2025-11-30T10:59:19.577Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "No AI usage data available",
+        "hash": "16df27cd",
+        "lastModified": "2025-11-30T10:59:19.577Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.hint": {
+      "zh-CN": {
+        "value": "开始使用 AI 功能后，这里将显示详细的用量和费用统计",
+        "hash": "54cf7a44",
+        "lastModified": "2025-11-30T10:59:21.578Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "After enabling AI features, detailed usage and cost statistics will be displayed here.",
+        "hash": "6ec2aed4",
+        "lastModified": "2025-11-30T10:59:21.578Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.overview.title": {
+      "zh-CN": {
+        "value": "AI 成本分析",
+        "hash": "2488a64f",
+        "lastModified": "2025-11-30T10:59:23.215Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "AI Cost Analysis",
+        "hash": "22306384",
+        "lastModified": "2025-11-30T10:59:23.215Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.overview.totalCalls": {
+      "zh-CN": {
+        "value": "总调用次数",
+        "hash": "7f6f35c4",
+        "lastModified": "2025-11-30T10:59:24.885Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Total number of calls",
+        "hash": "0a6c5649",
+        "lastModified": "2025-11-30T10:59:24.885Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.overview.successRate": {
+      "zh-CN": {
+        "value": "成功率",
+        "hash": "b664352f",
+        "lastModified": "2025-11-30T10:59:26.342Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Success rate",
+        "hash": "2e4d8269",
+        "lastModified": "2025-11-30T10:59:26.343Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.overview.totalCost": {
+      "zh-CN": {
+        "value": "累计费用",
+        "hash": "20c9c3f3",
+        "lastModified": "2025-11-30T10:59:28.310Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Cumulative cost",
+        "hash": "6a3b534e",
+        "lastModified": "2025-11-30T10:59:28.310Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.overview.avgLatency": {
+      "zh-CN": {
+        "value": "平均延迟",
+        "hash": "a1df2e5f",
+        "lastModified": "2025-11-30T10:59:29.738Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Average latency",
+        "hash": "a8507569",
+        "lastModified": "2025-11-30T10:59:29.739Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.tokens.title": {
+      "zh-CN": {
+        "value": "Token 使用统计",
+        "hash": "c2790a18",
+        "lastModified": "2025-11-30T10:59:31.463Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Token Usage Statistics",
+        "hash": "5da08317",
+        "lastModified": "2025-11-30T10:59:31.463Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.tokens.input": {
+      "zh-CN": {
+        "value": "输入",
+        "hash": "e47d59b1",
+        "lastModified": "2025-11-30T10:59:32.892Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Enter",
+        "hash": "f1851d56",
+        "lastModified": "2025-11-30T10:59:32.892Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.tokens.output": {
+      "zh-CN": {
+        "value": "输出",
+        "hash": "8ba7c3a7",
+        "lastModified": "2025-11-30T10:59:34.404Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Output",
+        "hash": "29c2c02a",
+        "lastModified": "2025-11-30T10:59:34.405Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.tokens.total": {
+      "zh-CN": {
+        "value": "总计",
+        "hash": "599b5a32",
+        "lastModified": "2025-11-30T10:59:35.792Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Total",
+        "hash": "96b01412",
+        "lastModified": "2025-11-30T10:59:35.792Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.byProvider.title": {
+      "zh-CN": {
+        "value": "按 AI Provider 分组",
+        "hash": "b54cfaba",
+        "lastModified": "2025-11-30T10:59:38.523Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Group by AI Provider",
+        "hash": "b89cf47d",
+        "lastModified": "2025-11-30T10:59:38.524Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.byProvider.calls": {
+      "zh-CN": {
+        "value": "次调用",
+        "hash": "97baa7ef",
+        "lastModified": "2025-11-30T10:59:40.235Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Sub-call",
+        "hash": "afcf64c3",
+        "lastModified": "2025-11-30T10:59:40.235Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.byProvider.tokens": {
+      "zh-CN": {
+        "value": "tokens",
+        "hash": "25d7186f",
+        "lastModified": "2025-11-30T10:59:42.107Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "tokens",
+        "hash": "25d7186f",
+        "lastModified": "2025-11-30T10:59:42.107Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.byProvider.inputOutput": {
+      "zh-CN": {
+        "value": "输入 {{input}}K / 输出 {{output}}K",
+        "hash": "30a68b2f",
+        "lastModified": "2025-11-30T10:59:43.990Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Input {{input}}K / Output {{output}}K",
+        "hash": "0c07444a",
+        "lastModified": "2025-11-30T10:59:43.990Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.byPurpose.title": {
+      "zh-CN": {
+        "value": "按用途分组",
+        "hash": "6b6b8979",
+        "lastModified": "2025-11-30T10:59:45.669Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Group by Purpose",
+        "hash": "e2a1cb1b",
+        "lastModified": "2025-11-30T10:59:45.669Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.byPurpose.analyzeContent": {
+      "zh-CN": {
+        "value": "📄 内容分析",
+        "hash": "a53bc994",
+        "lastModified": "2025-11-30T10:59:47.402Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "📄 Content Analysis",
+        "hash": "41fb726b",
+        "lastModified": "2025-11-30T10:59:47.402Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.byPurpose.generateProfile": {
+      "zh-CN": {
+        "value": "👤 画像生成",
+        "hash": "c6c627ae",
+        "lastModified": "2025-11-30T10:59:49.457Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "👤 Profile Generation",
+        "hash": "f34ab10e",
+        "lastModified": "2025-11-30T10:59:49.458Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.byPurpose.testConnection": {
+      "zh-CN": {
+        "value": "🔗 连接测试",
+        "hash": "b544a8ac",
+        "lastModified": "2025-11-30T10:59:51.285Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "🔗 Connection Test",
+        "hash": "5ac48bc8",
+        "lastModified": "2025-11-30T10:59:51.285Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.byPurpose.calls": {
+      "zh-CN": {
+        "value": "次调用",
+        "hash": "97baa7ef",
+        "lastModified": "2025-11-30T10:59:52.828Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Sub-call",
+        "hash": "afcf64c3",
+        "lastModified": "2025-11-30T10:59:52.828Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.byPurpose.tokens": {
+      "zh-CN": {
+        "value": "tokens",
+        "hash": "25d7186f",
+        "lastModified": "2025-11-30T10:59:54.610Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "tokens",
+        "hash": "25d7186f",
+        "lastModified": "2025-11-30T10:59:54.610Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.byPurpose.inputOutput": {
+      "zh-CN": {
+        "value": "输入 {{input}}K / 输出 {{output}}K",
+        "hash": "30a68b2f",
+        "lastModified": "2025-11-30T10:59:56.853Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Input {{input}}K / Output {{output}}K",
+        "hash": "0c07444a",
+        "lastModified": "2025-11-30T10:59:56.853Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.byReasoning.title": {
+      "zh-CN": {
+        "value": "推理模式对比",
+        "hash": "4fa1df2e",
+        "lastModified": "2025-11-30T10:59:59.618Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Reasoning Mode Comparison",
+        "hash": "6fc75ffd",
+        "lastModified": "2025-11-30T10:59:59.618Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.byReasoning.withReasoning": {
+      "zh-CN": {
+        "value": "推理模式（如 R1）",
+        "hash": "226b35cd",
+        "lastModified": "2025-11-30T11:00:01.769Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Reasoning Mode (e.g., R1)",
+        "hash": "92143ca3",
+        "lastModified": "2025-11-30T11:00:01.769Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.byReasoning.withoutReasoning": {
+      "zh-CN": {
+        "value": "标准模式",
+        "hash": "701a85d4",
+        "lastModified": "2025-11-30T11:00:03.510Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Standard Mode",
+        "hash": "f71efdf9",
+        "lastModified": "2025-11-30T11:00:03.510Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.byReasoning.calls": {
+      "zh-CN": {
+        "value": "调用次数：",
+        "hash": "ab669ecb",
+        "lastModified": "2025-11-30T11:00:05.426Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Call count:",
+        "hash": "a0d95703",
+        "lastModified": "2025-11-30T11:00:05.426Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.byReasoning.callsUnit": {
+      "zh-CN": {
+        "value": "次",
+        "hash": "7229ecc6",
+        "lastModified": "2025-11-30T11:00:06.992Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "time",
+        "hash": "07cc694b",
+        "lastModified": "2025-11-30T11:00:06.992Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.byReasoning.tokenUsage": {
+      "zh-CN": {
+        "value": "Token 用量：",
+        "hash": "5b9425c2",
+        "lastModified": "2025-11-30T11:00:08.731Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Token Usage:",
+        "hash": "57905040",
+        "lastModified": "2025-11-30T11:00:08.731Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.byReasoning.avgLatency": {
+      "zh-CN": {
+        "value": "平均延迟：",
+        "hash": "bd4ad935",
+        "lastModified": "2025-11-30T11:00:10.267Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Average Delay:",
+        "hash": "30b537f6",
+        "lastModified": "2025-11-30T11:00:10.267Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.byReasoning.cost": {
+      "zh-CN": {
+        "value": "费用：",
+        "hash": "cb18a1f4",
+        "lastModified": "2025-11-30T11:00:12.418Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Cost:",
+        "hash": "69edde90",
+        "lastModified": "2025-11-30T11:00:12.419Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.byReasoning.comparisonHint": {
+      "zh-CN": {
+        "value": "💡 推理模式延迟约为标准模式的",
+        "hash": "26d74229",
+        "lastModified": "2025-11-30T11:00:14.568Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "💡 Reasoning mode latency is approximately that of standard mode.",
+        "hash": "936764e7",
+        "lastModified": "2025-11-30T11:00:14.568Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.byReasoning.comparisonSuffix": {
+      "zh-CN": {
+        "value": "，但能提供深度思考过程",
+        "hash": "9f186596",
+        "lastModified": "2025-11-30T11:00:16.618Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "but capable of providing deep thinking processes",
+        "hash": "a225b38d",
+        "lastModified": "2025-11-30T11:00:16.618Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.localAI.title": {
+      "zh-CN": {
+        "value": "本地 AI 使用统计",
+        "hash": "0485dcea",
+        "lastModified": "2025-11-30T11:00:18.460Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Local AI Usage Statistics",
+        "hash": "20f365e4",
+        "lastModified": "2025-11-30T11:00:18.460Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.localAI.free": {
+      "zh-CN": {
+        "value": "免费",
+        "hash": "aa2c9140",
+        "lastModified": "2025-11-30T11:00:20.117Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Free",
+        "hash": "b24ce0cd",
+        "lastModified": "2025-11-30T11:00:20.117Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.localAI.calls": {
+      "zh-CN": {
+        "value": "次调用",
+        "hash": "97baa7ef",
+        "lastModified": "2025-11-30T11:00:21.813Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Sub-call",
+        "hash": "afcf64c3",
+        "lastModified": "2025-11-30T11:00:21.813Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.localAI.tokenUsage": {
+      "zh-CN": {
+        "value": "Token 用量",
+        "hash": "8952bc8d",
+        "lastModified": "2025-11-30T11:00:23.275Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Token Usage",
+        "hash": "5a7d7793",
+        "lastModified": "2025-11-30T11:00:23.275Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.localAI.avgDuration": {
+      "zh-CN": {
+        "value": "平均耗时",
+        "hash": "0d652d40",
+        "lastModified": "2025-11-30T11:00:25.129Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Average time taken",
+        "hash": "b138ac3d",
+        "lastModified": "2025-11-30T11:00:25.129Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.localAI.localInference": {
+      "zh-CN": {
+        "value": "本地硬件推理",
+        "hash": "be20398a",
+        "lastModified": "2025-11-30T11:00:27.188Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Local hardware inference",
+        "hash": "128616d1",
+        "lastModified": "2025-11-30T11:00:27.188Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.localAI.hint": {
+      "zh-CN": {
+        "value": "💡 本地模型无 API 费用，但会占用计算资源",
+        "hash": "bf5c6d23",
+        "lastModified": "2025-11-30T11:00:29.165Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "💡 Local models have no API fees but consume computational resources.",
+        "hash": "40f9f950",
+        "lastModified": "2025-11-30T11:00:29.165Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.period.title": {
+      "zh-CN": {
+        "value": "统计周期说明",
+        "hash": "894c7782",
+        "lastModified": "2025-11-30T11:00:30.818Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Statistical Period Description",
+        "hash": "0e44db19",
+        "lastModified": "2025-11-30T11:00:30.818Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.period.last30Days": {
+      "zh-CN": {
+        "value": "最近30天",
+        "hash": "63f66f1f",
+        "lastModified": "2025-11-30T12:51:04.839Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Last 30 days",
+        "hash": "25574914",
+        "lastModified": "2025-11-30T12:51:04.840Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.period.description": {
+      "zh-CN": {
+        "value": "数据统计周期为最近 30 天",
+        "hash": "846bed63",
+        "lastModified": "2025-11-30T11:00:34.491Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "The data statistics period is the last 30 days.",
+        "hash": "1aff5e3d",
+        "lastModified": "2025-11-30T11:00:34.491Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.byCurrency.title": {
+      "zh-CN": {
+        "value": "按货币分组",
+        "hash": "63a1dd77",
+        "lastModified": "2025-11-30T11:00:36.483Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Group by currency",
+        "hash": "e1a1e660",
+        "lastModified": "2025-11-30T11:00:36.483Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.byCurrency.CNY": {
+      "zh-CN": {
+        "value": "人民币 (CNY)",
+        "hash": "b151105d",
+        "lastModified": "2025-11-30T11:00:38.182Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Renminbi (CNY)",
+        "hash": "43f920be",
+        "lastModified": "2025-11-30T11:00:38.182Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.byCurrency.USD": {
+      "zh-CN": {
+        "value": "美元 (USD)",
+        "hash": "9c187305",
+        "lastModified": "2025-11-30T11:00:40.045Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "US Dollar (USD)",
+        "hash": "21719e46",
+        "lastModified": "2025-11-30T11:00:40.045Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.byCurrency.FREE": {
+      "zh-CN": {
+        "value": "免费 (本地模型)",
+        "hash": "31b710b8",
+        "lastModified": "2025-11-30T11:00:41.777Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Free (Local Model)",
+        "hash": "47d89d39",
+        "lastModified": "2025-11-30T11:00:41.777Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.expandDetails": {
+      "zh-CN": {
+        "value": "展开详细信息",
+        "hash": "ebc670b3",
+        "lastModified": "2025-11-30T11:00:43.561Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Expand details",
+        "hash": "9a0f5122",
+        "lastModified": "2025-11-30T11:00:43.561Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.collapseDetails": {
+      "zh-CN": {
+        "value": "收起详细信息",
+        "hash": "10d7ebb7",
+        "lastModified": "2025-11-30T11:00:45.097Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Collapse details",
+        "hash": "239ce0c3",
+        "lastModified": "2025-11-30T11:00:45.097Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.byPurpose.recommendContent": {
+      "zh-CN": {
+        "value": "🎯 内容推荐",
+        "hash": "7c24288c",
+        "lastModified": "2025-11-30T11:34:39.492Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "🎯 Content Recommendations",
+        "hash": "e2929fa8",
+        "lastModified": "2025-11-30T11:34:39.493Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.period.allTime": {
+      "zh-CN": {
+        "value": "全部累计",
+        "hash": "47586c06",
+        "lastModified": "2025-11-30T12:51:06.656Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Total cumulative",
+        "hash": "b20937f7",
+        "lastModified": "2025-11-30T12:51:06.656Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.latency.reasoning": {
+      "zh-CN": {
+        "value": "推理",
+        "hash": "ed6f7ed8",
+        "lastModified": "2025-11-30T12:51:08.147Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Reasoning",
+        "hash": "87a22257",
+        "lastModified": "2025-11-30T12:51:08.147Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.latency.standard": {
+      "zh-CN": {
+        "value": "标准",
+        "hash": "544fac40",
+        "lastModified": "2025-11-30T12:51:09.563Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Standard",
+        "hash": "eb6d8ae6",
+        "lastModified": "2025-11-30T12:51:09.563Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.chart.calls": {
+      "zh-CN": {
+        "value": "调用",
+        "hash": "97d29d84",
+        "lastModified": "2025-11-30T12:51:11.468Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Call",
+        "hash": "c3755e61",
+        "lastModified": "2025-11-30T12:51:11.468Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.chart.tokens": {
+      "zh-CN": {
+        "value": "Token",
+        "hash": "459a6f79",
+        "lastModified": "2025-11-30T12:51:13.000Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Token",
+        "hash": "459a6f79",
+        "lastModified": "2025-11-30T12:51:13.000Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.chart.cost": {
+      "zh-CN": {
+        "value": "费用",
+        "hash": "ecd76cb3",
+        "lastModified": "2025-11-30T12:51:14.538Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Cost",
+        "hash": "20b4f77b",
+        "lastModified": "2025-11-30T12:51:14.538Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.chart.callsComparison": {
+      "zh-CN": {
+        "value": "调用次数对比",
+        "hash": "10b5bb21",
+        "lastModified": "2025-11-30T12:51:16.895Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Comparison of call counts",
+        "hash": "23ce5fb0",
+        "lastModified": "2025-11-30T12:51:16.895Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.chart.tokensComparison": {
+      "zh-CN": {
+        "value": "Token 用量对比",
+        "hash": "9359f09c",
+        "lastModified": "2025-11-30T12:51:18.849Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Token Usage Comparison",
+        "hash": "5095aa7a",
+        "lastModified": "2025-11-30T12:51:18.849Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.aiUsage.chart.callsUnit": {
+      "zh-CN": {
+        "value": "次",
+        "hash": "7229ecc6",
+        "lastModified": "2025-11-30T12:51:20.379Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "time",
+        "hash": "07cc694b",
+        "lastModified": "2025-11-30T12:51:20.379Z",
         "status": "ai-translated"
       }
     }
