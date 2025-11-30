@@ -105,17 +105,20 @@ export function AIEngineAssignmentComponent({
     }
     
     return (
-      <input
-        type="checkbox"
-        checked={config.useReasoning || false}
-        onChange={(e) => {
-          const newConfig = { ...config, useReasoning: e.target.checked }
-          onChange({ ...value, [taskKey]: newConfig })
-          setSelectedPreset("custom")
-        }}
-        disabled={disabled}
-        className="w-4 h-4 cursor-pointer"
-      />
+      <label className="flex items-center gap-2 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={config.useReasoning || false}
+          onChange={(e) => {
+            const newConfig = { ...config, useReasoning: e.target.checked }
+            onChange({ ...value, [taskKey]: newConfig })
+            setSelectedPreset("custom")
+          }}
+          disabled={disabled}
+          className="w-4 h-4 cursor-pointer"
+        />
+        <span className="text-lg">🔬</span>
+      </label>
     )
   }
 

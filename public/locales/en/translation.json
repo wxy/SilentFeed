@@ -463,7 +463,88 @@
       "funnelRecommendationRate": "Recommendation Rate",
       "funnelReadingRate": "Read rate",
       "funnelRssToPool": "RSS → Recommendation Pool",
-      "funnelPoolToRead": "Recommendation Pool → Read"
+      "funnelPoolToRead": "Recommendation Pool → Read",
+      "aiUsage": {
+        "title": "AI Usage Statistics",
+        "noData": "No AI usage data available",
+        "hint": "After enabling AI features, detailed usage and cost statistics will be displayed here.",
+        "overview": {
+          "title": "AI Cost Analysis",
+          "totalCalls": "Total number of calls",
+          "successRate": "Success rate",
+          "totalCost": "Cumulative cost",
+          "avgLatency": "Average latency"
+        },
+        "tokens": {
+          "title": "Token Usage Statistics",
+          "input": "Enter",
+          "output": "Output",
+          "total": "Total"
+        },
+        "byProvider": {
+          "title": "Group by AI Provider",
+          "calls": "Sub-call",
+          "tokens": "tokens",
+          "inputOutput": "Input {{input}}K / Output {{output}}K"
+        },
+        "byPurpose": {
+          "title": "Group by Purpose",
+          "analyzeContent": "📄 Content Analysis",
+          "generateProfile": "👤 Profile Generation",
+          "testConnection": "🔗 Connection Test",
+          "calls": "Sub-call",
+          "tokens": "tokens",
+          "inputOutput": "Input {{input}}K / Output {{output}}K",
+          "recommendContent": "🎯 Content Recommendations"
+        },
+        "byReasoning": {
+          "title": "Reasoning Mode Comparison",
+          "withReasoning": "Reasoning Mode (e.g., R1)",
+          "withoutReasoning": "Standard Mode",
+          "calls": "Call count:",
+          "callsUnit": "time",
+          "tokenUsage": "Token Usage:",
+          "avgLatency": "Average Delay:",
+          "cost": "Cost:",
+          "comparisonHint": "💡 Reasoning mode latency is approximately that of standard mode.",
+          "comparisonSuffix": "but capable of providing deep thinking processes"
+        },
+        "localAI": {
+          "title": "Local AI Usage Statistics",
+          "free": "Free",
+          "calls": "Sub-call",
+          "tokenUsage": "Token Usage",
+          "avgDuration": "Average time taken",
+          "localInference": "Local hardware inference",
+          "hint": "💡 Local models have no API fees but consume computational resources."
+        },
+        "period": {
+          "title": "Statistical Period Description",
+          "last30Days": "Last 30 days",
+          "description": "The data statistics period is the last 30 days.",
+          "allTime": "Total cumulative"
+        },
+        "byCurrency": {
+          "title": "Group by currency",
+          "CNY": "Renminbi (CNY)",
+          "USD": "US Dollar (USD)",
+          "FREE": "Free (Local Model)"
+        },
+        "expandDetails": "Expand details",
+        "collapseDetails": "Collapse details",
+        "latency": {
+          "reasoning": "Reasoning",
+          "standard": "Standard"
+        },
+        "chart": {
+          "calls": "Call",
+          "tokens": "Token",
+          "cost": "Cost",
+          "callsComparison": "Comparison of call counts",
+          "tokensComparison": "Token Usage Comparison",
+          "callsUnit": "time"
+        }
+      }
     },
     "userProfile": {
       "chat": {
@@ -873,9 +954,9 @@
           "note": "Instructions"
         },
         "tasks": {
-          "pageAnalysis": "Page View Learning",
-          "feedAnalysis": "Recommended subscription articles",
-          "profileGeneration": "User Profile Generation"
+          "pageAnalysis": "Content Analysis",
+          "feedAnalysis": "Content Recommendation",
+          "profileGeneration": "Profile Generation"
         },
         "notes": {
           "highFrequency": "High-Frequency Tasks (Optional Reasoning)",
@@ -1289,9 +1370,9 @@
           "note": "Instructions"
         },
         "tasks": {
-          "pageAnalysis": "Page View Learning",
-          "feedAnalysis": "Recommended subscription articles",
-          "profileGeneration": "User Profile Generation"
+          "pageAnalysis": "Content Analysis",
+          "feedAnalysis": "Content Recommendation",
+          "profileGeneration": "Profile Generation"
         },
         "notes": {
           "highFrequency": "High-Frequency Tasks (Optional Reasoning)",

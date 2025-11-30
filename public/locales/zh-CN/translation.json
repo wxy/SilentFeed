@@ -534,7 +534,91 @@
         "clearAllSuccess": "所有数据清除成功！\n扩展已恢复到初始状态。",
         "clearAllFailed": "清除失败，请稍后重试"
       },
-      "userProfile": "用户画像"
+      "userProfile": "用户画像",
+      "aiUsage": {
+        "title": "AI 用量统计",
+        "noData": "暂无 AI 用量数据",
+        "hint": "开始使用 AI 功能后，这里将显示详细的用量和费用统计",
+        "overview": {
+          "title": "AI 成本分析",
+          "totalCalls": "总调用次数",
+          "successRate": "成功率",
+          "totalCost": "累计费用",
+          "avgLatency": "平均延迟"
+        },
+        "tokens": {
+          "title": "Token 使用统计",
+          "input": "输入",
+          "output": "输出",
+          "total": "总计"
+        },
+        "byProvider": {
+          "title": "按 AI Provider 分组",
+          "calls": "次调用",
+          "tokens": "tokens",
+          "inputOutput": "输入 {{input}}K / 输出 {{output}}K"
+        },
+        "byPurpose": {
+          "title": "按用途分组",
+          "analyzeContent": "📄 内容分析",
+          "recommendContent": "🎯 内容推荐",
+          "generateProfile": "👤 画像生成",
+          "testConnection": "🔗 连接测试",
+          "calls": "次调用",
+          "tokens": "tokens",
+          "inputOutput": "输入 {{input}}K / 输出 {{output}}K"
+        },
+        "byReasoning": {
+          "title": "推理模式对比",
+          "withReasoning": "推理模式（如 R1）",
+          "withoutReasoning": "标准模式",
+          "calls": "调用次数：",
+          "callsUnit": "次",
+          "tokenUsage": "Token 用量：",
+          "avgLatency": "平均延迟：",
+          "cost": "费用：",
+          "comparisonHint": "💡 推理模式延迟约为标准模式的",
+          "comparisonSuffix": "，但能提供深度思考过程"
+        },
+        "localAI": {
+          "title": "本地 AI 使用统计",
+          "free": "免费",
+          "calls": "次调用",
+          "tokenUsage": "Token 用量",
+          "avgDuration": "平均耗时",
+          "localInference": "本地硬件推理",
+          "hint": "💡 本地模型无 API 费用，但会占用计算资源"
+        },
+        "period": {
+          "title": "统计周期说明",
+          "last30Days": "最近 30 天",
+          "description": "数据统计周期为最近 30 天"
+        },
+        "byCurrency": {
+          "title": "按货币分组",
+          "CNY": "人民币 (CNY)",
+          "USD": "美元 (USD)",
+          "FREE": "免费 (本地模型)"
+        },
+        "period": {
+          "last30Days": "最近30天",
+          "allTime": "全部累计"
+        },
+        "latency": {
+          "reasoning": "推理",
+          "standard": "标准"
+        },
+        "chart": {
+          "calls": "调用",
+          "tokens": "Token",
+          "cost": "费用",
+          "callsComparison": "调用次数对比",
+          "tokensComparison": "Token 用量对比",
+          "callsUnit": "次"
+        },
+        "expandDetails": "展开详细信息",
+        "collapseDetails": "收起详细信息"
+      }
     },
     "userProfile": {
       "noData": {
@@ -954,9 +1038,9 @@
           "note": "说明"
         },
         "tasks": {
-          "pageAnalysis": "页面浏览学习",
-          "feedAnalysis": "推荐订阅文章",
-          "profileGeneration": "用户画像生成"
+          "pageAnalysis": "内容分析",
+          "feedAnalysis": "内容推荐",
+          "profileGeneration": "画像生成"
         },
         "notes": {
           "highFrequency": "高频任务（可选推理）",
@@ -1194,9 +1278,9 @@
           "note": "说明"
         },
         "tasks": {
-          "pageAnalysis": "页面浏览学习",
-          "feedAnalysis": "推荐订阅文章",
-          "profileGeneration": "用户画像生成"
+          "pageAnalysis": "内容分析",
+          "feedAnalysis": "内容推荐",
+          "profileGeneration": "画像生成"
         },
         "notes": {
           "highFrequency": "高频任务（可选推理）",
