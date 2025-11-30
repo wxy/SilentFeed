@@ -3,6 +3,8 @@ import { useState, useEffect } from "react"
 import "@/i18n"
 import { useI18n } from "@/i18n/helpers"
 import i18n from "@/i18n"
+import { changeLanguage as changeLanguageHelper } from "@/i18n"
+import ChromeStorageBackend from "@/i18n/chrome-storage-backend"
 import { CollectionStats } from "@/components/settings/CollectionStats"
 import { AIConfig } from "@/components/settings/AIConfig"
 import { RSSSettings } from "@/components/settings/RSSSettings"
@@ -102,21 +104,42 @@ function IndexOptions() {
     return () => window.removeEventListener('popstate', handlePopState)
   }, [])
 
-  // 获取当前语言设置
-  const currentLanguage = localStorage.getItem("i18nextLng") || "auto"
+  // 获取当前语言设置（从 chrome.storage.sync）
+  const [currentLanguage, setCurrentLanguage] = useState<string>("auto")
+  
+  useEffect(() => {
+    const loadLanguage = async () => {
+      try {
+        const savedLng = await ChromeStorageBackend.loadLanguage()
+        setCurrentLanguage(savedLng || "auto")
+      } catch (error) {
+        console.warn('[Options] Failed to load language:', error)
+        setCurrentLanguage("auto")
+      }
+    }
+    loadLanguage()
+  }, [])
 
   // 切换语言
-  const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleLanguageChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const lang = e.target.value
     if (lang === "auto") {
-      // 删除本地存储，让系统自动检测
-      localStorage.removeItem("i18nextLng")
+      // 删除保存的语言偏好，让系统自动检测
+      try {
+        await ChromeStorageBackend.removeLanguage()
+        setCurrentLanguage("auto")  // 立即更新 UI
+      } catch (error) {
+        console.warn('[Options] Failed to remove language preference:', error)
+      }
       // 重新检测语言
       const browserLang = navigator.language.toLowerCase()
       const detectedLang = browserLang.startsWith("zh") ? "zh-CN" : "en"
-      i18n.changeLanguage(detectedLang)
+      await i18n.changeLanguage(detectedLang)
     } else {
-      i18n.changeLanguage(lang)
+      // 使用 changeLanguageHelper 自动保存到 chrome.storage
+      await changeLanguageHelper(lang)
+      setCurrentLanguage(lang)  // 立即更新 UI
+      await changeLanguageHelper(lang)
     }
   }
 

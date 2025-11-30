@@ -39,29 +39,29 @@ class ChromeStorageBackend {
     try {
       // 检查 chrome.storage 是否可用
       if (!chrome?.storage?.sync) {
-        console.warn("[i18n] chrome.storage.sync not available, fallback to localStorage")
-        localStorage.setItem(STORAGE_KEY, lng)
-        return
+        console.warn("[i18n] chrome.storage.sync not available")
+        throw new Error("chrome.storage.sync not available")
       }
       
       await chrome.storage.sync.set({ [STORAGE_KEY]: lng })
       console.log(`[i18n] 语言偏好已保存到 chrome.storage.sync: ${lng}`)
     } catch (error) {
       console.error("[i18n] 保存语言偏好失败:", error)
-      // 降级到 localStorage
-      localStorage.setItem(STORAGE_KEY, lng)
+      throw error
     }
   }
   
   /**
    * 从 chrome.storage.sync 读取语言偏好
+   * 
+   * @returns 用户保存的语言代码，如果未设置则返回 null（由调用方决定默认语言）
    */
   static async loadLanguage(): Promise<string | null> {
     try {
       // 检查 chrome.storage 是否可用
       if (!chrome?.storage?.sync) {
-        console.warn("[i18n] chrome.storage.sync not available, fallback to localStorage")
-        return localStorage.getItem(STORAGE_KEY)
+        console.warn("[i18n] chrome.storage.sync not available")
+        return null
       }
       
       const result = await chrome.storage.sync.get(STORAGE_KEY)
@@ -72,36 +72,29 @@ class ChromeStorageBackend {
         return lng
       }
       
-      // 如果 chrome.storage 中没有，尝试从 localStorage 迁移
-      const localStorageLng = localStorage.getItem(STORAGE_KEY)
-      if (localStorageLng) {
-        console.log(`[i18n] 从 localStorage 迁移语言偏好到 chrome.storage.sync: ${localStorageLng}`)
-        await ChromeStorageBackend.saveLanguage(localStorageLng)
-        // 迁移后删除 localStorage（可选）
-        // localStorage.removeItem(STORAGE_KEY)
-        return localStorageLng
-      }
-      
+      console.log("[i18n] 未找到保存的语言偏好，将使用默认语言")
       return null
+      
     } catch (error) {
       console.error("[i18n] 加载语言偏好失败:", error)
-      // 降级到 localStorage
-      return localStorage.getItem(STORAGE_KEY)
+      return null
     }
   }
   
   /**
-   * 删除语言偏好（恢复自动检测）
+   * 删除语言偏好（恢复默认语言）
    */
   static async removeLanguage(): Promise<void> {
     try {
       if (chrome?.storage?.sync) {
         await chrome.storage.sync.remove(STORAGE_KEY)
+        console.log("[i18n] 语言偏好已删除，将使用默认语言")
+      } else {
+        console.warn("[i18n] chrome.storage.sync not available")
       }
-      localStorage.removeItem(STORAGE_KEY)
-      console.log("[i18n] 语言偏好已删除，将使用自动检测")
     } catch (error) {
       console.error("[i18n] 删除语言偏好失败:", error)
+      throw error
     }
   }
 }

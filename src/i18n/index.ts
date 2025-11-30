@@ -1,6 +1,7 @@
 import i18n from "i18next"
 import { initReactI18next } from "react-i18next"
 import LanguageDetector from "i18next-browser-languagedetector"
+import ChromeStorageBackend from "./chrome-storage-backend"
 
 // 导入翻译文件
 import zhCN from "../../public/locales/zh-CN/translation.json"
@@ -10,13 +11,26 @@ import en from "../../public/locales/en/translation.json"
  * i18n 配置
  * 
  * 支持语言：简体中文（zh-CN）、英文（en）
- * 默认语言：en（英文）
- * 语言检测顺序：localStorage → 浏览器语言 → HTML 标签
+ * 默认语言：en（英文，国际化标准）
+ * 语言检测顺序：chrome.storage.sync → 浏览器语言
  * 
  * 语言策略：
  * - 简体中文用户（zh-CN）→ 中文
  * - 其他所有语言用户 → 英文
  */
+
+// 初始化语言（从 chrome.storage 读取）
+async function initLanguage() {
+  try {
+    const savedLng = await ChromeStorageBackend.loadLanguage()
+    if (savedLng) {
+      await i18n.changeLanguage(savedLng)
+    }
+  } catch (error) {
+    console.warn('[i18n] Failed to load saved language, using default:', error)
+  }
+}
+
 i18n
   .use(LanguageDetector) // 自动检测用户语言
   .use(initReactI18next) // React 集成
@@ -26,20 +40,18 @@ i18n
       "en": { translation: en }
     },
     
-    // 默认语言（非简体中文用户都使用英文）
+    // 默认语言：英文（国际化标准）
     fallbackLng: "en",
     
     // 支持的语言列表（只有简体中文会匹配，其他都回退到英文）
     supportedLngs: ["zh-CN", "en"],
     
-    // 语言检测配置
+    // 语言检测配置（只使用浏览器检测，不使用 localStorage）
     detection: {
-      // 检测顺序：用户设置 → 浏览器语言 → HTML 标签
-      order: ["localStorage", "navigator", "htmlTag"],
-      // 缓存用户选择
-      caches: ["localStorage"],
-      // localStorage key
-      lookupLocalStorage: "i18nextLng"
+      // 检测顺序：浏览器语言（chrome.storage 通过 initLanguage 加载）
+      order: ["navigator", "htmlTag"],
+      // 不缓存到 localStorage（使用 chrome.storage.sync）
+      caches: [],
     },
     
     // 插值配置
@@ -60,6 +72,9 @@ i18n
     returnObjects: false
   })
 
+// 初始化时加载保存的语言
+initLanguage()
+
 export default i18n
 
 /**
@@ -75,9 +90,18 @@ export function getCurrentLanguageName(): string {
 }
 
 /**
- * 切换语言
+ * 切换语言（保存到 chrome.storage.sync）
  */
-export function changeLanguage(lng: string): void {
+export async function changeLanguage(lng: string): Promise<void> {
   console.log(`切换语言到: ${lng}`)
-  i18n.changeLanguage(lng)
+  
+  // 1. 更新 i18n
+  await i18n.changeLanguage(lng)
+  
+  // 2. 保存到 chrome.storage.sync
+  try {
+    await ChromeStorageBackend.saveLanguage(lng)
+  } catch (error) {
+    console.error('[i18n] Failed to save language preference:', error)
+  }
 }

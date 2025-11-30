@@ -997,7 +997,7 @@
       },
       "configModal": {
         "title": "Configure {{provider}}",
-        "close": "Turn off",
+        "close": "Close",
         "save": "Save",
         "saving": "Saving...",
         "testConnection": "Test connection",
@@ -1076,7 +1076,8 @@
           "detailedGuide": "Detailed Installation Guide"
         },
         "closeButton": "I see."
-      }
+      },
+      "autoSaving": "Auto-saving..."
     },
     "rssManager": {
       "addSource": "Add feed",
@@ -1154,7 +1155,7 @@
         "importedWithErrors": "Import completed: Success {{successCount}}, Skipped {{skipCount}}, Failed {{failCount}}"
       },
       "opml": {
-        "defaultTitle": "Silent Feed Subscriptions",
+        "defaultTitle": "Silent Feed Subscription List",
         "uncategorized": "Uncategorized"
       },
       "opmlHint": "Support import/export subscription lists from other RSS readers",

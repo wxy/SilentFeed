@@ -86,6 +86,11 @@ export function AIConfig() {
   const [showChromeAIHelp, setShowChromeAIHelp] = useState(false) // Phase 9: Chrome AI 帮助浮层
   const [showOllamaHelp, setShowOllamaHelp] = useState(false) // Ollama 安装帮助浮层
 
+  // 自动保存状态
+  const [autoSaving, setAutoSaving] = useState(false)
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const isInitializedRef = useRef(false) // 追踪是否已完成初始化
+
   // 从模型推导当前 Provider
   const currentProvider = model ? getProviderFromModel(model) : null
   
@@ -157,6 +162,8 @@ export function AIConfig() {
     getPageCount().then(count => {
       setPageCount(count)
       setIsLearningStage(count < LEARNING_COMPLETE_PAGES)
+      // 标记初始化完成
+      isInitializedRef.current = true
     })
     })
   }, [])
@@ -333,7 +340,94 @@ export function AIConfig() {
     }
   }
 
-  // 保存配置
+  /**
+   * 自动保存配置（防抖 1000ms）
+   * 只保存基本配置，不验证 API Key（API Key 在弹窗中保存）
+   */
+  const autoSaveConfig = useCallback(async () => {
+    // 如果没有选择模型或没有配置 API Key，跳过自动保存
+    if (!model || !currentProvider || !currentApiKey) {
+      return
+    }
+
+    setAutoSaving(true)
+    
+    try {
+      // 内联构建本地配置，避免依赖 buildLocalConfigForSave 函数
+      const localConfigForSave = {
+        ...localConfig,
+        enabled: localAIChoice === 'ollama',
+        provider: "ollama" as const
+      }
+
+      await saveAIConfig({
+        provider: currentProvider,
+        apiKeys,
+        enabled: true,
+        monthlyBudget,
+        model,
+        enableReasoning,
+        local: localConfigForSave
+      })
+      
+      // Phase 8: 保存 AI 引擎分配配置
+      if (engineAssignment) {
+        await saveEngineAssignment(engineAssignment)
+      }
+      
+      // 保存推荐配置
+      const recConfig = await getRecommendationConfig()
+      await saveRecommendationConfig({
+        ...recConfig,
+        maxRecommendations
+      })
+      
+    } catch (error) {
+      console.error('[AIConfig] Auto-save failed:', error)
+    } finally {
+      setAutoSaving(false)
+    }
+  }, [model, currentProvider, currentApiKey, apiKeys, monthlyBudget, enableReasoning, engineAssignment, maxRecommendations, localConfig, localAIChoice])
+
+  /**
+   * 触发自动保存（带防抖）
+   */
+  const triggerAutoSave = useCallback(() => {
+    // 清除之前的定时器
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current)
+    }
+    
+    // 1000ms 后自动保存（增加防抖时间，避免频繁写入）
+    autoSaveTimeoutRef.current = setTimeout(() => {
+      autoSaveConfig()
+    }, 1000)
+  }, [autoSaveConfig])
+
+  // 清理定时器
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  // 监听关键字段变化，触发自动保存
+  useEffect(() => {
+    // 只有在初始化完成后才触发自动保存（避免初始加载时触发）
+    if (!isInitializedRef.current) {
+      return
+    }
+    
+    // 只有在已配置 API Key 的情况下才自动保存
+    if (model && currentProvider && currentApiKey) {
+      triggerAutoSave()
+    }
+    // 只监听需要自动保存的字段，不包括函数引用
+  }, [monthlyBudget, enableReasoning, engineAssignment, maxRecommendations, model, currentProvider, currentApiKey])
+
+  // 保存配置（保留用于手动触发，但隐藏保存按钮）
   const handleSave = async () => {
     if (!model) {
     setMessage({ type: "error", text: _("options.aiConfig.errors.selectModel") })
@@ -502,29 +596,29 @@ export function AIConfig() {
     )}
   </div>
 
-  {/* 底部统一保存按钮 */}
-  <div className="flex flex-col items-center gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-    <button
-      onClick={handleSave}
-      disabled={isTesting || isSaving}
-      className="px-8 py-3 bg-green-600 text-white text-lg font-semibold rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors shadow-lg"
+  {/* 自动保存状态提示 */}
+  {autoSaving && (
+    <div className="flex items-center justify-center gap-2 py-2 text-sm text-gray-600 dark:text-gray-400">
+      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+      </svg>
+      <span>{_("options.aiConfig.autoSaving")}</span>
+    </div>
+  )}
+  
+  {/* 全局消息提示 */}
+  {message && (
+    <div
+      className={`p-4 rounded-lg w-full max-w-md mx-auto text-center ${
+        message.type === "success"
+          ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
+          : "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200"
+      }`}
     >
-      {isSaving ? _("options.aiConfig.buttons.saving") : _("options.aiConfig.buttons.save")}
-    </button>
-    
-    {/* 全局消息提示 */}
-    {message && (
-      <div
-        className={`p-4 rounded-lg w-full max-w-md text-center ${
-          message.type === "success"
-            ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
-            : "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200"
-        }`}
-      >
-        {message.text}
-      </div>
-    )}
-  </div>
+      {message.text}
+    </div>
+  )}
 
   {/* 成本参考浮层模态框 */}
   {showCostDetails && (

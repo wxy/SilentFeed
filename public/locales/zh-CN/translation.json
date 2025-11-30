@@ -668,6 +668,7 @@
       "title": "AI 配置",
       "engineTitle": "AI 引擎配置",
       "subtitle": "配置远程 AI 服务以获得更准确的内容分析",
+      "autoSaving": "正在自动保存...",
       "remoteAI": "远程 AI 服务商",
       "localAI": "本地 AI（可选）",
       "algorithmEngine": "算法引擎",
