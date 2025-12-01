@@ -161,15 +161,17 @@ function ConfigModal({
       setConfig(currentConfig)
 
       if (providerId === 'deepseek' || providerId === 'openai') {
-        setApiKey(currentConfig.apiKeys[providerId] || '')
+        // Phase 9.2: 从 providers 结构中读取配置
+        const providerConfig = currentConfig.providers?.[providerId]
+        setApiKey(providerConfig?.apiKey || '')
         
         // 如果已选择该 Provider 的模型，设置为当前模型
         const models = AVAILABLE_MODELS[providerId as keyof typeof AVAILABLE_MODELS]
-        if (currentConfig.model && models.some(m => m.id === currentConfig.model)) {
-          setSelectedModel(currentConfig.model)
+        if (providerConfig?.model && models.some(m => m.id === providerConfig.model)) {
+          setSelectedModel(providerConfig.model)
         }
         
-        setEnableReasoning(currentConfig.enableReasoning || false)
+        setEnableReasoning(providerConfig?.enableReasoning || false)
       } else if (providerId === 'ollama') {
         setOllamaEndpoint(currentConfig.local?.endpoint || 'http://localhost:11434/v1')
         setOllamaModel(currentConfig.local?.model || 'qwen2.5:7b')
@@ -187,43 +189,19 @@ function ConfigModal({
   const handleSave = async () => {
     if (!config) return
 
+    // Phase 9.1: 检查是否已测试成功
+    if (!testResult?.success) {
+      setTestResult({ 
+        success: false, 
+        message: _('options.aiConfig.configModal.testResult.pleaseTestFirst') 
+      })
+      return
+    }
+
     setSaving(true)
     try {
-      let newConfig: AIConfig = { ...config }
-
-      if (providerId === 'deepseek' || providerId === 'openai') {
-        // 保存 API Key
-        newConfig.apiKeys = {
-          ...newConfig.apiKeys,
-          [providerId]: apiKey
-        }
-
-        // 如果选择了模型，更新模型配置
-        if (selectedModel) {
-          newConfig.model = selectedModel
-          newConfig.provider = providerId as any
-        }
-
-        // 更新推理能力配置
-        newConfig.enableReasoning = enableReasoning
-      } else if (providerId === 'ollama') {
-        // 保存 Ollama 配置
-        // Phase 9.1: 配置 Ollama 就是默认启用，不需要手动切换
-        newConfig.local = {
-          ...newConfig.local,
-          enabled: true,  // 始终设置为启用
-          provider: 'ollama',
-          endpoint: ollamaEndpoint,
-          model: ollamaModel,
-          cachedModels: ollamaModels  // 保存模型列表
-        } as any
-      }
-
-      await saveAIConfig(newConfig)
-      
-      // Phase 9.1: 不需要重复检测，测试连接成功时已经保存了状态
-      // 关闭时 refresh() 会读取缓存的状态
-      
+      // Phase 9.1: 测试成功时已保存配置，这里只需关闭弹窗
+      // refresh() 会重新加载最新状态
       onClose()
     } finally {
       setSaving(false)
@@ -294,8 +272,32 @@ function ConfigModal({
           message 
         })
         
-        // Phase 9.1 优化: 测试成功后直接保存状态到缓存
-        // 这样保存配置时只需 refresh() 读取缓存，不用重复检测
+        // Phase 9.2 修复: 使用新的 providers 结构保存配置
+        const newConfig: AIConfig = {
+          ...config!,
+          providers: {
+            ...config!.providers,
+            [providerId]: {
+              apiKey: apiKey,
+              model: selectedModel,
+              enableReasoning: enableReasoning
+            }
+          },
+          // 兼容：同时更新旧结构
+          apiKeys: {
+            ...config!.apiKeys,
+            [providerId]: apiKey
+          },
+          model: selectedModel,
+          provider: providerId as any,
+          enableReasoning: enableReasoning
+        }
+        await saveAIConfig(newConfig)
+        
+        // 2. 更新本地 state，确保 useEffect 能读取到最新配置
+        setConfig(newConfig)
+        
+        // 3. 保存状态到缓存
         const { saveProviderStatus } = await import('@/storage/ai-provider-status')
         await saveProviderStatus({
           providerId,
@@ -391,7 +393,25 @@ function ConfigModal({
             message: _("options.aiConfig.configModal.testResult.modelsLoaded", { count: models.length }) 
           })
           
-          // Phase 9.1 优化: 测试成功后保存状态到缓存
+          // Phase 9.2 修复: 测试成功后立即保存配置和状态
+          // 1. 保存配置到 storage
+          const newConfig: AIConfig = {
+            ...config!,
+            local: {
+              ...config!.local,
+              enabled: true,
+              provider: 'ollama',
+              endpoint: ollamaEndpoint,
+              model: ollamaModel || (models.length > 0 ? models[0].id : ''),
+              cachedModels: models
+            } as any
+          }
+          await saveAIConfig(newConfig)
+          
+          // 2. 更新本地 state，确保 useEffect 能读取到最新配置
+          setConfig(newConfig)
+          
+          // 3. 保存状态到缓存
           const { saveProviderStatus } = await import('@/storage/ai-provider-status')
           await saveProviderStatus({
             providerId: 'ollama',

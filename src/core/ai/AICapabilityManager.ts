@@ -53,19 +53,23 @@ export class AICapabilityManager {
   
   /**
    * 初始化（加载配置）
-   * Phase 9.1: 移除 enabled 检查 - 允许测试连接时初始化 provider
+   * Phase 9.2: 使用新的 providers 结构
    */
   async initialize(): Promise<void> {
     try {
       const config = await getAIConfig()
       
       const providerType = config.provider ?? null
-      const apiKey = providerType ? (config.apiKeys?.[providerType] || "") : ""
       
-      // Phase 9.1: 只要有 provider 和 apiKey 就初始化，不检查 enabled
+      // Phase 9.2: 从 providers 结构中读取配置
+      const providerConfig = providerType ? config.providers?.[providerType] : null
+      const apiKey = providerConfig?.apiKey || ""
+      const model = providerConfig?.model
+      
+      // 只要有 provider 和 apiKey 就初始化，不检查 enabled
       // 这样测试连接时可以正常工作
       if (providerType && apiKey) {
-        await this.initializeRemoteProvider(config.enabled, providerType, apiKey, config.model)
+        await this.initializeRemoteProvider(config.enabled, providerType, apiKey, model)
       }
       
       // 只有本地 AI 启用了才初始化
@@ -82,7 +86,7 @@ export class AICapabilityManager {
         this.engineAssignment = null
       }
     } catch (error) {
-      aiLogger.error(" Initialization failed:", error)
+      aiLogger.error("❌ Initialization failed:", error)
       this.remoteProvider = null
       this.localProvider = null
     }

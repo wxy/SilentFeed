@@ -43,6 +43,7 @@ describe("ai-config", () => {
       
       expect(config).toEqual({
         provider: null,
+        providers: {},  // Phase 9.2: 新字段
         apiKeys: {},
         enabled: false,
         enableReasoning: false,
@@ -100,6 +101,13 @@ describe("ai-config", () => {
     it("应该保存配置并加密 API Key", async () => {
       const config: AIConfig = {
         model: "gpt-5-mini",
+        providers: {
+          openai: {
+            apiKey: "sk-test-123",
+            model: "gpt-5-mini",
+            enableReasoning: false
+          }
+        },
         apiKeys: {
           openai: "sk-test-123"
         },
@@ -113,8 +121,15 @@ describe("ai-config", () => {
       expect(mockChromeStorage.sync.set).toHaveBeenCalledWith({
         aiConfig: {
           model: "gpt-5-mini",
-          apiKeys: {
-            openai: btoa("sk-test-123") // 应该加密
+          providers: {  // Phase 9.2: 新结构
+            openai: {
+              apiKey: btoa("sk-test-123"),
+              model: "gpt-5-mini",
+              enableReasoning: false
+            }
+          },
+          apiKeys: {  // 保留兼容
+            openai: btoa("sk-test-123")
           },
           enabled: true,
           monthlyBudget: 10,

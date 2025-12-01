@@ -3,7 +3,139 @@
 ## 修复日期
 2025-12-01
 
-## 修复的 Bug
+## 修复分支
+`fix/onboarding-and-ui-issues`
+
+## PR 链接
+https://github.com/wxy/SilentFeed/pull/51
+
+---
+
+## 🐛 Phase 9.2 追加修复（2025-12-01 下午）
+
+### 18. ✅ AI 配置测试成功后未保存配置到 storage
+
+**问题描述**：
+- 在 AI 配置浮层中测试连接成功后，直接关闭浮层（不点击保存）
+- 再点击 AI 提供商卡片的"检测"按钮，报错："未配置 AI 提供商（初始化失败，请重新打开设置页面）"
+- AI 卡片显示为"不可用"状态
+
+**根本原因**：
+```
+旧流程：
+1. 测试连接成功 → 只保存 ProviderStatus（检测状态）到缓存
+2. 点击保存按钮 → 保存 AIConfig（配置）到 storage
+3. 点击卡片检测按钮 → 读取 AIConfig → 未找到 API Key → 报错
+
+问题：用户测试成功后可能直接关闭浮层，导致配置未保存
+      但状态缓存显示为"可用"，造成状态不一致
+```
+
+**修复方案**：
+```typescript
+// AIConfigPanel.tsx
+
+// 方案 1: 测试成功后立即保存配置（远程 Provider）
+const handleTestRemoteConnection = async () => {
+  // ... 测试连接 ...
+  
+  if (result.success) {
+    // 1. 保存配置到 storage（新增）
+    const newConfig: AIConfig = {
+      ...config!,
+      apiKeys: {
+        ...config!.apiKeys,
+        [providerId]: apiKey
+      },
+      model: selectedModel,
+      provider: providerId as any,
+      enableReasoning: enableReasoning
+    }
+    await saveAIConfig(newConfig)
+    
+    // 2. 保存状态到缓存
+    await saveProviderStatus({ ... })
+  }
+}
+
+// 方案 2: 测试成功后立即保存配置（Ollama）
+const handleTestOllamaConnection = async () => {
+  // ... 测试连接 + 加载模型 ...
+  
+  if (result.success) {
+    // 1. 保存配置到 storage（新增）
+    const newConfig: AIConfig = {
+      ...config!,
+      local: {
+        enabled: true,
+        provider: 'ollama',
+        endpoint: ollamaEndpoint,
+        model: ollamaModel || models[0].id,
+        cachedModels: models
+      }
+    }
+    await saveAIConfig(newConfig)
+    
+    // 2. 保存状态到缓存
+    await saveProviderStatus({ ... })
+  }
+}
+
+// 方案 3: 简化 handleSave（测试成功时已保存）
+const handleSave = async () => {
+  // 检查是否已测试成功
+  if (!testResult?.success) {
+    setTestResult({ 
+      success: false, 
+      message: _('options.aiConfig.configModal.testResult.pleaseTestFirst') 
+    })
+    return
+  }
+
+  // 测试成功时已保存配置，这里只需关闭弹窗
+  onClose()  // refresh() 会重新加载最新状态
+}
+```
+
+**新流程**：
+```
+优化后流程：
+1. 测试连接成功 → 立即保存 AIConfig 到 storage + 保存 ProviderStatus 到缓存
+2. 点击保存按钮 → 检查是否测试成功 → 直接关闭（配置已保存）
+3. 点击卡片检测按钮 → 读取 AIConfig → 找到 API Key → 正常检测 ✅
+
+优势：
+- 用户体验更好：测试成功即完成配置，无需再点保存
+- 状态一致性：配置和状态同步保存，避免不一致
+- 简化流程：保存按钮只检查测试结果，不重复保存
+```
+
+**修改文件**：
+- `src/components/AIConfigPanel.tsx`
+  - `handleTestRemoteConnection`: 测试成功后立即保存配置
+  - `handleTestOllamaConnection`: 测试成功后立即保存配置
+  - `handleSave`: 简化为检查测试结果 + 关闭弹窗
+- `public/locales/zh-CN/translation.json`
+  - 新增翻译键: `options.aiConfig.configModal.testResult.pleaseTestFirst`
+- `public/locales/en/translation.json`
+  - 同步英文翻译
+
+**测试结果**：
+- ✅ 所有单元测试通过（1401/1402）
+- ✅ 生产构建成功
+
+**预期效果**：
+- 测试连接成功后，即使用户直接关闭浮层，配置也已保存
+- 点击卡片检测按钮能正常工作，不再报错
+- AI 卡片状态正确显示
+
+**风险评估**：
+- 低风险：只是提前保存配置的时机，逻辑没有改变
+- 用户体验提升：减少一次点击，测试即保存
+
+---
+
+## 修复的 Bug（Phase 9 + 9.1）
 
 ### 1. ✅ Onboarding 完成按钮无效
 

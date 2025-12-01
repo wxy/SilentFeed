@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-12-01T04:39:19.362Z",
+  "lastUpdate": "2025-12-01T05:01:34.781Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -16309,6 +16309,20 @@
         "value": "{{current}} / {{total}} pages",
         "hash": "ee8c3c84",
         "lastModified": "2025-12-01T03:36:41.285Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.configModal.testResult.pleaseTestFirst": {
+      "zh-CN": {
+        "value": "请先测试连接",
+        "hash": "f5a693f3",
+        "lastModified": "2025-12-01T05:01:34.267Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Please test the connection first",
+        "hash": "8051a9a2",
+        "lastModified": "2025-12-01T05:01:34.268Z",
         "status": "ai-translated"
       }
     }
