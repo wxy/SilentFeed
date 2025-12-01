@@ -93,6 +93,13 @@ Silent Feed 需要收集 **100 个有效页面访问** 才能建立完整的兴�
   - 提取关键词特征
   - 确保推荐质量
 
+<div align="center">
+   <img src="assets/screenshots/screenshot-2-cold-start-cn.png" width="720" alt="冷启动进度" />
+   <br/>
+   <em>冷启动学习进度与状态</em>
+   <br/>
+</div>
+
 ---
 
 ## 核心功能
@@ -113,6 +120,13 @@ Silent Feed 需要收集 **100 个有效页面访问** 才能建立完整的兴�
 - **阅读**：点击标题打开原文
 - **不想读**：标记为"不感兴趣"，跳过这篇
 - **稍后读**：（规划中）
+
+<div align="center">
+   <img src="assets/screenshots/screenshot-1-recommendations-cn.png" width="720" alt="AI 推荐" />
+   <br/>
+   <em>AI 驱动的个性化推荐</em>
+   <br/>
+</div>
 
 ### 2. 管理 RSS 订阅
 
@@ -136,6 +150,13 @@ Silent Feed 需要收集 **100 个有效页面访问** 才能建立完整的兴�
 - 导入：从其他 RSS 阅读器迁移
 - 导出：备份你的订阅列表
 
+<div align="center">
+   <img src="assets/screenshots/screenshot-4-rss-settings-cn.png" width="720" alt="RSS 设置" />
+   <br/>
+   <em>管理订阅、查看统计、导入导出 OPML</em>
+   <br/>
+</div>
+
 ### 3. 查看兴趣画像
 
 **打开画像页面**
@@ -153,6 +174,13 @@ Silent Feed 需要收集 **100 个有效页面访问** 才能建立完整的兴�
 **画像操作**
 - **重建画像**：基于当前数据重新分析
 - **清空历史**：删除所有浏览数据（谨慎）
+
+<div align="center">
+   <img src="assets/screenshots/screenshot-3-profile-cn.png" width="720" alt="兴趣画像" />
+   <br/>
+   <em>AI 生成的兴趣总结与偏好要点</em>
+   <br/>
+</div>
 
 ### 4. 配置 AI
 
@@ -175,6 +203,13 @@ Silent Feed 需要收集 **100 个有效页面访问** 才能建立完整的兴�
 - 查看实时 AI 成本统计
 - 查看每日/每月使用量
 - 设置预算提醒（规划中）
+
+<div align="center">
+   <img src="assets/screenshots/screenshot-5-ai-config-cn.png" width="720" alt="AI 配置" />
+   <br/>
+   <em>配置厂商、测试连接、选择模型</em>
+   <br/>
+</div>
 
 ---
 

@@ -93,6 +93,13 @@ Silent Feed needs **100 valid page visits** before full recommendations:
   - Extract keyword features
   - Ensure recommendation quality
 
+<div align="center">
+   <img src="assets/screenshots/screenshot-2-cold-start-en.png" width="720" alt="Cold Start Progress" />
+   <br/>
+   <em>Cold start progress and learning status</em>
+   <br/>
+</div>
+
 ---
 
 ## Core Features
@@ -113,6 +120,13 @@ Silent Feed needs **100 valid page visits** before full recommendations:
 - **Read**: Click title to open article
 - **Not Interested**: Mark as "disliked", skip
 - **Read Later**: (Planned)
+
+<div align="center">
+   <img src="assets/screenshots/screenshot-1-recommendations-en.png" width="720" alt="AI Recommendations" />
+   <br/>
+   <em>Personalized AI-powered recommendations</em>
+   <br/>
+</div>
 
 ### 2. Manage RSS Subscriptions
 
@@ -136,6 +150,13 @@ Silent Feed needs **100 valid page visits** before full recommendations:
 - Import: Migrate from other RSS readers
 - Export: Backup your subscriptions
 
+<div align="center">
+   <img src="assets/screenshots/screenshot-4-rss-settings-en.png" width="720" alt="RSS Settings" />
+   <br/>
+   <em>Manage feeds, stats, and OPML import/export</em>
+   <br/>
+</div>
+
 ### 3. View Interest Profile
 
 **Open Profile Page**
@@ -153,6 +174,13 @@ Silent Feed needs **100 valid page visits** before full recommendations:
 **Profile Actions**
 - **Rebuild Profile**: Re-analyze based on current data
 - **Clear History**: Delete all browsing data (caution)
+
+<div align="center">
+   <img src="assets/screenshots/screenshot-3-profile-en.png" width="720" alt="Interest Profile" />
+   <br/>
+   <em>AI-generated interest summary and preferences</em>
+   <br/>
+</div>
 
 ### 4. Configure AI
 
@@ -175,6 +203,13 @@ Silent Feed needs **100 valid page visits** before full recommendations:
 - View real-time AI cost statistics
 - View daily/monthly usage
 - Set budget alerts (planned)
+
+<div align="center">
+   <img src="assets/screenshots/screenshot-5-ai-config-en.png" width="720" alt="AI Configuration" />
+   <br/>
+   <em>Configure providers, test connection, and choose models</em>
+   <br/>
+</div>
 
 ---
 
