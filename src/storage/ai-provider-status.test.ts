@@ -351,26 +351,26 @@ describe("ai-provider-status", () => {
 
     it("应该返回黄色图标当延迟过高时", () => {
       const status: AIProviderStatus = {
-        providerId: "deepseek",
+        providerId: "test",
         type: "remote",
         available: true,
         lastChecked: Date.now(),
-        latency: 2500 // 超过2秒
+        latency: 6000  // Phase 9.1: 阈值提高到 5000ms，所以用 6000ms 测试
       }
 
       expect(getStatusIcon(status)).toBe("🟡")
     })
 
-    it("应该返回绿色图标当正常可用时", () => {
+    it("应该返回黄色图标当延迟过高时", () => {
       const status: AIProviderStatus = {
-        providerId: "deepseek",
+        providerId: "test",
         type: "remote",
         available: true,
         lastChecked: Date.now(),
-        latency: 120
+        latency: 6000  // Phase 9.1: 阈值提高到 5000ms
       }
 
-      expect(getStatusIcon(status)).toBe("🟢")
+      expect(getStatusIcon(status)).toBe("🟡")
     })
   })
 

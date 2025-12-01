@@ -1138,20 +1138,6 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
   }
 
   const totalFeeds = candidateFeeds.length + subscribedFeeds.length + ignoredFeeds.length
-  
-  if (totalFeeds === 0) {
-    return (
-      <div className="py-12 text-center">
-        <div className="text-6xl mb-4">📡</div>
-        <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
-          {_('options.rssManager.noFeeds')}
-        </h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          {_('options.rssManager.noFeedsHint')}
-        </p>
-      </div>
-    )
-  }
 
   return (
     <div className="space-y-6">

@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-11-30T15:14:36.908Z",
+  "lastUpdate": "2025-12-01T04:39:19.362Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -15992,15 +15992,15 @@
     },
     "options.collectionStats.aiUsage.period.last30Days": {
       "zh-CN": {
-        "value": "最近30天",
-        "hash": "63f66f1f",
-        "lastModified": "2025-11-30T12:51:04.839Z",
+        "value": "最近 30 天",
+        "hash": "b1681833",
+        "lastModified": "2025-12-01T03:36:37.706Z",
         "status": "verified"
       },
       "en": {
         "value": "Last 30 days",
         "hash": "25574914",
-        "lastModified": "2025-11-30T12:51:04.840Z",
+        "lastModified": "2025-12-01T03:36:37.707Z",
         "status": "ai-translated"
       }
     },
@@ -16281,6 +16281,34 @@
         "value": "Auto-saving...",
         "hash": "fea8e59c",
         "lastModified": "2025-11-30T15:14:36.394Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.learning": {
+      "zh-CN": {
+        "value": "正在学习你的兴趣偏好...",
+        "hash": "e04e0b56",
+        "lastModified": "2025-12-01T03:36:39.391Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Learning your interests and preferences...",
+        "hash": "32c231fa",
+        "lastModified": "2025-12-01T03:36:39.391Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.profile.progress": {
+      "zh-CN": {
+        "value": "{{current}} / {{total}} 页",
+        "hash": "01b4f404",
+        "lastModified": "2025-12-01T03:36:41.285Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{current}} / {{total}} pages",
+        "hash": "ee8c3c84",
+        "lastModified": "2025-12-01T03:36:41.285Z",
         "status": "ai-translated"
       }
     }

@@ -131,7 +131,13 @@ export function AIConfigPanel() {
 /**
  * 配置弹窗组件
  */
-function ConfigModal({ providerId, onClose }: { providerId: string; onClose: () => void }) {
+function ConfigModal({ 
+  providerId, 
+  onClose 
+}: { 
+  providerId: string; 
+  onClose: () => void 
+}) {
   const { _ } = useI18n()
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
@@ -202,9 +208,10 @@ function ConfigModal({ providerId, onClose }: { providerId: string; onClose: () 
         newConfig.enableReasoning = enableReasoning
       } else if (providerId === 'ollama') {
         // 保存 Ollama 配置
+        // Phase 9.1: 配置 Ollama 就是默认启用，不需要手动切换
         newConfig.local = {
           ...newConfig.local,
-          enabled: ollamaEnabled,
+          enabled: true,  // 始终设置为启用
           provider: 'ollama',
           endpoint: ollamaEndpoint,
           model: ollamaModel,
@@ -213,6 +220,10 @@ function ConfigModal({ providerId, onClose }: { providerId: string; onClose: () 
       }
 
       await saveAIConfig(newConfig)
+      
+      // Phase 9.1: 不需要重复检测，测试连接成功时已经保存了状态
+      // 关闭时 refresh() 会读取缓存的状态
+      
       onClose()
     } finally {
       setSaving(false)
@@ -237,6 +248,7 @@ function ConfigModal({ providerId, onClose }: { providerId: string; onClose: () 
 
   /**
    * 测试远程 AI 连接
+   * Phase 9.1: 直接创建 provider 实例测试，不依赖 AICapabilityManager
    */
   const handleTestRemoteConnection = async () => {
     if (!apiKey || !selectedModel) {
@@ -248,30 +260,31 @@ function ConfigModal({ providerId, onClose }: { providerId: string; onClose: () 
     setTestResult(null)
 
     try {
-      // 临时保存配置用于测试
-      const tempConfig: AIConfig = {
-        ...config!,
-        apiKeys: {
-          ...config!.apiKeys,
-          [providerId]: apiKey
-        },
-        model: selectedModel,
-        provider: providerId as any,
-        enableReasoning
-      }
-
-      await saveAIConfig(tempConfig)
-
-      // 使用 AICapabilityManager 测试连接
-      const { AICapabilityManager } = await import('@/core/ai/AICapabilityManager')
-      const manager = new AICapabilityManager()
-      await manager.initialize()
+      // Phase 9.1: 直接创建 provider 实例进行测试
+      // 避免依赖 AICapabilityManager.initialize() 可能的延迟问题
+      let provider
       
-      // 根据用户是否勾选推理来决定测试时是否启用推理
-      const result = await manager.testConnection('remote', enableReasoning)
+      if (providerId === 'deepseek') {
+        const { DeepSeekProvider } = await import('@/core/ai/providers/DeepSeekProvider')
+        provider = new DeepSeekProvider({ 
+          apiKey,
+          model: selectedModel
+        })
+      } else if (providerId === 'openai') {
+        const { OpenAIProvider } = await import('@/core/ai/providers/OpenAIProvider')
+        provider = new OpenAIProvider({ 
+          apiKey,
+          model: selectedModel
+        })
+      } else {
+        throw new Error(`不支持的提供商: ${providerId}`)
+      }
+      
+      // 测试连接
+      const result = await provider.testConnection(enableReasoning)
       
       if (result.success) {
-        // 检查是否启用了推理能力
+        // 显示成功消息
         const message = enableReasoning 
           ? _("options.aiConfig.configModal.testResult.successWithReasoning", { latency: result.latency })
           : _("options.aiConfig.configModal.testResult.success", { latency: result.latency })
@@ -279,6 +292,17 @@ function ConfigModal({ providerId, onClose }: { providerId: string; onClose: () 
         setTestResult({ 
           success: true, 
           message 
+        })
+        
+        // Phase 9.1 优化: 测试成功后直接保存状态到缓存
+        // 这样保存配置时只需 refresh() 读取缓存，不用重复检测
+        const { saveProviderStatus } = await import('@/storage/ai-provider-status')
+        await saveProviderStatus({
+          providerId,
+          type: 'remote',
+          available: true,
+          lastChecked: Date.now(),
+          latency: result.latency
         })
       } else {
         setTestResult({ 
@@ -366,10 +390,30 @@ function ConfigModal({ providerId, onClose }: { providerId: string; onClose: () 
             success: true, 
             message: _("options.aiConfig.configModal.testResult.modelsLoaded", { count: models.length }) 
           })
+          
+          // Phase 9.1 优化: 测试成功后保存状态到缓存
+          const { saveProviderStatus } = await import('@/storage/ai-provider-status')
+          await saveProviderStatus({
+            providerId: 'ollama',
+            type: 'local',
+            available: true,
+            lastChecked: Date.now(),
+            latency: result.latency
+          })
         } catch (modelError) {
           setTestResult({ 
             success: true, 
             message: _("options.aiConfig.configModal.testResult.modelsLoadFailed", { error: modelError instanceof Error ? modelError.message : _("options.aiConfig.configModal.testResult.unknownError") }) 
+          })
+          
+          // 即使加载模型失败，连接仍然成功，保存状态
+          const { saveProviderStatus } = await import('@/storage/ai-provider-status')
+          await saveProviderStatus({
+            providerId: 'ollama',
+            type: 'local',
+            available: true,
+            lastChecked: Date.now(),
+            latency: result.latency
           })
         }
       } else {
@@ -486,20 +530,6 @@ function ConfigModal({ providerId, onClose }: { providerId: string; onClose: () 
           {/* Ollama 配置 */}
           {providerId === 'ollama' && (
             <>
-              {/* 启用开关 */}
-              <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                <input
-                  type="checkbox"
-                  id="ollamaEnabled"
-                  checked={ollamaEnabled}
-                  onChange={(e) => setOllamaEnabled(e.target.checked)}
-                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <label htmlFor="ollamaEnabled" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {_("options.aiConfig.configModal.ollamaEnabled")}
-                </label>
-              </div>
-
               {/* 端点配置 */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -556,7 +586,10 @@ function ConfigModal({ providerId, onClose }: { providerId: string; onClose: () 
                   )}
                 </select>
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  {ollamaModels.length > 0 ? _("options.aiConfig.configModal.modelsLoaded", { count: ollamaModels.length }) : _("options.aiConfig.configModal.pleaseTestFirst")}
+                  {ollamaModels.length > 0 
+                    ? _("options.aiConfig.configModal.testResult.modelsLoaded", { count: ollamaModels.length }) 
+                    : _("options.aiConfig.configModal.loadModelsHint")
+                  }
                 </p>
               </div>
             </>

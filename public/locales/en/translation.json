@@ -1296,7 +1296,9 @@
       "basicStats": {
         "title": "Basic Statistics",
         "totalPages": "Number of pages viewed"
-      }
+      },
+      "learning": "Learning your interests and preferences...",
+      "progress": "{{current}} / {{total}} pages"
     },
     "myData": {
       "title": "System Data"

@@ -4,7 +4,7 @@ import type { ConfirmedVisit } from '@/types/database'
 import { FeedManager } from './core/rss/managers/FeedManager'
 import { RSSValidator } from './core/rss/RSSValidator'
 import { fetchFeed } from './background/feed-scheduler'
-import { startAllSchedulers, feedScheduler, recommendationScheduler } from './background/index'
+import { startAllSchedulers, feedScheduler, recommendationScheduler, reconfigureSchedulersForState } from './background/index'
 import { IconManager } from './utils/IconManager'
 import { evaluateAndAdjust } from './core/recommender/adaptive-count'
 import { setupNotificationListeners, testNotification } from './core/recommender/notification'
@@ -12,7 +12,8 @@ import { getOnboardingState } from './storage/onboarding-state'
 import { logger } from '@/utils/logger'
 import { LEARNING_COMPLETE_PAGES } from '@/constants/progress'
 import { aiManager } from './core/ai/AICapabilityManager'
-import { isAIConfigured } from '@/storage/ai-config'
+import { getAIConfig, saveAIConfig, isAIConfigured } from '@/storage/ai-config'
+import { getRecommendationConfig, saveRecommendationConfig } from '@/storage/recommendation-config'
 
 const bgLogger = logger.withTag('Background')
 
@@ -110,6 +111,44 @@ async function updateBadge(): Promise<void> {
 }
 
 /**
+ * 首次安装时初始化默认配置
+ * 
+ * Phase 9.1: 确保所有配置在扩展安装时就有默认值
+ * 避免首次使用时因缺少配置导致的问题
+ */
+async function initializeDefaultConfigs() {
+  bgLogger.info('初始化默认配置...')
+  
+  try {
+    // 1. 检查并初始化 AI 配置
+    const aiConfig = await getAIConfig()
+    // 如果数据库中没有配置（enabled 为 false 且 provider 为 null 表示从未配置）
+    const hasAIConfig = await chrome.storage.sync.get('aiConfig')
+    if (!hasAIConfig.aiConfig) {
+      bgLogger.info('  首次安装，保存 AI 默认配置到数据库')
+      await saveAIConfig(aiConfig) // aiConfig 已经是完整的默认配置
+    } else {
+      bgLogger.info('  AI 配置已存在，跳过初始化')
+    }
+    
+    // 2. 检查并初始化推荐配置
+    const recommendConfig = await getRecommendationConfig()
+    const hasRecommendConfig = await chrome.storage.local.get('recommendation-config')
+    if (!hasRecommendConfig['recommendation-config']) {
+      bgLogger.info('  首次安装，保存推荐默认配置到数据库')
+      await saveRecommendationConfig(recommendConfig) // recommendConfig 已经是完整的默认配置
+    } else {
+      bgLogger.info('  推荐配置已存在，跳过初始化')
+    }
+    
+    bgLogger.info('✅ 默认配置初始化完成')
+  } catch (error) {
+    bgLogger.error('❌ 默认配置初始化失败:', error)
+    // 不抛出错误，避免阻塞整个初始化流程
+  }
+}
+
+/**
  * 扩展安装或更新时初始化
  */
 chrome.runtime.onInstalled.addListener(async () => {
@@ -119,11 +158,14 @@ chrome.runtime.onInstalled.addListener(async () => {
     // 1. 初始化数据库
     await initializeDatabase()
     
-    // 2. 初始化 AI Manager (Phase 8)
+    // 2. 首次安装时初始化默认配置
+    await initializeDefaultConfigs()
+    
+    // 3. 初始化 AI Manager (Phase 8)
     await aiManager.initialize()
     bgLogger.info('✅ AI Manager 初始化完成')
     
-    // 3. 更新徽章
+    // 4. 更新徽章
     await updateBadge()
     
     bgLogger.info('✅ 初始化完成')

@@ -147,7 +147,9 @@ export function formatLastChecked(timestamp: number): string {
  */
 export function getStatusIcon(status: AIProviderStatus): string {
   if (!status.available) return '🔴'
-  if (status.latency && status.latency > 2000) return '🟡'
+  // Phase 9.1: 提高延迟阈值到 5000ms（5秒）
+  // 国内访问 DeepSeek 通常在 2-4 秒，属于正常范围
+  if (status.latency && status.latency > 5000) return '🟡'
   return '🟢'
 }
 

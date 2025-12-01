@@ -596,17 +596,8 @@
         "period": {
           "title": "统计周期说明",
           "last30Days": "最近 30 天",
+          "allTime": "全部累计",
           "description": "数据统计周期为最近 30 天"
-        },
-        "byCurrency": {
-          "title": "按货币分组",
-          "CNY": "人民币 (CNY)",
-          "USD": "美元 (USD)",
-          "FREE": "免费 (本地模型)"
-        },
-        "period": {
-          "last30Days": "最近30天",
-          "allTime": "全部累计"
         },
         "latency": {
           "reasoning": "推理",
@@ -1060,20 +1051,6 @@
           "suggestion": "建议：高频任务使用远程 AI，每月仅需 ¥0.5"
         }
       },
-      "card": {
-        "active": "使用中",
-        "supportsReasoning": "支持推理能力",
-        "typeLocal": "本地",
-        "typeRemote": "远程",
-        "statusAvailable": "可用",
-        "statusUnavailable": "不可用",
-        "statusNotConfigured": "未配置",
-        "latency": "延迟: {{value}}",
-        "lastChecked": "上次检测: {{time}}",
-        "check": "检测",
-        "checking": "检测中...",
-        "configure": "配置"
-      },
       "providerPanel": {
         "title": "AI 提供商状态",
         "checkAll": "检测全部",
@@ -1134,6 +1111,8 @@
     "profile": {
       "title": "用户画像",
       "description": "基于你的浏览历史构建的兴趣画像",
+      "learning": "正在学习你的兴趣偏好...",
+      "progress": "{{current}} / {{total}} 页",
       "noData": "暂无画像数据",
       "noDataHint": "继续浏览，系统会自动学习你的兴趣偏好",
       "rebuild": "重建画像",

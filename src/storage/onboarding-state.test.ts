@@ -123,10 +123,7 @@ describe("OnboardingState", () => {
   })
 
   describe("completeOnboarding", () => {
-    it("AI 配置后应该进入 learning 状态", async () => {
-      // @ts-ignore
-      vi.mocked(aiConfig.isAIConfigured).mockResolvedValue(true)
-      
+    it("应该进入 learning 状态", async () => {
       await completeOnboarding()
       
       expect(mockStorage.local.set).toHaveBeenCalledWith({
@@ -135,15 +132,6 @@ describe("OnboardingState", () => {
           completedAt: expect.any(Number)
         })
       })
-    })
-
-    it("AI 未配置时应该抛出错误", async () => {
-      // @ts-ignore
-      vi.mocked(aiConfig.isAIConfigured).mockResolvedValue(false)
-      
-      await expect(completeOnboarding()).rejects.toThrow(
-        'Cannot complete onboarding: AI not configured'
-      )
     })
   })
 
