@@ -86,3 +86,83 @@
     - 优化: isAvailable() 初始化时已测试并确定最佳模式，callChatAPI 直接使用
     - 保留: legacy 模式内的 /api/chat → /api/generate 降级（合理功能）
     - 移除: 跨模式 fallback 重试，避免不必要的延迟
+- [x] AI 配置浮层测试后，点击 AI 卡片检测按钮报错（已修复 2025-12-01）
+  - **Bug #18**: 配置浮层测试成功后，点击 AI 卡片检测报错"未配置 AI 提供商"
+  - **根本原因**: 配置多个 provider 时，全局 model 和 enableReasoning 被后配置的覆盖
+    - 配置 DeepSeek 后配置 OpenAI，config.model 被覆盖为 OpenAI 的模型
+    - 检测 DeepSeek 时读取到 OpenAI 的 model，导致 API 调用失败
+  - **解决方案**: 重构配置结构（Phase 9.2）
+    - 新增 RemoteProviderConfig interface: `{ apiKey, model, enableReasoning }`
+    - 更新 AIConfig interface，新增 `providers: { deepseek?, openai? }` 字段
+    - 保留旧字段标记为 @deprecated，确保向后兼容
+  - **数据迁移**:
+    - getAIConfig: 自动将旧结构（apiKeys + model）迁移到新结构（providers）
+    - saveAIConfig: 双写新旧结构，确保平滑过渡
+  - **代码更新**:
+    - AIConfigPanel.tsx: 从 providers[providerId] 读取和保存配置
+    - useAIProviderStatus.ts: 从 providers[providerId] 读取配置进行检测
+    - AICapabilityManager.ts: 从 providers 结构初始化
+  - **影响范围**: 11 个文件，+999/-134 行代码
+  - **测试**: 所有测试通过 (1401 passed, 1 skipped)
+  - **关联文档**: docs/BUG_FIX_AI_CONFIG_SAVE.md
+- [x] AI 引擎下的 AI 提供商的配置浮层的遮蔽层没有放在整个视口，配置浮层也没相应居中到中间。——这是一个回归的错误。（已修复 2025-12-01）
+  - **Bug #19**: 成本参考浮层未使用 createPortal，导致无法覆盖整个视口
+  - **根本原因**: showCostDetails 浮层直接渲染在组件内，而不是 document.body
+  - **解决方案**: 使用 createPortal(浮层内容, document.body) 将浮层挂载到 body
+  - **修复文件**: src/components/settings/AIConfig.tsx
+- [x] 重构了 AI 配置结构后，出现报错：（已修复 2025-12-01）
+  - **Bug #20**: `InvalidCharacterError: Failed to execute 'atob' on 'Window'`
+  - **根本原因**: 
+    1. AIConfig.tsx 保存时只使用 apiKeys（旧结构），未使用 providers（新结构）
+    2. saveAIConfig 从 providers 读取并加密明文 API key
+    3. 下次读取时再次解密，导致对明文 Base64 编码的 API key 进行 atob 解码失败
+  - **解决方案**:
+    1. AIConfig.tsx 保存时同时构建 providers 结构，包含解密后的 API key
+    2. decryptApiKey 增加检查：如果输入不是 Base64 格式（如 sk-xxx），直接返回不解密
+  - **修复文件**: 
+    - src/components/settings/AIConfig.tsx（保存逻辑 - 保留现有 provider 配置）
+    - src/components/AIConfigPanel.tsx（导入 createPortal、使用 createPortal、测试保存逻辑）
+    - src/storage/ai-config.ts（解密逻辑 - 检查 Base64 格式）
+  - **详细修复**:
+    1. **配置浮层覆盖层问题**:
+       - AIConfigPanel.tsx 导入 createPortal
+       - ConfigModal 使用 `createPortal(<ConfigModal />, document.body)` 挂载到 body
+    2. **API Key 双重加密问题**:
+       - decryptApiKey 增加 Base64 格式检测（正则 `/^[A-Za-z0-9+/]*={0,2}$/`）
+       - 非 Base64 格式直接返回，避免对明文 API key 执行 atob
+    3. **测试保存覆盖问题**（新发现）:
+       - AIConfigPanel.tsx 测试成功后保存时，不再设置全局的 model/provider/enableReasoning
+       - 只更新 providers 结构中特定 provider 的配置
+    4. **自动保存覆盖问题**（新发现）:
+       - AIConfig.tsx 自动保存时，先从 storage 读取现有的 providers 配置
+       - 只更新有 API key 的 providers，保留其他 provider 的 model 和 enableReasoning
+       - 对于当前 provider，使用当前选择的 model 和 enableReasoning
+       - 对于其他 providers，保留原有配置，只更新 apiKey
+  - **测试**: 所有测试通过 (1401 passed, 1 skipped)
+- [x] AI 配置浮层中，各个模型的说明没有国际化（已修复 2025-12-01）
+  - **Bug #21**: AIConfigPanel 中模型选择使用硬编码的 model.name 和 model.description
+  - **问题**: 模型名称和描述没有使用国际化，无法支持多语言
+  - **解决方案**:
+    - AIConfigPanel.tsx: 使用 `_(options.aiConfig.models.${model.id}.name)` 和 `description`
+    - 补充 o4-mini 模型的国际化翻译（中英文）
+  - **修复文件**:
+    - src/components/AIConfigPanel.tsx（使用国际化）
+    - public/locales/zh-CN/translation.json（添加 o4-mini 翻译）
+    - public/locales/en/translation.json（添加 o4-mini 翻译）
+  - **测试**: 所有测试通过 (1401 passed, 1 skipped)
+- [ ] ```
+ [LocalAIEndpoint] legacy 接口返回 2 个模型
+ [LocalAIEndpoint] ✅ 成功获取 2 个模型: deepseek-llm:7b, llama3.1:latest
+ [ErrorHandler] [AIConfig.decryptApiKey] 操作失败: InvalidCharacterError: Failed to execute 'atob' on 'Window': The string to be decoded is not correctly encoded.
+    at tag (ai-config.ts:408:7)
+    at withErrorHandlingSync (error-handler.ts:122:12)
+    at decryptApiKey (ai-config.ts:405:21)
+    at tag (ai-config.ts:238:15)
+    at async withErrorHandling (error-handler.ts:72:12)
+    at async saveEngineAssignment (ai-config.ts:516:9)
+    at async AIConfig.tsx:378:16
+error @ options.526298b9.js:40044了解此错误
+ [AIConfig] Failed to decrypt API key, using as-is 
+warn @ options.526298b9.js:40039了解此警告
+ [RecommendationConfig] 配置已保存: Object
+```

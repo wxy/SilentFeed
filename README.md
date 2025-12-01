@@ -28,11 +28,13 @@ Silent Feed is a **browser extension** that uses AI to understand what you're in
 
 ### ✨ Key Features
 
-- **🤖 AI-Powered Recommendations** - Understands your interests from browsing behavior
+- **🤖 AI-Powered Recommendations** - Understands your interests from browsing behavior, powered by AI-generated interest summaries
 - **🔍 Auto RSS Discovery** - Finds RSS feeds from websites you visit
 - **🎨 Clean Interface** - Minimal design for distraction-free reading
 - **🔒 Privacy First** - All data stays local, you control your API keys
-- **⚡ Smart Engine Assignment** - Optimize cost by assigning different AI engines for different tasks
+- **⚡ Smart Engine Assignment** - Optimize cost by assigning different AI engines for different tasks (reduce costs by up to 95%)
+- **📊 AI Usage Tracking** - Monitor API usage, tokens, and estimated costs
+- **📈 Recommendation Funnel** - Visualize content flow from RSS feeds to recommendations with conversion rates
 - **🌐 Bilingual** - Full support for English & 中文
 
 ### 📸 Screenshots
@@ -88,9 +90,9 @@ See [Technical Documentation](docs/TDD.md) for architecture details.
 
 ### 📊 Project Status
 
-- **Version**: 0.1.0 (First Public Release)
+- **Version**: 0.2.0 (Feature Update)
 - **Status**: ✅ Released
-- **Test Coverage**: 74%+
+- **Test Coverage**: 71%+
 - **Supported**: Chrome/Edge (Manifest V3)
 
 ### 💬 Community & Support
@@ -111,11 +113,13 @@ Silent Feed 是一个**浏览器扩展**，通过分析你的浏览历史，用 
 
 ### ✨ 核心功能
 
-- **🤖 AI 智能推荐** - 从浏览行为理解你的兴趣
+- **🤖 AI 智能推荐** - 从浏览行为理解你的兴趣，基于 AI 生成的兴趣总结
 - **🔍 自动发现订阅源** - 从你访问的网站发现 RSS
 - **🎨 简洁界面** - 极简设计，专注阅读
 - **🔒 隐私优先** - 数据本地存储，你掌控 API 密钥
-- **⚡ 智能引擎分配** - 为不同任务分配不同 AI 引擎，优化成本
+- **⚡ 智能引擎分配** - 为不同任务分配不同 AI 引擎，优化成本（最高节省 95% 费用）
+- **📊 AI 用量追踪** - 监控 API 使用量、Token 和预估费用
+- **📈 推荐筛选漏斗** - 可视化从 RSS 文章到推荐的完整流程，包含转化率统计
 - **🌐 双语支持** - 完整支持 English & 中文
 
 ### 📸 截图
@@ -171,9 +175,9 @@ npm test
 
 ### 📊 项目状态
 
-- **版本**: 0.1.0（首个公开发布版）
+- **版本**: 0.2.0（功能更新版）
 - **状态**: ✅ 已发布
-- **测试覆盖率**: 74%+
+- **测试覆盖率**: 71%+
 - **支持浏览器**: Chrome/Edge (Manifest V3)
 
 ### 💬 社区与支持

@@ -837,6 +837,10 @@
           "name": "GPT-5",
           "description": "最强大的模型，适合复杂任务"
         },
+        "o4-mini": {
+          "name": "o4-mini",
+          "description": "推理模型，擅长复杂推理任务"
+        },
         "claude-3-5-haiku": {
           "name": "Claude 3.5 Haiku",
           "description": "最快最便宜，适合简单任务"

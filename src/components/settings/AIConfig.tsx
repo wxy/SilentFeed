@@ -360,9 +360,45 @@ export function AIConfig() {
         provider: "ollama" as const
       }
 
+      // Phase 9.2: 使用新的 providers 结构保存配置
+      // 从当前配置中读取已有的 providers，避免覆盖其他 provider 的配置
+      const currentConfig = await getAIConfig()
+      const providers: Record<string, { apiKey: string; model: string; enableReasoning: boolean }> = {
+        ...currentConfig.providers // 保留现有的 provider 配置
+      }
+      
+      // 只更新当前有 API key 的 providers
+      for (const [provider, key] of Object.entries(apiKeys)) {
+        if (key) {
+          // 如果是当前选择的 provider，使用当前的 model 和 enableReasoning
+          // 否则保留原有配置或使用默认值
+          if (provider === currentProvider) {
+            providers[provider] = {
+              apiKey: key,
+              model: model,
+              enableReasoning: enableReasoning
+            }
+          } else if (!providers[provider]) {
+            // 如果之前没有配置，创建一个默认配置
+            providers[provider] = {
+              apiKey: key,
+              model: '',
+              enableReasoning: false
+            }
+          } else {
+            // 保留原有的 model 和 enableReasoning，只更新 apiKey
+            providers[provider] = {
+              ...providers[provider],
+              apiKey: key
+            }
+          }
+        }
+      }
+      
       await saveAIConfig({
         provider: currentProvider,
-        apiKeys,
+        apiKeys, // 保留旧结构以向后兼容
+        providers, // 新结构
         enabled: true,
         monthlyBudget,
         model,
@@ -621,7 +657,7 @@ export function AIConfig() {
   )}
 
   {/* 成本参考浮层模态框 */}
-  {showCostDetails && (
+  {showCostDetails && createPortal(
     <div 
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
       onClick={() => setShowCostDetails(false)}
@@ -695,7 +731,7 @@ export function AIConfig() {
             {_("options.aiConfig.cost.note")}
           </p>
         </div>
-      </div>
+      </div>, document.body
     )}
 
     {/* Chrome AI 说明浮层 */}

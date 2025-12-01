@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { createPortal } from "react-dom"
 import { AIProviderCard } from "./AIProviderCard"
 import { useAIProviderStatus } from "@/hooks/useAIProviderStatus"
 import { getAIConfig, saveAIConfig, AVAILABLE_MODELS, getProviderFromModel } from "@/storage/ai-config"
@@ -115,14 +116,14 @@ export function AIConfigPanel() {
       </div>
 
       {/* 配置弹窗 */}
-      {showConfigModal && (
+      {showConfigModal && createPortal(
         <ConfigModal
           providerId={showConfigModal}
           onClose={() => {
             setShowConfigModal(null)
             refresh()
           }}
-        />
+        />, document.body
       )}
     </div>
   )
@@ -287,10 +288,9 @@ function ConfigModal({
           apiKeys: {
             ...config!.apiKeys,
             [providerId]: apiKey
-          },
-          model: selectedModel,
-          provider: providerId as any,
-          enableReasoning: enableReasoning
+          }
+          // 注意：不要覆盖全局的 model/provider/enableReasoning
+          // 这些字段应该由引擎分配机制管理
         }
         await saveAIConfig(newConfig)
         
@@ -506,7 +506,7 @@ function ConfigModal({
                   <option value="">{_("options.aiConfig.configModal.selectModelPlaceholder")}</option>
                   {getAvailableModels().map((model) => (
                     <option key={model.id} value={model.id}>
-                      {model.name} - {model.description}
+                      {_((`options.aiConfig.models.${model.id}.name` as any))} - {_((`options.aiConfig.models.${model.id}.description` as any))}
                     </option>
                   ))}
                 </select>

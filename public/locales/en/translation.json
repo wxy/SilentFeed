@@ -881,6 +881,10 @@
           "name": "GPT-5",
           "description": "The most powerful model, ideal for complex tasks"
         },
+        "o4-mini": {
+          "name": "o4-mini",
+          "description": "Reasoning model, excels at complex reasoning tasks"
+        },
         "claude-3-5-haiku": {
           "name": "Claude 3.5 Haiku",
           "description": "Fastest and cheapest, suitable for simple tasks"

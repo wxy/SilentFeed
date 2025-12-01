@@ -1,11 +1,11 @@
 # Silent Feed 技术设计文档 (TDD)
 
-**版本**: 1.2  
-**日期**: 2025-11-26  
-**状态**: Released (v0.1.0)  
+**版本**: 1.3  
+**日期**: 2024-12-01  
+**状态**: Released (v0.2.0)  
 **作者**: Silent Feed Team
 
-> 本文档反映当前 v0.1.0 发布版本的技术实现
+> 本文档反映当前 v0.2.0 发布版本的技术实现
 
 ---
 
@@ -335,6 +335,40 @@ class SilentFeedDB extends Dexie {
 export const db = new SilentFeedDB()
 ```
 
+**新增数据库方法**（v0.2.0）:
+
+```typescript
+// src/storage/db/rss-articles.ts
+
+/**
+ * 获取 RSS 文章总数统计
+ * @returns RSS 文章总数
+ */
+export async function getRSSArticleCount(): Promise<number> {
+  return await db.rssItems.count()
+}
+
+/**
+ * 获取推荐筛选漏斗数据
+ * @returns 漏斗各阶段数据
+ */
+export async function getRecommendationFunnel(): Promise<{
+  total: number              // RSS 文章总数
+  analyzed: number           // 已分析数量
+  recommended: number        // 已推荐数量
+  read: number              // 已读数量
+  rejected: number          // 不想读数量
+}> {
+  const total = await db.rssItems.count()
+  const analyzed = await db.rssItems.where('analyzedAt').above(0).count()
+  const recommended = await db.rssItems.where('isRecommended').equals(1).count()
+  const read = await db.rssItems.where('clickedAt').above(0).count()
+  const rejected = await db.rssItems.where('dismissedAt').above(0).count()
+  
+  return { total, analyzed, recommended, read, rejected }
+}
+```
+
 ---
 
 ## 5. API 设计
@@ -423,6 +457,70 @@ class StorageAdapter {
 ```
 
 ### 5.2 用户 API 集成
+
+**AI Provider 架构统一**（v0.2.0）:
+
+从 v0.2.0 开始，所有 AI Provider 统一继承 `BaseAIService` 基类，实现架构简化和提示词管理统一。
+
+```typescript
+// src/core/ai/BaseAIService.ts
+
+/**
+ * AI Provider 基类
+ * 统一提示词模板管理，子类只需实现 API 调用和成本计算
+ */
+export abstract class BaseAIService {
+  /**
+   * 生成用户画像提示词（统一模板）
+   * @param pages 浏览历史页面
+   * @param currentProfile 当前画像（增量更新时提供）
+   */
+  protected buildProfilePrompt(
+    pages: PageVisit[],
+    currentProfile?: UserProfile
+  ): string {
+    const mode = currentProfile ? '增量更新' : '全量生成'
+    
+    // 从拒绝记录自动提取避免主题
+    const rejectedTopics = this.extractAvoidTopics(pages)
+    
+    return `分析用户浏览历史，${mode}兴趣画像。
+    
+浏览数据：
+${pages.map(p => `- ${p.title} (${p.domain})`).join('\n')}
+
+${currentProfile ? `当前画像：\n${JSON.stringify(currentProfile, null, 2)}\n` : ''}
+
+要求：
+1. interests: 直接列出兴趣主题，不要加"我对...感兴趣"等主语
+2. preferences: 提取用户偏好特征
+3. avoidTopics: ${rejectedTopics.join(', ')}
+
+格式：JSON`
+  }
+  
+  /**
+   * 子类实现：调用具体 AI API
+   */
+  abstract callChatAPI(messages: Message[]): Promise<string>
+  
+  /**
+   * 子类实现：计算成本
+   */
+  abstract calculateCost(inputTokens: number, outputTokens: number): number
+}
+```
+
+**架构优势**:
+- ✅ 提示词模板统一维护，易于优化和调试
+- ✅ 新增 Provider 只需实现 `callChatAPI()` 和 `calculateCost()`
+- ✅ 提示词优化立即应用到所有 Provider
+- ✅ 降低维护成本，减少重复代码
+
+**提示词优化** (v0.2.0):
+- `interests` 字段不再添加 "我对...感兴趣" 等主语（更自然）
+- `avoidTopics` 自动从拒绝记录中提取（无需手动标注）
+- 支持全量生成和增量更新两种模式（节省 token）
 
 **为什么使用用户 API？**
 1. ✅ 效果最好（GPT-4/Claude 准确度高）

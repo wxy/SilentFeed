@@ -400,6 +400,14 @@ function encryptApiKey(apiKey: string): string {
 function decryptApiKey(encryptedKey: string): string {
   if (!encryptedKey) return ""
   
+  // 检查是否是 Base64 格式（已加密）
+  // Base64 只包含 A-Z, a-z, 0-9, +, /, = 字符
+  const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/
+  if (!base64Regex.test(encryptedKey)) {
+    // 不是 Base64，可能是明文 API key（如 sk-xxx），直接返回
+    return encryptedKey
+  }
+  
   return withErrorHandlingSync(
     () => {
       // 从 Base64 解码
@@ -414,7 +422,7 @@ function decryptApiKey(encryptedKey: string): string {
     },
     {
       tag: 'AIConfig.decryptApiKey',
-      fallback: encryptedKey, // 如果解密失败，可能是未加密的旧数据或新数据
+      fallback: encryptedKey, // 如果解密失败，返回原始数据
       errorCode: 'API_KEY_DECRYPT_ERROR',
       userMessage: 'API Key 解密失败',
       onError: () => {
