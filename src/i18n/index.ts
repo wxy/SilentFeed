@@ -93,7 +93,10 @@ export function getCurrentLanguageName(): string {
  * 切换语言（保存到 chrome.storage.sync）
  */
 export async function changeLanguage(lng: string): Promise<void> {
-  console.log(`切换语言到: ${lng}`)
+  // 开发环境下输出日志
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`切换语言到: ${lng}`)
+  }
   
   // 1. 更新 i18n
   await i18n.changeLanguage(lng)

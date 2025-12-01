@@ -189,8 +189,9 @@ describe("RSSSettings 组件", () => {
       
       render(<RSSSettings />)
       
+      // Phase 9.1: 移除了空状态错误提示，现在直接显示 OPML 导入界面
       await waitFor(() => {
-        expect(screen.getByText("options.rssManager.noFeeds")).toBeInTheDocument()
+        expect(screen.getByText("options.rssManager.importOPML")).toBeInTheDocument()
       })
     })
   })

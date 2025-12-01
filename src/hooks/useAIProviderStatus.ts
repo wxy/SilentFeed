@@ -33,20 +33,22 @@ export function useAIProviderStatus() {
 
   /**
    * 检测单个 Provider 的可用性
+   * Phase 9.2 修复: 直接创建 provider 实例测试，不依赖 AICapabilityManager
    */
   const checkProvider = async (providerId: string, type: 'remote' | 'local'): Promise<void> => {
     setLoading(true)
     setError(null)
 
     try {
-      // 1. 先检查是否已配置 API Key
+      // 1. 先检查是否已配置
       const config = await getAIConfig()
       
       // 对于远程 Provider，检查 API Key
       if (type === 'remote') {
-        const hasApiKey = config.apiKeys[providerId as keyof typeof config.apiKeys]
+        // Phase 9.2: 使用新的 providers 结构
+        const providerConfig = config.providers?.[providerId as keyof typeof config.providers]
         
-        if (!hasApiKey) {
+        if (!providerConfig || !providerConfig.apiKey) {
           // 未配置 API Key，标记为未配置状态
           const providerStatus: AIProviderStatus = {
             providerId,
@@ -60,10 +62,38 @@ export function useAIProviderStatus() {
           await loadStatus()
           return
         }
-      }
-      
-      // 对于本地 Provider，检查是否启用
-      if (type === 'local') {
+        
+        // 已配置，直接创建 provider 实例测试
+        let provider
+        const { apiKey, model, enableReasoning = false } = providerConfig
+        
+        if (providerId === 'deepseek') {
+          const { DeepSeekProvider } = await import('@/core/ai/providers/DeepSeekProvider')
+          provider = new DeepSeekProvider({ apiKey, model })
+        } else if (providerId === 'openai') {
+          const { OpenAIProvider } = await import('@/core/ai/providers/OpenAIProvider')
+          provider = new OpenAIProvider({ apiKey, model })
+        } else {
+          throw new Error(`不支持的提供商: ${providerId}`)
+        }
+        
+        // 测试连接
+        const result = await provider.testConnection(enableReasoning)
+        
+        // 保存状态
+        const providerStatus: AIProviderStatus = {
+          providerId,
+          type,
+          available: result.success,
+          lastChecked: Date.now(),
+          latency: result.latency,
+          error: result.success ? undefined : result.message
+        }
+        
+        await saveProviderStatus(providerStatus)
+        await loadStatus()
+      } else {
+        // 对于本地 Provider，检查是否启用
         if (!config.local?.enabled) {
           const providerStatus: AIProviderStatus = {
             providerId,
@@ -77,27 +107,30 @@ export function useAIProviderStatus() {
           await loadStatus()
           return
         }
+        
+        // 已启用，创建 Ollama provider 实例测试
+        const { OllamaProvider } = await import('@/core/ai/providers/OllamaProvider')
+        const provider = new OllamaProvider({
+          endpoint: config.local.endpoint || 'http://localhost:11434/v1',
+          model: config.local.model || 'qwen2.5:7b'
+        })
+        
+        // 测试连接
+        const result = await provider.testConnection()
+        
+        // 保存状态
+        const providerStatus: AIProviderStatus = {
+          providerId,
+          type,
+          available: result.success,
+          lastChecked: Date.now(),
+          latency: result.latency,
+          error: result.success ? undefined : result.message
+        }
+        
+        await saveProviderStatus(providerStatus)
+        await loadStatus()
       }
-
-      // 2. 已配置，进行连接测试
-      const manager = new AICapabilityManager()
-      await manager.initialize()
-      
-      // 测试连接
-      const result = await manager.testConnection(type)
-
-      // 保存状态
-      const providerStatus: AIProviderStatus = {
-        providerId,
-        type,
-        available: result.success,
-        lastChecked: Date.now(),
-        latency: result.latency,
-        error: result.success ? undefined : result.message
-      }
-
-      await saveProviderStatus(providerStatus)
-      await loadStatus()
     } catch (err) {
       console.error(`[useAIProviderStatus] 检测 ${providerId} 失败:`, err)
       
@@ -121,6 +154,7 @@ export function useAIProviderStatus() {
 
   /**
    * 检测所有已启用的 Provider
+   * Phase 9.2: 使用新的 providers 结构，逐个检测
    */
   const checkAllProviders = async (): Promise<void> => {
     setLoading(true)
@@ -137,10 +171,6 @@ export function useAIProviderStatus() {
         { id: 'ollama', type: 'local' as const }
       ]
 
-      // 初始化 AI 管理器
-      const manager = new AICapabilityManager()
-      await manager.initialize()
-
       // 逐个检测每个 Provider
       for (const provider of allProviders) {
         try {
@@ -148,9 +178,10 @@ export function useAIProviderStatus() {
           
           // 检查配置状态
           if (provider.type === 'remote') {
-            const hasApiKey = config.apiKeys[provider.id as keyof typeof config.apiKeys]
+            // Phase 9.2: 使用新的 providers 结构
+            const providerConfig = config.providers?.[provider.id as keyof typeof config.providers]
             
-            if (!hasApiKey) {
+            if (!providerConfig || !providerConfig.apiKey) {
               // 未配置 API Key
               providerStatus = {
                 providerId: provider.id,
@@ -160,8 +191,22 @@ export function useAIProviderStatus() {
                 error: _("options.aiConfig.card.errors.notConfigured")
               }
             } else {
-              // 已配置，测试连接
-              const result = await manager.testConnection(provider.type)
+              // 已配置，直接创建 provider 实例测试
+              let providerInstance
+              const { apiKey, model, enableReasoning = false } = providerConfig
+              
+              if (provider.id === 'deepseek') {
+                const { DeepSeekProvider } = await import('@/core/ai/providers/DeepSeekProvider')
+                providerInstance = new DeepSeekProvider({ apiKey, model })
+              } else if (provider.id === 'openai') {
+                const { OpenAIProvider } = await import('@/core/ai/providers/OpenAIProvider')
+                providerInstance = new OpenAIProvider({ apiKey, model })
+              } else {
+                throw new Error(`不支持的提供商: ${provider.id}`)
+              }
+              
+              // 测试连接
+              const result = await providerInstance.testConnection(enableReasoning)
               providerStatus = {
                 providerId: provider.id,
                 type: provider.type,
@@ -182,8 +227,15 @@ export function useAIProviderStatus() {
                 error: _("options.aiConfig.card.errors.localNotEnabled")
               }
             } else {
-              // 已启用，测试连接
-              const result = await manager.testConnection(provider.type)
+              // 已启用，创建 Ollama provider 实例测试
+              const { OllamaProvider } = await import('@/core/ai/providers/OllamaProvider')
+              const providerInstance = new OllamaProvider({
+                endpoint: config.local.endpoint || 'http://localhost:11434/v1',
+                model: config.local.model || 'qwen2.5:7b'
+              })
+              
+              // 测试连接
+              const result = await providerInstance.testConnection()
               providerStatus = {
                 providerId: provider.id,
                 type: provider.type,

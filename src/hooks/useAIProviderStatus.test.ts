@@ -28,27 +28,45 @@ vi.mock("@/storage/ai-config", () => ({
   getAIConfig: () => mockGetAIConfig()
 }))
 
-// Mock AICapabilityManager
-const mockInitialize = vi.fn()
-const mockTestConnection = vi.fn()
+// Phase 9.2: Mock AI Providers (不再使用 AICapabilityManager)
+const mockDeepSeekTestConnection = vi.fn()
+const mockOpenAITestConnection = vi.fn()
+const mockOllamaTestConnection = vi.fn()
 
-vi.mock("@/core/ai/AICapabilityManager", () => {
-  return {
-    AICapabilityManager: class {
-      initialize = mockInitialize
-      testConnection = mockTestConnection
-    }
+vi.mock("@/core/ai/providers/DeepSeekProvider", () => ({
+  DeepSeekProvider: class {
+    testConnection = mockDeepSeekTestConnection
   }
-})
+}))
+
+vi.mock("@/core/ai/providers/OpenAIProvider", () => ({
+  OpenAIProvider: class {
+    testConnection = mockOpenAITestConnection
+  }
+}))
+
+vi.mock("@/core/ai/providers/OllamaProvider", () => ({
+  OllamaProvider: class {
+    testConnection = mockOllamaTestConnection
+  }
+}))
 
 describe("useAIProviderStatus", () => {
-  // 默认配置：有 API Key
+  // Phase 9.2: 默认配置使用新的 providers 结构
   const defaultConfig: AIConfig = {
     enabled: true,
     monthlyBudget: 10,
-    apiKeys: {
-      deepseek: "sk-test-key",
-      openai: "sk-openai-test"
+    providers: {
+      deepseek: {
+        apiKey: "sk-test-key",
+        model: "deepseek-chat",
+        enableReasoning: false
+      },
+      openai: {
+        apiKey: "sk-openai-test",
+        model: "gpt-5-mini",
+        enableReasoning: false
+      }
     },
     local: {
       enabled: true,
@@ -60,8 +78,9 @@ describe("useAIProviderStatus", () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    mockInitialize.mockResolvedValue(undefined)
-    mockTestConnection.mockResolvedValue({ success: true, message: "OK" })
+    mockDeepSeekTestConnection.mockResolvedValue({ success: true, message: "OK" })
+    mockOpenAITestConnection.mockResolvedValue({ success: true, message: "OK" })
+    mockOllamaTestConnection.mockResolvedValue({ success: true, message: "OK" })
     mockGetAIConfig.mockResolvedValue(defaultConfig)
   })
 
@@ -101,10 +120,10 @@ describe("useAIProviderStatus", () => {
 
   describe("checkProvider - API Key 验证", () => {
     it("应该拒绝未配置 API Key 的远程 Provider", async () => {
-      // 设置为无 API Key
+      // Phase 9.2: 设置为无 provider 配置
       mockGetAIConfig.mockResolvedValue({
         ...defaultConfig,
-        apiKeys: {}
+        providers: {}  // 新结构：没有配置任何 provider
       })
 
       vi.mocked(aiProviderStatus.getAllProviderStatus).mockResolvedValue({})
@@ -117,7 +136,8 @@ describe("useAIProviderStatus", () => {
       })
 
       // 不应该调用 testConnection
-      expect(mockTestConnection).not.toHaveBeenCalled()
+      expect(mockDeepSeekTestConnection).not.toHaveBeenCalled()
+      expect(mockOpenAITestConnection).not.toHaveBeenCalled()
       
       // 应该保存未配置状态
       expect(aiProviderStatus.saveProviderStatus).toHaveBeenCalledWith(
@@ -150,7 +170,7 @@ describe("useAIProviderStatus", () => {
       })
 
       // 不应该调用 testConnection
-      expect(mockTestConnection).not.toHaveBeenCalled()
+      expect(mockOllamaTestConnection).not.toHaveBeenCalled()
       
       // 应该保存未启用状态
       expect(aiProviderStatus.saveProviderStatus).toHaveBeenCalledWith(
@@ -166,7 +186,7 @@ describe("useAIProviderStatus", () => {
 
   describe("checkProvider - 连接测试", () => {
     it("应该检测已配置的 Provider 并保存状态", async () => {
-      mockTestConnection.mockResolvedValue({
+      mockDeepSeekTestConnection.mockResolvedValue({
         success: true,
         message: "连接成功",
         latency: 150
@@ -182,8 +202,7 @@ describe("useAIProviderStatus", () => {
       })
 
       expect(mockGetAIConfig).toHaveBeenCalled()
-      expect(mockInitialize).toHaveBeenCalled()
-      expect(mockTestConnection).toHaveBeenCalledWith("remote")
+      expect(mockDeepSeekTestConnection).toHaveBeenCalledWith(false)
       expect(aiProviderStatus.saveProviderStatus).toHaveBeenCalledWith(
         expect.objectContaining({
           providerId: "deepseek",
@@ -195,7 +214,7 @@ describe("useAIProviderStatus", () => {
     })
 
     it("应该处理检测失败", async () => {
-      mockTestConnection.mockResolvedValue({
+      mockDeepSeekTestConnection.mockResolvedValue({
         success: false,
         message: "连接失败"
       })
@@ -225,7 +244,7 @@ describe("useAIProviderStatus", () => {
         resolveTest = resolve
       })
 
-      mockTestConnection.mockImplementation(() => testPromise.then(() => ({ success: true, message: "OK" })))
+      mockDeepSeekTestConnection.mockImplementation(() => testPromise.then(() => ({ success: true, message: "OK" })))
 
       vi.mocked(aiProviderStatus.getAllProviderStatus).mockResolvedValue({})
       vi.mocked(aiProviderStatus.saveProviderStatus).mockResolvedValue()
@@ -256,12 +275,21 @@ describe("useAIProviderStatus", () => {
 
   describe("checkAllProviders", () => {
     it("应该检测所有 Provider", async () => {
-      mockTestConnection.mockResolvedValue({
+      mockDeepSeekTestConnection.mockResolvedValue({
+        success: true,
+        message: "OK"
+      })
+      mockOpenAITestConnection.mockResolvedValue({
+        success: true,
+        message: "OK"
+      })
+      mockOllamaTestConnection.mockResolvedValue({
         success: true,
         message: "OK"
       })
 
       vi.mocked(aiProviderStatus.getAllProviderStatus).mockResolvedValue({})
+      vi.mocked(aiProviderStatus.saveProviderStatus).mockResolvedValue()
 
       const { result } = renderHook(() => useAIProviderStatus())
 
@@ -269,12 +297,14 @@ describe("useAIProviderStatus", () => {
         await result.current.checkAllProviders()
       })
 
-      expect(mockInitialize).toHaveBeenCalled()
-      expect(mockTestConnection).toHaveBeenCalled()
+      expect(mockDeepSeekTestConnection).toHaveBeenCalled()
+      expect(mockOpenAITestConnection).toHaveBeenCalled()
+      expect(mockOllamaTestConnection).toHaveBeenCalled()
     })
 
     it("应该处理检测失败", async () => {
-      mockInitialize.mockRejectedValue(new Error("初始化失败"))
+      // 模拟读取配置失败
+      mockGetAIConfig.mockRejectedValueOnce(new Error("配置读取失败"))
 
       vi.mocked(aiProviderStatus.getAllProviderStatus).mockResolvedValue({})
 
@@ -284,7 +314,7 @@ describe("useAIProviderStatus", () => {
         await result.current.checkAllProviders()
       })
 
-      expect(result.current.error).toBe("初始化失败")
+      expect(result.current.error).toBe("配置读取失败")
     })
   })
 

@@ -115,16 +115,11 @@ export async function setOnboardingState(status: OnboardingStatus): Promise<void
 
 /**
  * 完成引导流程（从 setup 进入 learning）
+ * Phase 9.1: 允许不配置 AI 也能完成引导
  */
 export async function completeOnboarding(): Promise<void> {
   return withErrorHandling(
     async () => {
-      // 检查 AI 是否已配置
-      const aiConfigured = await isAIConfigured()
-      if (!aiConfigured) {
-        throw new Error('Cannot complete onboarding: AI not configured')
-      }
-      
       const status: OnboardingStatus = {
         state: 'learning',
         completedAt: Date.now()

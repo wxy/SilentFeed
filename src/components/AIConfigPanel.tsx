@@ -131,7 +131,13 @@ export function AIConfigPanel() {
 /**
  * 配置弹窗组件
  */
-function ConfigModal({ providerId, onClose }: { providerId: string; onClose: () => void }) {
+function ConfigModal({ 
+  providerId, 
+  onClose 
+}: { 
+  providerId: string; 
+  onClose: () => void 
+}) {
   const { _ } = useI18n()
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
@@ -155,15 +161,17 @@ function ConfigModal({ providerId, onClose }: { providerId: string; onClose: () 
       setConfig(currentConfig)
 
       if (providerId === 'deepseek' || providerId === 'openai') {
-        setApiKey(currentConfig.apiKeys[providerId] || '')
+        // Phase 9.2: 从 providers 结构中读取配置
+        const providerConfig = currentConfig.providers?.[providerId]
+        setApiKey(providerConfig?.apiKey || '')
         
         // 如果已选择该 Provider 的模型，设置为当前模型
         const models = AVAILABLE_MODELS[providerId as keyof typeof AVAILABLE_MODELS]
-        if (currentConfig.model && models.some(m => m.id === currentConfig.model)) {
-          setSelectedModel(currentConfig.model)
+        if (providerConfig?.model && models.some(m => m.id === providerConfig.model)) {
+          setSelectedModel(providerConfig.model)
         }
         
-        setEnableReasoning(currentConfig.enableReasoning || false)
+        setEnableReasoning(providerConfig?.enableReasoning || false)
       } else if (providerId === 'ollama') {
         setOllamaEndpoint(currentConfig.local?.endpoint || 'http://localhost:11434/v1')
         setOllamaModel(currentConfig.local?.model || 'qwen2.5:7b')
@@ -181,38 +189,19 @@ function ConfigModal({ providerId, onClose }: { providerId: string; onClose: () 
   const handleSave = async () => {
     if (!config) return
 
+    // Phase 9.1: 检查是否已测试成功
+    if (!testResult?.success) {
+      setTestResult({ 
+        success: false, 
+        message: _('options.aiConfig.configModal.testResult.pleaseTestFirst') 
+      })
+      return
+    }
+
     setSaving(true)
     try {
-      let newConfig: AIConfig = { ...config }
-
-      if (providerId === 'deepseek' || providerId === 'openai') {
-        // 保存 API Key
-        newConfig.apiKeys = {
-          ...newConfig.apiKeys,
-          [providerId]: apiKey
-        }
-
-        // 如果选择了模型，更新模型配置
-        if (selectedModel) {
-          newConfig.model = selectedModel
-          newConfig.provider = providerId as any
-        }
-
-        // 更新推理能力配置
-        newConfig.enableReasoning = enableReasoning
-      } else if (providerId === 'ollama') {
-        // 保存 Ollama 配置
-        newConfig.local = {
-          ...newConfig.local,
-          enabled: ollamaEnabled,
-          provider: 'ollama',
-          endpoint: ollamaEndpoint,
-          model: ollamaModel,
-          cachedModels: ollamaModels  // 保存模型列表
-        } as any
-      }
-
-      await saveAIConfig(newConfig)
+      // Phase 9.1: 测试成功时已保存配置，这里只需关闭弹窗
+      // refresh() 会重新加载最新状态
       onClose()
     } finally {
       setSaving(false)
@@ -237,6 +226,7 @@ function ConfigModal({ providerId, onClose }: { providerId: string; onClose: () 
 
   /**
    * 测试远程 AI 连接
+   * Phase 9.1: 直接创建 provider 实例测试，不依赖 AICapabilityManager
    */
   const handleTestRemoteConnection = async () => {
     if (!apiKey || !selectedModel) {
@@ -248,30 +238,31 @@ function ConfigModal({ providerId, onClose }: { providerId: string; onClose: () 
     setTestResult(null)
 
     try {
-      // 临时保存配置用于测试
-      const tempConfig: AIConfig = {
-        ...config!,
-        apiKeys: {
-          ...config!.apiKeys,
-          [providerId]: apiKey
-        },
-        model: selectedModel,
-        provider: providerId as any,
-        enableReasoning
-      }
-
-      await saveAIConfig(tempConfig)
-
-      // 使用 AICapabilityManager 测试连接
-      const { AICapabilityManager } = await import('@/core/ai/AICapabilityManager')
-      const manager = new AICapabilityManager()
-      await manager.initialize()
+      // Phase 9.1: 直接创建 provider 实例进行测试
+      // 避免依赖 AICapabilityManager.initialize() 可能的延迟问题
+      let provider
       
-      // 根据用户是否勾选推理来决定测试时是否启用推理
-      const result = await manager.testConnection('remote', enableReasoning)
+      if (providerId === 'deepseek') {
+        const { DeepSeekProvider } = await import('@/core/ai/providers/DeepSeekProvider')
+        provider = new DeepSeekProvider({ 
+          apiKey,
+          model: selectedModel
+        })
+      } else if (providerId === 'openai') {
+        const { OpenAIProvider } = await import('@/core/ai/providers/OpenAIProvider')
+        provider = new OpenAIProvider({ 
+          apiKey,
+          model: selectedModel
+        })
+      } else {
+        throw new Error(`不支持的提供商: ${providerId}`)
+      }
+      
+      // 测试连接
+      const result = await provider.testConnection(enableReasoning)
       
       if (result.success) {
-        // 检查是否启用了推理能力
+        // 显示成功消息
         const message = enableReasoning 
           ? _("options.aiConfig.configModal.testResult.successWithReasoning", { latency: result.latency })
           : _("options.aiConfig.configModal.testResult.success", { latency: result.latency })
@@ -279,6 +270,41 @@ function ConfigModal({ providerId, onClose }: { providerId: string; onClose: () 
         setTestResult({ 
           success: true, 
           message 
+        })
+        
+        // Phase 9.2 修复: 使用新的 providers 结构保存配置
+        const newConfig: AIConfig = {
+          ...config!,
+          providers: {
+            ...config!.providers,
+            [providerId]: {
+              apiKey: apiKey,
+              model: selectedModel,
+              enableReasoning: enableReasoning
+            }
+          },
+          // 兼容：同时更新旧结构
+          apiKeys: {
+            ...config!.apiKeys,
+            [providerId]: apiKey
+          },
+          model: selectedModel,
+          provider: providerId as any,
+          enableReasoning: enableReasoning
+        }
+        await saveAIConfig(newConfig)
+        
+        // 2. 更新本地 state，确保 useEffect 能读取到最新配置
+        setConfig(newConfig)
+        
+        // 3. 保存状态到缓存
+        const { saveProviderStatus } = await import('@/storage/ai-provider-status')
+        await saveProviderStatus({
+          providerId,
+          type: 'remote',
+          available: true,
+          lastChecked: Date.now(),
+          latency: result.latency
         })
       } else {
         setTestResult({ 
@@ -366,10 +392,48 @@ function ConfigModal({ providerId, onClose }: { providerId: string; onClose: () 
             success: true, 
             message: _("options.aiConfig.configModal.testResult.modelsLoaded", { count: models.length }) 
           })
+          
+          // Phase 9.2 修复: 测试成功后立即保存配置和状态
+          // 1. 保存配置到 storage
+          const newConfig: AIConfig = {
+            ...config!,
+            local: {
+              ...config!.local,
+              enabled: true,
+              provider: 'ollama',
+              endpoint: ollamaEndpoint,
+              model: ollamaModel || (models.length > 0 ? models[0].id : ''),
+              cachedModels: models
+            } as any
+          }
+          await saveAIConfig(newConfig)
+          
+          // 2. 更新本地 state，确保 useEffect 能读取到最新配置
+          setConfig(newConfig)
+          
+          // 3. 保存状态到缓存
+          const { saveProviderStatus } = await import('@/storage/ai-provider-status')
+          await saveProviderStatus({
+            providerId: 'ollama',
+            type: 'local',
+            available: true,
+            lastChecked: Date.now(),
+            latency: result.latency
+          })
         } catch (modelError) {
           setTestResult({ 
             success: true, 
             message: _("options.aiConfig.configModal.testResult.modelsLoadFailed", { error: modelError instanceof Error ? modelError.message : _("options.aiConfig.configModal.testResult.unknownError") }) 
+          })
+          
+          // 即使加载模型失败，连接仍然成功，保存状态
+          const { saveProviderStatus } = await import('@/storage/ai-provider-status')
+          await saveProviderStatus({
+            providerId: 'ollama',
+            type: 'local',
+            available: true,
+            lastChecked: Date.now(),
+            latency: result.latency
           })
         }
       } else {
@@ -486,20 +550,6 @@ function ConfigModal({ providerId, onClose }: { providerId: string; onClose: () 
           {/* Ollama 配置 */}
           {providerId === 'ollama' && (
             <>
-              {/* 启用开关 */}
-              <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                <input
-                  type="checkbox"
-                  id="ollamaEnabled"
-                  checked={ollamaEnabled}
-                  onChange={(e) => setOllamaEnabled(e.target.checked)}
-                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <label htmlFor="ollamaEnabled" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {_("options.aiConfig.configModal.ollamaEnabled")}
-                </label>
-              </div>
-
               {/* 端点配置 */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -556,7 +606,10 @@ function ConfigModal({ providerId, onClose }: { providerId: string; onClose: () 
                   )}
                 </select>
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  {ollamaModels.length > 0 ? _("options.aiConfig.configModal.modelsLoaded", { count: ollamaModels.length }) : _("options.aiConfig.configModal.pleaseTestFirst")}
+                  {ollamaModels.length > 0 
+                    ? _("options.aiConfig.configModal.testResult.modelsLoaded", { count: ollamaModels.length }) 
+                    : _("options.aiConfig.configModal.loadModelsHint")
+                  }
                 </p>
               </div>
             </>

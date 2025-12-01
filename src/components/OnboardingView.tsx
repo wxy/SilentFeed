@@ -385,13 +385,13 @@ function AIConfigStep({
         return
       }
 
-      // 2. 保存配置
+      // 2. 保存完整配置
       await saveAIConfig({
         provider: currentProvider,
         apiKeys: { [currentProvider]: apiKey },
         enabled: true,
         monthlyBudget: 5,
-        model,
+        model, // 添加 model 字段
         enableReasoning: false
       })
 

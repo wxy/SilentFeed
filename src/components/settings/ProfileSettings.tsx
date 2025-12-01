@@ -34,6 +34,7 @@ export function ProfileSettings() {
   const [isRebuilding, setIsRebuilding] = useState(false)
   const [aiConfigured, setAiConfigured] = useState(false)
   const [aiProvider, setAiProvider] = useState("")
+  const [totalPages, setTotalPages] = useState(0)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // 自动滚动到底部
@@ -57,14 +58,26 @@ export function ProfileSettings() {
           getAIConfig()
         ])
         
+        // Phase 9.1: 获取实际的浏览历史数量，而不是从画像中获取
+        // 因为学习阶段（<100页）画像可能还未创建
+        let actualTotalPages = data?.totalPages || 0
+        
+        // 如果画像不存在或 totalPages 为 0，从数据库直接查询
+        if (actualTotalPages === 0) {
+          const { db } = await import("@/storage/db")
+          actualTotalPages = await db.confirmedVisits.count()
+        }
+        
         profileViewLogger.info("用户画像数据:", {
           hasAiSummary: !!data?.aiSummary,
           aiSummaryProvider: data?.aiSummary?.metadata?.provider,
-          totalPages: data?.totalPages
+          totalPages: data?.totalPages,
+          actualTotalPages
         })
         
         setAiConfigured(aiConfig.enabled && aiConfig.provider !== null)
         setAiProvider(getProviderDisplayName(aiConfig.provider || null))
+        setTotalPages(actualTotalPages)
         
         // 如果有画像，添加为初始消息
         if (data && data.totalPages > 0) {
@@ -311,11 +324,24 @@ export function ProfileSettings() {
       {/* 对话历史区域 */}
       <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg min-h-[400px] max-h-[600px] overflow-y-auto">
         {messages.length === 0 ? (
-          // 空状态
+          // 空状态 - 始终显示学习进度
           <div className="flex flex-col items-center justify-center h-full text-center py-12">
-            <span className="text-6xl mb-4">🔍</span>
+            <span className="text-6xl mb-4">🌱</span>
+            {/* Phase 9.1: 总是显示进度，即使是 0 页 */}
+            <p className="text-gray-600 dark:text-gray-300 text-base font-medium mb-2">
+              {totalPages > 0 
+                ? _("options.profile.learning")
+                : _("options.userProfile.noData.message")
+              }
+            </p>
+            <div className="w-64 bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-3">
+              <div 
+                className="bg-blue-500 h-2 rounded-full transition-all duration-500"
+                style={{ width: `${Math.min((totalPages / 100) * 100, 100)}%` }}
+              />
+            </div>
             <p className="text-gray-500 dark:text-gray-400 text-sm">
-              {_("options.userProfile.noData.message")}
+              {_("options.profile.progress", { current: totalPages, total: 100 })}
             </p>
             <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">
               {_("options.userProfile.noData.hint")}

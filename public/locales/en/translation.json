@@ -1024,7 +1024,8 @@
           "connectionFailed": "Connection failed",
           "modelsLoaded": "Connection successful! {{count}} models found.",
           "modelsLoadFailed": "Connection successful, but failed to load model list: {{error}}",
-          "unknownError": "Unknown error"
+          "unknownError": "Unknown error",
+          "pleaseTestFirst": "Please test the connection first"
         },
         "ollamaEndpointHint": "OpenAI compatible interface address",
         "modelName": "Model Name",
@@ -1296,7 +1297,9 @@
       "basicStats": {
         "title": "Basic Statistics",
         "totalPages": "Number of pages viewed"
-      }
+      },
+      "learning": "Learning your interests and preferences...",
+      "progress": "{{current}} / {{total}} pages"
     },
     "myData": {
       "title": "System Data"

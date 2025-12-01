@@ -53,17 +53,23 @@ export class AICapabilityManager {
   
   /**
    * 初始化（加载配置）
+   * Phase 9.2: 使用新的 providers 结构
    */
   async initialize(): Promise<void> {
     try {
       const config = await getAIConfig()
       
       const providerType = config.provider ?? null
-      const apiKey = providerType ? (config.apiKeys?.[providerType] || "") : ""
       
-      // 只有启用了才初始化
-      if (config.enabled) {
-        await this.initializeRemoteProvider(config.enabled, providerType, apiKey, config.model)
+      // Phase 9.2: 从 providers 结构中读取配置
+      const providerConfig = providerType ? config.providers?.[providerType] : null
+      const apiKey = providerConfig?.apiKey || ""
+      const model = providerConfig?.model
+      
+      // 只要有 provider 和 apiKey 就初始化，不检查 enabled
+      // 这样测试连接时可以正常工作
+      if (providerType && apiKey) {
+        await this.initializeRemoteProvider(config.enabled, providerType, apiKey, model)
       }
       
       // 只有本地 AI 启用了才初始化
@@ -80,7 +86,7 @@ export class AICapabilityManager {
         this.engineAssignment = null
       }
     } catch (error) {
-      aiLogger.error(" Initialization failed:", error)
+      aiLogger.error("❌ Initialization failed:", error)
       this.remoteProvider = null
       this.localProvider = null
     }
@@ -302,9 +308,29 @@ export class AICapabilityManager {
     const provider = target === "local" ? this.localProvider : this.remoteProvider
 
     if (!provider) {
+      // 提供更详细的错误信息，帮助用户诊断问题
+      const config = await getAIConfig()
+      const providerType = config.provider
+      const hasApiKey = providerType && config.apiKeys?.[providerType]
+      
+      let detailedMessage = target === "local" ? "未配置本地 AI" : "未配置 AI 提供商"
+      
+      if (target === "remote") {
+        // Phase 9.1: 移除 enabled 检查 - 测试连接时不需要检查是否启用
+        // 只检查是否选择了提供商和是否设置了 API Key
+        if (!providerType) {
+          detailedMessage += "（未选择提供商）"
+        } else if (!hasApiKey) {
+          detailedMessage += `（${providerType} 的 API Key 未设置）`
+        } else {
+          // 有提供商和 API Key，但 provider 实例为空，说明初始化失败
+          detailedMessage += "（初始化失败，请重新打开设置页面）"
+        }
+      }
+      
       return {
         success: false,
-        message: target === "local" ? "未配置本地 AI" : "未配置 AI Provider"
+        message: detailedMessage
       }
     }
     

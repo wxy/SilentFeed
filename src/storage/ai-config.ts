@@ -115,14 +115,34 @@ export interface LocalAIConfig {
 }
 
 /**
+ * 单个远程 AI Provider 的配置
+ * Phase 9.2: 重构 - 每个 provider 独立配置
+ */
+export interface RemoteProviderConfig {
+  /** API Key */
+  apiKey: string
+  /** 模型 */
+  model: string
+  /** 是否启用推理能力 */
+  enableReasoning?: boolean
+}
+
+/**
  * AI 配置数据结构
+ * Phase 9.2: 重构 - 每个 provider 独立存储配置
  */
 export interface AIConfig {
-  /** 当前选中的提供商（从 model 自动推导） */
+  /** 当前选中的提供商 */
   provider?: AIProviderType | null
   
-  /** 各提供商的 API Keys（分别存储） */
-  apiKeys: {
+  /** 各提供商的配置（分别存储 API Key + Model） */
+  providers?: {
+    openai?: RemoteProviderConfig
+    deepseek?: RemoteProviderConfig
+  }
+  
+  /** @deprecated 旧的 API Keys 结构，保留用于兼容 */
+  apiKeys?: {
     openai?: string
     deepseek?: string
   }
@@ -130,10 +150,10 @@ export interface AIConfig {
   enabled: boolean
   monthlyBudget: number // 月度预算（美元或人民币），必须设置，最小 $1 或 ¥10
   
-  /** 模型选择（必选，通过 model 推导 provider） */
+  /** @deprecated 旧的全局模型，保留用于兼容 */
   model?: string
   
-  /** Phase 9: 是否启用推理能力（DeepSeek-R1，成本约10倍但质量更好） */
+  /** @deprecated 旧的全局推理设置，保留用于兼容 */
   enableReasoning?: boolean
 
   /** Phase 10: 本地 AI 配置（Ollama 等） */
@@ -148,11 +168,12 @@ export interface AIConfig {
  */
 const DEFAULT_CONFIG: AIConfig = {
   provider: null,
-  apiKeys: {},
+  providers: {},
+  apiKeys: {},  // 兼容旧版
   enabled: false,
   monthlyBudget: 5, // 默认 $5/月
-  model: undefined, // 不设置则使用 Provider 默认模型
-  enableReasoning: false, // Phase 9: 默认不启用推理（成本考虑）
+  model: undefined, // 兼容旧版
+  enableReasoning: false, // 兼容旧版
   local: {
     enabled: false,
     provider: "ollama",
@@ -183,26 +204,62 @@ export async function getAIConfig(): Promise<AIConfig> {
       if (result.aiConfig) {
         const config = result.aiConfig as AIConfig
         
-        // 解密所有 API Keys
+        // Phase 9.2: 迁移逻辑 - 将旧的 apiKeys + model 迁移到新的 providers 结构
+        let providers: AIConfig['providers'] = config.providers || {}
+        
+        // 解密并迁移 API Keys
         const decryptedApiKeys: AIConfig['apiKeys'] = {}
         if (config.apiKeys) {
           for (const [provider, key] of Object.entries(config.apiKeys)) {
             if (key) {
-              decryptedApiKeys[provider as AIProviderType] = decryptApiKey(key)
+              const decryptedKey = decryptApiKey(key)
+              decryptedApiKeys[provider as AIProviderType] = decryptedKey
+              
+              // 如果新结构中没有这个 provider，从旧结构迁移
+              if (!providers![provider as AIProviderType]) {
+                providers![provider as AIProviderType] = {
+                  apiKey: decryptedKey,
+                  model: (config.provider === provider && config.model) ? config.model : '',
+                  enableReasoning: (config.provider === provider) ? (config.enableReasoning || false) : false
+                }
+              }
             }
           }
+        }
+        
+        // 解密新结构中的 API Keys
+        if (config.providers) {
+          const decryptedProviders: AIConfig['providers'] = {}
+          for (const [providerKey, providerConfig] of Object.entries(config.providers)) {
+            if (providerConfig) {
+              decryptedProviders[providerKey as AIProviderType] = {
+                ...providerConfig,
+                apiKey: decryptApiKey(providerConfig.apiKey)
+              }
+            }
+          }
+          providers = decryptedProviders
         }
         
         // 向后兼容：如果有旧的 apiKey 字段，迁移到 apiKeys
         const legacyConfig = config as any
         if (legacyConfig.apiKey && config.provider) {
-          decryptedApiKeys[config.provider] = decryptApiKey(legacyConfig.apiKey)
+          const decryptedKey = decryptApiKey(legacyConfig.apiKey)
+          decryptedApiKeys[config.provider] = decryptedKey
+          if (!providers![config.provider]) {
+            providers![config.provider] = {
+              apiKey: decryptedKey,
+              model: config.model || '',
+              enableReasoning: config.enableReasoning || false
+            }
+          }
         }
         
         return {
           ...DEFAULT_CONFIG,
           ...config,
-          apiKeys: decryptedApiKeys,
+          providers,
+          apiKeys: decryptedApiKeys,  // 保留旧结构用于兼容
           local: {
             ...DEFAULT_CONFIG.local!,
             ...config.local
@@ -225,6 +282,7 @@ export async function getAIConfig(): Promise<AIConfig> {
 
 /**
  * 保存 AI 配置
+ * Phase 9.2: 支持新的 providers 结构
  */
 export async function saveAIConfig(config: AIConfig): Promise<void> {
   return withErrorHandling(
@@ -234,7 +292,20 @@ export async function saveAIConfig(config: AIConfig): Promise<void> {
         throw new Error("chrome.storage.sync not available")
       }
       
-      // 加密所有 API Keys
+      // 加密新结构中的 providers
+      const encryptedProviders: AIConfig['providers'] = {}
+      if (config.providers) {
+        for (const [providerKey, providerConfig] of Object.entries(config.providers)) {
+          if (providerConfig && providerConfig.apiKey) {
+            encryptedProviders[providerKey as AIProviderType] = {
+              ...providerConfig,
+              apiKey: encryptApiKey(providerConfig.apiKey)
+            }
+          }
+        }
+      }
+      
+      // 兼容：同时保存到旧的 apiKeys 结构
       const encryptedApiKeys: AIConfig['apiKeys'] = {}
       if (config.apiKeys) {
         for (const [provider, key] of Object.entries(config.apiKeys)) {
@@ -246,6 +317,7 @@ export async function saveAIConfig(config: AIConfig): Promise<void> {
       
       const encryptedConfig = {
         ...config,
+        providers: encryptedProviders,
         apiKeys: encryptedApiKeys
       }
       
