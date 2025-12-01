@@ -241,7 +241,7 @@ function ConfigModal({
     try {
       // Phase 9.1: 直接创建 provider 实例进行测试
       // 避免依赖 AICapabilityManager.initialize() 可能的延迟问题
-      let provider
+      let provider: { testConnection: (enableReasoning: boolean) => Promise<{ success: boolean; message?: string; latency?: number }> }
       
       if (providerId === 'deepseek') {
         const { DeepSeekProvider } = await import('@/core/ai/providers/DeepSeekProvider')

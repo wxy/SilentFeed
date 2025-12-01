@@ -614,7 +614,7 @@
         },
         "deepseek": {
           "label": "DeepSeek",
-          "description": "Domestically friendly, cheapest (¥2/M input, ¥3/M output, cache hit ¥0.2/M)"
+          "description": "China-friendly, cheapest (¥2/M input, ¥3/M output, cache hit ¥0.2/M)"
         }
       },
       "buttons": {
@@ -867,7 +867,7 @@
       "models": {
         "deepseek-chat": {
           "name": "DeepSeek",
-          "description": "Domestically friendly, supports inference mode (R1)"
+          "description": "China-friendly, supports inference mode (R1)"
         },
         "gpt-5-nano": {
           "name": "GPT-5 Nano",
