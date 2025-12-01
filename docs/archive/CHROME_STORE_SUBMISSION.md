@@ -68,8 +68,9 @@ Silent Feed（静阅）- 让信息流安静下来
 
 2. 智能推荐
    • AI 自动筛选出 3-5 条最相关的内容
-   • 支持多种远程 AI 引擎（DeepSeek/OpenAI/Anthropic）
-   • 未来将支持自定义的本地 AI 供应商
+   • 支持多种 AI 引擎（DeepSeek/OpenAI/Anthropic/Ollama）
+   • 灵活的 AI 引擎分配：不同任务使用不同引擎
+   • 3 种预设方案：智能优先/平衡/隐私优先
    • 推荐分数可视化，理由详细说明
 
 3. RSS 自动管理
@@ -103,15 +104,24 @@ Silent Feed（静阅）- 让信息流安静下来
 
 💰 成本透明
 
-使用你自己的 API Key，成本完全由你控制：
+**AI 引擎分配系统** - 灵活控制成本：
 
+**3 种预设方案**：
+• 智能优先：DeepSeek-R1 推理（约 $0.15/月）- 最佳质量
+• 平衡方案：混合使用多种引擎（约 $0.54/月）- 性价比
+• 隐私优先：Ollama 本地 AI（完全免费）- 数据不出本地
+
+**单篇成本参考**：
 • DeepSeek Chat：¥0.001/篇（性价比之选）
 • DeepSeek Reasoner：¥0.01/篇（深度推理）
 • OpenAI GPT-4o-mini：$0.002/篇（约 ¥0.014）
 • Anthropic Claude 3.5 Haiku：$0.003/篇（约 ¥0.021）
+• Ollama 本地模型：完全免费
 
-• 实时成本统计，随时可切换引擎
-• 未来将支持自定义的本地 AI 供应商（免费）
+**智能成本管理**：
+• 实时用量统计（API 调用次数、Token 消耗、费用估算）
+• 按任务分配引擎（页面分析/Feed 分析/画像生成）
+• 随时切换引擎，灵活控制成本
 
 🛠️ 技术架构
 
@@ -119,7 +129,7 @@ Silent Feed（静阅）- 让信息流安静下来
 • 语言：TypeScript (严格模式)
 • UI：React 18 + Tailwind CSS
 • 数据库：Dexie.js (IndexedDB)
-• 测试覆盖率：74%
+• 测试覆盖率：71%+（1400+ 测试用例）
 
 📖 详细文档
 
@@ -156,8 +166,9 @@ Not about managing RSS, but letting AI be your "information gatekeeper".
 
 2. Smart Recommendations
    • AI automatically filters out 3-5 most relevant articles
-   • Multiple remote AI engines supported (DeepSeek/OpenAI/Anthropic)
-   • Future support for custom local AI providers
+   • Multiple AI engines supported (DeepSeek/OpenAI/Anthropic/Ollama)
+   • Flexible AI engine assignment: different engines for different tasks
+   • 3 preset plans: Intelligence First/Balanced/Privacy First
    • Recommendation score visualization with detailed reasoning
 
 3. RSS Auto-Management
@@ -191,15 +202,24 @@ May not suit you if you:
 
 💰 Transparent Costs
 
-Use your own API Key, you control the costs:
+**AI Engine Assignment System** - Flexible cost control:
 
-• DeepSeek Chat: $0.0001/article (Best value)
-• DeepSeek Reasoner: $0.001/article (Deep reasoning)
+**3 Preset Plans**:
+• Intelligence First: DeepSeek-R1 reasoning (~$0.15/month) - Best quality
+• Balanced: Mixed engines (~$0.54/month) - Cost-effective
+• Privacy First: Ollama local AI (Free) - Data stays local
+
+**Per-Article Cost Reference**:
+• DeepSeek Chat: ¥0.001/article (Best value)
+• DeepSeek Reasoner: ¥0.01/article (Deep reasoning)
 • OpenAI GPT-4o-mini: $0.002/article
 • Anthropic Claude 3.5 Haiku: $0.003/article
+• Ollama Local Models: Completely free
 
-• Real-time cost statistics, switch engines anytime
-• Future support for custom local AI providers (Free)
+**Smart Cost Management**:
+• Real-time usage statistics (API calls, tokens, cost estimation)
+• Task-based engine assignment (page/feed analysis, profile generation)
+• Switch engines anytime, flexible cost control
 
 🛠️ Tech Stack
 
@@ -207,7 +227,7 @@ Use your own API Key, you control the costs:
 • Language: TypeScript (Strict Mode)
 • UI: React 18 + Tailwind CSS
 • Database: Dexie.js (IndexedDB)
-• Test Coverage: 74%
+• Test Coverage: 71%+ (1400+ tests)
 
 📖 Documentation
 
@@ -244,11 +264,17 @@ Silent Feed 是一个 AI 驱动的 RSS 阅读器，根据您的浏览兴趣智�
 ### 权限说明
 
 **请求的权限**:
-- `tabs` - 页面访问追踪和 RSS 源检测
 - `storage` - 存储用户配置和数据
 - `alarms` - 定时抓取 RSS 订阅
 - `notifications` - 桌面通知
+- `declarativeNetRequestWithHostAccess` - 本地 AI 请求头修改（Ollama CORS 支持）
+
+**请求的主机权限**:
 - `https://*/*` - 抓取 RSS 内容
+- `http://localhost:11434/*` - 本地 Ollama AI 访问
+- `http://127.0.0.1:11434/*` - 本地 Ollama AI 访问（备用地址）
+
+**注意**：虽然我们使用 `chrome.tabs.create()` 打开链接，但这个 API 不需要 `tabs` 权限。我们也通过 content script 直接修改 `document.title` 来显示页面学习状态，同样不需要 `tabs` 权限。
 
 ---
 
@@ -256,55 +282,73 @@ Silent Feed 是一个 AI 驱动的 RSS 阅读器，根据您的浏览兴趣智�
 
 **Chrome Web Store 提交时需要填写的权限理由（英文）**:
 
-#### 1. tabs
-**Justification**: 
-This permission is essential for two core features: (1) tracking page visits to build user interest profiles - the extension monitors browsing behavior across all tabs to learn user preferences, even when tabs are inactive (e.g., listening for visibility changes, tracking dwell time); (2) detecting RSS feeds on webpages - checking page HTML headers for RSS/Atom feed links. The extension only accesses page URLs, titles, and feed link information from headers, and does not read page content or user input data. This permission enables the automatic learning feature that is central to the extension's AI-powered recommendation system.
-
-#### 2. storage
+#### 1. storage
 **Justification**:
 This permission is essential for storing user preferences, RSS subscription lists, browsing history for interest profiling, and AI recommendation data. All data is stored locally in the browser's IndexedDB and is never uploaded to any server unless the user explicitly configures an AI API for recommendations. Users have full control over their data and can delete it at any time through the settings interface.
 
-#### 3. alarms
+#### 2. alarms
 **Justification**:
 This permission enables the extension to periodically fetch new articles from subscribed RSS feeds in the background. The fetch frequency is dynamically adjusted based on each feed's update pattern (typically every 6-24 hours) to minimize resource usage. This ensures users receive fresh content recommendations without manually refreshing feeds, while being respectful of system resources.
 
-#### 4. notifications
+#### 3. notifications
 **Justification**:
 This permission allows the extension to notify users when high-quality article recommendations are available. Notifications are shown sparingly and intelligently to avoid interrupting users frequently. Users maintain full control and can completely disable notifications in the settings. This helps users stay informed of valuable content without being overwhelmed.
+
+#### 4. declarativeNetRequestWithHostAccess
+**Justification**:
+This permission is required to enable local AI (Ollama) support by modifying HTTP headers for localhost requests. When users choose to use Ollama (a local AI service running on their computer), the extension removes Origin and Referer headers from requests to localhost:11434 to prevent CORS (Cross-Origin Resource Sharing) errors. This is a technical requirement to make local AI work seamlessly without requiring users to modify Ollama's server configuration. The extension only modifies headers for localhost requests (127.0.0.1:11434 and localhost:11434) and does not affect any other web traffic. This permission is essential for the "Privacy First" feature that allows users to run AI completely offline without sending any data to external servers.
 
 #### 5. Host Permission: https://*/*
 **Justification**:
 This host permission is necessary to fetch RSS feed content from the websites that users have subscribed to. The extension only accesses URLs of RSS feeds that users explicitly subscribe to, and does not track browsing behavior or access unauthorized websites. This permission enables the core functionality of retrieving and parsing RSS/Atom feeds from across the web to provide users with aggregated content recommendations.
 
+#### 6. Host Permission: http://localhost:11434/* and http://127.0.0.1:11434/*
+**Justification**:
+These host permissions are required to communicate with Ollama, a local AI service that users can optionally install on their computer. When users choose the "Privacy First" option, all AI processing happens locally on their machine through Ollama, and no data is sent to external servers. The extension only accesses these localhost addresses when the user has explicitly enabled local AI and installed Ollama. These permissions are essential for providing users with a completely private, offline AI option. The extension does not access any external websites through these permissions - they are strictly for local communication on the user's own computer.
+
 ---
 
 **权限用途详细说明（中文补充）**:
 
-1. **tabs (标签页)**
-   - 用途1：页面访问追踪 - 在后台监听所有标签页的浏览行为（包括失活标签页），用于构建用户兴趣画像
-   - 用途2：RSS 源检测 - 检测当前网页是否包含 RSS 订阅源
-   - 数据：只读取页面 URL、标题和 HTML header 中的 RSS 链接
-   - 不会：读取页面内容或用户输入
-
-2. **storage (存储)**
+1. **storage (存储)**
    - 用途：保存用户配置、订阅列表、浏览历史、兴趣画像
    - 位置：全部存储在浏览器本地 IndexedDB
    - 不会：上传到任何服务器（除非用户配置了 AI API）
 
-3. **alarms (定时器)**
+2. **alarms (定时器)**
    - 用途：定期抓取 RSS 订阅源的新文章
    - 频率：根据订阅源更新频率动态调整（默认 6-24 小时）
    - 不会：在用户不知情的情况下执行任何操作
 
-4. **notifications (通知)**
+3. **notifications (通知)**
    - 用途：当有高质量推荐时提醒用户
    - 频率：智能判断，避免频繁打扰
    - 控制：用户可完全关闭通知
 
-5. **https://\*/\* (网络请求)**
+4. **declarativeNetRequestWithHostAccess (请求头修改)**
+   - 用途：为本地 AI (Ollama) 移除 CORS 相关的 HTTP 请求头
+   - 范围：仅影响 localhost:11434 和 127.0.0.1:11434 的请求
+   - 原理：移除 Origin 和 Referer 请求头，避免 CORS 错误
+   - 好处：用户无需修改 Ollama 服务器配置即可使用
+   - 不会：影响其他任何网络请求
+
+5. **https://\*/\* (HTTPS 网络请求)**
    - 用途：抓取 RSS 订阅源的内容
    - 范围：仅访问用户订阅的 RSS 源 URL
    - 不会：追踪用户浏览行为或访问未授权的网站
+
+6. **http://localhost:11434/\* 和 http://127.0.0.1:11434/\* (本地 AI 访问)**
+   - 用途：与用户本地安装的 Ollama AI 服务通信
+   - 场景：用户选择"隐私优先"方案，使用本地 AI 处理所有数据
+   - 范围：仅访问用户本地计算机上的 Ollama 服务
+   - 好处：完全离线的 AI 处理，数据不出本地
+   - 不会：访问互联网或其他外部服务
+
+**关于页面追踪和标题修改**:
+- 页面访问追踪：通过 content script 在当前页面监听（不需要特殊权限）
+- RSS 源检测：通过 content script 读取当前页面 HTML header（不需要特殊权限）
+- 标题状态显示：通过 content script 修改 `document.title`（不需要特殊权限）
+- 打开链接：使用 `chrome.tabs.create()` API（不需要 `tabs` 权限）
 
 ### 隐私政策 URL
 
@@ -418,7 +462,7 @@ https://github.com/wxy/SilentFeed/blob/master/PRIVACY.md
 - [x] 移除所有调试代码和 console.log
 - [x] 优化性能（加载时间、内存占用）
 - [ ] 移除未使用的权限
-- [ ] 更新 manifest.json 版本号为 1.0.0
+- [x] 更新版本号为 0.2.0
 
 ### 文档准备
 
@@ -592,10 +636,10 @@ npm run package
 - **修订号**: 向下兼容的问题修正
 
 示例:
-- `1.0.0` - 首次发布
-- `1.1.0` - 新增功能
-- `1.1.1` - Bug 修复
-- `2.0.0` - 重大更新
+- `0.1.0` - 首次发布 (2024-11-28)
+- `0.2.0` - AI 引擎分配与配置重构 (2024-12-01)
+- `0.2.1` - Bug 修复（假设）
+- `1.0.0` - 正式版（未来）
 
 ---
 
