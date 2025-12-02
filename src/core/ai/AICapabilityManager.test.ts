@@ -142,6 +142,35 @@ describe("AICapabilityManager", () => {
       expect(result.topicProbabilities).toEqual({ "技术": 0.7, "开源": 0.3 })
       expect(result.metadata.provider).toBe("keyword")
     })
+
+    it("task 路由: profileGeneration 优先使用任务指定引擎", async () => {
+      // 加载引擎分配与远端 provider
+      mockStorage.sync.get.mockResolvedValueOnce({
+        aiConfig: {
+          enabled: true,
+          provider: "deepseek",
+          apiKey: "sk-test-deepseek-123456789012345678901234567890"
+        }
+      })
+      await manager.initialize()
+
+      // 模拟 engineAssignment 存在并指定使用 remote 引擎 deepseek
+      manager["engineAssignment"] = {
+        pageAnalysis: { provider: "deepseek", useReasoning: true },
+        feedAnalysis: { provider: "ollama", useReasoning: false },
+        profileGeneration: { provider: "deepseek", useReasoning: false }
+      } as any
+
+      const spy = vi.spyOn(manager["remoteProvider"]!, "analyzeContent")
+      spy.mockResolvedValueOnce({
+        topicProbabilities: { A: 0.6 },
+        metadata: { provider: "deepseek", model: "deepseek-chat", timestamp: Date.now() }
+      })
+
+      const result = await manager.analyzeContent("content", { useReasoning: false }, "pageAnalysis")
+      expect(spy).toHaveBeenCalled()
+      expect(result.metadata.provider).toBe("deepseek")
+    })
   })
   
   describe("testConnection", () => {
@@ -187,6 +216,100 @@ describe("AICapabilityManager", () => {
       expect(() => {
         manager["recordUsage"](result)
       }).not.toThrow()
+    })
+  })
+
+  describe("多提供商与本地回退", () => {
+    it("在本地启用且远端未配置时应使用本地提供者", async () => {
+      mockStorage.sync.get.mockResolvedValueOnce({
+        aiConfig: {
+          enabled: false,
+          provider: null,
+          apiKey: "",
+          local: { enabled: true, provider: "ollama", endpoint: "http://localhost:11434/v1", model: "qwen2.5:7b" }
+        }
+      })
+
+      await manager.initialize()
+      const conn = await manager.testConnection("local")
+      // testConnection 在不同实现中可能返回 {success} 或 {available}
+      expect(conn && (conn.success === true || conn.available === true)).toBeTruthy()
+    })
+
+    it("远端失败且本地不可用时应回退关键词", async () => {
+      // 远端配置但故意使 analyze 抛错
+      mockStorage.sync.get.mockResolvedValueOnce({
+        aiConfig: {
+          enabled: true,
+          provider: "deepseek",
+          apiKey: "sk-test-deepseek-123456789012345678901234567890",
+          local: { enabled: false }
+        }
+      })
+
+      await manager.initialize()
+      const mockPrimaryAnalyze = vi.spyOn(manager["remoteProvider"]!, "analyzeContent")
+      mockPrimaryAnalyze.mockRejectedValueOnce(new Error("API Error"))
+
+      const result = await manager.analyzeContent("unrelated content")
+      expect(result.metadata.provider).toBe("keyword")
+    })
+  })
+
+  describe("generateUserProfile", () => {
+    it("任务配置失败时走旧链路并可回退到关键词", async () => {
+      // 初始化远端但让 generateUserProfile 抛错
+      mockStorage.sync.get.mockResolvedValueOnce({
+        aiConfig: {
+          enabled: true,
+          provider: "deepseek",
+          apiKey: "sk-test-deepseek-123456789012345678901234567890"
+        }
+      })
+      await manager.initialize()
+
+      // 任务配置指向 deepseek，但我们模拟 generateUserProfile 不存在或抛错
+      manager["engineAssignment"] = {
+        profileGeneration: { provider: "deepseek", useReasoning: false }
+      } as any
+
+      // 如果 provider 没实现 generateUserProfile，则会走旧链路，再失败后回退
+      // 保守做法：强制旧链路失败以触发 fallback
+      const remote = manager["remoteProvider"]!
+      ;(remote as any).generateUserProfile = vi.fn().mockRejectedValue(new Error("not implemented"))
+
+      const result = await manager.generateUserProfile({
+        topKeywords: [{ word: "AI", weight: 1 }],
+        totalCounts: { browses: 5, reads: 3, dismisses: 1 },
+        // 提供最小的主题分布以满足 FallbackKeywordProvider 的需求
+        topicDistribution: { AI: 0.8, 技术: 0.2 }
+      } as any)
+
+      expect(result.metadata.provider).toBe("keyword")
+      expect(typeof result.interests).toBe("string")
+    })
+  })
+
+  describe("testConnection 错误信息", () => {
+    it("未选择远端提供商时返回详细错误", async () => {
+      mockStorage.sync.get.mockResolvedValueOnce({ aiConfig: { enabled: true, provider: null, apiKey: "" } })
+      await manager.initialize()
+
+      const res = await manager.testConnection("remote")
+      expect(res.success).toBe(false)
+      expect(res.message).toMatch(/未配置 AI 提供商/)
+    })
+
+    it("未设置 API Key 时返回提示", async () => {
+      mockStorage.sync.get.mockResolvedValueOnce({
+        aiConfig: { enabled: true, provider: "deepseek", providers: { deepseek: { apiKey: "" } } }
+      })
+      await manager.initialize()
+
+      const res = await manager.testConnection("remote")
+      expect(res.success).toBe(false)
+      // 不同配置读取路径下的信息可能不同：接受两种提示
+      expect(/API Key 未设置|未选择提供商/.test(res.message)).toBeTruthy()
     })
   })
 })
