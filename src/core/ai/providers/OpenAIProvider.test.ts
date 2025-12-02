@@ -158,7 +158,8 @@ describe("OpenAIProvider", () => {
                 "技术": 0.7,
                 "开源": 0.2,
                 "教程": 0.1
-              }
+              },
+              summary: "这是一段用于测试的AI摘要"
             })
           },
           finish_reason: "stop"
@@ -183,11 +184,22 @@ describe("OpenAIProvider", () => {
       expect(result.topicProbabilities["技术"]).toBeCloseTo(0.7, 5)
       expect(result.topicProbabilities["开源"]).toBeCloseTo(0.2, 5)
       expect(result.topicProbabilities["教程"]).toBeCloseTo(0.1, 5)
+      expect((result as any).summary).toBe("这是一段用于测试的AI摘要")
       
       expect(result.metadata.provider).toBe("openai")
       expect(result.metadata.model).toBe("gpt-5-mini")
       expect(result.metadata.tokensUsed?.total).toBe(150)
       expect(result.metadata.cost).toBeGreaterThan(0)
+    })
+
+    it("应该解析 summary 字段", async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockSuccessResponse
+      } as Response)
+
+      const res = await provider.analyzeContent("任意内容")
+      expect((res as any).summary).toBe("这是一段用于测试的AI摘要")
     })
     
     it("应该归一化概率分布", async () => {

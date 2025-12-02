@@ -476,7 +476,7 @@ export class RecommendationService {
         id: `rec-${now}-${index}`,
         url: article.url,
         title: article.title,
-        summary: article.keyPoints?.join('\n') || '',
+        summary: article.aiAnalysis?.summary || article.keyPoints?.join('\n') || '',
         source: this.extractSourceFromUrl(article.url),
         sourceUrl: feedUrl,  // Phase 6: 使用准确的 feed URL
         recommendedAt: now,

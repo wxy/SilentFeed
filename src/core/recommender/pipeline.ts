@@ -542,7 +542,8 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
           relevanceScore: aiRelevanceScore,
           keyPoints: this.extractKeyPoints(analysis, article as any),
           topics: analysis.topicProbabilities,
-          provider: analysis.metadata?.provider || 'unknown'
+          provider: analysis.metadata?.provider || 'unknown',
+          summary: (analysis as any).summary || undefined
         }
       }
       
@@ -663,7 +664,8 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
               relevanceScore: aiRelevanceScore,
               keyPoints: this.extractKeyPoints(analysis, item.article),
               topics: analysis.topicProbabilities,
-              provider: analysis.metadata?.provider || 'unknown'
+              provider: analysis.metadata?.provider || 'unknown',
+              summary: (analysis as any).summary || undefined
             }
           })
         } catch (aiError) {

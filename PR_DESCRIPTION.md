@@ -1,40 +1,32 @@
-# 测试覆盖率提升 PR
+# feat: AI 摘要最小集成（基于现有分析链路）
 
-## 变更概要
-- 新增 `AIConfigPanel.test.tsx` 基础渲染与状态分支测试
-- 新增 `CollectionStats.test.tsx` 三种数据场景（空 / 部分 / 完整）渲染测试
-- 扩展 `pipeline.test.ts`：增加 TF-IDF 异常路径与取消流程测试，覆盖错误回退逻辑
-- 细化推荐与全文抓取相关错误路径测试（确保日志与降级策略被验证）
-- 保持原有 Onboarding / AIConfig / Recommendation 核心测试稳定
+## 背景与目标
+- 目标：在推荐流程中生成高质量短摘要，覆盖/替换 RSS 自带摘要，提升信息密度与可读性。
+- 原则：最小侵入、不改架构、可快速上线、可回退。
 
-## 覆盖率结果
-- 全局语句覆盖率：73.69%
-- 分支覆盖率：63.65%
-- 函数覆盖率：74.39%
-- 行覆盖率：74.73%
-- 重点模块：
-  - `src/core/recommender/pipeline.ts` 分支覆盖提升（含异常与取消场景）
-  - `AIConfigPanel.tsx` 已有最小 smoke 测试（后续可继续拆分深层交互）
-  - `CollectionStats.tsx` 已验证异步加载与零值场景，后续可补充图表细分逻辑
-
-## 优化策略说明
-- 按“性价比”优先补错误分支与降级路径，避免重度 UI 结构性测试导致维护成本上升
-- 对复杂计数逻辑使用“≥0”或存在性判断避免 brittle 测试
-- 通过精简 mock，隔离组件内部异步加载逻辑，提高稳定性
-
-## 后续可选改进（非本次范围）
-- 深入拆分 `AIConfigPanel` Provider 卡片交互（连接测试 / 按钮状态）
-- `pipeline.ts` 中推荐合并与多策略协同的边界测试
-- 针对 `RSSSettings.tsx` 与 `AIConfig.tsx` 的懒加载/分页/过滤 UI 分支补充
+## 变更范围
+- 提示模板：在 `analyzeContent` 中新增 `summary` 输出（<=80 字/words，客观中性）
+  - `src/core/ai/prompts/templates/zh-CN.json`
+  - `src/core/ai/prompts/templates/en.json`
+- 解析链路：
+  - `BaseAIService.analyzeContent` 解析可选 `summary`
+  - `pipeline` 将 `analysis.summary` 写入 `aiAnalysis.summary`
+  - `RecommendationService` 优先使用 AI 摘要写入 `Recommendation.summary`
+- 截断调整：
+  - `BaseAIService.preprocessContent` 默认上限 3000 → 2950，避免提示超长
+- 测试补充：
+  - `OpenAIProvider.test.ts`：校验 `summary` 解析
+  - `pipeline.test.ts`：校验 `aiAnalysis.summary` 透传
+- 文档：`docs/PHASE_8_AI_SUMMARY.md`
 
 ## 风险与回滚
-- 所有新增测试均在独立文件，若需回滚可按文件粒度删除，不影响生产逻辑
-- 未修改业务源文件，仅增加/调整测试，风险极低
+- 内容格式：模型偶发返回带 Markdown 包裹或无效 JSON，基类已做剥离与异常捕获。
+- 回滚方案：删除模板中的 `summary` 字段要求即可停用该能力，其他链路均为可选字段不影响旧路径。
 
-## 提交类型
-`test`: 增加与完善测试覆盖率
+## 验证步骤
+1. `npm run test:run` 应全部通过
+2. `npm run pre-push` 应全部通过（含覆盖率与构建）
+3. 真实环境中运行推荐流程，观察推荐卡片摘要：应为更短更客观的 AI 摘要
 
-## 关联分支
-`test/ai-capability-manager`
-
-如需增加更细粒度 UI 行为测试，请在合并前提出以便追加。
+## 备注
+- 本次未新增独立 `SummaryService`，以降低改动面与上线风险；后续若需要独立缓存与多语言分发，可在此基础上演进。

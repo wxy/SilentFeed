@@ -70,6 +70,8 @@ export interface RecommendedArticle {
     keyPoints: string[]
     topics?: Record<string, number>
     provider?: string
+    /** 可选：AI 生成的文章摘要（用于替换 RSS 摘要） */
+    summary?: string
   }
 }
 
