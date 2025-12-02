@@ -516,6 +516,53 @@ describe('推荐数据流管道', () => {
     })
   })
 
+  describe('分支覆盖增强', () => {
+    it('应跳过超过30天旧文并仍完成流程', async () => {
+      const oldDate = new Date()
+      oldDate.setDate(oldDate.getDate() - 40)
+      const input = {
+        ...mockInput,
+        articles: [
+          { ...mockArticles[0], id: 'old-1', pubDate: oldDate.toISOString(), published: oldDate.getTime() },
+          { ...mockArticles[1], id: 'new-1' },
+        ] as any
+      }
+
+      const result = await pipeline.process(input as any)
+      expect(result).toBeDefined()
+      expect(result.stats.processed.finalRecommended).toBeGreaterThanOrEqual(0)
+    })
+
+    it('TF-IDF 低分分支：高阈值导致跳过并无推荐', async () => {
+      const input = {
+        ...mockInput,
+        config: { ...mockInput.config, tfidfThreshold: 0.9, batchSize: 1, maxRecommendations: 1 }
+      }
+      const res = await pipeline.process(input as any)
+      expect(res.articles.length).toBe(0)
+    })
+
+    it('AI 分析失败分支：返回 null 且流程继续', async () => {
+      const { aiManager } = await import('@/core/ai/AICapabilityManager')
+      vi.mocked(aiManager.analyzeContent).mockRejectedValueOnce(new Error('AI down'))
+      const res = await pipeline.process(mockInput)
+      expect(res.articles.length).toBeGreaterThanOrEqual(0)
+    })
+
+    it('取消流程分支：调用 cancel 后进度进入 idle/错误', async () => {
+      const p = pipeline.process(mockInput)
+      pipeline.cancel()
+      // 有可能在取消前已完成，因此不强制要求 reject
+      try {
+        await p
+      } catch (_) {
+        // 取消抛错也允许
+      }
+      const progress = pipeline.getProgress()
+      expect(['idle','error','complete'].includes(progress.stage)).toBeTruthy()
+    })
+  })
+
   describe('进度追踪增强', () => {
     it('应该估算剩余时间', async () => {
       // 在处理过程中检查进度

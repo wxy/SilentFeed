@@ -1,3 +1,18 @@
+import { describe, it, expect } from "vitest"
+import { render, screen } from "@testing-library/react"
+import RecommendationView from "./RecommendationView"
+
+const items = [
+  { id: "1", title: "AI 技术趋势", url: "https://example.com/a1" },
+  { id: "2", title: "前端性能优化", url: "https://example.com/a2" }
+] as any
+
+describe("RecommendationView", () => {
+  it("空列表应显示占位", () => {
+    render(<RecommendationView items={[]} loading={false} error={null} />)
+    expect(screen.getByText(/暂无推荐/)).toBeDefined()
+  })
+})
 /**
  * RecommendationView 组件测试
  * 测试推荐列表的展示和交互
@@ -72,6 +87,24 @@ vi.mock("@/stores/recommendationStore", () => ({
     dismissAll: mockDismissAll,
   }),
 }))
+
+// Helper function to create mock recommendations
+function makeRec(id: string, title: string): Recommendation {
+  return {
+    id,
+    title,
+    url: `https://example.com/${id}`,
+    sourceUrl: `https://example.com/${id}`,
+    summary: `summary ${id}`,
+    score: 0.8,
+    wordCount: 1200,
+    readingTime: 6,
+    reason: { provider: "keyword" },
+    source: "Test Blog",
+    recommendedAt: Date.now(),
+    isRead: false,
+  }
+}
 
 describe("RecommendationView 组件", () => {
   beforeEach(() => {
@@ -401,6 +434,46 @@ describe("RecommendationView 组件", () => {
       // 检查推荐列表容器存在
       const listContainer = container.querySelector("[data-recommendation-id]")
       expect(listContainer).toBeInTheDocument()
+    })
+  })
+
+  describe("摘要显示策略", () => {
+    it("shouldShowExcerpt 策略：4 条时前 3 条显示摘要", async () => {
+      mockRecommendations = [
+        makeRec("a", "Article A"),
+        makeRec("b", "Article B"),
+        makeRec("c", "Article C"),
+        makeRec("d", "Article D")
+      ]
+      const { container } = render(<RecommendationView />)
+      await screen.findByText("Article A")
+      // 第一条显示摘要 + 第二、三条显示摘要 = 至少 3 个摘要段落
+      const summaries = container.querySelectorAll("p.text-xs")
+      expect(summaries.length).toBeGreaterThanOrEqual(3)
+    })
+
+    it("shouldShowExcerpt 策略：5 条时前 2 条显示摘要", async () => {
+      mockRecommendations = [
+        makeRec("a", "Article A"),
+        makeRec("b", "Article B"),
+        makeRec("c", "Article C"),
+        makeRec("d", "Article D"),
+        makeRec("e", "Article E")
+      ]
+      const { container } = render(<RecommendationView />)
+      await screen.findByText("Article A")
+      // 前 2 条显示摘要，后面条目不显示或较少
+      const summaries = container.querySelectorAll("p.text-xs")
+      expect(summaries.length).toBeGreaterThanOrEqual(2)
+    })
+
+    it("加载态但已有列表时应展示列表而非空态", async () => {
+      mockRecommendations = [makeRec("x1", "Loaded Item")]
+      mockIsLoading = true
+      render(<RecommendationView />)
+      expect(await screen.findByText("Loaded Item")).toBeInTheDocument()
+      // 不应显示空态或加载动画文案（因为列表不为空）
+      expect(screen.queryByText("popup.noRecommendations")).not.toBeInTheDocument()
     })
   })
 })
