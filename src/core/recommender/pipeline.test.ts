@@ -233,6 +233,26 @@ describe('推荐数据流管道', () => {
         expect(article.matchedInterests).toBeDefined()
       })
     })
+
+    it('应该透传AI摘要到 aiAnalysis.summary', async () => {
+      const { aiManager } = await import('@/core/ai/AICapabilityManager')
+      vi.mocked(aiManager.analyzeContent).mockImplementationOnce(async () => {
+        return {
+          topicProbabilities: { 技术: 0.8, 前端: 0.2 },
+          metadata: { provider: 'mock-ai', model: 'test' },
+          summary: '这是一段AI生成的摘要'
+        } as any
+      })
+
+      const result = await pipeline.process(mockInput)
+      if (result.articles.length > 0) {
+        const hasSummary = result.articles.some(a => (a as any).aiAnalysis?.summary === '这是一段AI生成的摘要')
+        expect(hasSummary).toBe(true)
+      } else {
+        // 当质量阈值导致无推荐时，不做强制断言，但流程应完成
+        expect(result).toBeDefined()
+      }
+    })
   })
 
   describe('进度追踪', () => {

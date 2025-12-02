@@ -183,7 +183,7 @@ export abstract class BaseAIService implements AIProvider {
         jsonContent = jsonContent.replace(/\n```\s*$/, '')
       }
       
-      const analysis = JSON.parse(jsonContent) as { topics: Record<string, number> }
+      const analysis = JSON.parse(jsonContent) as { topics: Record<string, number>; summary?: string }
       const normalizedTopics = this.normalizeTopicProbabilities(analysis.topics)
       
       // 5. 计算成本
@@ -226,6 +226,8 @@ export abstract class BaseAIService implements AIProvider {
       // 7. 返回结果
       return {
         topicProbabilities: normalizedTopics,
+        // 可选：AI 生成摘要（用于替换 RSS 摘要）
+        ...(analysis.summary ? { summary: analysis.summary } as any : {}),
         metadata: {
           provider: this.name.toLowerCase() as any,
           model: this.resolveModelName(response.model),
@@ -430,7 +432,8 @@ export abstract class BaseAIService implements AIProvider {
    * 预处理内容
    */
   protected preprocessContent(content: string, options?: AnalyzeOptions): string {
-    const maxLength = options?.maxLength || 3000
+    // 为了给提示词模板的固定指令留出余量，这里略微降低默认内容上限
+    const maxLength = options?.maxLength || 2950
     
     // 截取内容
     let processed = content.substring(0, maxLength)
