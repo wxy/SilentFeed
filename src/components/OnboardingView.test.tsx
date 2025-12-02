@@ -14,7 +14,8 @@ import { OnboardingView } from "./OnboardingView"
 // Mock 依赖
 vi.mock("@/core/ai/AICapabilityManager", () => ({
   aiManager: {
-    testConnection: vi.fn(),
+    initialize: vi.fn().mockResolvedValue(undefined),
+    testConnection: vi.fn().mockResolvedValue({ success: true }),
     isAvailable: vi.fn().mockReturnValue(true)
   }
 }))
@@ -43,7 +44,7 @@ vi.mock("@/storage/onboarding-state", () => ({
 }))
 
 vi.mock("@/storage/ai-config", () => ({
-  getAIConfig: vi.fn().mockResolvedValue(null),
+  getAIConfig: vi.fn().mockResolvedValue({ enabled: false }),
   saveAIConfig: vi.fn(),
   getEngineAssignment: vi.fn().mockResolvedValue(null),
   saveEngineAssignment: vi.fn().mockResolvedValue(undefined),
@@ -75,7 +76,7 @@ vi.mock("@/storage/ai-config", () => ({
 // Mock i18n - 返回实际翻译
 vi.mock("@/i18n/helpers", () => ({
   useI18n: () => ({
-    _: (key: string) => {
+    _: (key: string, vars?: Record<string, any>) => {
       const translations: Record<string, string> = {
         "onboarding.welcome.title": "欢迎使用静阅",
         "onboarding.welcome.subtitle": "让信息流安静下来",
@@ -95,12 +96,49 @@ vi.mock("@/i18n/helpers", () => ({
         "onboarding.rssSetup.title": "添加 RSS 订阅源",
         "onboarding.completion.title": "准备完成！",
         "onboarding.completion.buttons.start": "开始使用",
+        // 连接测试与错误
+        "onboarding.aiConfig.title": "配置 AI 推荐引擎",
+        "onboarding.aiConfig.description": "为推荐引擎选择模型并配置 API Key",
+        "onboarding.aiConfig.labels.model": "选择模型",
+        "onboarding.aiConfig.placeholders.selectModel": "请选择模型",
+        "onboarding.aiConfig.labels.apiKey": "API Key",
+        "onboarding.aiConfig.placeholders.enterApiKey": "请输入 API Key",
+        "onboarding.aiConfig.buttons.testing": "测试中...",
+        "onboarding.aiConfig.buttons.tested": "已测试",
+        "onboarding.aiConfig.buttons.test": "测试连接",
+        "onboarding.aiConfig.help.getApiKey": "前往平台获取 API Key",
+        "onboarding.errors.selectModel": "请选择模型",
+        "onboarding.errors.invalidModel": "无效的模型",
+        "onboarding.errors.enterApiKey": "请输入 API Key",
+        "onboarding.errors.invalidApiKeyFormat": "API Key 格式不正确",
+        "onboarding.errors.connectionFailed": "连接失败: {{message}}",
+        "onboarding.errors.testFailed": "测试失败: {{error}}",
+        "onboarding.success.connectionTested": "连接成功，已完成测试",
+        // RSS 步骤简要文案
+        "onboarding.rssSetup.title": "添加 RSS 订阅源",
+        "onboarding.rssSetup.description": "输入 RSS 地址或导入 OPML",
+        "onboarding.rssSetup.labels.feedUrl": "RSS 地址",
+        "onboarding.rssSetup.placeholders.enterUrl": "粘贴 RSS 链接",
+        "onboarding.rssSetup.buttons.add": "添加",
+        "onboarding.rssSetup.buttons.adding": "添加中...",
+        "onboarding.rssSetup.labels.importOpml": "导入 OPML",
+        "onboarding.rssSetup.buttons.selectFile": "选择文件",
       }
-      return translations[key] || key
+      let text = translations[key] || key
+      if (vars) {
+        for (const k of Object.keys(vars)) {
+          text = text.replace(`{{${k}}}`, String(vars[k]))
+        }
+      }
+      return text
     },
     locale: "zh-CN"
   })
 }))
+
+// 引入被 mock 的导出以便在用例中调整返回
+import { validateApiKey, getAIConfig } from "@/storage/ai-config"
+import { aiManager } from "@/core/ai/AICapabilityManager"
 
 describe("OnboardingView", () => {
   let mockOnComplete: () => void
@@ -734,6 +772,98 @@ describe("OnboardingView", () => {
         // 验证核心元素存在
         expect(screen.getByText("配置 AI 推荐引擎")).toBeInTheDocument()
         expect(screen.getByRole("combobox")).toBeInTheDocument()
+      })
+    })
+  })
+
+  describe("AIConfigStep 连接测试分支", () => {
+    beforeEach(async () => {
+      // 确保初始不跳过到 Step 3
+      vi.mocked(getAIConfig).mockResolvedValue({ enabled: false })
+      render(<OnboardingView onComplete={mockOnComplete} />)
+      // 进入 Step 2
+      await waitFor(() => {
+        fireEvent.click(screen.getByText("下一步"))
+      })
+    })
+
+    it("未选择模型时不显示 API Key 与测试按钮", async () => {
+      const select = screen.getByRole("combobox") as HTMLSelectElement
+      // 确保未选择
+      fireEvent.change(select, { target: { value: "" } })
+
+      // 不应渲染 API Key 输入与测试按钮
+      expect(screen.queryByPlaceholderText("请输入 API Key")).toBeNull()
+      expect(screen.queryByText("测试连接")).toBeNull()
+    })
+
+    it("选择模型但未输入 API Key 时不显示测试按钮", async () => {
+      const select = screen.getByRole("combobox")
+      fireEvent.change(select, { target: { value: "gpt-5-mini" } })
+
+      // 按钮此时不可见（需要 apiKey），我们先输入再清空触发分支
+      const input = screen.getByPlaceholderText("请输入 API Key")
+      expect(input).toBeInTheDocument()
+      expect(screen.queryByText("测试连接")).toBeNull()
+    })
+
+    it("API Key 格式无效时应提示格式错误", async () => {
+      const select = screen.getByRole("combobox")
+      fireEvent.change(select, { target: { value: "gpt-5-mini" } })
+
+      const input = screen.getByPlaceholderText("请输入 API Key")
+      fireEvent.change(input, { target: { value: "bad-key" } })
+
+      vi.mocked(validateApiKey).mockReturnValue(false)
+
+      const testBtn = await screen.findByText("测试连接")
+      fireEvent.click(testBtn)
+
+      await waitFor(() => {
+        expect(screen.getByText("API Key 格式不正确")).toBeInTheDocument()
+      })
+    })
+
+    it("连接成功时应显示成功提示并禁用按钮", async () => {
+      const select = screen.getByRole("combobox")
+      fireEvent.change(select, { target: { value: "gpt-5-mini" } })
+
+      const input = screen.getByPlaceholderText("请输入 API Key")
+      fireEvent.change(input, { target: { value: "sk-valid" } })
+
+      vi.mocked(validateApiKey).mockReturnValue(true)
+      vi.mocked(aiManager.initialize).mockResolvedValue(undefined)
+      vi.mocked(aiManager.testConnection).mockResolvedValue({ success: true })
+
+      const testBtn = await screen.findByText("测试连接")
+      fireEvent.click(testBtn)
+
+      await waitFor(() => {
+        expect(screen.getByText("连接成功，已完成测试")).toBeInTheDocument()
+      })
+
+      // 成功后按钮应显示“已测试”且禁用
+      await waitFor(() => {
+        expect(screen.getByText("已测试")).toBeInTheDocument()
+      })
+    })
+
+    it("连接失败时应显示失败提示", async () => {
+      const select = screen.getByRole("combobox")
+      fireEvent.change(select, { target: { value: "gpt-5-mini" } })
+
+      const input = screen.getByPlaceholderText("请输入 API Key")
+      fireEvent.change(input, { target: { value: "sk-invalid" } })
+
+      vi.mocked(validateApiKey).mockReturnValue(true)
+      vi.mocked(aiManager.initialize).mockResolvedValue(undefined)
+      vi.mocked(aiManager.testConnection).mockResolvedValue({ success: false, message: "boom" })
+
+      const testBtn = await screen.findByText("测试连接")
+      fireEvent.click(testBtn)
+
+      await waitFor(() => {
+        expect(screen.getByText("连接失败: boom")).toBeInTheDocument()
       })
     })
   })

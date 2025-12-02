@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest"
 import { render, screen } from "@testing-library/react"
 import { AIConfig } from "./AIConfig"
+import * as localAiEndpoint from "@/utils/local-ai-endpoint"
 import * as aiConfigModule from "@/storage/ai-config"
 
 // Mock ai-config 模块
@@ -112,6 +113,89 @@ describe("AIConfig", () => {
     it("应该渲染 AIConfigPanel", () => {
       render(<AIConfig />)
       expect(screen.getByTestId("ai-config-panel")).toBeInTheDocument()
+    })
+  })
+
+  describe("本地模型自动加载与错误分支", () => {
+    it("启用本地AI且存在 endpoint 时应自动加载本地模型", async () => {
+      // 准备：返回启用的本地配置
+      vi.mocked(aiConfigModule.getAIConfig).mockResolvedValueOnce({
+        provider: null,
+        apiKeys: {},
+        enabled: false,
+        monthlyBudget: 5,
+        model: undefined,
+        enableReasoning: false,
+        local: {
+          enabled: true,
+          provider: "ollama",
+          endpoint: "http://localhost:11434/v1",
+          model: "",
+          temperature: 0.2,
+          maxOutputTokens: 768,
+          timeoutMs: 45000
+        }
+      } as any)
+
+      render(<AIConfig />)
+
+      // listLocalModels 在 AIConfig 渲染后通过副作用触发
+      await vi.waitFor(() => {
+        expect(vi.mocked(localAiEndpoint.listLocalModels)).toHaveBeenCalled()
+      })
+    })
+
+    it("缺少 endpoint 时不应调用本地模型加载", async () => {
+      // 准备：本地启用但 endpoint 为空
+      vi.mocked(aiConfigModule.getAIConfig).mockResolvedValueOnce({
+        provider: null,
+        apiKeys: {},
+        enabled: false,
+        monthlyBudget: 5,
+        model: undefined,
+        enableReasoning: false,
+        local: {
+          enabled: true,
+          provider: "ollama",
+          endpoint: "",
+          model: "",
+          temperature: 0.2,
+          maxOutputTokens: 768,
+          timeoutMs: 45000
+        }
+      } as any)
+
+      render(<AIConfig />)
+
+      // 略等一会儿副作用执行
+      await new Promise((r) => setTimeout(r, 0))
+
+      expect(vi.mocked(localAiEndpoint.listLocalModels)).not.toHaveBeenCalled()
+    })
+  })
+
+  describe("学习阶段与引擎分配渲染", () => {
+    it("学习阶段时应显示学习提示模块", async () => {
+      // getPageCount 在 db mock 中默认返回 50（小于阈值 100）
+      render(<AIConfig />)
+
+      // 学习阶段卡片包含一个 📚 图标
+      await vi.waitFor(() => {
+        expect(screen.getByText("📚")).toBeInTheDocument()
+      })
+    })
+
+    it("存在引擎分配时应渲染 AIEngineAssignment 组件", async () => {
+      vi.mocked(aiConfigModule.getEngineAssignment).mockResolvedValueOnce({
+        contentAnalysis: { engine: "remoteAI" },
+        feedAnalysis: { engine: "remoteAI" }
+      } as any)
+
+      render(<AIConfig />)
+
+      await vi.waitFor(() => {
+        expect(screen.getByTestId("ai-engine-assignment")).toBeInTheDocument()
+      })
     })
   })
 })
