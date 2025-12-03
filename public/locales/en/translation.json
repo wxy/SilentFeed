@@ -1085,6 +1085,15 @@
       "autoSaving": "Auto-saving..."
     },
     "rssManager": {
+            "preview": {
+              "openOrToggle": "Open or toggle preview"
+            },
+            "actions": {
+              "rename": "Rename"
+            },
+            "errors": {
+              "renameFailed": "Rename failed, please try again later"
+            },
       "addSource": "Add feed",
       "manualSubscribe": "Manually subscribe to RSS URL",
       "manualPlaceholder": "https://example.com/feed.xml",
