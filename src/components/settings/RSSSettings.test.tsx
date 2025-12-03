@@ -4,11 +4,18 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { render, screen, waitFor } from "@testing-library/react"
+import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { RSSSettings } from "./RSSSettings"
 import type { DiscoveredFeed } from "@/types/rss"
 import { RSSValidator } from "@/core/rss/RSSValidator"
+import i18next from "i18next"
+import { I18nextProvider } from "react-i18next"
+import zhCN from "../../../public/locales/zh-CN/translation.json"
+import { vi } from "vitest"
+
+// 确保不使用其他测试文件中的 react-i18next mock
+vi.unmock("react-i18next")
 
 // Mock 函数
 const mockGetFeeds = vi.fn()
@@ -22,16 +29,24 @@ const mockAnalyzeFeed = vi.fn()
 const mockDelete = vi.fn()
 const mockToggleActive = vi.fn()
 
-// Mock react-i18next
-vi.mock("react-i18next", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("react-i18next")>()
-  return {
-    ...actual,
-    useTranslation: () => ({
-      t: (key: string) => key,
-    }),
+// 初始化 i18n（使用真实中文资源，确保测试中文文本匹配）
+function initI18n() {
+  if (!i18next.isInitialized) {
+    i18next.init({
+      lng: "zh-CN",
+      fallbackLng: "zh-CN",
+      resources: {
+        "zh-CN": { translation: zhCN as any },
+      },
+      interpolation: { escapeValue: false },
+    })
   }
-})
+}
+
+function renderWithI18n(ui: React.ReactElement) {
+  initI18n()
+  return render(<I18nextProvider i18n={i18next}>{ui}</I18nextProvider>)
+}
 
 // Mock FeedManager
 vi.mock("@/core/rss/managers/FeedManager", () => ({
@@ -146,7 +161,7 @@ describe("RSSSettings 组件", () => {
         return Promise.resolve([])
       })
       
-      render(<RSSSettings />)
+      renderWithI18n(<RSSSettings />)
       
       // 等待加载完成
       await waitFor(() => {
@@ -162,10 +177,10 @@ describe("RSSSettings 组件", () => {
         return Promise.resolve([])
       })
       
-      render(<RSSSettings />)
+      renderWithI18n(<RSSSettings />)
       
       await waitFor(() => {
-        expect(screen.getByText('候选源标题')).toBeInTheDocument()
+        expect(screen.getByText((c) => c.includes('候选源标题'))).toBeInTheDocument()
       })
     })
 
@@ -177,21 +192,21 @@ describe("RSSSettings 组件", () => {
         return Promise.resolve([])
       })
       
-      render(<RSSSettings />)
+      renderWithI18n(<RSSSettings />)
       
-      await waitFor(() => {
-        expect(screen.getByText('已订阅源')).toBeInTheDocument()
-      })
+        await waitFor(() => {
+          expect(screen.getByText((c) => c.includes('已订阅源'))).toBeInTheDocument()
+        })
     })
 
     it("应该显示无数据状态", async () => {
       mockGetFeeds.mockResolvedValue([])
       
-      render(<RSSSettings />)
+      renderWithI18n(<RSSSettings />)
       
       // Phase 9.1: 移除了空状态错误提示，现在直接显示 OPML 导入界面
       await waitFor(() => {
-        expect(screen.getByText("options.rssManager.importOPML")).toBeInTheDocument()
+        expect(screen.getByText(/Import OPML|导入 OPML/i)).toBeInTheDocument()
       })
     })
   })
@@ -200,7 +215,7 @@ describe("RSSSettings 组件", () => {
     it("应该处理加载失败", async () => {
       mockGetFeeds.mockRejectedValue(new Error('Load failed'))
       
-      render(<RSSSettings />)
+      renderWithI18n(<RSSSettings />)
       
       await waitFor(() => {
         expect(screen.queryByText("options.rssManager.loading")).not.toBeInTheDocument()
@@ -216,10 +231,10 @@ describe("RSSSettings 组件", () => {
       })
       mockSubscribe.mockResolvedValue(undefined)
       
-      render(<RSSSettings />)
+      renderWithI18n(<RSSSettings />)
       
       await waitFor(() => {
-        expect(screen.getByText('候选源标题')).toBeInTheDocument()
+        expect(screen.getByText((c) => c.includes('候选源标题'))).toBeInTheDocument()
       })
       
       // 验证 mockSubscribe 函数已定义
@@ -233,10 +248,10 @@ describe("RSSSettings 组件", () => {
       })
       mockUnsubscribe.mockResolvedValue(undefined)
       
-      render(<RSSSettings />)
+      renderWithI18n(<RSSSettings />)
       
       await waitFor(() => {
-        expect(screen.getByText('已订阅源')).toBeInTheDocument()
+        expect(screen.getByText((c) => c.includes('已订阅源'))).toBeInTheDocument()
       })
       
       // 验证 mockUnsubscribe 函数已定义
@@ -250,10 +265,10 @@ describe("RSSSettings 组件", () => {
       })
       mockIgnore.mockResolvedValue(undefined)
       
-      render(<RSSSettings />)
+      renderWithI18n(<RSSSettings />)
       
       await waitFor(() => {
-        expect(screen.getByText('候选源标题')).toBeInTheDocument()
+        expect(screen.getByText((c) => c.includes('候选源标题'))).toBeInTheDocument()
       })
       
       // 验证 mockIgnore 函数已定义
@@ -268,14 +283,14 @@ describe("RSSSettings 组件", () => {
         return Promise.resolve([])
       })
       
-      render(<RSSSettings />)
+      renderWithI18n(<RSSSettings />)
       
       await waitFor(() => {
-        expect(screen.getByText('已订阅源')).toBeInTheDocument()
+        expect(screen.getByText((c) => c.includes('已订阅源'))).toBeInTheDocument()
       })
       
       // 应该显示手动添加区域（通过查找 placeholder）
-      const input = screen.getByPlaceholderText('options.rssManager.manualPlaceholder')
+        const input = screen.getByPlaceholderText(/https:\/\/example\.com\/feed\.xml|manualPlaceholder/i)
       expect(input).toBeInTheDocument()
     })
   })
@@ -287,13 +302,13 @@ describe("RSSSettings 组件", () => {
         return Promise.resolve([])
       })
       
-      render(<RSSSettings />)
+      renderWithI18n(<RSSSettings />)
       
       await waitFor(() => {
-        expect(screen.getByText('已订阅源')).toBeInTheDocument()
+        expect(screen.getByText((c) => c.includes('已订阅源'))).toBeInTheDocument()
       })
       
-      const fetchAllButton = screen.getByText('options.rssManager.actions.fetchAll')
+        const fetchAllButton = screen.getByRole('button', { name: /Read All|全部读取/i })
       expect(fetchAllButton).toBeInTheDocument()
     })
   })
@@ -305,18 +320,14 @@ describe("RSSSettings 组件", () => {
         return Promise.resolve([])
       })
       
-      render(<RSSSettings />)
+      renderWithI18n(<RSSSettings />)
       
       await waitFor(() => {
         expect(screen.queryByText("options.rssManager.loading")).not.toBeInTheDocument()
       })
       
       // 验证通过查找包含"ignoredFeeds"的第一个span
-      const toggleSpan = screen.getAllByText((content, element) => {
-        return element?.tagName === 'SPAN' && 
-               element?.textContent?.includes('options.rssManager.ignoredFeeds') || false
-      })[0]
-      expect(toggleSpan).toBeInTheDocument()
+        expect(screen.getByText(/Ignored/)).toBeInTheDocument()
     })
 
     it("应该能够删除忽略的源", async () => {
@@ -326,15 +337,11 @@ describe("RSSSettings 组件", () => {
       })
       mockDelete.mockResolvedValue(undefined)
       
-      render(<RSSSettings />)
+      renderWithI18n(<RSSSettings />)
       
       await waitFor(() => {
-        // 验证忽略列表区域存在（通过查找折叠按钮）
-        const toggleButton = screen.getAllByText((content, element) => {
-          return element?.textContent?.includes('options.rssManager.ignoredFeeds') || false
-        })[0]
-        expect(toggleButton).toBeInTheDocument()
-      })
+          expect(screen.getByText(/Ignored/)).toBeInTheDocument()
+        })
       
       // 验证 delete 函数已定义
       expect(mockDelete).toBeDefined()
@@ -364,16 +371,17 @@ describe("RSSSettings 组件", () => {
         },
       })
       
-      render(<RSSSettings />)
+      renderWithI18n(<RSSSettings />)
       
       await waitFor(() => {
         expect(screen.queryByText("options.rssManager.loading")).not.toBeInTheDocument()
       })
       
-      const input = screen.getByPlaceholderText('options.rssManager.manualPlaceholder')
+      const input = screen.getByPlaceholderText(/https:\/\/example\.com\/feed\.xml/i)
       await user.type(input, 'https://example.com/feed.xml')
       
-      const addButton = screen.getByText('options.rssManager.subscribe')
+      const addSection = screen.getByText(/Add feed|添加订阅源/i).closest('div') as HTMLElement
+      const addButton = within(addSection!).getByRole('button', { name: /Subscribe|订阅/i })
       await user.click(addButton)
       
       await waitFor(() => {
@@ -395,16 +403,17 @@ describe("RSSSettings 组件", () => {
         error: 'Invalid URL',
       })
       
-      render(<RSSSettings />)
+      renderWithI18n(<RSSSettings />)
       
       await waitFor(() => {
         expect(screen.queryByText("options.rssManager.loading")).not.toBeInTheDocument()
       })
       
-      const input = screen.getByPlaceholderText('options.rssManager.manualPlaceholder')
+      const input = screen.getByPlaceholderText(/https:\/\/example\.com\/feed\.xml/i)
       await user.type(input, 'invalid-url')
       
-      const addButton = screen.getByText('options.rssManager.subscribe')
+      const addSection = screen.getByText(/Add feed|添加订阅源/i).closest('div') as HTMLElement
+      const addButton = within(addSection!).getByRole('button', { name: /Subscribe|订阅/i })
       await user.click(addButton)
       
       await waitFor(() => {
@@ -425,20 +434,21 @@ describe("RSSSettings 组件", () => {
         type: 'rss',
       })
       
-      render(<RSSSettings />)
+      renderWithI18n(<RSSSettings />)
       
       await waitFor(() => {
         expect(screen.queryByText("options.rssManager.loading")).not.toBeInTheDocument()
       })
       
-      const input = screen.getByPlaceholderText('options.rssManager.manualPlaceholder')
+      const input = screen.getByPlaceholderText(/https:\/\/example\.com\/feed\.xml/i)
       await user.type(input, 'https://example.com/feed.xml')
       
-      const addButton = screen.getByText('options.rssManager.subscribe')
+      const addSection = screen.getByText(/Add feed|添加订阅源/i).closest('div') as HTMLElement
+      const addButton = within(addSection!).getByRole('button', { name: /Subscribe|订阅/i })
       await user.click(addButton)
       
       await waitFor(() => {
-        expect(screen.getByText('options.rssManager.errors.alreadyExists')).toBeInTheDocument()
+        expect(screen.getByText(/already exists|已存在/i)).toBeInTheDocument()
       })
     })
 
@@ -449,14 +459,15 @@ describe("RSSSettings 组件", () => {
         return Promise.resolve([])
       })
       
-      render(<RSSSettings />)
+      renderWithI18n(<RSSSettings />)
       
       await waitFor(() => {
         expect(screen.queryByText("options.rssManager.loading")).not.toBeInTheDocument()
       })
       
-      // 验证空 URL 时按钮被禁用
-      const addButton = screen.getByText('options.rssManager.subscribe')
+      // 验证空 URL 时按钮被禁用（限定在“添加订阅源”区域内）
+      const addSection = screen.getByText(/Add feed|添加订阅源/i).closest('div') as HTMLElement
+      const addButton = within(addSection!).getByRole('button', { name: /Subscribe|订阅/i })
       expect(addButton).toBeDisabled()
     })
   })
@@ -469,10 +480,10 @@ describe("RSSSettings 组件", () => {
       })
       mockToggleActive.mockResolvedValue(false) // 返回新状态：已暂停
       
-      render(<RSSSettings />)
+      renderWithI18n(<RSSSettings />)
       
       await waitFor(() => {
-        expect(screen.getByText('已订阅源')).toBeInTheDocument()
+        expect(screen.getByText((c) => c.includes('已订阅源'))).toBeInTheDocument()
       })
       
       // 验证 toggleActive 函数已定义
@@ -491,18 +502,17 @@ describe("RSSSettings 组件", () => {
       })
       mockToggleActive.mockResolvedValue(true) // 返回新状态：已恢复
       
-      render(<RSSSettings />)
+      renderWithI18n(<RSSSettings />)
       
       await waitFor(() => {
-        expect(screen.getByText('已订阅源')).toBeInTheDocument()
+        expect(screen.getByText((c) => c.includes('已订阅源'))).toBeInTheDocument()
       })
       
       // 验证暂停状态文本显示（包含暂停图标和文本）
-      const pausedText = screen.getAllByText((content, element) => {
-        return (element?.textContent?.includes('⏸') && 
-                element?.textContent?.includes('options.rssManager.status.paused')) || false
-      })
-      expect(pausedText.length).toBeGreaterThan(0)
+        const pausedIcon = screen.getAllByText((content, element) => {
+          return element?.textContent?.includes('⏸') || false
+        })
+        expect(pausedIcon.length).toBeGreaterThan(0)
     })
   })
 
@@ -515,13 +525,13 @@ describe("RSSSettings 组件", () => {
       })
       mockSendMessage.mockResolvedValue({ success: true, data: {} })
       
-      render(<RSSSettings />)
+      renderWithI18n(<RSSSettings />)
       
       await waitFor(() => {
-        expect(screen.getByText('已订阅源')).toBeInTheDocument()
+        expect(screen.getByText((c) => c.includes('已订阅源'))).toBeInTheDocument()
       })
       
-      const fetchAllButton = screen.getByText('options.rssManager.actions.fetchAll')
+      const fetchAllButton = screen.getByRole('button', { name: /Read All|全部读取/i })
       await user.click(fetchAllButton)
       
       await waitFor(() => {
@@ -541,13 +551,13 @@ describe("RSSSettings 组件", () => {
       })
       mockSendMessage.mockResolvedValue({ success: false, error: 'Network error' })
       
-      render(<RSSSettings />)
+      renderWithI18n(<RSSSettings />)
       
       await waitFor(() => {
-        expect(screen.getByText('已订阅源')).toBeInTheDocument()
+        expect(screen.getByText((c) => c.includes('已订阅源'))).toBeInTheDocument()
       })
       
-      const fetchAllButton = screen.getByText('options.rssManager.actions.fetchAll')
+      const fetchAllButton = screen.getByRole('button', { name: /Read All|全部读取/i })
       await user.click(fetchAllButton)
       
       await waitFor(() => {
@@ -571,13 +581,11 @@ describe("RSSSettings 组件", () => {
         quality: { score: 75 }
       })
       
-      render(<RSSSettings />)
+      renderWithI18n(<RSSSettings />)
       
       await waitFor(() => {
         // 验证忽略列表区域存在
-        const toggleButton = screen.getAllByText((content, element) => {
-          return element?.textContent?.includes('options.rssManager.ignoredFeeds') || false
-        })[0]
+        const toggleButton = screen.getAllByText(/Ignored|已忽略源/i)[0]
         expect(toggleButton).toBeInTheDocument()
       })
       

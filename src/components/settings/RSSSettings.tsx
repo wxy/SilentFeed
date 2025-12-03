@@ -70,9 +70,37 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
         feedManager.getFeeds('subscribed'),
         feedManager.getFeeds('ignored')
       ])
-      setCandidateFeeds(candidates)
-      setSubscribedFeeds(subscribed)
-      setIgnoredFeeds(ignored)
+      // 渲染层清理：移除历史上持久化到标题中的“ - 域名”后缀（不修改数据库）
+      const stripDomainSuffix = (title: string, urlOrLink?: string) => {
+        if (!title) return title
+        let host = ''
+        try {
+          host = new URL(urlOrLink || '').hostname
+        } catch {
+          host = ''
+        }
+        if (!host) return title
+        const patterns = [
+          ` - ${host}`,
+          ` — ${host}`,
+          ` | ${host}`,
+        ]
+        for (const p of patterns) {
+          if (title.endsWith(p)) {
+            return title.slice(0, -p.length)
+          }
+        }
+        return title
+      }
+
+      const sanitize = (feeds: DiscoveredFeed[]) => feeds.map(f => ({
+        ...f,
+        title: stripDomainSuffix(f.title, f.link || f.url)
+      }))
+
+      setCandidateFeeds(sanitize(candidates))
+      setSubscribedFeeds(sanitize(subscribed))
+      setIgnoredFeeds(sanitize(ignored))
     } catch (error) {
       rssManagerLogger.error('加载候选源失败:', error)
     } finally {
@@ -476,7 +504,7 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
       
       const id = await feedManager.addCandidate({
         url: manualUrl.trim(),
-        title: `${metadata.title} - ${domain}`,
+        title: metadata.title,
         description: metadata.description,
         link: metadata.link,
         language: metadata.language,
@@ -678,11 +706,11 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
   }
 
   // 渲染源列表项（三行紧凑布局）
-  const renderFeedItem = (
-    feed: DiscoveredFeed,
-    actions: { label: string; onClick: () => void; className: string; row?: 2 | 3; disabled?: boolean }[]
-  ) => {
+  // 子组件：订阅源行（允许使用 hooks）
+  function FeedRow({ feed, actions }: { feed: DiscoveredFeed; actions: { label: string; onClick: () => void; className: string; row?: 2 | 3; disabled?: boolean }[] }) {
     const nextFetchTime = feed.status === 'subscribed' ? calculateNextFetchTime(feed) : null
+    const [isEditingTitle, setIsEditingTitle] = useState(false)
+    const [editedTitle, setEditedTitle] = useState(feed.title)
     
     // 安全获取域名
     const getHostname = (url: string): string => {
@@ -705,18 +733,65 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
         {/* 第一行：RSS 本身属性 */}
         <div className="flex items-center gap-2 text-sm">
           {/* 标题（带 favicon）- 放在最左边 */}
-          <button
-            onClick={() => loadPreviewArticles(feed.id, feed.url)}
-            className="font-medium text-blue-600 dark:text-blue-400 hover:underline flex-1 truncate text-left flex items-center gap-1.5 min-w-0"
-          >
+          <div className="flex-1 min-w-0 flex items-center gap-1.5">
             <img 
               src={getFaviconUrl(feed.link || feed.url)} 
               alt="" 
               className="w-4 h-4 flex-shrink-0"
               onError={handleFaviconError}
             />
-            <span className="truncate">{feed.title}</span>
-          </button>
+            {isEditingTitle ? (
+              <input
+                value={editedTitle}
+                onChange={(e) => setEditedTitle(e.target.value)}
+                onBlur={async () => {
+                  try {
+                    const fm = new FeedManager()
+                    await fm.renameTitle(feed.id, editedTitle)
+                    // 更新本地列表中的标题
+                    setCandidateFeeds(prev => prev.map(f => f.id === feed.id ? { ...f, title: editedTitle } : f))
+                    setSubscribedFeeds(prev => prev.map(f => f.id === feed.id ? { ...f, title: editedTitle } : f))
+                    setIgnoredFeeds(prev => prev.map(f => f.id === feed.id ? { ...f, title: editedTitle } : f))
+                  } catch (error) {
+                    rssManagerLogger.error('重命名失败:', error)
+                    alert(_('options.rssManager.errors.renameFailed'))
+                  } finally {
+                    setIsEditingTitle(false)
+                  }
+                }}
+                onKeyDown={async (e) => {
+                  if (e.key === 'Enter') {
+                    (e.target as HTMLInputElement).blur()
+                  } else if (e.key === 'Escape') {
+                    setEditedTitle(feed.title)
+                    setIsEditingTitle(false)
+                  }
+                }}
+                className="flex-1 px-1 py-0.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-sm"
+                autoFocus
+              />
+            ) : (
+              <button
+                onClick={() => loadPreviewArticles(feed.id, feed.url)}
+                className="font-medium text-blue-600 dark:text-blue-400 hover:underline truncate text-left"
+                title={_('options.rssManager.preview.openOrToggle')}
+              >
+                <span className="truncate">{feed.title} ({getHostname(feed.link || feed.url)})</span>
+              </button>
+            )}
+
+            {/* 内联重命名按钮 */}
+            <button
+              onClick={() => {
+                setEditedTitle(feed.title)
+                setIsEditingTitle(true)
+              }}
+              className="ml-1 px-1.5 py-0.5 text-[10px] bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
+              title={_('options.rssManager.actions.rename')}
+            >
+              ✎
+            </button>
+          </div>
           
           {/* 质量文本图标 */}
           {feed.quality && (
@@ -786,7 +861,13 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                 {feed.subscriptionSource && (
                   <>
                     <span>•</span>
-                    <span className="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded text-[10px] font-medium">
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                      feed.subscriptionSource === 'manual'
+                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                        : feed.subscriptionSource === 'imported'
+                        ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400'
+                        : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                    }`}>
                       {feed.subscriptionSource === 'manual' 
                         ? _('options.rssManager.source.manual')
                         : feed.subscriptionSource === 'imported'
@@ -876,7 +957,13 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                 {feed.subscriptionSource && (
                   <>
                     <span>•</span>
-                    <span className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded text-[10px] font-medium">
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                      feed.subscriptionSource === 'manual'
+                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                        : feed.subscriptionSource === 'imported'
+                        ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400'
+                        : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                    }`}>
                       {feed.subscriptionSource === 'manual' 
                         ? _('options.rssManager.source.manual')
                         : feed.subscriptionSource === 'imported'
@@ -969,11 +1056,11 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
               })
             }
             
-            // 已分析（灰色实心）
+            // 已分析（灰色实心，颜色更浅）
             for (let i = 0; i < otherAnalyzedBlocks; i++) {
               blocks.push({
                 type: 'analyzed',
-                className: 'bg-gray-400 dark:bg-gray-500 border border-gray-500 dark:border-gray-600',
+                className: 'bg-gray-200 dark:bg-gray-500 border border-gray-300 dark:border-gray-600',
                 tooltip: `${_('options.rssManager.stats.analyzed')}: ${otherAnalyzedBlocks} ${_('options.rssManager.stats.articles')}`
               })
             }
@@ -1247,7 +1334,8 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
           </div>
 
           <div className="space-y-2">
-            {candidateFeeds.map((feed) => renderFeedItem(feed, [
+            {candidateFeeds.map((feed) => (
+              <FeedRow key={feed.id} feed={feed} actions={[
               {
                 label: _('options.rssManager.actions.subscribe'),
                 onClick: () => handleSubscribe(feed.id),
@@ -1260,7 +1348,8 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                 className: 'bg-gray-400 hover:bg-gray-500 dark:bg-gray-600 dark:hover:bg-gray-500',
                 row: 2
               }
-            ]))}
+            ]} />
+            ))}
           </div>
         </div>
       )}
@@ -1291,7 +1380,8 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
           </div>
 
           <div className="space-y-2">
-            {subscribedFeeds.map((feed) => renderFeedItem(feed, [
+            {subscribedFeeds.map((feed) => (
+              <FeedRow key={feed.id} feed={feed} actions={[
               // 第二行：读取 + 暂停/恢复 + 取消订阅
               {
                 label: isFetchingSingle === feed.id 
@@ -1318,8 +1408,8 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                 className: 'bg-orange-500 hover:bg-orange-600',
                 row: 2
               }
-              // 订阅列表不显示删除按钮，只能取消订阅（移到忽略列表）
-            ]))}
+            ]} />
+            ))}
           </div>
         </div>
       )}
@@ -1346,7 +1436,8 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
 
           {showIgnored && (
             <div className="mt-2 space-y-2">
-              {ignoredFeeds.map((feed) => renderFeedItem(feed, [
+              {ignoredFeeds.map((feed) => (
+                <FeedRow key={feed.id} feed={feed} actions={[
                 {
                   label: _('options.rssManager.actions.subscribe'),
                   onClick: () => handleSubscribeIgnored(feed.id),
@@ -1359,7 +1450,8 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                   className: 'bg-red-700 hover:bg-red-800 dark:bg-red-800 dark:hover:bg-red-900',
                   row: 2
                 }
-              ]))}
+              ]} />
+              ))}
             </div>
           )}
         </div>

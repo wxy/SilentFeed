@@ -214,11 +214,18 @@
         "manual": "手动订阅",
         "imported": "OPML导入"
       },
+      "preview": {
+        "loading": "加载预览中...",
+        "latestArticles": "最新文章",
+        "noArticles": "暂无文章",
+        "openOrToggle": "打开或切换预览"
+      },
       "actions": {
         "subscribe": "订阅",
         "ignore": "忽略",
         "unsubscribe": "取消订阅",
         "delete": "删除",
+        "rename": "重命名",
         "pause": "暂停",
         "resume": "恢复",
         "fetch": "📡 读取",
@@ -227,6 +234,20 @@
         "fetchAll": "📡 全部读取",
         "fetchingAll": "📡 读取中...",
         "fetchAllCompleted": "✅ 读取完成"
+      },
+      "errors": {
+        "invalidUrl": "请输入有效的 RSS URL",
+        "fetchFailed": "无法获取该 URL 的内容",
+        "notRSS": "该 URL 不是有效的 RSS 源",
+        "validationFailed": "RSS 验证失败",
+        "alreadyExists": "该源已存在",
+        "subscribeFailed": "订阅失败",
+        "networkError": "网络错误，请检查连接",
+        "parseError": "OPML 文件解析失败",
+        "importFailed": "OPML 导入失败",
+        "exportFailed": "OPML 导出失败",
+        "revalidationFailed": "RSS 源重新验证失败，已删除",
+        "renameFailed": "重命名失败，请稍后重试"
       },
       "metadata": {
         "items": "{{count}} 条",
@@ -241,11 +262,7 @@
         "formatInvalid": "格式异常",
         "analyzing": "分析中..."
       },
-      "preview": {
-        "loading": "加载预览中...",
-        "latestArticles": "最新文章",
-        "noArticles": "暂无文章"
-      },
+      
       "fetch": {
         "articles": "篇",
         "unread": "未读",

@@ -18,6 +18,24 @@ const feedLogger = logger.withTag('FeedManager')
 
 export class FeedManager {
   /**
+   * 更新源标题（重命名）
+   * 
+   * @param id - 源 ID
+   * @param newTitle - 新的标题
+   */
+  async renameTitle(id: string, newTitle: string): Promise<void> {
+    const feed = await this.getFeed(id)
+    if (!feed) {
+      throw new Error(`源不存在: ${id}`)
+    }
+    const title = newTitle.trim()
+    if (!title) {
+      throw new Error('标题不能为空')
+    }
+    await db.discoveredFeeds.update(id, { title })
+    feedLogger.info('已更新源标题:', { id, oldTitle: feed.title, newTitle: title })
+  }
+  /**
    * 添加候选源
    * 
    * Phase 5.1.5: 增强去重逻辑
