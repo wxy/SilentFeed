@@ -22,15 +22,6 @@ bgLogger.info('Silent Feed Background Service Worker 已启动')
 // Phase 5.2: 初始化图标管理器
 let iconManager: IconManager | null = null
 
-// 开发环境下加载调试工具
-if (process.env.NODE_ENV === 'development') {
-  import('./debug/generate-interest-changes').then(() => {
-    bgLogger.info('🔧 开发调试工具已加载')
-  }).catch(error => {
-    bgLogger.error('❌ 加载调试工具失败:', error)
-  })
-}
-
 /**
  * RSS 发现查看状态
  * 用于追踪用户是否已查看过 RSS 发现
