@@ -257,16 +257,20 @@ export async function runFullMigration(): Promise<boolean> {
     migrationLogger.info('🚀 开始 Phase 10 完整数据迁移...')
     
     // 步骤 1: 同步推荐状态
+    migrationLogger.info('步骤 1/2: 同步推荐状态 (recommendations → feedArticles)...')
     const syncResult = await migrateRecommendationStatus()
     if (!syncResult.success) {
       throw new Error('推荐状态同步失败')
     }
+    migrationLogger.info(`✅ 步骤 1/2 完成: 处理 ${syncResult.processed} 篇文章，同步 ${syncResult.synced} 条推荐状态`)
     
     // 步骤 2: 计算重要性评分
+    migrationLogger.info('步骤 2/2: 计算文章重要性评分...')
     const importanceResult = await calculateArticleImportance()
     if (!importanceResult.success) {
       throw new Error('重要性评分计算失败')
     }
+    migrationLogger.info(`✅ 步骤 2/2 完成: 计算 ${importanceResult.processed} 篇文章的重要性评分`)
     
     migrationLogger.info('✅ Phase 10 数据迁移全部完成')
     return true
@@ -289,16 +293,25 @@ export async function needsMigration(): Promise<boolean> {
     
     if (!article) {
       // 没有文章，不需要迁移
+      migrationLogger.debug('无文章数据，跳过迁移检查')
       return false
     }
     
     // 如果任何新字段缺失，需要迁移
-    return (
+    const needsMigration = (
       article.inFeed === undefined ||
       article.inPool === undefined ||
       article.deleted === undefined ||
       article.importance === undefined
     )
+    
+    if (needsMigration) {
+      migrationLogger.info('检测到需要数据迁移（缺少 Phase 10 新字段）')
+    } else {
+      migrationLogger.debug('数据已是最新版本，无需迁移')
+    }
+    
+    return needsMigration
   } catch (error) {
     migrationLogger.error('检查迁移需求失败:', error)
     return false

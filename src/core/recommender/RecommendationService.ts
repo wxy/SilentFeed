@@ -339,24 +339,26 @@ export class RecommendationService {
 
     const allArticles: FeedArticle[] = []
 
-    // Phase 7: 从 feedArticles 表查询（性能优化）
+    // Phase 10: 从 feedArticles 表查询，只收集 inFeed=true 的未分析文章
     for (const feed of feeds) {
-      // 查询该 Feed 的所有未分析文章
+      // 查询该 Feed 的所有文章
       // 使用复合索引 [feedId+published] 优化查询
       const feedArticles = await db.feedArticles
         .where('feedId').equals(feed.id)
         .reverse()  // 按发布时间倒序（最新的优先）
         .sortBy('published')
       
-      // 筛选未分析的文章
-      const unanalyzedArticles = feedArticles.filter(article => !article.analysis)
+      // Phase 10: 筛选条件：inFeed=true（仍在源中）&& !analysis（未分析）
+      const unanalyzedArticles = feedArticles.filter(article => 
+        (article.inFeed !== false) && !article.analysis
+      )
       
-      // 统计信息
-      const totalArticles = feedArticles.length
-      const analyzedArticles = totalArticles - unanalyzedArticles.length
-      const tfidfSkippedArticles = feedArticles.filter(a => 
-        a.analysis?.provider === 'tfidf-skipped'
-      ).length
+      // 统计信息（调试用）
+      if (process.env.NODE_ENV === 'development' && unanalyzedArticles.length > 0) {
+        const totalArticles = feedArticles.length
+        const inFeedArticles = feedArticles.filter(a => a.inFeed !== false).length
+        recLogger.debug(`${feed.title}: 总 ${totalArticles} 篇，在源中 ${inFeedArticles} 篇，待分析 ${unanalyzedArticles.length} 篇`)
+      }
       
       allArticles.push(...unanalyzedArticles)
     }

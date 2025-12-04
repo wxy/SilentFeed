@@ -211,7 +211,7 @@ export async function getUnreadRecommendations(limit: number = 50): Promise<Reco
 /**
  * 获取待推荐文章数量
  * 
- * Phase 7: 用于动态调整推荐生成频率
+ * Phase 10: 从 feedArticles 表统计（与 collectArticles 逻辑一致）
  * 
  * @param source - 来源类型
  * @returns 待推荐文章数量（未分析的文章）
@@ -231,17 +231,23 @@ export async function getUnrecommendedArticleCount(
       feeds = await db.discoveredFeeds.toArray()
     }
     
-    // 2. 统计未分析的文章
+    // 2. Phase 10: 从 feedArticles 表统计未分析的文章
+    // 只统计 inFeed=true（仍在RSS源中）的未分析文章
     let totalUnanalyzed = 0
     for (const feed of feeds) {
-      if (feed.latestArticles && feed.latestArticles.length > 0) {
-        const unanalyzedCount = feed.latestArticles.filter(
-          article => !article.analysis  // 未分析过
-        ).length
-        totalUnanalyzed += unanalyzedCount
-      }
+      const feedArticles = await db.feedArticles
+        .where('feedId').equals(feed.id)
+        .toArray()
+      
+      // 筛选条件：inFeed=true && !analysis
+      const unanalyzedCount = feedArticles.filter(
+        article => (article.inFeed !== false) && !article.analysis
+      ).length
+      
+      totalUnanalyzed += unanalyzedCount
     }
     
+    dbLogger.debug(`待推荐文章数量: ${totalUnanalyzed}（来源: ${source}）`)
     return totalUnanalyzed
   } catch (error) {
     dbLogger.error('获取待推荐文章数量失败:', error)

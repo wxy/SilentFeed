@@ -78,6 +78,12 @@ export interface DiscoveredFeed {
   dislikedCount?: number       // 历史不想读总数（包括被替换的）- 用于历史统计
   unreadCount: number
   recommendedReadCount?: number  // 历史推荐已读数 - 用于历史统计
+  
+  // Phase 10: 新架构统计字段
+  inFeedCount?: number         // 仍在 RSS 源中的文章数（inFeed=true）
+  inPoolCount?: number         // 当前在推荐池中的文章数（inPool=true）
+  
+  // 兼容旧字段（保留用于过渡）
   currentRecommendedCount?: number  // 当前文章中推荐状态的数量 - 用于UI显示
   currentDislikedCount?: number     // 当前文章中不想读的数量 - 用于UI显示
   currentRecommendedReadCount?: number  // 当前推荐文章中已读的数量 - 用于UI显示

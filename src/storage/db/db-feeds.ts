@@ -13,15 +13,17 @@ const dbLogger = logger.withTag('DB-Feeds')
 /**
  * 更新单个 RSS 源的统计信息
  * 
- * Phase 7: 从 feedArticles 表聚合文章统计，从推荐池统计推荐数据
+ * Phase 10: 基于新架构统计（inFeed, inPool, deleted）
  * 
  * 统计字段:
- * - articleCount: feedArticles 总数
+ * - articleCount: feedArticles 总数（所有文章，包括历史）
  * - analyzedCount: 已 AI 分析的文章数（有 analysis 字段）
- * - recommendedCount: 该源的所有推荐数（包括历史，与推荐统计一致）
+ * - recommendedCount: 该源的所有推荐数（包括历史，从 recommendations 表统计）
  * - readCount: feedArticles 中标记为已读的文章数
- * - dislikedCount: 该源的不想读数（包括历史，与推荐统计一致）
- * - recommendedReadCount: 该源推荐被阅读数（包括历史，与推荐统计一致）
+ * - dislikedCount: 该源的不想读数（从 recommendations 表统计）
+ * - recommendedReadCount: 该源推荐被阅读数（从 recommendations 表统计）
+ * - inFeedCount: 仍在 RSS 源中的文章数（inFeed=true）
+ * - inPoolCount: 当前在推荐池中的文章数（inPool=true）
  */
 export async function updateFeedStats(feedUrl: string): Promise<void> {
   try {
@@ -32,28 +34,34 @@ export async function updateFeedStats(feedUrl: string): Promise<void> {
       return
     }
     
-    // Phase 7: 从 feedArticles 表聚合文章统计
-    // 2. 获取该 Feed 的所有文章
+    // 2. Phase 10: 从 feedArticles 表聚合文章统计
     const articles = await db.feedArticles
       .where('feedId').equals(feed.id)
       .toArray()
     
-    // 3. 计算文章统计（基于当前文章）
+    // 3. Phase 10: 基于新架构计算文章统计
     const totalCount = articles.length
     const analyzedCount = articles.filter(a => a.analysis).length
     const readCount = articles.filter(a => a.read).length
     const unreadCount = articles.filter(a => !a.read).length
-    const currentRecommendedCount = articles.filter(a => a.recommended).length  // 当前文章中推荐状态的数量
-    const currentDislikedCount = articles.filter(a => a.disliked).length       // 当前文章中不想读的数量
-    const currentRecommendedReadCount = articles.filter(a => a.recommended && a.read).length  // 当前推荐文章中已读的数量
     
-    // 4. 从推荐池统计（Phase 7: 统计所有历史，不过滤 status）
+    // Phase 10: 新字段统计
+    const inFeedCount = articles.filter(a => a.inFeed !== false).length       // 仍在源中
+    const inPoolCount = articles.filter(a => a.inPool === true).length        // 在推荐池中
+    const deletedCount = articles.filter(a => a.deleted === true).length      // 已软删除
+    
+    // 兼容旧字段（保留用于过渡）
+    const currentRecommendedCount = articles.filter(a => a.recommended).length
+    const currentDislikedCount = articles.filter(a => a.disliked).length
+    const currentRecommendedReadCount = articles.filter(a => a.recommended && a.read).length
+    
+    // 4. 从推荐池统计（包括所有历史）
     const recommendationsFromThisFeed = await db.recommendations
       .where('sourceUrl')
       .equals(feedUrl)
       .toArray()
     
-    // Phase 7: 统计所有历史记录（不过滤 status），确保数据完整准确
+    // 统计推荐相关数据
     const recommendedCount = recommendationsFromThisFeed.length
     const recommendedReadCount = recommendationsFromThisFeed.filter(rec => rec.isRead === true).length
     const dislikedCount = recommendationsFromThisFeed.filter(rec => 
@@ -64,15 +72,23 @@ export async function updateFeedStats(feedUrl: string): Promise<void> {
     await db.discoveredFeeds.update(feed.id, {
       articleCount: totalCount,
       analyzedCount,
-      recommendedCount,          // 所有历史推荐（包括被替换的）- 保留用于历史统计
+      recommendedCount,          // 所有历史推荐
       readCount,
-      dislikedCount,             // 所有历史不想读（包括被替换的）- 保留用于历史统计
+      dislikedCount,             // 所有历史不想读
       unreadCount,
-      recommendedReadCount,      // 所有历史已读推荐 - 保留用于历史统计
-      currentRecommendedCount,   // 当前文章中推荐状态的数量（用于UI显示）
-      currentDislikedCount,      // 当前文章中不想读的数量（用于UI显示）
-      currentRecommendedReadCount  // 当前推荐文章中已读的数量（用于UI显示）
+      recommendedReadCount,      // 所有历史已读推荐
+      
+      // Phase 10: 新增字段
+      inFeedCount,               // 仍在源中的文章数
+      inPoolCount,               // 当前在推荐池中的文章数
+      
+      // 兼容旧字段（保留用于过渡）
+      currentRecommendedCount,
+      currentDislikedCount,
+      currentRecommendedReadCount
     })
+    
+    dbLogger.debug(`更新统计: ${feed.title} - 总 ${totalCount}，在源 ${inFeedCount}，在池 ${inPoolCount}，已分析 ${analyzedCount}`)
   } catch (error) {
     dbLogger.error('更新 RSS 源统计失败:', error)
   }
