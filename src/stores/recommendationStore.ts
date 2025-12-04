@@ -80,15 +80,6 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
       // 只从数据库加载现有推荐，不生成新的
       const recommendations = await getUnreadRecommendations(config.maxRecommendations * 2)
       
-      console.log('[RecommendationStore] 加载推荐数据:', recommendations.length, '条（限制:', config.maxRecommendations, '）')
-      console.log('[RecommendationStore] 推荐详情:', recommendations.map(r => ({
-        id: r.id,
-        title: r.title,
-        isRead: r.isRead,
-        feedback: r.feedback,
-        recommendedAt: new Date(r.recommendedAt).toLocaleString()
-      })))
-      
       // 按评分降序排序并限制数量
       const sortedRecommendations = recommendations
         .sort((a: Recommendation, b: Recommendation) => b.score - a.score)
@@ -116,8 +107,6 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
     set({ isLoading: true, error: null })
     
     try {
-      console.log('[RecommendationStore] 手动触发推荐生成...')
-      
       // 获取推荐配置
       const config = await getRecommendationConfig()
       
@@ -150,7 +139,6 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
       // 重新加载推荐（从数据库）
       const recommendations = await getUnreadRecommendations(config.maxRecommendations)
       
-      console.log('[RecommendationStore] 手动生成推荐完成:', recommendations.length, '条')
       set({ recommendations, isLoading: false })
       
     } catch (error) {
@@ -179,25 +167,16 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
    */
   markAsRead: async (id: string, duration?: number, depth?: number) => {
     try {
-      const beforeState = get().recommendations
-      console.log('[RecommendationStore] 🔵 开始标记已读:', {
-        id,
-        当前推荐数: beforeState.length,
-        推荐列表: beforeState.map(r => ({ id: r.id, title: r.title.substring(0, 20) }))
-      })
-      
       // 🆕 Phase 8: 获取推荐对象用于用户画像学习
       const recommendation = await db.recommendations.get(id)
       
       // 调用数据库标记已读（会自动更新 RSS 源统计）
       await markAsRead(id, duration, depth)
-      console.log('[RecommendationStore] ✅ 数据库标记已读成功:', id)
       
       // 🆕 Phase 8: 更新用户画像（阅读行为）
       if (recommendation && duration && depth !== undefined) {
         try {
           await semanticProfileBuilder.onRead(recommendation, duration, depth)
-          console.log('[RecommendationStore] ✅ 用户画像已更新（阅读）')
         } catch (profileError) {
           console.warn('[RecommendationStore] 画像更新失败（不影响主流程）:', profileError)
         }
@@ -270,17 +249,9 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
   dismissSelected: async (ids: string[]) => {
     if (ids.length === 0) return
     
-    console.log('[RecommendationStore] 开始标记不想读:', ids)
-    
     // === 第一步：立即从 UI 移除被拒绝的条目 ===
     const currentRecs = get().recommendations
     const remainingRecs = currentRecs.filter(r => !ids.includes(r.id))
-    
-    console.log('[RecommendationStore] 立即移除已拒绝条目:', {
-      before: currentRecs.length,
-      removed: ids.length,
-      remaining: remainingRecs.length
-    })
     
     // === 第二步：立即从现有推荐池填充新条目（不等待异步操作）===
     const config = await getRecommendationConfig()
@@ -299,12 +270,6 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
       .sort((a, b) => b.score - a.score)
       .slice(0, config.maxRecommendations)
     
-    console.log('[RecommendationStore] 立即填充新推荐:', {
-      remaining: remainingRecs.length,
-      filled: newRecs.length,
-      total: updatedRecommendations.length
-    })
-    
     set({ 
       recommendations: updatedRecommendations,
       isLoading: false, // ✅ 立即结束 loading 状态
@@ -318,7 +283,6 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
       
       // 调用数据库标记为不想读
       await dismissRecommendations(ids)
-      console.log('[RecommendationStore] ✅ 数据库标记不想读成功')
       
       // 🆕 Phase 8: 异步更新用户画像（拒绝行为）
       // 不阻塞UI，在后台执行
@@ -326,7 +290,6 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
         if (recommendation) {
           try {
             await semanticProfileBuilder.onDismiss(recommendation)
-            console.log('[RecommendationStore] ✅ 画像已更新（拒绝）:', recommendation.title.substring(0, 30))
           } catch (profileError) {
             console.warn('[RecommendationStore] 画像更新失败（不影响主流程）:', profileError)
           }
@@ -335,7 +298,6 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
       
       // 等待所有画像更新完成（并行执行）
       await Promise.all(profileUpdatePromises)
-      console.log('[RecommendationStore] ✅ 所有画像更新完成')
       
       // 刷新统计
       await get().refreshStats()
@@ -343,7 +305,6 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
       // 通知背景脚本更新图标（更新推荐数字徽章）
       try {
         await chrome.runtime.sendMessage({ type: 'RECOMMENDATIONS_DISMISSED' })
-        console.log('[RecommendationStore] 已通知背景脚本更新图标')
       } catch (messageError) {
         console.warn('[RecommendationStore] 无法通知背景脚本:', messageError)
       }
