@@ -370,6 +370,53 @@ export class SilentFeedDB extends Dexie {
       // 表会自动创建，无需迁移数据
       dbLogger.info('[Phase 9] ✅ AI 用量计费表创建完成')
     })
+
+    // 版本 16: 文章持久化重构（Phase 10）
+    this.version(16).stores({
+      pendingVisits: 'id, url, startTime, expiresAt',
+      confirmedVisits: 'id, visitTime, domain, *analysis.keywords, [visitTime+domain]',
+      settings: 'id',
+      recommendations: 'id, recommendedAt, isRead, source, sourceUrl, status, replacedAt, [isRead+recommendedAt], [isRead+source], [status+recommendedAt]',
+      userProfile: 'id, lastUpdated, version',
+      interestSnapshots: 'id, timestamp, primaryTopic, trigger, [primaryTopic+timestamp]',
+      discoveredFeeds: 'id, url, status, discoveredAt, subscribedAt, discoveredFrom, isActive, lastFetchedAt, [status+discoveredAt], [isActive+lastFetchedAt]',
+      // Phase 10: 添加新索引支持文章持久化
+      feedArticles: 'id, feedId, link, published, recommended, read, inPool, inFeed, deleted, [feedId+published], [recommended+published], [read+published], [inPool+poolAddedAt], [inFeed+published], [deleted+deletedAt]',
+      aiUsage: 'id, timestamp, provider, purpose, success, [provider+timestamp], [purpose+timestamp]'
+    }).upgrade(async tx => {
+      dbLogger.info('[Phase 10] 文章持久化重构 - 添加新字段和索引...')
+      
+      // 初始化新字段的默认值
+      const articles = await tx.table('feedArticles').toArray()
+      
+      for (const article of articles) {
+        const updates: any = {}
+        
+        // inFeed: 假设现有文章都还在 RSS 源中
+        if (article.inFeed === undefined) {
+          updates.inFeed = true
+          updates.lastSeenInFeed = article.fetched || Date.now()
+        }
+        
+        // inPool: 如果文章已被推荐且未读未不想读，则可能在推荐池中
+        // 注意：这只是估算，真实状态需要从 recommendations 表同步
+        if (article.inPool === undefined && article.recommended && !article.read && !article.disliked) {
+          updates.inPool = false  // 默认不在池中，由后续迁移脚本处理
+        }
+        
+        // deleted: 默认未删除
+        if (article.deleted === undefined) {
+          updates.deleted = false
+        }
+        
+        // 如果有更新，应用它们
+        if (Object.keys(updates).length > 0) {
+          await tx.table('feedArticles').update(article.id, updates)
+        }
+      }
+      
+      dbLogger.info(`[Phase 10] ✅ 已初始化 ${articles.length} 篇文章的新字段`)
+    })
   }
 }
 
@@ -411,6 +458,14 @@ export {
   getUnrecommendedArticleCount,
   resetRecommendationData
 } from './db-recommendations'
+
+// 数据迁移模块（db-migration.ts）- Phase 10
+export {
+  migrateRecommendationStatus,
+  calculateArticleImportance,
+  runFullMigration,
+  needsMigration
+} from './db-migration'
 
 // 统计查询模块（待拆分）
 // TODO: 下一步创建 db-stats.ts 模块将以下函数移出

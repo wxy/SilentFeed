@@ -6,6 +6,7 @@
 
 import { db } from './index'
 import { logger } from '@/utils/logger'
+import { needsMigration, runFullMigration } from './db-migration'
 
 const dbLogger = logger.withTag('DB')
 
@@ -18,9 +19,9 @@ async function checkDatabaseVersion(): Promise<void> {
     const existingDB = dbs.find(d => d.name === 'SilentFeedDB')
     
     if (existingDB && existingDB.version) {
-      dbLogger.info(`现有数据库版本: ${existingDB.version}, 代码版本: 14`)
+      dbLogger.info(`现有数据库版本: ${existingDB.version}, 代码版本: 16`)
       
-      if (existingDB.version > 14) {
+      if (existingDB.version > 16) {
         dbLogger.warn('⚠️ 浏览器中的数据库版本较高，Dexie 将自动处理')
       }
     }
@@ -39,7 +40,7 @@ export async function initializeDatabase(): Promise<void> {
     if (!db.isOpen()) {
       dbLogger.info('正在打开数据库...')
       await db.open()
-      dbLogger.info('✅ 数据库已打开（版本 14）')
+      dbLogger.info('✅ 数据库已打开（版本 16）')
     }
     
     const settingsCount = await db.settings.count()
@@ -68,6 +69,19 @@ export async function initializeDatabase(): Promise<void> {
       dbLogger.info('✅ 已创建默认设置')
     } else {
       dbLogger.info('✅ 设置已存在，跳过创建')
+    }
+    
+    // Phase 10: 检查并执行数据迁移
+    const needsSync = await needsMigration()
+    if (needsSync) {
+      dbLogger.info('检测到需要数据迁移，开始执行...')
+      const migrationSuccess = await runFullMigration()
+      
+      if (!migrationSuccess) {
+        dbLogger.warn('⚠️ 数据迁移失败，但不影响正常使用')
+      }
+    } else {
+      dbLogger.info('数据已是最新版本，无需迁移')
     }
     
     dbLogger.info('✅ 数据库初始化完成')

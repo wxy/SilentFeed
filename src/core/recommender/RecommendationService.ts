@@ -339,24 +339,26 @@ export class RecommendationService {
 
     const allArticles: FeedArticle[] = []
 
-    // Phase 7: 从 feedArticles 表查询（性能优化）
+    // Phase 10: 从 feedArticles 表查询，只收集 inFeed=true 的未分析文章
     for (const feed of feeds) {
-      // 查询该 Feed 的所有未分析文章
+      // 查询该 Feed 的所有文章
       // 使用复合索引 [feedId+published] 优化查询
       const feedArticles = await db.feedArticles
         .where('feedId').equals(feed.id)
         .reverse()  // 按发布时间倒序（最新的优先）
         .sortBy('published')
       
-      // 筛选未分析的文章
-      const unanalyzedArticles = feedArticles.filter(article => !article.analysis)
+      // Phase 10: 筛选条件：inFeed=true（仍在源中）&& !analysis（未分析）
+      const unanalyzedArticles = feedArticles.filter(article => 
+        (article.inFeed !== false) && !article.analysis
+      )
       
-      // 统计信息
-      const totalArticles = feedArticles.length
-      const analyzedArticles = totalArticles - unanalyzedArticles.length
-      const tfidfSkippedArticles = feedArticles.filter(a => 
-        a.analysis?.provider === 'tfidf-skipped'
-      ).length
+      // 统计信息（调试用）
+      if (process.env.NODE_ENV === 'development' && unanalyzedArticles.length > 0) {
+        const totalArticles = feedArticles.length
+        const inFeedArticles = feedArticles.filter(a => a.inFeed !== false).length
+        recLogger.debug(`${feed.title}: 总 ${totalArticles} 篇，在源中 ${inFeedArticles} 篇，待分析 ${unanalyzedArticles.length} 篇`)
+      }
       
       allArticles.push(...unanalyzedArticles)
     }
@@ -427,6 +429,25 @@ export class RecommendationService {
         const lowestInPool = currentPool.sort((a, b) => a.score - b.score)[0]
         if (article.score > lowestInPool.score) {
           recLogger.info(` 🔄 替换低分推荐: ${article.score.toFixed(2)} > ${lowestInPool.score.toFixed(2)}`)
+          
+          // Phase 10: 同步更新被替换文章的 inPool 状态
+          try {
+            const replacedArticle = await db.feedArticles
+              .where('link').equals(lowestInPool.url)
+              .first()
+            
+            if (replacedArticle) {
+              const now = Date.now()
+              await db.feedArticles.update(replacedArticle.id, {
+                inPool: false,
+                poolRemovedAt: now,
+                poolRemovedReason: 'replaced'
+              })
+              recLogger.debug(`📝 已更新被替换文章的 inPool 状态: ${replacedArticle.title}`)
+            }
+          } catch (error) {
+            recLogger.warn(`更新被替换文章状态失败: ${lowestInPool.url}`, error)
+          }
           
           // Phase 7: 软删除 - 更新状态而不是删除记录
           const replacedAt = Date.now()
@@ -503,33 +524,38 @@ export class RecommendationService {
     
     recLogger.info(`保存推荐到数据库: ${recommendations.length} 条（去重后）`)
 
-    // Phase 7: 标记进入推荐池的文章（使用 feedArticles 表）
-    // ✅ 优化：批量更新，使用事务保证一致性
-    const articleIdsToMark: string[] = []
+    // Phase 10: 批量更新 feedArticles 的 inPool 状态
+    // ✅ 使用新架构：inPool 标记候选池，recommended 保留历史记录
+    const articlesToUpdate: Array<{ id: string; url: string }> = []
     
     for (const article of recommendedArticles) {
-      // 通过 URL 查找文章 ID
+      // 通过 URL 查找文章
       try {
         const feedArticle = await db.feedArticles
           .where('link').equals(article.url)
           .first()
         
-        if (feedArticle && !feedArticle.recommended) {
-          articleIdsToMark.push(feedArticle.id)
+        if (feedArticle) {
+          articlesToUpdate.push({ id: feedArticle.id, url: article.url })
         }
       } catch (error) {
         recLogger.warn(`查找文章失败: ${article.url}`, error)
       }
     }
     
-    // ✅ 批量更新文章的 recommended 状态
-    if (articleIdsToMark.length > 0) {
+    // ✅ 批量更新文章的 inPool 和 recommended 状态
+    if (articlesToUpdate.length > 0) {
+      const now = Date.now()
       await db.transaction('rw', [db.feedArticles], async () => {
-        for (const articleId of articleIdsToMark) {
-          await db.feedArticles.update(articleId, { recommended: true })
+        for (const { id } of articlesToUpdate) {
+          await db.feedArticles.update(id, {
+            inPool: true,              // Phase 10: 标记进入候选池
+            poolAddedAt: now,          // Phase 10: 记录进入时间
+            recommended: true          // 保留历史记录（兼容旧逻辑）
+          })
         }
       })
-      recLogger.info(`已标记进入推荐池的文章: ${articleIdsToMark.length} 篇`)
+      recLogger.info(`✅ 已标记进入推荐池的文章: ${articlesToUpdate.length} 篇 (inPool=true)`)
     }
 
     // Phase 6: 更新 RSS 源的推荐数统计

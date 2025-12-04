@@ -78,9 +78,15 @@ export interface DiscoveredFeed {
   dislikedCount?: number       // 历史不想读总数（包括被替换的）- 用于历史统计
   unreadCount: number
   recommendedReadCount?: number  // 历史推荐已读数 - 用于历史统计
-  currentRecommendedCount?: number  // 当前文章中推荐状态的数量 - 用于UI显示
-  currentDislikedCount?: number     // 当前文章中不想读的数量 - 用于UI显示
-  currentRecommendedReadCount?: number  // 当前推荐文章中已读的数量 - 用于UI显示
+  
+  // Phase 10: 新架构统计字段
+  inFeedCount?: number         // 仍在 RSS 源中的文章数（inFeed=true）
+  inPoolCount?: number         // 当前在推荐池中的文章数（inPool=true）
+  inFeedAnalyzedCount?: number // 在源中且已分析的文章数
+  inFeedRecommendedCount?: number  // 在源中且已推荐但未操作的文章数
+  inFeedReadCount?: number     // 在源中且已阅读的文章数
+  inFeedDislikedCount?: number // 在源中且不想读的文章数
+  
   latestArticles?: FeedArticle[]
   
   /** Phase 9: 分析引擎选择（默认 remoteAI） */
@@ -106,10 +112,34 @@ export interface FeedArticle {
     provider: string
   }
   tfidfScore?: number
-  recommended?: boolean
-  read: boolean
-  disliked?: boolean  // Phase 7: 标记不想读
-  starred: boolean
+  
+  // ===== 用户操作状态 =====
+  recommended?: boolean   // 是否曾被推荐
+  read: boolean          // 是否已读
+  disliked?: boolean     // 是否不想读
+  starred: boolean       // 是否收藏
+  
+  // ===== 推荐池管理 (Phase 8: 文章持久化重构) =====
+  inPool?: boolean               // 是否在推荐池中（候选）
+  poolAddedAt?: number           // 加入推荐池时间
+  poolRemovedAt?: number         // 移出推荐池时间
+  poolRemovedReason?: 'read' | 'disliked' | 'replaced' | 'expired'
+  
+  // ===== RSS 源状态管理 (Phase 8) =====
+  inFeed?: boolean               // 是否仍在 RSS 源中
+  lastSeenInFeed?: number        // 最后一次在 RSS 源中出现的时间
+  
+  // ===== 软删除 (Phase 8) =====
+  deleted?: boolean              // 软删除标记
+  deletedAt?: number             // 删除时间
+  deleteReason?: 'cleanup' | 'user' | 'feed_removed'
+  
+  // ===== 元数据更新追踪 (Phase 8) =====
+  metadataUpdatedAt?: number     // 元数据最后更新时间
+  updateCount?: number           // 更新次数
+  
+  // ===== 重要性评分 (Phase 8) =====
+  importance?: number            // 重要性评分 0-100，用于清理决策
 }
 
 /**

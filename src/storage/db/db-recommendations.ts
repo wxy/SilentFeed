@@ -67,10 +67,33 @@ export async function markAsRead(
     }
   }
   
-  const updateCount = await db.recommendations.update(id, updates)
+  await db.transaction('rw', [db.recommendations, db.feedArticles], async () => {
+    // 1. 更新推荐记录
+    await db.recommendations.update(id, updates)
+    
+    // 2. Phase 10: 同步更新 feedArticles 的 inPool 状态
+    try {
+      const article = await db.feedArticles
+        .where('link').equals(recommendation.url)
+        .first()
+      
+      if (article) {
+        const now = Date.now()
+        await db.feedArticles.update(article.id, {
+          read: true,                    // 标记已读
+          inPool: false,                 // Phase 10: 移出推荐池
+          poolRemovedAt: now,
+          poolRemovedReason: 'read'
+        })
+        dbLogger.debug('✅ 已同步更新文章状态: read=true, inPool=false')
+      }
+    } catch (error) {
+      dbLogger.warn('同步更新文章状态失败:', error)
+    }
+  })
+  
   dbLogger.debug('✅ markAsRead 完成:', {
     id,
-    updateCount,
     updates
   })
   
@@ -94,6 +117,7 @@ export async function markAsRead(
  * 标记推荐为"不想读"
  * 
  * Phase 7: 使用软删除，更新 status 为 dismissed
+ * Phase 10: 同步更新 feedArticles 的 inPool 状态
  * 
  * @param ids - 推荐记录 ID 数组
  */
@@ -112,7 +136,7 @@ export async function dismissRecommendations(ids: string[]): Promise<void> {
         replacedAt: now       // Phase 7: 记录标记时间
       })
       
-      // Phase 7: 2. 同步更新 feedArticles 表中的文章状态
+      // 2. Phase 10: 同步更新 feedArticles 表中的文章状态
       const recommendation = await db.recommendations.get(id)
       if (recommendation?.url) {
         try {
@@ -122,9 +146,14 @@ export async function dismissRecommendations(ids: string[]): Promise<void> {
             .first()
           
           if (article) {
-            // 标记文章为不想读
-            await db.feedArticles.update(article.id, { disliked: true })
-            dbLogger.debug('✅ 已同步标记文章为不想读:', article.title)
+            // 标记文章为不想读 + 移出推荐池
+            await db.feedArticles.update(article.id, {
+              disliked: true,
+              inPool: false,                    // Phase 10: 移出推荐池
+              poolRemovedAt: now,
+              poolRemovedReason: 'disliked'
+            })
+            dbLogger.debug('✅ 已同步标记文章为不想读: inPool=false, disliked=true', article.title)
           } else {
             dbLogger.warn('⚠️ 未找到匹配的文章:', recommendation.url)
           }
@@ -159,8 +188,21 @@ export async function dismissRecommendations(ids: string[]): Promise<void> {
  * 
  * @param limit - 数量限制（默认 50）
  */
+/**
+ * 获取未读推荐
+ * 
+ * Phase 10: 只返回仍在源中（inFeed=true）且在推荐池中（inPool=true）的推荐
+ * 
+ * 说明：
+ * - recommendations 表是历史日志（所有曾推荐过的文章）
+ * - feedArticles 表的 inPool 字段是实时推荐池状态
+ * - 需要联查确保推荐的文章仍在 RSS 源中且仍在推荐池中
+ * 
+ * @param limit - 最多返回的推荐数
+ * @returns 未读推荐列表（按分数降序）
+ */
 export async function getUnreadRecommendations(limit: number = 50): Promise<Recommendation[]> {
-  // Phase 7: 过滤掉已读、已忽略和非活跃的推荐，按推荐分数排序
+  // Phase 10: 过滤掉已读、已忽略、非活跃和不在推荐池中的推荐
   const recommendations = await db.recommendations
     .filter(r => {
       // 必须是活跃状态
@@ -171,10 +213,21 @@ export async function getUnreadRecommendations(limit: number = 50): Promise<Reco
     })
     .toArray()
   
+  // Phase 10: 联查 feedArticles，过滤掉不在源中或不在推荐池中的文章
+  const validRecommendations: Recommendation[] = []
+  for (const rec of recommendations) {
+    const article = await db.feedArticles.where('link').equals(rec.url).first()
+    if (article && article.inFeed !== false && article.inPool === true) {
+      validRecommendations.push(rec)
+    }
+  }
+  
   // 按推荐分数降序排序，取前 N 条
-  const result = recommendations
+  const result = validRecommendations
     .sort((a, b) => (b.score || 0) - (a.score || 0))
     .slice(0, limit)
+  
+  dbLogger.debug(`获取未读推荐: 总 ${recommendations.length}，有效 ${validRecommendations.length}，返回 ${result.length}`)
   
   return result
 }
@@ -182,7 +235,7 @@ export async function getUnreadRecommendations(limit: number = 50): Promise<Reco
 /**
  * 获取待推荐文章数量
  * 
- * Phase 7: 用于动态调整推荐生成频率
+ * Phase 10: 从 feedArticles 表统计（与 collectArticles 逻辑一致）
  * 
  * @param source - 来源类型
  * @returns 待推荐文章数量（未分析的文章）
@@ -202,17 +255,23 @@ export async function getUnrecommendedArticleCount(
       feeds = await db.discoveredFeeds.toArray()
     }
     
-    // 2. 统计未分析的文章
+    // 2. Phase 10: 从 feedArticles 表统计未分析的文章
+    // 只统计 inFeed=true（仍在RSS源中）的未分析文章
     let totalUnanalyzed = 0
     for (const feed of feeds) {
-      if (feed.latestArticles && feed.latestArticles.length > 0) {
-        const unanalyzedCount = feed.latestArticles.filter(
-          article => !article.analysis  // 未分析过
-        ).length
-        totalUnanalyzed += unanalyzedCount
-      }
+      const feedArticles = await db.feedArticles
+        .where('feedId').equals(feed.id)
+        .toArray()
+      
+      // 筛选条件：inFeed=true && !analysis
+      const unanalyzedCount = feedArticles.filter(
+        article => (article.inFeed !== false) && !article.analysis
+      ).length
+      
+      totalUnanalyzed += unanalyzedCount
     }
     
+    dbLogger.debug(`待推荐文章数量: ${totalUnanalyzed}（来源: ${source}）`)
     return totalUnanalyzed
   } catch (error) {
     dbLogger.error('获取待推荐文章数量失败:', error)

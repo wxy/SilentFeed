@@ -116,10 +116,13 @@ export async function markRecommendationsAsRead(
 /**
  * 原子性更新 Feed 和文章
  * 
- * 场景：RSS 抓取完成后，需要同时：
- * 1. 删除旧文章
- * 2. 插入新文章
- * 3. 更新 Feed 元数据（抓取时间、文章数等）
+ * Phase 10: 增量追加策略
+ * 
+ * 场景：RSS 抓取完成后，需要：
+ * 1. 将不在新列表的文章标记为 inFeed=false（软删除）
+ * 2. 将 inFeed=false 且 inPool=true 的文章踢出推荐池（inPool=false）
+ * 3. 追加新文章（link 去重）
+ * 4. 更新 Feed 元数据（抓取时间、文章数等）
  * 
  * @param feedId - Feed ID
  * @param newArticles - 新抓取的文章列表
@@ -130,39 +133,109 @@ export async function updateFeedWithArticles(
   newArticles: FeedArticle[],
   feedUpdates: Partial<DiscoveredFeed>
 ): Promise<void> {
-  txLogger.debug('更新 Feed 和文章（事务）', {
+  txLogger.debug('更新 Feed 和文章（事务 - Phase 10）', {
     feedId,
     新文章数: newArticles.length
   })
+
+  let removedFromFeedCount = 0
+  let kickedFromPoolCount = 0
+  let addedCount = 0
+  let restoredCount = 0
 
   await db.transaction(
     'rw',
     [db.discoveredFeeds, db.feedArticles],
     async () => {
-      // 1. 删除该 Feed 的所有旧文章
-      const deletedCount = await db.feedArticles
+      // Phase 10: 1. 获取该 Feed 的所有现有文章
+      const existingArticles = await db.feedArticles
         .where('feedId')
         .equals(feedId)
-        .delete()
-      txLogger.debug(`✓ 删除 ${deletedCount} 篇旧文章`)
-
-      // 2. 批量插入新文章
-      if (newArticles.length > 0) {
-        await db.feedArticles.bulkAdd(newArticles)
-        txLogger.debug(`✓ 插入 ${newArticles.length} 篇新文章`)
+        .toArray()
+      
+      // 2. 构建新文章的 URL 集合（用于快速查找）
+      const newArticleUrls = new Set(newArticles.map(a => a.link))
+      
+      // 3. 标记不在新列表中的文章为 inFeed=false，并踢出推荐池
+      for (const article of existingArticles) {
+        if (!newArticleUrls.has(article.link) && article.inFeed !== false) {
+          // 文章已从 RSS 源中移除
+          await db.feedArticles.update(article.id, {
+            inFeed: false,
+            inPool: false,  // 踢出推荐池
+            metadataUpdatedAt: Date.now()
+          })
+          removedFromFeedCount++
+          
+          if (article.inPool === true) {
+            kickedFromPoolCount++
+          }
+        }
+      }
+      
+      if (removedFromFeedCount > 0) {
+        txLogger.debug(`✓ 标记 ${removedFromFeedCount} 篇文章为 inFeed=false，踢出推荐池 ${kickedFromPoolCount} 篇`)
+      }
+      
+      // 4. 追加新文章（去重 - 跨源检查）
+      const existingUrls = new Set(existingArticles.map(a => a.link))
+      const potentialNewArticles = newArticles.filter(a => !existingUrls.has(a.link))
+      
+      // Phase 10: 检查其他源是否已包含这些文章（跨源去重）
+      const articlesToAdd: FeedArticle[] = []
+      let skippedCrossFeedCount = 0
+      
+      for (const article of potentialNewArticles) {
+        // 检查是否已存在于其他源
+        const existingInOtherFeed = await db.feedArticles
+          .where('link')
+          .equals(article.link)
+          .first()
+        
+        if (existingInOtherFeed) {
+          // 文章已存在于其他源，跳过
+          skippedCrossFeedCount++
+          txLogger.debug(`⏩ 跳过跨源重复文章: ${article.title} (已存在于源 ${existingInOtherFeed.feedId})`)
+        } else {
+          articlesToAdd.push(article)
+        }
+      }
+      
+      if (articlesToAdd.length > 0) {
+        await db.feedArticles.bulkAdd(articlesToAdd)
+        addedCount = articlesToAdd.length
+        txLogger.debug(`✓ 追加 ${addedCount} 篇新文章${skippedCrossFeedCount > 0 ? `，跳过 ${skippedCrossFeedCount} 篇跨源重复` : ''}`)
+      } else if (skippedCrossFeedCount > 0) {
+        txLogger.debug(`⏩ 所有 ${skippedCrossFeedCount} 篇文章均为跨源重复，已跳过`)
+      }
+      
+      // 5. 将之前标记为 inFeed=false 但现在又出现的文章恢复为 inFeed=true
+      const articlesToRestore = existingArticles.filter(a => 
+        newArticleUrls.has(a.link) && a.inFeed === false
+      )
+      
+      if (articlesToRestore.length > 0) {
+        for (const article of articlesToRestore) {
+          await db.feedArticles.update(article.id, {
+            inFeed: true,
+            metadataUpdatedAt: Date.now()
+          })
+        }
+        restoredCount = articlesToRestore.length
+        txLogger.debug(`✓ 恢复 ${restoredCount} 篇文章为 inFeed=true`)
       }
 
-      // 3. 更新 Feed 元数据
+      // 6. 更新 Feed 元数据
       await db.discoveredFeeds.update(feedId, {
         ...feedUpdates,
         lastFetchedAt: Date.now(),
-        articleCount: newArticles.length
+        articleCount: existingArticles.length + addedCount
       })
       txLogger.debug('✓ 已更新 Feed 元数据')
     }
   )
 
-  txLogger.info('Feed 更新成功（事务完成）')
+  txLogger.info(`Feed 更新成功（新增 ${addedCount}，移除 ${removedFromFeedCount}，踢出池 ${kickedFromPoolCount}，恢复 ${restoredCount}）`)
 }
 
 /**

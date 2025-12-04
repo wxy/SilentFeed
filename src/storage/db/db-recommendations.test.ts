@@ -397,6 +397,46 @@ describe('Phase 2.7 推荐功能', () => {
     it('应该返回未读推荐（按时间倒序）', async () => {
       const now = Date.now()
       
+      // Phase 10: 创建对应的 feedArticles
+      await db.feedArticles.bulkAdd([
+        {
+          id: 'article-1',
+          feedId: 'feed-1',
+          link: 'https://example.com/1',
+          title: '推荐 1',
+          published: now - 3000,
+          fetched: now,
+          read: false,
+          starred: false,
+          inFeed: true,   // 在源中
+          inPool: true    // 在推荐池中
+        },
+        {
+          id: 'article-2',
+          feedId: 'feed-1',
+          link: 'https://example.com/2',
+          title: '推荐 2',
+          published: now - 2000,
+          fetched: now,
+          read: true,
+          starred: false,
+          inFeed: true,
+          inPool: true
+        },
+        {
+          id: 'article-3',
+          feedId: 'feed-1',
+          link: 'https://example.com/3',
+          title: '推荐 3',
+          published: now - 1000,
+          fetched: now,
+          read: false,
+          starred: false,
+          inFeed: true,   // 在源中
+          inPool: true    // 在推荐池中
+        }
+      ])
+      
       await db.recommendations.bulkAdd([
         {
           id: '1',
@@ -443,6 +483,22 @@ describe('Phase 2.7 推荐功能', () => {
 
     it('应该限制返回数量', async () => {
       const now = Date.now()
+      
+      // Phase 10: 创建对应的 feedArticles
+      await db.feedArticles.bulkAdd(
+        Array.from({ length: 100 }, (_, i) => ({
+          id: `article-${i}`,
+          feedId: 'feed-1',
+          link: `https://example.com/${i}`,
+          title: `推荐 ${i}`,
+          published: now - i * 1000,
+          fetched: now,
+          read: false,
+          starred: false,
+          inFeed: true,   // 在源中
+          inPool: true    // 在推荐池中
+        }))
+      )
       
       await db.recommendations.bulkAdd(
         Array.from({ length: 100 }, (_, i) => ({

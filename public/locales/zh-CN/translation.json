@@ -303,7 +303,15 @@
         "read": "已阅读",
         "disliked": "不想读",
         "analyzed": "已分析",
-        "unanalyzed": "未分析"
+        "unanalyzed": "未分析",
+        "articleCountTooltip": "当前在源中: {{inFeed}} 篇 / 历史总计: {{total}} 篇",
+        "articleCountSimpleTooltip": "当前在源中: {{count}} 篇",
+        "recommendedTooltip": "已推荐但未操作",
+        "readTooltip": "已阅读",
+        "dislikedTooltip": "不想读",
+        "totalRecommendedTooltip": "历史推荐总数（所有曾推荐过的文章）",
+        "totalDislikedTooltip": "历史不想读总数（所有标记为不想读的文章）",
+        "allHistorical": "全部历史"
       },
       "openXML": "查看原始 XML",
       "languages": {

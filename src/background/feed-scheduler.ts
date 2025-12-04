@@ -211,39 +211,77 @@ export async function fetchFeed(feed: DiscoveredFeed): Promise<boolean> {
     }
     
     // 8. 更新数据库（使用事务保证数据一致性）
+    // Phase 10: 实现增量追加策略，不删除旧文章
     await db.transaction('rw', [db.discoveredFeeds, db.feedArticles], async () => {
-      // 8.2 更新 feedArticles 表（Phase 7: 数据库规范化）
-      // 策略：只处理属于当前 Feed 的文章，避免影响其他 Feed 的相同文章
+      // 8.2 更新 feedArticles 表（Phase 10: 增量追加 + inFeed 状态管理）
       
-      // 获取该 Feed 当前的所有文章
+      // 获取该 Feed 当前的所有文章（包括 inFeed=false 的旧文章）
       const currentArticles = await db.feedArticles.where('feedId').equals(feed.id).toArray()
-      const currentIds = new Set(currentArticles.map(a => a.id))
       const latestIds = new Set(latest.map(a => a.id))
       
       // 检查哪些文章已经存在于数据库（可能属于其他 Feed）
       const existingArticles = await db.feedArticles.bulkGet(latest.map(a => a.id))
       
-      // 1. 分类处理文章
-      const articlesToUpdate: FeedArticle[] = []  // 属于当前 Feed，需要更新
+      // 1. 分类处理最新抓取的文章
       const articlesToInsert: FeedArticle[] = []  // 完全不存在，需要插入
+      const articlesToUpdate: FeedArticle[] = []  // 已存在，需要更新元数据
       const ownedArticles: FeedArticle[] = []     // 真正属于当前 Feed 的文章（用于 latestArticles）
+      
+      const now = Date.now()
       
       latest.forEach((article, index) => {
         const existing = existingArticles[index]
         
         if (!existing) {
-          // 文章不存在，可以安全插入
-          articlesToInsert.push(article)
+          // 文章不存在，插入并标记 inFeed=true
+          articlesToInsert.push({
+            ...article,
+            inFeed: true,
+            lastSeenInFeed: now,
+            metadataUpdatedAt: now,
+            updateCount: 0
+          })
           ownedArticles.push(article)
         } else if (existing.feedId === feed.id) {
-          // 文章存在且属于当前 Feed，可以安全更新
-          articlesToUpdate.push(article)
-          ownedArticles.push(article)
+          // 文章存在且属于当前 Feed，只更新元数据，保留用户操作状态
+          articlesToUpdate.push({
+            ...existing,  // 保留所有旧数据
+            // 只更新可能变化的元数据字段
+            title: article.title,
+            description: article.description,
+            content: article.content,
+            author: article.author,
+            published: article.published,
+            // 保留用户操作状态：read, disliked, recommended, starred
+            // 更新 RSS 源状态
+            inFeed: true,
+            lastSeenInFeed: now,
+            metadataUpdatedAt: now,
+            updateCount: (existing.updateCount || 0) + 1
+          })
+          // ownedArticles 需要合并用户状态（用于 latestArticles 字段）
+          ownedArticles.push({
+            ...article,
+            read: existing.read,
+            disliked: existing.disliked,
+            recommended: existing.recommended,
+            starred: existing.starred
+          })
         }
         // 如果文章存在但属于其他 Feed，跳过（不计入当前 Feed 的统计）
       })
       
-      // 2. 批量操作
+      // 2. 标记不在最新列表中的文章为 inFeed=false（但不删除）
+      // Phase 10: 保留已推荐的文章（inPool=true），不标记为 inFeed=false
+      const articlesToMarkStale = currentArticles
+        .filter(a => !latestIds.has(a.id) && !a.inPool)  // 不在最新列表 && 不在推荐池
+        .map(a => ({
+          ...a,
+          inFeed: false,
+          metadataUpdatedAt: now
+        }))
+      
+      // 3. 批量操作
       if (articlesToInsert.length > 0) {
         await db.feedArticles.bulkAdd(articlesToInsert)
       }
@@ -252,16 +290,11 @@ export async function fetchFeed(feed: DiscoveredFeed): Promise<boolean> {
         await db.feedArticles.bulkPut(articlesToUpdate)
       }
       
-      // 3. 清理该 Feed 中不在最新列表的旧文章
-      const articlesToDelete = currentArticles
-        .filter(a => !latestIds.has(a.id))
-        .map(a => a.id)
-      
-      if (articlesToDelete.length > 0) {
-        await db.feedArticles.bulkDelete(articlesToDelete)
+      if (articlesToMarkStale.length > 0) {
+        await db.feedArticles.bulkPut(articlesToMarkStale)
       }
       
-      // 4. 计算真实的文章统计（只包含真正属于当前 Feed 的文章）
+      // 4. 计算真实的文章统计（只包含 inFeed=true 的文章）
       const realTotalCount = ownedArticles.length
       const realUnreadCount = ownedArticles.filter(a => !a.read).length
       

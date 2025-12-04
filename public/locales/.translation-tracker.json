@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-12-01T05:01:34.781Z",
+  "lastUpdate": "2025-12-04T10:12:29.669Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -16323,6 +16323,426 @@
         "value": "Please test the connection first",
         "hash": "8051a9a2",
         "lastModified": "2025-12-01T05:01:34.268Z",
+        "status": "ai-translated"
+      }
+    },
+    "popup.translating": {
+      "zh-CN": {
+        "value": "翻译中...",
+        "hash": "2d109803",
+        "lastModified": "2025-12-04T09:45:14.097Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Translating...",
+        "hash": "d03e9973",
+        "lastModified": "2025-12-04T09:45:14.098Z",
+        "status": "ai-translated"
+      }
+    },
+    "popup.openInGoogleTranslate": {
+      "zh-CN": {
+        "value": "通过谷歌翻译打开",
+        "hash": "7e24325f",
+        "lastModified": "2025-12-04T09:45:15.935Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Open via Google Translate",
+        "hash": "7ee96811",
+        "lastModified": "2025-12-04T09:45:15.935Z",
+        "status": "ai-translated"
+      }
+    },
+    "popup.clickToTranslate": {
+      "zh-CN": {
+        "value": "点击访问翻译为{{language}}的版本",
+        "hash": "7b68e48a",
+        "lastModified": "2025-12-04T09:45:17.775Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Click to visit the version translated into {{language}}",
+        "hash": "3e079c57",
+        "lastModified": "2025-12-04T09:45:17.775Z",
+        "status": "ai-translated"
+      }
+    },
+    "languages.en": {
+      "zh-CN": {
+        "value": "英文",
+        "hash": "f9fb6a06",
+        "lastModified": "2025-12-04T09:45:20.043Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Translate the following Chinese into English:",
+        "hash": "71cbd8bc",
+        "lastModified": "2025-12-04T09:45:20.043Z",
+        "status": "ai-translated"
+      }
+    },
+    "languages.zh": {
+      "zh-CN": {
+        "value": "中文",
+        "hash": "a7bac223",
+        "lastModified": "2025-12-04T09:45:22.081Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Translate the following Chinese into English:",
+        "hash": "71cbd8bc",
+        "lastModified": "2025-12-04T09:45:22.081Z",
+        "status": "ai-translated"
+      }
+    },
+    "languages.zh_cn": {
+      "zh-CN": {
+        "value": "简体中文",
+        "hash": "d688a3a4",
+        "lastModified": "2025-12-04T09:45:24.024Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Translate the following Chinese text into English:\nSimplified Chinese",
+        "hash": "f0f4c4d4",
+        "lastModified": "2025-12-04T09:45:24.024Z",
+        "status": "ai-translated"
+      }
+    },
+    "languages.zh_tw": {
+      "zh-CN": {
+        "value": "繁体中文",
+        "hash": "dd16f5f4",
+        "lastModified": "2025-12-04T09:45:25.825Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Traditional Chinese",
+        "hash": "d0bb8c23",
+        "lastModified": "2025-12-04T09:45:25.825Z",
+        "status": "ai-translated"
+      }
+    },
+    "languages.ja": {
+      "zh-CN": {
+        "value": "日语",
+        "hash": "671c0d80",
+        "lastModified": "2025-12-04T09:45:27.403Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Japanese",
+        "hash": "f32ced6a",
+        "lastModified": "2025-12-04T09:45:27.403Z",
+        "status": "ai-translated"
+      }
+    },
+    "languages.ko": {
+      "zh-CN": {
+        "value": "韩语",
+        "hash": "bf3c5b2d",
+        "lastModified": "2025-12-04T09:45:29.454Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Korean",
+        "hash": "d0bdb3cd",
+        "lastModified": "2025-12-04T09:45:29.454Z",
+        "status": "ai-translated"
+      }
+    },
+    "languages.es": {
+      "zh-CN": {
+        "value": "西班牙语",
+        "hash": "d43fa139",
+        "lastModified": "2025-12-04T09:45:31.062Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Spanish",
+        "hash": "cb5480c3",
+        "lastModified": "2025-12-04T09:45:31.062Z",
+        "status": "ai-translated"
+      }
+    },
+    "languages.fr": {
+      "zh-CN": {
+        "value": "法语",
+        "hash": "8607ec08",
+        "lastModified": "2025-12-04T09:45:32.931Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "French",
+        "hash": "ad225f70",
+        "lastModified": "2025-12-04T09:45:32.931Z",
+        "status": "ai-translated"
+      }
+    },
+    "languages.de": {
+      "zh-CN": {
+        "value": "德语",
+        "hash": "a9f4df3d",
+        "lastModified": "2025-12-04T09:45:34.571Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "German",
+        "hash": "86bc3115",
+        "lastModified": "2025-12-04T09:45:34.571Z",
+        "status": "ai-translated"
+      }
+    },
+    "languages.ru": {
+      "zh-CN": {
+        "value": "俄语",
+        "hash": "fc909679",
+        "lastModified": "2025-12-04T09:45:36.163Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Russian",
+        "hash": "deba6920",
+        "lastModified": "2025-12-04T09:45:36.163Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.preview.openOrToggle": {
+      "zh-CN": {
+        "value": "打开或切换预览",
+        "hash": "ed75718d",
+        "lastModified": "2025-12-04T09:45:38.942Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Open or switch preview",
+        "hash": "46f35058",
+        "lastModified": "2025-12-04T09:45:38.942Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.actions.rename": {
+      "zh-CN": {
+        "value": "重命名",
+        "hash": "c8ce4b36",
+        "lastModified": "2025-12-04T09:45:40.479Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Rename",
+        "hash": "904a8304",
+        "lastModified": "2025-12-04T09:45:40.479Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.actions.parseError": {
+      "zh-CN": {
+        "value": "OPML 文件解析失败",
+        "hash": "739d3638",
+        "lastModified": "2025-12-04T09:45:42.056Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "OPML file parsing failed",
+        "hash": "69260095",
+        "lastModified": "2025-12-04T09:45:42.056Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.actions.importFailed": {
+      "zh-CN": {
+        "value": "OPML 导入失败",
+        "hash": "428460cc",
+        "lastModified": "2025-12-04T09:45:43.796Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "OPML import failed",
+        "hash": "2426066a",
+        "lastModified": "2025-12-04T09:45:43.796Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.actions.exportFailed": {
+      "zh-CN": {
+        "value": "OPML 导出失败",
+        "hash": "44d926cf",
+        "lastModified": "2025-12-04T09:45:45.455Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "OPML export failed",
+        "hash": "53e281b8",
+        "lastModified": "2025-12-04T09:45:45.455Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.actions.revalidationFailed": {
+      "zh-CN": {
+        "value": "RSS 源重新验证失败，已删除",
+        "hash": "f31f36ea",
+        "lastModified": "2025-12-04T09:45:48.189Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "RSS feed revalidation failed, deleted",
+        "hash": "62c753c5",
+        "lastModified": "2025-12-04T09:45:48.189Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.actions.renameFailed": {
+      "zh-CN": {
+        "value": "重命名失败，请稍后重试",
+        "hash": "c3306116",
+        "lastModified": "2025-12-04T09:45:49.932Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Rename failed, please try again later.",
+        "hash": "45b192d5",
+        "lastModified": "2025-12-04T09:45:49.932Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.stats.totalRecommendedTooltip": {
+      "zh-CN": {
+        "value": "历史推荐总数（所有曾推荐过的文章）",
+        "hash": "15aee3f3",
+        "lastModified": "2025-12-04T09:45:51.652Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Total Historical Recommendations (All articles ever recommended)",
+        "hash": "db88848e",
+        "lastModified": "2025-12-04T09:45:51.652Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.stats.totalDislikedTooltip": {
+      "zh-CN": {
+        "value": "历史不想读总数（所有标记为不想读的文章）",
+        "hash": "b0d6a69e",
+        "lastModified": "2025-12-04T09:45:53.825Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Total Unread History (All articles marked as unread)",
+        "hash": "43aed24b",
+        "lastModified": "2025-12-04T09:45:53.825Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.stats.allHistorical": {
+      "zh-CN": {
+        "value": "全部历史",
+        "hash": "e1a960d9",
+        "lastModified": "2025-12-04T09:45:55.460Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "All history",
+        "hash": "388aeeda",
+        "lastModified": "2025-12-04T09:45:55.460Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.models.o4-mini.name": {
+      "zh-CN": {
+        "value": "o4-mini",
+        "hash": "9c414615",
+        "lastModified": "2025-12-04T09:45:57.204Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "o4-mini",
+        "hash": "9c414615",
+        "lastModified": "2025-12-04T09:45:57.205Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.models.o4-mini.description": {
+      "zh-CN": {
+        "value": "推理模型，擅长复杂推理任务",
+        "hash": "139be6ee",
+        "lastModified": "2025-12-04T09:45:59.247Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Reasoning model, excels at complex reasoning tasks",
+        "hash": "8bfd0896",
+        "lastModified": "2025-12-04T09:45:59.247Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.stats.articleCountTooltip": {
+      "zh-CN": {
+        "value": "当前在源中: {{inFeed}} 篇 / 历史总计: {{total}} 篇",
+        "hash": "bcacec89",
+        "lastModified": "2025-12-04T10:12:21.530Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Currently in source: {{inFeed}} articles / Historical total: {{total}} articles",
+        "hash": "27f9b8f3",
+        "lastModified": "2025-12-04T10:12:21.531Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.stats.articleCountSimpleTooltip": {
+      "zh-CN": {
+        "value": "当前在源中: {{count}} 篇",
+        "hash": "0366f920",
+        "lastModified": "2025-12-04T10:12:23.488Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Currently in source: {{count}} articles",
+        "hash": "d738377d",
+        "lastModified": "2025-12-04T10:12:23.489Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.stats.recommendedTooltip": {
+      "zh-CN": {
+        "value": "已推荐但未操作",
+        "hash": "10a6c722",
+        "lastModified": "2025-12-04T10:12:25.459Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Recommended but not operated",
+        "hash": "010f306e",
+        "lastModified": "2025-12-04T10:12:25.459Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.stats.readTooltip": {
+      "zh-CN": {
+        "value": "已阅读",
+        "hash": "6a37684e",
+        "lastModified": "2025-12-04T10:12:27.199Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Read",
+        "hash": "7a1a5f3e",
+        "lastModified": "2025-12-04T10:12:27.199Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.stats.dislikedTooltip": {
+      "zh-CN": {
+        "value": "不想读",
+        "hash": "68c2a967",
+        "lastModified": "2025-12-04T10:12:29.154Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Don't want to read",
+        "hash": "5425d4b7",
+        "lastModified": "2025-12-04T10:12:29.155Z",
         "status": "ai-translated"
       }
     }
