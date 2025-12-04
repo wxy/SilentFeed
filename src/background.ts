@@ -295,12 +295,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               }
               
               // 2. 使用 RSSValidator 验证并获取元数据
-              bgLogger.debug('验证 RSS 源:', feed.url)
               const result = await RSSValidator.validateURL(feed.url)
               
               if (!result.valid || !result.metadata) {
                 // 404 等错误静默跳过，不干扰用户
-                bgLogger.debug('验证失败，已跳过:', feed.url)
                 continue
               }
               

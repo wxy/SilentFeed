@@ -88,7 +88,6 @@ export async function translateRecommendation(
       }
     }
 
-    translationLogger.info(`推荐 ${recommendation.id} 已翻译: ${titleResult.sourceLanguage} → ${targetLanguage}`)
     return translatedRecommendation
   } catch (error) {
     translationLogger.error('翻译推荐失败:', error)
@@ -133,8 +132,6 @@ export async function translateRecommendations(
 export async function translateOnDemand(
   recommendation: Recommendation
 ): Promise<Recommendation> {
-  translationLogger.info(`即时翻译推荐: ${recommendation.id}`)
-  
   try {
     const translated = await translateRecommendation(recommendation)
     
@@ -144,7 +141,6 @@ export async function translateOnDemand(
       await db.recommendations.update(recommendation.id, {
         translation: translated.translation
       })
-      translationLogger.debug(`推荐 ${recommendation.id} 翻译已保存到数据库`)
     }
     
     return translated

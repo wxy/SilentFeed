@@ -150,7 +150,7 @@
     - public/locales/zh-CN/translation.json（添加 o4-mini 翻译）
     - public/locales/en/translation.json（添加 o4-mini 翻译）
   - **测试**: 所有测试通过 (1401 passed, 1 skipped)
-- [ ] ```
+- [x] ```
  [LocalAIEndpoint] legacy 接口返回 2 个模型
  [LocalAIEndpoint] ✅ 成功获取 2 个模型: deepseek-llm:7b, llama3.1:latest
  [ErrorHandler] [AIConfig.decryptApiKey] 操作失败: InvalidCharacterError: Failed to execute 'atob' on 'Window': The string to be decoded is not correctly encoded.
@@ -165,5 +165,37 @@ error @ options.526298b9.js:40044了解此错误
  [AIConfig] Failed to decrypt API key, using as-is 
 warn @ options.526298b9.js:40039了解此警告
  [RecommendationConfig] 配置已保存: Object
-```
-- [ ] #file:translation.json  #file:translation.json 下存在对象键重复问题，应该合并同一个键下面相同的子键的内容。
+``` （已修复 2025-12-04）
+  - **根本原因**: decryptApiKey 在某些边缘情况下仍可能接收到非 Base64 格式的输入
+  - **解决方案**: 
+    1. 增强 Base64 格式检测的正则表达式
+    2. 使用 withErrorHandlingSync 包装 atob 调用
+    3. 解密失败时使用原始值作为 fallback
+    4. 记录 warning 而非 error，避免干扰用户
+  - **影响**: 该错误不影响功能，现在已静默处理
+- [x] 翻译相关的日志过多，影响控制台可读性（已修复 2025-12-04）
+  - **问题详情**:
+    - RecommendationView: `检测到需要即时翻译: rec-xxx`
+    - recommendation-translator: `即时翻译推荐: rec-xxx`, `推荐 rec-xxx 已翻译: en → zh-CN`, `推荐 rec-xxx 翻译已保存到数据库`
+    - TranslationService: `翻译完成: en -> zh-CN`
+    - RecommendationService: `✅ 翻译完成`
+  - **解决方案**:
+    - 删除 RecommendationView.tsx 中的即时翻译检测日志（-1行）
+    - 删除 recommendation-translator.ts 中的即时翻译、翻译完成、保存数据库日志（-3行）
+    - 删除 TranslationService.ts 中的翻译完成日志（-2行）
+    - 删除 RecommendationService.ts 中的翻译完成日志（-1行）
+  - **影响**: 清理 7 行翻译相关日志，保留错误日志便于问题排查
+  - **问题详情**:
+    - zh-CN/translation.json: 
+      - `errors` 键重复（行 238 和 316）- 在 rssManager 中
+    - en/translation.json:
+      - `preview` 键重复（行 1088 和 1194）- 在 rssManager 中
+      - `actions` 键重复（行 1091 和其他位置）- 在 rssManager 中
+      - `errors` 键重复（行 1094, 1119, 1152, 1197）- 在 rssManager 中
+  - **解决方案**:
+    1. 删除前面不完整的重复键定义
+    2. 将缺失的子键（如 `rename`, `renameFailed`, `openOrToggle`）合并到后面的完整定义中
+    3. 保持对象结构的一致性
+  - **副作用修复**: 
+    - 修复 source-analysis.ts 中错误的 FeedItem 导入路径
+    - 从 `@/core/rss/RSSFetcher` 导入（正确）而非 `@/storage/db/db-feeds`（错误）
