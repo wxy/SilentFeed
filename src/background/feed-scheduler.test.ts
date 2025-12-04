@@ -534,13 +534,24 @@ describe('feed-scheduler', () => {
         feed.id,
         expect.objectContaining({
           lastFetchedAt: expect.any(Number),
-          nextScheduledFetch: expect.any(Number),  // ✅ 新增字段
-          updateFrequency: expect.any(Number),     // ✅ 新增字段
+          nextScheduledFetch: expect.any(Number),
+          updateFrequency: expect.any(Number),
           lastError: undefined,
           articleCount: 1,
           unreadCount: 1
-          // 注意：不再检查 recommendedCount，它由 updateFeedStats() 统计
         })
+      )
+      
+      // Phase 10: 验证新增文章带有正确的 inFeed 状态
+      expect(db.feedArticles.bulkAdd).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            inFeed: true,
+            lastSeenInFeed: expect.any(Number),
+            metadataUpdatedAt: expect.any(Number),
+            updateCount: 0
+          })
+        ])
       )
     })
     
@@ -576,6 +587,148 @@ describe('feed-scheduler', () => {
           lastError: 'Network error'
         })
       )
+    })
+    
+    // Phase 10: 新增测试 - 验证 inFeed 状态管理
+    it('应该将不在最新列表的文章标记为 inFeed=false', async () => {
+      const feed: DiscoveredFeed = {
+        id: 'test-feed',
+        url: 'https://example.com/feed.xml',
+        title: 'Test Feed',
+        discoveredFrom: 'https://example.com',
+        discoveredAt: Date.now(),
+        status: 'subscribed',
+        isActive: true,
+        articleCount: 0,
+        unreadCount: 0,
+        recommendedCount: 0
+      }
+      
+      // Mock 现有文章（有一篇旧文章不在最新列表中）
+      const oldArticle: FeedArticle = {
+        id: 'https://example.com/old',
+        feedId: 'test-feed',
+        title: 'Old Article',
+        link: 'https://example.com/old',
+        published: Date.now() - 7 * 24 * 60 * 60 * 1000,
+        fetched: Date.now(),
+        read: false,
+        starred: false,
+        inFeed: true,
+        inPool: false  // 不在推荐池
+      }
+      
+      vi.mocked(db.feedArticles.where).mockReturnValue({
+        equals: vi.fn().mockReturnValue({
+          toArray: vi.fn().mockResolvedValue([oldArticle])
+        })
+      } as any)
+      
+      vi.mocked(db.feedArticles.bulkGet).mockResolvedValue([undefined])  // 新文章不存在
+      
+      vi.mocked(db.discoveredFeeds.get).mockResolvedValue({
+        ...feed,
+        articleCount: 1,
+        unreadCount: 1
+      })
+      
+      // Mock RSS 抓取返回新文章
+      const RSSFetcherModule = await import('../core/rss/RSSFetcher')
+      const mockFetch = (RSSFetcherModule as any).__getMockFetch()
+      mockFetch.mockResolvedValueOnce({
+        success: true,
+        items: [
+          {
+            title: 'New Article',
+            link: 'https://example.com/new',
+            description: 'Description',
+            pubDate: new Date()
+          }
+        ],
+        feedInfo: {
+          title: 'Test Feed'
+        }
+      })
+      
+      await fetchFeed(feed)
+      
+      // 验证旧文章被标记为 inFeed=false
+      expect(db.feedArticles.bulkPut).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: 'https://example.com/old',
+            inFeed: false,
+            metadataUpdatedAt: expect.any(Number)
+          })
+        ])
+      )
+    })
+    
+    // Phase 10: 新增测试 - 保护推荐池中的文章
+    it('应该保护推荐池中的文章不被标记为 inFeed=false', async () => {
+      const feed: DiscoveredFeed = {
+        id: 'test-feed',
+        url: 'https://example.com/feed.xml',
+        title: 'Test Feed',
+        discoveredFrom: 'https://example.com',
+        discoveredAt: Date.now(),
+        status: 'subscribed',
+        isActive: true,
+        articleCount: 0,
+        unreadCount: 0,
+        recommendedCount: 0
+      }
+      
+      // Mock 现有文章（有一篇在推荐池中的旧文章）
+      const recommendedArticle: FeedArticle = {
+        id: 'https://example.com/recommended',
+        feedId: 'test-feed',
+        title: 'Recommended Article',
+        link: 'https://example.com/recommended',
+        published: Date.now() - 7 * 24 * 60 * 60 * 1000,
+        fetched: Date.now(),
+        read: false,
+        starred: false,
+        inFeed: true,
+        inPool: true  // 在推荐池中
+      }
+      
+      vi.mocked(db.feedArticles.where).mockReturnValue({
+        equals: vi.fn().mockReturnValue({
+          toArray: vi.fn().mockResolvedValue([recommendedArticle])
+        })
+      } as any)
+      
+      vi.mocked(db.feedArticles.bulkGet).mockResolvedValue([undefined])
+      
+      vi.mocked(db.discoveredFeeds.get).mockResolvedValue({
+        ...feed,
+        articleCount: 1,
+        unreadCount: 1
+      })
+      
+      // Mock RSS 抓取返回空列表（模拟文章已从源中移除）
+      const RSSFetcherModule = await import('../core/rss/RSSFetcher')
+      const mockFetch = (RSSFetcherModule as any).__getMockFetch()
+      mockFetch.mockResolvedValueOnce({
+        success: true,
+        items: [],
+        feedInfo: {
+          title: 'Test Feed'
+        }
+      })
+      
+      await fetchFeed(feed)
+      
+      // 验证推荐池中的文章没有被标记为 inFeed=false
+      const bulkPutCalls = vi.mocked(db.feedArticles.bulkPut).mock.calls
+      const markedStale = bulkPutCalls.some(call => 
+        call[0].some((article: any) => 
+          article.id === 'https://example.com/recommended' && article.inFeed === false
+        )
+      )
+      
+      expect(markedStale).toBe(false)
     })
   })
   
