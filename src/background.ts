@@ -22,15 +22,6 @@ bgLogger.info('Silent Feed Background Service Worker 已启动')
 // Phase 5.2: 初始化图标管理器
 let iconManager: IconManager | null = null
 
-// 开发环境下加载调试工具
-if (process.env.NODE_ENV === 'development') {
-  import('./debug/generate-interest-changes').then(() => {
-    bgLogger.info('🔧 开发调试工具已加载')
-  }).catch(error => {
-    bgLogger.error('❌ 加载调试工具失败:', error)
-  })
-}
-
 /**
  * RSS 发现查看状态
  * 用于追踪用户是否已查看过 RSS 发现
@@ -73,12 +64,8 @@ async function updateBadge(): Promise<void> {
     const feedManager = new FeedManager()
     const candidateFeeds = await feedManager.getFeeds('candidate')
     
-    bgLogger.info(`🔍 RSS 发现检查: candidateFeeds=${candidateFeeds.length}, viewed=${rssDiscoveryViewed}`)
-    
     // 2. 正常图标逻辑（先设置基础状态）
     const pageCount = await getPageCount()
-    
-    bgLogger.info(`📊 updateBadge 检查: pageCount=${pageCount}, LEARNING_COMPLETE=${LEARNING_COMPLETE_PAGES}`)
     
     if (pageCount < LEARNING_COMPLETE_PAGES) {
       // 学习阶段：显示进度遮罩
@@ -87,22 +74,14 @@ async function updateBadge(): Promise<void> {
     } else {
       // 推荐阶段：显示推荐波纹
       const unreadRecs = await getUnreadRecommendations(50)
-      // ⚠️ 注意：unreadCount 是图标波纹动画的数量（最多3条），不是总推荐数
-      // - 图标上最多显示3个波纹表示有推荐
-      // - 实际弹窗内的推荐条目数由 config.maxRecommendations 控制（通常是5条）
       const unreadCount = Math.min(unreadRecs.length, 3)  // 最多3条波纹
-      bgLogger.info(`🔔 推荐阶段: unreadRecs.length=${unreadRecs.length}, unreadCount=${unreadCount}`)
-      iconManager.setBadgeState(LEARNING_COMPLETE_PAGES, unreadCount)  // 批量更新：学习完成 + 推荐数
-      bgLogger.debug(`📬 未读推荐：${unreadCount} (图标波纹数，实际推荐数=${unreadRecs.length})`)
+      iconManager.setBadgeState(LEARNING_COMPLETE_PAGES, unreadCount)
     }
     
     // 3. RSS 发现动画（优先级最高，会覆盖上面的状态）
     if (candidateFeeds.length > 0 && !rssDiscoveryViewed) {
-      // 启动 RSS 发现动画（会覆盖推荐/学习进度显示）
       iconManager.startDiscoverAnimation()
-      bgLogger.info(`📡 启动 RSS 发现动画 (${candidateFeeds.length} 个源) - 覆盖基础状态`)
     } else {
-      // 停止发现动画(如果在播放)
       iconManager.stopDiscoverAnimation()
     }
   } catch (error) {

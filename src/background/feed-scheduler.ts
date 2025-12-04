@@ -75,7 +75,6 @@ export function shouldFetch(feed: DiscoveredFeed, forceManual = false): boolean 
   
   // 3. 手动抓取时忽略时间和频率限制
   if (forceManual) {
-    console.log('[FeedScheduler] 强制手动抓取:', feed.title)
     return true
   }
   
@@ -144,8 +143,6 @@ export function mergeArticles(
  * @returns 是否抓取成功
  */
 export async function fetchFeed(feed: DiscoveredFeed): Promise<boolean> {
-  console.log('[FeedScheduler] 开始抓取:', feed.title)
-  
   const fetcher = new RSSFetcher()
   
   try {
@@ -212,13 +209,6 @@ export async function fetchFeed(feed: DiscoveredFeed): Promise<boolean> {
       // 转换为篇/周
       updateFrequency = (newArticles.length / latest.length) * 7
     }
-    
-    console.log('[FeedScheduler] 📅 调度信息:', {
-      feed: feed.title,
-      fetchInterval: `${(fetchInterval / (60 * 60 * 1000)).toFixed(1)} 小时`,
-      nextScheduledFetch: new Date(nextScheduledFetch).toLocaleString(),
-      updateFrequency: `${updateFrequency.toFixed(1)} 篇/周`
-    })
     
     // 8. 更新数据库（使用事务保证数据一致性）
     await db.transaction('rw', [db.discoveredFeeds, db.feedArticles], async () => {
@@ -296,18 +286,10 @@ export async function fetchFeed(feed: DiscoveredFeed): Promise<boolean> {
     // 计算跨 Feed 共享的文章数量
     const sharedArticlesCount = latest.length - (updatedFeed?.articleCount || 0)
     
-    console.log('[FeedScheduler] ✅ 抓取成功:', {
-      feed: feed.title,
-      抓取到的文章: newArticles.length,
-      独属文章: updatedFeed?.articleCount || 0,
-      跨Feed共享: sharedArticlesCount > 0 ? sharedArticlesCount : undefined,
-      已分析: updatedFeed?.analyzedCount || 0,
-      已推荐: updatedFeed?.recommendedCount || 0,
-      已阅读: updatedFeed?.readCount || 0,
-      不想读: updatedFeed?.dislikedCount || 0,
-      未读: updatedFeed?.unreadCount || 0,
-      保留数量: keepCount
-    })
+    // 简要日志：显示抓取结果
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[FeedScheduler] ✅ ${feed.title}: ${newArticles.length} 新 / ${updatedFeed?.unreadCount || 0} 未读`)
+    }
     
     return true
     
@@ -344,7 +326,6 @@ export class FeedScheduler {
       return
     }
     
-    console.log('[FeedScheduler] 🚀 启动调度器（检查间隔:', intervalMinutes, '分钟）')
     
     // 立即执行一次
     this.runOnce()
@@ -371,7 +352,6 @@ export class FeedScheduler {
     }
     
     this.isRunning = false
-    console.log('[FeedScheduler] 🛑 调度器已停止')
   }
   
   /**
@@ -385,7 +365,6 @@ export class FeedScheduler {
     skipped: number
     failed: number
   }> {
-    console.log('[FeedScheduler] 🔍 检查需要抓取的源...')
     
     // 1. 获取所有已订阅的源
     const subscribedFeeds = await db.discoveredFeeds
@@ -393,16 +372,13 @@ export class FeedScheduler {
       .equals('subscribed')
       .toArray()
     
-    console.log('[FeedScheduler] 已订阅源数量:', subscribedFeeds.length)
     
     // 2. 筛选需要抓取的源
     const feedsToFetch = subscribedFeeds.filter(feed => shouldFetch(feed))
     
-    console.log('[FeedScheduler] 需要抓取的源:', {
-      total: subscribedFeeds.length,
-      needFetch: feedsToFetch.length,
-      skipped: subscribedFeeds.length - feedsToFetch.length
-    })
+    if (feedsToFetch.length > 0 && process.env.NODE_ENV === 'development') {
+      console.log(`[FeedScheduler] 将抓取 ${feedsToFetch.length}/${subscribedFeeds.length} 个源`)
+    }
     
     // 3. 并发抓取（最多 5 个）
     const results = {
@@ -427,7 +403,6 @@ export class FeedScheduler {
       })
     }
     
-    console.log('[FeedScheduler] ✅ 抓取完成:', results)
     
     return results
   }
@@ -438,7 +413,6 @@ export class FeedScheduler {
    * 用于测试或用户手动刷新
    */
   async triggerNow(): Promise<void> {
-    console.log('[FeedScheduler] 🔄 手动触发抓取...')
     await this.runOnce()
   }
   
@@ -453,24 +427,14 @@ export class FeedScheduler {
     skipped: number
     failed: number
   }> {
-    console.log('[FeedScheduler] 📡 手动抓取所有源...')
-    
     // 1. 获取所有已订阅的源
     const subscribedFeeds = await db.discoveredFeeds
       .where('status')
       .equals('subscribed')
       .toArray()
     
-    console.log('[FeedScheduler] 已订阅源数量:', subscribedFeeds.length)
-    
     // 2. 强制抓取所有启用的源（忽略时间和频率限制）
     const feedsToFetch = subscribedFeeds.filter(feed => shouldFetch(feed, true))
-    
-    console.log('[FeedScheduler] 强制抓取的源:', {
-      total: subscribedFeeds.length,
-      needFetch: feedsToFetch.length,
-      skipped: subscribedFeeds.length - feedsToFetch.length
-    })
     
     // 3. 并发抓取（最多 5 个）
     const results = {
@@ -495,7 +459,6 @@ export class FeedScheduler {
       })
     }
     
-    console.log('[FeedScheduler] ✅ 手动抓取完成:', results)
     
     return results
   }

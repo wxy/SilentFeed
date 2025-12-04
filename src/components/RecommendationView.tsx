@@ -81,14 +81,6 @@ export function RecommendationView() {
   const [hasRSSFeeds, setHasRSSFeeds] = useState(false)
   const [isReady, setIsReady] = useState(false)
   
-  // 🔍 调试：监控推荐列表变化
-  useEffect(() => {
-    recViewLogger.debug('🔍 组件渲染 - 推荐列表:', {
-      数量: recommendations.length,
-      列表: recommendations.map(r => ({ id: r.id, title: r.title.substring(0, 20) }))
-    })
-  }, [recommendations])
-
   // 加载推荐配置
   useEffect(() => {
     const loadConfig = async () => {

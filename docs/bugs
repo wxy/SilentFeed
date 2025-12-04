@@ -166,3 +166,4 @@ error @ options.526298b9.js:40044了解此错误
 warn @ options.526298b9.js:40039了解此警告
  [RecommendationConfig] 配置已保存: Object
 ```
+- [ ] #file:translation.json  #file:translation.json 下存在对象键重复问题，应该合并同一个键下面相同的子键的内容。

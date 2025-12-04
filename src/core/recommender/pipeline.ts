@@ -152,14 +152,6 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
       }
 
       // Phase 6: 新流程 - TF-IDF 初筛 → 逐篇处理（低分跳过，高分 AI 分析）
-      console.log('[Pipeline] 📊 开始推荐流程:', {
-        输入文章: articles.length,
-        浏览历史: visitHistory.length,
-        已推荐: alreadyRecommended.length,
-        目标数量: maxRecommendations,
-        TF阈值: tfidfThreshold,
-        质量阈值: qualityThreshold
-      })
       
       // Phase 6: 新策略 - 逐篇抓取全文 + TF-IDF 评分 + 高分送 AI
       // 优势：
@@ -175,7 +167,6 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
       const filteredArticles = articles.filter(article => {
         const publishDate = article.pubDate ? new Date(article.pubDate) : new Date()
         if (publishDate < cutoffDate) {
-          console.log(`[Pipeline] ⏭️  跳过过旧文章 (发布于 ${publishDate.toLocaleDateString()}): ${article.title}`)
           return false
         }
         return true
@@ -183,7 +174,6 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
       
       const skippedOldArticles = articles.length - filteredArticles.length
       if (skippedOldArticles > 0) {
-        console.log(`[Pipeline] 📅 已过滤 ${skippedOldArticles} 篇超过 ${DAYS_LIMIT} 天的文章`)
       }
       
       this.updateProgress('tfidf', 0.1, '开始逐篇抓取和评分...')
@@ -251,14 +241,12 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
             
             // 达到推荐数量，提前退出
             if (recommendedArticles.length >= maxRecommendations) {
-              console.log(`[Pipeline] 🎯 已找到 ${maxRecommendations} 篇高质量推荐`)
               break
             }
           }
         }
       }
       
-      console.log(`[Pipeline] 📊 处理完成: 评分 ${processedCount} 篇, 跳过 ${skippedLowScore} 篇低分, AI 分析 ${aiAnalyzedCount} 篇, 推荐 ${recommendedArticles.length} 篇`)
       
       this.stats.processed!.tfidfFiltered = processedCount
       this.stats.processed!.aiScored = aiAnalyzedCount

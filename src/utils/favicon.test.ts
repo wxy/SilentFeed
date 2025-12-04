@@ -1,5 +1,16 @@
-import { describe, it, expect } from 'vitest'
-import { getFaviconUrl } from './favicon'
+import { describe, it, expect, beforeAll, vi } from 'vitest'
+import { getFaviconUrl, handleFaviconError } from './favicon'
+
+// Mock chrome.runtime.getURL
+const mockGetURL = vi.fn((path: string) => `chrome-extension://mock-id/${path}`)
+
+beforeAll(() => {
+  global.chrome = {
+    runtime: {
+      getURL: mockGetURL
+    }
+  } as any
+})
 
 describe('Favicon 工具', () => {
   describe('getFaviconUrl', () => {
@@ -31,19 +42,45 @@ describe('Favicon 工具', () => {
       expect(faviconUrl).toBe('https://www.google.com/s2/favicons?domain=example.com&sz=32')
     })
     
-    it('应该处理无效 URL 并返回默认图标', () => {
+    it('应该处理无效 URL 并返回扩展图标', () => {
       const invalidUrl = 'not a url'
       const faviconUrl = getFaviconUrl(invalidUrl)
       
-      expect(faviconUrl).toContain('data:image/svg+xml')
-      expect(faviconUrl).toContain('🌐')
+      expect(faviconUrl).toBe('chrome-extension://mock-id/assets/icon.png')
+      expect(mockGetURL).toHaveBeenCalledWith('assets/icon.png')
     })
     
-    it('应该处理空字符串并返回默认图标', () => {
+    it('应该处理空字符串并返回扩展图标', () => {
+      mockGetURL.mockClear()
       const faviconUrl = getFaviconUrl('')
       
-      expect(faviconUrl).toContain('data:image/svg+xml')
-      expect(faviconUrl).toContain('🌐')
+      expect(faviconUrl).toBe('chrome-extension://mock-id/assets/icon.png')
+      expect(mockGetURL).toHaveBeenCalledWith('assets/icon.png')
+    })
+  })
+  
+  describe('handleFaviconError', () => {
+    it('应该将失败的图片替换为扩展图标', () => {
+      const img = document.createElement('img')
+      img.src = 'https://www.google.com/s2/favicons?domain=example.com&sz=32'
+      
+      const event = { currentTarget: img } as React.SyntheticEvent<HTMLImageElement>
+      handleFaviconError(event)
+      
+      expect(img.src).toBe('chrome-extension://mock-id/assets/icon.png')
+      expect(img.onerror).toBeNull()
+    })
+    
+    it('应该防止重复触发错误处理', () => {
+      const img = document.createElement('img')
+      img.src = 'chrome-extension://mock-id/assets/icon.png'
+      const originalSrc = img.src
+      
+      const event = { currentTarget: img } as React.SyntheticEvent<HTMLImageElement>
+      handleFaviconError(event)
+      
+      // src 不应该改变
+      expect(img.src).toBe(originalSrc)
     })
   })
 })

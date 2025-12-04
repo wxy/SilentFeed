@@ -360,15 +360,6 @@ export class RecommendationService {
       ).length
       
       allArticles.push(...unanalyzedArticles)
-      
-      if (totalArticles > 0) {
-        recLogger.info(` 从 ${feed.title} 收集文章:`, {
-          '总数': totalArticles,
-          '未分析': unanalyzedArticles.length,
-          '已分析': analyzedArticles,
-          '其中TF-IDF跳过': tfidfSkippedArticles
-        })
-      }
     }
 
     // 已经按发布时间倒序排序（查询时已处理）

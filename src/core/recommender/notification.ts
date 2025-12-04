@@ -145,20 +145,17 @@ export async function sendRecommendationNotification(
     const config = await getNotificationConfig()
     
     if (!config.enabled) {
-      console.log("[Notification] 通知已禁用")
       return
     }
     
     // 2. 检查静默时段
     if (isQuietHours(config)) {
-      console.log("[Notification] 当前在静默时段，跳过通知")
       return
     }
     
     // 3. 检查最小间隔
     const canSend = await canSendNotification(config)
     if (!canSend) {
-      console.log("[Notification] 距离上次通知时间不足，跳过通知")
       return
     }
     
@@ -189,8 +186,6 @@ export async function sendRecommendationNotification(
       [`notification-url-${notificationId}`]: topRecommendation.url
     })
     
-    console.log(`[Notification] 已发送通知: ${count}条推荐`)
-    
     // 6. 记录发送时间
     await recordNotificationTime()
     
@@ -204,8 +199,6 @@ export async function sendRecommendationNotification(
  * 用于开发阶段验证通知是否正常工作
  */
 export async function testNotification(): Promise<void> {
-  console.log("[Notification] 测试通知...")
-  
   const notificationId = "test-notification"
   const testUrl = "https://example.com"
   
@@ -226,8 +219,6 @@ export async function testNotification(): Promise<void> {
   await chrome.storage.local.set({
     [`notification-url-${notificationId}`]: testUrl
   })
-  
-  console.log("[Notification] 测试通知已发送")
 }
 
 /**
@@ -236,8 +227,6 @@ export async function testNotification(): Promise<void> {
 export function setupNotificationListeners(): void {
   // 点击通知（非按钮区域）- 打开 popup
   chrome.notifications.onClicked.addListener((notificationId) => {
-    console.log("[Notification] 点击通知:", notificationId)
-    
     // 打开popup
     chrome.action.openPopup().catch(() => {
       // 如果无法打开popup（某些Chrome版本限制），则打开选项页
@@ -250,7 +239,6 @@ export function setupNotificationListeners(): void {
   
   // 点击通知按钮
   chrome.notifications.onButtonClicked.addListener(async (notificationId, buttonIndex) => {
-    console.log("[Notification] 点击按钮:", notificationId, buttonIndex)
     
     if (buttonIndex === 0) {
       // "查看"按钮 - 打开推荐文章
@@ -271,8 +259,6 @@ export function setupNotificationListeners(): void {
       }
     } else if (buttonIndex === 1) {
       // "不想看"按钮 - 仅关闭通知
-      console.log("[Notification] 用户选择不想看")
-      
       // 未来优化: 可以记录用户不感兴趣，优化推荐算法
       
       // 清理存储
@@ -285,8 +271,6 @@ export function setupNotificationListeners(): void {
   
   // 通知关闭
   chrome.notifications.onClosed.addListener(async (notificationId, byUser) => {
-    console.log("[Notification] 通知关闭:", notificationId, "用户主动:", byUser)
-    
     // 清理存储
     await chrome.storage.local.remove(`notification-url-${notificationId}`)
   })

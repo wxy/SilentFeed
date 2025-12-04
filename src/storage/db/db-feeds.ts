@@ -73,21 +73,6 @@ export async function updateFeedStats(feedUrl: string): Promise<void> {
       currentDislikedCount,      // 当前文章中不想读的数量（用于UI显示）
       currentRecommendedReadCount  // 当前推荐文章中已读的数量（用于UI显示）
     })
-    
-    dbLogger.debug('更新 RSS 源统计:', {
-      feedUrl,
-      feedTitle: feed.title,
-      总文章数: totalCount,
-      已分析: analyzedCount,
-      当前推荐: currentRecommendedCount,
-      当前推荐已读: currentRecommendedReadCount,
-      当前不想读: currentDislikedCount,
-      已阅读: readCount,
-      未读: unreadCount,
-      历史推荐总数: recommendedCount,
-      历史不想读总数: dislikedCount,
-      历史推荐已读: recommendedReadCount
-    })
   } catch (error) {
     dbLogger.error('更新 RSS 源统计失败:', error)
   }

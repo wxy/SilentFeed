@@ -123,7 +123,6 @@ function normalizeURL(url: string): string | null {
 async function sendRSSLinksToBackground(feeds: RSSLink[]): Promise<void> {
   if (feeds.length === 0) return
   
-  console.log(`[RSS Detector] 发现 ${feeds.length} 个候选 RSS 源，发送到 background 验证...`)
   
   try {
     await chrome.runtime.sendMessage({
@@ -136,7 +135,6 @@ async function sendRSSLinksToBackground(feeds: RSSLink[]): Promise<void> {
       },
     })
     
-    console.log(`[RSS Detector] 已发送 ${feeds.length} 个候选源`, feeds)
   } catch (error) {
     // Background script 可能未运行，静默失败
     console.warn("[RSS Detector] 发送消息失败:", error)
