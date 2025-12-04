@@ -22,7 +22,9 @@ import {
   getAIAnalysisStats,
   db,
   getPageCount,
-  getRecommendationFunnel
+  getRecommendationFunnel,
+  getFeedStats,
+  type FeedStats
 } from "@/storage/db"
 import { dataMigrator } from "@/core/migrator/DataMigrator"
 import { ProfileUpdateScheduler } from "@/core/profile/ProfileUpdateScheduler"
@@ -32,6 +34,7 @@ import { getAIConfig, getProviderDisplayName } from "@/storage/ai-config"
 import { logger } from "@/utils/logger"
 import { AIUsageTracker } from "@/core/ai/AIUsageTracker"
 import type { AIUsageStats } from "@/types/ai-usage"
+import { FeedSpiderChart } from "./FeedSpiderChart"
 
 const collectionLogger = logger.withTag("CollectionStats")
 
@@ -127,6 +130,9 @@ export function CollectionStats() {
     learningPages: number
     dismissed: number
   } | null>(null)
+  
+  // Phase 11: 订阅源蛛网图
+  const [feedStats, setFeedStats] = useState<FeedStats[]>([])
 
   useEffect(() => {
     const loadStats = async () => {
@@ -136,7 +142,8 @@ export function CollectionStats() {
           aiConfig,
           currentPageCount,
           funnelData,
-          usageStats
+          usageStats,
+          feedsData
         ] = await Promise.all([
           getStorageStats(),
           getAIConfig(),
@@ -146,13 +153,15 @@ export function CollectionStats() {
             usageStatsPeriod === '30days'
               ? { startTime: Date.now() - 30 * 24 * 60 * 60 * 1000 }
               : undefined  // undefined 表示全部数据
-          )
+          ),
+          getFeedStats()
         ])
         
         setStats(storageData)
         setPageCount(currentPageCount)
         setRecommendationFunnel(funnelData)
         setAiUsageStats(usageStats)
+        setFeedStats(feedsData)
         
         // 设置 AI 配置状态
         setAiConfigStatus({
@@ -1319,6 +1328,24 @@ export function CollectionStats() {
               </div>
             </div>
           </div>
+        )}
+      </div>
+
+      {/* 订阅源质量蛛网图 (Phase 11) */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <span>🕸️</span>
+          <span>{_("options.collectionStats.feedSpiderSectionTitle")}</span>
+        </h2>
+
+        {feedStats.length === 0 ? (
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border-2 border-dashed border-gray-300 dark:border-gray-600">
+            <p className="text-center text-gray-500 dark:text-gray-400 text-sm">
+              {_("options.collectionStats.feedSpiderNoData")}
+            </p>
+          </div>
+        ) : (
+          <FeedSpiderChart stats={feedStats} size={600} showLabels={true} />
         )}
       </div>
 

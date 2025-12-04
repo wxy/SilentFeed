@@ -487,3 +487,11 @@ export {
   getRSSArticleCount,
   getRecommendationFunnel
 } from './db-stats'
+
+// RSS 订阅源统计模块（db-feeds-stats.ts）- Phase 11
+export {
+  getFeedStats,
+  arrangeSymmetrically,
+  normalizeLogarithmic
+} from './db-feeds-stats'
+export type { FeedStats } from './db-feeds-stats'

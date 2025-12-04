@@ -24,6 +24,7 @@ vi.mock('@/storage/db', () => ({
     learningPages: 0,
     dismissed: 0,
   })),
+  getFeedStats: vi.fn(async () => []),
   db: {
     pendingVisits: { clear: vi.fn() },
     confirmedVisits: { clear: vi.fn() },
