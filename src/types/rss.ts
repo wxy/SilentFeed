@@ -106,10 +106,34 @@ export interface FeedArticle {
     provider: string
   }
   tfidfScore?: number
-  recommended?: boolean
-  read: boolean
-  disliked?: boolean  // Phase 7: 标记不想读
-  starred: boolean
+  
+  // ===== 用户操作状态 =====
+  recommended?: boolean   // 是否曾被推荐
+  read: boolean          // 是否已读
+  disliked?: boolean     // 是否不想读
+  starred: boolean       // 是否收藏
+  
+  // ===== 推荐池管理 (Phase 8: 文章持久化重构) =====
+  inPool?: boolean               // 是否在推荐池中（候选）
+  poolAddedAt?: number           // 加入推荐池时间
+  poolRemovedAt?: number         // 移出推荐池时间
+  poolRemovedReason?: 'read' | 'disliked' | 'replaced' | 'expired'
+  
+  // ===== RSS 源状态管理 (Phase 8) =====
+  inFeed?: boolean               // 是否仍在 RSS 源中
+  lastSeenInFeed?: number        // 最后一次在 RSS 源中出现的时间
+  
+  // ===== 软删除 (Phase 8) =====
+  deleted?: boolean              // 软删除标记
+  deletedAt?: number             // 删除时间
+  deleteReason?: 'cleanup' | 'user' | 'feed_removed'
+  
+  // ===== 元数据更新追踪 (Phase 8) =====
+  metadataUpdatedAt?: number     // 元数据最后更新时间
+  updateCount?: number           // 更新次数
+  
+  // ===== 重要性评分 (Phase 8) =====
+  importance?: number            // 重要性评分 0-100，用于清理决策
 }
 
 /**
