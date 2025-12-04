@@ -63,7 +63,7 @@ export async function migrateRecommendationStatus(): Promise<{
         
         if (articles.length === 0) {
           // 文章不存在（可能是跨 Feed 的文章或已被删除）
-          migrationLogger.debug(`文章不存在: ${url}`)
+          // 这是正常情况，不记录日志避免干扰
           continue
         }
         
@@ -272,6 +272,12 @@ export async function runFullMigration(): Promise<boolean> {
     }
     migrationLogger.info(`✅ 步骤 2/2 完成: 计算 ${importanceResult.processed} 篇文章的重要性评分`)
     
+    // 步骤 3: 标记迁移完成
+    await db.settings.update('singleton', { 
+      migrations: { phase10Completed: true } 
+    })
+    migrationLogger.info('✅ 已设置迁移完成标记')
+    
     migrationLogger.info('✅ Phase 10 数据迁移全部完成')
     return true
     
@@ -286,29 +292,45 @@ export async function runFullMigration(): Promise<boolean> {
  * 
  * 通过检查特定标记来判断迁移是否已执行
  */
+/**
+ * 检查是否需要运行 Phase 10 迁移
+ * 
+ * Phase 10: 使用 settings 表记录迁移状态，避免每次启动都运行
+ */
 export async function needsMigration(): Promise<boolean> {
   try {
-    // 检查是否有文章缺少新字段
-    const article = await db.feedArticles.limit(1).first()
-    
-    if (!article) {
-      // 没有文章，不需要迁移
-      migrationLogger.debug('无文章数据，跳过迁移检查')
+    // 1. 检查迁移标记
+    const settings = await db.settings.get('singleton')
+    if (settings?.migrations?.phase10Completed === true) {
+      migrationLogger.debug('Phase 10 迁移已完成，跳过')
       return false
     }
     
-    // 如果任何新字段缺失，需要迁移
-    const needsMigration = (
+    // 2. 检查是否有文章数据
+    const articleCount = await db.feedArticles.count()
+    if (articleCount === 0) {
+      migrationLogger.debug('无文章数据，标记迁移已完成')
+      await db.settings.update('singleton', { 
+        migrations: { phase10Completed: true } 
+      })
+      return false
+    }
+    
+    // 3. 采样检查是否有文章缺少新字段（检查前10篇）
+    const sampleArticles = await db.feedArticles.limit(10).toArray()
+    const needsMigration = sampleArticles.some(article => 
       article.inFeed === undefined ||
       article.inPool === undefined ||
-      article.deleted === undefined ||
-      article.importance === undefined
+      article.deleted === undefined
     )
     
     if (needsMigration) {
       migrationLogger.info('检测到需要数据迁移（缺少 Phase 10 新字段）')
     } else {
-      migrationLogger.debug('数据已是最新版本，无需迁移')
+      migrationLogger.debug('数据已是最新版本，标记迁移已完成')
+      await db.settings.update('singleton', { 
+        migrations: { phase10Completed: true } 
+      })
     }
     
     return needsMigration

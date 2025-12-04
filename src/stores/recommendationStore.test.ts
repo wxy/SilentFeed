@@ -58,6 +58,36 @@ describe('RecommendationStore', () => {
 
   describe('loadRecommendations', () => {
     it('应该加载未读推荐', async () => {
+      const now = Date.now()
+      
+      // Phase 10: 先创建对应的 feedArticles
+      await db.feedArticles.bulkAdd([
+        {
+          id: 'article-1',
+          feedId: 'feed-1',
+          link: 'https://example.com/1',
+          title: '推荐 1',
+          published: now,
+          fetched: now,
+          read: false,
+          starred: false,
+          inFeed: true,   // 在源中
+          inPool: true    // 在推荐池中
+        },
+        {
+          id: 'article-2',
+          feedId: 'feed-1',
+          link: 'https://example.com/2',
+          title: '推荐 2',
+          published: now - 1000,
+          fetched: now,
+          read: false,
+          starred: false,
+          inFeed: true,
+          inPool: true
+        }
+      ])
+      
       // 准备测试数据
       const testRecommendations: Recommendation[] = [
         {
@@ -67,7 +97,7 @@ describe('RecommendationStore', () => {
           summary: '摘要 1',
           source: 'Source',
           sourceUrl: 'https://source.com',
-          recommendedAt: Date.now(),
+          recommendedAt: now,
           score: 0.9,
           isRead: false
         },
@@ -78,7 +108,7 @@ describe('RecommendationStore', () => {
           summary: '摘要 2',
           source: 'Source',
           sourceUrl: 'https://source.com',
-          recommendedAt: Date.now() - 1000,
+          recommendedAt: now - 1000,
           score: 0.8,
           isRead: false
         }
@@ -98,6 +128,36 @@ describe('RecommendationStore', () => {
     })
 
     it('应该只加载未读推荐', async () => {
+      const now = Date.now()
+      
+      // Phase 10: 先创建对应的 feedArticles
+      await db.feedArticles.bulkAdd([
+        {
+          id: 'article-1',
+          feedId: 'feed-1',
+          link: 'https://example.com/1',
+          title: '未读推荐',
+          published: now,
+          fetched: now,
+          read: false,
+          starred: false,
+          inFeed: true,
+          inPool: true
+        },
+        {
+          id: 'article-2',
+          feedId: 'feed-1',
+          link: 'https://example.com/2',
+          title: '已读推荐',
+          published: now - 1000,
+          fetched: now,
+          read: false,
+          starred: false,
+          inFeed: true,
+          inPool: true
+        }
+      ])
+      
       await db.recommendations.bulkAdd([
         {
           id: '1',
@@ -150,6 +210,22 @@ describe('RecommendationStore', () => {
 
   describe('refreshStats', () => {
     it('应该刷新推荐统计', async () => {
+      const now = Date.now()
+      
+      // Phase 10: 先创建对应的 feedArticle
+      await db.feedArticles.add({
+        id: 'article-1',
+        feedId: 'feed-1',
+        link: 'https://example.com/1',
+        title: '推荐 1',
+        published: now,
+        fetched: now,
+        read: false,
+        starred: false,
+        inFeed: true,
+        inPool: true
+      })
+      
       // 准备测试数据
       await db.recommendations.add({
         id: '1',
@@ -180,6 +256,36 @@ describe('RecommendationStore', () => {
 
   describe('markAsRead', () => {
     it('应该标记推荐为已读并从列表移除', async () => {
+      const now = Date.now()
+      
+      // Phase 10: 先创建对应的 feedArticles
+      await db.feedArticles.bulkAdd([
+        {
+          id: 'article-1',
+          feedId: 'feed-1',
+          link: 'https://example.com/1',
+          title: '推荐 1',
+          published: now,
+          fetched: now,
+          read: false,
+          starred: false,
+          inFeed: true,
+          inPool: true
+        },
+        {
+          id: 'article-2',
+          feedId: 'feed-1',
+          link: 'https://example.com/2',
+          title: '推荐 2',
+          published: now - 1000,
+          fetched: now,
+          read: false,
+          starred: false,
+          inFeed: true,
+          inPool: true
+        }
+      ])
+      
       // 准备测试数据
       await db.recommendations.bulkAdd([
         {
@@ -227,6 +333,36 @@ describe('RecommendationStore', () => {
 
   describe('dismissAll', () => {
     it('应该标记所有推荐为"不想读"', async () => {
+      const now = Date.now()
+      
+      // Phase 10: 先创建对应的 feedArticles
+      await db.feedArticles.bulkAdd([
+        {
+          id: 'article-1',
+          feedId: 'feed-1',
+          link: 'https://example.com/1',
+          title: '推荐 1',
+          published: now,
+          fetched: now,
+          read: false,
+          starred: false,
+          inFeed: true,
+          inPool: true
+        },
+        {
+          id: 'article-2',
+          feedId: 'feed-1',
+          link: 'https://example.com/2',
+          title: '推荐 2',
+          published: now - 1000,
+          fetched: now,
+          read: false,
+          starred: false,
+          inFeed: true,
+          inPool: true
+        }
+      ])
+      
       // 准备测试数据
       await db.recommendations.bulkAdd([
         {
@@ -285,6 +421,48 @@ describe('RecommendationStore', () => {
 
   describe('dismissSelected', () => {
     it('应该标记选中推荐为"不想读"', async () => {
+      const now = Date.now()
+      
+      // Phase 10: 先创建对应的 feedArticles
+      await db.feedArticles.bulkAdd([
+        {
+          id: 'article-1',
+          feedId: 'feed-1',
+          link: 'https://example.com/1',
+          title: '推荐 1',
+          published: now,
+          fetched: now,
+          read: false,
+          starred: false,
+          inFeed: true,
+          inPool: true
+        },
+        {
+          id: 'article-2',
+          feedId: 'feed-1',
+          link: 'https://example.com/2',
+          title: '推荐 2',
+          published: now - 1000,
+          fetched: now,
+          read: false,
+          starred: false,
+          inFeed: true,
+          inPool: true
+        },
+        {
+          id: 'article-3',
+          feedId: 'feed-1',
+          link: 'https://example.com/3',
+          title: '推荐 3',
+          published: now - 2000,
+          fetched: now,
+          read: false,
+          starred: false,
+          inFeed: true,
+          inPool: true
+        }
+      ])
+      
       // 准备测试数据
       await db.recommendations.bulkAdd([
         {
@@ -345,6 +523,22 @@ describe('RecommendationStore', () => {
 
   describe('reload', () => {
     it('应该同时重新加载推荐和统计', async () => {
+      const now = Date.now()
+      
+      // Phase 10: 先创建对应的 feedArticle
+      await db.feedArticles.add({
+        id: 'article-1',
+        feedId: 'feed-1',
+        link: 'https://example.com/1',
+        title: '推荐 1',
+        published: now,
+        fetched: now,
+        read: false,
+        starred: false,
+        inFeed: true,
+        inPool: true
+      })
+      
       // 准备测试数据
       await db.recommendations.add({
         id: '1',
@@ -455,7 +649,22 @@ describe('RecommendationStore', () => {
 
   describe('chrome API 交互', () => {
     it('应该在标记已读后通知背景脚本', async () => {
+      const now = Date.now()
       const sendMessageSpy = vi.spyOn(chrome.runtime, 'sendMessage')
+      
+      // Phase 10: 先创建对应的 feedArticle
+      await db.feedArticles.add({
+        id: 'article-1',
+        feedId: 'feed-1',
+        link: 'https://example.com/1',
+        title: '推荐 1',
+        published: now,
+        fetched: now,
+        read: false,
+        starred: false,
+        inFeed: true,
+        inPool: true
+      })
       
       await db.recommendations.add({
         id: '1',
@@ -479,9 +688,24 @@ describe('RecommendationStore', () => {
     })
 
     it('应该处理通知背景脚本失败', async () => {
+      const now = Date.now()
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
       const sendMessageSpy = vi.spyOn(chrome.runtime, 'sendMessage')
         .mockRejectedValue(new Error('Extension context invalidated'))
+      
+      // Phase 10: 先创建对应的 feedArticle
+      await db.feedArticles.add({
+        id: 'article-1',
+        feedId: 'feed-1',
+        link: 'https://example.com/1',
+        title: '推荐 1',
+        published: now,
+        fetched: now,
+        read: false,
+        starred: false,
+        inFeed: true,
+        inPool: true
+      })
       
       await db.recommendations.add({
         id: '1',
@@ -512,7 +736,22 @@ describe('RecommendationStore', () => {
     })
 
     it('应该在dismissSelected后通知背景脚本', async () => {
+      const now = Date.now()
       const sendMessageSpy = vi.spyOn(chrome.runtime, 'sendMessage')
+      
+      // Phase 10: 先创建对应的 feedArticle
+      await db.feedArticles.add({
+        id: 'article-1',
+        feedId: 'feed-1',
+        link: 'https://example.com/1',
+        title: '推荐 1',
+        published: now,
+        fetched: now,
+        read: false,
+        starred: false,
+        inFeed: true,
+        inPool: true
+      })
       
       await db.recommendations.add({
         id: '1',
@@ -536,9 +775,24 @@ describe('RecommendationStore', () => {
     })
 
     it('应该处理dismissSelected通知背景脚本失败', async () => {
+      const now = Date.now()
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
       const sendMessageSpy = vi.spyOn(chrome.runtime, 'sendMessage')
         .mockRejectedValue(new Error('Extension context invalidated'))
+      
+      // Phase 10: 先创建对应的 feedArticle
+      await db.feedArticles.add({
+        id: 'article-1',
+        feedId: 'feed-1',
+        link: 'https://example.com/1',
+        title: '推荐 1',
+        published: now,
+        fetched: now,
+        read: false,
+        starred: false,
+        inFeed: true,
+        inPool: true
+      })
       
       await db.recommendations.add({
         id: '1',
@@ -580,9 +834,25 @@ describe('RecommendationStore', () => {
     })
 
     it('应该在 dismissAll 失败时设置错误', async () => {
+      const now = Date.now()
+      
       // Mock 数据库错误
       const spy = vi.spyOn(db, 'transaction').mockImplementation(() => {
         throw new Error('事务失败')
+      })
+      
+      // Phase 10: 先创建对应的 feedArticle
+      await db.feedArticles.add({
+        id: 'article-1',
+        feedId: 'feed-1',
+        link: 'https://example.com/1',
+        title: '推荐 1',
+        published: now,
+        fetched: now,
+        read: false,
+        starred: false,
+        inFeed: true,
+        inPool: true
       })
       
       // 先加载一些推荐

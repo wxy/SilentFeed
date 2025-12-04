@@ -42,4 +42,9 @@ export interface UserSettings {
     enabled: boolean
     dailyLimit: number
   }
+  
+  /** Phase 10: 数据迁移标记 */
+  migrations?: {
+    phase10Completed?: boolean
+  }
 }
