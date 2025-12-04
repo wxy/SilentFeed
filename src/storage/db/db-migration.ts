@@ -185,9 +185,9 @@ export async function calculateArticleImportance(): Promise<{
         if (article.disliked) score -= 10         // 被拒绝（负分）
         
         // 查找对应的推荐记录（获取更多指标）
+        // Phase 10: url 字段没有索引，使用 filter 替代
         const recs = await db.recommendations
-          .where('url')
-          .equals(article.link)
+          .filter(rec => rec.url === article.link)
           .toArray()
         
         for (const rec of recs) {
