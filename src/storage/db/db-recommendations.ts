@@ -67,10 +67,33 @@ export async function markAsRead(
     }
   }
   
-  const updateCount = await db.recommendations.update(id, updates)
+  await db.transaction('rw', [db.recommendations, db.feedArticles], async () => {
+    // 1. 更新推荐记录
+    await db.recommendations.update(id, updates)
+    
+    // 2. Phase 10: 同步更新 feedArticles 的 inPool 状态
+    try {
+      const article = await db.feedArticles
+        .where('link').equals(recommendation.url)
+        .first()
+      
+      if (article) {
+        const now = Date.now()
+        await db.feedArticles.update(article.id, {
+          read: true,                    // 标记已读
+          inPool: false,                 // Phase 10: 移出推荐池
+          poolRemovedAt: now,
+          poolRemovedReason: 'read'
+        })
+        dbLogger.debug('✅ 已同步更新文章状态: read=true, inPool=false')
+      }
+    } catch (error) {
+      dbLogger.warn('同步更新文章状态失败:', error)
+    }
+  })
+  
   dbLogger.debug('✅ markAsRead 完成:', {
     id,
-    updateCount,
     updates
   })
   
@@ -94,6 +117,7 @@ export async function markAsRead(
  * 标记推荐为"不想读"
  * 
  * Phase 7: 使用软删除，更新 status 为 dismissed
+ * Phase 10: 同步更新 feedArticles 的 inPool 状态
  * 
  * @param ids - 推荐记录 ID 数组
  */
@@ -112,7 +136,7 @@ export async function dismissRecommendations(ids: string[]): Promise<void> {
         replacedAt: now       // Phase 7: 记录标记时间
       })
       
-      // Phase 7: 2. 同步更新 feedArticles 表中的文章状态
+      // 2. Phase 10: 同步更新 feedArticles 表中的文章状态
       const recommendation = await db.recommendations.get(id)
       if (recommendation?.url) {
         try {
@@ -122,9 +146,14 @@ export async function dismissRecommendations(ids: string[]): Promise<void> {
             .first()
           
           if (article) {
-            // 标记文章为不想读
-            await db.feedArticles.update(article.id, { disliked: true })
-            dbLogger.debug('✅ 已同步标记文章为不想读:', article.title)
+            // 标记文章为不想读 + 移出推荐池
+            await db.feedArticles.update(article.id, {
+              disliked: true,
+              inPool: false,                    // Phase 10: 移出推荐池
+              poolRemovedAt: now,
+              poolRemovedReason: 'disliked'
+            })
+            dbLogger.debug('✅ 已同步标记文章为不想读: inPool=false, disliked=true', article.title)
           } else {
             dbLogger.warn('⚠️ 未找到匹配的文章:', recommendation.url)
           }
