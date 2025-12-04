@@ -1335,13 +1335,13 @@ export function CollectionStats() {
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <span>🕸️</span>
-          <span>订阅源质量分布</span>
+          <span>{_("options.collectionStats.feedSpiderSectionTitle")}</span>
         </h2>
 
         {feedStats.length === 0 ? (
           <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border-2 border-dashed border-gray-300 dark:border-gray-600">
             <p className="text-center text-gray-500 dark:text-gray-400 text-sm">
-              暂无订阅源数据
+              {_("options.collectionStats.feedSpiderNoData")}
             </p>
           </div>
         ) : (

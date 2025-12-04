@@ -52,9 +52,9 @@
     }
   },
   "languages": {
-    "en": "Translate the following Chinese into English:",
-    "zh": "Translate the following Chinese into English:",
-    "zh_cn": "Translate the following Chinese text into English:\nSimplified Chinese",
+    "en": "English",
+    "zh": "Chinese",
+    "zh_cn": "Simplified Chinese",
     "zh_tw": "Traditional Chinese",
     "ja": "Japanese",
     "ko": "Korean",
@@ -559,7 +559,22 @@
           "tokensComparison": "Token Usage Comparison",
           "callsUnit": "time"
         }
-      }
+      },
+      "feedSpiderSectionTitle": "Feed Quality Distribution",
+      "feedSpiderTitle": "Spider Chart of Feed Quality",
+      "feedSpiderNoData": "No subscription source data available",
+      "feedSpiderTooManyFeeds": "When there are more than 30 feeds, tags are automatically hidden.",
+      "feedSpiderFooter": "Total {{count}} feeds · Normalized using logarithmic scale",
+      "feedSpiderTotalArticles": "Total Articles",
+      "feedSpiderRecommended": "Total Recommended",
+      "feedSpiderRead": "Total Read",
+      "feedSpiderDisliked": "Total Dismissed",
+      "feedSpiderTooltipTitle": "{{feedTitle}}",
+      "feedSpiderTooltipTotal": "Total Articles: {{count}}",
+      "feedSpiderTooltipRecommended": "Total Recommended: {{count}}",
+      "feedSpiderTooltipRead": "Total Read: {{count}}",
+      "feedSpiderTooltipDisliked": "Total Dismissed: {{count}}",
+      "feedSpiderWorstWarning": "⚠️ Low recommendation count, consider unsubscribing."
     },
     "userProfile": {
       "chat": {

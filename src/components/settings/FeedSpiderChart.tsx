@@ -13,6 +13,7 @@
 import React, { useMemo } from 'react'
 import type { FeedStats } from '@/storage/db/db-feeds-stats'
 import { arrangeSymmetrically, normalizeLogarithmic } from '@/storage/db/db-feeds-stats'
+import { useI18n } from '@/i18n/helpers'
 
 /**
  * 蛛网图组件属性
@@ -29,32 +30,33 @@ interface FeedSpiderChartProps {
 /**
  * 数据层定义（从底层到顶层的顺序）
  * 底层（先绘制）→ 顶层（后绘制）
+ * 注意：label 字段在组件内动态生成（使用 i18n）
  */
 const DATA_LAYERS = [
   { 
     key: 'totalArticles' as const, 
-    label: '文章总数', 
+    labelKey: 'options.collectionStats.feedSpiderTotalArticles',
     color: '#fbbf24', // 黄色
     opacity: 0.2,
     strokeWidth: 0.5
   },
   { 
     key: 'recommendedCount' as const, 
-    label: '推荐总数', 
+    labelKey: 'options.collectionStats.feedSpiderRecommended',
     color: '#10b981', // 绿色
     opacity: 0.3,
     strokeWidth: 0.5
   },
   { 
     key: 'dislikedCount' as const, 
-    label: '不想读总数', 
+    labelKey: 'options.collectionStats.feedSpiderDisliked',
     color: '#ef4444', // 红色
     opacity: 0.4,
     strokeWidth: 0.5
   },
   { 
     key: 'readCount' as const, 
-    label: '阅读总数', 
+    labelKey: 'options.collectionStats.feedSpiderRead',
     color: '#3b82f6', // 蓝色
     opacity: 0.5,
     strokeWidth: 0.5
@@ -132,6 +134,8 @@ export function FeedSpiderChart({
   size = 600,
   showLabels = true
 }: FeedSpiderChartProps) {
+  const { _ } = useI18n() // 使用 i18n
+  
   // 对称排列订阅源
   const arrangedStats = useMemo(() => arrangeSymmetrically(stats), [stats])
   
@@ -162,7 +166,7 @@ export function FeedSpiderChart({
   if (arrangedStats.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
-        暂无订阅源数据
+        {_('options.collectionStats.feedSpiderNoData')}
       </div>
     )
   }
@@ -244,7 +248,7 @@ export function FeedSpiderChart({
                 strokeOpacity={layer.opacity + 0.2}
                 className="transition-opacity hover:fill-opacity-60"
               >
-                <title>{layer.label}</title>
+                <title>{_(layer.labelKey)}</title>
               </path>
             </g>
           )
@@ -263,15 +267,15 @@ export function FeedSpiderChart({
               
               // 构建 tooltip 内容
               const tooltipLines = [
-                `${stat.feedTitle}`,
-                `文章总数: ${stat.totalArticles}`,
-                `推荐总数: ${stat.recommendedCount}`,
-                `阅读总数: ${stat.readCount}`,
-                `不想读总数: ${stat.dislikedCount}`
+                _('options.collectionStats.feedSpiderTooltipTitle', { feedTitle: stat.feedTitle }),
+                _('options.collectionStats.feedSpiderTooltipTotal', { count: stat.totalArticles }),
+                _('options.collectionStats.feedSpiderTooltipRecommended', { count: stat.recommendedCount }),
+                _('options.collectionStats.feedSpiderTooltipRead', { count: stat.readCount }),
+                _('options.collectionStats.feedSpiderTooltipDisliked', { count: stat.dislikedCount })
               ]
               
               if (stat.isWorstPerformer) {
-                tooltipLines.push('', '⚠️ 推荐数较低，建议考虑取消订阅')
+                tooltipLines.push('', _('options.collectionStats.feedSpiderWorstWarning'))
               }
               
               const tooltipText = tooltipLines.join('\n')
@@ -322,7 +326,7 @@ export function FeedSpiderChart({
               }}
             />
             <span className="text-sm text-gray-700 dark:text-gray-300">
-              {layer.label}
+              {_(layer.labelKey)}
             </span>
           </div>
         ))}
@@ -331,12 +335,12 @@ export function FeedSpiderChart({
       {/* 提示信息 */}
       {!autoShowLabels && (
         <div className="mt-2 text-center text-sm text-gray-500 dark:text-gray-400">
-          💡 订阅源超过 30 个，标签已自动隐藏。悬停查看详细信息。
+          {_('options.collectionStats.feedSpiderTooManyFeeds')}
         </div>
       )}
       
       <div className="mt-2 text-center text-xs text-gray-400 dark:text-gray-500">
-        共 {arrangedStats.length} 个订阅源 · 采用对数刻度归一化
+        {_('options.collectionStats.feedSpiderFooter', { count: arrangedStats.length })}
       </div>
     </div>
   )

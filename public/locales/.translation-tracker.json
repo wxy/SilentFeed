@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-12-04T10:12:29.669Z",
+  "lastUpdate": "2025-12-04T16:08:36.285Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -16743,6 +16743,216 @@
         "value": "Don't want to read",
         "hash": "5425d4b7",
         "lastModified": "2025-12-04T10:12:29.155Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.feedSpiderTitle": {
+      "zh-CN": {
+        "value": "订阅源质量蛛网图",
+        "hash": "eba1f0a8",
+        "lastModified": "2025-12-04T15:41:54.842Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Spider Chart of Feed Quality",
+        "hash": "4e4260b7",
+        "lastModified": "2025-12-04T15:41:54.843Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.feedSpiderNoData": {
+      "zh-CN": {
+        "value": "暂无订阅源数据",
+        "hash": "71abc7ab",
+        "lastModified": "2025-12-04T15:41:56.635Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "No subscription source data available",
+        "hash": "30f13a89",
+        "lastModified": "2025-12-04T15:41:56.635Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.feedSpiderTooManyFeeds": {
+      "zh-CN": {
+        "value": "订阅源超过 30 个，标签已自动隐藏",
+        "hash": "58e9bc9b",
+        "lastModified": "2025-12-04T15:41:58.630Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "When there are more than 30 feeds, tags are automatically hidden.",
+        "hash": "730a9e6e",
+        "lastModified": "2025-12-04T15:41:58.630Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.feedSpiderFooter": {
+      "zh-CN": {
+        "value": "共 {{count}} 个订阅源 · 采用对数刻度归一化",
+        "hash": "0296e4f3",
+        "lastModified": "2025-12-04T15:42:00.371Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Total {{count}} feeds · Normalized using logarithmic scale",
+        "hash": "83129ad2",
+        "lastModified": "2025-12-04T15:42:00.371Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.feedSpiderTotalArticles": {
+      "zh-CN": {
+        "value": "总计文章数",
+        "hash": "7f4c7f63",
+        "lastModified": "2025-12-04T16:08:22.001Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Total number of articles",
+        "hash": "6167efc3",
+        "lastModified": "2025-12-04T16:08:22.001Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.feedSpiderRecommended": {
+      "zh-CN": {
+        "value": "总计推荐数",
+        "hash": "1b3401cc",
+        "lastModified": "2025-12-04T16:08:25.040Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Total number of recommendations",
+        "hash": "ed836e43",
+        "lastModified": "2025-12-04T16:08:25.041Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.feedSpiderRead": {
+      "zh-CN": {
+        "value": "总计阅读数",
+        "hash": "fb1dca73",
+        "lastModified": "2025-12-04T16:08:26.677Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Total number of reads",
+        "hash": "4d0dabc7",
+        "lastModified": "2025-12-04T16:08:26.677Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.feedSpiderDisliked": {
+      "zh-CN": {
+        "value": "总计不想读数",
+        "hash": "82ccc791",
+        "lastModified": "2025-12-04T16:08:28.470Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Total number of unread messages",
+        "hash": "811005e9",
+        "lastModified": "2025-12-04T16:08:28.471Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.feedSpiderTooltipTitle": {
+      "zh-CN": {
+        "value": "{{feedTitle}}",
+        "hash": "bd5b6d34",
+        "lastModified": "2025-12-04T15:42:09.074Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{feedTitle}}",
+        "hash": "bd5b6d34",
+        "lastModified": "2025-12-04T15:42:09.074Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.feedSpiderTooltipTotal": {
+      "zh-CN": {
+        "value": "总计文章数: {{count}}",
+        "hash": "582b5827",
+        "lastModified": "2025-12-04T16:08:30.260Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Total number of articles: {{count}}",
+        "hash": "e7acb02c",
+        "lastModified": "2025-12-04T16:08:30.260Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.feedSpiderTooltipRecommended": {
+      "zh-CN": {
+        "value": "总计推荐数: {{count}}",
+        "hash": "01ef9edc",
+        "lastModified": "2025-12-04T16:08:32.110Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Total Recommendations: {{count}}",
+        "hash": "78e5c7e5",
+        "lastModified": "2025-12-04T16:08:32.110Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.feedSpiderTooltipRead": {
+      "zh-CN": {
+        "value": "总计阅读数: {{count}}",
+        "hash": "f482aefe",
+        "lastModified": "2025-12-04T16:08:33.744Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Total Reads: {{count}}",
+        "hash": "db79cf78",
+        "lastModified": "2025-12-04T16:08:33.744Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.feedSpiderTooltipDisliked": {
+      "zh-CN": {
+        "value": "总计不想读数: {{count}}",
+        "hash": "e7e74cda",
+        "lastModified": "2025-12-04T16:08:35.772Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Total Unwanted Readings: {{count}}",
+        "hash": "700b3d72",
+        "lastModified": "2025-12-04T16:08:35.772Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.feedSpiderWorstWarning": {
+      "zh-CN": {
+        "value": "⚠️ 推荐数较低，建议考虑取消订阅",
+        "hash": "2dd70800",
+        "lastModified": "2025-12-04T15:42:17.887Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "⚠️ Low recommendation count, consider unsubscribing.",
+        "hash": "c945f8b3",
+        "lastModified": "2025-12-04T15:42:17.888Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.feedSpiderSectionTitle": {
+      "zh-CN": {
+        "value": "订阅源质量分布",
+        "hash": "7fdf606d",
+        "lastModified": "2025-12-04T16:08:20.509Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Feed Quality Distribution",
+        "hash": "5912b223",
+        "lastModified": "2025-12-04T16:08:20.510Z",
         "status": "ai-translated"
       }
     }
