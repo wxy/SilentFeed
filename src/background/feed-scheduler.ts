@@ -213,12 +213,15 @@ export async function fetchFeed(feed: DiscoveredFeed): Promise<boolean> {
       updateFrequency = (newArticles.length / latest.length) * 7
     }
     
-    console.log('[FeedScheduler] 📅 调度信息:', {
-      feed: feed.title,
-      fetchInterval: `${(fetchInterval / (60 * 60 * 1000)).toFixed(1)} 小时`,
-      nextScheduledFetch: new Date(nextScheduledFetch).toLocaleString(),
-      updateFrequency: `${updateFrequency.toFixed(1)} 篇/周`
-    })
+    // 开发环境显示详细调度信息
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[FeedScheduler] 📅 调度信息:', {
+        feed: feed.title,
+        fetchInterval: `${(fetchInterval / (60 * 60 * 1000)).toFixed(1)} 小时`,
+        nextScheduledFetch: new Date(nextScheduledFetch).toLocaleString(),
+        updateFrequency: `${updateFrequency.toFixed(1)} 篇/周`
+      })
+    }
     
     // 8. 更新数据库（使用事务保证数据一致性）
     await db.transaction('rw', [db.discoveredFeeds, db.feedArticles], async () => {
@@ -296,18 +299,24 @@ export async function fetchFeed(feed: DiscoveredFeed): Promise<boolean> {
     // 计算跨 Feed 共享的文章数量
     const sharedArticlesCount = latest.length - (updatedFeed?.articleCount || 0)
     
-    console.log('[FeedScheduler] ✅ 抓取成功:', {
-      feed: feed.title,
-      抓取到的文章: newArticles.length,
-      独属文章: updatedFeed?.articleCount || 0,
-      跨Feed共享: sharedArticlesCount > 0 ? sharedArticlesCount : undefined,
-      已分析: updatedFeed?.analyzedCount || 0,
-      已推荐: updatedFeed?.recommendedCount || 0,
-      已阅读: updatedFeed?.readCount || 0,
-      不想读: updatedFeed?.dislikedCount || 0,
-      未读: updatedFeed?.unreadCount || 0,
-      保留数量: keepCount
-    })
+    // 开发环境显示详细统计
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[FeedScheduler] ✅ 抓取成功:', {
+        feed: feed.title,
+        抓取到的文章: newArticles.length,
+        独属文章: updatedFeed?.articleCount || 0,
+        跨Feed共享: sharedArticlesCount > 0 ? sharedArticlesCount : undefined,
+        已分析: updatedFeed?.analyzedCount || 0,
+        已推荐: updatedFeed?.recommendedCount || 0,
+        已阅读: updatedFeed?.readCount || 0,
+        不想读: updatedFeed?.dislikedCount || 0,
+        未读: updatedFeed?.unreadCount || 0,
+        保留数量: keepCount
+      })
+    } else {
+      // 生产环境只显示简要信息
+      console.log(`[FeedScheduler] ✅ ${feed.title}: ${newArticles.length} 新文章`)
+    }
     
     return true
     
@@ -398,11 +407,14 @@ export class FeedScheduler {
     // 2. 筛选需要抓取的源
     const feedsToFetch = subscribedFeeds.filter(feed => shouldFetch(feed))
     
-    console.log('[FeedScheduler] 需要抓取的源:', {
-      total: subscribedFeeds.length,
-      needFetch: feedsToFetch.length,
-      skipped: subscribedFeeds.length - feedsToFetch.length
-    })
+    // 开发环境显示详细统计
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[FeedScheduler] 需要抓取的源:', {
+        total: subscribedFeeds.length,
+        needFetch: feedsToFetch.length,
+        skipped: subscribedFeeds.length - feedsToFetch.length
+      })
+    }
     
     // 3. 并发抓取（最多 5 个）
     const results = {
@@ -466,11 +478,14 @@ export class FeedScheduler {
     // 2. 强制抓取所有启用的源（忽略时间和频率限制）
     const feedsToFetch = subscribedFeeds.filter(feed => shouldFetch(feed, true))
     
-    console.log('[FeedScheduler] 强制抓取的源:', {
-      total: subscribedFeeds.length,
-      needFetch: feedsToFetch.length,
-      skipped: subscribedFeeds.length - feedsToFetch.length
-    })
+    // 开发环境显示详细统计
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[FeedScheduler] 强制抓取的源:', {
+        total: subscribedFeeds.length,
+        needFetch: feedsToFetch.length,
+        skipped: subscribedFeeds.length - feedsToFetch.length
+      })
+    }
     
     // 3. 并发抓取（最多 5 个）
     const results = {
