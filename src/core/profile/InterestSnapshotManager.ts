@@ -182,197 +182,9 @@ export class InterestSnapshotManager {
     return null
   }
 
-  /**
-   * 获取兴趣变化历史摘要
-   * 
-   * @param limit - 返回最近N次变化（默认5次）
-   * @returns 兴趣变化历史
-   * @deprecated 使用 getEvolutionHistory 替代，可以展示完整演化历程
-   */
-  static async getChangeHistory(limit: number = 5): Promise<{
-    changes: Array<{
-      timestamp: number
-      from: string
-      to: string
-      description: string
-      basedOnPages: number
-    }>
-    totalSnapshots: number
-  }> {
-    try {
-      const allSnapshots = await getInterestHistory(50)
-      const totalSnapshots = allSnapshots.length
 
-      // 只处理主导兴趣变化的快照
-      const changeSnapshots = allSnapshots.filter(s => 
-        s.trigger === 'primary_change' || 
-        (s.trigger === 'manual' && s.changeNote?.includes('首次建立'))
-      )
 
-      const changes: Array<{
-        timestamp: number
-        from: string
-        to: string
-        description: string
-        basedOnPages: number
-      }> = []
 
-      for (let i = 0; i < Math.min(changeSnapshots.length, limit); i++) {
-        const current = changeSnapshots[i]
-        const previous = changeSnapshots[i + 1] // 上一个快照（时间更早）
-
-        const fromTopic = previous?.primaryTopic || '无'
-        const toTopic = current.primaryTopic
-        const fromName = previous ? (TOPIC_NAMES[fromTopic as Topic] || fromTopic) : '无'
-        const toName = TOPIC_NAMES[toTopic as Topic] || toTopic
-
-        changes.push({
-          timestamp: current.timestamp,
-          from: fromName,
-          to: toName,
-          description: current.changeNote || `${fromName} → ${toName}`,
-          basedOnPages: current.basedOnPages
-        })
-      }
-
-      return {
-        changes,
-        totalSnapshots
-      }
-    } catch (error) {
-      console.error('[SnapshotManager] ❌ 获取变化历史失败:', error)
-      return {
-        changes: [],
-        totalSnapshots: 0
-      }
-    }
-  }
-
-  /**
-   * 获取完整的兴趣演化历程
-   * 
-   * 展示所有快照，包括兴趣未变化但强度变化的情况
-   * 
-   * @param limit - 返回最近N个快照（默认10个）
-   * @returns 完整的演化历程
-   */
-  static async getEvolutionHistory(limit: number = 10): Promise<{
-    snapshots: Array<{
-      id: string
-      timestamp: number
-      topic: string
-      topicName: string
-      score: number
-      level: 'absolute' | 'relative' | 'leading'
-      basedOnPages: number
-      description: string
-      isTopicChange: boolean    // 主导兴趣是否变化
-      isLevelChange: boolean    // 主导程度是否变化
-      changeDetails?: string    // 变化详情
-    }>
-    totalSnapshots: number
-  }> {
-    try {
-      const allSnapshots = await getInterestHistory(limit + 1)  // 多取一个用于对比
-      const totalSnapshots = allSnapshots.length
-
-      if (allSnapshots.length === 0) {
-        return { snapshots: [], totalSnapshots: 0 }
-      }
-
-      const snapshots = allSnapshots.slice(0, limit).map((current, index) => {
-        const previous = allSnapshots[index + 1] // 上一个快照（时间更早）
-        const topicName = TOPIC_NAMES[current.primaryTopic as Topic] || current.primaryTopic
-        
-        // 判断是否发生变化
-        const isTopicChange = previous ? current.primaryTopic !== previous.primaryTopic : true
-        const isLevelChange = previous ? current.primaryLevel !== previous.primaryLevel : false
-        
-        // 生成描述
-        let description = ''
-        let changeDetails = ''
-        
-        if (index === allSnapshots.length - 1 || !previous) {
-          // 首个快照
-          description = `首次建立兴趣画像：${topicName}`
-        } else if (isTopicChange) {
-          // 主导兴趣变化
-          const previousTopicName = TOPIC_NAMES[previous.primaryTopic as Topic] || previous.primaryTopic
-          description = `主导兴趣变化：${previousTopicName} → ${topicName}`
-          changeDetails = this.getLevelDescription(current.primaryLevel, current.primaryScore)
-        } else if (isLevelChange) {
-          // 主导程度变化
-          const levelChangeText = this.getLevelChangeText(previous.primaryLevel, current.primaryLevel)
-          description = `${topicName}兴趣强度变化：${levelChangeText}`
-          changeDetails = this.getLevelDescription(current.primaryLevel, current.primaryScore)
-        } else {
-          // 兴趣保持稳定
-          description = `${topicName}兴趣保持稳定`
-          changeDetails = this.getLevelDescription(current.primaryLevel, current.primaryScore)
-        }
-
-        return {
-          id: current.id,
-          timestamp: current.timestamp,
-          topic: current.primaryTopic,
-          topicName,
-          score: current.primaryScore,
-          level: current.primaryLevel,
-          basedOnPages: current.basedOnPages,
-          description,
-          isTopicChange,
-          isLevelChange,
-          changeDetails,
-          // Phase 8.2: 添加 AI 摘要和统计数据
-          aiSummary: current.aiSummary,
-          stats: current.stats,
-          trigger: current.trigger,
-          changeNote: current.changeNote
-        }
-      })
-
-      return {
-        snapshots,
-        totalSnapshots
-      }
-    } catch (error) {
-      console.error('[SnapshotManager] ❌ 获取演化历程失败:', error)
-      return {
-        snapshots: [],
-        totalSnapshots: 0
-      }
-    }
-  }
-
-  /**
-   * 获取主导程度的描述文本
-   */
-  private static getLevelDescription(level: 'absolute' | 'relative' | 'leading', score: number): string {
-    const percentage = Math.round(score * 100)
-    switch (level) {
-      case 'absolute':
-        return `绝对主导 (${percentage}%)`
-      case 'relative':
-        return `相对主导 (${percentage}%)`
-      case 'leading':
-        return `领先主导 (${percentage}%)`
-    }
-  }
-
-  /**
-   * 获取主导程度变化的描述
-   */
-  private static getLevelChangeText(
-    oldLevel: 'absolute' | 'relative' | 'leading',
-    newLevel: 'absolute' | 'relative' | 'leading'
-  ): string {
-    const levelNames = {
-      absolute: '绝对主导',
-      relative: '相对主导',
-      leading: '领先主导'
-    }
-    return `${levelNames[oldLevel]} → ${levelNames[newLevel]}`
-  }
 
   /**
    * 定期清理旧快照
@@ -385,7 +197,6 @@ export class InterestSnapshotManager {
       const allSnapshots = await getInterestHistory(1000)
       
       if (allSnapshots.length <= 10) {
-        console.log('[SnapshotManager] 快照数量较少，跳过清理')
         return
       }
 
@@ -411,7 +222,6 @@ export class InterestSnapshotManager {
       if (toDelete.length > 0) {
         // 这里应该调用数据库删除操作
         // 但目前db.ts还没有删除特定快照的方法，先记录日志
-        console.log(`[SnapshotManager] 需要清理 ${toDelete.length} 个旧快照`)
       }
     } catch (error) {
       console.error('[SnapshotManager] ❌ 清理旧快照失败:', error)
@@ -453,13 +263,6 @@ export class InterestSnapshotManager {
     
     const similarity = union.size > 0 ? intersection.size / union.size : 0
     
-    console.log('[SnapshotManager] 🔍 相似度计算详情', {
-      文本1词数: set1.size,
-      文本2词数: set2.size,
-      交集词数: intersection.size,
-      并集词数: union.size,
-      相似度: (similarity * 100).toFixed(1) + '%'
-    })
     
     return similarity
   }

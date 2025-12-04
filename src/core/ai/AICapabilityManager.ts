@@ -80,9 +80,7 @@ export class AICapabilityManager {
       // Phase 8: 加载 AI 引擎分配配置
       try {
         this.engineAssignment = await getEngineAssignment()
-        aiLogger.info('🎯 Engine assignment loaded:', this.engineAssignment)
       } catch (error) {
-        aiLogger.warn('⚠️ Failed to load engine assignment, using default logic', error)
         this.engineAssignment = null
       }
     } catch (error) {
@@ -113,9 +111,6 @@ export class AICapabilityManager {
       
       if (provider) {
         try {
-          aiLogger.info(`🚀 Analyzing with ${provider.name} (task: ${taskType}, reasoning: ${useReasoning})`)
-          
-          // 将 useReasoning 配置合并到 options 中
           const mergedOptions: AnalyzeOptions = {
             ...options,
             useReasoning: useReasoning || options?.useReasoning || false
@@ -126,8 +121,6 @@ export class AICapabilityManager {
           return result
         } catch (error) {
           aiLogger.error(`❌ Provider ${provider.name} failed for ${taskType}`, error)
-          // 失败后降级到 fallback
-          aiLogger.info("📌 Using fallback provider: Keyword Analysis")
           return await this.fallbackProvider.analyzeContent(content, options)
         }
       } else {
@@ -140,7 +133,6 @@ export class AICapabilityManager {
     const providers = await this.getProviderChain(mode)
     for (const provider of providers) {
       try {
-        aiLogger.info(` Using provider: ${provider.name} (${mode})`)
         const result = await provider.analyzeContent(content, options)
         this.recordUsage(result)
         return result
@@ -149,7 +141,6 @@ export class AICapabilityManager {
       }
     }
 
-    aiLogger.info(" Using fallback provider: Keyword Analysis")
     return await this.fallbackProvider.analyzeContent(content, options)
   }
 
@@ -171,13 +162,8 @@ export class AICapabilityManager {
     
     if (taskProvider && taskProvider.generateUserProfile) {
       try {
-        aiLogger.info(`🎨 Generating user profile with: ${taskProvider.name} (reasoning: ${useReasoning})`)
-        
-        // 将 useReasoning 配置传递给 provider（如果支持）
-        // 注意：当前接口不支持 useReasoning 参数，未来可以扩展
         const result = await taskProvider.generateUserProfile(request)
         if (result.metadata.tokensUsed) {
-          aiLogger.debug('✅ Tokens used:', result.metadata.tokensUsed)
         }
         return result
       } catch (error) {
@@ -207,11 +193,10 @@ export class AICapabilityManager {
 
     // Fallback 逻辑
     if (this.fallbackProvider.generateUserProfile) {
-      aiLogger.info("📌 Using fallback provider for profile generation")
       return await this.fallbackProvider.generateUserProfile(request)
     }
     
-    aiLogger.warn("⚠️ No provider supports profile generation, using basic keyword summary")
+    aiLogger.warn("⚠️ 无可用 AI，使用关键词提取")
     const topKeywords = request.topKeywords.slice(0, 10).map(k => k.word)
     
     return {
@@ -247,7 +232,6 @@ export class AICapabilityManager {
     useReasoning: boolean
   }> {
     if (!this.engineAssignment) {
-      aiLogger.debug(`⚙️ No engine assignment, using default provider for ${taskType}`)
       return {
         provider: this.remoteProvider || this.localProvider,
         useReasoning: false
@@ -264,7 +248,6 @@ export class AICapabilityManager {
     }
 
     const { provider: providerType, useReasoning = false } = engineConfig
-    aiLogger.debug(`🎯 Task ${taskType} → Engine: ${providerType}, Reasoning: ${useReasoning}`)
 
     let provider: AIProvider | null = null
 
@@ -273,7 +256,6 @@ export class AICapabilityManager {
       case "openai":
         provider = this.remoteProvider
         if (!provider) {
-          aiLogger.warn(`⚠️ Remote provider not available for ${providerType}, falling back`)
           provider = this.localProvider
         }
         break
@@ -281,7 +263,6 @@ export class AICapabilityManager {
       case "ollama":
         provider = this.localProvider
         if (!provider) {
-          aiLogger.warn(`⚠️ Local provider not available, falling back to remote`)
           provider = this.remoteProvider
         }
         break

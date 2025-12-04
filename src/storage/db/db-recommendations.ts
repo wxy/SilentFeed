@@ -80,9 +80,7 @@ export async function markAsRead(
   // Phase 6: 立即更新 RSS 源统计（会重新计算 recommendedReadCount）
   // Phase 7 优化: recommendedReadCount 直接从推荐池统计，无需同步 latestArticles
   if (recommendation.sourceUrl) {
-    dbLogger.debug('开始更新 RSS 源统计:', recommendation.sourceUrl)
     await updateFeedStats(recommendation.sourceUrl)
-    dbLogger.debug('✅ RSS 源统计已更新')
   }
   
   // Phase 8.3: 用户阅读行为立即触发画像更新

@@ -239,7 +239,6 @@ export function setupNotificationListeners(): void {
   
   // 点击通知按钮
   chrome.notifications.onButtonClicked.addListener(async (notificationId, buttonIndex) => {
-    console.log("[Notification] 点击按钮:", notificationId, buttonIndex)
     
     if (buttonIndex === 0) {
       // "查看"按钮 - 打开推荐文章

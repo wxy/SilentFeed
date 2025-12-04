@@ -92,7 +92,6 @@ export async function trackPopupOpen(): Promise<void> {
   metrics.popupOpenTimestamps.push(Date.now())
   await saveMetrics(metrics)
   
-  console.log("[AdaptiveMetrics] 记录弹窗打开，当前频率:", calculatePopupFrequency(metrics))
 }
 
 /**
@@ -103,7 +102,6 @@ export async function trackRecommendationClick(): Promise<void> {
   metrics.clickCount++
   await saveMetrics(metrics)
   
-  console.log("[AdaptiveMetrics] 记录推荐点击，点击率:", calculateClickRate(metrics))
 }
 
 /**
@@ -114,7 +112,6 @@ export async function trackDismiss(): Promise<void> {
   metrics.dismissCount++
   await saveMetrics(metrics)
   
-  console.log("[AdaptiveMetrics] 记录不想读，不想读率:", calculateDismissRate(metrics))
 }
 
 /**
@@ -125,7 +122,6 @@ export async function trackDismissAll(): Promise<void> {
   metrics.dismissAllCount++
   await saveMetrics(metrics)
   
-  console.log("[AdaptiveMetrics] 记录全部不想读，累计次数:", metrics.dismissAllCount)
 }
 
 /**
@@ -199,34 +195,28 @@ export async function adjustRecommendationCount(
   // 1. 全部不想读（强信号）- 最近频繁点击
   if (metrics.dismissAllCount >= 3) {
     adjustment -= 2 // 强烈减少
-    console.log("[Adaptive] 全部不想读次数过多，减少2条")
   } else if (metrics.dismissAllCount >= 1) {
     adjustment -= 1 // 减少
-    console.log("[Adaptive] 有全部不想读记录，减少1条")
   }
   
   // 2. 单个不想读率
   if (dismissRate > 0.7) {
     adjustment -= 1 // 不想读率高，减少
-    console.log(`[Adaptive] 不想读率高(${(dismissRate * 100).toFixed(1)}%)，减少1条`)
   }
   
   // 3. 点击率（正向）
   if (clickRate > 0.5) {
     adjustment += 1 // 点击率高，增加
-    console.log(`[Adaptive] 点击率高(${(clickRate * 100).toFixed(1)}%)，增加1条`)
   }
   
   // 4. 弹窗打开频率（正向）
   if (popupFrequency >= 5) {
     adjustment += 1 // 高频打开，增加
-    console.log(`[Adaptive] 弹窗打开频繁(${popupFrequency}次/天)，增加1条`)
   }
   
   // 计算新数量（限制在1-5范围内）
   const newCount = Math.max(1, Math.min(5, currentCount + adjustment))
   
-  console.log(`[Adaptive] 推荐数量调整: ${currentCount} -> ${newCount}`)
   
   return newCount
 }
@@ -244,7 +234,6 @@ export async function evaluateAndAdjust(): Promise<number> {
   
   if (newCount !== config.maxRecommendations) {
     await saveRecommendationConfig({ maxRecommendations: newCount })
-    console.log(`[Adaptive] 推荐数量已更新: ${config.maxRecommendations} -> ${newCount}`)
   }
   
   return newCount
@@ -257,5 +246,4 @@ export async function resetDismissAllCount(): Promise<void> {
   const metrics = await getAdaptiveMetrics()
   metrics.dismissAllCount = 0
   await saveMetrics(metrics)
-  console.log("[AdaptiveMetrics] 已重置全部不想读计数")
 }

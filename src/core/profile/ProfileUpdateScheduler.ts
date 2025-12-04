@@ -40,17 +40,9 @@ export class ProfileUpdateScheduler {
     const timeSinceLastUpdate = Date.now() - this.schedule.lastUpdateTime
     const newPagesCount = currentPageCount - this.schedule.lastUpdatePageCount
 
-    console.log('[ProfileScheduler] 📊 检查更新条件', {
-      当前页面数: currentPageCount,
-      上次更新页面数: this.schedule.lastUpdatePageCount,
-      新增页面: newPagesCount,
-      距上次更新: `${Math.floor(timeSinceLastUpdate / 1000 / 60)}分钟`,
-      是否首次: this.schedule.lastUpdateTime === 0
-    })
 
     // 策略1: 首次更新（有10+页面时）
     if (this.schedule.lastUpdateTime === 0 && currentPageCount >= 10) {
-      console.log('[ProfileScheduler] ✅ 触发首次构建 (≥10页)')
       return {
         shouldUpdate: true,
         reason: '首次构建画像',
@@ -60,7 +52,6 @@ export class ProfileUpdateScheduler {
 
     // 策略2: 积累了足够新页面（5页以上）
     if (newPagesCount >= 5) {
-      console.log(`[ProfileScheduler] ✅ 触发增量更新 (新增${newPagesCount}页)`)
       return {
         shouldUpdate: true,
         reason: `新增${newPagesCount}页面`,
@@ -70,7 +61,6 @@ export class ProfileUpdateScheduler {
 
     // 策略3: 时间间隔够长（6小时以上）且有新内容
     if (timeSinceLastUpdate > 6 * 60 * 60 * 1000 && newPagesCount > 0) {
-      console.log('[ProfileScheduler] ✅ 触发定期更新 (6小时+新内容)')
       return {
         shouldUpdate: true,
         reason: '定期更新',
@@ -80,7 +70,6 @@ export class ProfileUpdateScheduler {
 
     // 策略4: 超过24小时强制更新
     if (timeSinceLastUpdate > 24 * 60 * 60 * 1000) {
-      console.log('[ProfileScheduler] ✅ 触发强制更新 (24小时)')
       return {
         shouldUpdate: true,
         reason: '强制定期更新',
@@ -88,10 +77,6 @@ export class ProfileUpdateScheduler {
       }
     }
 
-    console.log('[ProfileScheduler] ⏭️ 跳过更新', {
-      原因: '未满足任何更新条件',
-      提示: newPagesCount === 0 ? '没有新页面' : `新页面不足(${newPagesCount}<5)`
-    })
 
     return {
       shouldUpdate: false,
@@ -111,7 +96,6 @@ export class ProfileUpdateScheduler {
     if (visit) {
       try {
         await semanticProfileBuilder.onBrowse(visit)
-        console.log('[ProfileScheduler] ✅ 语义画像已更新（浏览）')
       } catch (profileError) {
         console.warn('[ProfileScheduler] 语义画像更新失败（不影响主流程）:', profileError)
       }
@@ -119,18 +103,15 @@ export class ProfileUpdateScheduler {
     
     // 如果正在更新中，跳过
     if (this.schedule.isUpdating) {
-      console.log('[ProfileScheduler] 画像更新中，跳过调度')
       return
     }
 
     const decision = await this.shouldUpdateProfile()
     
     if (!decision.shouldUpdate) {
-      console.log('[ProfileScheduler] 暂不更新画像:', decision.reason)
       return
     }
 
-    console.log(`[ProfileScheduler] 调度画像更新: ${decision.reason} (优先级: ${decision.priority})`)
 
     // 根据优先级决定执行策略
     switch (decision.priority) {
@@ -156,13 +137,11 @@ export class ProfileUpdateScheduler {
    */
   static async executeUpdate(reason: string): Promise<void> {
     if (this.schedule.isUpdating) {
-      console.log('[ProfileScheduler] 画像已在更新中')
       return
     }
 
     try {
       this.schedule.isUpdating = true
-      console.log(`[ProfileScheduler] 开始更新用户画像: ${reason}`)
       
       const startTime = Date.now()
       
@@ -176,7 +155,6 @@ export class ProfileUpdateScheduler {
       this.schedule.pendingUpdateCount = 0
 
       const duration = Date.now() - startTime
-      console.log(`[ProfileScheduler] ✅ 画像更新完成，耗时 ${duration}ms`)
 
     } catch (error) {
       console.error('[ProfileScheduler] ❌ 画像更新失败:', error)
@@ -189,7 +167,6 @@ export class ProfileUpdateScheduler {
    * 手动强制更新（用于设置页面）
    */
   static async forceUpdate(): Promise<void> {
-    console.log('[ProfileScheduler] 手动强制更新画像')
     await this.executeUpdate('手动触发')
   }
 
@@ -202,11 +179,9 @@ export class ProfileUpdateScheduler {
    * @param trigger - 触发原因（'user_read', 'user_dismiss'）
    */
   static async forceUpdateProfile(trigger: string): Promise<void> {
-    console.log(`[ProfileScheduler] 🚀 用户行为触发立即更新: ${trigger}`)
     
     // 防止并发更新
     if (this.schedule.isUpdating) {
-      console.log('[ProfileScheduler] ⏭️ 画像正在更新中，跳过本次触发')
       return
     }
     
@@ -222,7 +197,6 @@ export class ProfileUpdateScheduler {
       
       // 如果分析的页面数太多，可能影响性能
       if (analysisStats.analyzedPages > 1000) {
-        console.log('[ProfileScheduler] 页面数量较多，降低更新频率')
         return Math.random() < 0.3 // 30% 概率执行
       }
 

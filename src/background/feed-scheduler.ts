@@ -326,7 +326,6 @@ export class FeedScheduler {
       return
     }
     
-    console.log('[FeedScheduler] 🚀 启动调度器（检查间隔:', intervalMinutes, '分钟）')
     
     // 立即执行一次
     this.runOnce()
@@ -353,7 +352,6 @@ export class FeedScheduler {
     }
     
     this.isRunning = false
-    console.log('[FeedScheduler] 🛑 调度器已停止')
   }
   
   /**
@@ -367,7 +365,6 @@ export class FeedScheduler {
     skipped: number
     failed: number
   }> {
-    console.log('[FeedScheduler] 🔍 检查需要抓取的源...')
     
     // 1. 获取所有已订阅的源
     const subscribedFeeds = await db.discoveredFeeds
@@ -375,7 +372,6 @@ export class FeedScheduler {
       .equals('subscribed')
       .toArray()
     
-    console.log('[FeedScheduler] 已订阅源数量:', subscribedFeeds.length)
     
     // 2. 筛选需要抓取的源
     const feedsToFetch = subscribedFeeds.filter(feed => shouldFetch(feed))
@@ -407,7 +403,6 @@ export class FeedScheduler {
       })
     }
     
-    console.log('[FeedScheduler] ✅ 抓取完成:', results)
     
     return results
   }
@@ -418,7 +413,6 @@ export class FeedScheduler {
    * 用于测试或用户手动刷新
    */
   async triggerNow(): Promise<void> {
-    console.log('[FeedScheduler] 🔄 手动触发抓取...')
     await this.runOnce()
   }
   
@@ -465,7 +459,6 @@ export class FeedScheduler {
       })
     }
     
-    console.log('[FeedScheduler] ✅ 手动抓取完成:', results)
     
     return results
   }

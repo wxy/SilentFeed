@@ -312,7 +312,6 @@ export class AIStrategyExecutorImpl implements AIStrategyExecutor {
 
   updateStrategy(strategy: Partial<AIIntegrationStrategy>): void {
     this.strategy = { ...this.strategy, ...strategy }
-    console.log('[AIStrategyExecutor] 策略已更新:', strategy)
   }
 
   getMetrics(): MonitoringMetrics {
@@ -497,7 +496,6 @@ export class AIStrategyExecutorImpl implements AIStrategyExecutor {
     context: AnalysisContext,
     reason: string
   ): AnalysisResult {
-    console.log(`[AIStrategyExecutor] 降级到算法处理，原因: ${reason}`)
     
     // 使用TF-IDF或关键词匹配
     const results = content.map(text => ({

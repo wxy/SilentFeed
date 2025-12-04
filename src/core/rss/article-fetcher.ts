@@ -40,7 +40,6 @@ export async function fetchArticleContent(
   url: string
 ): Promise<ArticleContent | null> {
   try {
-    console.log(`[ArticleFetcher] 抓取文章: ${url}`)
     
     // 1. 获取网页内容
     const response = await fetch(url, {
@@ -101,7 +100,6 @@ export async function fetchArticleContent(
     // 4. 生成摘要
     const excerpt = generateExcerpt(textContent)
     
-    console.log(`[ArticleFetcher] 抓取成功: ${wordCount} 字，约 ${readingTime} 分钟`)
     
     return {
       title,
