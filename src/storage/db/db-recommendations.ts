@@ -188,8 +188,21 @@ export async function dismissRecommendations(ids: string[]): Promise<void> {
  * 
  * @param limit - 数量限制（默认 50）
  */
+/**
+ * 获取未读推荐
+ * 
+ * Phase 10: 只返回仍在源中（inFeed=true）且在推荐池中（inPool=true）的推荐
+ * 
+ * 说明：
+ * - recommendations 表是历史日志（所有曾推荐过的文章）
+ * - feedArticles 表的 inPool 字段是实时推荐池状态
+ * - 需要联查确保推荐的文章仍在 RSS 源中且仍在推荐池中
+ * 
+ * @param limit - 最多返回的推荐数
+ * @returns 未读推荐列表（按分数降序）
+ */
 export async function getUnreadRecommendations(limit: number = 50): Promise<Recommendation[]> {
-  // Phase 7: 过滤掉已读、已忽略和非活跃的推荐，按推荐分数排序
+  // Phase 10: 过滤掉已读、已忽略、非活跃和不在推荐池中的推荐
   const recommendations = await db.recommendations
     .filter(r => {
       // 必须是活跃状态
@@ -200,10 +213,21 @@ export async function getUnreadRecommendations(limit: number = 50): Promise<Reco
     })
     .toArray()
   
+  // Phase 10: 联查 feedArticles，过滤掉不在源中或不在推荐池中的文章
+  const validRecommendations: Recommendation[] = []
+  for (const rec of recommendations) {
+    const article = await db.feedArticles.where('link').equals(rec.url).first()
+    if (article && article.inFeed !== false && article.inPool === true) {
+      validRecommendations.push(rec)
+    }
+  }
+  
   // 按推荐分数降序排序，取前 N 条
-  const result = recommendations
+  const result = validRecommendations
     .sort((a, b) => (b.score || 0) - (a.score || 0))
     .slice(0, limit)
+  
+  dbLogger.debug(`获取未读推荐: 总 ${recommendations.length}，有效 ${validRecommendations.length}，返回 ${result.length}`)
   
   return result
 }

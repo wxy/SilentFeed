@@ -1000,16 +1000,16 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
             // Phase 10: 基于新架构统计（只显示仍在源中的文章）
             const totalArticles = feed.articleCount || 0        // 所有文章（包括历史）
             const inFeedCount = feed.inFeedCount || 0           // 仍在RSS源中
-            const inPoolCount = feed.inPoolCount || 0           // 在推荐池中
-            const analyzedCount = feed.analyzedCount || 0       // 已分析
+            const inFeedAnalyzedCount = feed.inFeedAnalyzedCount || 0
+            const inFeedRecommendedCount = feed.inFeedRecommendedCount || 0  // 已推荐但未操作
+            const inFeedReadCount = feed.inFeedReadCount || 0
+            const inFeedDislikedCount = feed.inFeedDislikedCount || 0
             
-            // 推荐相关统计（历史总数，用于显示但不计入进度条）
+            // 推荐相关统计（历史总数，用于显示图标）
             const totalRecommended = feed.recommendedCount || 0
             const totalDisliked = feed.dislikedCount || 0
-            const totalRead = feed.readCount || 0
             
             // Phase 10: 进度条只显示"仍在源中"的文章（inFeed=true）
-            // 这样进度条有明确语义：当前批次的处理进度
             const displayTotal = inFeedCount
             
             if (displayTotal === 0) {
@@ -1024,43 +1024,55 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
             }
             
             // 计算各类型文章数（只统计 inFeed=true 的文章）
-            // 注意：这里我们需要从 latestArticles 或新的统计字段获取数据
-            // 由于 updateFeedStats 已经更新，我们使用估算值
-            
-            // 估算：假设 inPool 的文章都在 inFeed 中（推荐池保护）
-            const inFeedInPool = Math.min(inPoolCount, displayTotal)
-            
-            // 估算：已分析的文章比例
-            const inFeedAnalyzedRatio = analyzedCount > 0 ? Math.min(1, analyzedCount / totalArticles) : 0
-            const inFeedAnalyzed = Math.floor(displayTotal * inFeedAnalyzedRatio)
-            
-            // 每块代表 1 篇文章
-            const recommendedBlocks = inFeedInPool
-            const analyzedBlocks = Math.max(0, inFeedAnalyzed - inFeedInPool)
-            const unanalyzedBlocks = Math.max(0, displayTotal - inFeedAnalyzed)
+            // 5 种颜色分类：绿色（已推荐未操作）、蓝色（已阅读）、红色（不想读）、灰色（已分析未推荐）、白色（未分析）
+            const recommendedBlocks = inFeedRecommendedCount  // 绿色
+            const readBlocks = inFeedReadCount                // 蓝色
+            const dislikedBlocks = inFeedDislikedCount        // 红色
+            const analyzedNotRecommendedBlocks = Math.max(0, 
+              inFeedAnalyzedCount - inFeedRecommendedCount - inFeedReadCount - inFeedDislikedCount
+            )  // 灰色
+            const unanalyzedBlocks = Math.max(0, displayTotal - inFeedAnalyzedCount)  // 白色
             
             // 构建方块数组
             const blocks: Array<{
-              type: 'recommended' | 'analyzed' | 'unanalyzed'
+              type: 'recommended' | 'read' | 'disliked' | 'analyzed' | 'unanalyzed'
               className: string
               tooltip: string
             }> = []
             
-            // 在推荐池中（绿色）
+            // 已推荐（绿色）
             for (let i = 0; i < recommendedBlocks; i++) {
               blocks.push({
                 type: 'recommended',
                 className: 'bg-green-400 dark:bg-green-500 border border-green-500 dark:border-green-600',
-                tooltip: `${_('options.rssManager.stats.inPool')}: ${inPoolCount} ${_('options.rssManager.stats.articles')}`
+                tooltip: `${_('options.rssManager.stats.recommended')}: ${inFeedRecommendedCount} ${_('options.rssManager.stats.articles')}`
+              })
+            }
+            
+            // 已阅读（蓝色）
+            for (let i = 0; i < readBlocks; i++) {
+              blocks.push({
+                type: 'read',
+                className: 'bg-blue-400 dark:bg-blue-500 border border-blue-500 dark:border-blue-600',
+                tooltip: `${_('options.rssManager.stats.read')}: ${inFeedReadCount} ${_('options.rssManager.stats.articles')}`
+              })
+            }
+            
+            // 不想读（红色）
+            for (let i = 0; i < dislikedBlocks; i++) {
+              blocks.push({
+                type: 'disliked',
+                className: 'bg-red-400 dark:bg-red-500 border border-red-500 dark:border-red-600',
+                tooltip: `${_('options.rssManager.stats.disliked')}: ${inFeedDislikedCount} ${_('options.rssManager.stats.articles')}`
               })
             }
             
             // 已分析但未推荐（灰色）
-            for (let i = 0; i < analyzedBlocks; i++) {
+            for (let i = 0; i < analyzedNotRecommendedBlocks; i++) {
               blocks.push({
                 type: 'analyzed',
                 className: 'bg-gray-200 dark:bg-gray-500 border border-gray-300 dark:border-gray-600',
-                tooltip: `${_('options.rssManager.stats.analyzed')}: ${analyzedCount} ${_('options.rssManager.stats.articles')}`
+                tooltip: `${_('options.rssManager.stats.analyzed')}: ${inFeedAnalyzedCount} ${_('options.rssManager.stats.articles')}`
               })
             }
             
@@ -1069,11 +1081,11 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
               blocks.push({
                 type: 'unanalyzed',
                 className: 'bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600',
-                tooltip: `${_('options.rssManager.stats.unanalyzed')}: ${displayTotal - inFeedAnalyzed} ${_('options.rssManager.stats.articles')}`
+                tooltip: `${_('options.rssManager.stats.unanalyzed')}: ${unanalyzedBlocks} ${_('options.rssManager.stats.articles')}`
               })
             }
             
-            // 最多显示 50 个方块
+            // 最多显示 50 个方块（每块=1篇）
             const maxVisible = 50
             const visibleBlocks = blocks.slice(0, maxVisible)
             const hiddenCount = blocks.length - visibleBlocks.length
@@ -1111,15 +1123,27 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                 
                 {/* 简洁数字图例 */}
                 <div className="flex items-center gap-2 text-xs flex-shrink-0">
-                  {inPoolCount > 0 && (
-                    <span className="flex items-center gap-1" title={_('options.rssManager.stats.inPoolTooltip')}>
+                  {inFeedRecommendedCount > 0 && (
+                    <span className="flex items-center gap-1">
                       <span className="w-2 h-2 bg-green-400 dark:bg-green-500 rounded-sm"></span>
-                      <span>{inPoolCount}</span>
+                      <span>{inFeedRecommendedCount}</span>
+                    </span>
+                  )}
+                  {inFeedReadCount > 0 && (
+                    <span className="flex items-center gap-1">
+                      <span className="w-2 h-2 bg-blue-400 dark:bg-blue-500 rounded-sm"></span>
+                      <span>{inFeedReadCount}</span>
+                    </span>
+                  )}
+                  {inFeedDislikedCount > 0 && (
+                    <span className="flex items-center gap-1">
+                      <span className="w-2 h-2 bg-red-400 dark:bg-red-500 rounded-sm"></span>
+                      <span>{inFeedDislikedCount}</span>
                     </span>
                   )}
                   {totalRecommended > 0 && (
                     <span className="flex items-center gap-1 text-gray-400" title={_('options.rssManager.stats.totalRecommendedTooltip')}>
-                      <span>📊</span>
+                      <span>👍</span>
                       <span>{totalRecommended}</span>
                     </span>
                   )}

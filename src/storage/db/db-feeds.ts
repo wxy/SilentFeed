@@ -46,14 +46,16 @@ export async function updateFeedStats(feedUrl: string): Promise<void> {
     const unreadCount = articles.filter(a => !a.read).length
     
     // Phase 10: 新字段统计
-    const inFeedCount = articles.filter(a => a.inFeed !== false).length       // 仍在源中
+    const inFeedArticles = articles.filter(a => a.inFeed !== false)
+    const inFeedCount = inFeedArticles.length                    // 仍在源中
     const inPoolCount = articles.filter(a => a.inPool === true).length        // 在推荐池中
     const deletedCount = articles.filter(a => a.deleted === true).length      // 已软删除
     
-    // 兼容旧字段（保留用于过渡）
-    const currentRecommendedCount = articles.filter(a => a.recommended).length
-    const currentDislikedCount = articles.filter(a => a.disliked).length
-    const currentRecommendedReadCount = articles.filter(a => a.recommended && a.read).length
+    // Phase 10: inFeed 文章的细分统计（用于进度条）
+    const inFeedAnalyzedCount = inFeedArticles.filter(a => a.analysis).length
+    const inFeedRecommendedCount = inFeedArticles.filter(a => a.recommended && !a.read && !a.disliked).length  // 已推荐但未操作
+    const inFeedReadCount = inFeedArticles.filter(a => a.read).length          // 已阅读
+    const inFeedDislikedCount = inFeedArticles.filter(a => a.disliked).length  // 不想读
     
     // 4. 从推荐池统计（包括所有历史）
     const recommendationsFromThisFeed = await db.recommendations
@@ -81,11 +83,10 @@ export async function updateFeedStats(feedUrl: string): Promise<void> {
       // Phase 10: 新增字段
       inFeedCount,               // 仍在源中的文章数
       inPoolCount,               // 当前在推荐池中的文章数
-      
-      // 兼容旧字段（保留用于过渡）
-      currentRecommendedCount,
-      currentDislikedCount,
-      currentRecommendedReadCount
+      inFeedAnalyzedCount,       // 在源中且已分析的文章数
+      inFeedRecommendedCount,    // 在源中且已推荐但未操作的文章数
+      inFeedReadCount,           // 在源中且已阅读的文章数
+      inFeedDislikedCount        // 在源中且不想读的文章数
     })
     
     dbLogger.debug(`更新统计: ${feed.title} - 总 ${totalCount}，在源 ${inFeedCount}，在池 ${inPoolCount}，已分析 ${analyzedCount}`)

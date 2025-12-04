@@ -180,12 +180,14 @@ describe('数据库事务 - RSS Feed 相关', () => {
       const feed = createTestFeed()
       await db.discoveredFeeds.add(feed)
 
+      // Phase 10: 添加旧文章（会被标记为 inFeed=false）
       await db.feedArticles.add(
         createTestArticle({
           id: 'old-article-1',
           title: 'Old Article',
           link: 'https://example.com/old',
-          published: Date.now() - 1000000
+          published: Date.now() - 1000000,
+          inFeed: true  // 初始在源中
         })
       )
 
@@ -206,13 +208,24 @@ describe('数据库事务 - RSS Feed 相关', () => {
         title: 'Updated Feed Title'
       })
 
+      // Phase 10: 验证软删除逻辑
       const allArticles = await db.feedArticles.toArray()
-      expect(allArticles).toHaveLength(2)
-      expect(allArticles.every((a) => a.id.startsWith('new-'))).toBe(true)
+      expect(allArticles).toHaveLength(3)  // 1 个旧文章 + 2 个新文章
+      
+      // 验证旧文章被标记为 inFeed=false
+      const oldArticle = allArticles.find(a => a.id === 'old-article-1')
+      expect(oldArticle).toBeDefined()
+      expect(oldArticle?.inFeed).toBe(false)
+      
+      // 验证新文章 inFeed=true（默认）
+      const newArticle1 = allArticles.find(a => a.id === 'new-article-1')
+      expect(newArticle1).toBeDefined()
+      expect(newArticle1?.inFeed).not.toBe(false)
 
       const updatedFeed = await db.discoveredFeeds.get('feed-1')
       expect(updatedFeed?.title).toBe('Updated Feed Title')
       expect(updatedFeed?.lastFetchedAt).toBeTruthy()
+      expect(updatedFeed?.articleCount).toBe(3)  // 总文章数包括旧文章
     })
   })
 

@@ -303,7 +303,10 @@
         "read": "已阅读",
         "disliked": "不想读",
         "analyzed": "已分析",
-        "unanalyzed": "未分析"
+        "unanalyzed": "未分析",
+        "totalRecommendedTooltip": "历史推荐总数（所有曾推荐过的文章）",
+        "totalDislikedTooltip": "历史不想读总数（所有标记为不想读的文章）",
+        "allHistorical": "全部历史"
       },
       "openXML": "查看原始 XML",
       "languages": {

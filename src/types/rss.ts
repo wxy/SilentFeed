@@ -82,11 +82,11 @@ export interface DiscoveredFeed {
   // Phase 10: 新架构统计字段
   inFeedCount?: number         // 仍在 RSS 源中的文章数（inFeed=true）
   inPoolCount?: number         // 当前在推荐池中的文章数（inPool=true）
+  inFeedAnalyzedCount?: number // 在源中且已分析的文章数
+  inFeedRecommendedCount?: number  // 在源中且已推荐但未操作的文章数
+  inFeedReadCount?: number     // 在源中且已阅读的文章数
+  inFeedDislikedCount?: number // 在源中且不想读的文章数
   
-  // 兼容旧字段（保留用于过渡）
-  currentRecommendedCount?: number  // 当前文章中推荐状态的数量 - 用于UI显示
-  currentDislikedCount?: number     // 当前文章中不想读的数量 - 用于UI显示
-  currentRecommendedReadCount?: number  // 当前推荐文章中已读的数量 - 用于UI显示
   latestArticles?: FeedArticle[]
   
   /** Phase 9: 分析引擎选择（默认 remoteAI） */

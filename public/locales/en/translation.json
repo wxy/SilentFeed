@@ -43,8 +43,8 @@
     "showTranslation": "Translation",
     "showOriginal": "Original",
     "translating": "Translating...",
-    "openInGoogleTranslate": "Open in Google Translate",
-    "clickToTranslate": "Click to view translated version in {{language}}",
+    "openInGoogleTranslate": "Open via Google Translate",
+    "clickToTranslate": "Click to visit the version translated into {{language}}",
     "noRSSFeeds": {
       "title": "Not subscribed to any RSS feeds yet.",
       "description": "After adding an RSS feed, we can recommend great content for you.",
@@ -52,9 +52,9 @@
     }
   },
   "languages": {
-    "en": "English",
-    "zh": "Chinese",
-    "zh_cn": "Simplified Chinese",
+    "en": "Translate the following Chinese into English:",
+    "zh": "Translate the following Chinese into English:",
+    "zh_cn": "Translate the following Chinese text into English:\nSimplified Chinese",
     "zh_tw": "Traditional Chinese",
     "ja": "Japanese",
     "ko": "Korean",
@@ -1135,7 +1135,12 @@
         "fetchCompleted": "✅ Read completed",
         "fetchAll": "📡 Read All",
         "fetchingAll": "📡 Reading...",
-        "fetchAllCompleted": "✅ Read completed"
+        "fetchAllCompleted": "✅ Read completed",
+        "parseError": "OPML file parsing failed",
+        "importFailed": "OPML import failed",
+        "exportFailed": "OPML export failed",
+        "revalidationFailed": "RSS feed revalidation failed, deleted",
+        "renameFailed": "Rename failed, please try again later."
       },
       "metadata": {
         "items": "{{count}} items",
@@ -1203,7 +1208,7 @@
         "analyzing": "Analyzing..."
       },
       "preview": {
-        "openOrToggle": "Open or toggle preview",
+        "openOrToggle": "Open or switch preview",
         "loading": "Loading preview...",
         "latestArticles": "Latest Articles",
         "noArticles": "No articles available"
@@ -1249,7 +1254,10 @@
         "read": "Read",
         "disliked": "Dismissed",
         "analyzed": "Analyzed",
-        "unanalyzed": "Unanalyzed"
+        "unanalyzed": "Unanalyzed",
+        "totalRecommendedTooltip": "Total Historical Recommendations (All articles ever recommended)",
+        "totalDislikedTooltip": "Total Unread History (All articles marked as unread)",
+        "allHistorical": "All history"
       }
     },
     "profile": {
