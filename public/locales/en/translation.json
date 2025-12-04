@@ -42,11 +42,26 @@
     },
     "showTranslation": "Translation",
     "showOriginal": "Original",
+    "translating": "Translating...",
+    "openInGoogleTranslate": "Open in Google Translate",
+    "clickToTranslate": "Click to view translated version in {{language}}",
     "noRSSFeeds": {
       "title": "Not subscribed to any RSS feeds yet.",
       "description": "After adding an RSS feed, we can recommend great content for you.",
       "action": "Go add RSS feeds"
     }
+  },
+  "languages": {
+    "en": "English",
+    "zh": "Chinese",
+    "zh_cn": "Simplified Chinese",
+    "zh_tw": "Traditional Chinese",
+    "ja": "Japanese",
+    "ko": "Korean",
+    "es": "Spanish",
+    "fr": "French",
+    "de": "German",
+    "ru": "Russian"
   },
   "recommendation": {
     "reason": {
@@ -1085,15 +1100,6 @@
       "autoSaving": "Auto-saving..."
     },
     "rssManager": {
-            "preview": {
-              "openOrToggle": "Open or toggle preview"
-            },
-            "actions": {
-              "rename": "Rename"
-            },
-            "errors": {
-              "renameFailed": "Rename failed, please try again later"
-            },
       "addSource": "Add feed",
       "manualSubscribe": "Manually subscribe to RSS URL",
       "manualPlaceholder": "https://example.com/feed.xml",
@@ -1117,6 +1123,7 @@
         "imported": "OPML Import"
       },
       "actions": {
+        "rename": "Rename",
         "subscribe": "Subscribe",
         "ignore": "Ignore",
         "unsubscribe": "Unsubscribe",
@@ -1150,6 +1157,7 @@
         "it": "Italian"
       },
       "errors": {
+        "renameFailed": "Rename failed, please try again later",
         "invalidUrl": "Please enter a valid RSS URL",
         "fetchFailed": "Unable to retrieve the content of this URL",
         "notRSS": "This URL is not a valid RSS feed",
@@ -1195,6 +1203,7 @@
         "analyzing": "Analyzing..."
       },
       "preview": {
+        "openOrToggle": "Open or toggle preview",
         "loading": "Loading preview...",
         "latestArticles": "Latest Articles",
         "noArticles": "No articles available"

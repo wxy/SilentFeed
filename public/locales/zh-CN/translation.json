@@ -45,7 +45,22 @@
       "algorithm": "算法"
     },
     "showTranslation": "译文",
-    "showOriginal": "原文"
+    "showOriginal": "原文",
+    "translating": "翻译中...",
+    "openInGoogleTranslate": "通过谷歌翻译打开",
+    "clickToTranslate": "点击访问翻译为{{language}}的版本"
+  },
+  "languages": {
+    "en": "英文",
+    "zh": "中文",
+    "zh_cn": "简体中文",
+    "zh_tw": "繁体中文",
+    "ja": "日语",
+    "ko": "韩语",
+    "es": "西班牙语",
+    "fr": "法语",
+    "de": "德语",
+    "ru": "俄语"
   },
   "recommendation": {
     "reason": {
@@ -233,16 +248,7 @@
         "fetchCompleted": "✅ 读取完成",
         "fetchAll": "📡 全部读取",
         "fetchingAll": "📡 读取中...",
-        "fetchAllCompleted": "✅ 读取完成"
-      },
-      "errors": {
-        "invalidUrl": "请输入有效的 RSS URL",
-        "fetchFailed": "无法获取该 URL 的内容",
-        "notRSS": "该 URL 不是有效的 RSS 源",
-        "validationFailed": "RSS 验证失败",
-        "alreadyExists": "该源已存在",
-        "subscribeFailed": "订阅失败",
-        "networkError": "网络错误，请检查连接",
+        "fetchAllCompleted": "✅ 读取完成",
         "parseError": "OPML 文件解析失败",
         "importFailed": "OPML 导入失败",
         "exportFailed": "OPML 导出失败",

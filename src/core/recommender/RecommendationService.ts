@@ -279,7 +279,6 @@ export class RecommendationService {
           const translatedRecs = await translateRecommendations(recommendations)
           // translateRecommendations 已经更新了数据库，直接使用返回的结果
           recommendations.splice(0, recommendations.length, ...translatedRecs)
-          recLogger.info(`✅ 翻译完成`)
         } catch (error) {
           recLogger.error('❌ 翻译失败:', error)
           // 翻译失败不影响推荐展示
@@ -467,7 +466,9 @@ export class RecommendationService {
         id: `rec-${now}-${index}`,
         url: article.url,
         title: article.title,
-        summary: article.aiAnalysis?.summary || article.keyPoints?.join('\n') || '',
+        // 优先使用 AI 摘要
+        // 如果没有，使用 keyPoints 但跳过第一项（第一项是标题，会重复）
+        summary: article.aiAnalysis?.summary || (article.keyPoints && article.keyPoints.length > 1 ? article.keyPoints.slice(1).join('\n') : '') || '',
         source: this.extractSourceFromUrl(article.url),
         sourceUrl: feedUrl,  // Phase 6: 使用准确的 feed URL
         recommendedAt: now,
@@ -475,6 +476,16 @@ export class RecommendationService {
         reason: article.reason,
         isRead: false,
         status: 'active'  // Phase 7: 新推荐默认为活跃状态
+      }
+
+      // 临时诊断日志：检查摘要数据
+      if (recommendation.summary === recommendation.title) {
+        recLogger.warn(`⚠️ 摘要与标题相同`, {
+          title: recommendation.title,
+          summary: recommendation.summary,
+          aiAnalysisSummary: article.aiAnalysis?.summary,
+          keyPoints: article.keyPoints
+        })
       }
 
       recommendations.push(recommendation)

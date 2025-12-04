@@ -140,8 +140,6 @@ ${text}`
       const sourceLanguage = sourceLangMatch?.[1] || this.detectLanguage(text)
       const translatedText = translationMatch?.[1]?.trim() || text
 
-      translationLogger.debug(`翻译完成: ${sourceLanguage} -> ${targetLanguage}`)
-
       return {
         sourceLanguage,
         targetLanguage,
