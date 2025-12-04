@@ -1093,7 +1093,13 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
             return (
               <div className="flex items-center gap-2 flex-1">
                 {/* 总数标签（显示在源中的文章数）*/}
-                <span className="flex items-center gap-1 flex-shrink-0">
+                <span 
+                  className="flex items-center gap-1 flex-shrink-0 cursor-help"
+                  title={totalArticles > displayTotal 
+                    ? _('options.rssManager.stats.articleCountTooltip', { inFeed: displayTotal, total: totalArticles })
+                    : _('options.rssManager.stats.articleCountSimpleTooltip', { count: displayTotal })
+                  }
+                >
                   <span>📰</span>
                   <span className="font-medium text-gray-700 dark:text-gray-300">
                     {displayTotal}
@@ -1124,31 +1130,31 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                 {/* 简洁数字图例 */}
                 <div className="flex items-center gap-2 text-xs flex-shrink-0">
                   {inFeedRecommendedCount > 0 && (
-                    <span className="flex items-center gap-1">
+                    <span className="flex items-center gap-1 cursor-help" title={_('options.rssManager.stats.recommendedTooltip')}>
                       <span className="w-2 h-2 bg-green-400 dark:bg-green-500 rounded-sm"></span>
                       <span>{inFeedRecommendedCount}</span>
                     </span>
                   )}
                   {inFeedReadCount > 0 && (
-                    <span className="flex items-center gap-1">
+                    <span className="flex items-center gap-1 cursor-help" title={_('options.rssManager.stats.readTooltip')}>
                       <span className="w-2 h-2 bg-blue-400 dark:bg-blue-500 rounded-sm"></span>
                       <span>{inFeedReadCount}</span>
                     </span>
                   )}
                   {inFeedDislikedCount > 0 && (
-                    <span className="flex items-center gap-1">
+                    <span className="flex items-center gap-1 cursor-help" title={_('options.rssManager.stats.dislikedTooltip')}>
                       <span className="w-2 h-2 bg-red-400 dark:bg-red-500 rounded-sm"></span>
                       <span>{inFeedDislikedCount}</span>
                     </span>
                   )}
                   {totalRecommended > 0 && (
-                    <span className="flex items-center gap-1 text-gray-400" title={_('options.rssManager.stats.totalRecommendedTooltip')}>
+                    <span className="flex items-center gap-1 text-gray-400 cursor-help" title={_('options.rssManager.stats.totalRecommendedTooltip')}>
                       <span>👍</span>
                       <span>{totalRecommended}</span>
                     </span>
                   )}
                   {totalDisliked > 0 && (
-                    <span className="flex items-center gap-1 text-gray-400" title={_('options.rssManager.stats.totalDislikedTooltip')}>
+                    <span className="flex items-center gap-1 text-gray-400 cursor-help" title={_('options.rssManager.stats.totalDislikedTooltip')}>
                       <span>👎</span>
                       <span>{totalDisliked}</span>
                     </span>

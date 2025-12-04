@@ -227,6 +227,55 @@ describe('数据库事务 - RSS Feed 相关', () => {
       expect(updatedFeed?.lastFetchedAt).toBeTruthy()
       expect(updatedFeed?.articleCount).toBe(3)  // 总文章数包括旧文章
     })
+
+    it('应该在文章重新出现时保留用户操作状态', async () => {
+      const feed = createTestFeed()
+      await db.discoveredFeeds.add(feed)
+
+      // 添加一篇已读的文章
+      await db.feedArticles.add(
+        createTestArticle({
+          id: 'read-article',
+          title: 'Read Article',
+          link: 'https://example.com/read-article',
+          inFeed: true,
+          read: true,           // 用户已读
+          recommended: true,    // 曾被推荐
+          disliked: false       // 未标记不想读
+        })
+      )
+
+      // 第一次更新：文章从源中移除
+      await updateFeedWithArticles('feed-1', [], {})
+
+      // 验证文章被标记为 inFeed=false
+      const removedArticle = await db.feedArticles.get('read-article')
+      expect(removedArticle?.inFeed).toBe(false)
+      expect(removedArticle?.read).toBe(true)  // 保留已读状态
+
+      // 第二次更新：文章重新出现在源中
+      const restoredArticles: FeedArticle[] = [
+        createTestArticle({
+          id: 'restored-read-article',  // 新 ID，但 link 相同
+          title: 'Read Article',
+          link: 'https://example.com/read-article'  // link 相同
+        })
+      ]
+
+      await updateFeedWithArticles('feed-1', restoredArticles, {})
+
+      // 验证文章恢复为 inFeed=true，但保留原有状态
+      const restoredArticle = await db.feedArticles
+        .where('link')
+        .equals('https://example.com/read-article')
+        .first()
+      
+      expect(restoredArticle).toBeDefined()
+      expect(restoredArticle?.inFeed).toBe(true)        // 恢复
+      expect(restoredArticle?.read).toBe(true)          // ✅ 保留已读状态
+      expect(restoredArticle?.recommended).toBe(true)   // ✅ 保留推荐状态
+      expect(restoredArticle?.disliked).toBe(false)     // ✅ 保留未不想读状态
+    })
   })
 
   describe('bulkSubscribeFeeds', () => {

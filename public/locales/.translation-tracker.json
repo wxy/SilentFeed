@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-12-04T09:45:59.756Z",
+  "lastUpdate": "2025-12-04T10:12:29.669Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -16673,6 +16673,76 @@
         "value": "Reasoning model, excels at complex reasoning tasks",
         "hash": "8bfd0896",
         "lastModified": "2025-12-04T09:45:59.247Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.stats.articleCountTooltip": {
+      "zh-CN": {
+        "value": "当前在源中: {{inFeed}} 篇 / 历史总计: {{total}} 篇",
+        "hash": "bcacec89",
+        "lastModified": "2025-12-04T10:12:21.530Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Currently in source: {{inFeed}} articles / Historical total: {{total}} articles",
+        "hash": "27f9b8f3",
+        "lastModified": "2025-12-04T10:12:21.531Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.stats.articleCountSimpleTooltip": {
+      "zh-CN": {
+        "value": "当前在源中: {{count}} 篇",
+        "hash": "0366f920",
+        "lastModified": "2025-12-04T10:12:23.488Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Currently in source: {{count}} articles",
+        "hash": "d738377d",
+        "lastModified": "2025-12-04T10:12:23.489Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.stats.recommendedTooltip": {
+      "zh-CN": {
+        "value": "已推荐但未操作",
+        "hash": "10a6c722",
+        "lastModified": "2025-12-04T10:12:25.459Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Recommended but not operated",
+        "hash": "010f306e",
+        "lastModified": "2025-12-04T10:12:25.459Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.stats.readTooltip": {
+      "zh-CN": {
+        "value": "已阅读",
+        "hash": "6a37684e",
+        "lastModified": "2025-12-04T10:12:27.199Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Read",
+        "hash": "7a1a5f3e",
+        "lastModified": "2025-12-04T10:12:27.199Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.rssManager.stats.dislikedTooltip": {
+      "zh-CN": {
+        "value": "不想读",
+        "hash": "68c2a967",
+        "lastModified": "2025-12-04T10:12:29.154Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Don't want to read",
+        "hash": "5425d4b7",
+        "lastModified": "2025-12-04T10:12:29.155Z",
         "status": "ai-translated"
       }
     }

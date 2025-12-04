@@ -243,16 +243,30 @@ export async function fetchFeed(feed: DiscoveredFeed): Promise<boolean> {
           })
           ownedArticles.push(article)
         } else if (existing.feedId === feed.id) {
-          // 文章存在且属于当前 Feed，更新 inFeed 状态和元数据
+          // 文章存在且属于当前 Feed，只更新元数据，保留用户操作状态
           articlesToUpdate.push({
-            ...existing,
-            ...article,  // 更新标题、描述等可能变化的字段
+            ...existing,  // 保留所有旧数据
+            // 只更新可能变化的元数据字段
+            title: article.title,
+            description: article.description,
+            content: article.content,
+            author: article.author,
+            published: article.published,
+            // 保留用户操作状态：read, disliked, recommended, starred
+            // 更新 RSS 源状态
             inFeed: true,
             lastSeenInFeed: now,
             metadataUpdatedAt: now,
             updateCount: (existing.updateCount || 0) + 1
           })
-          ownedArticles.push(article)
+          // ownedArticles 需要合并用户状态（用于 latestArticles 字段）
+          ownedArticles.push({
+            ...article,
+            read: existing.read,
+            disliked: existing.disliked,
+            recommended: existing.recommended,
+            starred: existing.starred
+          })
         }
         // 如果文章存在但属于其他 Feed，跳过（不计入当前 Feed 的统计）
       })

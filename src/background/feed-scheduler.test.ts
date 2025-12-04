@@ -664,6 +664,93 @@ describe('feed-scheduler', () => {
       )
     })
     
+    // 新增测试：验证重新抓取时保留用户操作状态
+    it('应该在重新抓取时保留文章的用户操作状态', async () => {
+      const feed: DiscoveredFeed = {
+        id: 'test-feed',
+        url: 'https://example.com/feed.xml',
+        title: 'Test Feed',
+        discoveredFrom: 'https://example.com',
+        discoveredAt: Date.now(),
+        status: 'subscribed',
+        isActive: true,
+        articleCount: 1,
+        unreadCount: 0,
+        recommendedCount: 1
+      }
+      
+      // Mock 现有文章（已阅读、已推荐、已收藏）
+      const existingArticle: FeedArticle = {
+        id: 'https://example.com/article-1',
+        feedId: 'test-feed',
+        title: 'Article 1 (Old Title)',
+        link: 'https://example.com/article-1',
+        description: 'Old description',
+        published: Date.now() - 1 * 24 * 60 * 60 * 1000,
+        fetched: Date.now(),
+        read: true,          // 已阅读
+        disliked: false,     // 未标记不想读
+        recommended: true,   // 已推荐
+        starred: true,       // 已收藏
+        inFeed: true,
+        inPool: false
+      }
+      
+      vi.mocked(db.feedArticles.where).mockReturnValue({
+        equals: vi.fn().mockReturnValue({
+          toArray: vi.fn().mockResolvedValue([existingArticle])
+        })
+      } as any)
+      
+      // bulkGet 返回已存在的文章
+      vi.mocked(db.feedArticles.bulkGet).mockResolvedValue([existingArticle])
+      
+      vi.mocked(db.discoveredFeeds.get).mockResolvedValue({
+        ...feed,
+        articleCount: 1,
+        unreadCount: 0  // 仍然是已读
+      })
+      
+      // Mock RSS 抓取返回相同的文章（但标题可能更新了）
+      const RSSFetcherModule = await import('../core/rss/RSSFetcher')
+      const mockFetch = (RSSFetcherModule as any).__getMockFetch()
+      mockFetch.mockResolvedValueOnce({
+        success: true,
+        items: [
+          {
+            title: 'Article 1 (Updated Title)',  // 标题可能更新
+            link: 'https://example.com/article-1',
+            description: 'Updated description',  // 描述可能更新
+            pubDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)
+          }
+        ],
+        feedInfo: {
+          title: 'Test Feed'
+        }
+      })
+      
+      await fetchFeed(feed)
+      
+      // 验证文章被更新（bulkPut）且保留用户操作状态
+      expect(db.feedArticles.bulkPut).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: 'https://example.com/article-1',
+            title: 'Article 1 (Updated Title)',    // ✅ 元数据更新
+            description: 'Updated description',     // ✅ 元数据更新
+            read: true,                             // ✅ 保留已读状态
+            disliked: false,                        // ✅ 保留未不想读状态
+            recommended: true,                      // ✅ 保留已推荐状态
+            starred: true,                          // ✅ 保留已收藏状态
+            inFeed: true,
+            lastSeenInFeed: expect.any(Number),
+            metadataUpdatedAt: expect.any(Number),
+            updateCount: 1  // 更新计数 +1
+          })
+        ])
+      )
+    })
+    
     // Phase 10: 新增测试 - 保护推荐池中的文章
     it('应该保护推荐池中的文章不被标记为 inFeed=false', async () => {
       const feed: DiscoveredFeed = {

@@ -1257,7 +1257,12 @@
         "unanalyzed": "Unanalyzed",
         "totalRecommendedTooltip": "Total Historical Recommendations (All articles ever recommended)",
         "totalDislikedTooltip": "Total Unread History (All articles marked as unread)",
-        "allHistorical": "All history"
+        "allHistorical": "All history",
+        "articleCountTooltip": "Currently in source: {{inFeed}} articles / Historical total: {{total}} articles",
+        "articleCountSimpleTooltip": "Currently in source: {{count}} articles",
+        "recommendedTooltip": "Recommended but not operated",
+        "readTooltip": "Read",
+        "dislikedTooltip": "Don't want to read"
       }
     },
     "profile": {
