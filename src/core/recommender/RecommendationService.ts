@@ -28,6 +28,11 @@ import { logger } from '../../utils/logger'
 const recLogger = logger.withTag('RecommendationService')
 
 /**
+ * 推荐池配置
+ */
+const POOL_SIZE_MULTIPLIER = 2  // 推荐池容量 = maxRecommendations * 2
+
+/**
  * 推荐生成结果
  */
 export interface RecommendationGenerationResult {
@@ -393,8 +398,10 @@ export class RecommendationService {
       .filter(rec => !rec.isRead && rec.feedback !== 'dismissed')
       .toArray()
     
-    const maxSize = config.maxRecommendations || 3
-    recLogger.info(`当前推荐池: ${currentPool.length} 条（容量: ${maxSize}，排除已标记为不想读的推荐）`)
+    // Phase 优化: 推荐池容量 = maxRecommendations * POOL_SIZE_MULTIPLIER
+    const baseSize = config.maxRecommendations || 3
+    const maxSize = baseSize * POOL_SIZE_MULTIPLIER
+    recLogger.info(`当前推荐池: ${currentPool.length} 条（基础容量: ${baseSize}，实际容量: ${maxSize}，排除已标记为不想读的推荐）`)
 
     // 获取最近7天的推荐URL，用于去重
     try {
@@ -418,7 +425,8 @@ export class RecommendationService {
 
       // Phase 6: 推荐池竞争逻辑
       const poolSize = currentPool.length
-      const maxSize = config.maxRecommendations || 3
+      const baseSize = config.maxRecommendations || 3
+      const maxSize = baseSize * POOL_SIZE_MULTIPLIER
       
       // 规则 1: 如果池未满，直接加入（已经通过质量阈值筛选）
       if (poolSize < maxSize) {
