@@ -19,6 +19,62 @@ const bgLogger = logger.withTag('Background')
 
 bgLogger.info('Silent Feed Background Service Worker 已启动')
 
+/**
+ * Phase 11: 配置 Ollama 请求的 DNR 规则
+ * 
+ * 问题：Ollama 的 OpenAI 兼容接口 (/v1/chat/completions) 返回 403
+ * 原因：需要特定的请求头配置
+ * 
+ * 解决方案：使用 declarativeNetRequest 动态修改请求头
+ */
+async function setupOllamaDNRRules(): Promise<void> {
+  try {
+    // 移除旧规则（如果存在）
+    const existingRules = await chrome.declarativeNetRequest.getDynamicRules()
+    const ruleIds = existingRules.map(rule => rule.id)
+    if (ruleIds.length > 0) {
+      await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: ruleIds })
+    }
+
+    // 添加新规则：为 localhost:11434 的请求修改请求头
+    const rules: chrome.declarativeNetRequest.Rule[] = [
+      {
+        id: 1,
+        priority: 1,
+        action: {
+          type: chrome.declarativeNetRequest.RuleActionType.MODIFY_HEADERS,
+          requestHeaders: [
+            // 确保 Authorization 头存在
+            {
+              header: 'Authorization',
+              operation: chrome.declarativeNetRequest.HeaderOperation.SET,
+              value: 'Bearer ollama'
+            },
+            // 设置正确的 Content-Type
+            {
+              header: 'Content-Type',
+              operation: chrome.declarativeNetRequest.HeaderOperation.SET,
+              value: 'application/json'
+            }
+          ]
+        },
+        condition: {
+          urlFilter: 'localhost:11434/v1/*',
+          resourceTypes: [chrome.declarativeNetRequest.ResourceType.XMLHTTPREQUEST]
+        }
+      }
+    ]
+
+    await chrome.declarativeNetRequest.updateDynamicRules({ addRules: rules })
+    bgLogger.info('✅ Ollama DNR 规则已设置')
+  } catch (error) {
+    bgLogger.error('❌ 设置 Ollama DNR 规则失败:', error)
+  }
+}
+
+// 立即设置 DNR 规则
+setupOllamaDNRRules()
+
 // Phase 5.2: 初始化图标管理器
 let iconManager: IconManager | null = null
 
