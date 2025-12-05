@@ -1,9 +1,149 @@
 # AI 配置重构：废弃 enabled 字段和清理遗留配置
 
-> **状态**: 🚧 进行中  
+> **状态**: 🟡 部分完成 - 核心功能已完成，部分测试待修复  
 > **分支**: `refactor/deprecate-enabled-field`  
 > **开始时间**: 2025-12-05  
+> **更新时间**: 2025-12-05 22:30  
 > **关联问题**: [BUG_FIX_ENGINE_ASSIGNMENT_IGNORED.md](./BUG_FIX_ENGINE_ASSIGNMENT_IGNORED.md)
+
+---
+
+## ✅ 已完成的工作
+
+### 核心重构 (100% 完成)
+
+**Commit**: `6abfa54` - `refactor: 废弃 enabled 字段并清理遗留 AI 配置`
+
+✅ **9 个核心文件已修改**：
+1. `src/storage/ai-config.ts` - 接口简化，移除废弃字段
+2. `src/core/ai/providers/OllamaProvider.ts` - 移除硬编码，添加模型检查
+3. `src/components/OnboardingView.tsx` - 更新 AI 配置检查
+4. `src/components/settings/ProfileSettings.tsx` - 更新 AI 配置状态
+5. `src/components/settings/CollectionStats.tsx` - 更新统计显示
+6. `src/core/recommender/ai-strategy-executor.ts` - 更新 AI 可用性检查
+7. `src/core/translator/TranslationService.ts` - 更新翻译服务检查
+8. `src/core/ai/AICapabilityManager.test.ts` - 部分测试修复
+9. `docs/fixes/REFACTOR_DEPRECATE_ENABLED_FIELD.md` - 重构文档
+
+### 测试修复 (50% 完成)
+
+**Commit 1**: `8212fa4` - `test: 修复 analysis-engine-capability 测试`
+- ✅ 更新 `createAIConfig` 使用新的 `providers` 结构
+- ✅ 移除所有废弃字段
+- ✅ 修改默认模型从 `qwen2.5:7b` → `llama2`
+- ⚠️ 5 个测试仍然失败（需要更新实现代码）
+
+**Commit 2**: `fec9492` - `test: 修复 useAIProviderStatus 测试`
+- ✅ 移除 `enabled` 字段
+- ✅ 添加 `engineAssignment` 字段
+- ✅ 更新 Ollama 默认模型
+
+**Commit 3**: `5d94392` - `test: 开始修复 RecommendationService 测试`
+- ✅ 修复 `UserProfile` 结构
+- ⚠️ 还有 6 个错误待修复
+
+---
+
+## 📊 当前测试状态
+
+**整体**: 84/90 测试文件通过 (93.3%)  
+**详细**: 1431 passed | 33 failed | 1 skipped (1465 tests)
+
+### 失败的测试文件 (6 个)
+
+1. **`src/storage/ai-config.test.ts`** - 6 个失败
+   - 需要更新所有测试用例移除 `enabled`、`provider`、`apiKeys` 字段
+
+2. **`src/utils/analysis-engine-capability.test.ts`** - 5 个失败
+   - 需要更新实现代码匹配新的 `providers` 结构
+
+3. **`src/core/ai/AICapabilityManager.test.ts`** - 5 个失败
+   - 需要更新 mock 数据结构
+
+4. **`src/core/translator/TranslationService.test.ts`** - 8 个失败
+   - 需要更新 AI 配置检查逻辑
+
+5. **`src/components/settings/ProfileSettings.test.tsx`** - 6 个失败
+   - 需要更新组件测试的 mock 数据
+
+6. **`src/core/recommender/ai-strategy-executor.test.ts`** - 2 个失败
+   - 需要更新预算控制测试
+
+---
+
+## 🎯 下一步行动（优先级排序）
+
+### P0 - 阻塞发布（必须完成）
+
+- [ ] **修复 `ai-config.test.ts`**（核心存储测试）
+  - 移除所有 `enabled`、`provider`、`apiKeys` 引用
+  - 更新为 `providers` 结构
+  - 预计工作量：15-20 分钟
+
+- [ ] **修复 `analysis-engine-capability.test.ts`**（实现代码问题）
+  - 需要查看实现代码 `analysis-engine-capability.ts`
+  - 更新为使用新的 `providers` 结构
+  - 预计工作量：10-15 分钟
+
+### P1 - 重要（建议完成）
+
+- [ ] **修复 `AICapabilityManager.test.ts`**
+  - 更新剩余的测试用例
+  - 预计工作量：10 分钟
+
+- [ ] **修复 `TranslationService.test.ts`**
+  - 更新所有 AI 配置相关测试
+  - 预计工作量：15 分钟
+
+### P2 - 可选（时间允许时）
+
+- [ ] **修复 `ProfileSettings.test.tsx`**
+- [ ] **修复 `ai-strategy-executor.test.ts`**
+- [ ] **修复 `RecommendationService.test.ts`** 剩余错误
+
+---
+
+## 📝 技术决策总结
+
+1. **废弃 `enabled` 字段** ✅
+   - 由 `engineAssignment` 和 `providers` 配置决定 AI 是否可用
+   - 简化判断逻辑
+
+2. **移除单一 AI 模式字段** ✅
+   - 废弃：`provider`、`apiKeys`、`model`、`enableReasoning`
+   - 保留：`providers`、`local`、`engineAssignment`、`monthlyBudget`
+
+3. **移除 Ollama 硬编码** ✅
+   - 添加 `getFirstAvailableOllamaModel()` 工具函数
+   - 未配置模型时抛出清晰错误
+
+---
+
+## 🚀 如何继续
+
+### 选项 1: 推送当前进度，后续继续修复（推荐）
+
+```bash
+git push origin refactor/deprecate-enabled-field
+```
+
+**优点**：
+- 核心功能已完成，可以先保存进度
+- 测试修复可以在后续 PR 中完成
+- 不阻塞其他工作
+
+**缺点**：
+- CI 会失败
+- 需要额外的 commit 修复测试
+
+### 选项 2: 继续修复剩余测试（约 60 分钟）
+
+继续修复剩余的 6 个测试文件，确保 CI 通过。
+
+---
+
+**最后更新**: 2025-12-05 22:30  
+**更新人**: GitHub Copilot
 
 ---
 
