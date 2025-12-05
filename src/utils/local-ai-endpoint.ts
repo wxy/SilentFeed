@@ -76,13 +76,15 @@ const DEFAULT_LOCAL_HEADERS: HeadersInit = {
 }
 
 export function buildLocalAIHeaders(mode: LocalAIEndpointMode, apiKey?: string): HeadersInit {
-  const token = apiKey?.trim()
-  const isCustomToken = Boolean(token && token !== 'local' && token !== 'ollama')
   const headers: Record<string, string> = {
     'Content-Type': 'application/json'
   }
 
-  if (mode === 'openai' && isCustomToken && token) {
+  // Phase 11 修复: OpenAI 兼容模式下始终添加 Authorization 头
+  // Ollama 的 OpenAI 兼容接口即使不需要真实的 API Key，
+  // 也需要 Authorization 头，否则会返回 403
+  if (mode === 'openai') {
+    const token = apiKey?.trim() || 'ollama'
     headers.Authorization = `Bearer ${token}`
   }
 
