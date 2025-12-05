@@ -128,77 +128,68 @@ function parseLegacyModelList(data: any): LocalModelSummary[] {
 
 export async function listLocalModels(endpoint?: string, apiKey?: string): Promise<LocalModelListResult> {
   const resolved = resolveLocalAIEndpoint(endpoint)
-  const attemptOrder: Array<{ mode: LocalAIEndpointMode; url: string }> = resolved.mode === 'openai'
-    ? [
-        { mode: 'openai', url: resolved.openai.modelsUrl },
-        { mode: 'legacy', url: resolved.legacy.modelsUrl }
-      ]
-    : [
-        { mode: 'legacy', url: resolved.legacy.modelsUrl },
-        { mode: 'openai', url: resolved.openai.modelsUrl }
-      ]
+  
+  // Phase 11 优化: 只尝试首选模式，除非失败才尝试备用模式
+  const primaryMode = resolved.mode
+  const primaryUrl = primaryMode === 'openai' ? resolved.openai.modelsUrl : resolved.legacy.modelsUrl
+  const fallbackMode: LocalAIEndpointMode = primaryMode === 'openai' ? 'legacy' : 'openai'
+  const fallbackUrl = fallbackMode === 'openai' ? resolved.openai.modelsUrl : resolved.legacy.modelsUrl
 
-  let lastError: Error | null = null
-  const mergedModels: LocalModelSummary[] = []
-  const dedupMap = new Map<string, LocalModelSummary>()
-  let detectedMode: LocalAIEndpointMode | null = null
-
-  for (const attempt of attemptOrder) {
-    const headers = buildLocalAIHeaders(attempt.mode, apiKey)
+  // 先尝试首选模式
+  try {
+    localAILogger.debug(`尝试获取模型列表: ${primaryMode} - ${primaryUrl}`)
     
-    try {
-      localAILogger.debug(`尝试获取模型列表: ${attempt.mode} - ${attempt.url}`)
-      
-      const response = await fetch(attempt.url, {
-        method: 'GET',
-        headers,
-        signal: AbortSignal.timeout(4000)
-      })
+    const headers = buildLocalAIHeaders(primaryMode, apiKey)
+    const response = await fetch(primaryUrl, {
+      method: 'GET',
+      headers,
+      signal: AbortSignal.timeout(4000)
+    })
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`)
-      }
-
+    if (response.ok) {
       const data = await response.json()
-      const models = attempt.mode === "openai"
+      const models = primaryMode === "openai"
         ? parseOpenAIModelList(data)
         : parseLegacyModelList(data)
 
-      localAILogger.debug(`${attempt.mode} 接口返回 ${models.length} 个模型`)
-
-      if (!models.length) {
-        localAILogger.debug(`${attempt.mode} 接口未返回模型列表`)
+      if (models.length > 0) {
+        localAILogger.info(`✅ 成功获取 ${models.length} 个模型: ${models.map(m => m.id).join(', ')}`)
+        return { mode: primaryMode, models }
       }
-
-      if (!detectedMode && models.length) {
-        detectedMode = attempt.mode
-      } else if (!detectedMode) {
-        detectedMode = attempt.mode
-      }
-
-      for (const model of models) {
-        if (!dedupMap.has(model.id)) {
-          dedupMap.set(model.id, model)
-          mergedModels.push(model)
-        }
-      }
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error))
-      localAILogger.debug(`${attempt.mode} 模型列表获取失败`, lastError)
     }
+  } catch (error) {
+    localAILogger.debug(`${primaryMode} 接口失败，尝试备用模式...`, error)
   }
 
-  if (mergedModels.length) {
-    const result = {
-      mode: detectedMode ?? attemptOrder[0].mode,
-      models: mergedModels
+  // 首选模式失败，尝试备用模式
+  try {
+    localAILogger.debug(`尝试备用模式: ${fallbackMode} - ${fallbackUrl}`)
+    
+    const headers = buildLocalAIHeaders(fallbackMode, apiKey)
+    const response = await fetch(fallbackUrl, {
+      method: 'GET',
+      headers,
+      signal: AbortSignal.timeout(4000)
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      const models = fallbackMode === "openai"
+        ? parseOpenAIModelList(data)
+        : parseLegacyModelList(data)
+
+      if (models.length > 0) {
+        localAILogger.info(`✅ 备用模式成功获取 ${models.length} 个模型: ${models.map(m => m.id).join(', ')}`)
+        return { mode: fallbackMode, models }
+      }
     }
-    localAILogger.info(`✅ 成功获取 ${mergedModels.length} 个模型:`, mergedModels.map(m => m.id).join(', '))
-    return result
+  } catch (error) {
+    localAILogger.error(`备用模式也失败`, error)
   }
 
-  localAILogger.warn('获取本地模型列表失败（所有接口均不可用）', lastError)
-  throw lastError ?? new Error('无法获取本地模型列表')
+  // 两种模式都失败
+  localAILogger.error('获取本地模型列表失败（所有接口均不可用）')
+  throw new Error('无法从 Ollama 获取模型列表，请检查服务是否运行')
 }
 
 export function mergeLocalConfig(defaultConfig: LocalAIConfig, saved?: LocalAIConfig): LocalAIConfig {

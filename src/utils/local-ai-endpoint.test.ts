@@ -34,35 +34,36 @@ describe('local-ai-endpoint 工具', () => {
       json: async () => payload
     })
 
-    it('应当合并 openai 与 legacy 返回的模型列表', async () => {
+    it('应优先使用 openai 模式，成功后不再尝试 legacy', async () => {
       mockFetch
         .mockResolvedValueOnce(createResponse({ data: [{ id: 'phi3' }] }))
-        .mockResolvedValueOnce(createResponse({ models: [{ name: 'qwen2.5:7b' }] }))
 
       const result = await listLocalModels('http://localhost:11434/v1')
 
       expect(result.mode).toBe('openai')
-      expect(result.models).toHaveLength(2)
-      expect(result.models.map(model => model.id)).toEqual(['phi3', 'qwen2.5:7b'])
-      expect(mockFetch).toHaveBeenCalledTimes(2)
+      expect(result.models).toHaveLength(1)
+      expect(result.models[0].id).toBe('phi3')
+      expect(mockFetch).toHaveBeenCalledTimes(1)  // 只调用一次
     })
 
-    it('应去重重复模型', async () => {
+    it('openai 失败时应回退到 legacy 模式', async () => {
       mockFetch
-        .mockResolvedValueOnce(createResponse({ data: [{ id: 'qwen2.5:7b' }] }))
-        .mockResolvedValueOnce(createResponse({ models: [{ name: 'qwen2.5:7b', details: { parameter_size: '7B' } }] }))
+        .mockRejectedValueOnce(new Error('openai failed'))
+        .mockResolvedValueOnce(createResponse({ models: [{ name: 'qwen2.5:7b' }] }))
 
       const result = await listLocalModels('http://localhost:11434/v1')
 
+      expect(result.mode).toBe('legacy')
       expect(result.models).toHaveLength(1)
       expect(result.models[0].id).toBe('qwen2.5:7b')
+      expect(mockFetch).toHaveBeenCalledTimes(2)  // 主模式 + 备用模式
     })
 
     it('两个端点都不可用时应抛出错误', async () => {
       mockFetch.mockRejectedValue(new Error('ECONNREFUSED'))
 
-      await expect(listLocalModels('http://localhost:11434/v1')).rejects.toThrow('ECONNREFUSED')
-      expect(mockFetch).toHaveBeenCalledTimes(2)
+      await expect(listLocalModels('http://localhost:11434/v1')).rejects.toThrow('无法从 Ollama 获取模型列表')
+      expect(mockFetch).toHaveBeenCalledTimes(2)  // 主模式 + 备用模式
     })
   })
 
