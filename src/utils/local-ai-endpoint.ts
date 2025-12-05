@@ -83,8 +83,11 @@ export function buildLocalAIHeaders(mode: LocalAIEndpointMode, apiKey?: string):
 
   // Phase 11 修复: Ollama 本地接口不需要 Authorization 头
   // 只有在使用非 Ollama 的 OpenAI 兼容服务时才需要
-  // 如果用户明确提供了 apiKey（不是默认的 'ollama'），才添加 Authorization
-  if (mode === 'openai' && apiKey && apiKey.trim() && apiKey.trim().toLowerCase() !== 'ollama') {
+  // 排除默认值: 'ollama', 'local', 空字符串
+  const trimmedKey = apiKey?.trim().toLowerCase()
+  const isDefaultKey = !trimmedKey || trimmedKey === 'ollama' || trimmedKey === 'local'
+  
+  if (mode === 'openai' && apiKey && !isDefaultKey) {
     headers.Authorization = `Bearer ${apiKey.trim()}`
   }
 

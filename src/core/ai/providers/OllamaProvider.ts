@@ -69,7 +69,7 @@ export class OllamaProvider extends BaseAIService {
   private readonly isReasoningModel: boolean
 
   constructor(config: OllamaProviderConfig) {
-    super({ ...config, apiKey: config.apiKey || "local" })
+    super({ ...config, apiKey: config.apiKey || "ollama" })
     const resolved = resolveLocalAIEndpoint(config.endpoint)
     this.baseUrl = resolved.baseUrl
     this.endpoints = {
