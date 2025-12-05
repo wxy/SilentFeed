@@ -295,7 +295,7 @@ export function CollectionStats() {
             <div className="text-sm text-indigo-600 dark:text-indigo-400 mb-1">
               {_("options.collectionStats.learningPagesLabel")}
             </div>
-            <div className="text-3xl font-bold text-indigo-900 dark:text-indigo-100">
+            <div className="text-3xl font-bold text-indigo-900 dark:text-indigo-100 text-right">
               {stats.pageCount}
             </div>
             <div className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">
@@ -308,7 +308,7 @@ export function CollectionStats() {
             <div className="text-sm text-green-600 dark:text-green-400 mb-1">
               {_("options.collectionStats.storageLabel")}
             </div>
-            <div className="text-3xl font-bold text-green-900 dark:text-green-100">
+            <div className="text-3xl font-bold text-green-900 dark:text-green-100 text-right">
               {_("options.collectionStats.storageSizeMB", { size: stats.totalSizeMB })}
             </div>
             <div className="text-xs text-green-600 dark:text-green-400 mt-1">
@@ -321,7 +321,7 @@ export function CollectionStats() {
             <div className="text-sm text-cyan-600 dark:text-cyan-400 mb-1">
               {_("options.collectionStats.startLearningTimeLabel")}
             </div>
-            <div className="text-lg font-bold text-cyan-900 dark:text-cyan-100">
+            <div className="text-lg font-bold text-cyan-900 dark:text-cyan-100 text-right">
               {formatDate(stats.firstCollectionTime)}
             </div>
             <div className="text-xs text-cyan-600 dark:text-cyan-400 mt-1">
@@ -402,7 +402,7 @@ export function CollectionStats() {
                 <div className="text-xs text-blue-600 dark:text-blue-400 mb-1">
                   {_("options.collectionStats.aiUsage.overview.totalCalls")}
                 </div>
-                <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                <div className="text-2xl font-bold text-blue-900 dark:text-blue-100 text-right">
                   {aiUsageStats.totalCalls}
                 </div>
               </div>
@@ -412,10 +412,10 @@ export function CollectionStats() {
                 <div className="text-xs text-green-600 dark:text-green-400 mb-1">
                   {_("options.collectionStats.aiUsage.overview.successRate")}
                 </div>
-                <div className="text-2xl font-bold text-green-900 dark:text-green-100">
+                <div className="text-2xl font-bold text-green-900 dark:text-green-100 text-right">
                   {((aiUsageStats.successfulCalls / aiUsageStats.totalCalls) * 100).toFixed(1)}%
                 </div>
-                <div className="text-xs text-green-600 dark:text-green-400 mt-0.5">
+                <div className="text-xs text-green-600 dark:text-green-400 mt-0.5 text-right">
                   {aiUsageStats.successfulCalls}/{aiUsageStats.totalCalls}
                 </div>
               </div>
@@ -425,7 +425,7 @@ export function CollectionStats() {
                 <div className="text-xs text-indigo-600 dark:text-indigo-400 mb-1">
                   {_("options.collectionStats.aiUsage.overview.totalCost")}
                 </div>
-                <div className="text-2xl font-bold text-indigo-900 dark:text-indigo-100">
+                <div className="text-2xl font-bold text-indigo-900 dark:text-indigo-100 text-right">
                   ¥{aiUsageStats.cost.total.toFixed(4)}
                 </div>
               </div>

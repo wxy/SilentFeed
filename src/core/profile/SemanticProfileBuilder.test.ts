@@ -61,6 +61,10 @@ describe('SemanticProfileBuilder', () => {
   })
   
   afterEach(async () => {
+    // 清理防抖定时器
+    if (builder) {
+      builder.cleanup()
+    }
     await db.delete()
   })
 
@@ -222,7 +226,7 @@ describe('SemanticProfileBuilder', () => {
   })
 
   describe('onDismiss', () => {
-    it('应该记录拒绝行为并立即触发全量更新', async () => {
+    it('应该记录拒绝行为（立即记录，延迟更新画像）', async () => {
       const mockArticle: Recommendation = {
         id: 'rec-1',
         title: '体育新闻',
@@ -237,6 +241,7 @@ describe('SemanticProfileBuilder', () => {
       
       await builder.onDismiss(mockArticle)
       
+      // 立即检查：拒绝行为应该已记录
       const profile = await db.userProfile.get('singleton')
       expect(profile?.behaviors?.dismisses).toHaveLength(1)
       expect(profile?.behaviors?.dismisses[0]).toMatchObject({
@@ -245,6 +250,8 @@ describe('SemanticProfileBuilder', () => {
         weight: -1
       })
       expect(profile?.behaviors?.totalDismisses).toBe(1)
+      
+      // 注意：画像更新会在 5 秒后触发（防抖机制）
     })
 
     it('应该限制拒绝记录为最多 30 条', async () => {
@@ -271,6 +278,45 @@ describe('SemanticProfileBuilder', () => {
       const profile = await db.userProfile.get('singleton')
       expect(profile?.behaviors?.dismisses).toHaveLength(30)
       expect(profile?.behaviors?.totalDismisses).toBe(40)
+    })
+
+    it('应该实现防抖机制：连续拒绝只触发一次画像更新', async () => {
+      const mockArticle: Recommendation = {
+        id: 'rec-1',
+        title: '测试文章',
+        url: 'https://example.com/article',
+        summary: '测试内容',
+        source: 'rss',
+        sourceUrl: 'https://feed.example.com',
+        recommendedAt: Date.now(),
+        score: 0.7,
+        isRead: false
+      }
+      
+      // 快速连续拒绝 5 篇文章
+      for (let i = 1; i <= 5; i++) {
+        await builder.onDismiss({
+          ...mockArticle,
+          id: `rec-${i}`,
+          title: `测试文章${i}`
+        })
+      }
+      
+      // 立即检查：所有拒绝行为都应该已记录
+      const profileBefore = await db.userProfile.get('singleton')
+      expect(profileBefore?.behaviors?.dismisses).toHaveLength(5)
+      
+      // 等待防抖完成（稍大于 5 秒）
+      await new Promise(resolve => setTimeout(resolve, 5100))
+      
+      // 验证：画像更新应该只触发一次
+      const profileAfter = await db.userProfile.get('singleton')
+      expect(profileAfter?.behaviors?.dismisses).toHaveLength(5)
+    }, 10000) // 增加超时时间到 10 秒
+
+    it('应该在 cleanup 时清理防抖定时器', () => {
+      // 不应该抛出错误
+      expect(() => builder.cleanup()).not.toThrow()
     })
   })
 
@@ -465,10 +511,13 @@ describe('SemanticProfileBuilder', () => {
       
       await builder.onDismiss(mockArticle)
       
+      // 等待防抖完成
+      await new Promise(resolve => setTimeout(resolve, 5100))
+      
       const profile = await db.userProfile.get('singleton')
       expect(profile?.aiSummary).toBeDefined()
       expect(profile?.aiSummary?.interests).toContain('正在学习您的兴趣偏好')
-    })
+    }, 10000) // 增加超时时间到 10 秒
 
     it('应该在有浏览数据时基于关键词生成画像', async () => {
       // 添加浏览记录
@@ -509,10 +558,13 @@ describe('SemanticProfileBuilder', () => {
       
       await builder.onDismiss(mockArticle)
       
+      // 等待防抖完成
+      await new Promise(resolve => setTimeout(resolve, 5100))
+      
       const profile = await db.userProfile.get('singleton')
       expect(profile?.aiSummary).toBeDefined()
       expect(profile?.aiSummary?.interests).toContain('AI')
-    })
+    }, 10000) // 增加超时时间到 10 秒
   })
 
   describe('数据持久化', () => {

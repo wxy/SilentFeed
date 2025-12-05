@@ -12,7 +12,7 @@
 [![GitHub Release](https://img.shields.io/github/v/release/wxy/SilentFeed?style=for-the-badge)](https://github.com/wxy/SilentFeed/releases)
 [![License](https://img.shields.io/badge/License-Apache_2.0-green.svg?style=for-the-badge)](LICENSE)
 
-![Test Coverage](https://img.shields.io/badge/coverage-71%25-brightgreen?style=for-the-badge)
+![Test Coverage](https://img.shields.io/badge/coverage-72.7%25-brightgreen?style=for-the-badge)
 ![Stars](https://img.shields.io/github/stars/wxy/SilentFeed?style=for-the-badge&color=yellow)
 ![Last Commit](https://img.shields.io/github/last-commit/wxy/SilentFeed?style=for-the-badge)
 ![TypeScript](https://img.shields.io/badge/TypeScript-90%25-blue?style=for-the-badge&logo=typescript&logoColor=white)

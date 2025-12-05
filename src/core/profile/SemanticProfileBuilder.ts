@@ -30,7 +30,12 @@ const MAX_DISMISSES = 30
  */
 const BROWSE_THRESHOLD = 20    // 浏览 20 页触发全量更新
 const READ_THRESHOLD = 3       // 阅读 3 篇触发全量更新
-const DISMISS_THRESHOLD = 1    // 拒绝 1 篇立即触发全量更新
+const DISMISS_THRESHOLD = 1    // 拒绝 1 篇立即触发全量更新（已废弃，改用防抖）
+
+/**
+ * 防抖配置
+ */
+const DISMISS_DEBOUNCE_MS = 5000  // 拒绝操作防抖时间（5秒）
 
 /**
  * AI 摘要结构（对齐 UserProfileGenerationResult）
@@ -64,6 +69,10 @@ export class SemanticProfileBuilder {
   private browseCount = 0
   private readCount = 0
   private dismissCount = 0
+
+  // 防抖机制：拒绝操作
+  private dismissDebounceTimer: NodeJS.Timeout | null = null
+  private dismissQueue: Recommendation[] = []
 
   /**
    * 用户浏览页面
@@ -128,15 +137,45 @@ export class SemanticProfileBuilder {
       title: article.title
     })
     
-    // 1. 记录负反馈
+    // 1. 立即记录负反馈（不能延迟，因为需要立即从推荐池移除）
     await this.recordDismissBehavior(article)
     
+    // 2. 加入待处理队列
+    this.dismissQueue.push(article)
     this.dismissCount++
     
-    // 拒绝 → 立即全量更新（避免继续推荐类似内容）
-    profileLogger.info('🔄 检测到拒绝行为，立即触发全量更新')
-    await this.triggerFullUpdate('dismiss')
-    this.dismissCount = 0
+    // 3. 清除旧的防抖定时器
+    if (this.dismissDebounceTimer) {
+      clearTimeout(this.dismissDebounceTimer)
+      profileLogger.debug('清除旧的防抖定时器')
+    }
+    
+    // 4. 设置新的防抖定时器（5秒后执行）
+    this.dismissDebounceTimer = setTimeout(async () => {
+      const count = this.dismissQueue.length
+      profileLogger.info(`🔄 防抖触发: 批量处理 ${count} 条拒绝记录，触发画像更新`)
+      
+      // 执行画像更新
+      await this.triggerFullUpdate('dismiss')
+      
+      // 重置状态
+      this.dismissQueue = []
+      this.dismissCount = 0
+      this.dismissDebounceTimer = null
+    }, DISMISS_DEBOUNCE_MS)
+    
+    profileLogger.debug(`拒绝操作已加入队列 (${this.dismissQueue.length}/${this.dismissCount})，${DISMISS_DEBOUNCE_MS}ms 后触发更新`)
+  }
+  
+  /**
+   * 清理资源（组件卸载时调用）
+   */
+  cleanup(): void {
+    if (this.dismissDebounceTimer) {
+      clearTimeout(this.dismissDebounceTimer)
+      this.dismissDebounceTimer = null
+      profileLogger.debug('清理防抖定时器')
+    }
   }
   
   /**
