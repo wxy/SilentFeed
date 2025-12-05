@@ -14,6 +14,7 @@ import {
 } from "@/storage/ai-config"
 import { aiManager } from "@/core/ai/AICapabilityManager"
 import { checkLocalAIStatus, getRecommendationConfig, saveRecommendationConfig } from "@/storage/recommendation-config"
+import type { RecommendationAnalysisEngine, FeedAnalysisEngine } from "@/types/analysis-engine"
 import { listLocalModels, type LocalAIEndpointMode, type LocalModelSummary } from "@/utils/local-ai-endpoint"
 import { AIEngineAssignmentComponent } from "@/components/settings/AIEngineAssignment"
 import type { AIEngineAssignment as AIEngineAssignmentType } from "@/types/ai-engine-assignment"
@@ -463,6 +464,52 @@ export function AIConfig() {
     }
     // 只监听需要自动保存的字段，不包括函数引用
   }, [monthlyBudget, enableReasoning, engineAssignment, maxRecommendations, model, currentProvider, currentApiKey])
+
+  // 监听 engineAssignment 变化，同步更新 RecommendationConfig
+  useEffect(() => {
+    if (!isInitializedRef.current || !engineAssignment) {
+      return
+    }
+
+    // 将 AIEngineAssignment 转换为 RecommendationConfig
+    const syncRecommendationConfig = async () => {
+      try {
+        const recConfig = await getRecommendationConfig()
+        
+        // 安全检查：确保所有必要的字段都存在
+        if (!engineAssignment.profileGeneration || !engineAssignment.feedAnalysis) {
+          return
+        }
+        
+        // 根据 profileGeneration 的设置确定 analysisEngine
+        let analysisEngine: RecommendationAnalysisEngine = 'remoteAI'
+        if (engineAssignment.profileGeneration.provider === 'ollama') {
+          analysisEngine = 'localAI'
+        } else if (engineAssignment.profileGeneration.useReasoning) {
+          analysisEngine = 'remoteAIWithReasoning'
+        }
+        
+        // 根据 feedAnalysis 的设置确定 feedAnalysisEngine
+        let feedAnalysisEngine: FeedAnalysisEngine = 'remoteAI'
+        if (engineAssignment.feedAnalysis.provider === 'ollama') {
+          feedAnalysisEngine = 'localAI'
+        }
+        
+        // 保存更新后的配置
+        await saveRecommendationConfig({
+          ...recConfig,
+          analysisEngine,
+          feedAnalysisEngine,
+          useReasoning: engineAssignment.profileGeneration.useReasoning || false,
+          useLocalAI: engineAssignment.profileGeneration.provider === 'ollama'
+        })
+      } catch (error) {
+        console.error('[AIConfig] Failed to sync recommendation config:', error)
+      }
+    }
+
+    syncRecommendationConfig()
+  }, [engineAssignment])
 
   // 保存配置（保留用于手动触发，但隐藏保存按钮）
   const handleSave = async () => {
