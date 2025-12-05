@@ -29,7 +29,7 @@
 
 1. **下载扩展包**
    - 访问 [GitHub Releases](https://github.com/wxy/SilentFeed/releases)
-   - 下载最新版本的 `chrome-mv3-prod-v0.2.0.zip`
+   - 下载最新版本的 `chrome-mv3-prod-v0.3.0.zip`
    - 解压到任意目录
 
 2. **加载到 Chrome**

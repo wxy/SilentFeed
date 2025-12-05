@@ -29,7 +29,7 @@
 
 1. **Download Extension Package**
    - Visit [GitHub Releases](https://github.com/wxy/SilentFeed/releases)
-   - Download latest `chrome-mv3-prod-v0.2.0.zip`
+   - Download latest `chrome-mv3-prod-v0.3.0.zip`
    - Extract to any directory
 
 2. **Load to Chrome**

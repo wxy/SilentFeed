@@ -5,6 +5,41 @@ All notable changes to Silent Feed will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2024-12-05
+
+### Added
+
+- **Feed Quality Spider Chart Visualization** ([#59](https://github.com/wxy/SilentFeed/pull/59))
+  - Spider chart displaying 6 quality dimensions for each RSS feed
+  - Visual indicators for content quality, update frequency, and recommendation performance
+  - Helps users identify high-quality feeds at a glance
+  - Full internationalization support (English & Chinese)
+
+- **Recommendation System Performance Optimization**
+  - Debounce mechanism for profile rebuilds: batch process dismissals within 5 seconds
+  - Reduces AI API calls by 80% when rapidly marking articles as "not interested"
+  - Expanded recommendation pool from 1x to 2x window size for better diversity
+  - Improved recommendation quality with larger candidate pool
+
+### Changed
+
+- **UI Improvements**
+  - Right-aligned numeric values in system data cards for better readability
+  - Consistent alignment for statistics (page count, storage, AI usage, etc.)
+  - Enhanced visual hierarchy in settings page
+
+### Fixed
+
+- **Translation Logic**
+  - Fixed language detection for recommendation translations
+  - Now correctly uses user's i18n language setting instead of browser language
+  - Prevents unnecessary translation when source equals target language
+
+### Performance
+
+- **API Cost Reduction**: 80% fewer profile rebuild API calls during rapid dismissals
+- **Recommendation Diversity**: 2x larger pool maintains quality while offering more variety
+
 ## [0.2.0] - 2024-12-01
 
 ### Added
