@@ -311,8 +311,11 @@ export abstract class BaseAIService implements AIProvider {
         timeout = this.isReasoningModel ? 180000 : 90000
       }
       
+      // Phase 11: 推理模型需要更多 token（推理过程 + 最终答案）
+      const maxTokens = this.name === 'Ollama' && (this as any).isReasoningModel ? 3000 : 1000
+      
       const response = await this.callChatAPI(prompt, {
-        maxTokens: 1000,
+        maxTokens,
         timeout,
         jsonMode: !responseFormat,
         responseFormat: responseFormat || undefined,

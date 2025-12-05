@@ -498,12 +498,29 @@ export class OllamaProvider extends BaseAIService {
       choicesCount: data.choices?.length,
       hasContent: !!data.choices?.[0]?.message?.content,
       hasReasoning: !!data.choices?.[0]?.message?.reasoning,
-      firstChoice: data.choices?.[0]  // 输出完整的第一个 choice
+      contentLength: data.choices?.[0]?.message?.content?.length || 0,
+      reasoningLength: data.choices?.[0]?.message?.reasoning?.length || 0,
+      finishReason: data.choices?.[0]?.finish_reason
     })
 
-    // DeepSeek-R1 推理模型会把内容放在 reasoning 字段
+    // DeepSeek-R1 推理模型的响应格式:
+    // - content: 最终答案 (JSON 格式)
+    // - reasoning: 推理过程 (自然语言，可能很长)
+    // 优先使用 content，只有当 content 为空且 reasoning 存在时才回退
     const message = data.choices?.[0]?.message
-    const rawContent = (message?.content || message?.reasoning || '').trim()
+    let rawContent = message?.content?.trim() || ''
+    
+    // 如果 content 为空但 reasoning 存在，尝试从 reasoning 中提取 JSON
+    if (!rawContent && message?.reasoning) {
+      ollamaLogger.warn('⚠️ content 为空，尝试从 reasoning 中提取内容')
+      rawContent = message.reasoning.trim()
+      
+      // 检查是否被截断
+      if (data.choices?.[0]?.finish_reason === 'length') {
+        ollamaLogger.error('❌ 推理内容被截断，需要增加 max_tokens')
+        throw new Error(`Reasoning truncated (finish_reason=length). Increase max_tokens. Model: ${data.model}`)
+      }
+    }
     
     if (!rawContent) {
       ollamaLogger.error('Ollama 返回空响应 - 完整数据:', JSON.stringify(data, null, 2))
