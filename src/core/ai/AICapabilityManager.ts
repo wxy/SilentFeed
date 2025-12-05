@@ -105,13 +105,16 @@ export class AICapabilityManager {
         this.remoteProvider = null
       }
       
-      // Phase 11: 初始化本地 AI（如果有任务使用 ollama）
+      // Phase 11.1 回滚修复: 初始化本地 AI（如果有任务使用 ollama 且配置完整）
       const usesOllama = this.engineAssignment && 
         (['pageAnalysis', 'feedAnalysis', 'profileGeneration'] as AITaskType[]).some(
           task => this.engineAssignment![task]?.provider === 'ollama'
         )
       
-      if (usesOllama && config.local?.enabled) {
+      // 检查配置完整性（而非 enabled 字段）
+      const hasValidLocalConfig = config.local?.endpoint && config.local?.model
+      
+      if (usesOllama && hasValidLocalConfig) {
         await this.initializeLocalProvider(config.local)
       } else {
         this.localProvider = null
@@ -316,63 +319,12 @@ export class AICapabilityManager {
   /**
    * 测试连接
    * Phase 11: 从 providers 读取配置
-   * 
-   * @param target - 测试目标（remote/local）
-   * @param useReasoning - 是否测试推理模式
-   * @param forceInitialize - 强制重新初始化（用于测试连接，忽略 engineAssignment）
    */
-  async testConnection(
-    target: ProviderSelectionMode = "remote", 
-    useReasoning: boolean = false,
-    forceInitialize: boolean = false
-  ): Promise<{
+  async testConnection(target: ProviderSelectionMode = "remote", useReasoning: boolean = false): Promise<{
     success: boolean
     message: string
     latency?: number
   }> {
-    // Phase 11.1: 如果是强制初始化（测试连接），临时绕过 engineAssignment 检查
-    if (forceInitialize) {
-      const config = await getAIConfig()
-      
-      if (target === "local") {
-        // 测试本地 AI：只要配置存在就尝试初始化
-        if (config.local?.endpoint && config.local?.model) {
-          await this.initializeLocalProvider(config.local, true) // forceInit=true
-        } else {
-          return {
-            success: false,
-            message: "未配置本地 AI（缺少 endpoint 或 model）"
-          }
-        }
-      } else {
-        // 测试远程 AI：检查 providers 配置
-        const hasDeepSeek = config.providers?.deepseek?.apiKey
-        const hasOpenAI = config.providers?.openai?.apiKey
-        
-        if (hasDeepSeek) {
-          await this.initializeRemoteProvider(
-            true,
-            'deepseek',
-            config.providers.deepseek.apiKey,
-            config.providers.deepseek.model || 'deepseek-chat'
-          )
-        } else if (hasOpenAI) {
-          await this.initializeRemoteProvider(
-            true,
-            'openai',
-            config.providers.openai.apiKey,
-            config.providers.openai.model || 'gpt-4o-mini'
-          )
-        } else {
-          return {
-            success: false,
-            message: "未配置 AI 提供商（未设置任何 API Key）"
-          }
-        }
-      }
-    }
-    
-    // 获取对应的 provider
     const provider = target === "local" ? this.localProvider : this.remoteProvider
 
     if (!provider) {
@@ -602,13 +554,10 @@ export class AICapabilityManager {
     aiLogger.info(`Remote provider initialized: ${this.remoteProvider.name} (enabled: ${enabled})`)
   }
 
-  private async initializeLocalProvider(localConfig?: LocalAIConfig, forceInit: boolean = false): Promise<void> {
-    if (!forceInit && !localConfig?.enabled) {
-      this.localProvider = null
-      return
-    }
-    
-    if (!localConfig) {
+  private async initializeLocalProvider(localConfig?: LocalAIConfig): Promise<void> {
+    // Phase 11.1: 检查配置是否存在，而不是检查 enabled
+    // 这样测试连接时（临时保存了 enabled=true 的配置）可以正常初始化
+    if (!localConfig?.endpoint || !localConfig?.model) {
       this.localProvider = null
       return
     }

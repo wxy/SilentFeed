@@ -106,13 +106,24 @@ export function ProfileSettings() {
     if (isRebuilding) return
 
     // 1. 添加用户消息："重建画像"
+    const timestamp = Date.now()
     const userMessage: ChatMessage = {
-      id: `user-${Date.now()}`,
+      id: `user-${timestamp}`,
       type: 'user',
       content: 'rebuilding',
-      timestamp: Date.now()
+      timestamp
     }
-    setMessages(prev => [...prev, userMessage])
+    
+    // 2. 添加 AI "生成中"消息（临时，不包含 aiSummary）
+    const generatingId = `ai-generating-${timestamp}`
+    const generatingMessage: ChatMessage = {
+      id: generatingId,
+      type: 'ai',
+      content: {} as UserProfile, // 空画像，触发"生成中"显示
+      timestamp
+    }
+    
+    setMessages(prev => [...prev, userMessage, generatingMessage])
 
     setIsRebuilding(true)
     
@@ -164,17 +175,24 @@ export function ProfileSettings() {
       // 成功：进度条直接到 100%
       setRebuildProgress(100)
       
-      // 2. 添加 AI 回复消息：新画像
-      const aiMessage: ChatMessage = {
-        id: `ai-${Date.now()}`,
-        type: 'ai',
-        content: newProfile,
-        timestamp: newProfile.aiSummary?.metadata?.timestamp || newProfile.lastUpdated
-      }
-      setMessages(prev => [...prev, aiMessage])
+      // 3. 移除"生成中"消息，添加新画像消息
+      setMessages(prev => {
+        // 移除"生成中"消息
+        const filtered = prev.filter(m => m.id !== generatingId)
+        // 添加新画像
+        return [...filtered, {
+          id: `ai-${Date.now()}`,
+          type: 'ai',
+          content: newProfile,
+          timestamp: newProfile.aiSummary?.metadata?.timestamp || newProfile.lastUpdated
+        }]
+      })
       
     } catch (error) {
       profileViewLogger.error("重建用户画像失败:", error)
+      
+      // 失败：移除"生成中"消息
+      setMessages(prev => prev.filter(m => m.id !== generatingId))
       
       // 检查是否是任务锁错误
       if ((error as Error).message === 'PROFILE_REBUILDING') {

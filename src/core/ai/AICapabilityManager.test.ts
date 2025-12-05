@@ -318,7 +318,7 @@ describe("AICapabilityManager", () => {
 
   describe("多提供商与本地回退", () => {
     it("在本地启用且远端未配置时应使用本地提供者", async () => {
-      mockStorage.sync.get.mockResolvedValueOnce({
+      const mockConfig = {
         aiConfig: {
           providers: {},
           local: { enabled: true, provider: "ollama", endpoint: "http://localhost:11434/v1", model: "qwen2.5:7b" },
@@ -326,11 +326,17 @@ describe("AICapabilityManager", () => {
             profileGeneration: { provider: 'ollama', model: 'qwen2.5:7b' }
           }
         }
-      })
+      }
+      
+      // Mock 多次返回相同配置（initialize 会调用 getAIConfig 和 getEngineAssignment）
+      // 使用 mockResolvedValueOnce 多次，避免影响后续测试
+      mockStorage.sync.get.mockResolvedValueOnce(mockConfig)  // getAIConfig
+      mockStorage.sync.get.mockResolvedValueOnce(mockConfig)  // getEngineAssignment
 
       await manager.initialize()
-      // Phase 11.1: 测试连接需要 forceInitialize=true（配置页面行为）
-      const conn = await manager.testConnection("local", false, true)
+      
+      // Phase 11.1 回滚: testConnection 不再需要 forceInitialize
+      const conn = await manager.testConnection("local", false)
       // testConnection 返回 {success, message, latency?}
       expect(conn && conn.success === true).toBeTruthy()
     })
