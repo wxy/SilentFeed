@@ -38,11 +38,10 @@ describe('TranslationService', () => {
     
     // 默认 mock: AI 未配置
     mockGetAIConfig.mockResolvedValue({
-      enabled: false,
-      provider: 'deepseek',
-      model: 'deepseek-chat',
-      apiKeys: {},
-      enableReasoning: false
+      providers: {},
+      monthlyBudget: 5.0,
+      local: { enabled: false },
+      engineAssignment: {}
     } as any)
   })
 
@@ -79,11 +78,10 @@ describe('TranslationService', () => {
   describe('翻译文本', () => {
     it('应该在 AI 未启用时返回原文', async () => {
       mockGetAIConfig.mockResolvedValue({
-        enabled: false,
-        provider: 'deepseek',
-        model: 'deepseek-chat',
-        apiKeys: {},
-        enableReasoning: false
+        providers: {},
+        monthlyBudget: 5.0,
+        local: { enabled: false },
+        engineAssignment: {}
       } as any)
 
       const text = 'This is English'
@@ -96,11 +94,10 @@ describe('TranslationService', () => {
 
     it('应该在没有 API Key 时返回原文', async () => {
       mockGetAIConfig.mockResolvedValue({
-        enabled: true,
-        provider: 'deepseek',
-        model: 'deepseek-chat',
-        apiKeys: {}, // 没有 API Key
-        enableReasoning: false
+        providers: {},
+        monthlyBudget: 5.0,
+        local: { enabled: false },
+        engineAssignment: {}
       } as any)
 
       const text = 'This is English'
@@ -113,13 +110,13 @@ describe('TranslationService', () => {
 
     it('应该在 provider API Key 不存在时返回原文', async () => {
       mockGetAIConfig.mockResolvedValue({
-        enabled: true,
-        provider: 'deepseek',
-        model: 'deepseek-chat',
-        apiKeys: {
-          openai: 'test-key' // 只有 openai 的 key，但 provider 是 deepseek
+        providers: {
+          deepseek: { model: 'deepseek-chat' }, // 没有 apiKey
+          openai: { model: 'gpt-4o-mini' }      // 也没有 apiKey
         },
-        enableReasoning: false
+        monthlyBudget: 5.0,
+        local: { enabled: false },
+        engineAssignment: {}
       } as any)
 
       const text = 'This is English'
@@ -132,13 +129,12 @@ describe('TranslationService', () => {
 
     it('应该使用 DeepSeek API 进行翻译', async () => {
       mockGetAIConfig.mockResolvedValue({
-        enabled: true,
-        provider: 'deepseek',
-        model: 'deepseek-chat',
-        apiKeys: {
-          deepseek: 'test-deepseek-key'
+        providers: {
+          deepseek: { apiKey: 'test-deepseek-key', model: 'deepseek-chat' }
         },
-        enableReasoning: false
+        monthlyBudget: 5.0,
+        local: { enabled: false },
+        engineAssignment: {}
       } as any)
 
       global.fetch = vi.fn().mockResolvedValue({
@@ -172,13 +168,12 @@ describe('TranslationService', () => {
 
     it('应该使用 OpenAI API 进行翻译', async () => {
       mockGetAIConfig.mockResolvedValue({
-        enabled: true,
-        provider: 'openai',
-        model: 'gpt-4o-mini',
-        apiKeys: {
-          openai: 'test-openai-key'
+        providers: {
+          openai: { apiKey: 'test-openai-key', model: 'gpt-4o-mini' }
         },
-        enableReasoning: false
+        monthlyBudget: 5.0,
+        local: { enabled: false },
+        engineAssignment: {}
       } as any)
 
       global.fetch = vi.fn().mockResolvedValue({
@@ -212,13 +207,12 @@ describe('TranslationService', () => {
 
     it('应该在 API 请求失败时返回原文', async () => {
       mockGetAIConfig.mockResolvedValue({
-        enabled: true,
-        provider: 'deepseek',
-        model: 'deepseek-chat',
-        apiKeys: {
-          deepseek: 'test-key'
+        providers: {
+          deepseek: { apiKey: 'test-key', model: 'deepseek-chat' }
         },
-        enableReasoning: false
+        monthlyBudget: 5.0,
+        local: { enabled: false },
+        engineAssignment: {}
       } as any)
 
       global.fetch = vi.fn().mockResolvedValue({
@@ -236,13 +230,12 @@ describe('TranslationService', () => {
 
     it('应该在网络错误时返回原文', async () => {
       mockGetAIConfig.mockResolvedValue({
-        enabled: true,
-        provider: 'deepseek',
-        model: 'deepseek-chat',
-        apiKeys: {
-          deepseek: 'test-key'
+        providers: {
+          deepseek: { apiKey: 'test-key', model: 'deepseek-chat' }
         },
-        enableReasoning: false
+        monthlyBudget: 5.0,
+        local: { enabled: false },
+        engineAssignment: {}
       } as any)
 
       global.fetch = vi.fn().mockRejectedValue(new Error('Network error'))
@@ -257,13 +250,12 @@ describe('TranslationService', () => {
 
     it('应该在 API 返回格式错误时使用本地检测', async () => {
       mockGetAIConfig.mockResolvedValue({
-        enabled: true,
-        provider: 'deepseek',
-        model: 'deepseek-chat',
-        apiKeys: {
-          deepseek: 'test-key'
+        providers: {
+          deepseek: { apiKey: 'test-key', model: 'deepseek-chat' }
         },
-        enableReasoning: false
+        monthlyBudget: 5.0,
+        local: { enabled: false },
+        engineAssignment: {}
       } as any)
 
       global.fetch = vi.fn().mockResolvedValue({
@@ -287,13 +279,12 @@ describe('TranslationService', () => {
 
     it('应该处理空的 API 响应', async () => {
       mockGetAIConfig.mockResolvedValue({
-        enabled: true,
-        provider: 'deepseek',
-        model: 'deepseek-chat',
-        apiKeys: {
-          deepseek: 'test-key'
+        providers: {
+          deepseek: { apiKey: 'test-key', model: 'deepseek-chat' }
         },
-        enableReasoning: false
+        monthlyBudget: 5.0,
+        local: { enabled: false },
+        engineAssignment: {}
       } as any)
 
       global.fetch = vi.fn().mockResolvedValue({

@@ -78,7 +78,7 @@ export function useAIProviderStatus() {
         }
         
         // 测试连接
-        const result = await provider.testConnection(enableReasoning)
+        const result = await (provider as any).testConnection(false)
         
         // 保存状态
         const providerStatus: AIProviderStatus = {
@@ -112,7 +112,8 @@ export function useAIProviderStatus() {
         const { OllamaProvider } = await import('@/core/ai/providers/OllamaProvider')
         const provider = new OllamaProvider({
           endpoint: config.local.endpoint || 'http://localhost:11434/v1',
-          model: config.local.model || 'qwen2.5:7b'
+          model: config.local.model || 'qwen2.5:7b',
+          apiKey: ''
         })
         
         // 测试连接
@@ -206,7 +207,7 @@ export function useAIProviderStatus() {
               }
               
               // 测试连接
-              const result = await providerInstance.testConnection(enableReasoning)
+              const result = await (providerInstance as any).testConnection(false)
               providerStatus = {
                 providerId: provider.id,
                 type: provider.type,
@@ -231,7 +232,8 @@ export function useAIProviderStatus() {
               const { OllamaProvider } = await import('@/core/ai/providers/OllamaProvider')
               const providerInstance = new OllamaProvider({
                 endpoint: config.local.endpoint || 'http://localhost:11434/v1',
-                model: config.local.model || 'qwen2.5:7b'
+                model: config.local.model || 'qwen2.5:7b',
+                apiKey: ''
               })
               
               // 测试连接

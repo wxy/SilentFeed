@@ -74,6 +74,10 @@ export class SemanticProfileBuilder {
   private dismissDebounceTimer: NodeJS.Timeout | null = null
   private dismissQueue: Recommendation[] = []
 
+  // Phase 11: 任务锁机制（防止重叠执行）
+  private isGeneratingProfile = false
+  private pendingTasks: Array<() => Promise<void>> = []
+
   /**
    * 用户浏览页面
    */
@@ -176,6 +180,10 @@ export class SemanticProfileBuilder {
       this.dismissDebounceTimer = null
       profileLogger.debug('清理防抖定时器')
     }
+    
+    // Phase 11: 清理任务锁
+    this.isGeneratingProfile = false
+    this.pendingTasks = []
   }
   
   /**
@@ -199,11 +207,28 @@ export class SemanticProfileBuilder {
   }
 
   /**
+   * Phase 11: 查询 AI 画像生成状态
+   * 
+   * 用于 UI 显示进度条
+   */
+  isGenerating(): boolean {
+    return this.isGeneratingProfile
+  }
+
+  /**
    * 全量更新：重新生成 AI 摘要
    */
   private async triggerFullUpdate(
     trigger: 'browse' | 'read' | 'dismiss' | 'manual' | 'rebuild'
   ): Promise<void> {
+    // Phase 11: 任务锁机制 - 防止重叠执行
+    if (this.isGeneratingProfile) {
+      profileLogger.warn('[FullUpdate] ⚠️ AI 画像生成中，跳过本次请求', { trigger })
+      return
+    }
+
+    this.isGeneratingProfile = true
+    
     try {
       profileLogger.info('[FullUpdate] 开始全量更新', { trigger })
       
@@ -243,6 +268,10 @@ export class SemanticProfileBuilder {
     } catch (error) {
       profileLogger.error('[FullUpdate] 全量更新失败:', error)
       throw error
+    } finally {
+      // 释放锁
+      this.isGeneratingProfile = false
+      profileLogger.debug('[FullUpdate] 任务锁已释放')
     }
   }
 

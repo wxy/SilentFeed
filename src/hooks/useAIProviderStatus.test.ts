@@ -54,7 +54,6 @@ vi.mock("@/core/ai/providers/OllamaProvider", () => ({
 describe("useAIProviderStatus", () => {
   // Phase 9.2: 默认配置使用新的 providers 结构
   const defaultConfig: AIConfig = {
-    enabled: true,
     monthlyBudget: 10,
     providers: {
       deepseek: {
@@ -72,7 +71,12 @@ describe("useAIProviderStatus", () => {
       enabled: true,
       provider: "ollama",
       endpoint: "http://localhost:11434/v1",
-      model: "qwen2.5:7b"
+      model: "llama2"  // 不再硬编码 qwen2.5:7b
+    },
+    engineAssignment: {
+      pageAnalysis: { provider: 'deepseek', useReasoning: false },
+      feedAnalysis: { provider: 'deepseek', useReasoning: false },
+      profileGeneration: { provider: 'deepseek', useReasoning: false }
     }
   }
 

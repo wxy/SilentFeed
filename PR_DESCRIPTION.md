@@ -1,3 +1,37 @@
+# SilentFeed 0.3.1 发布准备 / 测试与类型修复
+
+## 变更摘要
+- 修复多处测试类型错误，稳定测试套件
+- Dexie 事务模拟兼容 PromiseExtended 的 `timeout` 要求
+- recommendation-config 测试迁移到新的 `AIConfig.providers` 结构并补齐 `local`/`engineAssignment`
+- 提升与验证覆盖率（函数覆盖率 ≥ 70%）
+- 版本号升级到 `0.3.1`
+
+## 详细修改
+- `src/core/recommender/RecommendationService.test.ts`
+  - 补齐 `UserProfile` 必需字段：`totalPages`、`lastUpdated`、`version`
+  - 替换不合法的 `topicDistribution` 为完整 `topics`（包含所有枚举键）
+  - 事务模拟返回对象包含 `timeout` 方法
+- `src/storage/recommendation-config.test.ts`
+  - `getAIConfig` 的 mock 均补齐 `local` 与 `engineAssignment`
+- `src/core/ai/providers/OllamaProvider.ts`
+  - OpenAI 兼容响应路径安全访问 `finish_reason`
+- 新增：`src/storage/db/db-unrecommended-count.test.ts`
+  - 覆盖订阅源与所有源的统计逻辑、异常分支、池内/分析排除规则
+
+## 质量检查
+- `npm run pre-push` 全部通过：
+  - 测试套件：92 文件，1487 通过 | 1 跳过
+  - 覆盖率：函数覆盖率 ≥ 70%，行覆盖率 ~73%
+  - 生产构建：Plasmo 构建成功，DNR 配置注入完成
+
+## 发布说明
+- 版本号：`0.3.1`
+- 重点：测试稳定性与类型一致性修复；AI 配置测试与 Provider 行为兼容性增强；小幅提升覆盖率
+- 风险：低（主要为测试与类型修复；功能行为保持一致）
+
+## 请求合并
+请审阅并合并至 `master`，合并后将打标签 `v0.3.1` 并发布。
 # feat: AI 摘要最小集成（基于现有分析链路）
 
 ## 背景与目标

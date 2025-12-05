@@ -608,7 +608,9 @@
       },
       "alerts": {
         "rebuildSuccess": "Portrait reconstruction successful!",
-        "rebuildFailed": "Portrait reconstruction failed, please try again later."
+        "rebuildFailed": "Portrait reconstruction failed, please try again later.",
+        "rebuildInProgress": "Generating portrait, please wait...",
+        "rebuildCooldown": "Please wait {{seconds}} seconds before rebuilding the profile."
       },
       "actions": {
         "rebuild": "Rebuild Profile",
@@ -1063,7 +1065,9 @@
         },
         "ollamaEndpointHint": "OpenAI compatible interface address",
         "modelName": "Model Name",
-        "loadModelsHint": "Click the button above to load available models."
+        "loadModelsHint": "Click the button above to load available models.",
+        "reasoningEnabled": "✅ Reasoning mode enabled: AI will engage in deep thinking to provide higher-quality analysis (consumes more tokens)",
+        "reasoningDisabled": "💡 Reasoning mode is turned off: Only serves as a permission switch, and will take effect when the current model supports reasoning."
       },
       "ollama": {
         "title": "Ollama Installation Guide",

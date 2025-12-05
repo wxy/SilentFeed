@@ -50,6 +50,8 @@ interface OllamaProviderConfig extends AIProviderConfig {
   temperature?: number
   maxOutputTokens?: number
   timeoutMs?: number
+  /** Phase 11.2: 是否为推理模型（从配置中读取，优先级高于名称检测） */
+  isReasoningModel?: boolean
 }
 
 const ollamaLogger = logger.withTag("OllamaProvider")
@@ -66,9 +68,10 @@ export class OllamaProvider extends BaseAIService {
   private readonly temperature: number
   private readonly maxOutputTokens: number
   private readonly defaultTimeout: number
+  private readonly isReasoningModel: boolean
 
   constructor(config: OllamaProviderConfig) {
-    super({ ...config, apiKey: config.apiKey || "local" })
+    super({ ...config, apiKey: config.apiKey || "ollama" })
     const resolved = resolveLocalAIEndpoint(config.endpoint)
     this.baseUrl = resolved.baseUrl
     this.endpoints = {
@@ -78,7 +81,14 @@ export class OllamaProvider extends BaseAIService {
     this.endpointMode = resolved.mode
     this.temperature = config.temperature ?? 0.2
     this.maxOutputTokens = config.maxOutputTokens ?? 768
-    this.defaultTimeout = config.timeoutMs ?? 45000
+    // Phase 11: 本地 AI 需要更长的超时时间（120s）
+    this.defaultTimeout = config.timeoutMs ?? 120000
+    // Phase 11.2: 优先使用配置中的 isReasoningModel（从 Ollama API 获取）
+    // 降级到基于模型名称的检测
+    this.isReasoningModel = config.isReasoningModel ?? this.detectReasoningModel(config.model)
+    if (this.isReasoningModel) {
+      ollamaLogger.info(`检测到推理模型: ${config.model}，将使用特殊处理`)
+    }
   }
 
   /**
@@ -106,7 +116,12 @@ export class OllamaProvider extends BaseAIService {
   }
 
   /**
-   * 测试连接（使用模型列表端点，比完整 chat 调用快）
+   * 测试连接
+   * 
+   * Phase 11 优化: 使用快速的 GET /models 测试连接
+   * - 不需要加载模型，速度快（< 1s）
+   * - 只验证服务可达性
+   * - 实际调用会在使用时进行
    */
   async testConnection(): Promise<{
     success: boolean
@@ -115,28 +130,38 @@ export class OllamaProvider extends BaseAIService {
   }> {
     try {
       const startTime = Date.now()
-      const url = this.getModelsEndpoint(this.endpointMode)
-      const headers = buildLocalAIHeaders(this.endpointMode, this.config.apiKey)
+      const order = this.getModeOrder()
       
-      const response = await fetch(url, {
-        method: "GET",
-        headers,
-        signal: AbortSignal.timeout(3000)
-      })
-      
-      const latency = Date.now() - startTime
-      
-      if (response.ok) {
-        return {
-          success: true,
-          message: `连接成功！Ollama 服务正常运行`,
-          latency
+      // 尝试获取模型列表（快速测试）
+      for (const mode of order) {
+        try {
+          const resp = await fetch(this.getModelsEndpoint(mode), {
+            method: "GET",
+            headers: buildLocalAIHeaders(mode, this.config.apiKey),
+            signal: AbortSignal.timeout(5000)  // 5s 足够
+          })
+          
+          if (resp.ok) {
+            const latency = Date.now() - startTime
+            const data = await resp.json()
+            const modelCount = mode === 'openai' 
+              ? (data?.data?.length || 0)
+              : (data?.models?.length || 0)
+            
+            return {
+              success: true,
+              message: `连接成功！检测到 ${modelCount} 个模型（${mode} 模式）`,
+              latency
+            }
+          }
+        } catch (error) {
+          ollamaLogger.debug(`${mode} 模式测试失败:`, error)
         }
       }
       
       return {
         success: false,
-        message: `连接失败: HTTP ${response.status}`
+        message: `无法连接到 Ollama 服务 (${this.baseUrl})`
       }
     } catch (error) {
       return {
@@ -148,6 +173,22 @@ export class OllamaProvider extends BaseAIService {
 
   protected getDefaultModelName(): string {
     return this.config.model || "ollama-local"
+  }
+
+  /**
+   * 检测是否为推理模型（基于模型名称 - 降级方案）
+   * 
+   * Phase 11.2: 优先使用配置中的 isReasoningModel（从 Ollama /api/show 的 capabilities 获取）
+   * capabilities 包含 "thinking" 表示支持推理能力
+   * 此方法仅作为降级方案，不应依赖
+   * 
+   * @param modelName 模型名称
+   * @returns 始终返回 false（不可靠的检测方式）
+   */
+  private detectReasoningModel(modelName?: string): boolean {
+    // Phase 11.2: 名称检测不可靠，始终返回 false
+    // 应该通过配置中的 isReasoningModel 判断（来自 /api/show 的 capabilities）
+    return false
   }
 
   /**
@@ -225,8 +266,12 @@ export class OllamaProvider extends BaseAIService {
     tokensUsed: { input: number; output: number }
     model?: string
   }> {
+    if (!this.config.model) {
+      throw new Error('Ollama 模型未配置，请在 AI 配置中设置模型')
+    }
+    
     const body: OllamaChatRequest = {
-      model: this.config.model || "qwen2.5:7b",
+      model: this.config.model,
       messages: [
         {
           role: "system",
@@ -274,10 +319,17 @@ export class OllamaProvider extends BaseAIService {
     }
 
     const data = await response.json() as OllamaChatResponse
+    ollamaLogger.debug('Ollama legacy API 响应:', { 
+      model: data.model, 
+      hasMessage: !!data.message,
+      contentLength: data.message?.content?.length 
+    })
+    
     const rawContent = data.message?.content?.trim()
 
     if (!rawContent) {
-      throw new Error("Empty response from Ollama")
+      ollamaLogger.error('Ollama 返回空响应:', data)
+      throw new Error(`Empty response from Ollama (model: ${data.model || 'unknown'}, status: ${response.status})`)
     }
 
     const content = this.extractJsonContent(rawContent)
@@ -309,8 +361,12 @@ export class OllamaProvider extends BaseAIService {
     tokensUsed: { input: number; output: number }
     model?: string
   }> {
+    if (!this.config.model) {
+      throw new Error('Ollama 模型未配置，请在 AI 配置中设置模型')
+    }
+    
     const body: Record<string, unknown> = {
-      model: this.config.model || "qwen2.5:7b",
+      model: this.config.model,
       prompt: this.buildGeneratePrompt(prompt),
       stream: false,
       options: {
@@ -389,15 +445,21 @@ export class OllamaProvider extends BaseAIService {
     tokensUsed: { input: number; output: number }
     model?: string
   }> {
+    if (!this.config.model) {
+      throw new Error('Ollama 模型未配置，请在 AI 配置中设置模型')
+    }
+    
     const body: Record<string, unknown> = {
-      model: this.config.model || "qwen2.5:7b",
+      model: this.config.model,
       messages: this.buildOpenAIMessages(prompt),
       temperature: options?.temperature ?? this.temperature,
       max_tokens: options?.maxTokens ?? this.maxOutputTokens,
       stream: false
     }
 
-    if (options?.jsonMode !== false) {
+    // 推理模型不支持 response_format，会导致返回空内容
+    // 只在明确要求 JSON 模式且不是推理模型时才添加
+    if (options?.jsonMode !== false && !this.isReasoningModel) {
       body.response_format = options?.responseFormat || { type: "json_object" }
     }
 
@@ -425,13 +487,49 @@ export class OllamaProvider extends BaseAIService {
     const data = await response.json() as {
       id?: string
       model?: string
-      choices?: Array<{ message?: { content?: string } }>
+      choices?: Array<{ 
+        message?: { 
+          content?: string
+          role?: string
+          reasoning?: string  // DeepSeek-R1 推理模型的特殊字段
+        } 
+      }>
       usage?: { prompt_tokens?: number; completion_tokens?: number }
     }
 
-    const rawContent = data.choices?.[0]?.message?.content?.trim()
+    ollamaLogger.debug('Ollama OpenAI API 响应:', { 
+      model: data.model,
+      choicesCount: data.choices?.length,
+      hasContent: !!data.choices?.[0]?.message?.content,
+      hasReasoning: !!data.choices?.[0]?.message?.reasoning,
+      contentLength: data.choices?.[0]?.message?.content?.length || 0,
+      reasoningLength: data.choices?.[0]?.message?.reasoning?.length || 0,
+      finishReason: (data.choices?.[0] as any)?.finish_reason
+    })
+
+    // DeepSeek-R1 推理模型的响应格式:
+    // - content: 最终答案 (JSON 格式)
+    // - reasoning: 推理过程 (自然语言，可能很长)
+    // 优先使用 content，只有当 content 为空且 reasoning 存在时才回退
+    const message = data.choices?.[0]?.message
+    let rawContent = message?.content?.trim() || ''
+    
+    // 如果 content 为空但 reasoning 存在，尝试从 reasoning 中提取 JSON
+    if (!rawContent && message?.reasoning) {
+      ollamaLogger.warn('⚠️ content 为空，尝试从 reasoning 中提取内容')
+      rawContent = message.reasoning.trim()
+      
+      // 检查是否被截断
+      const finishReason = (data.choices?.[0] as any)?.finish_reason
+      if (finishReason === 'length') {
+        ollamaLogger.error('❌ 推理内容被截断，需要增加 max_tokens')
+        throw new Error(`Reasoning truncated (finish_reason=length). Increase max_tokens. Model: ${data.model}`)
+      }
+    }
+    
     if (!rawContent) {
-      throw new Error("Empty response from Ollama")
+      ollamaLogger.error('Ollama 返回空响应 - 完整数据:', JSON.stringify(data, null, 2))
+      throw new Error(`Empty response from Ollama (model: ${data.model || 'unknown'}, choices: ${data.choices?.length || 0})`)
     }
 
     return {

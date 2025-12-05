@@ -96,6 +96,7 @@ function generateCandidateURLs(): string[] {
  * 功能：
  * - 转换相对路径为绝对路径
  * - 验证 URL 有效性
+ * - 过滤不需要的域名（如谷歌翻译）
  */
 function normalizeURL(url: string): string | null {
   try {
@@ -104,6 +105,12 @@ function normalizeURL(url: string): string | null {
     
     // 只接受 HTTP/HTTPS 协议
     if (!absoluteURL.protocol.startsWith("http")) {
+      return null
+    }
+    
+    // 过滤谷歌翻译域名（translate.goog 及其子域）
+    // 这些页面的 RSS 链接指向翻译后的内容，不是原始订阅源
+    if (absoluteURL.hostname.endsWith('.translate.goog') || absoluteURL.hostname === 'translate.goog') {
       return null
     }
     

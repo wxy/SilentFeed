@@ -111,7 +111,9 @@ export interface LocalAIConfig {
   /** 请求超时（毫秒） */
   timeoutMs?: number
   /** 缓存的模型列表（避免每次打开配置都要重新加载） */
-  cachedModels?: Array<{ id: string; label: string }>
+  cachedModels?: Array<{ id: string; label: string; isReasoning?: boolean }>
+  /** Phase 11.2: 当前模型是否支持推理（从 Ollama API 获取） */
+  isReasoningModel?: boolean
 }
 
 /**
@@ -129,56 +131,42 @@ export interface RemoteProviderConfig {
 
 /**
  * AI 配置数据结构
- * Phase 9.2: 重构 - 每个 provider 独立存储配置
+ * Phase 9.2+: 简化配置 - 只保留 providers 和 engineAssignment
+ * 
+ * 设计原则：
+ * - 使用 providers 管理远程 AI 配置（每个 provider 独立）
+ * - 使用 engineAssignment 控制任务级引擎分配
+ * - 移除全局 enabled 开关（由 engineAssignment 控制）
+ * - 移除单一 AI 模式的遗留字段（provider、apiKeys、model 等）
  */
 export interface AIConfig {
-  /** 当前选中的提供商 */
-  provider?: AIProviderType | null
-  
   /** 各提供商的配置（分别存储 API Key + Model） */
-  providers?: {
+  providers: {
     openai?: RemoteProviderConfig
     deepseek?: RemoteProviderConfig
   }
   
-  /** @deprecated 旧的 API Keys 结构，保留用于兼容 */
-  apiKeys?: {
-    openai?: string
-    deepseek?: string
-  }
-  
-  enabled: boolean
-  monthlyBudget: number // 月度预算（美元或人民币），必须设置，最小 $1 或 ¥10
-  
-  /** @deprecated 旧的全局模型，保留用于兼容 */
-  model?: string
-  
-  /** @deprecated 旧的全局推理设置，保留用于兼容 */
-  enableReasoning?: boolean
+  /** 月度预算（美元或人民币），必须设置，最小 $1 或 ¥10 */
+  monthlyBudget: number
 
   /** Phase 10: 本地 AI 配置（Ollama 等） */
-  local?: LocalAIConfig
+  local: LocalAIConfig
 
   /** Phase 11: AI 引擎分配（为不同用途分配不同的 AI 引擎） */
-  engineAssignment?: AIEngineAssignment
+  engineAssignment: AIEngineAssignment
 }
 
 /**
  * 默认配置
  */
 const DEFAULT_CONFIG: AIConfig = {
-  provider: null,
   providers: {},
-  apiKeys: {},  // 兼容旧版
-  enabled: false,
   monthlyBudget: 5, // 默认 $5/月
-  model: undefined, // 兼容旧版
-  enableReasoning: false, // 兼容旧版
   local: {
     enabled: false,
     provider: "ollama",
     endpoint: "http://localhost:11434/v1",
-    model: "qwen2.5:7b",
+    model: "", // 不再硬编码，将动态查询
     apiKey: "ollama",
     temperature: 0.2,
     maxOutputTokens: 768,
@@ -202,70 +190,29 @@ export async function getAIConfig(): Promise<AIConfig> {
       const result = await chrome.storage.sync.get("aiConfig")
       
       if (result.aiConfig) {
-        const config = result.aiConfig as AIConfig
+        const config = result.aiConfig as any
         
-        // Phase 9.2: 迁移逻辑 - 将旧的 apiKeys + model 迁移到新的 providers 结构
-        let providers: AIConfig['providers'] = config.providers || {}
-        
-        // 解密并迁移 API Keys
-        const decryptedApiKeys: AIConfig['apiKeys'] = {}
-        if (config.apiKeys) {
-          for (const [provider, key] of Object.entries(config.apiKeys)) {
-            if (key) {
-              const decryptedKey = decryptApiKey(key)
-              decryptedApiKeys[provider as AIProviderType] = decryptedKey
-              
-              // 如果新结构中没有这个 provider，从旧结构迁移
-              if (!providers![provider as AIProviderType]) {
-                providers![provider as AIProviderType] = {
-                  apiKey: decryptedKey,
-                  model: (config.provider === provider && config.model) ? config.model : '',
-                  enableReasoning: (config.provider === provider) ? (config.enableReasoning || false) : false
-                }
-              }
-            }
-          }
-        }
-        
-        // 解密新结构中的 API Keys
+        // 解密 providers 中的 API Keys
+        let providers: AIConfig['providers'] = {}
         if (config.providers) {
-          const decryptedProviders: AIConfig['providers'] = {}
           for (const [providerKey, providerConfig] of Object.entries(config.providers)) {
-            if (providerConfig) {
-              decryptedProviders[providerKey as AIProviderType] = {
-                ...providerConfig,
-                apiKey: decryptApiKey(providerConfig.apiKey)
+            if (providerConfig && (providerConfig as any).apiKey) {
+              providers[providerKey as AIProviderType] = {
+                ...(providerConfig as RemoteProviderConfig),
+                apiKey: decryptApiKey((providerConfig as RemoteProviderConfig).apiKey)
               }
-            }
-          }
-          providers = decryptedProviders
-        }
-        
-        // 向后兼容：如果有旧的 apiKey 字段，迁移到 apiKeys
-        const legacyConfig = config as any
-        if (legacyConfig.apiKey && config.provider) {
-          const decryptedKey = decryptApiKey(legacyConfig.apiKey)
-          decryptedApiKeys[config.provider] = decryptedKey
-          if (!providers![config.provider]) {
-            providers![config.provider] = {
-              apiKey: decryptedKey,
-              model: config.model || '',
-              enableReasoning: config.enableReasoning || false
             }
           }
         }
         
         return {
-          ...DEFAULT_CONFIG,
-          ...config,
           providers,
-          apiKeys: decryptedApiKeys,  // 保留旧结构用于兼容
+          monthlyBudget: config.monthlyBudget || DEFAULT_CONFIG.monthlyBudget,
           local: {
-            ...DEFAULT_CONFIG.local!,
-            ...config.local
+            ...DEFAULT_CONFIG.local,
+            ...(config.local || {})
           },
-          // Phase 11: 如果没有 engineAssignment，使用默认智能优先方案
-          engineAssignment: config.engineAssignment || getDefaultEngineAssignment()
+          engineAssignment: config.engineAssignment || DEFAULT_CONFIG.engineAssignment
         }
       }
       
@@ -282,7 +229,6 @@ export async function getAIConfig(): Promise<AIConfig> {
 
 /**
  * 保存 AI 配置
- * Phase 9.2: 支持新的 providers 结构
  */
 export async function saveAIConfig(config: AIConfig): Promise<void> {
   return withErrorHandling(
@@ -292,7 +238,7 @@ export async function saveAIConfig(config: AIConfig): Promise<void> {
         throw new Error("chrome.storage.sync not available")
       }
       
-      // 加密新结构中的 providers
+      // 加密 providers 中的 API Keys
       const encryptedProviders: AIConfig['providers'] = {}
       if (config.providers) {
         for (const [providerKey, providerConfig] of Object.entries(config.providers)) {
@@ -305,20 +251,11 @@ export async function saveAIConfig(config: AIConfig): Promise<void> {
         }
       }
       
-      // 兼容：同时保存到旧的 apiKeys 结构
-      const encryptedApiKeys: AIConfig['apiKeys'] = {}
-      if (config.apiKeys) {
-        for (const [provider, key] of Object.entries(config.apiKeys)) {
-          if (key) {
-            encryptedApiKeys[provider as AIProviderType] = encryptApiKey(key)
-          }
-        }
-      }
-      
-      const encryptedConfig = {
-        ...config,
+      const encryptedConfig: AIConfig = {
         providers: encryptedProviders,
-        apiKeys: encryptedApiKeys
+        monthlyBudget: config.monthlyBudget,
+        local: config.local,
+        engineAssignment: config.engineAssignment
       }
       
       await chrome.storage.sync.set({ aiConfig: encryptedConfig })
@@ -356,14 +293,24 @@ export async function deleteAIConfig(): Promise<void> {
 
 /**
  * 检查是否已配置 AI
+ * 检查是否至少配置了一个远程 AI 提供商
  */
 export async function isAIConfigured(): Promise<boolean> {
   const config = await getAIConfig()
-  if (!config.enabled || !config.provider) return false
   
-  // 检查新的 apiKeys 结构或旧的 apiKey 字段（向后兼容）
-  const apiKey = config.apiKeys?.[config.provider] || config.apiKey || ""
-  return apiKey !== ""
+  // 检查是否有任何配置的 provider
+  if (!config.providers || Object.keys(config.providers).length === 0) {
+    return false
+  }
+  
+  // 检查是否至少有一个 provider 有 API Key
+  for (const providerConfig of Object.values(config.providers)) {
+    if (providerConfig && providerConfig.apiKey && providerConfig.apiKey !== "") {
+      return true
+    }
+  }
+  
+  return false
 }
 
 /**
@@ -525,4 +472,57 @@ export async function saveEngineAssignment(assignment: AIEngineAssignment): Prom
     ...config,
     engineAssignment: assignment
   })
+}
+
+/**
+ * 获取 Ollama 第一个可用的模型
+ * 用于替代硬编码的默认模型
+ */
+export async function getFirstAvailableOllamaModel(endpoint: string = "http://localhost:11434"): Promise<string | null> {
+  return withErrorHandling(
+    async () => {
+      // 尝试 OpenAI 兼容接口
+      try {
+        const response = await fetch(`${endpoint}/v1/models`, {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+          signal: AbortSignal.timeout(3000)
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+            return data.data[0].id
+          }
+        }
+      } catch (error) {
+        configLogger.debug('OpenAI 兼容接口获取模型失败', error)
+      }
+      
+      // 回退到 Ollama 原生接口
+      try {
+        const response = await fetch(`${endpoint}/api/tags`, {
+          method: "GET",
+          signal: AbortSignal.timeout(3000)
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          if (data.models && Array.isArray(data.models) && data.models.length > 0) {
+            return data.models[0].name
+          }
+        }
+      } catch (error) {
+        configLogger.debug('Ollama 原生接口获取模型失败', error)
+      }
+      
+      return null
+    },
+    {
+      tag: 'AIConfig.getFirstAvailableOllamaModel',
+      fallback: null,
+      errorCode: 'OLLAMA_MODEL_QUERY_ERROR',
+      userMessage: '查询 Ollama 模型失败'
+    }
+  )
 }

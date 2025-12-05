@@ -443,7 +443,12 @@ export class AIStrategyExecutorImpl implements AIStrategyExecutor {
     // 获取AI配置
     const aiConfig = await getAIConfig()
     
-    if (!aiConfig.enabled || !aiConfig.provider) {
+    // 检查是否有配置的 AI 提供商
+    const hasAIProvider = aiConfig.providers && Object.values(aiConfig.providers).some(
+      p => p && p.apiKey && p.model
+    )
+    
+    if (!hasAIProvider) {
       throw new Error('AI未配置')
     }
     

@@ -32,9 +32,11 @@ export function ProfileSettings() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isRebuilding, setIsRebuilding] = useState(false)
+  const [rebuildProgress, setRebuildProgress] = useState(0) // Phase 11: 进度条状态（0-100）
   const [aiConfigured, setAiConfigured] = useState(false)
   const [aiProvider, setAiProvider] = useState("")
   const [totalPages, setTotalPages] = useState(0)
+  const [lastRebuildTime, setLastRebuildTime] = useState(0) // Phase 11: 上次重建时间（防抖）
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // 自动滚动到底部
@@ -75,7 +77,10 @@ export function ProfileSettings() {
           actualTotalPages
         })
         
-        setAiConfigured(aiConfig.enabled && aiConfig.provider !== null)
+        const hasAIProvider = Object.values(aiConfig.providers).some(
+          p => p && p.apiKey && p.model
+        )
+        setAiConfigured(hasAIProvider)
         setAiProvider(getProviderDisplayName(aiConfig.provider || null))
         setTotalPages(actualTotalPages)
         
@@ -100,37 +105,127 @@ export function ProfileSettings() {
 
   const handleRebuildProfile = async () => {
     if (isRebuilding) return
+    
+    // Phase 11: 防抖机制 - 10 分钟内禁止重复点击（防止自动调度和手动触发冲突）
+    const now = Date.now()
+    const DEBOUNCE_TIME = 600000 // 10 分钟
+    if (lastRebuildTime && now - lastRebuildTime < DEBOUNCE_TIME) {
+      const remainingSeconds = Math.ceil((DEBOUNCE_TIME - (now - lastRebuildTime)) / 1000)
+      alert(_('options.userProfile.alerts.rebuildCooldown', { seconds: remainingSeconds }))
+      return
+    }
+    
+    setLastRebuildTime(now)
 
     // 1. 添加用户消息："重建画像"
+    const timestamp = Date.now()
     const userMessage: ChatMessage = {
-      id: `user-${Date.now()}`,
+      id: `user-${timestamp}`,
       type: 'user',
       content: 'rebuilding',
-      timestamp: Date.now()
+      timestamp
     }
-    setMessages(prev => [...prev, userMessage])
+    
+    // 2. 添加 AI "生成中"消息（临时，不包含 aiSummary）
+    const generatingId = `ai-generating-${timestamp}`
+    const generatingMessage: ChatMessage = {
+      id: generatingId,
+      type: 'ai',
+      content: {} as UserProfile, // 空画像，触发"生成中"显示
+      timestamp
+    }
+    
+    setMessages(prev => [...prev, userMessage, generatingMessage])
 
     setIsRebuilding(true)
+    
+    // Phase 11.1: 动态计算进度条超时时间
+    // 根据当前使用的 AI 服务和模型类型确定超时
+    let timeoutMs = 30000 // 默认 30s（远程 AI）
+    
+    try {
+      const { getEngineAssignment } = await import("@/storage/ai-config")
+      const assignment = await getEngineAssignment()
+      const profileEngine = assignment.profileGeneration
+      
+      if (profileEngine?.provider === 'ollama') {
+        // 本地 AI：检查是否是推理模型
+        const { getAIConfig } = await import("@/storage/ai-config")
+        const config = await getAIConfig()
+        const modelName = config.local?.model || ''
+        
+        // 推理模型检测逻辑（与 OllamaProvider 一致）
+        const isReasoningModel = ['r1', 'reasoning', 'think', 'cot'].some(
+          keyword => modelName.toLowerCase().includes(keyword)
+        )
+        
+        timeoutMs = isReasoningModel ? 180000 : 120000 // 推理 180s，普通 120s
+      }
+      // 远程 AI 保持 30s
+    } catch (error) {
+      profileViewLogger.warn("获取 AI 配置失败，使用默认超时", error)
+    }
+    
+    profileViewLogger.info("进度条超时设置:", { timeoutMs, timeoutSeconds: timeoutMs / 1000 })
+    
+    // Phase 11: 启动进度条（动态超时）
+    const progressInterval = setInterval(() => {
+      setRebuildProgress(prev => {
+        // 每 100ms 增加的百分比 = 100 / (timeout / 100)
+        const increment = 100 / (timeoutMs / 100)
+        const newProgress = Math.min(prev + increment, 99) // 最多到 99%
+        return newProgress
+      })
+    }, 100)
+
     try {
       const newProfile = await profileManager.rebuildProfile()
       if (!newProfile) {
         throw new Error('EMPTY_PROFILE')
       }
       
-      // 2. 添加 AI 回复消息：新画像
-      const aiMessage: ChatMessage = {
-        id: `ai-${Date.now()}`,
-        type: 'ai',
-        content: newProfile,
-        timestamp: newProfile.aiSummary?.metadata?.timestamp || newProfile.lastUpdated
-      }
-      setMessages(prev => [...prev, aiMessage])
+      // 成功：进度条直接到 100%
+      setRebuildProgress(100)
+      
+      // 3. 移除"生成中"消息，添加新画像消息
+      setMessages(prev => {
+        // 移除"生成中"消息
+        const filtered = prev.filter(m => m.id !== generatingId)
+        // 添加新画像
+        return [...filtered, {
+          id: `ai-${Date.now()}`,
+          type: 'ai',
+          content: newProfile,
+          timestamp: newProfile.aiSummary?.metadata?.timestamp || newProfile.lastUpdated
+        }]
+      })
       
     } catch (error) {
       profileViewLogger.error("重建用户画像失败:", error)
-      alert(_("options.userProfile.alerts.rebuildFailed"))
+      
+      // 失败：移除"生成中"消息
+      setMessages(prev => prev.filter(m => m.id !== generatingId))
+      
+      // 检查是否是任务锁错误
+      if ((error as Error).message === 'PROFILE_REBUILDING') {
+        alert(_("options.userProfile.alerts.rebuildInProgress"))
+      } else {
+        alert(_("options.userProfile.alerts.rebuildFailed"))
+      }
+      
+      // Phase 11: 重置防抖时间，允许立即重试
+      setLastRebuildTime(0)
+      
+      // 失败：重置进度条
+      setRebuildProgress(0)
     } finally {
+      clearInterval(progressInterval)
       setIsRebuilding(false)
+      
+      // 延迟 1s 后重置进度条（让用户看到 100%）
+      setTimeout(() => {
+        setRebuildProgress(0)
+      }, 1000)
     }
   }
 
@@ -180,7 +275,7 @@ export function ProfileSettings() {
     const startDate = new Date(timestamp - estimatedDays * 24 * 60 * 60 * 1000)
     
     if (!aiSummary) {
-      // AI 画像生成中 - 单个气泡
+      // AI 画像生成中 - 单个气泡 + 进度条
       return (
         <div className="flex items-start gap-4 mb-6">
           <div className="flex-shrink-0">
@@ -190,9 +285,25 @@ export function ProfileSettings() {
           </div>
           <div className="flex-1 max-w-3xl">
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl rounded-tl-sm p-5 border border-blue-100 dark:border-blue-800 shadow-sm">
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-gray-600 dark:text-gray-400 mb-3">
                 {_("options.userProfile.chat.generating")}
               </p>
+              
+              {/* Phase 11: 进度条 */}
+              {rebuildProgress > 0 && (
+                <div className="space-y-2">
+                  <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-300 ease-out"
+                      style={{ width: `${rebuildProgress}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                    <span>{Math.floor(rebuildProgress)}%</span>
+                    <span>{rebuildProgress >= 99 ? '即将完成...' : '分析中...'}</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

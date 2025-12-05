@@ -16,33 +16,26 @@ const encodeApiKey = (key?: string): string | undefined => {
 }
 
 const createAIConfig = (overrides: Partial<AIConfig> = {}): AIConfig => {
-  const { local: localOverride, apiKeys: apiKeysOverride, ...rest } = overrides
-  const encodedApiKeys: AIConfig['apiKeys'] = {}
-  if (apiKeysOverride) {
-    for (const [provider, key] of Object.entries(apiKeysOverride)) {
-      const encoded = encodeApiKey(key)
-      if (!encoded) continue
-      if (provider === 'openai' || provider === 'deepseek') {
-        encodedApiKeys[provider] = encoded
-      }
-    }
-  }
+  const { local: localOverride, providers: providersOverride, ...rest } = overrides
+  
   return {
-    provider: null,
-    apiKeys: encodedApiKeys,
-    enabled: false,
+    providers: providersOverride || {},
     monthlyBudget: 5,
-    enableReasoning: false,
     local: {
       enabled: false,
       provider: 'ollama',
       endpoint: 'http://localhost:11434/v1',
       apiKey: 'ollama',
-      model: 'qwen2.5:7b',
+      model: 'llama2',  // 不再硬编码 qwen2.5:7b
       temperature: 0.2,
       maxOutputTokens: 768,
       timeoutMs: 45000,
       ...(localOverride || {})
+    },
+    engineAssignment: {
+      pageAnalysis: { provider: 'deepseek', useReasoning: false },
+      feedAnalysis: { provider: 'deepseek', useReasoning: false },
+      profileGeneration: { provider: 'deepseek', useReasoning: false }
     },
     ...rest
   }
@@ -50,7 +43,7 @@ const createAIConfig = (overrides: Partial<AIConfig> = {}): AIConfig => {
 
 const createModelsResponse = () => ({
   ok: true,
-  json: () => Promise.resolve({ data: [{ id: 'qwen2.5:7b' }] })
+  json: () => Promise.resolve({ data: [{ id: 'llama2' }] })
 })
 
 // Mock storage
@@ -117,9 +110,12 @@ describe('analysis-engine-capability', () => {
     it('remoteAI 已配置时可用', async () => {
       // 设置 AI 配置
       const aiConfig = createAIConfig({
-        provider: 'openai',
-        apiKeys: { openai: 'sk-test123456789' },
-        enabled: true
+        providers: {
+          openai: {
+            apiKey: 'sk-test123456789',
+            model: 'gpt-4o-mini'
+          }
+        }
       })
       mockStorage.sync.data.aiConfig = aiConfig
       
@@ -132,10 +128,13 @@ describe('analysis-engine-capability', () => {
     it('remoteAIWithReasoning 需要启用推理能力', async () => {
       // 使用 OpenAI，推理未启用
       mockStorage.sync.data.aiConfig = createAIConfig({
-        provider: 'openai',
-        apiKeys: { openai: 'sk-test123456789' },
-        enabled: true,
-        enableReasoning: false
+        providers: {
+          openai: {
+            apiKey: 'sk-test123456789',
+            model: 'gpt-4o-mini',
+            enableReasoning: false
+          }
+        }
       })
       
       let result = await checkEngineCapability('remoteAIWithReasoning')
@@ -143,7 +142,7 @@ describe('analysis-engine-capability', () => {
       expect(result.reason).toContain('推理能力未启用')
       
       // OpenAI 启用推理（但暂不支持）
-      mockStorage.sync.data.aiConfig.enableReasoning = true
+      mockStorage.sync.data.aiConfig.providers.openai!.enableReasoning = true
       
       result = await checkEngineCapability('remoteAIWithReasoning')
       expect(result.available).toBe(false)
@@ -151,10 +150,13 @@ describe('analysis-engine-capability', () => {
       
       // 切换到 DeepSeek 并启用推理
       mockStorage.sync.data.aiConfig = createAIConfig({
-        provider: 'deepseek',
-        apiKeys: { deepseek: 'sk-test123456789012345678901234567890' },
-        enabled: true,
-        enableReasoning: true
+        providers: {
+          deepseek: {
+            apiKey: 'sk-test123456789012345678901234567890',
+            model: 'deepseek-chat',
+            enableReasoning: true
+          }
+        }
       })
       
       result = await checkEngineCapability('remoteAIWithReasoning')
@@ -187,7 +189,7 @@ describe('analysis-engine-capability', () => {
           enabled: true,
           provider: 'ollama',
           endpoint: 'http://localhost:11434/v1',
-          model: 'qwen2.5:7b',
+          model: 'llama2',
           temperature: 0.2,
           maxOutputTokens: 768,
           timeoutMs: 45000
@@ -198,12 +200,9 @@ describe('analysis-engine-capability', () => {
       
       expect(result.available).toBe(true)
       expect(result.reason).toContain('Ollama')
+      // Phase 11.2: 使用 /v1 接口模式
       expect(global.fetch).toHaveBeenCalledWith(
         'http://localhost:11434/v1/models',
-        expect.any(Object)
-      )
-      expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:11434/api/tags',
         expect.any(Object)
       )
     })
@@ -224,7 +223,7 @@ describe('analysis-engine-capability', () => {
           enabled: true,
           provider: 'ollama',
           endpoint: 'http://localhost:11434/v1',
-          model: 'qwen2.5:7b',
+          model: 'llama2',
           temperature: 0.2,
           maxOutputTokens: 768,
           timeoutMs: 45000
@@ -246,7 +245,7 @@ describe('analysis-engine-capability', () => {
           enabled: true,
           provider: 'ollama',
           endpoint: 'http://localhost:11434/v1',
-          model: 'qwen2.5:7b',
+          model: 'llama2',
           temperature: 0.2,
           maxOutputTokens: 768,
           timeoutMs: 45000
@@ -264,10 +263,13 @@ describe('analysis-engine-capability', () => {
     it('返回所有引擎的能力检测结果', async () => {
       // 配置远程 AI
       mockStorage.sync.data.aiConfig = createAIConfig({
-        provider: 'openai',
-        apiKeys: { openai: 'sk-test123456789' },
-        enabled: true,
-        enableReasoning: false
+        providers: {
+          openai: {
+            apiKey: 'sk-test123456789',
+            model: 'gpt-4o-mini',
+            enableReasoning: false
+          }
+        }
       })
       
       const result = await checkAllEngineCapabilities()
@@ -292,10 +294,13 @@ describe('analysis-engine-capability', () => {
     it('优先推荐远程 AI', async () => {
       // 配置远程 AI
       mockStorage.sync.data.aiConfig = createAIConfig({
-        provider: 'openai',
-        apiKeys: { openai: 'sk-test123456789' },
-        enabled: true,
-        enableReasoning: false
+        providers: {
+          openai: {
+            apiKey: 'sk-test123456789',
+            model: 'gpt-4o-mini',
+            enableReasoning: false
+          }
+        }
       })
       
       const result = await getRecommendedEngine()
@@ -318,7 +323,7 @@ describe('analysis-engine-capability', () => {
           enabled: true,
           provider: 'ollama',
           endpoint: 'http://localhost:11434/v1',
-          model: 'qwen2.5:7b',
+          model: 'llama2',
           temperature: 0.2,
           maxOutputTokens: 768,
           timeoutMs: 45000
@@ -344,10 +349,13 @@ describe('analysis-engine-capability', () => {
     it('不主动推荐推理模式（成本考虑）', async () => {
       // 配置 DeepSeek 并启用推理
       mockStorage.sync.data.aiConfig = createAIConfig({
-        provider: 'deepseek',
-        apiKeys: { deepseek: 'sk-test123456789012345678901234567890' },
-        enabled: true,
-        enableReasoning: true
+        providers: {
+          deepseek: {
+            apiKey: 'sk-test123456789012345678901234567890',
+            model: 'deepseek-chat',
+            enableReasoning: true
+          }
+        }
       })
       
       const result = await getRecommendedEngine()

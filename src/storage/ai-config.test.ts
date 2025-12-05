@@ -42,18 +42,13 @@ describe("ai-config", () => {
       const config = await getAIConfig()
       
       expect(config).toEqual({
-        provider: null,
-        providers: {},  // Phase 9.2: 新字段
-        apiKeys: {},
-        enabled: false,
-        enableReasoning: false,
+        providers: {},
         monthlyBudget: 5,
-        model: undefined,
         local: {
           enabled: false,
           provider: "ollama",
           endpoint: "http://localhost:11434/v1",
-          model: "qwen2.5:7b",
+          model: "", // 不再硬编码，用户需要配置或动态查询
           apiKey: "ollama",
           temperature: 0.2,
           maxOutputTokens: 768,
@@ -65,13 +60,24 @@ describe("ai-config", () => {
     
     it("应该读取已保存的配置", async () => {
       const savedConfig: AIConfig = {
-        model: "gpt-5-mini",
-        apiKeys: {
-          openai: btoa("sk-test-123") // 加密存储
+        providers: {
+          openai: {
+            apiKey: btoa("sk-test-123"),
+            model: "gpt-4o-mini"
+          }
         },
-        enabled: true,
         monthlyBudget: 10,
-        enableReasoning: false
+        local: {
+          enabled: false,
+          provider: "ollama",
+          endpoint: "http://localhost:11434/v1",
+          model: "llama2",
+          apiKey: "ollama",
+          temperature: 0.2,
+          maxOutputTokens: 768,
+          timeoutMs: 45000
+        },
+        engineAssignment: AI_ENGINE_PRESETS.intelligence.config
       }
       
       mockChromeStorage.sync.get.mockResolvedValue({
@@ -80,9 +86,8 @@ describe("ai-config", () => {
       
       const config = await getAIConfig()
       
-      expect(config.model).toBe("gpt-5-mini")
-      expect(config.apiKeys.openai).toBe("sk-test-123") // 应该解密
-      expect(config.enabled).toBe(true)
+      expect(config.providers.openai?.apiKey).toBe("sk-test-123") // 应该解密
+      expect(config.providers.openai?.model).toBe("gpt-4o-mini")
       expect(config.monthlyBudget).toBe(10)
     })
     
@@ -92,48 +97,56 @@ describe("ai-config", () => {
       const config = await getAIConfig()
       
       // 应该返回默认配置
-      expect(config.provider).toBe(null)
-      expect(config.enabled).toBe(false)
+      expect(config.providers).toEqual({})
+      expect(config.monthlyBudget).toBe(5)
     })
   })
   
   describe("saveAIConfig", () => {
     it("应该保存配置并加密 API Key", async () => {
       const config: AIConfig = {
-        model: "gpt-5-mini",
         providers: {
           openai: {
             apiKey: "sk-test-123",
-            model: "gpt-5-mini",
-            enableReasoning: false
+            model: "gpt-4o-mini"
           }
         },
-        apiKeys: {
-          openai: "sk-test-123"
-        },
-        enabled: true,
         monthlyBudget: 10,
-        enableReasoning: false
+        local: {
+          enabled: false,
+          provider: "ollama",
+          endpoint: "http://localhost:11434/v1",
+          model: "llama2",
+          apiKey: "ollama",
+          temperature: 0.2,
+          maxOutputTokens: 768,
+          timeoutMs: 45000
+        },
+        engineAssignment: AI_ENGINE_PRESETS.intelligence.config
       }
       
       await saveAIConfig(config)
       
       expect(mockChromeStorage.sync.set).toHaveBeenCalledWith({
         aiConfig: {
-          model: "gpt-5-mini",
-          providers: {  // Phase 9.2: 新结构
+          providers: {
             openai: {
               apiKey: btoa("sk-test-123"),
-              model: "gpt-5-mini",
-              enableReasoning: false
+              model: "gpt-4o-mini"
             }
           },
-          apiKeys: {  // 保留兼容
-            openai: btoa("sk-test-123")
-          },
-          enabled: true,
           monthlyBudget: 10,
-          enableReasoning: false
+          local: {
+            enabled: false,
+            provider: "ollama",
+            endpoint: "http://localhost:11434/v1",
+            model: "llama2",
+            apiKey: "ollama",
+            temperature: 0.2,
+            maxOutputTokens: 768,
+            timeoutMs: 45000
+          },
+          engineAssignment: AI_ENGINE_PRESETS.intelligence.config
         }
       })
     })
@@ -142,13 +155,24 @@ describe("ai-config", () => {
       mockChromeStorage.sync.set.mockRejectedValue(new Error("Storage error"))
       
       const config: AIConfig = {
-        model: "gpt-5-mini",
-        apiKeys: {
-          openai: "sk-test-123"
+        providers: {
+          openai: {
+            apiKey: "sk-test-123",
+            model: "gpt-4o-mini"
+          }
         },
-        enabled: true,
         monthlyBudget: 10,
-        enableReasoning: false
+        local: {
+          enabled: false,
+          provider: "ollama",
+          endpoint: "http://localhost:11434/v1",
+          model: "llama2",
+          apiKey: "ollama",
+          temperature: 0.2,
+          maxOutputTokens: 768,
+          timeoutMs: 45000
+        },
+        engineAssignment: AI_ENGINE_PRESETS.intelligence.config
       }
       
       await expect(saveAIConfig(config)).rejects.toThrow()
@@ -175,9 +199,24 @@ describe("ai-config", () => {
     it("已配置时应该返回 true", async () => {
       mockChromeStorage.sync.get.mockResolvedValue({
         aiConfig: {
-          provider: "openai",
-          apiKey: btoa("sk-test-123"),
-          enabled: true
+          providers: {
+            openai: {
+              apiKey: btoa("sk-test-123"),
+              model: "gpt-4o-mini"
+            }
+          },
+          monthlyBudget: 5,
+          local: {
+            enabled: false,
+            provider: "ollama",
+            endpoint: "http://localhost:11434/v1",
+            model: "llama2",
+            apiKey: "ollama",
+            temperature: 0.2,
+            maxOutputTokens: 768,
+            timeoutMs: 45000
+          },
+          engineAssignment: AI_ENGINE_PRESETS.intelligence.config
         }
       })
       
@@ -186,12 +225,22 @@ describe("ai-config", () => {
       expect(configured).toBe(true)
     })
     
-    it("禁用时应该返回 false", async () => {
+    it("未配置 provider 时应该返回 false", async () => {
       mockChromeStorage.sync.get.mockResolvedValue({
         aiConfig: {
-          provider: "openai",
-          apiKey: btoa("sk-test-123"),
-          enabled: false
+          providers: {},
+          monthlyBudget: 5,
+          local: {
+            enabled: false,
+            provider: "ollama",
+            endpoint: "http://localhost:11434/v1",
+            model: "llama2",
+            apiKey: "ollama",
+            temperature: 0.2,
+            maxOutputTokens: 768,
+            timeoutMs: 45000
+          },
+          engineAssignment: AI_ENGINE_PRESETS.intelligence.config
         }
       })
       
@@ -270,18 +319,31 @@ describe("ai-config", () => {
 
       it("应该返回已保存的引擎分配", async () => {
         const customAssignment: AIEngineAssignment = {
-          pageAnalysis: { provider: "ollama", model: "qwen2.5:7b" },
-          feedAnalysis: { provider: "ollama", model: "qwen2.5:7b" },
+          pageAnalysis: { provider: "ollama", model: "llama2" },
+          feedAnalysis: { provider: "ollama", model: "llama2" },
           profileGeneration: { provider: "deepseek", useReasoning: true },
           recommendation: { provider: "deepseek", useReasoning: false }
         }
 
         mockChromeStorage.sync.get.mockResolvedValue({
           aiConfig: {
-            provider: "deepseek",
-            apiKeys: {},
-            enabled: true,
+            providers: {
+              deepseek: {
+                apiKey: "sk-test-key",
+                model: "deepseek-chat"
+              }
+            },
             monthlyBudget: 5,
+            local: {
+              enabled: true,
+              provider: "ollama",
+              endpoint: "http://localhost:11434/v1",
+              model: "llama2",
+              apiKey: "ollama",
+              temperature: 0.2,
+              maxOutputTokens: 768,
+              timeoutMs: 45000
+            },
             engineAssignment: customAssignment
           }
         })
@@ -295,10 +357,23 @@ describe("ai-config", () => {
         // 模拟旧配置（没有 engineAssignment 字段）
         mockChromeStorage.sync.get.mockResolvedValue({
           aiConfig: {
-            provider: "deepseek",
-            apiKeys: { deepseek: "c2stdGVzdC1rZXk=" },
-            enabled: true,
-            monthlyBudget: 5
+            providers: {
+              deepseek: {
+                apiKey: "c2stdGVzdC1rZXk=",
+                model: "deepseek-chat"
+              }
+            },
+            monthlyBudget: 5,
+            local: {
+              enabled: false,
+              provider: "ollama",
+              endpoint: "http://localhost:11434/v1",
+              model: "llama2",
+              apiKey: "ollama",
+              temperature: 0.2,
+              maxOutputTokens: 768,
+              timeoutMs: 45000
+            }
           }
         })
         
@@ -312,17 +387,18 @@ describe("ai-config", () => {
     describe("saveEngineAssignment", () => {
       it("应该保存引擎分配到配置", async () => {
         const existingConfig: AIConfig = {
-          provider: "deepseek",
-          apiKeys: { deepseek: "test-key" },
-          enabled: true,
+          providers: {
+            deepseek: {
+              apiKey: "test-key",
+              model: "deepseek-chat"
+            }
+          },
           monthlyBudget: 10,
-          model: "deepseek-chat",
-          enableReasoning: false,
           local: {
             enabled: false,
             provider: "ollama",
             endpoint: "http://localhost:11434/v1",
-            model: "qwen2.5:7b",
+            model: "llama2",
             temperature: 0.2,
             maxOutputTokens: 768,
             timeoutMs: 45000
@@ -347,17 +423,19 @@ describe("ai-config", () => {
 
       it("应该保留其他配置字段", async () => {
         const existingConfig: AIConfig = {
-          provider: "deepseek",
-          apiKeys: { deepseek: "test-key" },
-          enabled: true,
+          providers: {
+            deepseek: {
+              apiKey: "test-key",
+              model: "deepseek-chat",
+              enableReasoning: true
+            }
+          },
           monthlyBudget: 10,
-          model: "deepseek-chat",
-          enableReasoning: true,
           local: {
             enabled: true,
             provider: "ollama",
             endpoint: "http://localhost:11434/v1",
-            model: "qwen2.5:14b",
+            model: "llama2",
             temperature: 0.3,
             maxOutputTokens: 1024,
             timeoutMs: 60000
@@ -375,11 +453,7 @@ describe("ai-config", () => {
 
         expect(mockChromeStorage.sync.set).toHaveBeenCalledWith({
           aiConfig: expect.objectContaining({
-            provider: "deepseek",
-            enabled: true,
             monthlyBudget: 10,
-            model: "deepseek-chat",
-            enableReasoning: true,
             engineAssignment: newAssignment
           })
         })

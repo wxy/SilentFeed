@@ -150,9 +150,12 @@ async function checkRemoteAI(): Promise<AnalysisEngineCapability> {
     
     const aiConfig = await getAIConfig()
     
-    // 检查 API Key（新的 apiKeys 结构或旧的 apiKey 字段）
-    const apiKey = aiConfig.apiKeys?.[aiConfig.provider!] || aiConfig.apiKey || ""
-    if (!apiKey) {
+    // 检查是否有配置的 provider
+    const configuredProviders = Object.entries(aiConfig.providers)
+      .filter(([_, config]) => config && config.apiKey && config.model)
+      .map(([provider]) => provider)
+    
+    if (configuredProviders.length === 0) {
       return {
         available: false,
         reason: 'API Key 未设置'
@@ -161,7 +164,7 @@ async function checkRemoteAI(): Promise<AnalysisEngineCapability> {
     
     return {
       available: true,
-      reason: `已配置 ${aiConfig.provider} API`
+      reason: `已配置 ${configuredProviders.join(', ')} API`
     }
   } catch (error) {
     capabilityLogger.error('远程 AI 检测失败:', error)
@@ -188,27 +191,30 @@ async function checkRemoteAIWithReasoning(): Promise<AnalysisEngineCapability> {
     
     const aiConfig = await getAIConfig()
     
-    // 检查是否启用推理能力
-    if (!aiConfig.enableReasoning) {
-      return {
-        available: false,
-        reason: '推理能力未启用（请在 AI 引擎设置中启用）'
-      }
-    }
+    // 检查是否有 provider 启用了推理能力
+    const deepseekConfig = aiConfig.providers.deepseek
+    const openaiConfig = aiConfig.providers.openai
     
-    // 当前只有 DeepSeek 实现了推理模式
-    // 未来其他提供商也可能支持
-    if (aiConfig.provider === 'deepseek') {
+    // DeepSeek 启用了推理
+    if (deepseekConfig?.enableReasoning) {
       return {
         available: true,
         reason: 'DeepSeek-R1 推理模式已启用（成本约为标准模式 10 倍）'
       }
     }
     
-    // 其他提供商：已启用推理但暂不支持
+    // OpenAI 启用了推理
+    if (openaiConfig?.enableReasoning) {
+      return {
+        available: false,
+        reason: 'OpenAI 暂不支持推理模式（未来可能会支持）'
+      }
+    }
+    
+    // 没有 provider 启用推理
     return {
       available: false,
-      reason: `${aiConfig.provider} 暂不支持推理模式（未来可能会支持）`
+      reason: '推理能力未启用（请在 AI 引擎设置中启用）'
     }
   } catch (error) {
     capabilityLogger.error('推理模式检测失败:', error)

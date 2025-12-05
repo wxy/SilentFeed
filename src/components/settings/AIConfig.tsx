@@ -14,6 +14,7 @@ import {
 } from "@/storage/ai-config"
 import { aiManager } from "@/core/ai/AICapabilityManager"
 import { checkLocalAIStatus, getRecommendationConfig, saveRecommendationConfig } from "@/storage/recommendation-config"
+import type { RecommendationAnalysisEngine, FeedAnalysisEngine } from "@/types/analysis-engine"
 import { listLocalModels, type LocalAIEndpointMode, type LocalModelSummary } from "@/utils/local-ai-endpoint"
 import { AIEngineAssignmentComponent } from "@/components/settings/AIEngineAssignment"
 import type { AIEngineAssignment as AIEngineAssignmentType } from "@/types/ai-engine-assignment"
@@ -125,22 +126,26 @@ export function AIConfig() {
   // 加载保存的配置
   useEffect(() => {
     getAIConfig().then((config) => {
-    // 加载模型配置
-    if (config.model) {
-      setModel(config.model)
+    // 从 providers 结构中加载配置
+    // 优先使用第一个配置完整的 provider
+    const configuredProvider = config.providers 
+      ? Object.entries(config.providers).find(([_, cfg]) => cfg && cfg.apiKey && cfg.model)
+      : null
+    
+    if (configuredProvider) {
+      const [_, cfg] = configuredProvider
+      setModel(cfg.model)
+      setEnableReasoning(cfg.enableReasoning || false)
     }
     
-    // 加载各 Provider 的 API Keys
-    if (config.apiKeys) {
-      setApiKeys({
-        openai: config.apiKeys.openai || "",
-        deepseek: config.apiKeys.deepseek || ""
-      })
-    }
+    // 加载所有 Provider 的 API Keys
+    setApiKeys({
+      openai: config.providers?.openai?.apiKey || "",
+      deepseek: config.providers?.deepseek?.apiKey || ""
+    })
     
     // 加载其他配置
     setMonthlyBudget(config.monthlyBudget || 5)
-    setEnableReasoning(config.enableReasoning || false)
 
     const mergedLocal = config.local
       ? { ...createDefaultLocalConfig(), ...config.local }
@@ -301,14 +306,30 @@ export function AIConfig() {
     }
 
     // 2. 临时保存配置（以便 aiManager 可以读取）
+    // 构建 providers 结构
+    const providers: Record<string, { apiKey: string; model: string; enableReasoning?: boolean }> = {}
+    
+    if (apiKeys.openai) {
+      providers.openai = {
+        apiKey: apiKeys.openai,
+        model: currentProvider === 'openai' ? model : 'gpt-4o-mini',
+        enableReasoning: currentProvider === 'openai' ? enableReasoning : false
+      }
+    }
+    
+    if (apiKeys.deepseek) {
+      providers.deepseek = {
+        apiKey: apiKeys.deepseek,
+        model: currentProvider === 'deepseek' ? model : 'deepseek-chat',
+        enableReasoning: currentProvider === 'deepseek' ? enableReasoning : false
+      }
+    }
+    
     await saveAIConfig({
-      provider: currentProvider,
-      apiKeys,
-      enabled: true,
+      providers,
       monthlyBudget,
-      model,
-      enableReasoning,
-      local: buildLocalConfigForSave()
+      local: buildLocalConfigForSave(),
+      engineAssignment: engineAssignment || await getEngineAssignment()
     })
 
     // 3. 重新初始化 aiManager 以加载新配置
@@ -361,49 +382,30 @@ export function AIConfig() {
       }
 
       // Phase 9.2: 使用新的 providers 结构保存配置
-      // 从当前配置中读取已有的 providers，避免覆盖其他 provider 的配置
-      const currentConfig = await getAIConfig()
-      const providers: Record<string, { apiKey: string; model: string; enableReasoning: boolean }> = {
-        ...currentConfig.providers // 保留现有的 provider 配置
+      const providers: Record<string, { apiKey: string; model: string; enableReasoning?: boolean }> = {}
+      
+      // 只保存有 API key 的 provider
+      if (apiKeys.openai) {
+        providers.openai = {
+          apiKey: apiKeys.openai,
+          model: currentProvider === 'openai' ? model : 'gpt-4o-mini',
+          enableReasoning: currentProvider === 'openai' ? enableReasoning : false
+        }
       }
       
-      // 只更新当前有 API key 的 providers
-      for (const [provider, key] of Object.entries(apiKeys)) {
-        if (key) {
-          // 如果是当前选择的 provider，使用当前的 model 和 enableReasoning
-          // 否则保留原有配置或使用默认值
-          if (provider === currentProvider) {
-            providers[provider] = {
-              apiKey: key,
-              model: model,
-              enableReasoning: enableReasoning
-            }
-          } else if (!providers[provider]) {
-            // 如果之前没有配置，创建一个默认配置
-            providers[provider] = {
-              apiKey: key,
-              model: '',
-              enableReasoning: false
-            }
-          } else {
-            // 保留原有的 model 和 enableReasoning，只更新 apiKey
-            providers[provider] = {
-              ...providers[provider],
-              apiKey: key
-            }
-          }
+      if (apiKeys.deepseek) {
+        providers.deepseek = {
+          apiKey: apiKeys.deepseek,
+          model: currentProvider === 'deepseek' ? model : 'deepseek-chat',
+          enableReasoning: currentProvider === 'deepseek' ? enableReasoning : false
         }
       }
       
       await saveAIConfig({
-        provider: currentProvider,
-        apiKeys, // 保留旧结构以向后兼容
-        providers, // 新结构
-        enabled: true,
+        providers,
         monthlyBudget,
-        model,
-        enableReasoning,
-        local: localConfigForSave
+        local: localConfigForSave,
+        engineAssignment: engineAssignment || await getEngineAssignment()
       })
       
       // Phase 8: 保存 AI 引擎分配配置
@@ -463,6 +465,52 @@ export function AIConfig() {
     // 只监听需要自动保存的字段，不包括函数引用
   }, [monthlyBudget, enableReasoning, engineAssignment, maxRecommendations, model, currentProvider, currentApiKey])
 
+  // 监听 engineAssignment 变化，同步更新 RecommendationConfig
+  useEffect(() => {
+    if (!isInitializedRef.current || !engineAssignment) {
+      return
+    }
+
+    // 将 AIEngineAssignment 转换为 RecommendationConfig
+    const syncRecommendationConfig = async () => {
+      try {
+        const recConfig = await getRecommendationConfig()
+        
+        // 安全检查：确保所有必要的字段都存在
+        if (!engineAssignment.profileGeneration || !engineAssignment.feedAnalysis) {
+          return
+        }
+        
+        // 根据 profileGeneration 的设置确定 analysisEngine
+        let analysisEngine: RecommendationAnalysisEngine = 'remoteAI'
+        if (engineAssignment.profileGeneration.provider === 'ollama') {
+          analysisEngine = 'localAI'
+        } else if (engineAssignment.profileGeneration.useReasoning) {
+          analysisEngine = 'remoteAIWithReasoning'
+        }
+        
+        // 根据 feedAnalysis 的设置确定 feedAnalysisEngine
+        let feedAnalysisEngine: FeedAnalysisEngine = 'remoteAI'
+        if (engineAssignment.feedAnalysis.provider === 'ollama') {
+          feedAnalysisEngine = 'localAI'
+        }
+        
+        // 保存更新后的配置
+        await saveRecommendationConfig({
+          ...recConfig,
+          analysisEngine,
+          feedAnalysisEngine,
+          useReasoning: engineAssignment.profileGeneration.useReasoning || false,
+          useLocalAI: engineAssignment.profileGeneration.provider === 'ollama'
+        })
+      } catch (error) {
+        console.error('[AIConfig] Failed to sync recommendation config:', error)
+      }
+    }
+
+    syncRecommendationConfig()
+  }, [engineAssignment])
+
   // 保存配置（保留用于手动触发，但隐藏保存按钮）
   const handleSave = async () => {
     if (!model) {
@@ -482,14 +530,30 @@ export function AIConfig() {
     setMessage(null)
 
     try {
+    // 构建 providers 结构
+    const providers: Record<string, { apiKey: string; model: string; enableReasoning?: boolean }> = {}
+    
+    if (apiKeys.openai) {
+      providers.openai = {
+        apiKey: apiKeys.openai,
+        model: currentProvider === 'openai' ? model : 'gpt-4o-mini',
+        enableReasoning: currentProvider === 'openai' ? enableReasoning : false
+      }
+    }
+    
+    if (apiKeys.deepseek) {
+      providers.deepseek = {
+        apiKey: apiKeys.deepseek,
+        model: currentProvider === 'deepseek' ? model : 'deepseek-chat',
+        enableReasoning: currentProvider === 'deepseek' ? enableReasoning : false
+      }
+    }
+    
     await saveAIConfig({
-      provider: currentProvider,
-      apiKeys,
-      enabled: true,
+      providers,
       monthlyBudget,
-      model,
-      enableReasoning,
-      local: buildLocalConfigForSave()
+      local: buildLocalConfigForSave(),
+      engineAssignment: engineAssignment || await getEngineAssignment()
     })
     
     // Phase 8: 保存 AI 引擎分配配置
@@ -522,13 +586,10 @@ export function AIConfig() {
 
     try {
     await saveAIConfig({
-      provider: null,
-      apiKeys: {},
-      enabled: false,
+      providers: {},
       monthlyBudget: 5,
-      model: undefined,
-      enableReasoning: false,
-      local: buildLocalConfigForSave(false)
+      local: buildLocalConfigForSave(false),
+      engineAssignment: await getEngineAssignment()
     })
     setModel("")
     setApiKeys({ openai: "", deepseek: "" })

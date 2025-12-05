@@ -135,6 +135,24 @@ describe("RSS Detector", () => {
       expect(normalized.protocol).toBe("ftp:")
       expect(normalized.protocol.startsWith("http")).toBe(false)
     })
+    
+    it("应该过滤 translate.goog 域名", () => {
+      // 测试主域名
+      const url1 = "https://translate.goog/feed"
+      const normalized1 = new URL(url1, window.location.href)
+      expect(normalized1.hostname).toBe("translate.goog")
+      
+      // 测试子域名
+      const url2 = "https://example-com.translate.goog/feed"
+      const normalized2 = new URL(url2, window.location.href)
+      expect(normalized2.hostname.endsWith('.translate.goog')).toBe(true)
+      
+      // 正常域名不应被过滤
+      const url3 = "https://example.com/feed"
+      const normalized3 = new URL(url3, window.location.href)
+      expect(normalized3.hostname).toBe("example.com")
+      expect(normalized3.hostname.endsWith('.translate.goog')).toBe(false)
+    })
   })
   
   describe("generateCandidateURLs", () => {

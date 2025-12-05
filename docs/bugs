@@ -48,6 +48,60 @@
   - RecommendationService 返回空结果和提示信息，而非抛出错误
   - recommendationStore 区分"无数据"和"真实错误"
   - 无数据时不设置 error 状态，让 UI 显示友好的空状态引导
+
+## 🔴 P0 - 紧急问题（需立即修复）
+
+- [x] **AI 配置自动保存失败**（✅ 已修复 Commit: 9e3c243）
+  - **现象**: 在 AI 配置页面切换快速预设方案，刷新后发现没有保存
+  - **影响**: 用户配置丢失，需要重新配置
+  - **根本原因**: AIConfig.tsx 使用废弃字段（provider, enabled, apiKeys, model）保存配置
+  - **修复**: ✅ 更新所有 saveAIConfig 调用使用新的 providers 结构
+  - **验证状态**: ✅ 代码已修复，测试通过，待浏览器验证
+  - **关联 Commit**: 9e3c243
+
+- [x] **快速预设切换不生效**（✅ 已修复 Commit: d55c918）
+  - **现象**: 
+    - 当前 DeepSeek 和 Ollama 都可用
+    - 切换到"智能优先"预设时，应该将 DeepSeek 设置为在用
+    - 但无论如何切换预设，AI 提供商的"在用"状态不改变
+  - **根本原因**: 
+    - 快速预设切换只更新 engineAssignment（新字段）
+    - 实际执行使用的是 RecommendationConfig.analysisEngine（旧字段）
+    - 两个配置系统未同步
+  - **修复**: ✅ 添加 engineAssignment → RecommendationConfig 自动同步逻辑
+  - **验证状态**: ✅ 代码已修复，日志显示同步正确，待浏览器验证
+  - **关联 Commit**: d55c918
+
+- [x] **UI "在用"状态显示错误**（✅ 已修复 Commit: a057b53）
+  - **现象**: 无论如何切换预设或修改配置，UI 始终显示错误的 Provider 为"在用"
+  - **根本原因**: AIConfigPanel.loadCurrentProvider 忽略了 engineAssignment，只从废弃字段读取
+  - **影响范围**: 
+    - ❌ UI 显示不准确，误导用户
+    - ❌ 快速预设切换后，"在用"徽章不更新
+    - ❌ 高级配置修改后，UI 状态不同步
+  - **修复方案**: 
+    - 从 engineAssignment 读取实际在用的 Provider
+    - 优先级：profileGeneration > feedAnalysis > pageAnalysis
+    - 添加 configVersion + storage 监听，确保配置变化时刷新
+  - **验证状态**: ✅ 代码已修复，测试通过，待浏览器验证
+  - **关联 Commit**: a057b53
+
+## 🟡 P1 - 重要问题（优先处理）
+
+- [ ] **高级配置与预设方案冲突**（发现于 2025-12-05）
+  - **现象**: 
+    - 选择了预设方案后，通过高级配置手动修改引擎分配
+    - 不清楚这些手动修改是否会被保存
+    - 手动修改后，三个预设方案按钮仍然有选中状态
+  - **预期行为**:
+    - 手动修改高级配置后，应该取消预设方案的选中状态
+    - 保存手动配置，并标记为"自定义方案"
+    - 下次打开时显示"自定义"而非任何预设
+  - **建议方案**:
+    1. 添加 `isCustom` 标记到 AI 配置
+    2. 手动修改高级配置时设置 `isCustom: true`
+    3. UI 显示"自定义方案"并取消预设按钮选中
+  - **关联文件**: `src/components/settings/AISettings.tsx`
   - 用户可选择"立即生成推荐"或继续浏览
 - [x] 验证 RSS 源时，如果 404 找不到，直接略过，无需报错（已修复 2025-11-28）
   - background.ts: 将 404 等错误从 "❌ 验证失败" 改为 "验证失败，已跳过"
