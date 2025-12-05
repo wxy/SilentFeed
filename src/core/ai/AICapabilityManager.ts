@@ -53,35 +53,68 @@ export class AICapabilityManager {
   
   /**
    * 初始化（加载配置）
-   * Phase 9.2: 使用新的 providers 结构
+   * Phase 11: 从 providers 和 engineAssignment 读取配置
    */
   async initialize(): Promise<void> {
     try {
       const config = await getAIConfig()
       
-      const providerType = config.provider ?? null
-      
-      // Phase 9.2: 从 providers 结构中读取配置
-      const providerConfig = providerType ? config.providers?.[providerType] : null
-      const apiKey = providerConfig?.apiKey || ""
-      const model = providerConfig?.model
-      
-      // 只要有 provider 和 apiKey 就初始化，不检查 enabled
-      // 这样测试连接时可以正常工作
-      if (providerType && apiKey) {
-        await this.initializeRemoteProvider(config.enabled, providerType, apiKey, model)
-      }
-      
-      // 只有本地 AI 启用了才初始化
-      if (config.local?.enabled) {
-        await this.initializeLocalProvider(config.local)
-      }
-      
-      // Phase 8: 加载 AI 引擎分配配置
+      // Phase 11: 从 engineAssignment 确定需要初始化哪些 Provider
       try {
         this.engineAssignment = await getEngineAssignment()
       } catch (error) {
         this.engineAssignment = null
+      }
+      
+      // 收集所有任务使用的 Provider
+      const usedProviders = new Set<AIProviderType>()
+      if (this.engineAssignment) {
+        const tasks: AITaskType[] = ['pageAnalysis', 'feedAnalysis', 'profileGeneration']
+        for (const task of tasks) {
+          const providerType = this.engineAssignment[task]?.provider
+          if (providerType && providerType !== 'ollama') {
+            usedProviders.add(providerType as AIProviderType)
+          }
+        }
+      }
+      
+      // Phase 11: 初始化远程 Provider（如果有任务使用）
+      if (usedProviders.size > 0) {
+        // 优先使用 DeepSeek（支持推理）
+        if (usedProviders.has('deepseek') && config.providers?.deepseek?.apiKey) {
+          await this.initializeRemoteProvider(
+            true, // 不再检查 enabled
+            'deepseek',
+            config.providers.deepseek.apiKey,
+            config.providers.deepseek.model || 'deepseek-chat'
+          )
+        } else if (usedProviders.has('openai') && config.providers?.openai?.apiKey) {
+          await this.initializeRemoteProvider(
+            true,
+            'openai',
+            config.providers.openai.apiKey,
+            config.providers.openai.model || 'gpt-4o-mini'
+          )
+        } else {
+          // 没有有效的远程 Provider 配置
+          aiLogger.warn("⚠️ Remote provider required but not configured")
+          this.remoteProvider = null
+        }
+      } else {
+        // 没有任务使用远程 Provider
+        this.remoteProvider = null
+      }
+      
+      // Phase 11: 初始化本地 AI（如果有任务使用 ollama）
+      const usesOllama = this.engineAssignment && 
+        (['pageAnalysis', 'feedAnalysis', 'profileGeneration'] as AITaskType[]).some(
+          task => this.engineAssignment![task]?.provider === 'ollama'
+        )
+      
+      if (usesOllama && config.local?.enabled) {
+        await this.initializeLocalProvider(config.local)
+      } else {
+        this.localProvider = null
       }
     } catch (error) {
       aiLogger.error("❌ Initialization failed:", error)
@@ -282,6 +315,7 @@ export class AICapabilityManager {
 
   /**
    * 测试连接
+   * Phase 11: 从 providers 读取配置
    */
   async testConnection(target: ProviderSelectionMode = "remote", useReasoning: boolean = false): Promise<{
     success: boolean
@@ -293,20 +327,18 @@ export class AICapabilityManager {
     if (!provider) {
       // 提供更详细的错误信息，帮助用户诊断问题
       const config = await getAIConfig()
-      const providerType = config.provider
-      const hasApiKey = providerType && config.apiKeys?.[providerType]
       
       let detailedMessage = target === "local" ? "未配置本地 AI" : "未配置 AI 提供商"
       
       if (target === "remote") {
-        // Phase 9.1: 移除 enabled 检查 - 测试连接时不需要检查是否启用
-        // 只检查是否选择了提供商和是否设置了 API Key
-        if (!providerType) {
-          detailedMessage += "（未选择提供商）"
-        } else if (!hasApiKey) {
-          detailedMessage += `（${providerType} 的 API Key 未设置）`
+        // Phase 11: 从 providers 检查配置
+        const hasDeepSeek = config.providers?.deepseek?.apiKey
+        const hasOpenAI = config.providers?.openai?.apiKey
+        
+        if (!hasDeepSeek && !hasOpenAI) {
+          detailedMessage += "（未设置任何 AI Provider 的 API Key）"
         } else {
-          // 有提供商和 API Key，但 provider 实例为空，说明初始化失败
+          // 有 API Key 但 provider 实例为空，说明初始化失败
           detailedMessage += "（初始化失败，请重新打开设置页面）"
         }
       }
