@@ -9,10 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Feed Quality Spider Chart Visualization** ([#59](https://github.com/wxy/SilentFeed/pull/59))
-  - Spider chart displaying 6 quality dimensions for each RSS feed
-  - Visual indicators for content quality, update frequency, and recommendation performance
-  - Helps users identify high-quality feeds at a glance
+- **Feed Spider Chart Visualization** ([#59](https://github.com/wxy/SilentFeed/pull/59))
+  - Spider chart with each RSS feed as an axis, displaying 4 data layers per feed
+  - Data layers: Total Articles, Recommended, Read, Disliked (color-coded and semi-transparent)
+  - Logarithmic normalization to prevent large values from obscuring small ones
+  - Symmetric layout algorithm for optimal visual distribution
+  - Worst performer markers: highlights feeds with lowest recommendation counts
   - Full internationalization support (English & Chinese)
 
 - **Recommendation System Performance Optimization**
