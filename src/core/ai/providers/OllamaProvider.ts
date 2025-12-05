@@ -66,6 +66,7 @@ export class OllamaProvider extends BaseAIService {
   private readonly temperature: number
   private readonly maxOutputTokens: number
   private readonly defaultTimeout: number
+  private readonly isReasoningModel: boolean
 
   constructor(config: OllamaProviderConfig) {
     super({ ...config, apiKey: config.apiKey || "local" })
@@ -80,6 +81,11 @@ export class OllamaProvider extends BaseAIService {
     this.maxOutputTokens = config.maxOutputTokens ?? 768
     // Phase 11: 本地 AI 需要更长的超时时间（120s）
     this.defaultTimeout = config.timeoutMs ?? 120000
+    // 检测是否为推理模型（基于模型名称）
+    this.isReasoningModel = this.detectReasoningModel(config.model)
+    if (this.isReasoningModel) {
+      ollamaLogger.info(`检测到推理模型: ${config.model}，将使用特殊处理`)
+    }
   }
 
   /**
@@ -108,8 +114,11 @@ export class OllamaProvider extends BaseAIService {
 
   /**
    * 测试连接
-   * Phase 11: 使用真实的 chat completion 请求测试（而不是 GET /models）
-   * 这样可以确保测试和实际使用一致，避免测试通过但实际调用失败的情况
+   * 
+   * Phase 11 优化: 使用快速的 GET /models 测试连接
+   * - 不需要加载模型，速度快（< 1s）
+   * - 只验证服务可达性
+   * - 实际调用会在使用时进行
    */
   async testConnection(): Promise<{
     success: boolean
@@ -118,28 +127,38 @@ export class OllamaProvider extends BaseAIService {
   }> {
     try {
       const startTime = Date.now()
+      const order = this.getModeOrder()
       
-      // 使用真实的 chat completion 请求测试
-      // 本地 AI 需要更长的超时时间
-      const result = await this.callChatAPI("Hello", {
-        maxTokens: 10,
-        timeout: 30000,  // 30s 超时
-        jsonMode: false
-      })
-      
-      const latency = Date.now() - startTime
-      
-      if (result.content) {
-        return {
-          success: true,
-          message: `连接成功！Ollama 服务正常运行（模型: ${result.model || this.config.model}）`,
-          latency
+      // 尝试获取模型列表（快速测试）
+      for (const mode of order) {
+        try {
+          const resp = await fetch(this.getModelsEndpoint(mode), {
+            method: "GET",
+            headers: buildLocalAIHeaders(mode, this.config.apiKey),
+            signal: AbortSignal.timeout(5000)  // 5s 足够
+          })
+          
+          if (resp.ok) {
+            const latency = Date.now() - startTime
+            const data = await resp.json()
+            const modelCount = mode === 'openai' 
+              ? (data?.data?.length || 0)
+              : (data?.models?.length || 0)
+            
+            return {
+              success: true,
+              message: `连接成功！检测到 ${modelCount} 个模型（${mode} 模式）`,
+              latency
+            }
+          }
+        } catch (error) {
+          ollamaLogger.debug(`${mode} 模式测试失败:`, error)
         }
       }
       
       return {
         success: false,
-        message: `连接失败: 响应为空`
+        message: `无法连接到 Ollama 服务 (${this.baseUrl})`
       }
     } catch (error) {
       return {
@@ -151,6 +170,21 @@ export class OllamaProvider extends BaseAIService {
 
   protected getDefaultModelName(): string {
     return this.config.model || "ollama-local"
+  }
+
+  /**
+   * 检测是否为推理模型
+   * 
+   * 推理模型特征:
+   * - 模型名包含 'r1', 'reasoning', 'think' 等关键词
+   * - 使用特殊的响应格式（reasoning 字段）
+   * - 不支持 response_format 参数
+   */
+  private detectReasoningModel(modelName?: string): boolean {
+    if (!modelName) return false
+    const normalized = modelName.toLowerCase()
+    const keywords = ['r1', 'reasoning', 'think', 'cot']  // Chain of Thought
+    return keywords.some(keyword => normalized.includes(keyword))
   }
 
   /**
@@ -419,10 +453,9 @@ export class OllamaProvider extends BaseAIService {
       stream: false
     }
 
-    // DeepSeek-R1 等推理模型不支持 response_format，会导致返回空内容
+    // 推理模型不支持 response_format，会导致返回空内容
     // 只在明确要求 JSON 模式且不是推理模型时才添加
-    const isReasoningModel = this.config.model.toLowerCase().includes('r1')
-    if (options?.jsonMode !== false && !isReasoningModel) {
+    if (options?.jsonMode !== false && !this.isReasoningModel) {
       body.response_format = options?.responseFormat || { type: "json_object" }
     }
 
