@@ -37,6 +37,7 @@ async function setupOllamaDNRRules(): Promise<void> {
     }
 
     // 添加新规则：为 Ollama 的请求修改请求头
+    // 注意：Chrome MV3 中 FETCH 类型在某些版本可能不可用，仅使用 XMLHTTPREQUEST
     const rules: chrome.declarativeNetRequest.Rule[] = [
       {
         id: 1,
@@ -57,10 +58,7 @@ async function setupOllamaDNRRules(): Promise<void> {
         },
         condition: {
           regexFilter: '^https?://localhost:11434/.*',
-          resourceTypes: [
-            chrome.declarativeNetRequest.ResourceType.XMLHTTPREQUEST,
-            chrome.declarativeNetRequest.ResourceType.FETCH
-          ] as chrome.declarativeNetRequest.ResourceType[]
+          resourceTypes: ['xmlhttprequest' as chrome.declarativeNetRequest.ResourceType]
         }
       },
       {
@@ -82,10 +80,7 @@ async function setupOllamaDNRRules(): Promise<void> {
         },
         condition: {
           regexFilter: '^https?://localhost:11434/.*',
-          resourceTypes: [
-            chrome.declarativeNetRequest.ResourceType.XMLHTTPREQUEST,
-            chrome.declarativeNetRequest.ResourceType.FETCH
-          ] as chrome.declarativeNetRequest.ResourceType[]
+          resourceTypes: ['xmlhttprequest' as chrome.declarativeNetRequest.ResourceType]
         }
       }
     ]
