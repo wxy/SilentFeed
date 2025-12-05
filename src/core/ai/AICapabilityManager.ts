@@ -256,6 +256,7 @@ export class AICapabilityManager {
       case "openai":
         provider = this.remoteProvider
         if (!provider) {
+          aiLogger.warn(`Remote provider not available for ${providerType}, falling back to local`)
           provider = this.localProvider
         }
         break
@@ -263,12 +264,13 @@ export class AICapabilityManager {
       case "ollama":
         provider = this.localProvider
         if (!provider) {
+          aiLogger.warn(`Local provider not available, falling back to remote`)
           provider = this.remoteProvider
         }
         break
 
       default:
-        aiLogger.error(`❌ Unknown engine type: ${providerType}`)
+        aiLogger.error(`Unknown engine type: ${providerType}`)
         provider = this.remoteProvider || this.localProvider
     }
 
@@ -501,9 +503,9 @@ export class AICapabilityManager {
     apiKey: string,
     model?: string
   ): Promise<void> {
-    if (!enabled || !providerType) {
+    if (!providerType) {
       this.remoteProvider = null
-      aiLogger.info(" Remote AI disabled, fallback to keyword/local if available")
+      aiLogger.info("No remote provider selected")
       return
     }
 
@@ -514,7 +516,7 @@ export class AICapabilityManager {
     }
 
     this.remoteProvider = this.createRemoteProvider(providerType, apiKey, model)
-    aiLogger.info(`✅ Remote provider initialized: ${this.remoteProvider.name}`)
+    aiLogger.info(`Remote provider initialized: ${this.remoteProvider.name} (enabled: ${enabled})`)
   }
 
   private async initializeLocalProvider(localConfig?: LocalAIConfig): Promise<void> {
