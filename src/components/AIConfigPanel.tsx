@@ -382,6 +382,7 @@ function ConfigModal({
 
     try {
       // 临时保存配置用于测试
+      // Phase 11.1 修复: 确保 apiKey 始终为 "ollama"，避免 403 错误
       const tempConfig: AIConfig = {
         ...config!,
         local: {
@@ -389,7 +390,8 @@ function ConfigModal({
           enabled: true,
           provider: 'ollama',
           endpoint: ollamaEndpoint,
-          model: ollamaModel
+          model: ollamaModel,
+          apiKey: 'ollama' // 强制设置为 "ollama"
         } as any
       }
 
@@ -439,6 +441,7 @@ function ConfigModal({
           })
           
           // Phase 9.2 修复: 测试成功后立即保存配置和状态
+          // Phase 11.1 修复: 确保 apiKey 始终为 "ollama"
           // 1. 保存配置到 storage
           const newConfig: AIConfig = {
             ...config!,
@@ -448,6 +451,7 @@ function ConfigModal({
               provider: 'ollama',
               endpoint: ollamaEndpoint,
               model: ollamaModel || (models.length > 0 ? models[0].id : ''),
+              apiKey: 'ollama', // 强制设置为 "ollama"
               cachedModels: models
             } as any
           }
