@@ -116,12 +116,40 @@ export function ProfileSettings() {
 
     setIsRebuilding(true)
     
-    // Phase 11: 启动进度条（180s 超时）
+    // Phase 11.1: 动态计算进度条超时时间
+    // 根据当前使用的 AI 服务和模型类型确定超时
+    let timeoutMs = 30000 // 默认 30s（远程 AI）
+    
+    try {
+      const { getEngineAssignment } = await import("@/storage/ai-config")
+      const assignment = await getEngineAssignment()
+      const profileEngine = assignment.profileGeneration
+      
+      if (profileEngine?.provider === 'ollama') {
+        // 本地 AI：检查是否是推理模型
+        const { getAIConfig } = await import("@/storage/ai-config")
+        const config = await getAIConfig()
+        const modelName = config.local?.model || ''
+        
+        // 推理模型检测逻辑（与 OllamaProvider 一致）
+        const isReasoningModel = ['r1', 'reasoning', 'think', 'cot'].some(
+          keyword => modelName.toLowerCase().includes(keyword)
+        )
+        
+        timeoutMs = isReasoningModel ? 180000 : 120000 // 推理 180s，普通 120s
+      }
+      // 远程 AI 保持 30s
+    } catch (error) {
+      profileViewLogger.warn("获取 AI 配置失败，使用默认超时", error)
+    }
+    
+    profileViewLogger.info("进度条超时设置:", { timeoutMs, timeoutSeconds: timeoutMs / 1000 })
+    
+    // Phase 11: 启动进度条（动态超时）
     const progressInterval = setInterval(() => {
       setRebuildProgress(prev => {
-        // 180s = 180000ms
-        // 每 100ms 增加 100/180000 ≈ 0.055%
-        const increment = 100 / 1800 
+        // 每 100ms 增加的百分比 = 100 / (timeout / 100)
+        const increment = 100 / (timeoutMs / 100)
         const newProgress = Math.min(prev + increment, 99) // 最多到 99%
         return newProgress
       })

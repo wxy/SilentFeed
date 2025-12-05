@@ -400,7 +400,8 @@ function ConfigModal({
       const manager = new AICapabilityManager()
       await manager.initialize()
       
-      const result = await manager.testConnection('local')
+      // Phase 11.1: 强制初始化（测试连接不检查 engineAssignment）
+      const result = await manager.testConnection('local', false, true)
 
       if (result.success) {
         // 加载模型列表
