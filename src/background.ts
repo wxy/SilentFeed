@@ -36,7 +36,7 @@ async function setupOllamaDNRRules(): Promise<void> {
       await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: ruleIds })
     }
 
-    // 添加新规则：为 localhost:11434 的请求修改请求头
+    // 添加新规则：为 Ollama 的请求修改请求头
     const rules: chrome.declarativeNetRequest.Rule[] = [
       {
         id: 1,
@@ -44,29 +44,54 @@ async function setupOllamaDNRRules(): Promise<void> {
         action: {
           type: chrome.declarativeNetRequest.RuleActionType.MODIFY_HEADERS,
           requestHeaders: [
-            // 确保 Authorization 头存在
+            // 移除可能存在的错误 Authorization 头
+            {
+              header: 'authorization',
+              operation: chrome.declarativeNetRequest.HeaderOperation.REMOVE
+            },
             {
               header: 'Authorization',
-              operation: chrome.declarativeNetRequest.HeaderOperation.SET,
-              value: 'Bearer ollama'
-            },
-            // 设置正确的 Content-Type
-            {
-              header: 'Content-Type',
-              operation: chrome.declarativeNetRequest.HeaderOperation.SET,
-              value: 'application/json'
+              operation: chrome.declarativeNetRequest.HeaderOperation.REMOVE
             }
           ]
         },
         condition: {
-          urlFilter: 'localhost:11434/v1/*',
-          resourceTypes: [chrome.declarativeNetRequest.ResourceType.XMLHTTPREQUEST]
+          regexFilter: '^https?://localhost:11434/.*',
+          resourceTypes: [
+            chrome.declarativeNetRequest.ResourceType.XMLHTTPREQUEST,
+            chrome.declarativeNetRequest.ResourceType.FETCH
+          ] as chrome.declarativeNetRequest.ResourceType[]
+        }
+      },
+      {
+        id: 2,
+        priority: 1,
+        action: {
+          type: chrome.declarativeNetRequest.RuleActionType.MODIFY_HEADERS,
+          requestHeaders: [
+            // 移除可能存在的 Content-Type
+            {
+              header: 'content-type',
+              operation: chrome.declarativeNetRequest.HeaderOperation.REMOVE
+            },
+            {
+              header: 'Content-Type',
+              operation: chrome.declarativeNetRequest.HeaderOperation.REMOVE
+            }
+          ]
+        },
+        condition: {
+          regexFilter: '^https?://localhost:11434/.*',
+          resourceTypes: [
+            chrome.declarativeNetRequest.ResourceType.XMLHTTPREQUEST,
+            chrome.declarativeNetRequest.ResourceType.FETCH
+          ] as chrome.declarativeNetRequest.ResourceType[]
         }
       }
     ]
 
     await chrome.declarativeNetRequest.updateDynamicRules({ addRules: rules })
-    bgLogger.info('✅ Ollama DNR 规则已设置')
+    bgLogger.info('✅ Ollama DNR 规则已设置（移除 Authorization 和 Content-Type 头）')
   } catch (error) {
     bgLogger.error('❌ 设置 Ollama DNR 规则失败:', error)
   }

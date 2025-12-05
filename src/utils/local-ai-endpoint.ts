@@ -80,12 +80,11 @@ export function buildLocalAIHeaders(mode: LocalAIEndpointMode, apiKey?: string):
     'Content-Type': 'application/json'
   }
 
-  // Phase 11 修复: OpenAI 兼容模式下始终添加 Authorization 头
-  // Ollama 的 OpenAI 兼容接口即使不需要真实的 API Key，
-  // 也需要 Authorization 头，否则会返回 403
-  if (mode === 'openai') {
-    const token = apiKey?.trim() || 'ollama'
-    headers.Authorization = `Bearer ${token}`
+  // Phase 11 修复: Ollama 本地接口不需要 Authorization 头
+  // 只有在使用非 Ollama 的 OpenAI 兼容服务时才需要
+  // 如果用户明确提供了 apiKey（不是默认的 'ollama'），才添加 Authorization
+  if (mode === 'openai' && apiKey && apiKey.trim() && apiKey.trim().toLowerCase() !== 'ollama') {
+    headers.Authorization = `Bearer ${apiKey.trim()}`
   }
 
   return headers

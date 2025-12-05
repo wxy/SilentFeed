@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from "vitest"
 import { AICapabilityManager } from "./AICapabilityManager"
 import type { UnifiedAnalysisResult } from "@/types/ai"
+import type { AIConfig } from "@/storage/ai-config"
+import type { AIEngineAssignment } from "@/types/ai-engine-assignment"
 
 // Mock chrome.storage
 const mockStorage = {
@@ -14,6 +16,41 @@ global.chrome = { storage: mockStorage } as any
 const mockFetch = vi.fn()
 global.fetch = mockFetch as any
 
+/**
+ * 创建测试用 AI 配置
+ * Phase 11: 使用新的 providers 结构
+ */
+function createTestAIConfig(overrides: Partial<AIConfig> = {}): { 
+  aiConfig: AIConfig
+  engineAssignment?: AIEngineAssignment 
+} {
+  const config: AIConfig = {
+    providers: {},
+    monthlyBudget: 5,
+    local: {
+      enabled: false,
+      provider: 'ollama',
+      endpoint: 'http://localhost:11434/v1',
+      apiKey: 'ollama',
+      model: 'llama2',
+      temperature: 0.2,
+      maxOutputTokens: 768,
+      timeoutMs: 45000
+    },
+    engineAssignment: {
+      pageAnalysis: { provider: 'deepseek', useReasoning: false },
+      feedAnalysis: { provider: 'deepseek', useReasoning: false },
+      profileGeneration: { provider: 'deepseek', useReasoning: false }
+    },
+    ...overrides
+  }
+  
+  return {
+    aiConfig: config,
+    engineAssignment: config.engineAssignment
+  }
+}
+
 describe("AICapabilityManager", () => {
   let manager: AICapabilityManager
   
@@ -25,7 +62,15 @@ describe("AICapabilityManager", () => {
   
   describe("initialize", () => {
     it("应该使用关键词提供者（未配置 AI）", async () => {
-      mockStorage.sync.get.mockResolvedValueOnce({ aiConfig: null })
+      const { aiConfig, engineAssignment } = createTestAIConfig({
+        engineAssignment: undefined // 没有引擎分配
+      })
+      
+      mockStorage.sync.get.mockImplementation((keys) => {
+        if (keys === 'aiConfig') return Promise.resolve({ aiConfig })
+        if (keys === 'engineAssignment') return Promise.resolve({})
+        return Promise.resolve({})
+      })
       
       await manager.initialize()
       
@@ -36,12 +81,20 @@ describe("AICapabilityManager", () => {
     })
     
     it("应该创建 DeepSeek 提供者（已配置）", async () => {
-      mockStorage.sync.get.mockResolvedValueOnce({
-        aiConfig: {
-          enabled: true,
-          provider: "deepseek",
-          apiKey: "sk-test-deepseek-123456789012345678901234567890"
+      const { aiConfig, engineAssignment } = createTestAIConfig({
+        providers: {
+          deepseek: {
+            apiKey: "sk-test-deepseek-123456789012345678901234567890",
+            model: "deepseek-chat",
+            enableReasoning: false
+          }
         }
+      })
+      
+      mockStorage.sync.get.mockImplementation((keys) => {
+        if (keys === 'aiConfig') return Promise.resolve({ aiConfig })
+        if (keys === 'engineAssignment') return Promise.resolve({ engineAssignment })
+        return Promise.resolve({})
       })
       
       await manager.initialize()
@@ -52,12 +105,19 @@ describe("AICapabilityManager", () => {
     })
     
     it("应该在 AI 不可用时回退到关键词", async () => {
-      mockStorage.sync.get.mockResolvedValueOnce({
-        aiConfig: {
-          enabled: true,
-          provider: "deepseek",
-          apiKey: "" // 空的 API Key，无效
+      const { aiConfig, engineAssignment } = createTestAIConfig({
+        providers: {
+          deepseek: {
+            apiKey: "", // 空的 API Key，无效
+            model: "deepseek-chat"
+          }
         }
+      })
+      
+      mockStorage.sync.get.mockImplementation((keys) => {
+        if (keys === 'aiConfig') return Promise.resolve({ aiConfig })
+        if (keys === 'engineAssignment') return Promise.resolve({ engineAssignment })
+        return Promise.resolve({})
       })
       
       await manager.initialize()
@@ -67,18 +127,29 @@ describe("AICapabilityManager", () => {
     })
 
     it("应该初始化本地 Ollama 提供者", async () => {
-      mockStorage.sync.get.mockResolvedValueOnce({
-        aiConfig: {
-          enabled: false,
-          provider: null,
-          apiKey: "",
-          local: {
-            enabled: true,
-            provider: "ollama",
-            endpoint: "http://localhost:11434/v1",
-            model: "qwen2.5:7b"
-          }
+      const { aiConfig, engineAssignment } = createTestAIConfig({
+        providers: {},
+        local: {
+          enabled: true,
+          provider: "ollama",
+          endpoint: "http://localhost:11434/v1",
+          apiKey: "ollama",
+          model: "qwen2.5:7b",
+          temperature: 0.2,
+          maxOutputTokens: 768,
+          timeoutMs: 45000
+        },
+        engineAssignment: {
+          pageAnalysis: { provider: 'ollama', useReasoning: false },
+          feedAnalysis: { provider: 'ollama', useReasoning: false },
+          profileGeneration: { provider: 'ollama', useReasoning: false }
         }
+      })
+
+      mockStorage.sync.get.mockImplementation((keys) => {
+        if (keys === 'aiConfig') return Promise.resolve({ aiConfig })
+        if (keys === 'engineAssignment') return Promise.resolve({ engineAssignment })
+        return Promise.resolve({})
       })
 
       await manager.initialize()
@@ -90,7 +161,16 @@ describe("AICapabilityManager", () => {
   
   describe("analyzeContent", () => {
     it("应该使用 fallback 提供者分析内容（未配置 AI）", async () => {
-      mockStorage.sync.get.mockResolvedValueOnce({ aiConfig: null })
+      const { aiConfig } = createTestAIConfig({
+        engineAssignment: undefined
+      })
+      
+      mockStorage.sync.get.mockImplementation((keys) => {
+        if (keys === 'aiConfig') return Promise.resolve({ aiConfig })
+        if (keys === 'engineAssignment') return Promise.resolve({})
+        return Promise.resolve({})
+      })
+      
       await manager.initialize()
       
       const mockAnalyze = vi.spyOn(manager["fallbackProvider"], "analyzeContent")
