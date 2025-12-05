@@ -36,6 +36,7 @@ export function ProfileSettings() {
   const [aiConfigured, setAiConfigured] = useState(false)
   const [aiProvider, setAiProvider] = useState("")
   const [totalPages, setTotalPages] = useState(0)
+  const [lastRebuildTime, setLastRebuildTime] = useState(0) // Phase 11: 上次重建时间（防抖）
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // 自动滚动到底部
@@ -104,6 +105,17 @@ export function ProfileSettings() {
 
   const handleRebuildProfile = async () => {
     if (isRebuilding) return
+    
+    // Phase 11: 防抖机制 - 30 秒内禁止重复点击
+    const now = Date.now()
+    const DEBOUNCE_TIME = 30000 // 30 秒
+    if (lastRebuildTime && now - lastRebuildTime < DEBOUNCE_TIME) {
+      const remainingSeconds = Math.ceil((DEBOUNCE_TIME - (now - lastRebuildTime)) / 1000)
+      alert(_('options.userProfile.alerts.rebuildCooldown', { seconds: remainingSeconds }))
+      return
+    }
+    
+    setLastRebuildTime(now)
 
     // 1. 添加用户消息："重建画像"
     const timestamp = Date.now()
@@ -200,6 +212,9 @@ export function ProfileSettings() {
       } else {
         alert(_("options.userProfile.alerts.rebuildFailed"))
       }
+      
+      // Phase 11: 重置防抖时间，允许立即重试
+      setLastRebuildTime(0)
       
       // 失败：重置进度条
       setRebuildProgress(0)

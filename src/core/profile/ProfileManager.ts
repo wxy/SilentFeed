@@ -79,10 +79,15 @@ export class ProfileManager {
         profileLogger.info('用户画像已保存到数据库')
         
         // 5. Phase 8: 尝试生成或更新 AI 语义画像（会更新数据库中的画像）
-        await this.tryGenerateAIProfile(newProfile, 'rebuild')
+        const aiGenerationSuccess = await this.tryGenerateAIProfile(newProfile, 'rebuild')
         
         // 6. 重新读取画像（可能包含 AI 数据）
         const finalProfile = await db.userProfile.get('singleton') || newProfile
+        
+        // Phase 11: 如果 AI 生成失败且回退到 keyword，记录警告
+        if (!aiGenerationSuccess && finalProfile.aiSummary?.metadata?.provider === 'keyword') {
+          profileLogger.warn('⚠️ AI 画像生成失败，已回退到关键词分析')
+        }
 
         // 7. Phase 10: 不再创建快照（已移除兴趣演化历程功能）
         // await InterestSnapshotManager.handleProfileUpdate(finalProfile, 'rebuild')
@@ -183,11 +188,13 @@ export class ProfileManager {
    * - 浏览页面 ≥ 20 页
    * - 阅读推荐 ≥ 5 篇
    * - 拒绝推荐 ≥ 5 篇
+   * 
+   * @returns 是否成功使用 AI 生成（true: AI 成功，false: 回退到 keyword）
    */
   private async tryGenerateAIProfile(
     profile: UserProfile,
     trigger: 'manual' | 'rebuild' | 'update'
-  ): Promise<void> {
+  ): Promise<boolean> {
     try {
       // 1. 检查是否已有 AI 画像
       const hasAIProfile = !!profile.aiSummary
@@ -215,7 +222,7 @@ export class ProfileManager {
         profileLogger.info('[AI Profile] 条件不满足，跳过生成', {
           提示: `需要：浏览≥20页(当前${totalPages}) 或 阅读≥5篇(当前${readCount}) 或 拒绝≥5篇(当前${dismissCount})`
         })
-        return
+        return false
       }
       
       // 3. 如果已有 AI 画像且是普通更新（非手动触发），跳过
@@ -223,7 +230,7 @@ export class ProfileManager {
       const isManualTrigger = trigger === 'manual' || trigger === 'rebuild'
       if (hasAIProfile && !isManualTrigger) {
         profileLogger.info('[AI Profile] 已有画像，跳过生成（非手动触发）')
-        return
+        return true // 已有 AI 画像
       }
       
       // 4. 调用 SemanticProfileBuilder 强制生成 AI 画像
@@ -231,11 +238,22 @@ export class ProfileManager {
       
       await semanticProfileBuilder.forceGenerateAIProfile(trigger)
       
-      profileLogger.info('[AI Profile] ✅ AI 画像生成完成')
+      // 5. 读取生成结果，检查是否使用了 AI
+      const updatedProfile = await db.userProfile.get('singleton')
+      const usedAI = updatedProfile?.aiSummary?.metadata?.provider !== 'keyword'
+      
+      if (!usedAI) {
+        profileLogger.warn('⚠️ AI 画像生成失败，已回退到关键词分析')
+      } else {
+        profileLogger.info('[AI Profile] ✅ AI 画像生成完成')
+      }
+      
+      return usedAI
       
     } catch (error) {
       // 不阻塞主流程，只记录错误
       profileLogger.error('[AI Profile] 生成失败（不影响基础画像）:', error)
+      return false
     }
   }
 

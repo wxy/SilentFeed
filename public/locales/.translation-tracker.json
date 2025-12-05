@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-12-05T16:52:43.784Z",
+  "lastUpdate": "2025-12-05T17:38:38.929Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -16967,6 +16967,20 @@
         "value": "Generating portrait, please wait...",
         "hash": "d70fd0d3",
         "lastModified": "2025-12-05T16:52:43.278Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.alerts.rebuildCooldown": {
+      "zh-CN": {
+        "value": "请等待 {{seconds}} 秒后再重建画像",
+        "hash": "3bc98b13",
+        "lastModified": "2025-12-05T17:38:38.415Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Please wait {{seconds}} seconds before rebuilding the profile.",
+        "hash": "c4b1361f",
+        "lastModified": "2025-12-05T17:38:38.416Z",
         "status": "ai-translated"
       }
     }
