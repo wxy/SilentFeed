@@ -1,18 +1,32 @@
 # Changelog
 
-## 0.3.1 - 2025-12-06
-- 测试稳定性与类型一致性修复：
-  - 修复 `UserProfile` 测试构造缺失字段（`totalPages`、`lastUpdated`、`version`）
-  - Dexie `transaction` 测试模拟补充 `timeout`，兼容 `PromiseExtended`
-  - `recommendation-config` 测试迁移到 `AIConfig.providers` 并补齐 `local`/`engineAssignment`
-- AI 提供者与配置：
-  - Ollama OpenAI 兼容路径安全读取 `finish_reason`
-  - 本地/远端 AI 状态检查与推荐逻辑更稳健
-- 覆盖率：函数覆盖率 ≥ 70%，总体行覆盖率 ~73%
-- 版本：升级至 `0.3.1`
+## [0.3.1] - 2025-12-06
 
-## 0.3.0 - 2025-11-xx
-- 初始公开版本，包含核心订阅、推荐与本地 AI 集成。# Changelog
+### Changed
+- AI capability detection for Ollama now relies on API capability checks instead of name heuristics.
+- Reasoning capability icons added to the model list and Ollama provider card; cooldown set to 10 minutes.
+- RSS detector updated to ignore `translate.goog` proxied URLs.
+- Spider chart path reimplemented using cubic Bézier for a smooth closed curve.
+
+### Fixed
+- Stabilized test suite and resolved TypeScript errors across providers, hooks, and services:
+  - `UserProfile` test constructions now include required fields (`totalPages`, `lastUpdated`, `version`).
+  - Dexie `transaction` mocks return objects with `timeout` to satisfy `PromiseExtended` typing.
+  - `recommendation-config` tests migrated to the new `AIConfig.providers` schema; added `local` and `engineAssignment`.
+  - `OllamaProvider` safely accesses optional `finish_reason` in OpenAI-compatible responses.
+  - Hook `useAIProviderStatus` adjusted to provider `testConnection()` signature.
+- Addressed regressions around "未配置本地 AI" by hardening local provider initialization.
+
+### Coverage
+- Function coverage ≥ 70%; overall line coverage ~73% (V8).
+
+### Notes
+- This release focuses on robustness, type consistency, and UX polish without changing core behavior.
+
+## [0.3.0] - 2024-12-05
+> Not the first public release. See historical entries below.
+
+# Changelog
 
 All notable changes to Silent Feed will be documented in this file.
 
