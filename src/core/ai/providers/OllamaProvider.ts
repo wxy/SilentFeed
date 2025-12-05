@@ -504,7 +504,7 @@ export class OllamaProvider extends BaseAIService {
       hasReasoning: !!data.choices?.[0]?.message?.reasoning,
       contentLength: data.choices?.[0]?.message?.content?.length || 0,
       reasoningLength: data.choices?.[0]?.message?.reasoning?.length || 0,
-      finishReason: data.choices?.[0]?.finish_reason
+      finishReason: (data.choices?.[0] as any)?.finish_reason
     })
 
     // DeepSeek-R1 推理模型的响应格式:
@@ -520,7 +520,8 @@ export class OllamaProvider extends BaseAIService {
       rawContent = message.reasoning.trim()
       
       // 检查是否被截断
-      if (data.choices?.[0]?.finish_reason === 'length') {
+      const finishReason = (data.choices?.[0] as any)?.finish_reason
+      if (finishReason === 'length') {
         ollamaLogger.error('❌ 推理内容被截断，需要增加 max_tokens')
         throw new Error(`Reasoning truncated (finish_reason=length). Increase max_tokens. Model: ${data.model}`)
       }

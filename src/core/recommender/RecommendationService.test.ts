@@ -215,7 +215,19 @@ describe('RecommendationService', () => {
   describe('generateRecommendations - 正常流程', () => {
     const mockUserProfile: UserProfile = {
       id: 'singleton',
-      topics: { technology: 0.6, science: 0.3, other: 0.1 },
+      topics: {
+        technology: 0.6,
+        science: 0.3,
+        other: 0.1,
+        news: 0,
+        business: 0,
+        design: 0,
+        arts: 0,
+        health: 0,
+        sports: 0,
+        education: 0,
+        entertainment: 0
+      },
       keywords: [],
       domains: [],
       aiSummary: {
@@ -232,7 +244,10 @@ describe('RecommendationService', () => {
             dismisses: 10
           }
         }
-      }
+      },
+      totalPages: 0,
+      lastUpdated: Date.now(),
+      version: 1
     }
 
     const mockFeed = {
@@ -323,9 +338,15 @@ describe('RecommendationService', () => {
       vi.mocked(db.recommendations.bulkAdd).mockResolvedValue([] as any)
 
       // Mock transaction
-      vi.mocked(db.transaction).mockImplementation(
-        async (_mode: any, _tables: any, fn: any) => fn()
-      )
+      vi.mocked(db.transaction).mockImplementation((async (...args: any[]) => {
+          // Dexie.transaction(mode, table1, table2, ..., scopeFn)
+          const scopeFn = args[args.length - 1]
+          const base = Promise.resolve(scopeFn({} as any))
+          const extended: any = Object.assign(base, {
+            timeout: (_ms: number) => extended
+          })
+          return extended
+        }) as any)
     })
 
     test('应该处理推荐生成流程（成功路径，高质量文章保存）', async () => {
@@ -402,11 +423,13 @@ describe('RecommendationService', () => {
     test('应该在池未满时直接添加推荐', async () => {
       const mockUserProfile: UserProfile = {
         id: 'singleton',
-        pageCount: 100,
-        totalDwellTime: 50000,
-        topicDistribution: { technology: 0.6, other: 0.4 },
-        entityWeights: {},
-        lastUpdated: Date.now()
+        topics: { technology: 0.6, other: 0.4, science: 0, news: 0, business: 0, design: 0, arts: 0, health: 0, sports: 0, education: 0, entertainment: 0 },
+        keywords: [],
+        domains: [],
+        aiSummary: { interests: '', preferences: [], avoidTopics: [], metadata: { provider: 'keyword', model: 'tfidf', timestamp: Date.now(), basedOn: { browses: 0, reads: 0, dismisses: 0 } } },
+        totalPages: 0,
+        lastUpdated: Date.now(),
+        version: 1
       }
 
       const { getUserProfile } = await import('../../storage/db')
@@ -428,11 +451,13 @@ describe('RecommendationService', () => {
     test('应该在池满时替换低分推荐', async () => {
       const mockUserProfile: UserProfile = {
         id: 'singleton',
-        pageCount: 100,
-        totalDwellTime: 50000,
-        topicDistribution: { technology: 0.6, other: 0.4 },
-        entityWeights: {},
-        lastUpdated: Date.now()
+        topics: { technology: 0.6, other: 0.4, science: 0, news: 0, business: 0, design: 0, arts: 0, health: 0, sports: 0, education: 0, entertainment: 0 },
+        keywords: [],
+        domains: [],
+        aiSummary: { interests: '', preferences: [], avoidTopics: [], metadata: { provider: 'keyword', model: 'tfidf', timestamp: Date.now(), basedOn: { browses: 0, reads: 0, dismisses: 0 } } },
+        totalPages: 0,
+        lastUpdated: Date.now(),
+        version: 1
       }
 
       const { getUserProfile } = await import('../../storage/db')
@@ -491,11 +516,14 @@ describe('RecommendationService', () => {
       const { getRecommendationConfig } = await import('../../storage/recommendation-config')
       vi.mocked(getRecommendationConfig).mockResolvedValueOnce({
         analysisEngine: 'localAI',
+        feedAnalysisEngine: 'localAI',
+        useReasoning: false,
+        useLocalAI: true,
         maxRecommendations: 5,
         qualityThreshold: 0.6,
         tfidfThreshold: 0.3,
         batchSize: 10
-      })
+      } as any)
 
       const { getUserProfile } = await import('../../storage/db')
       vi.mocked(getUserProfile).mockResolvedValueOnce(null)
@@ -523,11 +551,14 @@ describe('RecommendationService', () => {
       const { getRecommendationConfig } = await import('../../storage/recommendation-config')
       vi.mocked(getRecommendationConfig).mockResolvedValueOnce({
         analysisEngine: 'remoteAIWithReasoning',
+        feedAnalysisEngine: 'remoteAIWithReasoning',
+        useReasoning: true,
+        useLocalAI: false,
         maxRecommendations: 5,
         qualityThreshold: 0.6,
         tfidfThreshold: 0.3,
         batchSize: 10
-      })
+      } as any)
 
       const { getUserProfile } = await import('../../storage/db')
       vi.mocked(getUserProfile).mockResolvedValueOnce(null)

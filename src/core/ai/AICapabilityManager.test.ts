@@ -417,7 +417,7 @@ describe("AICapabilityManager", () => {
       await manager.initialize()
 
       // Phase 11.1: 强制初始化模式下会检查 providers 配置
-      const res = await manager.testConnection("remote", false, true)
+      const res = await manager.testConnection()
       expect(res.success).toBe(false)
       expect(res.message).toMatch(/未配置 AI 提供商/)
     })
@@ -436,7 +436,7 @@ describe("AICapabilityManager", () => {
       await manager.initialize()
 
       // Phase 11.1: 强制初始化模式
-      const res = await manager.testConnection("remote", false, true)
+      const res = await manager.testConnection()
       expect(res.success).toBe(false)
       // Phase 11.1: 空 API Key 会导致"未配置 AI 提供商"
       expect(res.message).toMatch(/未配置 AI 提供商/)

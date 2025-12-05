@@ -3,7 +3,16 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { db, getUnrecommendedArticleCount } from './index'
+import { 
+  db, 
+  getUnrecommendedArticleCount,
+  getStorageStats,
+  getAnalysisStats,
+  getAIAnalysisStats,
+  getRSSArticleCount,
+  getRecommendationFunnel,
+  getRecommendationStats
+} from './index'
 import { Topic } from "@/core/profile/topics"
 
 describe('getUnrecommendedArticleCount', () => {
@@ -378,5 +387,82 @@ describe('getUnrecommendedArticleCount', () => {
 
     const count = await getUnrecommendedArticleCount('subscribed')
     expect(count).toBe(0)  // 错误时返回 0
+  })
+})
+
+describe('getRecommendationStats', () => {
+  beforeEach(async () => {
+    await db.delete()
+    await db.open()
+  })
+
+  it('应该统计最近 N 天的推荐并支持活跃过滤', async () => {
+    const now = Date.now()
+    await db.recommendations.bulkAdd([
+      { id: 'r1', recommendedAt: now - 2 * 24 * 60 * 60 * 1000, isRead: true, readDuration: 8, source: 'feedA', effectiveness: 'effective', status: 'active' },
+      { id: 'r2', recommendedAt: now - 3 * 24 * 60 * 60 * 1000, isRead: false, source: 'feedA', effectiveness: 'neutral', status: 'active' },
+      { id: 'r3', recommendedAt: now - 10 * 24 * 60 * 60 * 1000, isRead: false, source: 'feedB', effectiveness: 'ineffective', status: 'dismissed' }
+    ])
+
+    const { getRecommendationStats } = await import('./db-stats')
+    const statsAll = await getRecommendationStats(30, false)
+    expect(statsAll.totalCount).toBeGreaterThan(0)
+    expect(statsAll.readCount).toBe(1)
+    expect(statsAll.dismissedCount).toBe(1)
+
+    const statsActive = await getRecommendationStats(30, true)
+    expect(statsActive.totalCount).toBe(2)
+    expect(statsActive.dismissedCount).toBe(0)
+    expect(statsActive.topSources[0].source).toBe('feedA')
+  })
+})
+
+describe('getAIAnalysisStats 远端 AI 成本与分布', () => {
+  beforeEach(async () => {
+    await db.delete()
+    await db.open()
+  })
+
+  it('应该只统计 openai/anthropic/deepseek 的成本并计算平均成本', async () => {
+    const now = Date.now()
+    await db.confirmedVisits.bulkAdd([
+      { id: 'v1', visitTime: now - 1, analysis: { keywords: ['x'], aiAnalysis: { provider: 'deepseek', cost: 7, currency: 'CNY', tokensUsed: { total: 200 } } } },
+      { id: 'v2', visitTime: now - 2, analysis: { keywords: ['y'], aiAnalysis: { provider: 'openai', cost: 1, currency: 'USD', tokensUsed: { total: 100 } } } },
+      { id: 'v3', visitTime: now - 3, analysis: { keywords: ['z'], aiAnalysis: { provider: 'anthropic', cost: 2, currency: 'USD', tokensUsed: { total: 150 } } } },
+      { id: 'v4', visitTime: now - 4, analysis: { keywords: ['k'] } }
+    ])
+
+    const s = await getAIAnalysisStats()
+    expect(s.totalPages).toBe(4)
+    expect(s.aiAnalyzedPages).toBe(3)
+    expect(s.keywordAnalyzedPages).toBe(1)
+    expect(s.totalTokens).toBe(200 + 100 + 150)
+    expect(s.totalCostUSD).toBe(3)
+    expect(s.totalCostCNY).toBe(7)
+    expect(s.avgCostPerPage).toBeGreaterThan(0)
+  })
+  it("getAIAnalysisStats 在空数据时返回安全的默认值", async () => {
+    const stats = await getAIAnalysisStats()
+    expect(stats.totalPages).toBe(0)
+    expect(stats.aiAnalyzedPages).toBe(0)
+    expect(stats.keywordAnalyzedPages).toBe(0)
+    expect(stats.totalTokens).toBe(0)
+    expect(stats.totalCostUSD).toBe(0)
+    expect(stats.totalCostCNY).toBe(0)
+    expect(stats.avgCostPerPage).toBe(0)
+  })
+  
+  it("getAIAnalysisStats 处理异常记录并跳过", async () => {
+    // 注入一条异常 AI 记录
+    await db.aiUsage.add({ id: "bad-1", provider: "remote-openai", tokens: -10, currency: "USD", cost: -1, createdAt: Date.now() })
+    const stats = await getAIAnalysisStats()
+    expect(stats.totalPages).toBe(0)
+    expect(stats.totalTokens).toBe(0)
+  })
+  
+  it("getRecommendationStats 在空数据与 onlyActive=true 时返回空集合", async () => {
+    const stats = await getRecommendationStats(7, true)
+    expect(stats.totalCount).toBe(0)
+    expect(stats.topSources.length).toBe(0)
   })
 })
