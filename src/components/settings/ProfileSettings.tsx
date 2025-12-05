@@ -75,7 +75,10 @@ export function ProfileSettings() {
           actualTotalPages
         })
         
-        setAiConfigured(aiConfig.enabled && aiConfig.provider !== null)
+        const hasAIProvider = Object.values(aiConfig.providers).some(
+          p => p && p.apiKey && p.model
+        )
+        setAiConfigured(hasAIProvider)
         setAiProvider(getProviderDisplayName(aiConfig.provider || null))
         setTotalPages(actualTotalPages)
         

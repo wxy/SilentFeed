@@ -223,26 +223,27 @@ describe("AICapabilityManager", () => {
     it("在本地启用且远端未配置时应使用本地提供者", async () => {
       mockStorage.sync.get.mockResolvedValueOnce({
         aiConfig: {
-          enabled: false,
-          provider: null,
-          apiKey: "",
+          providers: {},
           local: { enabled: true, provider: "ollama", endpoint: "http://localhost:11434/v1", model: "qwen2.5:7b" }
         }
       })
 
       await manager.initialize()
       const conn = await manager.testConnection("local")
-      // testConnection 在不同实现中可能返回 {success} 或 {available}
-      expect(conn && (conn.success === true || conn.available === true)).toBeTruthy()
+      // testConnection 返回 {success, message, latency?}
+      expect(conn && conn.success === true).toBeTruthy()
     })
 
     it("远端失败且本地不可用时应回退关键词", async () => {
       // 远端配置但故意使 analyze 抛错
       mockStorage.sync.get.mockResolvedValueOnce({
         aiConfig: {
-          enabled: true,
-          provider: "deepseek",
-          apiKey: "sk-test-deepseek-123456789012345678901234567890",
+          providers: {
+            deepseek: {
+              apiKey: "sk-test-deepseek-123456789012345678901234567890",
+              model: "deepseek-chat"
+            }
+          },
           local: { enabled: false }
         }
       })

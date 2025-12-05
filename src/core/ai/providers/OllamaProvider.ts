@@ -225,8 +225,12 @@ export class OllamaProvider extends BaseAIService {
     tokensUsed: { input: number; output: number }
     model?: string
   }> {
+    if (!this.config.model) {
+      throw new Error('Ollama 模型未配置，请在 AI 配置中设置模型')
+    }
+    
     const body: OllamaChatRequest = {
-      model: this.config.model || "qwen2.5:7b",
+      model: this.config.model,
       messages: [
         {
           role: "system",
@@ -309,8 +313,12 @@ export class OllamaProvider extends BaseAIService {
     tokensUsed: { input: number; output: number }
     model?: string
   }> {
+    if (!this.config.model) {
+      throw new Error('Ollama 模型未配置，请在 AI 配置中设置模型')
+    }
+    
     const body: Record<string, unknown> = {
-      model: this.config.model || "qwen2.5:7b",
+      model: this.config.model,
       prompt: this.buildGeneratePrompt(prompt),
       stream: false,
       options: {
@@ -389,8 +397,12 @@ export class OllamaProvider extends BaseAIService {
     tokensUsed: { input: number; output: number }
     model?: string
   }> {
+    if (!this.config.model) {
+      throw new Error('Ollama 模型未配置，请在 AI 配置中设置模型')
+    }
+    
     const body: Record<string, unknown> = {
-      model: this.config.model || "qwen2.5:7b",
+      model: this.config.model,
       messages: this.buildOpenAIMessages(prompt),
       temperature: options?.temperature ?? this.temperature,
       max_tokens: options?.maxTokens ?? this.maxOutputTokens,

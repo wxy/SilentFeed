@@ -49,9 +49,12 @@ export class TranslationService {
       // 获取 AI 配置
       const aiConfig = await getAIConfig()
       
-      // 如果 AI 未启用或没有配置 API Key，使用本地检测
-      const hasApiKey = aiConfig.apiKeys?.openai || aiConfig.apiKeys?.deepseek
-      if (!aiConfig.enabled || !hasApiKey) {
+      // 如果没有配置 AI，使用本地检测
+      const hasAIProvider = Object.values(aiConfig.providers).some(
+        p => p && p.apiKey && p.model
+      )
+      
+      if (!hasAIProvider) {
         translationLogger.warn('AI 未配置，无法翻译')
         const detectedLang = this.detectLanguage(text)
         return {

@@ -65,8 +65,10 @@ export function OnboardingView({ onComplete }: OnboardingViewProps) {
         
         // 如果已经配置了 AI，跳到第 3 步
         const aiConfig = await getAIConfig()
-        if (aiConfig.enabled && aiConfig.provider && aiConfig.model) {
-          setModel(aiConfig.model)
+        const hasAIProvider = Object.values(aiConfig.providers).some(
+          p => p && p.apiKey && p.model
+        )
+        if (hasAIProvider) {
           setConnectionTested(true)
           if (status.currentStep && status.currentStep < 3) {
             setCurrentStep(3)

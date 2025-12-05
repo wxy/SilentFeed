@@ -164,10 +164,16 @@ export function CollectionStats() {
         setFeedStats(feedsData)
         
         // 设置 AI 配置状态
+        const hasAIProvider = Object.values(aiConfig.providers).some(
+          p => p && p.apiKey && p.model
+        )
+        const firstProvider = Object.entries(aiConfig.providers).find(
+          ([_, p]) => p && p.apiKey
+        )
         setAiConfigStatus({
-          enabled: aiConfig.enabled,
-          provider: getProviderDisplayName(aiConfig.provider || null),
-          configured: aiConfig.enabled && aiConfig.provider !== null && Object.keys(aiConfig.apiKeys || {}).length > 0
+          enabled: hasAIProvider,
+          provider: firstProvider ? getProviderDisplayName(firstProvider[0] as any) : 'None',
+          configured: hasAIProvider
         })
       } catch (error) {
         collectionLogger.error("加载统计失败:", error)
