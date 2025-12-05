@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.1 - 2025-12-06
+- 测试稳定性与类型一致性修复：
+  - 修复 `UserProfile` 测试构造缺失字段（`totalPages`、`lastUpdated`、`version`）
+  - Dexie `transaction` 测试模拟补充 `timeout`，兼容 `PromiseExtended`
+  - `recommendation-config` 测试迁移到 `AIConfig.providers` 并补齐 `local`/`engineAssignment`
+- AI 提供者与配置：
+  - Ollama OpenAI 兼容路径安全读取 `finish_reason`
+  - 本地/远端 AI 状态检查与推荐逻辑更稳健
+- 覆盖率：函数覆盖率 ≥ 70%，总体行覆盖率 ~73%
+- 版本：升级至 `0.3.1`
+
+## 0.3.0 - 2025-11-xx
+- 初始公开版本，包含核心订阅、推荐与本地 AI 集成。# Changelog
+
 All notable changes to Silent Feed will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
