@@ -215,16 +215,24 @@ describe('RecommendationService', () => {
   describe('generateRecommendations - 正常流程', () => {
     const mockUserProfile: UserProfile = {
       id: 'singleton',
-      pageCount: 100,
-      totalDwellTime: 50000,
-      topicDistribution: {
-        technology: 0.6,
-        science: 0.3,
-        other: 0.1
-      },
-      entityWeights: {},
-      lastUpdated: Date.now(),
-      aiSummary: 'Tech enthusiast'
+      topics: { technology: 0.6, science: 0.3, other: 0.1 },
+      keywords: [],
+      domains: [],
+      aiSummary: {
+        interests: 'Tech enthusiast',
+        preferences: ['technology', 'science'],
+        avoidTopics: [],
+        metadata: {
+          provider: 'keyword',
+          model: 'tfidf',
+          timestamp: Date.now(),
+          basedOn: {
+            browses: 100,
+            reads: 50,
+            dismisses: 10
+          }
+        }
+      }
     }
 
     const mockFeed = {
@@ -238,24 +246,26 @@ describe('RecommendationService', () => {
       {
         id: 'article-1',
         feedId: 'feed-1',
-        guid: 'guid-1',
         link: 'https://example.com/article-1',
         title: 'Test Article 1',
-        summary: 'Summary 1',
+        description: 'Summary 1',
         published: Date.now(),
+        fetched: Date.now(),
         author: 'Author 1',
-        categories: ['tech']
+        read: false,
+        starred: false
       },
       {
         id: 'article-2',
         feedId: 'feed-1',
-        guid: 'guid-2',
         link: 'https://example.com/article-2',
         title: 'Test Article 2',
-        summary: 'Summary 2',
+        description: 'Summary 2',
         published: Date.now(),
+        fetched: Date.now(),
         author: 'Author 2',
-        categories: ['science']
+        read: false,
+        starred: false
       }
     ]
 
