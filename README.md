@@ -4,6 +4,8 @@
 
 # 🤫 Silent Feed
 
+> 当前版本：`0.3.1`
+
 **AI-powered RSS reader that learns what you love**
 
 *让信息流安静下来 · Making the feed quieter*
@@ -96,7 +98,7 @@ See [Technical Documentation](docs/TDD.md) for architecture details.
 
 ### 📊 Project Status
 
-- **Version**: 0.2.0 (Feature Update)
+- **Version**: 0.3.1 (Test Stability & Typing Fixes)
 - **Status**: ✅ Released
 - **Test Coverage**: 71%+
 - **Supported**: Chrome/Edge (Manifest V3)
@@ -181,7 +183,7 @@ npm test
 
 ### 📊 项目状态
 
-- **版本**: 0.2.0（功能更新版）
+- **版本**: 0.3.1（测试稳定与类型修复）
 - **状态**: ✅ 已发布
 - **测试覆盖率**: 71%+
 - **支持浏览器**: Chrome/Edge (Manifest V3)

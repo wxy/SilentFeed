@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.3.1] - 2025-12-06
+
+### Changed
+- AI capability detection for Ollama now relies on API capability checks instead of name heuristics.
+- Reasoning capability icons added to the model list and Ollama provider card; cooldown set to 10 minutes.
+- RSS detector updated to ignore `translate.goog` proxied URLs.
+- Spider chart path reimplemented using cubic Bézier for a smooth closed curve.
+
+### Fixed
+- Stabilized test suite and resolved TypeScript errors across providers, hooks, and services:
+  - `UserProfile` test constructions now include required fields (`totalPages`, `lastUpdated`, `version`).
+  - Dexie `transaction` mocks return objects with `timeout` to satisfy `PromiseExtended` typing.
+  - `recommendation-config` tests migrated to the new `AIConfig.providers` schema; added `local` and `engineAssignment`.
+  - `OllamaProvider` safely accesses optional `finish_reason` in OpenAI-compatible responses.
+  - Hook `useAIProviderStatus` adjusted to provider `testConnection()` signature.
+- Addressed regressions around "未配置本地 AI" by hardening local provider initialization.
+
+### Coverage
+- Function coverage ≥ 70%; overall line coverage ~73% (V8).
+
+### Notes
+- This release focuses on robustness, type consistency, and UX polish without changing core behavior.
+
+## [0.3.0] - 2024-12-05
+> Not the first public release. See historical entries below.
+
+# Changelog
+
 All notable changes to Silent Feed will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
