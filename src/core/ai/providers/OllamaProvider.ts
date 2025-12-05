@@ -450,7 +450,13 @@ export class OllamaProvider extends BaseAIService {
     const data = await response.json() as {
       id?: string
       model?: string
-      choices?: Array<{ message?: { content?: string; role?: string } }>
+      choices?: Array<{ 
+        message?: { 
+          content?: string
+          role?: string
+          reasoning?: string  // DeepSeek-R1 推理模型的特殊字段
+        } 
+      }>
       usage?: { prompt_tokens?: number; completion_tokens?: number }
     }
 
@@ -458,10 +464,14 @@ export class OllamaProvider extends BaseAIService {
       model: data.model,
       choicesCount: data.choices?.length,
       hasContent: !!data.choices?.[0]?.message?.content,
+      hasReasoning: !!data.choices?.[0]?.message?.reasoning,
       firstChoice: data.choices?.[0]  // 输出完整的第一个 choice
     })
 
-    const rawContent = data.choices?.[0]?.message?.content?.trim()
+    // DeepSeek-R1 推理模型会把内容放在 reasoning 字段
+    const message = data.choices?.[0]?.message
+    const rawContent = (message?.content || message?.reasoning || '').trim()
+    
     if (!rawContent) {
       ollamaLogger.error('Ollama 返回空响应 - 完整数据:', JSON.stringify(data, null, 2))
       throw new Error(`Empty response from Ollama (model: ${data.model || 'unknown'}, choices: ${data.choices?.length || 0})`)
