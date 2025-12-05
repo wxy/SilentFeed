@@ -20,6 +20,7 @@ export function AIConfigPanel() {
   const [checkingProvider, setCheckingProvider] = useState<string | null>(null)
   const [showConfigModal, setShowConfigModal] = useState<string | null>(null)
   const [currentProvider, setCurrentProvider] = useState<string | null>(null)
+  const [configVersion, setConfigVersion] = useState(0) // 用于强制刷新
 
   // Provider 列表配置
   const providers = [
@@ -35,20 +36,64 @@ export function AIConfigPanel() {
     const loadCurrentProvider = async () => {
       const config = await getAIConfig()
       
-      // 从当前选择的模型推导 Provider
-      if (config.model) {
-        const provider = getProviderFromModel(config.model)
-        setCurrentProvider(provider)
-      } else if (config.local?.enabled) {
-        // 如果启用了本地 AI，标记为 ollama
-        setCurrentProvider('ollama')
-      } else {
-        setCurrentProvider(null)
+      // Phase 11: 从 engineAssignment 确定实际在用的 Provider
+      // 优先级：profileGeneration（低频但重要）> feedAnalysis > pageAnalysis
+      let activeProvider: string | null = null
+      
+      if (config.engineAssignment) {
+        // 优先看 profileGeneration（用户画像生成最重要）
+        const profileProvider = config.engineAssignment.profileGeneration?.provider
+        if (profileProvider && profileProvider !== 'ollama') {
+          activeProvider = profileProvider
+        } else if (config.engineAssignment.feedAnalysis?.provider && 
+                   config.engineAssignment.feedAnalysis.provider !== 'ollama') {
+          // 其次看 feedAnalysis
+          activeProvider = config.engineAssignment.feedAnalysis.provider
+        } else if (config.engineAssignment.pageAnalysis?.provider && 
+                   config.engineAssignment.pageAnalysis.provider !== 'ollama') {
+          // 最后看 pageAnalysis
+          activeProvider = config.engineAssignment.pageAnalysis.provider
+        } else if (profileProvider === 'ollama' || 
+                   config.engineAssignment.feedAnalysis?.provider === 'ollama' ||
+                   config.engineAssignment.pageAnalysis?.provider === 'ollama') {
+          // 如果任何任务使用 ollama，标记为 ollama
+          activeProvider = 'ollama'
+        }
       }
+      
+      // 降级处理：如果没有 engineAssignment，从旧字段推导
+      if (!activeProvider) {
+        // 从当前选择的模型推导 Provider
+        if (config.model) {
+          const provider = getProviderFromModel(config.model)
+          activeProvider = provider
+        } else if (config.local?.enabled) {
+          // 如果启用了本地 AI，标记为 ollama
+          activeProvider = 'ollama'
+        }
+      }
+      
+      setCurrentProvider(activeProvider)
     }
 
     loadCurrentProvider()
-  }, [status]) // 状态变化时重新加载
+  }, [status, configVersion]) // 状态变化或配置版本变化时重新加载
+  
+  // 监听 storage 变化，实时更新"在用"状态
+  useEffect(() => {
+    const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }, areaName: string) => {
+      if (areaName === 'sync' && changes.aiConfig) {
+        // AI 配置变化，强制刷新
+        setConfigVersion(v => v + 1)
+      }
+    }
+    
+    chrome.storage.onChanged.addListener(handleStorageChange)
+    
+    return () => {
+      chrome.storage.onChanged.removeListener(handleStorageChange)
+    }
+  }, [])
 
   /**
    * 检测单个 Provider
