@@ -301,8 +301,16 @@ export abstract class BaseAIService implements AIProvider {
       const responseFormat = this.getProfileResponseFormat()
 
       // 4. 调用 API
-      // Phase 11: 本地 AI 需要更长的超时时间（60s），远程 API 保持 30s
-      const timeout = this.name === 'Ollama' ? 60000 : 30000
+      // Phase 11: 本地 AI 需要更长的超时时间
+      // - 普通 Ollama 模型: 90s
+      // - 推理模型 (DeepSeek-R1): 180s (推理过程需要更多时间)
+      // - 远程 API: 30s
+      let timeout = 30000
+      if (this.name === 'Ollama') {
+        // @ts-ignore - OllamaProvider 有 isReasoningModel 属性
+        timeout = this.isReasoningModel ? 180000 : 90000
+      }
+      
       const response = await this.callChatAPI(prompt, {
         maxTokens: 1000,
         timeout,

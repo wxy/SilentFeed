@@ -30,6 +30,7 @@ export interface LocalModelSummary {
   label: string
   family?: string
   size?: string
+  isReasoning?: boolean  // 是否为推理模型（基于命名检测）
 }
 
 export interface LocalModelListResult {
@@ -90,6 +91,15 @@ export function buildLocalAIHeaders(mode: LocalAIEndpointMode, apiKey?: string):
   return headers
 }
 
+/**
+ * 检测模型名是否为推理模型
+ */
+function isReasoningModel(modelName: string): boolean {
+  const normalized = modelName.toLowerCase()
+  const keywords = ['r1', 'reasoning', 'think', 'cot']
+  return keywords.some(keyword => normalized.includes(keyword))
+}
+
 function parseOpenAIModelList(data: any): LocalModelSummary[] {
   const list = Array.isArray(data?.data) ? data.data : []
   return list
@@ -98,7 +108,8 @@ function parseOpenAIModelList(data: any): LocalModelSummary[] {
       id: item.id,
       label: item.id,
       family: item.owned_by || item.object,
-      size: item.created ? String(item.created) : undefined
+      size: item.created ? String(item.created) : undefined,
+      isReasoning: isReasoningModel(item.id)
     }))
 }
 
@@ -110,7 +121,8 @@ function parseLegacyModelList(data: any): LocalModelSummary[] {
       id: item.name,
       label: item.details?.parameter_size ? `${item.name} - ${item.details.parameter_size}` : item.name,
       family: item.details?.family,
-      size: item.details?.parameter_size
+      size: item.details?.parameter_size,
+      isReasoning: isReasoningModel(item.name)
     }))
 }
 
