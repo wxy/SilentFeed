@@ -419,7 +419,10 @@ export class OllamaProvider extends BaseAIService {
       stream: false
     }
 
-    if (options?.jsonMode !== false) {
+    // DeepSeek-R1 等推理模型不支持 response_format，会导致返回空内容
+    // 只在明确要求 JSON 模式且不是推理模型时才添加
+    const isReasoningModel = this.config.model.toLowerCase().includes('r1')
+    if (options?.jsonMode !== false && !isReasoningModel) {
       body.response_format = options?.responseFormat || { type: "json_object" }
     }
 
@@ -447,19 +450,20 @@ export class OllamaProvider extends BaseAIService {
     const data = await response.json() as {
       id?: string
       model?: string
-      choices?: Array<{ message?: { content?: string } }>
+      choices?: Array<{ message?: { content?: string; role?: string } }>
       usage?: { prompt_tokens?: number; completion_tokens?: number }
     }
 
     ollamaLogger.debug('Ollama OpenAI API 响应:', { 
       model: data.model,
       choicesCount: data.choices?.length,
-      hasContent: !!data.choices?.[0]?.message?.content 
+      hasContent: !!data.choices?.[0]?.message?.content,
+      firstChoice: data.choices?.[0]  // 输出完整的第一个 choice
     })
 
     const rawContent = data.choices?.[0]?.message?.content?.trim()
     if (!rawContent) {
-      ollamaLogger.error('Ollama 返回空响应:', data)
+      ollamaLogger.error('Ollama 返回空响应 - 完整数据:', JSON.stringify(data, null, 2))
       throw new Error(`Empty response from Ollama (model: ${data.model || 'unknown'}, choices: ${data.choices?.length || 0})`)
     }
 
