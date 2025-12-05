@@ -302,13 +302,13 @@ export abstract class BaseAIService implements AIProvider {
 
       // 4. 调用 API
       // Phase 11: 本地 AI 需要更长的超时时间
-      // - 普通 Ollama 模型: 90s
+      // - 普通 Ollama 模型: 120s (用户报告 90s 仍不够)
       // - 推理模型 (DeepSeek-R1): 180s (推理过程需要更多时间)
       // - 远程 API: 30s
       let timeout = 30000
       if (this.name === 'Ollama') {
         // @ts-ignore - OllamaProvider 有 isReasoningModel 属性
-        timeout = this.isReasoningModel ? 180000 : 90000
+        timeout = this.isReasoningModel ? 180000 : 120000
       }
       
       // Phase 11: 推理模型需要更多 token（推理过程 + 最终答案）

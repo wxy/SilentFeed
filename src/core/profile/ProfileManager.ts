@@ -18,12 +18,23 @@ const profileLogger = logger.withTag('ProfileManager')
  * 用户画像管理器类
  */
 export class ProfileManager {
+  // Phase 11: 任务锁（与 SemanticProfileBuilder 共享）
+  private isRebuilding = false
+
   /**
    * 重新构建用户画像
    *
    * 从所有确认的访问记录重新分析构建用户画像
    */
   async rebuildProfile(): Promise<UserProfile> {
+    // Phase 11: 任务锁机制 - 防止重复点击
+    if (this.isRebuilding || semanticProfileBuilder.isGenerating()) {
+      profileLogger.warn('⚠️ 画像重建/生成中，跳过本次请求')
+      throw new Error('PROFILE_REBUILDING')
+    }
+
+    this.isRebuilding = true
+
     return (await withErrorHandling<UserProfile>(
       async () => {
         profileLogger.info('开始重建用户画像...')
@@ -84,7 +95,11 @@ export class ProfileManager {
         errorCode: 'PROFILE_REBUILD_ERROR',
         userMessage: '重建用户画像失败'
       }
-    )) as UserProfile
+    ).finally(() => {
+      // 释放锁
+      this.isRebuilding = false
+      profileLogger.debug('重建任务锁已释放')
+    })) as UserProfile
   }
 
   /**
@@ -243,7 +258,7 @@ export class ProfileManager {
       topTopics: [],
     }
 
-    return withErrorHandling(
+    return (await withErrorHandling(
       async () => {
         const profile = await db.userProfile.get('singleton')
 
@@ -269,11 +284,17 @@ export class ProfileManager {
       },
       {
         tag: 'ProfileManager.getProfileStats',
-        fallback: defaultStats,
-        errorCode: 'PROFILE_STATS_ERROR',
-        userMessage: '获取画像统计失败'
+        rethrow: false,
+        fallback: defaultStats
       }
-    ) as Promise<typeof defaultStats>
+    )) as typeof defaultStats
+  }
+
+  /**
+   * Phase 11: 查询画像重建状态
+   */
+  isRebuilding_(): boolean {
+    return this.isRebuilding || semanticProfileBuilder.isGenerating()
   }
 }
 

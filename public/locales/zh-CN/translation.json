@@ -693,7 +693,8 @@
       },
       "alerts": {
         "rebuildSuccess": "画像重建成功！",
-        "rebuildFailed": "画像重建失败，请稍后重试"
+        "rebuildFailed": "画像重建失败，请稍后重试",
+        "rebuildInProgress": "画像生成中，请稍候..."
       },
       "actions": {
         "rebuild": "重建画像",

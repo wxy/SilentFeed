@@ -32,6 +32,7 @@ export function ProfileSettings() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isRebuilding, setIsRebuilding] = useState(false)
+  const [rebuildProgress, setRebuildProgress] = useState(0) // Phase 11: 进度条状态（0-100）
   const [aiConfigured, setAiConfigured] = useState(false)
   const [aiProvider, setAiProvider] = useState("")
   const [totalPages, setTotalPages] = useState(0)
@@ -114,11 +115,26 @@ export function ProfileSettings() {
     setMessages(prev => [...prev, userMessage])
 
     setIsRebuilding(true)
+    
+    // Phase 11: 启动进度条（180s 超时）
+    const progressInterval = setInterval(() => {
+      setRebuildProgress(prev => {
+        // 180s = 180000ms
+        // 每 100ms 增加 100/180000 ≈ 0.055%
+        const increment = 100 / 1800 
+        const newProgress = Math.min(prev + increment, 99) // 最多到 99%
+        return newProgress
+      })
+    }, 100)
+
     try {
       const newProfile = await profileManager.rebuildProfile()
       if (!newProfile) {
         throw new Error('EMPTY_PROFILE')
       }
+      
+      // 成功：进度条直接到 100%
+      setRebuildProgress(100)
       
       // 2. 添加 AI 回复消息：新画像
       const aiMessage: ChatMessage = {
@@ -131,9 +147,24 @@ export function ProfileSettings() {
       
     } catch (error) {
       profileViewLogger.error("重建用户画像失败:", error)
-      alert(_("options.userProfile.alerts.rebuildFailed"))
+      
+      // 检查是否是任务锁错误
+      if ((error as Error).message === 'PROFILE_REBUILDING') {
+        alert(_("options.userProfile.alerts.rebuildInProgress"))
+      } else {
+        alert(_("options.userProfile.alerts.rebuildFailed"))
+      }
+      
+      // 失败：重置进度条
+      setRebuildProgress(0)
     } finally {
+      clearInterval(progressInterval)
       setIsRebuilding(false)
+      
+      // 延迟 1s 后重置进度条（让用户看到 100%）
+      setTimeout(() => {
+        setRebuildProgress(0)
+      }, 1000)
     }
   }
 
@@ -183,7 +214,7 @@ export function ProfileSettings() {
     const startDate = new Date(timestamp - estimatedDays * 24 * 60 * 60 * 1000)
     
     if (!aiSummary) {
-      // AI 画像生成中 - 单个气泡
+      // AI 画像生成中 - 单个气泡 + 进度条
       return (
         <div className="flex items-start gap-4 mb-6">
           <div className="flex-shrink-0">
@@ -193,9 +224,25 @@ export function ProfileSettings() {
           </div>
           <div className="flex-1 max-w-3xl">
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl rounded-tl-sm p-5 border border-blue-100 dark:border-blue-800 shadow-sm">
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-gray-600 dark:text-gray-400 mb-3">
                 {_("options.userProfile.chat.generating")}
               </p>
+              
+              {/* Phase 11: 进度条 */}
+              {rebuildProgress > 0 && (
+                <div className="space-y-2">
+                  <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-300 ease-out"
+                      style={{ width: `${rebuildProgress}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                    <span>{Math.floor(rebuildProgress)}%</span>
+                    <span>{rebuildProgress >= 99 ? '即将完成...' : '分析中...'}</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
