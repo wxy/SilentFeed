@@ -50,6 +50,8 @@ interface OllamaProviderConfig extends AIProviderConfig {
   temperature?: number
   maxOutputTokens?: number
   timeoutMs?: number
+  /** Phase 11.2: 是否为推理模型（从配置中读取，优先级高于名称检测） */
+  isReasoningModel?: boolean
 }
 
 const ollamaLogger = logger.withTag("OllamaProvider")
@@ -81,8 +83,9 @@ export class OllamaProvider extends BaseAIService {
     this.maxOutputTokens = config.maxOutputTokens ?? 768
     // Phase 11: 本地 AI 需要更长的超时时间（120s）
     this.defaultTimeout = config.timeoutMs ?? 120000
-    // 检测是否为推理模型（基于模型名称）
-    this.isReasoningModel = this.detectReasoningModel(config.model)
+    // Phase 11.2: 优先使用配置中的 isReasoningModel（从 Ollama API 获取）
+    // 降级到基于模型名称的检测
+    this.isReasoningModel = config.isReasoningModel ?? this.detectReasoningModel(config.model)
     if (this.isReasoningModel) {
       ollamaLogger.info(`检测到推理模型: ${config.model}，将使用特殊处理`)
     }
@@ -173,18 +176,19 @@ export class OllamaProvider extends BaseAIService {
   }
 
   /**
-   * 检测是否为推理模型
+   * 检测是否为推理模型（基于模型名称 - 降级方案）
    * 
-   * 推理模型特征:
-   * - 模型名包含 'r1', 'reasoning', 'think' 等关键词
-   * - 使用特殊的响应格式（reasoning 字段）
-   * - 不支持 response_format 参数
+   * Phase 11.2: 优先使用配置中的 isReasoningModel（从 Ollama /api/show 的 capabilities 获取）
+   * capabilities 包含 "thinking" 表示支持推理能力
+   * 此方法仅作为降级方案，不应依赖
+   * 
+   * @param modelName 模型名称
+   * @returns 始终返回 false（不可靠的检测方式）
    */
   private detectReasoningModel(modelName?: string): boolean {
-    if (!modelName) return false
-    const normalized = modelName.toLowerCase()
-    const keywords = ['r1', 'reasoning', 'think', 'cot']  // Chain of Thought
-    return keywords.some(keyword => normalized.includes(keyword))
+    // Phase 11.2: 名称检测不可靠，始终返回 false
+    // 应该通过配置中的 isReasoningModel 判断（来自 /api/show 的 capabilities）
+    return false
   }
 
   /**

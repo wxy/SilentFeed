@@ -111,7 +111,9 @@ export interface LocalAIConfig {
   /** 请求超时（毫秒） */
   timeoutMs?: number
   /** 缓存的模型列表（避免每次打开配置都要重新加载） */
-  cachedModels?: Array<{ id: string; label: string }>
+  cachedModels?: Array<{ id: string; label: string; isReasoning?: boolean }>
+  /** Phase 11.2: 当前模型是否支持推理（从 Ollama API 获取） */
+  isReasoningModel?: boolean
 }
 
 /**

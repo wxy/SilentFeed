@@ -200,12 +200,9 @@ describe('analysis-engine-capability', () => {
       
       expect(result.available).toBe(true)
       expect(result.reason).toContain('Ollama')
+      // Phase 11.2: 使用 /v1 接口模式
       expect(global.fetch).toHaveBeenCalledWith(
         'http://localhost:11434/v1/models',
-        expect.any(Object)
-      )
-      expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:11434/api/tags',
         expect.any(Object)
       )
     })

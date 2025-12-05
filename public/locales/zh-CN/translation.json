@@ -1123,6 +1123,8 @@
         "selectModel": "选择模型",
         "selectModelPlaceholder": "-- 选择模型 --",
         "enableReasoning": "启用推理模式（成本约10倍，但质量更高）",
+        "reasoningEnabled": "✅ 推理模式已开启：AI 将进行深度思考，提供更高质量的分析（消耗更多 tokens）",
+        "reasoningDisabled": "💡 推理模式已关闭：仅作为许可开关，当前模型支持推理时才会生效",
         "ollamaEnabled": "启用本地 AI (Ollama)",
         "ollamaEndpoint": "Ollama 端点",
         "ollamaEndpointHint": "OpenAI 兼容接口地址",

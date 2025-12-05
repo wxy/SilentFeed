@@ -106,9 +106,9 @@ export function ProfileSettings() {
   const handleRebuildProfile = async () => {
     if (isRebuilding) return
     
-    // Phase 11: 防抖机制 - 30 秒内禁止重复点击
+    // Phase 11: 防抖机制 - 10 分钟内禁止重复点击（防止自动调度和手动触发冲突）
     const now = Date.now()
-    const DEBOUNCE_TIME = 30000 // 30 秒
+    const DEBOUNCE_TIME = 600000 // 10 分钟
     if (lastRebuildTime && now - lastRebuildTime < DEBOUNCE_TIME) {
       const remainingSeconds = Math.ceil((DEBOUNCE_TIME - (now - lastRebuildTime)) / 1000)
       alert(_('options.userProfile.alerts.rebuildCooldown', { seconds: remainingSeconds }))

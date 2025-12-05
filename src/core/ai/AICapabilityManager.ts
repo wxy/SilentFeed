@@ -402,7 +402,9 @@ export class AICapabilityManager {
           model: config.model,
           temperature: config.temperature,
           maxOutputTokens: config.maxOutputTokens,
-          timeoutMs: config.timeoutMs
+          timeoutMs: config.timeoutMs,
+          // Phase 11.2: 传递从 Ollama API 获取的推理模型标记
+          isReasoningModel: config.isReasoningModel
         })
     }
   }

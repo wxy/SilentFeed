@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-12-05T17:38:38.929Z",
+  "lastUpdate": "2025-12-05T18:07:31.950Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -16981,6 +16981,34 @@
         "value": "Please wait {{seconds}} seconds before rebuilding the profile.",
         "hash": "c4b1361f",
         "lastModified": "2025-12-05T17:38:38.416Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.configModal.reasoningEnabled": {
+      "zh-CN": {
+        "value": "✅ 推理模式已开启：AI 将进行深度思考，提供更高质量的分析（消耗更多 tokens）",
+        "hash": "7bef0198",
+        "lastModified": "2025-12-05T18:07:28.777Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "✅ Reasoning mode enabled: AI will engage in deep thinking to provide higher-quality analysis (consumes more tokens)",
+        "hash": "afe6ab47",
+        "lastModified": "2025-12-05T18:07:28.778Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.configModal.reasoningDisabled": {
+      "zh-CN": {
+        "value": "💡 推理模式已关闭：仅作为许可开关，当前模型支持推理时才会生效",
+        "hash": "55091595",
+        "lastModified": "2025-12-05T18:07:31.438Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "💡 Reasoning mode is turned off: Only serves as a permission switch, and will take effect when the current model supports reasoning.",
+        "hash": "6fe6c845",
+        "lastModified": "2025-12-05T18:07:31.438Z",
         "status": "ai-translated"
       }
     }

@@ -21,12 +21,13 @@ export function AIConfigPanel() {
   const [showConfigModal, setShowConfigModal] = useState<string | null>(null)
   const [currentProvider, setCurrentProvider] = useState<string | null>(null)
   const [configVersion, setConfigVersion] = useState(0) // 用于强制刷新
+  const [ollamaSupportsReasoning, setOllamaSupportsReasoning] = useState(false) // Phase 11.2: Ollama 推理能力状态
 
   // Provider 列表配置
   const providers = [
     { id: 'deepseek', name: 'DeepSeek', type: 'remote' as const, supportsReasoning: true },
     { id: 'openai', name: 'OpenAI', type: 'remote' as const, supportsReasoning: false },
-    { id: 'ollama', name: 'Ollama', type: 'local' as const, supportsReasoning: false }
+    { id: 'ollama', name: 'Ollama', type: 'local' as const, supportsReasoning: ollamaSupportsReasoning } // 动态读取
   ]
 
   /**
@@ -35,6 +36,9 @@ export function AIConfigPanel() {
   useEffect(() => {
     const loadCurrentProvider = async () => {
       const config = await getAIConfig()
+      
+      // Phase 11.2: 读取 Ollama 推理能力状态
+      setOllamaSupportsReasoning(config.local?.isReasoningModel || false)
       
       // Phase 11: 从 engineAssignment 确定实际在用的 Provider
       // 优先级：profileGeneration（低频但重要）> feedAnalysis > pageAnalysis
@@ -407,8 +411,12 @@ function ConfigModal({
       if (result.success) {
         // 加载模型列表
         try {
-          const modelsUrl = ollamaEndpoint.replace(/\/v1\/?$/, '') + '/api/tags'
-          const response = await fetch(modelsUrl, {
+          // Phase 11.2: 使用 /api/tags 获取模型列表（Ollama 官方 API）
+          // 参考: https://docs.ollama.com/api/tags
+          const baseUrl = ollamaEndpoint.replace(/\/v1\/?$/, '')
+          const tagsUrl = `${baseUrl}/api/tags`
+          
+          const response = await fetch(tagsUrl, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' }
           })
@@ -418,31 +426,73 @@ function ConfigModal({
           }
 
           const data = await response.json()
-          const models = (data.models || []).map((m: any) => ({
-            id: m.name,
-            label: `${m.name} (${(m.size / 1e9).toFixed(1)}GB)`
-          }))
+          
+          // /api/tags 返回格式: { models: [ { name, size, ... } ] }
+          if (!data.models || !Array.isArray(data.models)) {
+            throw new Error('API 返回格式错误: 缺少 models 字段')
+          }
+          
+          // Phase 11.2: 对每个模型调用 /api/show 获取 capabilities
+          const modelsWithDetails = await Promise.all(
+            data.models.map(async (m: any) => {
+              try {
+                // 调用 /api/show 获取模型详情
+                const showResponse = await fetch(`${baseUrl}/api/show`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ name: m.name })
+                })
+                
+                if (showResponse.ok) {
+                  const details = await showResponse.json()
+                  // Phase 11.2: 通过 Ollama API 的 capabilities 检测推理能力（官方标准字段）
+                  // 参考: https://github.com/ollama/ollama/blob/main/docs/api.md#show-model-information
+                  const capabilities = details.capabilities || []
+                  const isReasoning = capabilities.includes('thinking')
+                  
+                  return {
+                    id: m.name,
+                    label: `${m.name} (${(m.size / 1e9).toFixed(1)}GB)${isReasoning ? ' 🔬' : ''}`,
+                    isReasoning
+                  }
+                }
+              } catch (error) {
+                console.warn(`获取模型 ${m.name} 详情失败:`, error)
+              }
+              
+              // Phase 11.2: API 失败时，无法判断是否支持推理，标记为 false
+              return {
+                id: m.name,
+                label: `${m.name} (${(m.size / 1e9).toFixed(1)}GB)`,
+                isReasoning: false
+              }
+            })
+          )
 
-          setOllamaModels(models)
+          setOllamaModels(modelsWithDetails)
           
           // 尝试恢复之前选择的模型
           // 如果之前选择的模型在新列表中，保持选中；否则选择第一个模型
           const previousModel = ollamaModel
-          if (models.length > 0) {
-            const modelExists = models.some((m: { id: string; label: string }) => m.id === previousModel)
+          if (modelsWithDetails.length > 0) {
+            const modelExists = modelsWithDetails.some((m: any) => m.id === previousModel)
             if (!modelExists) {
-              setOllamaModel(models[0].id)
+              setOllamaModel(modelsWithDetails[0].id)
             }
           }
           
           setTestResult({ 
             success: true, 
-            message: _("options.aiConfig.configModal.testResult.modelsLoaded", { count: models.length }) 
+            message: _("options.aiConfig.configModal.testResult.modelsLoaded", { count: modelsWithDetails.length }) 
           })
           
           // Phase 9.2 修复: 测试成功后立即保存配置和状态
           // Phase 11.1 修复: 确保 apiKey 始终为 "ollama"
+          // Phase 11.2: 保存推理模型信息
           // 1. 保存配置到 storage
+          const selectedModelId = ollamaModel || (modelsWithDetails.length > 0 ? modelsWithDetails[0].id : '')
+          const selectedModel = modelsWithDetails.find((m: any) => m.id === selectedModelId)
+          
           const newConfig: AIConfig = {
             ...config!,
             local: {
@@ -450,9 +500,10 @@ function ConfigModal({
               enabled: true,
               provider: 'ollama',
               endpoint: ollamaEndpoint,
-              model: ollamaModel || (models.length > 0 ? models[0].id : ''),
+              model: selectedModelId,
               apiKey: 'ollama', // 强制设置为 "ollama"
-              cachedModels: models
+              cachedModels: modelsWithDetails,
+              isReasoningModel: selectedModel?.isReasoning || false // 标记是否为推理模型
             } as any
           }
           await saveAIConfig(newConfig)
@@ -563,17 +614,25 @@ function ConfigModal({
 
               {/* 推理能力开关（仅当模型支持时） */}
               {currentModelSupportsReasoning() && (
-                <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                  <input
-                    type="checkbox"
-                    id="enableReasoning"
-                    checked={enableReasoning}
-                    onChange={(e) => setEnableReasoning(e.target.checked)}
-                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <label htmlFor="enableReasoning" className="text-sm text-gray-700 dark:text-gray-300">
-                    {_("options.aiConfig.configModal.enableReasoning")}
-                  </label>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                    <input
+                      type="checkbox"
+                      id="enableReasoning"
+                      checked={enableReasoning}
+                      onChange={(e) => setEnableReasoning(e.target.checked)}
+                      className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <label htmlFor="enableReasoning" className="flex-1 text-sm text-gray-700 dark:text-gray-300">
+                      {_("options.aiConfig.configModal.enableReasoning")} 🔬
+                    </label>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 px-3">
+                    {enableReasoning 
+                      ? _("options.aiConfig.configModal.reasoningEnabled") 
+                      : _("options.aiConfig.configModal.reasoningDisabled")
+                    }
+                  </p>
                 </div>
               )}
 
