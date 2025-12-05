@@ -106,7 +106,9 @@ export class OllamaProvider extends BaseAIService {
   }
 
   /**
-   * 测试连接（使用模型列表端点，比完整 chat 调用快）
+   * 测试连接
+   * Phase 11: 使用真实的 chat completion 请求测试（而不是 GET /models）
+   * 这样可以确保测试和实际使用一致，避免测试通过但实际调用失败的情况
    */
   async testConnection(): Promise<{
     success: boolean
@@ -115,28 +117,27 @@ export class OllamaProvider extends BaseAIService {
   }> {
     try {
       const startTime = Date.now()
-      const url = this.getModelsEndpoint(this.endpointMode)
-      const headers = buildLocalAIHeaders(this.endpointMode, this.config.apiKey)
       
-      const response = await fetch(url, {
-        method: "GET",
-        headers,
-        signal: AbortSignal.timeout(3000)
+      // 使用真实的 chat completion 请求测试
+      const result = await this.callChatAPI("Hello", {
+        maxTokens: 10,
+        timeout: 5000,
+        jsonMode: false
       })
       
       const latency = Date.now() - startTime
       
-      if (response.ok) {
+      if (result.content) {
         return {
           success: true,
-          message: `连接成功！Ollama 服务正常运行`,
+          message: `连接成功！Ollama 服务正常运行（模型: ${result.model || this.config.model}）`,
           latency
         }
       }
       
       return {
         success: false,
-        message: `连接失败: HTTP ${response.status}`
+        message: `连接失败: 响应为空`
       }
     } catch (error) {
       return {
