@@ -301,9 +301,11 @@ export abstract class BaseAIService implements AIProvider {
       const responseFormat = this.getProfileResponseFormat()
 
       // 4. 调用 API
+      // Phase 11: 本地 AI 需要更长的超时时间（60s），远程 API 保持 30s
+      const timeout = this.name === 'Ollama' ? 60000 : 30000
       const response = await this.callChatAPI(prompt, {
         maxTokens: 1000,
-        timeout: 30000,
+        timeout,
         jsonMode: !responseFormat,
         responseFormat: responseFormat || undefined,
         temperature: 0.3

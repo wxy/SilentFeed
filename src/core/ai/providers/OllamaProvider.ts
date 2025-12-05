@@ -78,7 +78,8 @@ export class OllamaProvider extends BaseAIService {
     this.endpointMode = resolved.mode
     this.temperature = config.temperature ?? 0.2
     this.maxOutputTokens = config.maxOutputTokens ?? 768
-    this.defaultTimeout = config.timeoutMs ?? 45000
+    // Phase 11: 本地 AI 需要更长的超时时间（120s）
+    this.defaultTimeout = config.timeoutMs ?? 120000
   }
 
   /**
@@ -119,9 +120,10 @@ export class OllamaProvider extends BaseAIService {
       const startTime = Date.now()
       
       // 使用真实的 chat completion 请求测试
+      // 本地 AI 需要更长的超时时间
       const result = await this.callChatAPI("Hello", {
         maxTokens: 10,
-        timeout: 5000,
+        timeout: 30000,  // 30s 超时
         jsonMode: false
       })
       
@@ -279,10 +281,17 @@ export class OllamaProvider extends BaseAIService {
     }
 
     const data = await response.json() as OllamaChatResponse
+    ollamaLogger.debug('Ollama legacy API 响应:', { 
+      model: data.model, 
+      hasMessage: !!data.message,
+      contentLength: data.message?.content?.length 
+    })
+    
     const rawContent = data.message?.content?.trim()
 
     if (!rawContent) {
-      throw new Error("Empty response from Ollama")
+      ollamaLogger.error('Ollama 返回空响应:', data)
+      throw new Error(`Empty response from Ollama (model: ${data.model || 'unknown'}, status: ${response.status})`)
     }
 
     const content = this.extractJsonContent(rawContent)
@@ -442,9 +451,16 @@ export class OllamaProvider extends BaseAIService {
       usage?: { prompt_tokens?: number; completion_tokens?: number }
     }
 
+    ollamaLogger.debug('Ollama OpenAI API 响应:', { 
+      model: data.model,
+      choicesCount: data.choices?.length,
+      hasContent: !!data.choices?.[0]?.message?.content 
+    })
+
     const rawContent = data.choices?.[0]?.message?.content?.trim()
     if (!rawContent) {
-      throw new Error("Empty response from Ollama")
+      ollamaLogger.error('Ollama 返回空响应:', data)
+      throw new Error(`Empty response from Ollama (model: ${data.model || 'unknown'}, choices: ${data.choices?.length || 0})`)
     }
 
     return {
