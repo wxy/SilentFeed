@@ -444,7 +444,7 @@ export class AIStrategyExecutorImpl implements AIStrategyExecutor {
     const aiConfig = await getAIConfig()
     
     // 检查是否有配置的 AI 提供商
-    const hasAIProvider = Object.values(aiConfig.providers).some(
+    const hasAIProvider = aiConfig.providers && Object.values(aiConfig.providers).some(
       p => p && p.apiKey && p.model
     )
     

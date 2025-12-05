@@ -50,7 +50,7 @@ export class TranslationService {
       const aiConfig = await getAIConfig()
       
       // 如果没有配置 AI，使用本地检测
-      const hasAIProvider = Object.values(aiConfig.providers).some(
+      const hasAIProvider = aiConfig.providers && Object.values(aiConfig.providers).some(
         p => p && p.apiKey && p.model
       )
       
@@ -93,13 +93,11 @@ export class TranslationService {
 ${text}`
 
       // 调用 AI API（优先使用 DeepSeek，因为翻译成本较低）
-      const provider = aiConfig.provider || 'deepseek'
-      const apiKey = provider === 'deepseek' 
-        ? aiConfig.apiKeys.deepseek 
-        : aiConfig.apiKeys.openai
+      const providerName = aiConfig.providers.deepseek?.apiKey ? 'deepseek' : 'openai'
+      const providerConfig = aiConfig.providers[providerName]
       
-      if (!apiKey) {
-        translationLogger.warn(`${provider} API Key 未配置`)
+      if (!providerConfig?.apiKey) {
+        translationLogger.warn(`${providerName} API Key 未配置`)
         const detectedLang = this.detectLanguage(text)
         return {
           sourceLanguage: detectedLang,
@@ -108,17 +106,17 @@ ${text}`
         }
       }
       
-      const endpoint = provider === 'deepseek' 
+      const endpoint = providerName === 'deepseek' 
         ? 'https://api.deepseek.com/v1/chat/completions'
         : 'https://api.openai.com/v1/chat/completions'
       
-      const model = provider === 'deepseek' ? 'deepseek-chat' : 'gpt-4o-mini'
+      const model = providerConfig.model || (providerName === 'deepseek' ? 'deepseek-chat' : 'gpt-4o-mini')
 
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
+          'Authorization': `Bearer ${providerConfig.apiKey}`
         },
         body: JSON.stringify({
           model,

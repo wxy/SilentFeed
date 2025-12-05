@@ -16,10 +16,17 @@ vi.mock('@/core/ai/AICapabilityManager', () => ({
 
 vi.mock('@/storage/ai-config', () => ({
   getAIConfig: vi.fn().mockResolvedValue({
-    provider: 'deepseek',
-    apiKey: 'sk-test-key',
-    enabled: true,
-    monthlyBudget: 5.0
+    providers: {
+      deepseek: {
+        apiKey: 'sk-test-key',
+        model: 'deepseek-chat'
+      }
+    },
+    monthlyBudget: 5.0,
+    local: {
+      enabled: false
+    },
+    engineAssignment: {}
   }),
   getEngineAssignment: vi.fn().mockResolvedValue(null),
   saveEngineAssignment: vi.fn().mockResolvedValue(undefined)

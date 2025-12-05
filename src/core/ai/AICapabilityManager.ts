@@ -319,13 +319,26 @@ export class AICapabilityManager {
   /**
    * 测试连接
    * Phase 11: 从 providers 读取配置
+   * Phase 11.2: 支持临时创建 local provider 进行测试
    */
   async testConnection(target: ProviderSelectionMode = "remote", useReasoning: boolean = false): Promise<{
     success: boolean
     message: string
     latency?: number
   }> {
-    const provider = target === "local" ? this.localProvider : this.remoteProvider
+    let provider = target === "local" ? this.localProvider : this.remoteProvider
+
+    // Phase 11.2: 如果是测试 local 且实例为空，尝试临时创建
+    if (!provider && target === "local") {
+      const config = await getAIConfig()
+      const hasValidLocalConfig = config.local?.endpoint && config.local?.model
+      
+      if (hasValidLocalConfig) {
+        aiLogger.info("🔧 临时创建 OllamaProvider 用于测试连接")
+        await this.initializeLocalProvider(config.local!)
+        provider = this.localProvider
+      }
+    }
 
     if (!provider) {
       // 提供更详细的错误信息，帮助用户诊断问题
@@ -343,6 +356,14 @@ export class AICapabilityManager {
         } else {
           // 有 API Key 但 provider 实例为空，说明初始化失败
           detailedMessage += "（初始化失败，请重新打开设置页面）"
+        }
+      } else if (target === "local") {
+        // Phase 11.2: 检查 local 配置
+        const hasLocalConfig = config.local?.endpoint && config.local?.model
+        if (!hasLocalConfig) {
+          detailedMessage += "（未配置 Ollama endpoint 或模型）"
+        } else {
+          detailedMessage += "（初始化失败，请检查 Ollama 服务是否运行）"
         }
       }
       

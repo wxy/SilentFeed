@@ -101,29 +101,31 @@ function polarToCartesian(
 function generatePolygonPath(points: [number, number][]): string {
   if (points.length === 0) return ''
   if (points.length === 1) return `M ${points[0][0]} ${points[0][1]}`
+  if (points.length === 2) return `M ${points[0][0]} ${points[0][1]} L ${points[1][0]} ${points[1][1]}`
   
-  // 使用二阶贝塞尔曲线平滑连接
+  // 使用平滑的闭合曲线（Catmull-Rom 样式）
+  // 策略：在每个顶点处使用三次贝塞尔曲线，控制点基于相邻点计算
   let pathData = `M ${points[0][0]} ${points[0][1]}`
   
   for (let i = 0; i < points.length; i++) {
-    const current = points[i]
-    const next = points[(i + 1) % points.length]
+    const p0 = points[(i - 1 + points.length) % points.length] // 前一个点
+    const p1 = points[i]                                        // 当前点
+    const p2 = points[(i + 1) % points.length]                 // 下一个点
+    const p3 = points[(i + 2) % points.length]                 // 下下个点
     
-    // 计算控制点（当前点和下一点的中点）
-    const controlX = (current[0] + next[0]) / 2
-    const controlY = (current[1] + next[1]) / 2
+    // 计算控制点（使第一控制点）：从当前点向下一点方向的 1/6
+    const cp1x = p1[0] + (p2[0] - p0[0]) / 6
+    const cp1y = p1[1] + (p2[1] - p0[1]) / 6
     
-    // Q: 二阶贝塞尔曲线命令
-    // 控制点为中点，终点为下一个点
-    pathData += ` Q ${current[0]} ${current[1]}, ${controlX} ${controlY}`
+    // 计算第二个控制点：从下一点向当前点方向的 1/6
+    const cp2x = p2[0] - (p3[0] - p1[0]) / 6
+    const cp2y = p2[1] - (p3[1] - p1[1]) / 6
+    
+    // C: 三次贝塞尔曲线命令 (控制点1, 控制点2, 终点)
+    pathData += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2[0]} ${p2[1]}`
   }
   
-  // 从最后一个中点回到起点
-  const last = points[points.length - 1]
-  const first = points[0]
-  pathData += ` Q ${last[0]} ${last[1]}, ${first[0]} ${first[1]}`
-  
-  return pathData + ' Z' // 闭合路径
+  return pathData // 不需要 Z，因为最后一段已经连接到起点
 }
 
 /**
