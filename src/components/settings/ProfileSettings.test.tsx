@@ -13,6 +13,7 @@ import { getAIConfig } from "@/storage/ai-config"
 import { profileManager } from "@/core/profile/ProfileManager"
 import { Topic } from "@/core/profile/topics"
 import type { TopicDistribution } from "@/core/profile/TopicClassifier"
+import { AI_ENGINE_PRESETS } from "@/types/ai-engine-assignment"
 
 // 辅助函数：创建完整的 topics 对象
 function createTopics(partial: Partial<TopicDistribution> = {}): TopicDistribution {
@@ -76,10 +77,19 @@ describe("ProfileSettings 组件", () => {
     vi.clearAllMocks()
     mockGetUserProfile.mockResolvedValue(null)
     mockGetAIConfig.mockResolvedValue({
-      enabled: false,
-      provider: null,
-      apiKeys: {},
-      monthlyBudget: 0,
+      providers: {},
+      monthlyBudget: 5,
+      local: {
+        enabled: false,
+        provider: "ollama",
+        endpoint: "http://localhost:11434/v1",
+        model: "llama2",
+        apiKey: "ollama",
+        temperature: 0.2,
+        maxOutputTokens: 768,
+        timeoutMs: 45000
+      },
+      engineAssignment: AI_ENGINE_PRESETS.intelligence.config
     })
   })
 
@@ -138,10 +148,24 @@ describe("ProfileSettings 组件", () => {
       // Phase 10.3: 元数据已融入对话式 AI 画像中，不再单独展示
       // 此测试调整为验证 AI 对话中包含时间信息
       mockGetAIConfig.mockResolvedValue({
-        enabled: true,
-        provider: "openai",
-        apiKeys: { openai: "test-key" },
+        providers: {
+          openai: {
+            apiKey: "test-key",
+            model: "gpt-4o-mini"
+          }
+        },
         monthlyBudget: 100,
+        local: {
+          enabled: false,
+          provider: "ollama",
+          endpoint: "http://localhost:11434/v1",
+          model: "llama2",
+          apiKey: "ollama",
+          temperature: 0.2,
+          maxOutputTokens: 768,
+          timeoutMs: 45000
+        },
+        engineAssignment: AI_ENGINE_PRESETS.intelligence.config
       })
       mockGetUserProfile.mockResolvedValue({
         id: "singleton",
@@ -185,10 +209,19 @@ describe("ProfileSettings 组件", () => {
         lastUpdated: Date.now(),
       })
       mockGetAIConfig.mockResolvedValue({
-        enabled: false,
-        provider: null,
-        apiKeys: {},
-        monthlyBudget: 0,
+        providers: {},
+        monthlyBudget: 5,
+        local: {
+          enabled: false,
+          provider: "ollama",
+          endpoint: "http://localhost:11434/v1",
+          model: "llama2",
+          apiKey: "ollama",
+          temperature: 0.2,
+          maxOutputTokens: 768,
+          timeoutMs: 45000
+        },
+        engineAssignment: AI_ENGINE_PRESETS.intelligence.config
       })
 
       render(<ProfileSettings />)
@@ -203,10 +236,24 @@ describe("ProfileSettings 组件", () => {
     beforeEach(() => {
       // 每个测试都需要配置 AI
       mockGetAIConfig.mockResolvedValue({
-        enabled: true,
-        provider: "openai",
-        apiKeys: { openai: "test-key" },
+        providers: {
+          openai: {
+            apiKey: "test-key",
+            model: "gpt-4o-mini"
+          }
+        },
         monthlyBudget: 100,
+        local: {
+          enabled: false,
+          provider: "ollama",
+          endpoint: "http://localhost:11434/v1",
+          model: "llama2",
+          apiKey: "ollama",
+          temperature: 0.2,
+          maxOutputTokens: 768,
+          timeoutMs: 45000
+        },
+        engineAssignment: AI_ENGINE_PRESETS.intelligence.config
       })
     })
 
@@ -327,10 +374,24 @@ describe("ProfileSettings 组件", () => {
         lastUpdated: Date.now(),
       })
       mockGetAIConfig.mockResolvedValue({
-        enabled: true,
-        provider: "openai",
-        apiKeys: { openai: "test-key" },
+        providers: {
+          openai: {
+            apiKey: "test-key",
+            model: "gpt-4o-mini"
+          }
+        },
         monthlyBudget: 100,
+        local: {
+          enabled: false,
+          provider: "ollama",
+          endpoint: "http://localhost:11434/v1",
+          model: "llama2",
+          apiKey: "ollama",
+          temperature: 0.2,
+          maxOutputTokens: 768,
+          timeoutMs: 45000
+        },
+        engineAssignment: AI_ENGINE_PRESETS.intelligence.config
       })
     })
 
