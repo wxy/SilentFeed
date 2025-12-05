@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-12-04T16:08:36.285Z",
+  "lastUpdate": "2025-12-05T16:52:43.784Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -16953,6 +16953,20 @@
         "value": "Feed Quality Distribution",
         "hash": "5912b223",
         "lastModified": "2025-12-04T16:08:20.510Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.userProfile.alerts.rebuildInProgress": {
+      "zh-CN": {
+        "value": "画像生成中，请稍候...",
+        "hash": "03953566",
+        "lastModified": "2025-12-05T16:52:43.277Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Generating portrait, please wait...",
+        "hash": "d70fd0d3",
+        "lastModified": "2025-12-05T16:52:43.278Z",
         "status": "ai-translated"
       }
     }

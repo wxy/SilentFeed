@@ -608,7 +608,8 @@
       },
       "alerts": {
         "rebuildSuccess": "Portrait reconstruction successful!",
-        "rebuildFailed": "Portrait reconstruction failed, please try again later."
+        "rebuildFailed": "Portrait reconstruction failed, please try again later.",
+        "rebuildInProgress": "Generating portrait, please wait..."
       },
       "actions": {
         "rebuild": "Rebuild Profile",
