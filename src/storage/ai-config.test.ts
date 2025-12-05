@@ -48,7 +48,7 @@ describe("ai-config", () => {
           enabled: false,
           provider: "ollama",
           endpoint: "http://localhost:11434/v1",
-          model: "llama2",
+          model: "", // 不再硬编码，用户需要配置或动态查询
           apiKey: "ollama",
           temperature: 0.2,
           maxOutputTokens: 768,
