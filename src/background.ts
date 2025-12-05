@@ -19,6 +19,39 @@ const bgLogger = logger.withTag('Background')
 
 bgLogger.info('Silent Feed Background Service Worker 已启动')
 
+/**
+ * Phase 11: 配置 Ollama 请求的 DNR 规则
+ * 
+ * 问题：Ollama 的本地服务可能因为 CORS 限制拒绝浏览器扩展的请求
+ * 原因：Origin 和 Referer 头会触发 CORS 预检请求
+ * 
+ * 解决方案：使用 declarativeNetRequest 移除 Origin 和 Referer 头
+ * 注意：这些规则在 manifest.json 的 declarative_net_request 中静态配置
+ */
+async function setupOllamaDNRRules(): Promise<void> {
+  try {
+    // 检查静态规则是否已加载
+    const staticRules = await chrome.declarativeNetRequest.getEnabledRulesets()
+    
+    if (staticRules.includes('ollama-cors-fix')) {
+      bgLogger.info('✅ Ollama CORS 修复规则已启用（通过 manifest.json）')
+    } else {
+      bgLogger.warn('⚠️ Ollama CORS 修复规则未启用，请检查 manifest.json')
+    }
+    
+    // 动态规则仅用于备份或调试
+    const dynamicRules = await chrome.declarativeNetRequest.getDynamicRules()
+    if (dynamicRules.length > 0) {
+      bgLogger.debug(`📋 已有 ${dynamicRules.length} 个动态 DNR 规则`)
+    }
+  } catch (error) {
+    bgLogger.error('❌ 检查 Ollama DNR 规则失败:', error)
+  }
+}
+
+// 检查 DNR 规则状态
+setupOllamaDNRRules()
+
 // Phase 5.2: 初始化图标管理器
 let iconManager: IconManager | null = null
 
