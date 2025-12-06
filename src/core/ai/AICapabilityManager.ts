@@ -38,7 +38,7 @@ type ProviderSelectionMode = "auto" | "remote" | "local"
  * AI 任务类型
  * Phase 8: 根据任务类型选择不同的 AI 引擎
  */
-export type AITaskType = "pageAnalysis" | "feedAnalysis" | "profileGeneration" | "recommendationReason"
+export type AITaskType = "pageAnalysis" | "feedAnalysis" | "profileGeneration"
 
 export class AICapabilityManager {
   private remoteProvider: AIProvider | null = null
@@ -432,14 +432,14 @@ export class AICapabilityManager {
   
   /**
    * 生成推荐理由
-   * Phase 8: 使用 recommendationReason 任务配置（如果存在）
+   * Phase 8: 使用 feedAnalysis 任务配置（推荐理由属于 Feed 分析任务）
    */
   async generateRecommendationReason(
     request: RecommendationReasonRequest
   ): Promise<RecommendationReasonResult> {
     try {
-      // Phase 8: 优先使用 recommendationReason 任务配置（如果存在）
-      const { provider: taskProvider, useReasoning } = await this.getProviderForTask("recommendationReason")
+      // Phase 8: 使用 feedAnalysis 任务配置
+      const { provider: taskProvider, useReasoning } = await this.getProviderForTask("feedAnalysis")
       
       if (taskProvider && taskProvider.generateRecommendationReason) {
         try {
