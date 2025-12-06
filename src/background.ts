@@ -30,19 +30,23 @@ bgLogger.info('Silent Feed Background Service Worker 已启动')
  */
 async function setupOllamaDNRRules(): Promise<void> {
   try {
+    // 延迟检测，等待 DNR 规则完全加载
+    // Chrome 扩展启动时，静态规则可能需要一点时间才能完全初始化
+    await new Promise(resolve => setTimeout(resolve, 100))
+    
     // 检查静态规则是否已加载
     const staticRules = await chrome.declarativeNetRequest.getEnabledRulesets()
     
     if (staticRules.includes('ollama-cors-fix')) {
-      bgLogger.info('✅ Ollama CORS 修复规则已启用（通过 manifest.json）')
+      bgLogger.info('✅ Ollama CORS 修复规则已启用')
     } else {
-      bgLogger.warn('⚠️ Ollama CORS 修复规则未启用，请检查 manifest.json')
-    }
-    
-    // 动态规则仅用于备份或调试
-    const dynamicRules = await chrome.declarativeNetRequest.getDynamicRules()
-    if (dynamicRules.length > 0) {
-      bgLogger.debug(`📋 已有 ${dynamicRules.length} 个动态 DNR 规则`)
+      // 可能是时机问题，再次检查动态规则作为备份
+      const dynamicRules = await chrome.declarativeNetRequest.getDynamicRules()
+      if (dynamicRules.length > 0) {
+        bgLogger.debug(`📋 已有 ${dynamicRules.length} 个动态 DNR 规则`)
+      } else {
+        bgLogger.warn('⚠️ Ollama CORS 修复规则未检测到，如果使用 Ollama 时遇到 CORS 错误，请重新加载扩展')
+      }
     }
   } catch (error) {
     bgLogger.error('❌ 检查 Ollama DNR 规则失败:', error)
