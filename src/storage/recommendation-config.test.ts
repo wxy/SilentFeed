@@ -106,7 +106,7 @@ describe('AI配置检查机制', () => {
       const status = await checkAIConfigStatus()
       
       expect(status.isConfigured).toBe(false)
-      expect(status.provider).toBeUndefined()
+      expect(status.provider).toBeNull()
       expect(status.isKeyValid).toBe(false)
       expect(status.isAvailable).toBe(false)
       expect(status.budgetStatus.monthlyBudget).toBe(5)
@@ -130,7 +130,7 @@ describe('AI配置检查机制', () => {
       const status = await checkAIConfigStatus()
       
       expect(status.isConfigured).toBe(true)
-      expect(status.provider).toBeUndefined()
+      expect(status.provider).toBeNull() // engineAssignment 未配置 feedAnalysis 或为 ollama
       expect(status.isKeyValid).toBe(false)
       expect(status.isAvailable).toBe(false)
       expect(status.budgetStatus.monthlyBudget).toBe(10)

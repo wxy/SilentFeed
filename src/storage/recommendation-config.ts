@@ -257,17 +257,19 @@ export async function checkAIConfigStatus(): Promise<AIConfigStatus> {
     // 获取使用统计
     const aiStats = await getAIAnalysisStats()
     
-    // 根据配置的提供商选择对应的成本
+    // 根据配置的提供商选择对应的成本（从 engineAssignment.feedAnalysis 读取）
     let usedAmount = 0
-    if (aiConfig.provider) {
+    const feedProvider = aiConfig.engineAssignment?.feedAnalysis?.provider
+    const actualProvider = feedProvider && feedProvider !== 'ollama' ? feedProvider : null
+    if (actualProvider) {
       // DeepSeek 使用 CNY，其他使用 USD
-      usedAmount = aiConfig.provider === 'deepseek' ? aiStats.totalCostCNY : aiStats.totalCostUSD
+      usedAmount = actualProvider === 'deepseek' ? aiStats.totalCostCNY : aiStats.totalCostUSD
     }
     
     // 基础状态
     const status: AIConfigStatus = {
       isConfigured,
-      provider: aiConfig.provider,
+      provider: actualProvider,
       isKeyValid: false,
       isAvailable: false,
       hasLocalAI: false,
@@ -284,11 +286,11 @@ export async function checkAIConfigStatus(): Promise<AIConfigStatus> {
       return status
     }
     
-    // 检查API密钥格式（使用新的 apiKeys 结构）
-    if (aiConfig.provider) {
-      const apiKey = aiConfig.apiKeys?.[aiConfig.provider] || aiConfig.apiKey || ""
-      if (apiKey) {
-        status.isKeyValid = validateApiKey(aiConfig.provider, apiKey)
+    // 检查API密钥格式（使用 providers 结构）
+    if (actualProvider) {
+      const providerConfig = aiConfig.providers[actualProvider]
+      if (providerConfig?.apiKey) {
+        status.isKeyValid = validateApiKey(actualProvider, providerConfig.apiKey)
       }
     }
     

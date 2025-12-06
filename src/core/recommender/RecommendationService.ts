@@ -77,7 +77,7 @@ export class RecommendationService {
       const recommendationConfig = await getRecommendationConfig()
       let effectiveAnalysisEngine = recommendationConfig.analysisEngine || 'remoteAI'
       
-      // 获取 AI 配置，检查模型是否支持推理
+      // 获取 AI 配置，检查模型是否支持推理（兼容新结构：providers + engineAssignment）
       const aiConfig = await getAIConfig()
       
       // 确定是否使用推理模式：
@@ -89,37 +89,49 @@ export class RecommendationService {
       
       // 如果配置要求使用推理引擎
       if (effectiveAnalysisEngine === 'remoteAIWithReasoning') {
-        // 检查模型是否支持推理
-        if (aiConfig.model) {
-          const provider = getProviderFromModel(aiConfig.model)
-          if (provider) {
-            const modelConfig = AVAILABLE_MODELS[provider]?.find(m => m.id === aiConfig.model)
-            
+        // 新结构：从 engineAssignment.feedAnalysis 读取任务级配置
+        const taskConfig = aiConfig.engineAssignment?.feedAnalysis
+        const taskProvider = taskConfig?.provider
+        // 仅远程推理：local 走下方 useLocalAI 分支，这里要求非 ollama
+        const isRemoteProvider = taskProvider && taskProvider !== 'ollama'
+        let selectedModel: string | undefined
+        let providerKey: ReturnType<typeof getProviderFromModel> | null = null
+        let enableReasoningFlag: boolean | undefined
+
+        if (isRemoteProvider) {
+          // 任务级模型优先；否则回落到 providers 中的模型
+          selectedModel = taskConfig?.model || aiConfig.providers[taskProvider as 'deepseek' | 'openai']?.model
+          enableReasoningFlag = taskConfig?.useReasoning || aiConfig.providers[taskProvider as 'deepseek' | 'openai']?.enableReasoning
+        }
+
+        if (selectedModel) {
+          providerKey = getProviderFromModel(selectedModel)
+          if (providerKey) {
+            const modelConfig = AVAILABLE_MODELS[providerKey]?.find(m => m.id === selectedModel)
             if (modelConfig?.supportsReasoning) {
-              // 模型支持推理，检查用户是否启用
-              if (aiConfig.enableReasoning) {
+              if (enableReasoningFlag) {
                 useReasoning = true
                 recLogger.info('✅ 推理模式已启用', {
-                  model: aiConfig.model,
-                  provider
+                  model: selectedModel,
+                  provider: providerKey
                 })
               } else {
                 reasoningDisabledReason = '用户未启用推理能力（AI 配置页面）'
                 recLogger.warn('⚠️ 推理模式降级：用户未在 AI 配置中启用推理能力')
               }
             } else {
-              reasoningDisabledReason = `模型 ${aiConfig.model} 不支持推理`
-              recLogger.warn(`⚠️ 推理模式降级：模型 ${aiConfig.model} 不支持推理能力`)
+              reasoningDisabledReason = `模型 ${selectedModel} 不支持推理`
+              recLogger.warn(`⚠️ 推理模式降级：模型 ${selectedModel} 不支持推理能力`)
             }
           } else {
-            reasoningDisabledReason = `未知的模型提供商`
-            recLogger.warn(`⚠️ 推理模式降级：无法识别模型 ${aiConfig.model} 的提供商`)
+            reasoningDisabledReason = '未知的模型提供商'
+            recLogger.warn(`⚠️ 推理模式降级：无法识别模型 ${selectedModel} 的提供商`)
           }
         } else {
           reasoningDisabledReason = '未选择模型'
           recLogger.warn('⚠️ 推理模式降级：AI 配置中未选择模型')
         }
-        
+
         if (reasoningDisabledReason) {
           recLogger.info(`降级原因: ${reasoningDisabledReason}，将使用标准模式`)
         }
@@ -150,11 +162,17 @@ export class RecommendationService {
       }
       
       // 🔍 调试：检查配置读取
+      // 记录更准确的推荐配置详情（新结构）
       recLogger.info('🔍 推荐配置详情:', {
         analysisEngine: effectiveAnalysisEngine,
-        selectedModel: aiConfig.model,
-        modelSupportsReasoning: aiConfig.model ? AVAILABLE_MODELS[getProviderFromModel(aiConfig.model) || 'deepseek']?.find(m => m.id === aiConfig.model)?.supportsReasoning : false,
-        enableReasoningInAIConfig: aiConfig.enableReasoning,
+        selectedModel: aiConfig.engineAssignment?.feedAnalysis?.model || (aiConfig.engineAssignment?.feedAnalysis?.provider && aiConfig.providers[aiConfig.engineAssignment.feedAnalysis.provider as 'deepseek' | 'openai']?.model) || undefined,
+        modelSupportsReasoning: (() => {
+          const mdl = aiConfig.engineAssignment?.feedAnalysis?.model || (aiConfig.engineAssignment?.feedAnalysis?.provider && aiConfig.providers[aiConfig.engineAssignment.feedAnalysis.provider as 'deepseek' | 'openai']?.model) || undefined
+          if (!mdl) return false
+          const prov = getProviderFromModel(mdl) || 'deepseek'
+          return !!AVAILABLE_MODELS[prov]?.find(m => m.id === mdl)?.supportsReasoning
+        })(),
+        enableReasoningInAIConfig: aiConfig.engineAssignment?.feedAnalysis?.useReasoning || (aiConfig.engineAssignment?.feedAnalysis?.provider && aiConfig.providers[aiConfig.engineAssignment.feedAnalysis.provider as 'deepseek' | 'openai']?.enableReasoning) || false,
         finalUseReasoning: useReasoning,
         reasoningDisabledReason,
         useLocalAI,

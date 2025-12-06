@@ -12,7 +12,7 @@ import { useState, useEffect, useRef } from "react"
 import { useI18n } from "@/i18n/helpers"
 import { getUserProfile } from "@/storage/db"
 import { profileManager } from "@/core/profile/ProfileManager"
-import { getAIConfig, getProviderDisplayName } from "@/storage/ai-config"
+import { getAIConfig, getProviderDisplayName, type AIProviderType } from "@/storage/ai-config"
 import type { UserProfile } from "@/types/profile"
 import { logger } from "@/utils/logger"
 import { formatMonthDay, formatDateTime } from "@/utils/date-formatter"
@@ -81,7 +81,15 @@ export function ProfileSettings() {
           p => p && p.apiKey && p.model
         )
         setAiConfigured(hasAIProvider)
-        setAiProvider(getProviderDisplayName(aiConfig.provider || null))
+        // Derive active provider from engineAssignment (priority: profileGeneration > feedAnalysis > pageAnalysis)
+        const activeProvider = aiConfig.engineAssignment?.profileGeneration?.provider && aiConfig.engineAssignment.profileGeneration.provider !== 'ollama'
+          ? aiConfig.engineAssignment.profileGeneration.provider
+          : aiConfig.engineAssignment?.feedAnalysis?.provider && aiConfig.engineAssignment.feedAnalysis.provider !== 'ollama'
+          ? aiConfig.engineAssignment.feedAnalysis.provider
+          : aiConfig.engineAssignment?.pageAnalysis?.provider && aiConfig.engineAssignment.pageAnalysis.provider !== 'ollama'
+          ? aiConfig.engineAssignment.pageAnalysis.provider
+          : (Object.keys(aiConfig.providers)[0] as AIProviderType | undefined) || null
+        setAiProvider(getProviderDisplayName(activeProvider))
         setTotalPages(actualTotalPages)
         
         // 如果有画像，添加为初始消息
