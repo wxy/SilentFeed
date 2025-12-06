@@ -444,7 +444,7 @@ function classifyTopics(keywords: string[]): string[] {
  * URL 黑名单：不需要追踪的页面
  */
 const URL_BLACKLIST = [
-  '/warmup.html',           // Chrome 预渲染页面
+  'https://www.google.com/warmup.html',  // Chrome 预渲染页面（完整 URL）
   'chrome://',              // Chrome 内部页面
   'chrome-extension://',    // 扩展页面
   'about:',                 // 浏览器内部页面
