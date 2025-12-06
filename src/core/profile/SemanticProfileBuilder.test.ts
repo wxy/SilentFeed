@@ -623,5 +623,42 @@ describe('SemanticProfileBuilder', () => {
       const profile = await db.userProfile.get('singleton')
       expect(profile?.lastUpdated).toBeGreaterThanOrEqual(beforeUpdate)
     })
+
+    it('应该对短时间内的重复浏览进行去重', async () => {
+      const visit: ConfirmedVisit = {
+        id: 'visit-1',
+        url: 'https://example.com/test',
+        domain: 'example.com',
+        title: '测试页面',
+        visitTime: Date.now(),
+        duration: 60,
+        interactionCount: 3,
+        meta: null,
+        contentSummary: null,
+        analysis: {
+          topics: ['test'],
+          keywords: ['test', 'example'],
+          language: 'en'
+        },
+        status: 'qualified',
+        contentRetainUntil: Date.now() + 30 * 24 * 60 * 60 * 1000,
+        analysisRetainUntil: Date.now() + 90 * 24 * 60 * 60 * 1000
+      }
+      
+      // 第一次浏览
+      await builder.onBrowse(visit)
+      const profile1 = await db.userProfile.get('singleton')
+      const firstUpdate = profile1?.lastUpdated || 0
+      
+      // 立即再次浏览同一页面（应该被去重）
+      await new Promise(resolve => setTimeout(resolve, 100))
+      await builder.onBrowse({ ...visit, id: 'visit-2', visitTime: Date.now() })
+      
+      const profile2 = await db.userProfile.get('singleton')
+      const secondUpdate = profile2?.lastUpdated || 0
+      
+      // 第二次浏览应该被去重，lastUpdated 不应该变化
+      expect(secondUpdate).toBe(firstUpdate)
+    })
   })
 })
