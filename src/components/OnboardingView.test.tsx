@@ -44,7 +44,16 @@ vi.mock("@/storage/onboarding-state", () => ({
 }))
 
 vi.mock("@/storage/ai-config", () => ({
-  getAIConfig: vi.fn().mockResolvedValue({ enabled: false }),
+  getAIConfig: vi.fn().mockResolvedValue({
+    providers: {},
+    monthlyBudget: 5,
+    local: { enabled: false, provider: 'ollama', endpoint: '', model: '', apiKey: 'ollama' },
+    engineAssignment: {
+      pageAnalysis: { provider: 'deepseek', useReasoning: false },
+      feedAnalysis: { provider: 'deepseek', useReasoning: false },
+      profileGeneration: { provider: 'deepseek', useReasoning: false }
+    }
+  }),
   saveAIConfig: vi.fn(),
   getEngineAssignment: vi.fn().mockResolvedValue(null),
   saveEngineAssignment: vi.fn().mockResolvedValue(undefined),
@@ -779,7 +788,16 @@ describe("OnboardingView", () => {
   describe("AIConfigStep 连接测试分支", () => {
     beforeEach(async () => {
       // 确保初始不跳过到 Step 3
-      vi.mocked(getAIConfig).mockResolvedValue({ enabled: false })
+      vi.mocked(getAIConfig).mockResolvedValue({
+        providers: {},
+        monthlyBudget: 5,
+        local: { enabled: false, provider: 'ollama', endpoint: '', model: '', apiKey: 'ollama' },
+        engineAssignment: {
+          pageAnalysis: { provider: 'deepseek', useReasoning: false },
+          feedAnalysis: { provider: 'deepseek', useReasoning: false },
+          profileGeneration: { provider: 'deepseek', useReasoning: false }
+        }
+      })
       render(<OnboardingView onComplete={mockOnComplete} />)
       // 进入 Step 2
       await waitFor(() => {

@@ -9,10 +9,20 @@ vi.mock('@/i18n/helpers', () => ({
 
 vi.mock('@/storage/ai-config', () => ({
   getAIConfig: vi.fn(async () => ({
-    enabled: false,
-    provider: null,
-    apiKeys: {},
-    model: '',
+    providers: {},
+    monthlyBudget: 5,
+    local: {
+      enabled: false,
+      provider: 'ollama',
+      endpoint: 'http://localhost:11434/v1',
+      model: '',
+      apiKey: 'ollama'
+    },
+    engineAssignment: {
+      pageAnalysis: { provider: 'deepseek', useReasoning: false },
+      feedAnalysis: { provider: 'deepseek', useReasoning: false },
+      profileGeneration: { provider: 'deepseek', useReasoning: false }
+    }
   })),
 }))
 
