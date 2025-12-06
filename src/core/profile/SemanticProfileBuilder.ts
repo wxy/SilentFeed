@@ -28,14 +28,14 @@ const MAX_DISMISSES = 30
 /**
  * 更新触发阈值
  */
-const BROWSE_THRESHOLD = 20    // 浏览 20 页触发全量更新
-const READ_THRESHOLD = 3       // 阅读 3 篇触发全量更新
+const BROWSE_THRESHOLD = 50    // 浏览 50 页触发全量更新（优化：原 20）
+const READ_THRESHOLD = 10      // 阅读 10 篇触发全量更新（优化：原 3）
 const DISMISS_THRESHOLD = 1    // 拒绝 1 篇立即触发全量更新（已废弃，改用防抖）
 
 /**
  * 防抖配置
  */
-const DISMISS_DEBOUNCE_MS = 5000  // 拒绝操作防抖时间（5秒）
+const DISMISS_DEBOUNCE_MS = 30000  // 拒绝操作防抖时间（30秒，优化：原 5秒）
 
 /**
  * AI 摘要结构（对齐 UserProfileGenerationResult）
