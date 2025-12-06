@@ -33,9 +33,9 @@ import { LEARNING_COMPLETE_PAGES } from "@/constants/progress"
 import { getAIConfig, getProviderDisplayName } from "@/storage/ai-config"
 import { logger } from "@/utils/logger"
 import { AIUsageTracker } from "@/core/ai/AIUsageTracker"
-import type { AIUsageStats } from "@/types/ai-usage"
+import type { AIUsageStats, DailyUsageStats } from "@/types/ai-usage"
 import { FeedSpiderChart } from "./FeedSpiderChart"
-import { AIUsageDetailView } from "./AIUsageDetailView"
+import { AIUsageBarChart } from "./AIUsageBarChart"
 
 const collectionLogger = logger.withTag("CollectionStats")
 
@@ -110,9 +110,9 @@ export function CollectionStats() {
   const [stats, setStats] = useState<StorageStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [aiUsageStats, setAiUsageStats] = useState<AIUsageStats | null>(null)
+  const [dailyStats, setDailyStats] = useState<DailyUsageStats[]>([])
   const [showUsageDetails, setShowUsageDetails] = useState(false)
   const [usageStatsPeriod, setUsageStatsPeriod] = useState<'30days' | 'all'>('30days')
-  const [showDailyStats, setShowDailyStats] = useState(false)
   const [isRebuildingProfile, setIsRebuildingProfile] = useState(false)
   const [aiConfigStatus, setAiConfigStatus] = useState<{
     enabled: boolean
@@ -159,10 +159,16 @@ export function CollectionStats() {
           getFeedStats()
         ])
         
+        // 加载每日统计数据
+        const dailyData = await AIUsageTracker.getDailyStats(
+          usageStatsPeriod === '30days' ? 30 : undefined
+        )
+        
         setStats(storageData)
         setPageCount(currentPageCount)
         setRecommendationFunnel(funnelData)
         setAiUsageStats(usageStats)
+        setDailyStats(dailyData)
         setFeedStats(feedsData)
         
         // 设置 AI 配置状态
@@ -372,22 +378,14 @@ export function CollectionStats() {
                 </button>
               </div>
             )}
-            {/* 展开/收起按钮 + 按日统计按钮 */}
+            {/* 展开/收起按钮 */}
             {aiUsageStats && aiUsageStats.totalCalls > 0 && (
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setShowDailyStats(true)}
-                  className="text-xs px-3 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-900/50 rounded-md transition-colors"
-                >
-                  📅 按日统计
-                </button>
-                <button
-                  onClick={() => setShowUsageDetails(!showUsageDetails)}
-                  className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
-                >
-                  {showUsageDetails ? _('options.collectionStats.aiUsage.collapseDetails') + ' ▲' : _('options.collectionStats.aiUsage.expandDetails') + ' ▼'}
-                </button>
-              </div>
+              <button
+                onClick={() => setShowUsageDetails(!showUsageDetails)}
+                className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+              >
+                {showUsageDetails ? _('options.collectionStats.aiUsage.collapseDetails') + ' ▲' : _('options.collectionStats.aiUsage.expandDetails') + ' ▼'}
+              </button>
             )}
           </div>
         </div>
@@ -902,9 +900,23 @@ export function CollectionStats() {
                   </div>
                 )}
 
+                {/* 每日/每月用量统计柱形图 */}
+                {dailyStats.length > 0 && (
+                  <div className="bg-gradient-to-br from-slate-50/80 to-gray-50/80 dark:from-slate-900/20 dark:to-gray-900/20 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                      <span>📊</span>
+                      <span>{usageStatsPeriod === '30days' ? '每日用量统计' : '每月用量统计'}</span>
+                    </h3>
+                    <AIUsageBarChart 
+                      data={dailyStats} 
+                      mode={usageStatsPeriod === '30days' ? 'daily' : 'monthly'} 
+                    />
+                  </div>
+                )}
+
                 {/* 统计周期说明 */}
                 <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                  💡 数据统计周期：最近 30 天 | 数据来源：AI 用量追踪器
+                  💡 数据统计周期：{usageStatsPeriod === '30days' ? '最近 30 天' : '全部时间'} | 数据来源：AI 用量追踪器
                 </div>
               </div>
             )}
@@ -1426,11 +1438,6 @@ export function CollectionStats() {
           </div>
         </div>
       </div>
-
-      {/* AI 用量详细统计弹窗 */}
-      {showDailyStats && (
-        <AIUsageDetailView onClose={() => setShowDailyStats(false)} />
-      )}
     </div>
   )
 }

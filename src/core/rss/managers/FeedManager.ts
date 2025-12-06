@@ -384,10 +384,10 @@ export class FeedManager {
    */
   async unsubscribe(id: string): Promise<void> {
     await db.discoveredFeeds.update(id, {
-      status: 'candidate',
+      status: 'ignored',
       subscribedAt: undefined
     })
-    feedLogger.info('已取消订阅:', id)
+    feedLogger.info('已取消订阅（放入忽略列表）:', id)
   }
   
   /**

@@ -284,7 +284,7 @@ describe('FeedManager', () => {
   })
   
   describe('unsubscribe', () => {
-    it('应该取消订阅并清除订阅时间', async () => {
+    it('应该取消订阅并放入忽略列表', async () => {
       vi.mocked(db.discoveredFeeds.update).mockResolvedValue(1)
       
       await feedManager.unsubscribe('test-id')
@@ -292,7 +292,7 @@ describe('FeedManager', () => {
       expect(db.discoveredFeeds.update).toHaveBeenCalledWith(
         'test-id',
         {
-          status: 'candidate',
+          status: 'ignored',
           subscribedAt: undefined
         }
       )
