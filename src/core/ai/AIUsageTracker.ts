@@ -11,7 +11,7 @@
  */
 
 import { db } from "@/storage/db"
-import type { AIUsageRecord, AIUsageStats, UsageStatsQuery, AIUsagePurpose } from "@/types/ai-usage"
+import type { AIUsageRecord, AIUsageStats, UsageStatsQuery, AIUsagePurpose, DailyUsageStats } from "@/types/ai-usage"
 import { logger } from "@/utils/logger"
 
 const usageLogger = logger.withTag("AIUsage")
@@ -359,6 +359,153 @@ export class AIUsageTracker {
     return stats.cost.total
   }
   
+  /**
+   * 获取按日统计数据
+   * 
+   * @param days - 统计最近 N 天（默认 30 天，0 表示所有时间）
+   * @returns 每日统计数据数组
+   */
+  static async getDailyStats(days: number = 30): Promise<DailyUsageStats[]> {
+    try {
+      const now = Date.now()
+      const startTime = days > 0 ? now - days * 24 * 60 * 60 * 1000 : 0
+      
+      // 查询所有记录
+      const records = await (db as any).aiUsage
+        .where('timestamp')
+        .between(startTime, now, true, true)
+        .toArray()
+      
+      // 按日期分组
+      const dailyMap = new Map<string, AIUsageRecord[]>()
+      
+      for (const record of records) {
+        const date = new Date(record.timestamp)
+        const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+        
+        if (!dailyMap.has(dateKey)) {
+          dailyMap.set(dateKey, [])
+        }
+        dailyMap.get(dateKey)!.push(record)
+      }
+      
+      // 计算每日统计
+      const dailyStats: DailyUsageStats[] = []
+      
+      for (const [date, dayRecords] of dailyMap.entries()) {
+        const stats: DailyUsageStats = {
+          date,
+          totalCalls: dayRecords.length,
+          successfulCalls: dayRecords.filter(r => r.success).length,
+          failedCalls: dayRecords.filter(r => !r.success).length,
+          tokens: { input: 0, output: 0, total: 0 },
+          cost: { input: 0, output: 0, total: 0 },
+          byReasoning: {
+            withReasoning: {
+              calls: 0,
+              tokens: { input: 0, output: 0, total: 0 },
+              cost: { input: 0, output: 0, total: 0 }
+            },
+            withoutReasoning: {
+              calls: 0,
+              tokens: { input: 0, output: 0, total: 0 },
+              cost: { input: 0, output: 0, total: 0 }
+            }
+          },
+          byProvider: {},
+          byPurpose: {} as any
+        }
+        
+        for (const record of dayRecords) {
+          // 总计 tokens
+          stats.tokens.input += record.tokens.input
+          stats.tokens.output += record.tokens.output
+          stats.tokens.total += record.tokens.total
+          
+          // 获取货币类型，跳过 FREE
+          const currency = (record.cost.currency || 'CNY') as 'CNY' | 'USD' | 'FREE'
+          const isFree = currency === 'FREE'
+          
+          if (!isFree) {
+            stats.cost.input += record.cost.input
+            stats.cost.output += record.cost.output
+            stats.cost.total += record.cost.total
+          }
+          
+          // 推理模式统计
+          if (record.reasoning !== undefined) {
+            const reasoningStats = record.reasoning 
+              ? stats.byReasoning.withReasoning 
+              : stats.byReasoning.withoutReasoning
+            
+            reasoningStats.calls++
+            reasoningStats.tokens.input += record.tokens.input
+            reasoningStats.tokens.output += record.tokens.output
+            reasoningStats.tokens.total += record.tokens.total
+            
+            if (!isFree) {
+              reasoningStats.cost.input += record.cost.input
+              reasoningStats.cost.output += record.cost.output
+              reasoningStats.cost.total += record.cost.total
+            }
+          }
+          
+          // 按 Provider 分组
+          if (!stats.byProvider[record.provider]) {
+            stats.byProvider[record.provider] = {
+              calls: 0,
+              tokens: { input: 0, output: 0, total: 0 },
+              cost: { input: 0, output: 0, total: 0 }
+            }
+          }
+          
+          const providerStats = stats.byProvider[record.provider]
+          providerStats.calls++
+          providerStats.tokens.input += record.tokens.input
+          providerStats.tokens.output += record.tokens.output
+          providerStats.tokens.total += record.tokens.total
+          
+          if (!isFree) {
+            providerStats.cost.input += record.cost.input
+            providerStats.cost.output += record.cost.output
+            providerStats.cost.total += record.cost.total
+          }
+          
+          // 按用途分组
+          if (!stats.byPurpose[record.purpose as AIUsagePurpose]) {
+            stats.byPurpose[record.purpose as AIUsagePurpose] = {
+              calls: 0,
+              tokens: { input: 0, output: 0, total: 0 },
+              cost: { input: 0, output: 0, total: 0 }
+            }
+          }
+          
+          const purposeStats = stats.byPurpose[record.purpose as AIUsagePurpose]
+          purposeStats.calls++
+          purposeStats.tokens.input += record.tokens.input
+          purposeStats.tokens.output += record.tokens.output
+          purposeStats.tokens.total += record.tokens.total
+          
+          if (!isFree) {
+            purposeStats.cost.input += record.cost.input
+            purposeStats.cost.output += record.cost.output
+            purposeStats.cost.total += record.cost.total
+          }
+        }
+        
+        dailyStats.push(stats)
+      }
+      
+      // 按日期排序（降序）
+      dailyStats.sort((a, b) => b.date.localeCompare(a.date))
+      
+      return dailyStats
+    } catch (error) {
+      usageLogger.error("获取按日统计失败:", error)
+      return []
+    }
+  }
+
   /**
    * 导出用量数据（用于分析或备份）
    * 

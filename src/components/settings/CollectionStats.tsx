@@ -35,6 +35,7 @@ import { logger } from "@/utils/logger"
 import { AIUsageTracker } from "@/core/ai/AIUsageTracker"
 import type { AIUsageStats } from "@/types/ai-usage"
 import { FeedSpiderChart } from "./FeedSpiderChart"
+import { AIUsageDetailView } from "./AIUsageDetailView"
 
 const collectionLogger = logger.withTag("CollectionStats")
 
@@ -111,6 +112,7 @@ export function CollectionStats() {
   const [aiUsageStats, setAiUsageStats] = useState<AIUsageStats | null>(null)
   const [showUsageDetails, setShowUsageDetails] = useState(false)
   const [usageStatsPeriod, setUsageStatsPeriod] = useState<'30days' | 'all'>('30days')
+  const [showDailyStats, setShowDailyStats] = useState(false)
   const [isRebuildingProfile, setIsRebuildingProfile] = useState(false)
   const [aiConfigStatus, setAiConfigStatus] = useState<{
     enabled: boolean
@@ -370,14 +372,22 @@ export function CollectionStats() {
                 </button>
               </div>
             )}
-            {/* 展开/收起按钮 */}
+            {/* 展开/收起按钮 + 按日统计按钮 */}
             {aiUsageStats && aiUsageStats.totalCalls > 0 && (
-              <button
-                onClick={() => setShowUsageDetails(!showUsageDetails)}
-                className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
-              >
-                {showUsageDetails ? _('options.collectionStats.aiUsage.collapseDetails') + ' ▲' : _('options.collectionStats.aiUsage.expandDetails') + ' ▼'}
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowDailyStats(true)}
+                  className="text-xs px-3 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-900/50 rounded-md transition-colors"
+                >
+                  📅 按日统计
+                </button>
+                <button
+                  onClick={() => setShowUsageDetails(!showUsageDetails)}
+                  className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                >
+                  {showUsageDetails ? _('options.collectionStats.aiUsage.collapseDetails') + ' ▲' : _('options.collectionStats.aiUsage.expandDetails') + ' ▼'}
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -1416,6 +1426,11 @@ export function CollectionStats() {
           </div>
         </div>
       </div>
+
+      {/* AI 用量详细统计弹窗 */}
+      {showDailyStats && (
+        <AIUsageDetailView onClose={() => setShowDailyStats(false)} />
+      )}
     </div>
   )
 }

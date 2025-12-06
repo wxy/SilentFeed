@@ -115,7 +115,7 @@ export const AI_ENGINE_PRESETS: Record<PresetName, PresetDefinition> = {
         provider: "deepseek",
         useReasoning: true  // 画像生成使用推理模式提高准确性
       }
-    }
+    },
     benefits: [
       "✅ 零本机性能消耗",
       "✅ 推理模式深度理解用户兴趣",
