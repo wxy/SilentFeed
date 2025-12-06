@@ -441,6 +441,26 @@ function classifyTopics(keywords: string[]): string[] {
 // ==================== 数据记录 ====================
 
 /**
+ * URL 黑名单：不需要追踪的页面
+ */
+const URL_BLACKLIST = [
+  '/warmup.html',           // Chrome 预渲染页面
+  'chrome://',              // Chrome 内部页面
+  'chrome-extension://',    // 扩展页面
+  'about:',                 // 浏览器内部页面
+  'data:',                  // Data URI
+  'blob:',                  // Blob URI
+  'javascript:',            // JavaScript URI
+]
+
+/**
+ * 检查 URL 是否在黑名单中
+ */
+function isBlacklistedUrl(url: string): boolean {
+  return URL_BLACKLIST.some(pattern => url.includes(pattern))
+}
+
+/**
  * 记录页面访问到数据库
  */
 async function recordPageVisit(): Promise<void> {
@@ -452,6 +472,13 @@ async function recordPageVisit(): Promise<void> {
   
   if (isRecorded) {
     logger.debug('🚫 [PageTracker] 已记录过，跳过')
+    return
+  }
+  
+  // 检查 URL 黑名单
+  const currentUrl = window.location.href
+  if (isBlacklistedUrl(currentUrl)) {
+    logger.debug('🚫 [PageTracker] URL 在黑名单中，跳过', { url: currentUrl })
     return
   }
   
