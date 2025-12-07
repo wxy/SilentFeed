@@ -110,7 +110,12 @@ export class RecommendationService {
         if (isRemoteProvider) {
           // 任务级模型优先；否则回落到 providers 中的模型
           selectedModel = taskConfig?.model || aiConfig.providers[taskProvider as 'deepseek' | 'openai']?.model
-          enableReasoningFlag = taskConfig?.useReasoning || aiConfig.providers[taskProvider as 'deepseek' | 'openai']?.enableReasoning
+          
+          // 推理开关：任务级配置优先（明确设置时），否则回退到全局配置
+          // 注意：不能用 || 因为 false 会被忽略，应该用 ?? 或明确判断 undefined
+          enableReasoningFlag = taskConfig?.useReasoning !== undefined 
+            ? taskConfig.useReasoning 
+            : aiConfig.providers[taskProvider as 'deepseek' | 'openai']?.enableReasoning
         }
 
         if (selectedModel) {

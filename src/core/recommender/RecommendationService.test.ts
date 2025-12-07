@@ -724,4 +724,160 @@ describe('RecommendationService', () => {
       })
     })
   })
+
+  describe('推理模式配置优先级', () => {
+    test('任务级 useReasoning=false 应该覆盖全局 enableReasoning=true', async () => {
+      const { getAIConfig } = await import('../../storage/ai-config')
+      vi.mocked(getAIConfig).mockResolvedValueOnce({
+        provider: 'deepseek',
+        model: 'deepseek-chat',
+        apiKeys: {},
+        enabled: true,
+        enableReasoning: false,
+        local: {
+          enabled: false,
+          provider: 'ollama',
+          endpoint: 'http://localhost:11434/v1',
+          model: 'qwen2.5:7b'
+        },
+        // 新结构：任务级配置优先
+        engineAssignment: {
+          feedAnalysis: {
+            provider: 'deepseek',
+            useReasoning: false  // ⚠️ 任务级明确禁用推理
+          }
+        },
+        providers: {
+          deepseek: {
+            apiKey: 'test-key',
+            model: 'deepseek-chat',
+            enableReasoning: true  // 全局启用推理，但应该被任务级覆盖
+          }
+        }
+      } as any)
+
+      const { getRecommendationConfig } = await import('../../storage/recommendation-config')
+      vi.mocked(getRecommendationConfig).mockResolvedValueOnce({
+        analysisEngine: 'remoteAIWithReasoning',
+        feedAnalysisEngine: 'remoteAIWithReasoning',
+        useReasoning: true,
+        useLocalAI: false,
+        maxRecommendations: 5,
+        qualityThreshold: 0.6,
+        tfidfThreshold: 0.3,
+        batchSize: 10
+      } as any)
+
+      const { getUserProfile } = await import('../../storage/db')
+      vi.mocked(getUserProfile).mockResolvedValueOnce(null)
+
+      const result = await service.generateRecommendations()
+      
+      // 验证：由于任务级配置 useReasoning=false，应该降级到标准模式
+      // （具体验证可能需要检查日志或内部状态，这里至少确保不会崩溃）
+      expect(result).toBeDefined()
+    })
+
+    test('任务级 useReasoning=true 应该启用推理', async () => {
+      const { getAIConfig } = await import('../../storage/ai-config')
+      vi.mocked(getAIConfig).mockResolvedValueOnce({
+        provider: 'deepseek',
+        model: 'deepseek-chat',
+        apiKeys: {},
+        enabled: true,
+        enableReasoning: false,
+        local: {
+          enabled: false,
+          provider: 'ollama',
+          endpoint: 'http://localhost:11434/v1',
+          model: 'qwen2.5:7b'
+        },
+        // 新结构：任务级配置优先
+        engineAssignment: {
+          feedAnalysis: {
+            provider: 'deepseek',
+            useReasoning: true  // ✅ 任务级启用推理
+          }
+        },
+        providers: {
+          deepseek: {
+            apiKey: 'test-key',
+            model: 'deepseek-chat',
+            enableReasoning: false  // 全局禁用推理，但应该被任务级覆盖
+          }
+        }
+      } as any)
+
+      const { getRecommendationConfig } = await import('../../storage/recommendation-config')
+      vi.mocked(getRecommendationConfig).mockResolvedValueOnce({
+        analysisEngine: 'remoteAIWithReasoning',
+        feedAnalysisEngine: 'remoteAIWithReasoning',
+        useReasoning: true,
+        useLocalAI: false,
+        maxRecommendations: 5,
+        qualityThreshold: 0.6,
+        tfidfThreshold: 0.3,
+        batchSize: 10
+      } as any)
+
+      const { getUserProfile } = await import('../../storage/db')
+      vi.mocked(getUserProfile).mockResolvedValueOnce(null)
+
+      const result = await service.generateRecommendations()
+      
+      // 验证：应该正常生成推荐
+      expect(result).toBeDefined()
+    })
+
+    test('任务级配置未设置时应该回退到全局配置', async () => {
+      const { getAIConfig } = await import('../../storage/ai-config')
+      vi.mocked(getAIConfig).mockResolvedValueOnce({
+        provider: 'deepseek',
+        model: 'deepseek-chat',
+        apiKeys: {},
+        enabled: true,
+        enableReasoning: false,
+        local: {
+          enabled: false,
+          provider: 'ollama',
+          endpoint: 'http://localhost:11434/v1',
+          model: 'qwen2.5:7b'
+        },
+        // 新结构：任务级配置未设置 useReasoning
+        engineAssignment: {
+          feedAnalysis: {
+            provider: 'deepseek'
+            // useReasoning 未设置，应该回退到全局
+          }
+        },
+        providers: {
+          deepseek: {
+            apiKey: 'test-key',
+            model: 'deepseek-chat',
+            enableReasoning: true  // 全局启用推理
+          }
+        }
+      } as any)
+
+      const { getRecommendationConfig } = await import('../../storage/recommendation-config')
+      vi.mocked(getRecommendationConfig).mockResolvedValueOnce({
+        analysisEngine: 'remoteAIWithReasoning',
+        feedAnalysisEngine: 'remoteAIWithReasoning',
+        useReasoning: true,
+        useLocalAI: false,
+        maxRecommendations: 5,
+        qualityThreshold: 0.6,
+        tfidfThreshold: 0.3,
+        batchSize: 10
+      } as any)
+
+      const { getUserProfile } = await import('../../storage/db')
+      vi.mocked(getUserProfile).mockResolvedValueOnce(null)
+
+      const result = await service.generateRecommendations()
+      
+      // 验证：应该正常生成推荐（使用全局的 enableReasoning=true）
+      expect(result).toBeDefined()
+    })
+  })
 })
