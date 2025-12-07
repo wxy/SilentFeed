@@ -1,5 +1,71 @@
 # Changelog
 
+## [0.3.2] - 2025-12-07
+
+### Added
+
+- **AI Usage Visual Analytics** ([#66](https://github.com/wxy/SilentFeed/pull/66))
+  - Professional tri-chart dashboard: Token Usage, API Calls, and Cost tracking
+  - Daily/monthly view modes with automatic time-based aggregation
+  - Reasoning vs Non-Reasoning mode comparison (for models like DeepSeek R1)
+  - Interactive tooltips with detailed breakdown
+  - Horizontal scrolling for extended time periods
+  - Smart viewport scaling based on data density
+
+- **Enhanced Internationalization**
+  - Bilingual technical terms: "词元（Token）" format for clarity
+  - Full date format localization (Chinese: 2024年12月07日, English: 2024-12-07)
+  - Complete translation coverage for AI usage statistics UI
+  - Zero hardcoded strings in user-facing components
+
+### Changed
+
+- **UI/UX Improvements**
+  - Default UI style changed from Sketchy to Standard (prevents initial flash)
+  - Users who prefer Sketchy style can still set it manually
+  - Smoother page load experience without style flickering
+
+### Fixed
+
+- **Ollama Integration**
+  - Resolved DNR (Declarative Net Request) configuration issues
+  - Static DNR rules now properly bundled via Plasmo's `.plasmo` directory
+  - CORS headers correctly removed for `localhost:11434` and `127.0.0.1:11434`
+  - Build process no longer breaks Chrome hot reload functionality
+
+- **Page Tracking Accuracy**
+  - Fixed Chrome internal page tracking (`chrome://`, `chrome-extension://`)
+  - Prevented duplicate page learning from reload events
+  - Warmup page filtering now correctly excludes browser UI pages
+  - Profile rebuild no longer triggered by navigation to settings
+
+- **AI Usage Statistics**
+  - Daily stats aggregation now correctly groups by date
+  - Cost calculation precision improved to 4 decimal places
+  - Empty state handling for new users without AI usage data
+  - Fixed chart width overflow with proper horizontal scrolling
+
+### Performance
+
+- **Profile Generation Optimization**
+  - Debounced profile rebuilds: batch dismissals within 5 seconds
+  - Reduces redundant AI calls by up to 80%
+  - Lower API costs for users who rapidly dismiss recommendations
+
+### Development
+
+- **Test Suite Stability**
+  - All 1492 tests passing (93 test files)
+  - Updated UI style test expectations to match new defaults
+  - Improved mock coverage for AI usage tracking components
+
+### Technical Details
+
+- DNR rules: 2 static rules for Ollama CORS bypass
+- Chart viewport: Dynamic scaling from 7 to 30+ days
+- Date formatting: i18n-powered with template interpolation
+- Build pipeline: `pre-build-dnr.sh` → `plasmo build` → `copy-locales.sh`
+
 ## [0.3.1] - 2025-12-06
 
 ### Changed
