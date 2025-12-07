@@ -5,8 +5,8 @@
   "description": "__MSG_extDescription__",
   "author": "xingyu.wang@gmail.com",
   "scripts": {
-    "dev": "bash scripts/watch-dnr.sh & plasmo dev",
-    "build": "plasmo build && bash scripts/copy-locales.sh && bash scripts/setup-dnr.sh",
+    "dev": "plasmo dev",
+    "build": "plasmo build && bash scripts/copy-locales.sh && bash scripts/post-build-dnr.sh",
     "package": "plasmo package",
     "test": "vitest",
     "test:ui": "vitest --ui",

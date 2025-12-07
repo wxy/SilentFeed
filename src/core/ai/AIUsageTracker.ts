@@ -187,46 +187,44 @@ export class AIUsageTracker {
         
         totalLatency += record.latency
         
-        // 推理模式统计
-        if (record.reasoning !== undefined) {
-          hasReasoningData = true
-          if (!stats.byReasoning) {
-            stats.byReasoning = {
-              withReasoning: {
-                calls: 0,
-                tokens: { input: 0, output: 0, total: 0 },
-                cost: { input: 0, output: 0, total: 0 },
-                avgLatency: 0
-              },
-              withoutReasoning: {
-                calls: 0,
-                tokens: { input: 0, output: 0, total: 0 },
-                cost: { input: 0, output: 0, total: 0 },
-                avgLatency: 0
-              }
+        // 推理模式统计（reasoning === undefined 视为 false）
+        hasReasoningData = true
+        if (!stats.byReasoning) {
+          stats.byReasoning = {
+            withReasoning: {
+              calls: 0,
+              tokens: { input: 0, output: 0, total: 0 },
+              cost: { input: 0, output: 0, total: 0 },
+              avgLatency: 0
+            },
+            withoutReasoning: {
+              calls: 0,
+              tokens: { input: 0, output: 0, total: 0 },
+              cost: { input: 0, output: 0, total: 0 },
+              avgLatency: 0
             }
           }
-          
-          const reasoningStats = record.reasoning 
-            ? stats.byReasoning.withReasoning 
-            : stats.byReasoning.withoutReasoning
-          
-          reasoningStats.calls++
-          reasoningStats.tokens.input += record.tokens.input
-          reasoningStats.tokens.output += record.tokens.output
-          reasoningStats.tokens.total += record.tokens.total
-          
-          if (!isFree) {
-            reasoningStats.cost.input += record.cost.input
-            reasoningStats.cost.output += record.cost.output
-            reasoningStats.cost.total += record.cost.total
-          }
-          
-          if (record.reasoning) {
-            reasoningLatency += record.latency
-          } else {
-            nonReasoningLatency += record.latency
-          }
+        }
+        
+        const reasoningStats = record.reasoning 
+          ? stats.byReasoning.withReasoning 
+          : stats.byReasoning.withoutReasoning
+        
+        reasoningStats.calls++
+        reasoningStats.tokens.input += record.tokens.input
+        reasoningStats.tokens.output += record.tokens.output
+        reasoningStats.tokens.total += record.tokens.total
+        
+        if (!isFree) {
+          reasoningStats.cost.input += record.cost.input
+          reasoningStats.cost.output += record.cost.output
+          reasoningStats.cost.total += record.cost.total
+        }
+        
+        if (record.reasoning) {
+          reasoningLatency += record.latency
+        } else {
+          nonReasoningLatency += record.latency
         }
         
         // 按 Provider 分组
@@ -432,22 +430,20 @@ export class AIUsageTracker {
             stats.cost.total += record.cost.total
           }
           
-          // 推理模式统计
-          if (record.reasoning !== undefined) {
-            const reasoningStats = record.reasoning 
-              ? stats.byReasoning.withReasoning 
-              : stats.byReasoning.withoutReasoning
-            
-            reasoningStats.calls++
-            reasoningStats.tokens.input += record.tokens.input
-            reasoningStats.tokens.output += record.tokens.output
-            reasoningStats.tokens.total += record.tokens.total
-            
-            if (!isFree) {
-              reasoningStats.cost.input += record.cost.input
-              reasoningStats.cost.output += record.cost.output
-              reasoningStats.cost.total += record.cost.total
-            }
+          // 推理模式统计（reasoning === undefined 视为 false）
+          const reasoningStats = record.reasoning 
+            ? stats.byReasoning.withReasoning 
+            : stats.byReasoning.withoutReasoning
+          
+          reasoningStats.calls++
+          reasoningStats.tokens.input += record.tokens.input
+          reasoningStats.tokens.output += record.tokens.output
+          reasoningStats.tokens.total += record.tokens.total
+          
+          if (!isFree) {
+            reasoningStats.cost.input += record.cost.input
+            reasoningStats.cost.output += record.cost.output
+            reasoningStats.cost.total += record.cost.total
           }
           
           // 按 Provider 分组
@@ -498,6 +494,12 @@ export class AIUsageTracker {
       
       // 按日期排序（降序）
       dailyStats.sort((a, b) => b.date.localeCompare(a.date))
+      
+      // 🔍 调试：输出统计结果
+      usageLogger.debug(`getDailyStats 返回 ${dailyStats.length} 条日期记录，原始记录数: ${records.length}`)
+      if (dailyStats.length > 0) {
+        usageLogger.debug(`首条记录: ${JSON.stringify(dailyStats[0])}`)
+      }
       
       return dailyStats
     } catch (error) {

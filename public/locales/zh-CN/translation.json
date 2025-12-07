@@ -1401,5 +1401,34 @@
       "feedAdded": "订阅源已添加",
       "opmlImported": "成功导入 {{count}} 个订阅源"
     }
+  },
+  "settings": {
+    "aiUsage": {
+      "emptyState": "暂无数据",
+      "tokenAxisLabel": "Token",
+      "callAxisLabel": "调用",
+      "legend": {
+        "tokenNonReasoning": "Token (非推理)",
+        "tokenReasoning": "Token (推理)",
+        "callsNonReasoning": "调用 (非推理)",
+        "callsReasoning": "调用 (推理)",
+        "costNonReasoning": "费用 (非推理)",
+        "costReasoning": "费用 (推理)"
+      },
+      "labels": {
+        "total": "总计"
+      },
+      "units": {
+        "calls": "次"
+      },
+      "tooltip": {
+        "tokenNonReasoning": "{{date}}\n{{label}}: {{value}}K",
+        "tokenReasoning": "{{date}}\n{{label}}: {{value}}K\n{{totalLabel}}: {{total}}K",
+        "callsNonReasoning": "{{date}}\n{{label}}: {{value}}{{unit}}",
+        "callsReasoning": "{{date}}\n{{label}}: {{value}}{{unit}}\n{{totalLabel}}: {{total}}{{unit}}",
+        "costNonReasoning": "{{date}}\n{{label}}: ¥{{value}}",
+        "costReasoning": "{{date}}\n{{label}}: ¥{{value}}\n{{totalLabel}}: ¥{{total}}"
+      }
+    }
   }
 }

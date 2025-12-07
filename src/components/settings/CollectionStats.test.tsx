@@ -48,8 +48,8 @@ vi.mock('@/core/ai/AIUsageTracker', () => ({
       avgLatency: 0,
       tokens: { input: 0, output: 0, total: 0 },
       cost: { input: 0, output: 0, total: 0 },
-    })
-    )
+    })),
+    getDailyStats: vi.fn(async () => [])
   }
 }))
 
