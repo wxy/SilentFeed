@@ -1565,5 +1565,49 @@
       "feedAdded": "Feed added",
       "opmlImported": "Successfully imported {{count}} feeds"
     }
+  },
+  "settings": {
+    "aiUsage": {
+      "emptyState": "No data yet",
+      "tokenAxisLabel": "Token",
+      "callAxisLabel": "Calls",
+      "legend": {
+        "tokenNonReasoning": "Token (non-reasoning)",
+        "tokenReasoning": "Token (reasoning)",
+        "callsNonReasoning": "Calls (non-reasoning)",
+        "callsReasoning": "Calls (reasoning)",
+        "costNonReasoning": "Cost (non-reasoning)",
+        "costReasoning": "Cost (reasoning)"
+      },
+      "labels": {
+        "total": "Total"
+      },
+      "units": {
+        "calls": "calls"
+      },
+      "dateFormat": {
+        "monthly": "{{year}}-{{month}}",
+        "daily": "{{year}}-{{month}}-{{day}}",
+        "monthlyShort": "{{month}}",
+        "dailyShort": "{{month}}/{{day}}"
+      },
+      "chartTitle": {
+        "daily": "Daily Usage Statistics",
+        "monthly": "Monthly Usage Statistics"
+      },
+      "periodInfo": {
+        "last30Days": "Last 30 Days",
+        "allTime": "All Time",
+        "template": "💡 Statistics Period: {{period}} | Data Source: AI Usage Tracker"
+      },
+      "tooltip": {
+        "tokenNonReasoning": "{{date}}\n{{label}}: {{value}}K",
+        "tokenReasoning": "{{date}}\n{{label}}: {{value}}K\n{{totalLabel}}: {{total}}K",
+        "callsNonReasoning": "{{date}}\n{{label}}: {{value}} {{unit}}",
+        "callsReasoning": "{{date}}\n{{label}}: {{value}} {{unit}}\n{{totalLabel}}: {{total}} {{unit}}",
+        "costNonReasoning": "{{date}}\n{{label}}: ¥{{value}}",
+        "costReasoning": "{{date}}\n{{label}}: ¥{{value}}\n{{totalLabel}}: ¥{{total}}"
+      }
+    }
   }
 }

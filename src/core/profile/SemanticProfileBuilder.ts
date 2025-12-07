@@ -28,14 +28,14 @@ const MAX_DISMISSES = 30
 /**
  * 更新触发阈值
  */
-const BROWSE_THRESHOLD = 20    // 浏览 20 页触发全量更新
-const READ_THRESHOLD = 3       // 阅读 3 篇触发全量更新
+const BROWSE_THRESHOLD = 50    // 浏览 50 页触发全量更新（优化：原 20）
+const READ_THRESHOLD = 10      // 阅读 10 篇触发全量更新（优化：原 3）
 const DISMISS_THRESHOLD = 1    // 拒绝 1 篇立即触发全量更新（已废弃，改用防抖）
 
 /**
  * 防抖配置
  */
-const DISMISS_DEBOUNCE_MS = 5000  // 拒绝操作防抖时间（5秒）
+const DISMISS_DEBOUNCE_MS = 30000  // 拒绝操作防抖时间（30秒，优化：原 5秒）
 
 /**
  * AI 摘要结构（对齐 UserProfileGenerationResult）
@@ -78,10 +78,33 @@ export class SemanticProfileBuilder {
   private isGeneratingProfile = false
   private pendingTasks: Array<() => Promise<void>> = []
 
+  // 浏览去重：防止短时间内重复处理同一页面（5分钟内）
+  private recentBrowses = new Map<string, number>()  // url -> timestamp
+  private readonly BROWSE_DEDUP_MS = 5 * 60 * 1000  // 5分钟去重窗口
+
   /**
    * 用户浏览页面
    */
   async onBrowse(page: ConfirmedVisit): Promise<void> {
+    // 去重检查：5分钟内相同 URL 只处理一次
+    const now = Date.now()
+    const lastBrowseTime = this.recentBrowses.get(page.url)
+    
+    if (lastBrowseTime && (now - lastBrowseTime) < this.BROWSE_DEDUP_MS) {
+      profileLogger.debug('⏭️ 跳过重复浏览', {
+        url: page.url,
+        title: page.title,
+        上次处理: `${Math.floor((now - lastBrowseTime) / 1000)}秒前`
+      })
+      return
+    }
+    
+    // 记录本次浏览
+    this.recentBrowses.set(page.url, now)
+    
+    // 清理过期的去重记录（避免内存泄漏）
+    this.cleanupRecentBrowses(now)
+    
     this.browseCount++
     
     profileLogger.debug('用户浏览页面', {
@@ -99,6 +122,17 @@ export class SemanticProfileBuilder {
     } else {
       // 未达阈值 → 轻量更新（只更新关键词）
       await this.triggerLightweightUpdate(page)
+    }
+  }
+
+  /**
+   * 清理过期的去重记录
+   */
+  private cleanupRecentBrowses(now: number): void {
+    for (const [url, timestamp] of this.recentBrowses.entries()) {
+      if (now - timestamp > this.BROWSE_DEDUP_MS) {
+        this.recentBrowses.delete(url)
+      }
     }
   }
 

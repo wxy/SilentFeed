@@ -198,7 +198,7 @@ export class AICapabilityManager {
     
     if (taskProvider && taskProvider.generateUserProfile) {
       try {
-        const result = await taskProvider.generateUserProfile(request)
+        const result = await taskProvider.generateUserProfile(request, { useReasoning })
         if (result.metadata.tokensUsed) {
         }
         return result
@@ -432,18 +432,34 @@ export class AICapabilityManager {
   
   /**
    * 生成推荐理由
+   * Phase 8: 使用 feedAnalysis 任务配置（推荐理由属于 Feed 分析任务）
    */
   async generateRecommendationReason(
     request: RecommendationReasonRequest
   ): Promise<RecommendationReasonResult> {
     try {
+      // Phase 8: 使用 feedAnalysis 任务配置
+      const { provider: taskProvider, useReasoning } = await this.getProviderForTask("feedAnalysis")
+      
+      if (taskProvider && taskProvider.generateRecommendationReason) {
+        try {
+          const result = await taskProvider.generateRecommendationReason(request)
+          await this.recordRecommendationUsage(result, useReasoning)  // 传递 useReasoning
+          return result
+        } catch (error) {
+          aiLogger.error(`❌ Provider ${taskProvider.name} failed for recommendation reason`, error)
+          // 继续尝试降级逻辑
+        }
+      }
+
+      // 降级逻辑：使用旧的 auto 模式
       const providers = await this.getProviderChain("auto")
       for (const provider of providers) {
         if (!provider.generateRecommendationReason) {
           continue
         }
         const result = await provider.generateRecommendationReason(request)
-        await this.recordRecommendationUsage(result)  // 异步记录
+        await this.recordRecommendationUsage(result, false)  // 降级模式不使用推理
         return result
       }
 
@@ -516,7 +532,7 @@ export class AICapabilityManager {
   /**
    * 记录推荐理由使用情况
    */
-  private async recordRecommendationUsage(result: RecommendationReasonResult): Promise<void> {
+  private async recordRecommendationUsage(result: RecommendationReasonResult, useReasoning: boolean = false): Promise<void> {
     try {
       const { metadata } = result
       
@@ -524,6 +540,11 @@ export class AICapabilityManager {
         aiLogger.info(
           `推荐理由生成 - tokens: ${metadata.tokensUsed.input + metadata.tokensUsed.output}`
         )
+        
+        // 计算实际成本（DeepSeek 定价：输入 ¥0.001/1K tokens，输出 ¥0.002/1K tokens）
+        const inputCost = (metadata.tokensUsed.input / 1000) * 0.001
+        const outputCost = (metadata.tokensUsed.output / 1000) * 0.002
+        const totalCost = inputCost + outputCost
         
         // 记录到 AIUsageTracker
         await AIUsageTracker.recordUsage({
@@ -537,12 +558,14 @@ export class AICapabilityManager {
             estimated: false
           },
           cost: {
-            input: 0,  // 成本计算由 AIUsageTracker 根据 provider 和 model 自动计算
-            output: 0,
-            total: 0,
-            estimated: true
+            currency: 'CNY',
+            input: inputCost,
+            output: outputCost,
+            total: totalCost,
+            estimated: false
           },
-          latency: 0,  // 推荐理由生成通常很快，这里暂不记录延迟
+          reasoning: useReasoning,  // 使用传入的推理模式标记
+          latency: metadata.latency || 0,
           success: true,
           metadata: {
             confidence: result.confidence,

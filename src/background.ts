@@ -33,15 +33,17 @@ async function setupOllamaDNRRules(): Promise<void> {
     // 延迟检测，等待 DNR 规则完全加载
     await new Promise(resolve => setTimeout(resolve, 100))
     
-    // 检查静态规则配置
-    const staticRules = await chrome.declarativeNetRequest.getEnabledRulesets()
-    const hasStaticRuleset = staticRules.includes('ollama-cors-fix')
+    // 检查 manifest 中的 DNR 配置
+    const manifest = chrome.runtime.getManifest()
+    const hasDNRConfig = manifest.declarative_net_request?.rule_resources?.some(
+      (resource) => resource.id === 'ollama-cors-fix'
+    )
     
-    if (hasStaticRuleset) {
-      bgLogger.info('✅ Ollama CORS 修复规则已启用')
+    if (hasDNRConfig) {
+      bgLogger.info('✅ Ollama CORS 修复规则已配置')
     } else {
-      bgLogger.error('❌ Ollama CORS 修复规则未加载')
-      bgLogger.error('   请尝试：1) 重新加载扩展  2) 检查 manifest.json 配置  3) 重新安装扩展')
+      bgLogger.error('❌ Ollama CORS 修复规则未在 manifest 中配置')
+      bgLogger.error('   请尝试：1) 重新构建扩展  2) 重新加载扩展  3) 重新安装扩展')
     }
     
     // 清理可能存在的遗留动态规则（避免冲突）

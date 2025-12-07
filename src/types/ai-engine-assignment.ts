@@ -113,7 +113,7 @@ export const AI_ENGINE_PRESETS: Record<PresetName, PresetDefinition> = {
       },
       profileGeneration: {
         provider: "deepseek",
-        useReasoning: true  // 启用推理，深度理解
+        useReasoning: true  // 画像生成使用推理模式提高准确性
       }
     },
     benefits: [

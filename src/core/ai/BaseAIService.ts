@@ -274,7 +274,8 @@ export abstract class BaseAIService implements AIProvider {
    * 生成用户画像
    */
   async generateUserProfile(
-    request: UserProfileGenerationRequest
+    request: UserProfileGenerationRequest,
+    options?: { useReasoning?: boolean }
   ): Promise<UserProfileGenerationResult> {
     const startTime = Date.now()
     let success = false
@@ -380,6 +381,7 @@ export abstract class BaseAIService implements AIProvider {
           ...cost,
           estimated: false
         },
+        reasoning: options?.useReasoning ?? false,
         latency: Date.now() - startTime,
         success: true,
         metadata: {
@@ -429,6 +431,7 @@ export abstract class BaseAIService implements AIProvider {
           ...cost,
           estimated: true
         },
+        reasoning: options?.useReasoning ?? false,
         latency: Date.now() - startTime,
         success: false,
         error,

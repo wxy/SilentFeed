@@ -370,8 +370,8 @@ describe("IndexOptions 组件", () => {
     it("应该使用明暗主题样式类", () => {
       const { container } = render(<IndexOptions />)
       const mainDiv = container.firstChild as HTMLElement
-      // 手绘风格使用不同的类名
-      expect(mainDiv.className).toContain("sketchy-container")
+      // 默认使用标准风格
+      expect(mainDiv.className).toContain("bg-gradient-to-br")
       expect(mainDiv.className).toContain("dark:text-gray-100")
     })
   })

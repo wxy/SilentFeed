@@ -190,3 +190,62 @@ export interface UsageStatsQuery {
   /** 只统计成功的调用 */
   onlySuccess?: boolean
 }
+
+/**
+ * 每日用量统计
+ */
+export interface DailyUsageStats {
+  /** 日期（YYYY-MM-DD） */
+  date: string
+  
+  /** 总调用次数 */
+  totalCalls: number
+  
+  /** 成功调用次数 */
+  successfulCalls: number
+  
+  /** 失败调用次数 */
+  failedCalls: number
+  
+  /** Token 用量统计 */
+  tokens: {
+    input: number
+    output: number
+    total: number
+  }
+  
+  /** 费用统计 */
+  cost: {
+    input: number
+    output: number
+    total: number
+  }
+  
+  /** 按推理模式分组 */
+  byReasoning: {
+    withReasoning: {
+      calls: number
+      tokens: { input: number; output: number; total: number }
+      cost: { input: number; output: number; total: number }
+    }
+    withoutReasoning: {
+      calls: number
+      tokens: { input: number; output: number; total: number }
+      cost: { input: number; output: number; total: number }
+    }
+  }
+  
+  /** 按 Provider 分组 */
+  byProvider: Record<string, {
+    calls: number
+    tokens: { input: number; output: number; total: number }
+    cost: { input: number; output: number; total: number }
+  }>
+  
+  /** 按用途分组 */
+  byPurpose: Record<AIUsagePurpose, {
+    calls: number
+    tokens: { input: number; output: number; total: number }
+    cost: { input: number; output: number; total: number }
+  }>
+}

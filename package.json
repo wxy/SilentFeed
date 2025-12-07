@@ -1,12 +1,12 @@
 {
   "name": "silentfeed",
   "displayName": "__MSG_extName__",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "__MSG_extDescription__",
   "author": "xingyu.wang@gmail.com",
   "scripts": {
-    "dev": "bash scripts/watch-dnr.sh & plasmo dev",
-    "build": "plasmo build && bash scripts/copy-locales.sh && bash scripts/setup-dnr.sh",
+    "dev": "bash scripts/pre-build-dnr.sh && plasmo dev",
+    "build": "bash scripts/pre-build-dnr.sh && plasmo build && bash scripts/copy-locales.sh",
     "package": "plasmo package",
     "test": "vitest",
     "test:ui": "vitest --ui",
@@ -75,6 +75,15 @@
       "notifications",
       "declarativeNetRequestWithHostAccess"
     ],
+    "declarative_net_request": {
+      "rule_resources": [
+        {
+          "id": "ollama-cors-fix",
+          "enabled": true,
+          "path": "dnr-rules.json"
+        }
+      ]
+    },
     "web_accessible_resources": [
       {
         "resources": [

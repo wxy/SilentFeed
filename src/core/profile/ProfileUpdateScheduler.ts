@@ -42,7 +42,35 @@ export class ProfileUpdateScheduler {
 
 
     // 策略1: 首次更新（有10+页面时）
+    // ⚠️ 修复：检查数据库中是否已有画像，避免扩展重载后重复触发
     if (this.schedule.lastUpdateTime === 0 && currentPageCount >= 10) {
+      const profile = await db.userProfile.get('singleton')
+      
+      // 如果数据库中已有 AI 画像，说明不是真正的"首次"，跳过
+      if (profile?.aiSummary) {
+        // 重新初始化调度状态，避免后续误判
+        this.schedule.lastUpdateTime = profile.lastUpdated || Date.now()
+        this.schedule.lastUpdatePageCount = profile.totalPages || currentPageCount
+        
+        console.log('[ProfileScheduler] 检测到已有画像，跳过首次更新', {
+          lastUpdated: new Date(profile.lastUpdated).toLocaleString(),
+          totalPages: profile.totalPages,
+          currentPageCount
+        })
+        
+        return {
+          shouldUpdate: false,
+          reason: '画像已存在，跳过首次更新',
+          priority: 'low'
+        }
+      }
+      
+      console.log('[ProfileScheduler] 数据库中无 AI 画像，触发首次更新', {
+        hasProfile: !!profile,
+        hasAISummary: !!profile?.aiSummary,
+        currentPageCount
+      })
+      
       return {
         shouldUpdate: true,
         reason: '首次构建画像',
