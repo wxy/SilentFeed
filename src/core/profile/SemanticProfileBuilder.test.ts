@@ -293,8 +293,8 @@ describe('SemanticProfileBuilder', () => {
         isRead: false
       }
       
-      // 快速连续拒绝 5 篇文章
-      for (let i = 1; i <= 5; i++) {
+      // 快速连续拒绝 2 篇文章（未达到批量阈值 3-5 条，默认 3 条）
+      for (let i = 1; i <= 2; i++) {
         await builder.onDismiss({
           ...mockArticle,
           id: `rec-${i}`,
@@ -304,15 +304,12 @@ describe('SemanticProfileBuilder', () => {
       
       // 立即检查：所有拒绝行为都应该已记录
       const profileBefore = await db.userProfile.get('singleton')
-      expect(profileBefore?.behaviors?.dismisses).toHaveLength(5)
+      expect(profileBefore?.behaviors?.dismisses).toHaveLength(2)
       
-      // 等待防抖完成（30秒 + 100ms 缓冲）
-      await new Promise(resolve => setTimeout(resolve, 30100))
-      
-      // 验证：画像更新应该只触发一次
-      const profileAfter = await db.userProfile.get('singleton')
-      expect(profileAfter?.behaviors?.dismisses).toHaveLength(5)
-    }, 35000) // 增加超时时间到 35 秒
+      // 注意：由于防抖时间为 5 分钟且有 1 小时最小更新间隔限制，
+      // 测试环境中不等待实际触发，只验证记录行为
+      // 实际生产环境中，5 分钟后会检查时间间隔，满足条件才触发更新
+    }, 1000) // 减少超时时间
 
     it('应该在 cleanup 时清理防抖定时器', () => {
       // 不应该抛出错误
@@ -493,34 +490,27 @@ describe('SemanticProfileBuilder', () => {
 
   describe('降级方案', () => {
     it('应该在没有数据时生成基础画像', async () => {
+      // 模拟时间已过 1 小时（绕过时间间隔限制）
+      const oneHourAgo = Date.now() - 3600000 - 1000
+      ;(builder as any).lastUpdateTime = oneHourAgo
+      
       // 清空数据
       await db.confirmedVisits.clear()
       
-      // 触发更新（通过拒绝）
-      const mockArticle: Recommendation = {
-        id: 'rec-1',
-        title: '测试文章',
-        url: 'https://example.com/article',
-        summary: '测试内容',
-        source: 'rss',
-        sourceUrl: 'https://feed.example.com',
-        recommendedAt: Date.now(),
-        score: 0.7,
-        isRead: false
-      }
-      
-      await builder.onDismiss(mockArticle)
-      
-      // 等待防抖完成（30秒 + 100ms 缓冲）
-      await new Promise(resolve => setTimeout(resolve, 30100))
+      // 直接触发完整更新（绕过防抖）
+      await builder.triggerFullUpdate()
       
       const profile = await db.userProfile.get('singleton')
       expect(profile?.aiSummary).toBeDefined()
       // 降级方案会返回默认消息
       expect(profile?.aiSummary?.interests).toBeDefined()
-    }, 35000) // 增加超时时间到 35 秒
+    })
 
     it('应该在有浏览数据时基于关键词生成画像', async () => {
+      // 模拟时间已过 1 小时（绕过时间间隔限制）
+      const oneHourAgo = Date.now() - 3600000 - 1000
+      ;(builder as any).lastUpdateTime = oneHourAgo
+      
       // 添加浏览记录
       const visit: ConfirmedVisit = {
         id: 'visit-1',
@@ -544,29 +534,14 @@ describe('SemanticProfileBuilder', () => {
       
       await db.confirmedVisits.add(visit)
       
-      // 触发更新
-      const mockArticle: Recommendation = {
-        id: 'rec-1',
-        title: '测试文章',
-        url: 'https://example.com/article',
-        summary: '测试内容',
-        source: 'rss',
-        sourceUrl: 'https://feed.example.com',
-        recommendedAt: Date.now(),
-        score: 0.7,
-        isRead: false
-      }
-      
-      await builder.onDismiss(mockArticle)
-      
-      // 等待防抖完成（30秒 + 100ms 缓冲）
-      await new Promise(resolve => setTimeout(resolve, 30100))
+      // 直接触发完整更新（绕过防抖）
+      await builder.triggerFullUpdate()
       
       const profile = await db.userProfile.get('singleton')
       expect(profile?.aiSummary).toBeDefined()
       // 降级方案会返回默认消息
       expect(profile?.aiSummary?.interests).toBeDefined()
-    }, 35000) // 增加超时时间到 35 秒
+    })
   })
 
   describe('数据持久化', () => {

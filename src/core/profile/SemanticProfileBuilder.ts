@@ -16,6 +16,7 @@ import { Topic } from "@/core/profile/topics"
 import { db } from "@/storage/db"
 import { aiManager } from "@/core/ai/AICapabilityManager"
 import { logger } from "@/utils/logger"
+import { getRecommendationConfig } from "@/storage/recommendation-config"
 
 const profileLogger = logger.withTag('SemanticProfile')
 
@@ -26,17 +27,25 @@ const MAX_READS = 50
 const MAX_DISMISSES = 30
 
 /**
- * 更新触发阈值
+ * 更新触发阈倿（智能触发机制：次数 + 时间间隔）
+ * 
+ * 核心设计：
+ * - BROWSE_THRESHOLD: 浏览 100 页触发画像更新
+ * - READ_THRESHOLD: 阅读 20 篇触发画像更新
+ * - DISMISS_BATCH_THRESHOLD: 动态获取，等于弹窗容量 (maxRecommendations)
+ *   → 弹窗 3 条，拒绝 3 次触发
+ *   → 弹窗 5 条，拒绝 5 次触发
+ *   → 自适应调整，符合用户使用习惯
  */
-const BROWSE_THRESHOLD = 50    // 浏览 50 页触发全量更新（优化：原 20）
-const READ_THRESHOLD = 10      // 阅读 10 篇触发全量更新（优化：原 3）
-const DISMISS_THRESHOLD = 1    // 拒绝 1 篇立即触发全量更新（已废弃，改用防抖）
+const BROWSE_THRESHOLD = 100    // 浏览 100 页触发全量更新（降低频率）
+const READ_THRESHOLD = 20       // 阅读 20 篇触发全量更新（提高阈值）
+// DISMISS_BATCH_THRESHOLD 动态获取，等于弹窗容量（3-5 条，根据用户行为自适应）
 
 /**
- * 防抖配置
+ * 时间间隔要求（防止过于频繁的更新）
  */
-const DISMISS_DEBOUNCE_MS = 30000  // 拒绝操作防抖时间（30秒）
-const DISMISS_BATCH_THRESHOLD = 10  // 累计拒绝次数阈值（达到后立即触发，不等待防抖）
+const MIN_UPDATE_INTERVAL_MS = 3600000  // 最小更新间隔：1 小时（除非手动触发）
+const DISMISS_DEBOUNCE_MS = 300000      // 拒绝操作防抖时间：5 分钟（停止操作后才触发）
 
 /**
  * AI 摘要结构（对齐 UserProfileGenerationResult）
@@ -70,6 +79,9 @@ export class SemanticProfileBuilder {
   private browseCount = 0
   private readCount = 0
   private dismissCount = 0
+
+  // 上次更新时间追踪
+  private lastUpdateTime = 0
 
   // 防抖机制：拒绝操作
   private dismissDebounceTimer: NodeJS.Timeout | null = null
@@ -116,10 +128,18 @@ export class SemanticProfileBuilder {
     })
     
     if (this.browseCount >= BROWSE_THRESHOLD) {
-      // 达到阈值 → 全量更新
-      profileLogger.info('🔄 浏览阈值达到，触发全量更新')
-      await this.triggerFullUpdate('browse')
-      this.browseCount = 0
+      // 达到阈值 → 检查时间间隔
+      const timeSinceLastUpdate = Date.now() - this.lastUpdateTime
+      if (timeSinceLastUpdate >= MIN_UPDATE_INTERVAL_MS) {
+        profileLogger.info('🔄 浏览阈值达到且时间间隔充足，触发全量更新')
+        await this.triggerFullUpdate('browse')
+        this.browseCount = 0
+        this.lastUpdateTime = Date.now()
+      } else {
+        const remainingMinutes = Math.ceil((MIN_UPDATE_INTERVAL_MS - timeSinceLastUpdate) / 60000)
+        profileLogger.debug(`⏭️ 浏览阈值已达到，但距上次更新仅 ${Math.floor(timeSinceLastUpdate / 60000)} 分钟，需等待 ${remainingMinutes} 分钟`)
+        // 继续累计，等待时间间隔满足
+      }
     } else {
       // 未达阈值 → 轻量更新（只更新关键词）
       await this.triggerLightweightUpdate(page)
@@ -161,10 +181,17 @@ export class SemanticProfileBuilder {
     this.readCount++
     
     if (this.readCount >= READ_THRESHOLD) {
-      // 多次阅读 → 全量更新（学习新兴趣）
-      profileLogger.info('🔄 阅读阈值达到，触发全量更新')
-      await this.triggerFullUpdate('read')
-      this.readCount = 0
+      // 多次阅读 → 检查时间间隔
+      const timeSinceLastUpdate = Date.now() - this.lastUpdateTime
+      if (timeSinceLastUpdate >= MIN_UPDATE_INTERVAL_MS) {
+        profileLogger.info('🔄 阅读阈值达到且时间间隔充足，触发全量更新')
+        await this.triggerFullUpdate('read')
+        this.readCount = 0
+        this.lastUpdateTime = Date.now()
+      } else {
+        const remainingMinutes = Math.ceil((MIN_UPDATE_INTERVAL_MS - timeSinceLastUpdate) / 60000)
+        profileLogger.debug(`⏭️ 阅读阈值已达到，但距上次更新仅 ${Math.floor(timeSinceLastUpdate / 60000)} 分钟，需等待 ${remainingMinutes} 分钟`)
+      }
     }
   }
 
@@ -190,27 +217,48 @@ export class SemanticProfileBuilder {
       profileLogger.debug('清除旧的防抖定时器')
     }
     
-    // 4. 检查是否达到批量阈值（立即触发）
-    if (this.dismissQueue.length >= DISMISS_BATCH_THRESHOLD) {
-      profileLogger.info(`🔄 达到批量阈值 (${this.dismissQueue.length}/${DISMISS_BATCH_THRESHOLD})，立即触发画像更新`)
-      
-      // 立即执行画像更新
-      await this.triggerFullUpdate('dismiss')
-      
-      // 重置状态
-      this.dismissQueue = []
-      this.dismissCount = 0
-      this.dismissDebounceTimer = null
-      return
+    // 4. 动态获取触发阈值（等于弹窗容量）
+    // 原理：用户拒绝一屏弹窗的所有推荐后，应该重新学习用户兴趣
+    const config = await getRecommendationConfig()
+    const dismissThreshold = config.maxRecommendations // 3-5 条，自适应调整
+    
+    // 5. 检查是否达到批量阈值（一个弹窗容量的拒绝）
+    if (this.dismissQueue.length >= dismissThreshold) {
+      const timeSinceLastUpdate = Date.now() - this.lastUpdateTime
+      if (timeSinceLastUpdate >= MIN_UPDATE_INTERVAL_MS) {
+        profileLogger.info(`🔄 达到批量阈值 (${this.dismissQueue.length}/${dismissThreshold}) 且时间间隔充足，触发画像更新`)
+        
+        // 立即执行画像更新
+        await this.triggerFullUpdate('dismiss')
+        
+        // 重置状态
+        this.dismissQueue = []
+        this.dismissCount = 0
+        this.dismissDebounceTimer = null
+        this.lastUpdateTime = Date.now()
+        return
+      } else {
+        const remainingMinutes = Math.ceil((MIN_UPDATE_INTERVAL_MS - timeSinceLastUpdate) / 60000)
+        profileLogger.info(`⏭️ 批量阈值已达到 (${this.dismissQueue.length}/${dismissThreshold})，但距上次更新仅 ${Math.floor(timeSinceLastUpdate / 60000)} 分钟，需等待 ${remainingMinutes} 分钟后再触发`)
+        // 继续使用防抖机制
+      }
     }
     
-    // 5. 设置新的防抖定时器（30秒后执行）
+    // 5. 设置新的防抖定时器（5分钟后执行）
     this.dismissDebounceTimer = setTimeout(async () => {
       const count = this.dismissQueue.length
-      profileLogger.info(`🔄 防抖触发: 批量处理 ${count} 条拒绝记录，触发画像更新`)
+      const timeSinceLastUpdate = Date.now() - this.lastUpdateTime
       
-      // 执行画像更新
-      await this.triggerFullUpdate('dismiss')
+      if (timeSinceLastUpdate >= MIN_UPDATE_INTERVAL_MS) {
+        profileLogger.info(`🔄 防抖触发: 批量处理 ${count} 条拒绝记录，触发画像更新`)
+        
+        // 执行画像更新
+        await this.triggerFullUpdate('dismiss')
+        this.lastUpdateTime = Date.now()
+      } else {
+        const remainingMinutes = Math.ceil((MIN_UPDATE_INTERVAL_MS - timeSinceLastUpdate) / 60000)
+        profileLogger.info(`⏭️ 防抖触发但时间间隔不足（距上次更新 ${Math.floor(timeSinceLastUpdate / 60000)} 分钟），跳过更新，需等待 ${remainingMinutes} 分钟`)
+      }
       
       // 重置状态
       this.dismissQueue = []
@@ -218,7 +266,7 @@ export class SemanticProfileBuilder {
       this.dismissDebounceTimer = null
     }, DISMISS_DEBOUNCE_MS)
     
-    profileLogger.debug(`拒绝操作已加入队列 (${this.dismissQueue.length}/${this.dismissCount})，${DISMISS_DEBOUNCE_MS / 1000}秒后触发更新（或达到 ${DISMISS_BATCH_THRESHOLD} 次立即触发）`)
+    profileLogger.debug(`拒绝操作已加入队列 (${this.dismissQueue.length}/${this.dismissCount})，${DISMISS_DEBOUNCE_MS / 1000}秒后触发更新（或达到 ${dismissThreshold} 次立即触发）`)
   }
   
   /**

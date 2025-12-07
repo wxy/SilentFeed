@@ -29,8 +29,17 @@ const recLogger = logger.withTag('RecommendationService')
 
 /**
  * 推荐池配置
+ * 
+ * 核心概念：
+ * - 弹窗容量（maxRecommendations）: 3-5 条，根据用户行为动态调整
+ *   → 弹窗中可显示的最大推荐条目数
+ * 
+ * - 推荐池容量：弹窗容量 × 2
+ *   → 数据库中存储的待显示推荐条目总数
+ *   → 例：弹窗 3 条，推荐池 6 条；弹窗 5 条，推荐池 10 条
+ *   → 保证用户拒绝部分推荐后仍有充足储备
  */
-const POOL_SIZE_MULTIPLIER = 2  // 推荐池容量 = maxRecommendations * 2
+const POOL_SIZE_MULTIPLIER = 2  // 推荐池倍数
 
 /**
  * 推荐生成结果
@@ -395,9 +404,16 @@ export class RecommendationService {
    * 保存推荐到数据库
    * 
    * Phase 6: 实现推荐池机制
-   * - 池容量 = maxRecommendations
-   * - 新推荐需要与池中现有推荐竞争
-   * - 只保留高分推荐
+   * 
+   * 核心逻辑：
+   * 1. 获取当前推荐池（数据库中未读且未拒绝的推荐）
+   * 2. 计算推荐池容量 = 弹窗容量 × 2
+   * 3. 新推荐与池中现有推荐竞争
+   * 4. 只保留高分推荐，移除低分推荐
+   * 
+   * @param recommendedArticles - 新生成的推荐文章
+   * @param config - 推荐配置（包含 maxRecommendations 弹窗容量）
+   * @returns 保存的推荐列表
    */
   private async saveRecommendations(
     recommendedArticles: RecommendedArticle[],
@@ -407,7 +423,7 @@ export class RecommendationService {
     const now = Date.now()
     const existingUrls = new Set<string>()
 
-    // Phase 6: 获取当前推荐池（未读且未被标记为不想读的推荐）
+    // Phase 6: 获取当前推荐池（数据库中未读且未被标记为不想读的推荐）
     // ✅ 优化：使用复合索引 [isRead+recommendedAt]
     // Dexie 的 boolean 索引需要使用 filter，但我们可以减少扫描范围
     const currentPool = await db.recommendations
@@ -416,10 +432,12 @@ export class RecommendationService {
       .filter(rec => !rec.isRead && rec.feedback !== 'dismissed')
       .toArray()
     
-    // Phase 优化: 推荐池容量 = maxRecommendations * POOL_SIZE_MULTIPLIER
-    const baseSize = config.maxRecommendations || 3
-    const maxSize = baseSize * POOL_SIZE_MULTIPLIER
-    recLogger.info(`当前推荐池: ${currentPool.length} 条（基础容量: ${baseSize}，实际容量: ${maxSize}，排除已标记为不想读的推荐）`)
+    // 核心公式：推荐池容量 = 弹窗容量 × POOL_SIZE_MULTIPLIER
+    // - baseSize (maxRecommendations): 弹窗可显示的条目数（3-5 条）
+    // - maxSize: 数据库中存储的总条目数（6-10 条）
+    const baseSize = config.maxRecommendations || 3  // 弹窗容量（默认 3 条）
+    const maxSize = baseSize * POOL_SIZE_MULTIPLIER  // 推荐池容量（默认 6 条）
+    recLogger.info(`当前推荐池: ${currentPool.length} 条（弹窗容量: ${baseSize}，推荐池容量: ${maxSize}，排除已标记为不想读的推荐）`)
 
     // 获取最近7天的推荐URL，用于去重
     try {

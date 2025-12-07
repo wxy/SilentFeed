@@ -158,8 +158,8 @@ const DEFAULT_CONFIG: RecommendationConfig = {
   useLocalAI: false,   // @deprecated 向后兼容
   maxRecommendations: 3, // 初始值3条，后续自动调整
   batchSize: 1, // Phase 6: 默认每次处理 1 篇文章（避免超时）
-  qualityThreshold: 0.6, // Phase 6: 根据实际评分分布调整（观察最高分 0.65）
-  tfidfThreshold: 0.01 // Phase 6: TF-IDF 阈值（降低到 0.01，初步筛选，只过滤完全不相关的）
+  qualityThreshold: 0.7, // Phase 8: 提高质量阈值到 0.7，减少低质量推荐
+  tfidfThreshold: 0.01 // 保持原值，避免过度过滤
 }
 
 /**
@@ -193,17 +193,17 @@ export async function getRecommendationConfig(): Promise<RecommendationConfig> {
     
     // Phase 6: 强制更新旧配置（兼容性迁移）
     
-    // 如果 qualityThreshold 是旧的默认值 0.8，更新为新的 0.6
-    if (merged.qualityThreshold === 0.8) {
-      configLogger.info('检测到旧配置 qualityThreshold=0.8，更新为 0.6')
-      merged.qualityThreshold = 0.6
+    // 如果 qualityThreshold 是旧的默认值，更新为新的 0.7
+    if (merged.qualityThreshold === 0.8 || merged.qualityThreshold === 0.6) {
+      configLogger.info(`检测到旧配置 qualityThreshold=${merged.qualityThreshold}，更新为 0.7`)
+      merged.qualityThreshold = 0.7
       needsUpdate = true
     }
     
-    // 如果缺少 tfidfThreshold，添加默认值
-    if (merged.tfidfThreshold === undefined) {
-      configLogger.info('添加缺失的 tfidfThreshold=0.01')
-      merged.tfidfThreshold = 0.01
+    // 如果缺少或过低的 tfidfThreshold，更新为新的默认值
+    if (merged.tfidfThreshold === undefined || merged.tfidfThreshold < 0.05) {
+      configLogger.info(`更新 tfidfThreshold=${merged.tfidfThreshold || 'undefined'} 为 0.05`)
+      merged.tfidfThreshold = 0.05
       needsUpdate = true
     }
     
