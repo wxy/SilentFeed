@@ -149,7 +149,8 @@ export class AICapabilityManager {
         try {
           const mergedOptions: AnalyzeOptions = {
             ...options,
-            useReasoning: useReasoning || options?.useReasoning || false
+            // Phase 9.2: 配置优先级 - 仅使用任务级配置（移除 options?.useReasoning 旧逻辑）
+            useReasoning: useReasoning ?? false
           }
           
           const result = await provider.analyzeContent(content, mergedOptions)

@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next"
+import i18n from "./index"
 
 /**
  * 简化的翻译函数
@@ -36,8 +37,6 @@ export function useI18n() {
  * ```
  */
 export function translate(key: string, options?: any): string {
-  // 动态导入 i18n 实例
-  const i18n = require("./index").default
   return i18n.t(key, options) as string
 }
 

@@ -71,8 +71,13 @@ export class ProfileManager {
         newProfile.behaviors = await semanticProfileBuilder.rebuildBehaviorsFromDatabase()
         profileLogger.info(`从数据库重建行为数据：${newProfile.behaviors.reads.length} 条阅读记录，${newProfile.behaviors.dismisses.length} 条拒绝记录`)
         
-        // ⚠️ 重要：不保留旧的 aiSummary，让 tryGenerateAIProfile 重新生成
-        // 这样 rebuild 才会真正重建 AI 画像
+        // 3.6. ⚠️ Phase 9.2: 保留旧的 AI Summary（避免重启后画像丢失）
+        // 只有在手动重建或满足生成条件时才重新生成
+        const oldProfile = await db.userProfile.get('singleton')
+        if (oldProfile?.aiSummary) {
+          newProfile.aiSummary = oldProfile.aiSummary
+          profileLogger.info('✅ 保留旧的 AI Summary（避免重启后丢失）')
+        }
 
         // 4. 保存到数据库（临时保存，可能被 AI 生成覆盖）
         await db.userProfile.put(newProfile)

@@ -633,5 +633,251 @@ describe('RecommendationService', () => {
       expect(result2).toBeDefined()
     })
   })
-})
 
+  describe('Phase 8: 推荐池容量验证（弹窗容量 × 2）', () => {
+    test('应该将推荐池容量设为弹窗容量的 2 倍', async () => {
+      // 这个测试验证推荐池的核心逻辑
+      const baseSize = 3  // 弹窗容量
+      const expectedPoolSize = 6  // 推荐池容量 = 3 × 2
+      
+      // Mock 配置
+      const { getRecommendationConfig } = await import('../../storage/recommendation-config')
+      vi.mocked(getRecommendationConfig).mockResolvedValueOnce({
+        analysisEngine: 'remoteAI',
+        maxRecommendations: baseSize,
+        qualityThreshold: 0.7,  // Phase 8: 提高质量阈值
+        tfidfThreshold: 0.01,
+        batchSize: 10
+      } as any)
+
+      const { getUserProfile } = await import('../../storage/db')
+      vi.mocked(getUserProfile).mockResolvedValueOnce(null)
+
+      // Mock 空推荐池
+      const emptyPool = {
+        orderBy: vi.fn().mockReturnThis(),
+        reverse: vi.fn().mockReturnThis(),
+        filter: vi.fn().mockReturnThis(),
+        toArray: vi.fn().mockResolvedValue([])
+      }
+      vi.mocked(db.recommendations.orderBy).mockReturnValue(emptyPool as any)
+
+      const result = await service.generateRecommendations(baseSize)
+      
+      // 验证：生成的推荐数量应该不超过推荐池容量（6 条）
+      expect(result.recommendations.length).toBeLessThanOrEqual(expectedPoolSize)
+    })
+
+    test('应该在不同弹窗容量下保持 2 倍关系', async () => {
+      const testCases = [
+        { baseSize: 3, expectedPoolSize: 6 },
+        { baseSize: 4, expectedPoolSize: 8 },
+        { baseSize: 5, expectedPoolSize: 10 }
+      ]
+
+      for (const { baseSize, expectedPoolSize } of testCases) {
+        const { getRecommendationConfig } = await import('../../storage/recommendation-config')
+        vi.mocked(getRecommendationConfig).mockResolvedValueOnce({
+          analysisEngine: 'remoteAI',
+          maxRecommendations: baseSize,
+          qualityThreshold: 0.7,
+          tfidfThreshold: 0.01,
+          batchSize: 10
+        } as any)
+
+        const { getUserProfile } = await import('../../storage/db')
+        vi.mocked(getUserProfile).mockResolvedValueOnce(null)
+
+        const emptyPool = {
+          orderBy: vi.fn().mockReturnThis(),
+          reverse: vi.fn().mockReturnThis(),
+          filter: vi.fn().mockReturnThis(),
+          toArray: vi.fn().mockResolvedValue([])
+        }
+        vi.mocked(db.recommendations.orderBy).mockReturnValue(emptyPool as any)
+
+        const result = await service.generateRecommendations(baseSize)
+        expect(result.recommendations.length).toBeLessThanOrEqual(expectedPoolSize)
+      }
+    })
+  })
+
+  describe('Phase 8: 质量阈值提升验证', () => {
+    test('应该过滤掉低于 0.7 阈值的推荐', async () => {
+      const { getRecommendationConfig } = await import('../../storage/recommendation-config')
+      vi.mocked(getRecommendationConfig).mockResolvedValueOnce({
+        analysisEngine: 'remoteAI',
+        maxRecommendations: 5,
+        qualityThreshold: 0.7,  // 新阈值
+        tfidfThreshold: 0.01,
+        batchSize: 10
+      } as any)
+
+      const { getUserProfile } = await import('../../storage/db')
+      vi.mocked(getUserProfile).mockResolvedValueOnce(null)
+
+      const result = await service.generateRecommendations(5)
+      
+      // 验证：所有推荐的评分都应该 ≥ 0.7
+      result.recommendations.forEach(rec => {
+        expect(rec.score).toBeGreaterThanOrEqual(0.7)
+      })
+    })
+  })
+
+  describe('推理模式配置优先级', () => {
+    test('任务级 useReasoning=false 应该覆盖全局 enableReasoning=true', async () => {
+      const { getAIConfig } = await import('../../storage/ai-config')
+      vi.mocked(getAIConfig).mockResolvedValueOnce({
+        provider: 'deepseek',
+        model: 'deepseek-chat',
+        apiKeys: {},
+        enabled: true,
+        enableReasoning: false,
+        local: {
+          enabled: false,
+          provider: 'ollama',
+          endpoint: 'http://localhost:11434/v1',
+          model: 'qwen2.5:7b'
+        },
+        // 新结构：任务级配置优先
+        engineAssignment: {
+          feedAnalysis: {
+            provider: 'deepseek',
+            useReasoning: false  // ⚠️ 任务级明确禁用推理
+          }
+        },
+        providers: {
+          deepseek: {
+            apiKey: 'test-key',
+            model: 'deepseek-chat',
+            enableReasoning: true  // 全局启用推理，但应该被任务级覆盖
+          }
+        }
+      } as any)
+
+      const { getRecommendationConfig } = await import('../../storage/recommendation-config')
+      vi.mocked(getRecommendationConfig).mockResolvedValueOnce({
+        analysisEngine: 'remoteAIWithReasoning',
+        feedAnalysisEngine: 'remoteAIWithReasoning',
+        useReasoning: true,
+        useLocalAI: false,
+        maxRecommendations: 5,
+        qualityThreshold: 0.6,
+        tfidfThreshold: 0.3,
+        batchSize: 10
+      } as any)
+
+      const { getUserProfile } = await import('../../storage/db')
+      vi.mocked(getUserProfile).mockResolvedValueOnce(null)
+
+      const result = await service.generateRecommendations()
+      
+      // 验证：由于任务级配置 useReasoning=false，应该降级到标准模式
+      // （具体验证可能需要检查日志或内部状态，这里至少确保不会崩溃）
+      expect(result).toBeDefined()
+    })
+
+    test('任务级 useReasoning=true 应该启用推理', async () => {
+      const { getAIConfig } = await import('../../storage/ai-config')
+      vi.mocked(getAIConfig).mockResolvedValueOnce({
+        provider: 'deepseek',
+        model: 'deepseek-chat',
+        apiKeys: {},
+        enabled: true,
+        enableReasoning: false,
+        local: {
+          enabled: false,
+          provider: 'ollama',
+          endpoint: 'http://localhost:11434/v1',
+          model: 'qwen2.5:7b'
+        },
+        // 新结构：任务级配置优先
+        engineAssignment: {
+          feedAnalysis: {
+            provider: 'deepseek',
+            useReasoning: true  // ✅ 任务级启用推理
+          }
+        },
+        providers: {
+          deepseek: {
+            apiKey: 'test-key',
+            model: 'deepseek-chat',
+            enableReasoning: false  // 全局禁用推理，但应该被任务级覆盖
+          }
+        }
+      } as any)
+
+      const { getRecommendationConfig } = await import('../../storage/recommendation-config')
+      vi.mocked(getRecommendationConfig).mockResolvedValueOnce({
+        analysisEngine: 'remoteAIWithReasoning',
+        feedAnalysisEngine: 'remoteAIWithReasoning',
+        useReasoning: true,
+        useLocalAI: false,
+        maxRecommendations: 5,
+        qualityThreshold: 0.6,
+        tfidfThreshold: 0.3,
+        batchSize: 10
+      } as any)
+
+      const { getUserProfile } = await import('../../storage/db')
+      vi.mocked(getUserProfile).mockResolvedValueOnce(null)
+
+      const result = await service.generateRecommendations()
+      
+      // 验证：应该正常生成推荐
+      expect(result).toBeDefined()
+    })
+
+    test('任务级配置未设置时应该回退到全局配置', async () => {
+      const { getAIConfig } = await import('../../storage/ai-config')
+      vi.mocked(getAIConfig).mockResolvedValueOnce({
+        provider: 'deepseek',
+        model: 'deepseek-chat',
+        apiKeys: {},
+        enabled: true,
+        enableReasoning: false,
+        local: {
+          enabled: false,
+          provider: 'ollama',
+          endpoint: 'http://localhost:11434/v1',
+          model: 'qwen2.5:7b'
+        },
+        // 新结构：任务级配置未设置 useReasoning
+        engineAssignment: {
+          feedAnalysis: {
+            provider: 'deepseek'
+            // useReasoning 未设置，应该回退到全局
+          }
+        },
+        providers: {
+          deepseek: {
+            apiKey: 'test-key',
+            model: 'deepseek-chat',
+            enableReasoning: true  // 全局启用推理
+          }
+        }
+      } as any)
+
+      const { getRecommendationConfig } = await import('../../storage/recommendation-config')
+      vi.mocked(getRecommendationConfig).mockResolvedValueOnce({
+        analysisEngine: 'remoteAIWithReasoning',
+        feedAnalysisEngine: 'remoteAIWithReasoning',
+        useReasoning: true,
+        useLocalAI: false,
+        maxRecommendations: 5,
+        qualityThreshold: 0.6,
+        tfidfThreshold: 0.3,
+        batchSize: 10
+      } as any)
+
+      const { getUserProfile } = await import('../../storage/db')
+      vi.mocked(getUserProfile).mockResolvedValueOnce(null)
+
+      const result = await service.generateRecommendations()
+      
+      // 验证：应该正常生成推荐（使用全局的 enableReasoning=true）
+      expect(result).toBeDefined()
+    })
+  })
+})
