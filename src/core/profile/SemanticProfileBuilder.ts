@@ -35,7 +35,8 @@ const DISMISS_THRESHOLD = 1    // 拒绝 1 篇立即触发全量更新（已废�
 /**
  * 防抖配置
  */
-const DISMISS_DEBOUNCE_MS = 30000  // 拒绝操作防抖时间（30秒，优化：原 5秒）
+const DISMISS_DEBOUNCE_MS = 30000  // 拒绝操作防抖时间（30秒）
+const DISMISS_BATCH_THRESHOLD = 10  // 累计拒绝次数阈值（达到后立即触发，不等待防抖）
 
 /**
  * AI 摘要结构（对齐 UserProfileGenerationResult）
@@ -168,11 +169,12 @@ export class SemanticProfileBuilder {
   }
 
   /**
-   * 用户拒绝推荐
+   * 用户拒绝推荐（优化版：防抖 + 批量阈值）
    */
   async onDismiss(article: Recommendation): Promise<void> {
     profileLogger.info('❌ 用户拒绝推荐', {
-      title: article.title
+      title: article.title,
+      当前队列: this.dismissQueue.length
     })
     
     // 1. 立即记录负反馈（不能延迟，因为需要立即从推荐池移除）
@@ -188,7 +190,21 @@ export class SemanticProfileBuilder {
       profileLogger.debug('清除旧的防抖定时器')
     }
     
-    // 4. 设置新的防抖定时器（5秒后执行）
+    // 4. 检查是否达到批量阈值（立即触发）
+    if (this.dismissQueue.length >= DISMISS_BATCH_THRESHOLD) {
+      profileLogger.info(`🔄 达到批量阈值 (${this.dismissQueue.length}/${DISMISS_BATCH_THRESHOLD})，立即触发画像更新`)
+      
+      // 立即执行画像更新
+      await this.triggerFullUpdate('dismiss')
+      
+      // 重置状态
+      this.dismissQueue = []
+      this.dismissCount = 0
+      this.dismissDebounceTimer = null
+      return
+    }
+    
+    // 5. 设置新的防抖定时器（30秒后执行）
     this.dismissDebounceTimer = setTimeout(async () => {
       const count = this.dismissQueue.length
       profileLogger.info(`🔄 防抖触发: 批量处理 ${count} 条拒绝记录，触发画像更新`)
@@ -202,7 +218,7 @@ export class SemanticProfileBuilder {
       this.dismissDebounceTimer = null
     }, DISMISS_DEBOUNCE_MS)
     
-    profileLogger.debug(`拒绝操作已加入队列 (${this.dismissQueue.length}/${this.dismissCount})，${DISMISS_DEBOUNCE_MS}ms 后触发更新`)
+    profileLogger.debug(`拒绝操作已加入队列 (${this.dismissQueue.length}/${this.dismissCount})，${DISMISS_DEBOUNCE_MS / 1000}秒后触发更新（或达到 ${DISMISS_BATCH_THRESHOLD} 次立即触发）`)
   }
   
   /**
