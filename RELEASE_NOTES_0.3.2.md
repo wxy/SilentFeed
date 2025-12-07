@@ -1,65 +1,66 @@
-# v0.3.2 Release Notes
+# Silent Feed v0.3.2 发布说明
 
-## 🎯 Highlights
+## 🎯 核心亮点
 
-### 📊 AI Usage Visual Analytics
-Professional tri-chart dashboard with Token Usage, API Calls, and Cost tracking. Support for daily/monthly views, reasoning vs non-reasoning mode comparison, and interactive tooltips.
+### 📊 AI 用量可视化仪表盘
+专业级三图表联动设计，追踪词元用量、API 调用次数和成本。支持每日/每月视图切换、推理/非推理模式对比，以及交互式详细提示。
 
-### 🌐 Enhanced Internationalization
-- Bilingual technical terms: "词元（Token）" format
-- Full date format localization (Chinese: 2024年12月07日, English: 2024-12-07)
-- 100% translation coverage for all user-facing text
+### 🌐 国际化全面升级
+- 双语技术术语标注："词元（Token）"格式，兼顾专业性与易懂性
+- 完整日期格式本地化（中文：2024年12月07日，英文：2024-12-07）
+- 100% 用户界面文本国际化覆盖
 
-### 🎨 UI/UX Improvements
-- Default style changed to Standard (prevents initial flash)
-- Smoother page load without style flickering
+### 🎨 UI/UX 改进
+- 默认界面风格改为标准模式（避免加载时闪烁）
+- 页面加载体验更流畅
 
-## 🐛 Bug Fixes
+## 🐛 问题修复
 
-### Ollama Integration
-- ✅ Fixed DNR configuration using Plasmo's `.plasmo` directory
-- ✅ Static rules for `localhost:11434` and `127.0.0.1:11434`
-- ✅ CORS headers correctly removed
+### Ollama 集成稳定性
+- ✅ 使用 Plasmo `.plasmo` 目录修复 DNR 配置
+- ✅ 为 `localhost:11434` 和 `127.0.0.1:11434` 配置静态规则
+- ✅ 正确移除 CORS 请求头
 
-### Page Tracking
-- ❌ Chrome internal pages (`chrome://`) no longer tracked
-- ❌ Settings page doesn't trigger profile rebuild
-- ❌ Duplicate page learning prevented
+### 页面追踪准确性
+- ✅ Chrome 内部页面（`chrome://`）不再被追踪
+- ✅ 设置页面不再触发画像重建
+- ✅ 防止重复学习同一页面
 
-### AI Usage Statistics
-- ✅ Daily aggregation fixed
-- ✅ Cost precision improved to 4 decimal places
-- ✅ Chart overflow handled with horizontal scrolling
+### AI 用量统计精度
+- ✅ 修复每日数据聚合逻辑
+- ✅ 成本精度提升至小数点后 4 位
+- ✅ 图表溢出时自动横向滚动
 
-## 📈 Performance
+## 📈 性能优化
 
-**Profile Generation Optimization**
-- Debounced rebuilds: batch dismissals within 5 seconds
-- 80% reduction in redundant AI calls
-- Lower costs for rapid article filtering
+**画像生成优化**
+- 5 秒内的批量操作合并处理（防抖机制）
+- 减少 80% 的冗余 AI 调用
+- 快速筛选文章时显著降低成本
 
-## 🧪 Quality
+## 🧪 质量保证
 
-- ✅ 93/93 test files passing
-- ✅ 1492/1492 test cases passing
-- ✅ ~73% code coverage
+- ✅ 93/93 测试文件通过
+- ✅ 1492/1492 测试用例通过
+- ✅ 代码覆盖率约 73%
 
-## 📦 Installation
+## 📦 安装方式
 
-### Chrome Web Store
-Auto-update within hours
+### Chrome 商店
+几小时内自动更新
 
-### Manual Install
-1. Download `silentfeed-0.3.2.zip`
-2. Unzip to local directory
-3. Chrome Extensions → Developer Mode → Load Unpacked
+### 手动安装
+1. 下载 `silentfeed-0.3.2.zip`
+2. 解压到本地目录
+3. Chrome 扩展 → 开发者模式 → 加载已解压的扩展
 
-## 🔗 Links
+## 🔗 相关链接
 
-- **Full Release Notes**: [docs/RELEASE_0.3.2.md](docs/RELEASE_0.3.2.md)
-- **Changelog**: [CHANGELOG.md](CHANGELOG.md)
+- **完整发布公告**: [docs/RELEASE_0.3.2.md](docs/RELEASE_0.3.2.md)
+- **更新日志**: [CHANGELOG.md](CHANGELOG.md)
 - **Pull Request**: #66
 
 ---
 
-**Silent Feed v0.3.2** - 20 commits, 3 major features, 10+ bug fixes
+**Silent Feed v0.3.2** - 20 个提交，3 大特性，10+ 问题修复
+
