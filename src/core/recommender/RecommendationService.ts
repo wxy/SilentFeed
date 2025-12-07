@@ -186,7 +186,14 @@ export class RecommendationService {
           const prov = getProviderFromModel(mdl) || 'deepseek'
           return !!AVAILABLE_MODELS[prov]?.find(m => m.id === mdl)?.supportsReasoning
         })(),
-        enableReasoningInAIConfig: aiConfig.engineAssignment?.feedAnalysis?.useReasoning || (aiConfig.engineAssignment?.feedAnalysis?.provider && aiConfig.providers[aiConfig.engineAssignment.feedAnalysis.provider as 'deepseek' | 'openai']?.enableReasoning) || false,
+        // Phase 9: 配置优先级 - 任务级 > 全局 > 默认值（与第114行逻辑一致）
+        enableReasoningInAIConfig: (() => {
+          const taskConfig = aiConfig.engineAssignment?.feedAnalysis
+          const taskProvider = taskConfig?.provider as 'deepseek' | 'openai' | undefined
+          return taskConfig?.useReasoning !== undefined 
+            ? taskConfig.useReasoning 
+            : (taskProvider && aiConfig.providers[taskProvider]?.enableReasoning) || false
+        })(),
         finalUseReasoning: useReasoning,
         reasoningDisabledReason,
         useLocalAI,

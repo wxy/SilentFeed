@@ -11,6 +11,7 @@ import type { ConfirmedVisit } from "@/types/database"
 vi.mock("@/storage/db")
 vi.mock("@/core/profile/ProfileBuilder")
 vi.mock("@/core/profile/InterestSnapshotManager")
+vi.mock("@/core/profile/SemanticProfileBuilder")
 
 describe("ProfileManager", () => {
   beforeEach(async () => {
@@ -23,6 +24,7 @@ describe("ProfileManager", () => {
       const { db } = await import("@/storage/db")
       const { profileBuilder } = await import("@/core/profile/ProfileBuilder")
       const { InterestSnapshotManager } = await import("@/core/profile/InterestSnapshotManager")
+      const { semanticProfileBuilder } = await import("@/core/profile/SemanticProfileBuilder")
 
       const manager = new ProfileManager()
 
@@ -76,6 +78,12 @@ describe("ProfileManager", () => {
       }
 
       vi.mocked(profileBuilder.buildFromVisits).mockResolvedValue(mockProfile)
+      
+      // Phase 9.2: Mock rebuildBehaviorsFromDatabase
+      vi.mocked(semanticProfileBuilder.rebuildBehaviorsFromDatabase).mockResolvedValue({
+        reads: [],
+        dismisses: []
+      })
 
       const result = await manager.rebuildProfile()
 
@@ -113,6 +121,121 @@ describe("ProfileManager", () => {
 
       expect(profileBuilder.buildFromVisits).toHaveBeenCalledWith([])
       expect(result.totalPages).toBe(0)
+    })
+
+    it("Phase 9.2: 应该保留旧的 AI Summary（避免重启后画像丢失）", async () => {
+      const { ProfileManager } = await import("./ProfileManager")
+      const { db } = await import("@/storage/db")
+      const { profileBuilder } = await import("@/core/profile/ProfileBuilder")
+      const { semanticProfileBuilder } = await import("@/core/profile/SemanticProfileBuilder")
+
+      const manager = new ProfileManager()
+
+      // Mock 访问记录
+      const mockVisits: ConfirmedVisit[] = [
+        {
+          id: "visit1",
+          url: "https://example.com/1",
+          title: "Test Page 1",
+          domain: "example.com",
+          meta: null,
+          contentSummary: null,
+          analysis: {
+            keywords: ["test", "react"],
+            topics: [Topic.TECHNOLOGY],
+            language: "en",
+          },
+          duration: 120,
+          interactionCount: 5,
+          visitTime: Date.now(),
+          status: "qualified",
+          contentRetainUntil: Date.now() + 90 * 24 * 60 * 60 * 1000,
+          analysisRetainUntil: -1,
+        },
+      ]
+
+      // Mock 旧画像（包含 AI Summary）
+      const oldProfile: UserProfile = {
+        id: "singleton",
+        totalPages: 100,
+        topics: {
+          [Topic.TECHNOLOGY]: 0.7,
+          [Topic.DESIGN]: 0.3,
+          [Topic.SCIENCE]: 0.0,
+          [Topic.BUSINESS]: 0.0,
+          [Topic.ARTS]: 0.0,
+          [Topic.HEALTH]: 0.0,
+          [Topic.SPORTS]: 0.0,
+          [Topic.ENTERTAINMENT]: 0.0,
+          [Topic.NEWS]: 0.0,
+          [Topic.EDUCATION]: 0.0,
+          [Topic.OTHER]: 0.0,
+        },
+        keywords: [{ word: "react", weight: 0.9 }],
+        domains: [{ domain: "example.com", count: 100, avgDwellTime: 120 }],
+        lastUpdated: Date.now(),
+        version: 1,
+        aiSummary: {
+          interests: "前端开发、React框架",
+          expertise: "熟练掌握 React 生态系统",
+          contentPreferences: ["技术深度文章", "实践教程"],
+          avoidTopics: ["娱乐八卦"],
+          metadata: {
+            provider: "deepseek",
+            model: "deepseek-chat",
+            timestamp: Date.now(),
+            tokensUsed: { prompt: 1000, completion: 200, total: 1200 },
+            cost: 0.05
+          }
+        }
+      }
+
+      // Mock 新构建的画像（无 AI Summary）
+      const newProfile: UserProfile = {
+        id: "singleton",
+        totalPages: 101,
+        topics: {
+          [Topic.TECHNOLOGY]: 0.8,
+          [Topic.DESIGN]: 0.2,
+          [Topic.SCIENCE]: 0.0,
+          [Topic.BUSINESS]: 0.0,
+          [Topic.ARTS]: 0.0,
+          [Topic.HEALTH]: 0.0,
+          [Topic.SPORTS]: 0.0,
+          [Topic.ENTERTAINMENT]: 0.0,
+          [Topic.NEWS]: 0.0,
+          [Topic.EDUCATION]: 0.0,
+          [Topic.OTHER]: 0.0,
+        },
+        keywords: [{ word: "react", weight: 0.9 }],
+        domains: [{ domain: "example.com", count: 101, avgDwellTime: 120 }],
+        lastUpdated: Date.now(),
+        version: 1,
+      }
+
+      vi.mocked(db.confirmedVisits.orderBy).mockReturnValue({
+        toArray: vi.fn().mockResolvedValue(mockVisits),
+      } as any)
+
+      // Mock db.userProfile.get 返回旧画像（两次：3.6行和重新读取）
+      vi.mocked(db.userProfile.get)
+        .mockResolvedValueOnce(oldProfile)  // 第一次：Line 78 读取旧画像
+        .mockResolvedValueOnce({ ...newProfile, aiSummary: oldProfile.aiSummary })  // 第二次：Line 87 重新读取
+
+      vi.mocked(profileBuilder.buildFromVisits).mockResolvedValue(newProfile)
+      
+      // Mock rebuildBehaviorsFromDatabase
+      vi.mocked(semanticProfileBuilder.rebuildBehaviorsFromDatabase).mockResolvedValue({
+        reads: [],
+        dismisses: []
+      })
+
+      const result = await manager.rebuildProfile()
+
+      // 验证旧的 AI Summary 被保留
+      expect(result.aiSummary).toBeDefined()
+      expect(result.aiSummary?.interests).toBe("前端开发、React框架")
+      expect(result.aiSummary?.metadata?.provider).toBe("deepseek")
     })
   })
 

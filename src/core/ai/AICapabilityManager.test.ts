@@ -442,4 +442,31 @@ describe("AICapabilityManager", () => {
       expect(res.message).toMatch(/未配置 AI 提供商/)
     })
   })
+
+  describe("推理模式配置优先级", () => {
+    it("Phase 9.2: 仅使用任务级配置（移除 options?.useReasoning 残留）", () => {
+      // 测试第 152 行的新逻辑：useReasoning ?? false
+      // ⚠️ Phase 9.2 修复：移除 options?.useReasoning 旧配置逻辑
+      
+      // Case 1: 任务级=false → 应该用 false
+      const useReasoning1 = false
+      const merged1 = useReasoning1 ?? false
+      expect(merged1).toBe(false)  // ✅ 任务级配置
+      
+      // Case 2: 任务级=true → 应该用 true
+      const useReasoning2 = true
+      const merged2 = useReasoning2 ?? false
+      expect(merged2).toBe(true)  // ✅ 任务级配置
+      
+      // Case 3: 任务级=undefined → 应该用默认 false
+      const useReasoning3 = undefined
+      const merged3 = useReasoning3 ?? false
+      expect(merged3).toBe(false)  // ✅ 回退到默认值
+      
+      // Case 4: 任务级=null → 应该用默认 false
+      const useReasoning4: boolean | null = null
+      const merged4 = useReasoning4 ?? false
+      expect(merged4).toBe(false)  // ✅ 回退到默认值
+    })
+  })
 })

@@ -8,7 +8,12 @@
 
 ### 现象
 
-后台推荐任务（RecommendationScheduler）在生成推荐时，错误地使用了推理模式，即使用户配置明确禁用了订阅源分析的推理功能。
+**所有三个主要 AI 任务都受影响**，错误地使用了推理模式，即使用户配置明确禁用。
+
+**影响范围**:
+1. 页面浏览学习 (pageAnalysis) - `AICapabilityManager`
+2. 订阅源分析 (feedAnalysis) - `pipeline` + `RecommendationService`
+3. 用户画像生成 (profileGeneration) - `AICapabilityManager`
 
 **用户配置**:
 ```json
@@ -33,20 +38,36 @@
 [RecommendationService] analysisEngine: "remoteAIWithReasoning"
 ```
 
+**影响**:
+- AI 成本增加 10 倍（推理模式成本倍数）
+- 用户配置失效
+- 成本控制策略失败
+
 ### 根本原因
 
-在 `RecommendationService.ts` 中，推理开关的判断逻辑使用了错误的运算符：
+**`||` 运算符误用**，导致任务级的 `false` 值被视为 falsy 而被忽略。
 
+共发现 **5 处** 同样的问题：
+
+1. `AICapabilityManager.ts:152` - **P0**（影响所有AI任务）
+2. `pipeline.ts:499` - P1（订阅源推荐分析）
+3. `pipeline.ts:623` - P1（推荐管道分析）
+4. `pipeline.ts:756` - P1（推荐理由生成）
+5. `RecommendationService.ts:189` - P2（仅影响日志）
+
+**典型错误代码**:
 ```typescript
-// ❌ 错误代码（修复前）
-enableReasoningFlag = taskConfig?.useReasoning || aiConfig.providers[taskProvider]?.enableReasoning
+// ❌ 错误逻辑
+enableReasoningFlag = taskConfig?.useReasoning || globalConfig?.enableReasoning
+
+// 当 taskConfig.useReasoning=false 时：
+// false || true → true  ✗ 错误！应该是 false
 ```
 
 **问题分析**:
-- 使用 `||` 逻辑或运算符
-- 当 `taskConfig.useReasoning = false` 时，会被视为 falsy 值
-- 继续计算右侧表达式 `aiConfig.providers[taskProvider].enableReasoning`
-- 如果全局配置 `enableReasoning = true`，最终结果为 `true`
+- `||` 运算符将 `false` 视为 falsy 值
+- 继续计算右侧表达式
+- 全局配置覆盖了任务级配置
 - **任务级配置被忽略**
 
 ### 影响范围

@@ -496,7 +496,8 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
         model: 'deepseek-chat',
         timeout: context.config.useReasoning ? 120000 : 60000,
         maxTokens: 2000,
-        useReasoning: context.config.useReasoning || false,
+        // Phase 9: 明确从配置中读取推理模式，避免 false 被 || 忽略
+        useReasoning: context.config.useReasoning ?? false,
         userProfile: aiUserProfile,
         purpose: 'recommend-content' as const  // 指定为RSS推荐任务
       }
@@ -620,7 +621,8 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
           const analysisOptions = {
             maxLength: 3000,
             timeout: this.config.ai.timeout || 60000,  // Phase 6: 默认 60 秒
-            useReasoning: context.config?.useReasoning || false,  // Phase 6: 传递推理模式参数
+            // Phase 9: 明确从配置中读取推理模式，避免 false 被 || 忽略
+            useReasoning: context.config?.useReasoning ?? false,
             userProfile,  // Phase 8: 传递用户画像
             purpose: 'recommend-content' as const  // 指定为RSS推荐任务
           }
@@ -753,7 +755,8 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
     
     // 根据分析provider类型确定AI提供商
     const provider = (analysis.metadata?.provider || "keyword") as AIProvider
-    const isReasoning = config?.useReasoning || false
+    // Phase 9: 明确从配置中读取推理模式，避免 false 被 || 忽略
+    const isReasoning = config?.useReasoning ?? false
     
     // 确定推荐理由类型
     let type: ReasonType
