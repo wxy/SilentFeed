@@ -1585,6 +1585,21 @@
       "units": {
         "calls": "calls"
       },
+      "dateFormat": {
+        "monthly": "{{year}}-{{month}}",
+        "daily": "{{year}}-{{month}}-{{day}}",
+        "monthlyShort": "{{month}}",
+        "dailyShort": "{{month}}/{{day}}"
+      },
+      "chartTitle": {
+        "daily": "Daily Usage Statistics",
+        "monthly": "Monthly Usage Statistics"
+      },
+      "periodInfo": {
+        "last30Days": "Last 30 Days",
+        "allTime": "All Time",
+        "template": "💡 Statistics Period: {{period}} | Data Source: AI Usage Tracker"
+      },
       "tooltip": {
         "tokenNonReasoning": "{{date}}\n{{label}}: {{value}}K",
         "tokenReasoning": "{{date}}\n{{label}}: {{value}}K\n{{totalLabel}}: {{total}}K",

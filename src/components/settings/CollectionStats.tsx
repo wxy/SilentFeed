@@ -164,14 +164,6 @@ export function CollectionStats() {
           usageStatsPeriod === '30days' ? 30 : undefined
         )
         
-        collectionLogger.info('✅ 加载数据完成:', {
-          storageData: storageData.pageCount,
-          currentPageCount,
-          aiUsageStatsCount: usageStats.totalCalls,
-          dailyDataLength: dailyData.length,
-          dailyDataSample: dailyData.slice(0, 2)
-        })
-        
         setStats(storageData)
         setPageCount(currentPageCount)
         setRecommendationFunnel(funnelData)
@@ -777,7 +769,7 @@ export function CollectionStats() {
                   <div className="bg-gradient-to-br from-slate-50/80 to-gray-50/80 dark:from-slate-900/20 dark:to-gray-900/20 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
                     <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
                       <span>📊</span>
-                      <span>{usageStatsPeriod === '30days' ? '每日用量统计' : '每月用量统计'}</span>
+                      <span>{_(usageStatsPeriod === '30days' ? 'settings.aiUsage.chartTitle.daily' : 'settings.aiUsage.chartTitle.monthly')}</span>
                     </h3>
                     <AIUsageBarChart 
                       data={dailyStats} 
@@ -788,7 +780,9 @@ export function CollectionStats() {
 
                 {/* 统计周期说明 */}
                 <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                  💡 数据统计周期：{usageStatsPeriod === '30days' ? '最近 30 天' : '全部时间'} | 数据来源：AI 用量追踪器
+                  {_('settings.aiUsage.periodInfo.template', {
+                    period: _(usageStatsPeriod === '30days' ? 'settings.aiUsage.periodInfo.last30Days' : 'settings.aiUsage.periodInfo.allTime')
+                  })}
                 </div>
               </div>
             )}

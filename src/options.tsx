@@ -54,7 +54,7 @@ function IndexOptions() {
   }
 
   const [activeTab, setActiveTab] = useState<TabKey>(getInitialTab)
-  const [uiStyle, setUiStyleState] = useState<UIStyle>("sketchy")
+  const [uiStyle, setUiStyleState] = useState<UIStyle>("normal")
   const [autoTranslate, setAutoTranslate] = useState(false)
 
   // 加载 UI 风格和自动翻译设置

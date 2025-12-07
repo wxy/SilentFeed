@@ -28,7 +28,7 @@ function IndexPopup() {
   const [pageCount, setPageCount] = useState<number | null>(null)
   const [onboardingState, setOnboardingState] = useState<OnboardingState | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [uiStyle, setUiStyle] = useState<UIStyle>("sketchy")
+  const [uiStyle, setUiStyle] = useState<UIStyle>("normal")
   const [toolbarState, setToolbarState] = useState<{
     hasRSSFeeds: boolean
     onDismissAll?: () => Promise<void>

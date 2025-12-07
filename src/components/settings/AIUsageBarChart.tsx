@@ -109,7 +109,7 @@ export function AIUsageBarChart({ data, mode }: AIUsageBarChartProps) {
   const callUnit = _("settings.aiUsage.units.calls")
 
   const formatTokenTooltip = (date: string, label: string, value: number, total?: number) => {
-    const formattedDate = formatDate(date, mode)
+    const formattedDate = formatDate(date, mode, _)
     const valueK = (value / 1000).toFixed(1)
     if (typeof total === "number") {
       const totalK = (total / 1000).toFixed(1)
@@ -129,7 +129,7 @@ export function AIUsageBarChart({ data, mode }: AIUsageBarChartProps) {
   }
 
   const formatCallTooltip = (date: string, label: string, value: number, total?: number) => {
-    const formattedDate = formatDate(date, mode)
+    const formattedDate = formatDate(date, mode, _)
     if (typeof total === "number") {
       return _("settings.aiUsage.tooltip.callsReasoning", {
         date: formattedDate,
@@ -149,7 +149,7 @@ export function AIUsageBarChart({ data, mode }: AIUsageBarChartProps) {
   }
 
   const formatCostTooltip = (date: string, label: string, value: number, total?: number) => {
-    const formattedDate = formatDate(date, mode)
+    const formattedDate = formatDate(date, mode, _)
     const formattedValue = value.toFixed(4)
     if (typeof total === "number") {
       return _("settings.aiUsage.tooltip.costReasoning", {
@@ -438,7 +438,7 @@ export function AIUsageBarChart({ data, mode }: AIUsageBarChartProps) {
                   className="text-center text-[9px] text-gray-500 dark:text-gray-400"
                   style={{ width: `${dateWidth}px`, minWidth: `${dateWidth}px` }}
                 >
-                  {showLabel ? formatDateShort(item.date, mode) : ""}
+                  {showLabel ? formatDateShort(item.date, mode, _) : ""}
                 </div>
               )
             })}
@@ -599,22 +599,22 @@ export function aggregateByMonth(dailyData: DailyUsageStats[]): DailyUsageStats[
   return Array.from(monthlyMap.values()).sort((a, b) => a.date.localeCompare(b.date))
 }
 
-function formatDate(date: string, mode: "daily" | "monthly"): string {
+function formatDate(date: string, mode: "daily" | "monthly", formatFn: (key: string, options?: any) => string): string {
   if (mode === "monthly") {
     const [year, month] = date.split("-")
-    return `${year}年${month}月`
+    return formatFn("settings.aiUsage.dateFormat.monthly", { year, month })
   }
 
   const [year, month, day] = date.split("-")
-  return `${year}年${month}月${day}日`
+  return formatFn("settings.aiUsage.dateFormat.daily", { year, month, day })
 }
 
-function formatDateShort(date: string, mode: "daily" | "monthly"): string {
+function formatDateShort(date: string, mode: "daily" | "monthly", formatFn: (key: string, options?: any) => string): string {
   if (mode === "monthly") {
     const [, month] = date.split("-")
-    return `${month}月`
+    return formatFn("settings.aiUsage.dateFormat.monthlyShort", { month })
   }
 
   const [, month, day] = date.split("-")
-  return `${month}/${day}`
+  return formatFn("settings.aiUsage.dateFormat.dailyShort", { month, day })
 }

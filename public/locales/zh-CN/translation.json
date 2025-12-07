@@ -1405,21 +1405,36 @@
   "settings": {
     "aiUsage": {
       "emptyState": "暂无数据",
-      "tokenAxisLabel": "Token",
-      "callAxisLabel": "调用",
+      "tokenAxisLabel": "词元（Token）",
+      "callAxisLabel": "调用次数",
       "legend": {
-        "tokenNonReasoning": "Token (非推理)",
-        "tokenReasoning": "Token (推理)",
-        "callsNonReasoning": "调用 (非推理)",
-        "callsReasoning": "调用 (推理)",
-        "costNonReasoning": "费用 (非推理)",
-        "costReasoning": "费用 (推理)"
+        "tokenNonReasoning": "词元（Token）（非推理）",
+        "tokenReasoning": "词元（Token）（推理）",
+        "callsNonReasoning": "调用（非推理）",
+        "callsReasoning": "调用（推理）",
+        "costNonReasoning": "费用（非推理）",
+        "costReasoning": "费用（推理）"
       },
       "labels": {
         "total": "总计"
       },
       "units": {
         "calls": "次"
+      },
+      "dateFormat": {
+        "monthly": "{{year}}年{{month}}月",
+        "daily": "{{year}}年{{month}}月{{day}}日",
+        "monthlyShort": "{{month}}月",
+        "dailyShort": "{{month}}/{{day}}"
+      },
+      "chartTitle": {
+        "daily": "每日用量统计",
+        "monthly": "每月用量统计"
+      },
+      "periodInfo": {
+        "last30Days": "最近 30 天",
+        "allTime": "全部时间",
+        "template": "💡 数据统计周期：{{period}} | 数据来源：AI 用量追踪器"
       },
       "tooltip": {
         "tokenNonReasoning": "{{date}}\n{{label}}: {{value}}K",

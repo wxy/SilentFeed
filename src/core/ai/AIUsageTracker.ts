@@ -495,12 +495,6 @@ export class AIUsageTracker {
       // 按日期排序（降序）
       dailyStats.sort((a, b) => b.date.localeCompare(a.date))
       
-      // 🔍 调试：输出统计结果
-      usageLogger.debug(`getDailyStats 返回 ${dailyStats.length} 条日期记录，原始记录数: ${records.length}`)
-      if (dailyStats.length > 0) {
-        usageLogger.debug(`首条记录: ${JSON.stringify(dailyStats[0])}`)
-      }
-      
       return dailyStats
     } catch (error) {
       usageLogger.error("获取按日统计失败:", error)
