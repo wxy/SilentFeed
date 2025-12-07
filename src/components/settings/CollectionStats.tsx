@@ -164,6 +164,14 @@ export function CollectionStats() {
           usageStatsPeriod === '30days' ? 30 : undefined
         )
         
+        collectionLogger.info('✅ 加载数据完成:', {
+          storageData: storageData.pageCount,
+          currentPageCount,
+          aiUsageStatsCount: usageStats.totalCalls,
+          dailyDataLength: dailyData.length,
+          dailyDataSample: dailyData.slice(0, 2)
+        })
+        
         setStats(storageData)
         setPageCount(currentPageCount)
         setRecommendationFunnel(funnelData)
@@ -763,142 +771,6 @@ export function CollectionStats() {
                   </div>
                 )}
 
-                {/* 本地 AI 统计（如果有） */}
-                {Object.entries(aiUsageStats.byProvider).some(([_, data]) => data.isLocal) && (
-                  <div className="bg-gradient-to-br from-cyan-50/80 to-teal-50/80 dark:from-cyan-900/20 dark:to-teal-900/20 rounded-lg p-4 border border-cyan-200 dark:border-cyan-700">
-                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-                      <span>💻</span>
-                      <span>{_("options.collectionStats.aiUsage.localAI.title")}</span>
-                    </h3>
-                    <div className="space-y-2">
-                      {Object.entries(aiUsageStats.byProvider)
-                        .filter(([_, data]) => data.isLocal)
-                        .map(([provider, data]) => (
-                          <div key={provider} className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-cyan-100 dark:border-cyan-800">
-                            <div className="flex justify-between items-center mb-2">
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                                  {getProviderName(provider, _)}
-                                </span>
-                                <span className="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full">
-                                  {_("options.collectionStats.aiUsage.localAI.free")}
-                                </span>
-                              </div>
-                              <div className="text-xs text-gray-500 dark:text-gray-400">
-                                {data.calls} {_("options.collectionStats.aiUsage.localAI.calls")}
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-3 text-xs">
-                              <div>
-                                <div className="text-gray-500 dark:text-gray-400">{_("options.collectionStats.aiUsage.localAI.tokenUsage")}</div>
-                                <div className="font-semibold text-cyan-700 dark:text-cyan-300">
-                                  {(data.tokens.total / 1000).toFixed(1)}K
-                                </div>
-                                <div className="text-gray-400 text-xs">
-                                  ↑{(data.tokens.input / 1000).toFixed(1)}K ↓{(data.tokens.output / 1000).toFixed(1)}K
-                                </div>
-                              </div>
-                              <div>
-                                <div className="text-gray-500 dark:text-gray-400">{_("options.collectionStats.aiUsage.localAI.avgDuration")}</div>
-                                <div className="font-semibold text-cyan-700 dark:text-cyan-300">
-                                  {(data.tokens.total / data.calls / 1000 * (data.tokens.total / data.calls > 100 ? 2 : 1)).toFixed(2)}s
-                                </div>
-                                <div className="text-gray-400 text-xs">
-                                  {_("options.collectionStats.aiUsage.localAI.localInference")}
-                                </div>
-                              </div>
-                            </div>
-                            <div className="mt-2 pt-2 border-t border-cyan-100 dark:border-cyan-800 text-xs text-gray-500 dark:text-gray-400">
-                              {_("options.collectionStats.aiUsage.localAI.hint")}
-                            </div>
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* 按货币分组（如果有多种货币） */}
-                {(aiUsageStats.byCurrency.CNY.total > 0 || 
-                  aiUsageStats.byCurrency.USD.total > 0 || 
-                  aiUsageStats.byCurrency.FREE.total > 0) && (
-                  <div className="bg-gradient-to-br from-emerald-50/80 to-teal-50/80 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-lg p-4 border border-emerald-200 dark:border-emerald-700">
-                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-                      <span>💰</span>
-                      <span>{_("options.collectionStats.aiUsage.byCurrency.title")}</span>
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      {/* CNY */}
-                      {aiUsageStats.byCurrency.CNY.total > 0 && (
-                        <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-emerald-100 dark:border-emerald-800">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                              {_("options.collectionStats.aiUsage.byCurrency.CNY")}
-                            </span>
-                          </div>
-                          <div className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
-                            <div className="flex justify-between">
-                              <span>{_("options.collectionStats.aiUsage.tokens.input")}:</span>
-                              <span className="font-semibold">¥{aiUsageStats.byCurrency.CNY.input.toFixed(4)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>{_("options.collectionStats.aiUsage.tokens.output")}:</span>
-                              <span className="font-semibold">¥{aiUsageStats.byCurrency.CNY.output.toFixed(4)}</span>
-                            </div>
-                            <div className="flex justify-between border-t border-emerald-100 dark:border-emerald-800 pt-1 mt-1">
-                              <span className="font-medium">{_("options.collectionStats.aiUsage.tokens.total")}:</span>
-                              <span className="font-bold text-emerald-700 dark:text-emerald-300">¥{aiUsageStats.byCurrency.CNY.total.toFixed(4)}</span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* USD */}
-                      {aiUsageStats.byCurrency.USD.total > 0 && (
-                        <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-emerald-100 dark:border-emerald-800">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                              {_("options.collectionStats.aiUsage.byCurrency.USD")}
-                            </span>
-                          </div>
-                          <div className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
-                            <div className="flex justify-between">
-                              <span>{_("options.collectionStats.aiUsage.tokens.input")}:</span>
-                              <span className="font-semibold">${aiUsageStats.byCurrency.USD.input.toFixed(4)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>{_("options.collectionStats.aiUsage.tokens.output")}:</span>
-                              <span className="font-semibold">${aiUsageStats.byCurrency.USD.output.toFixed(4)}</span>
-                            </div>
-                            <div className="flex justify-between border-t border-emerald-100 dark:border-emerald-800 pt-1 mt-1">
-                              <span className="font-medium">{_("options.collectionStats.aiUsage.tokens.total")}:</span>
-                              <span className="font-bold text-emerald-700 dark:text-emerald-300">${aiUsageStats.byCurrency.USD.total.toFixed(4)}</span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* FREE */}
-                      {aiUsageStats.byCurrency.FREE.total > 0 && (
-                        <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-emerald-100 dark:border-emerald-800">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                              {_("options.collectionStats.aiUsage.byCurrency.FREE")}
-                            </span>
-                            <span className="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full">
-                              {_("options.collectionStats.aiUsage.localAI.free")}
-                            </span>
-                          </div>
-                          <div className="text-center py-4">
-                            <div className="text-2xl font-bold text-green-700 dark:text-green-300">¥0.00</div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                              {_("options.collectionStats.aiUsage.localAI.hint")}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
 
                 {/* 每日/每月用量统计柱形图 */}
                 {dailyStats.length > 0 && (
