@@ -10,7 +10,7 @@
  */
 
 import { getAIConfig } from "@/storage/ai-config"
-import { logger } from "@/utils/logger"
+import { logger, isNetworkError } from "@/utils/logger"
 
 const translationLogger = logger.withTag('Translation')
 
@@ -147,7 +147,12 @@ ${text}`
         translatedText
       }
     } catch (error) {
-      translationLogger.error('翻译失败:', error)
+      // 网络错误是临时性的，使用 warn 级别
+      if (isNetworkError(error)) {
+        translationLogger.warn('⚠️ 翻译服务暂时不可用（网络问题），显示原文', error)
+      } else {
+        translationLogger.error('❌ 翻译失败', error)
+      }
       
       // 失败时返回原文
       return {

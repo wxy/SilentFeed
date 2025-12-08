@@ -90,6 +90,40 @@ class Logger {
 }
 
 /**
+ * 判断是否为网络相关错误
+ * 
+ * 网络错误通常是临时性的，不应该作为严重错误处理
+ * 包括：网络中断、超时、DNS 解析失败、服务不可用等
+ */
+export function isNetworkError(error: unknown): boolean {
+  if (!error) return false
+  
+  const errorStr = String(error)
+  const message = error instanceof Error ? error.message : errorStr
+  
+  // 常见网络错误特征
+  const networkErrorPatterns = [
+    'Failed to fetch',           // Fetch API 网络错误
+    'Network request failed',    // React Native 等
+    'NetworkError',              // 通用网络错误
+    'net::ERR_',                 // Chrome 网络错误
+    'ECONNREFUSED',              // 连接被拒绝
+    'ENOTFOUND',                 // DNS 解析失败
+    'ETIMEDOUT',                 // 超时
+    'ECONNRESET',                // 连接重置
+    'socket hang up',            // Socket 挂起
+    'Request timeout',           // 请求超时
+    'Service Unavailable',       // 服务不可用 (503)
+    'Gateway Timeout',           // 网关超时 (504)
+    'Too Many Requests',         // 请求过多 (429)
+  ]
+  
+  return networkErrorPatterns.some(pattern => 
+    message.includes(pattern) || errorStr.includes(pattern)
+  )
+}
+
+/**
  * 导出单例
  */
 export const logger = new Logger()

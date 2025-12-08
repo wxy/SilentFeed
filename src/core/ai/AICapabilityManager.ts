@@ -26,7 +26,7 @@ import { FallbackKeywordProvider } from "./providers/FallbackKeywordProvider"
 import { OllamaProvider } from "./providers/OllamaProvider"
 import { getAIConfig, getEngineAssignment, type AIProviderType, type LocalAIConfig } from "@/storage/ai-config"
 import type { AIEngineAssignment } from "@/types/ai-engine-assignment"
-import { logger } from '../../utils/logger'
+import { logger, isNetworkError } from '../../utils/logger'
 import { AIUsageTracker } from './AIUsageTracker'
 
 // 创建带标签的 logger
@@ -157,7 +157,12 @@ export class AICapabilityManager {
           this.recordUsage(result)
           return result
         } catch (error) {
-          aiLogger.error(`❌ Provider ${provider.name} failed for ${taskType}`, error)
+          // 网络错误使用 warn 级别，避免误导用户
+          if (isNetworkError(error)) {
+            aiLogger.warn(`⚠️ Provider ${provider.name} 暂时不可用（${taskType}），使用降级方案`, error)
+          } else {
+            aiLogger.error(`❌ Provider ${provider.name} failed for ${taskType}`, error)
+          }
           return await this.fallbackProvider.analyzeContent(content, options)
         }
       } else {
@@ -174,7 +179,11 @@ export class AICapabilityManager {
         this.recordUsage(result)
         return result
       } catch (error) {
-        aiLogger.error(` Provider ${provider.name} failed, trying next option`, error)
+        if (isNetworkError(error)) {
+          aiLogger.warn(`⚠️ Provider ${provider.name} 暂时不可用，尝试下一个选项`, error)
+        } else {
+          aiLogger.error(`❌ Provider ${provider.name} failed, trying next option`, error)
+        }
       }
     }
 
@@ -204,7 +213,12 @@ export class AICapabilityManager {
         }
         return result
       } catch (error) {
-        aiLogger.error(`❌ Provider ${taskProvider.name} failed for profile generation`, error)
+        // 网络错误使用 warn 级别
+        if (isNetworkError(error)) {
+          aiLogger.warn(`⚠️ Provider ${taskProvider.name} 暂时不可用（profile generation），使用降级方案`, error)
+        } else {
+          aiLogger.error(`❌ Provider ${taskProvider.name} failed for profile generation`, error)
+        }
         // 继续尝试降级逻辑
       }
     }
@@ -224,7 +238,11 @@ export class AICapabilityManager {
         }
         return result
       } catch (error) {
-        aiLogger.error(`❌ Provider ${provider.name} failed for profile generation`, error)
+        if (isNetworkError(error)) {
+          aiLogger.warn(`⚠️ Provider ${provider.name} 暂时不可用（profile generation），尝试下一个选项`, error)
+        } else {
+          aiLogger.error(`❌ Provider ${provider.name} failed for profile generation`, error)
+        }
       }
     }
 
@@ -448,7 +466,11 @@ export class AICapabilityManager {
           await this.recordRecommendationUsage(result, useReasoning)  // 传递 useReasoning
           return result
         } catch (error) {
-          aiLogger.error(`❌ Provider ${taskProvider.name} failed for recommendation reason`, error)
+          if (isNetworkError(error)) {
+            aiLogger.warn(`⚠️ Provider ${taskProvider.name} 暂时不可用（recommendation reason），使用降级方案`, error)
+          } else {
+            aiLogger.error(`❌ Provider ${taskProvider.name} failed for recommendation reason`, error)
+          }
           // 继续尝试降级逻辑
         }
       }
