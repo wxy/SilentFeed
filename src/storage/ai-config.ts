@@ -154,6 +154,12 @@ export interface AIConfig {
 
   /** Phase 11: AI 引擎分配（为不同用途分配不同的 AI 引擎） */
   engineAssignment: AIEngineAssignment
+  
+  /** Phase 12: 首选远程 AI Provider（当任务配置为 "remote" 时使用） */
+  preferredRemoteProvider?: "deepseek" | "openai"
+  
+  /** Phase 12: 首选本地 AI Provider（当任务配置为 "local" 时使用，目前仅支持 ollama） */
+  preferredLocalProvider?: "ollama"
 }
 
 /**
@@ -172,7 +178,9 @@ const DEFAULT_CONFIG: AIConfig = {
     maxOutputTokens: 768,
     timeoutMs: 45000
   },
-  engineAssignment: getDefaultEngineAssignment() // Phase 11: 默认智能优先方案
+  engineAssignment: getDefaultEngineAssignment(), // Phase 11: 默认智能优先方案
+  preferredRemoteProvider: "deepseek",  // Phase 12: 默认使用 DeepSeek
+  preferredLocalProvider: "ollama"      // Phase 12: 目前仅支持 Ollama
 }
 
 /**
@@ -212,7 +220,10 @@ export async function getAIConfig(): Promise<AIConfig> {
             ...DEFAULT_CONFIG.local,
             ...(config.local || {})
           },
-          engineAssignment: config.engineAssignment || DEFAULT_CONFIG.engineAssignment
+          engineAssignment: config.engineAssignment || DEFAULT_CONFIG.engineAssignment,
+          // Phase 12: 读取 Provider 偏好设置
+          preferredRemoteProvider: config.preferredRemoteProvider || DEFAULT_CONFIG.preferredRemoteProvider,
+          preferredLocalProvider: config.preferredLocalProvider || DEFAULT_CONFIG.preferredLocalProvider
         }
       }
       
@@ -255,7 +266,10 @@ export async function saveAIConfig(config: AIConfig): Promise<void> {
         providers: encryptedProviders,
         monthlyBudget: config.monthlyBudget,
         local: config.local,
-        engineAssignment: config.engineAssignment
+        engineAssignment: config.engineAssignment,
+        // Phase 12: 保存 Provider 偏好设置
+        preferredRemoteProvider: config.preferredRemoteProvider,
+        preferredLocalProvider: config.preferredLocalProvider
       }
       
       await chrome.storage.sync.set({ aiConfig: encryptedConfig })

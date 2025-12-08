@@ -22,6 +22,8 @@ export function AIConfigPanel() {
   const [currentProvider, setCurrentProvider] = useState<string | null>(null)
   const [configVersion, setConfigVersion] = useState(0) // 用于强制刷新
   const [ollamaSupportsReasoning, setOllamaSupportsReasoning] = useState(false) // Phase 11.2: Ollama 推理能力状态
+  const [preferredRemoteProvider, setPreferredRemoteProvider] = useState<"deepseek" | "openai">("deepseek") // Phase 12: 首选远程 AI
+  const [preferredLocalProvider, setPreferredLocalProvider] = useState<"ollama">("ollama") // Phase 12: 首选本地 AI
 
   // Provider 列表配置
   const providers = [
@@ -39,6 +41,10 @@ export function AIConfigPanel() {
       
       // Phase 11.2: 读取 Ollama 推理能力状态
       setOllamaSupportsReasoning(config.local?.isReasoningModel || false)
+      
+      // Phase 12: 读取首选 Provider 配置
+      setPreferredRemoteProvider(config.preferredRemoteProvider || "deepseek")
+      setPreferredLocalProvider(config.preferredLocalProvider || "ollama")
       
       // Phase 11: 从 engineAssignment 确定实际在用的 Provider
       // 优先级：profileGeneration（低频但重要）> feedAnalysis > pageAnalysis
@@ -160,6 +166,11 @@ export function AIConfigPanel() {
             checking={checkingProvider === provider.id}
             isActive={currentProvider === provider.id}
             supportsReasoning={provider.supportsReasoning}
+            isPreferred={
+              provider.type === 'remote' 
+                ? preferredRemoteProvider === provider.id 
+                : preferredLocalProvider === provider.id
+            }
           />
         ))}
       </div>
@@ -197,6 +208,9 @@ function ConfigModal({
   const [selectedModel, setSelectedModel] = useState('')
   const [enableReasoning, setEnableReasoning] = useState(false)
   
+  // Phase 12: 设为首选状态
+  const [isPreferred, setIsPreferred] = useState(false)
+  
   // Ollama 特有配置
   const [ollamaEndpoint, setOllamaEndpoint] = useState('http://localhost:11434/v1')
   const [ollamaModel, setOllamaModel] = useState('qwen2.5:7b')
@@ -222,6 +236,9 @@ function ConfigModal({
         }
         
         setEnableReasoning(providerConfig?.enableReasoning || false)
+        
+        // Phase 12: 读取首选远程 AI 状态
+        setIsPreferred(currentConfig.preferredRemoteProvider === providerId)
       } else if (providerId === 'ollama') {
         setOllamaEndpoint(currentConfig.local?.endpoint || 'http://localhost:11434/v1')
         setOllamaModel(currentConfig.local?.model || 'qwen2.5:7b')
@@ -230,6 +247,9 @@ function ConfigModal({
         if (currentConfig.local?.cachedModels && currentConfig.local.cachedModels.length > 0) {
           setOllamaModels(currentConfig.local.cachedModels)
         }
+        
+        // Phase 12: 读取首选本地 AI 状态（目前只有 ollama）
+        setIsPreferred(currentConfig.preferredLocalProvider === 'ollama')
       }
     }
 
@@ -337,7 +357,11 @@ function ConfigModal({
           apiKeys: {
             ...config!.apiKeys,
             [providerId]: apiKey
-          }
+          },
+          // Phase 12: 更新首选远程 AI（勾选时设置，取消勾选不变）
+          preferredRemoteProvider: isPreferred 
+            ? (providerId as "deepseek" | "openai") 
+            : config!.preferredRemoteProvider
           // 注意：不要覆盖全局的 model/provider/enableReasoning
           // 这些字段应该由引擎分配机制管理
         }
@@ -504,7 +528,9 @@ function ConfigModal({
               apiKey: 'ollama', // 强制设置为 "ollama"
               cachedModels: modelsWithDetails,
               isReasoningModel: selectedModel?.isReasoning || false // 标记是否为推理模型
-            } as any
+            } as any,
+            // Phase 12: 更新首选本地 AI（勾选时设置为 ollama，取消勾选不变）
+            preferredLocalProvider: isPreferred ? 'ollama' : config!.preferredLocalProvider
           }
           await saveAIConfig(newConfig)
           
@@ -636,6 +662,25 @@ function ConfigModal({
                 </div>
               )}
 
+              {/* Phase 12: 设为首选远程 AI */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <input
+                    type="checkbox"
+                    id="setPreferredRemote"
+                    checked={isPreferred}
+                    onChange={(e) => setIsPreferred(e.target.checked)}
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <label htmlFor="setPreferredRemote" className="flex-1 text-sm font-medium text-blue-900 dark:text-blue-100">
+                    ⭐ {_("options.aiConfig.configModal.setPreferredRemote")}
+                  </label>
+                </div>
+                <p className="text-xs text-gray-600 dark:text-gray-400 px-3">
+                  {_("options.aiConfig.configModal.preferredRemoteHint")}
+                </p>
+              </div>
+
               {/* 测试连接按钮 */}
               <button
                 onClick={handleTestRemoteConnection}
@@ -718,6 +763,25 @@ function ConfigModal({
                     ? _("options.aiConfig.configModal.testResult.modelsLoaded", { count: ollamaModels.length }) 
                     : _("options.aiConfig.configModal.loadModelsHint")
                   }
+                </p>
+              </div>
+
+              {/* Phase 12: 设为首选本地 AI */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-3 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                  <input
+                    type="checkbox"
+                    id="setPreferredLocal"
+                    checked={isPreferred}
+                    onChange={(e) => setIsPreferred(e.target.checked)}
+                    className="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500"
+                  />
+                  <label htmlFor="setPreferredLocal" className="flex-1 text-sm font-medium text-purple-900 dark:text-purple-100">
+                    ⭐ {_("options.aiConfig.configModal.setPreferredLocal")}
+                  </label>
+                </div>
+                <p className="text-xs text-gray-600 dark:text-gray-400 px-3">
+                  {_("options.aiConfig.configModal.preferredLocalHint")}
                 </p>
               </div>
             </>

@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-12-05T18:07:31.950Z",
+  "lastUpdate": "2025-12-08T10:50:16.384Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -17009,6 +17009,776 @@
         "value": "💡 Reasoning mode is turned off: Only serves as a permission switch, and will take effect when the current model supports reasoning.",
         "hash": "6fe6c845",
         "lastModified": "2025-12-05T18:07:31.438Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.providerPreferences.title": {
+      "zh-CN": {
+        "value": "Provider 偏好设置",
+        "hash": "424d1400",
+        "lastModified": "2025-12-08T10:38:49.674Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Provider Preferences",
+        "hash": "00cc3d30",
+        "lastModified": "2025-12-08T10:38:49.675Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.providerPreferences.description": {
+      "zh-CN": {
+        "value": "当预设方案使用「远程AI」或「本地AI」时，将自动选择您设置的首选 Provider",
+        "hash": "08914762",
+        "lastModified": "2025-12-08T10:38:51.734Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "When the preset uses \"Remote AI\" or \"Local AI\", your preferred Provider will be automatically selected.",
+        "hash": "91c73d36",
+        "lastModified": "2025-12-08T10:38:51.734Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.providerPreferences.remoteLabel": {
+      "zh-CN": {
+        "value": "首选远程 AI",
+        "hash": "9a4a0b4f",
+        "lastModified": "2025-12-08T10:38:53.580Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Preferred Remote AI",
+        "hash": "d416e631",
+        "lastModified": "2025-12-08T10:38:53.580Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.providerPreferences.localLabel": {
+      "zh-CN": {
+        "value": "首选本地 AI",
+        "hash": "3017e9ee",
+        "lastModified": "2025-12-08T10:38:55.369Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Preferred local AI",
+        "hash": "6c18860f",
+        "lastModified": "2025-12-08T10:38:55.369Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.providerPreferences.remoteHint": {
+      "zh-CN": {
+        "value": "选择「远程AI」时使用此 Provider",
+        "hash": "b7c4b3d3",
+        "lastModified": "2025-12-08T10:38:57.416Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Use this Provider when selecting \"Remote AI\"",
+        "hash": "18a935f9",
+        "lastModified": "2025-12-08T10:38:57.416Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.providerPreferences.localHint": {
+      "zh-CN": {
+        "value": "选择「本地AI」时使用此 Provider（目前仅支持 Ollama）",
+        "hash": "eb3078d1",
+        "lastModified": "2025-12-08T10:38:59.320Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Use this Provider when selecting \"Local AI\" (currently only supports Ollama)",
+        "hash": "61cc7048",
+        "lastModified": "2025-12-08T10:38:59.320Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.providerPreferences.deepseekDesc": {
+      "zh-CN": {
+        "value": "- 性价比高，支持推理",
+        "hash": "5530d57e",
+        "lastModified": "2025-12-08T10:39:01.159Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "- High cost-performance ratio, supports inference",
+        "hash": "ba739c07",
+        "lastModified": "2025-12-08T10:39:01.159Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.providerPreferences.openaiDesc": {
+      "zh-CN": {
+        "value": "- 综合能力强",
+        "hash": "c61b5f27",
+        "lastModified": "2025-12-08T10:39:03.003Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "- Strong comprehensive ability",
+        "hash": "70a0d206",
+        "lastModified": "2025-12-08T10:39:03.003Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.providerPreferences.ollamaDesc": {
+      "zh-CN": {
+        "value": "- 本地运行，完全隐私",
+        "hash": "6f3979c9",
+        "lastModified": "2025-12-08T10:39:05.153Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "- Run locally, complete privacy",
+        "hash": "2fc800c8",
+        "lastModified": "2025-12-08T10:39:05.153Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.aiEngineAssignment.presets.custom.name": {
+      "zh-CN": {
+        "value": "自定义",
+        "hash": "f1d4ff50",
+        "lastModified": "2025-12-08T10:39:07.508Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Customize",
+        "hash": "63a78ed4",
+        "lastModified": "2025-12-08T10:39:07.508Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.aiEngineAssignment.presets.custom.description": {
+      "zh-CN": {
+        "value": "您已自定义引擎配置，使用高级设置调整",
+        "hash": "519ee0c8",
+        "lastModified": "2025-12-08T10:39:09.316Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "You have customized the engine configuration and adjusted it using advanced settings.",
+        "hash": "7bb8d301",
+        "lastModified": "2025-12-08T10:39:09.316Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.aiEngineAssignment.engineGroups.abstract": {
+      "zh-CN": {
+        "value": "首选方式",
+        "hash": "6cbf925f",
+        "lastModified": "2025-12-08T10:39:10.989Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Preferred method",
+        "hash": "7bdc950a",
+        "lastModified": "2025-12-08T10:39:10.989Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.aiEngineAssignment.engineGroups.specific": {
+      "zh-CN": {
+        "value": "具体引擎",
+        "hash": "76a4e428",
+        "lastModified": "2025-12-08T10:39:12.731Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Specific Engine",
+        "hash": "be7d8745",
+        "lastModified": "2025-12-08T10:39:12.732Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.aiEngineAssignment.engines.remote": {
+      "zh-CN": {
+        "value": "远程AI（使用首选）",
+        "hash": "6e409fec",
+        "lastModified": "2025-12-08T10:39:14.460Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Remote AI (Use Preferred)",
+        "hash": "b98f39f9",
+        "lastModified": "2025-12-08T10:39:14.460Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.aiEngineAssignment.engines.local": {
+      "zh-CN": {
+        "value": "本地AI（使用首选）",
+        "hash": "9619d694",
+        "lastModified": "2025-12-08T10:39:16.418Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Local AI (Use Preferred)",
+        "hash": "b1d70949",
+        "lastModified": "2025-12-08T10:39:16.418Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.configModal.setPreferredRemote": {
+      "zh-CN": {
+        "value": "设为首选远程 AI",
+        "hash": "5547df0f",
+        "lastModified": "2025-12-08T10:39:18.362Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Set as Preferred Remote AI",
+        "hash": "b497b4e8",
+        "lastModified": "2025-12-08T10:39:18.362Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.configModal.preferredRemoteHint": {
+      "zh-CN": {
+        "value": "勾选后，所有使用\"远程 AI\"的任务将优先选择此 AI",
+        "hash": "b10a19df",
+        "lastModified": "2025-12-08T10:39:20.205Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Once checked, all tasks using \"Remote AI\" will prioritize this AI.",
+        "hash": "f16bfb84",
+        "lastModified": "2025-12-08T10:39:20.206Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.configModal.setPreferredLocal": {
+      "zh-CN": {
+        "value": "设为首选本地 AI",
+        "hash": "bddbd6b0",
+        "lastModified": "2025-12-08T10:39:22.012Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Set as Preferred Local AI",
+        "hash": "bcdd51b3",
+        "lastModified": "2025-12-08T10:39:22.012Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.configModal.preferredLocalHint": {
+      "zh-CN": {
+        "value": "勾选后，所有使用\"本地 AI\"的任务将优先选择此 AI",
+        "hash": "3afe3927",
+        "lastModified": "2025-12-08T10:39:24.199Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Once checked, all tasks using \"Local AI\" will prioritize this AI.",
+        "hash": "5a27f577",
+        "lastModified": "2025-12-08T10:39:24.199Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.aiConfig.aiEngineAssignment.presets.custom.name": {
+      "zh-CN": {
+        "value": "自定义",
+        "hash": "f1d4ff50",
+        "lastModified": "2025-12-08T10:39:27.580Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Customize",
+        "hash": "63a78ed4",
+        "lastModified": "2025-12-08T10:39:27.580Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.aiConfig.aiEngineAssignment.presets.custom.description": {
+      "zh-CN": {
+        "value": "您已自定义引擎配置，使用高级设置调整",
+        "hash": "519ee0c8",
+        "lastModified": "2025-12-08T10:39:29.421Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "You have customized the engine configuration and adjusted it using advanced settings.",
+        "hash": "7bb8d301",
+        "lastModified": "2025-12-08T10:39:29.421Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.aiConfig.aiEngineAssignment.engineGroups.abstract": {
+      "zh-CN": {
+        "value": "首选方式",
+        "hash": "6cbf925f",
+        "lastModified": "2025-12-08T10:39:31.093Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Preferred method",
+        "hash": "7bdc950a",
+        "lastModified": "2025-12-08T10:39:31.093Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.aiConfig.aiEngineAssignment.engineGroups.specific": {
+      "zh-CN": {
+        "value": "具体引擎",
+        "hash": "76a4e428",
+        "lastModified": "2025-12-08T10:39:33.094Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Specific Engine",
+        "hash": "be7d8745",
+        "lastModified": "2025-12-08T10:39:33.094Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.aiConfig.aiEngineAssignment.engines.remote": {
+      "zh-CN": {
+        "value": "远程AI（使用首选）",
+        "hash": "6e409fec",
+        "lastModified": "2025-12-08T10:39:35.870Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Remote AI (Use Preferred)",
+        "hash": "b98f39f9",
+        "lastModified": "2025-12-08T10:39:35.870Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.aiConfig.aiEngineAssignment.engines.local": {
+      "zh-CN": {
+        "value": "本地AI（使用首选）",
+        "hash": "9619d694",
+        "lastModified": "2025-12-08T10:39:37.613Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Local AI (Use Preferred)",
+        "hash": "b1d70949",
+        "lastModified": "2025-12-08T10:39:37.613Z",
+        "status": "ai-translated"
+      }
+    },
+    "settings.aiUsage.emptyState": {
+      "zh-CN": {
+        "value": "暂无数据",
+        "hash": "21efd88b",
+        "lastModified": "2025-12-08T10:39:39.308Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "No data available",
+        "hash": "efba20a0",
+        "lastModified": "2025-12-08T10:39:39.308Z",
+        "status": "ai-translated"
+      }
+    },
+    "settings.aiUsage.tokenAxisLabel": {
+      "zh-CN": {
+        "value": "词元（Token）",
+        "hash": "2d0ddf04",
+        "lastModified": "2025-12-08T10:39:40.742Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Token",
+        "hash": "459a6f79",
+        "lastModified": "2025-12-08T10:39:40.742Z",
+        "status": "ai-translated"
+      }
+    },
+    "settings.aiUsage.callAxisLabel": {
+      "zh-CN": {
+        "value": "调用次数",
+        "hash": "00d5bdf1",
+        "lastModified": "2025-12-08T10:39:42.272Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Number of calls",
+        "hash": "b978e556",
+        "lastModified": "2025-12-08T10:39:42.272Z",
+        "status": "ai-translated"
+      }
+    },
+    "settings.aiUsage.legend.tokenNonReasoning": {
+      "zh-CN": {
+        "value": "词元（Token）（非推理）",
+        "hash": "9016de41",
+        "lastModified": "2025-12-08T10:39:44.216Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Token (Non-inference)",
+        "hash": "623aaba7",
+        "lastModified": "2025-12-08T10:39:44.216Z",
+        "status": "ai-translated"
+      }
+    },
+    "settings.aiUsage.legend.tokenReasoning": {
+      "zh-CN": {
+        "value": "词元（Token）（推理）",
+        "hash": "787ffa56",
+        "lastModified": "2025-12-08T10:39:46.315Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Token (Inference)",
+        "hash": "c25bd351",
+        "lastModified": "2025-12-08T10:39:46.315Z",
+        "status": "ai-translated"
+      }
+    },
+    "settings.aiUsage.legend.callsNonReasoning": {
+      "zh-CN": {
+        "value": "调用（非推理）",
+        "hash": "05060495",
+        "lastModified": "2025-12-08T10:39:48.437Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Call (non-inference)",
+        "hash": "9b89c972",
+        "lastModified": "2025-12-08T10:39:48.437Z",
+        "status": "ai-translated"
+      }
+    },
+    "settings.aiUsage.legend.callsReasoning": {
+      "zh-CN": {
+        "value": "调用（推理）",
+        "hash": "e4f0bf3d",
+        "lastModified": "2025-12-08T10:39:50.309Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Call (Inference)",
+        "hash": "7ab6e294",
+        "lastModified": "2025-12-08T10:39:50.309Z",
+        "status": "ai-translated"
+      }
+    },
+    "settings.aiUsage.legend.costNonReasoning": {
+      "zh-CN": {
+        "value": "费用（非推理）",
+        "hash": "f8398043",
+        "lastModified": "2025-12-08T10:39:52.561Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Cost (Non-Inference)",
+        "hash": "4ab90fcc",
+        "lastModified": "2025-12-08T10:39:52.561Z",
+        "status": "ai-translated"
+      }
+    },
+    "settings.aiUsage.legend.costReasoning": {
+      "zh-CN": {
+        "value": "费用（推理）",
+        "hash": "e583d82c",
+        "lastModified": "2025-12-08T10:39:54.100Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Cost (Inference)",
+        "hash": "828669f3",
+        "lastModified": "2025-12-08T10:39:54.100Z",
+        "status": "ai-translated"
+      }
+    },
+    "settings.aiUsage.labels.total": {
+      "zh-CN": {
+        "value": "总计",
+        "hash": "599b5a32",
+        "lastModified": "2025-12-08T10:39:55.860Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Total",
+        "hash": "96b01412",
+        "lastModified": "2025-12-08T10:39:55.860Z",
+        "status": "ai-translated"
+      }
+    },
+    "settings.aiUsage.units.calls": {
+      "zh-CN": {
+        "value": "次",
+        "hash": "7229ecc6",
+        "lastModified": "2025-12-08T10:39:57.272Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Next",
+        "hash": "10ac3d04",
+        "lastModified": "2025-12-08T10:39:57.272Z",
+        "status": "ai-translated"
+      }
+    },
+    "settings.aiUsage.dateFormat.monthly": {
+      "zh-CN": {
+        "value": "{{year}}年{{month}}月",
+        "hash": "911574fe",
+        "lastModified": "2025-12-08T10:39:58.843Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{month}} {{year}}",
+        "hash": "e8470118",
+        "lastModified": "2025-12-08T10:39:58.843Z",
+        "status": "ai-translated"
+      }
+    },
+    "settings.aiUsage.dateFormat.daily": {
+      "zh-CN": {
+        "value": "{{year}}年{{month}}月{{day}}日",
+        "hash": "17bee66a",
+        "lastModified": "2025-12-08T10:40:00.571Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{year}}/{{month}}/{{day}}",
+        "hash": "aa63dee0",
+        "lastModified": "2025-12-08T10:40:00.571Z",
+        "status": "ai-translated"
+      }
+    },
+    "settings.aiUsage.dateFormat.monthlyShort": {
+      "zh-CN": {
+        "value": "{{month}}月",
+        "hash": "b9e8f868",
+        "lastModified": "2025-12-08T10:40:02.117Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{month}}",
+        "hash": "6a4a0d8c",
+        "lastModified": "2025-12-08T10:40:02.117Z",
+        "status": "ai-translated"
+      }
+    },
+    "settings.aiUsage.dateFormat.dailyShort": {
+      "zh-CN": {
+        "value": "{{month}}/{{day}}",
+        "hash": "b29b08be",
+        "lastModified": "2025-12-08T10:40:04.019Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{month}}/{{day}}",
+        "hash": "b29b08be",
+        "lastModified": "2025-12-08T10:40:04.019Z",
+        "status": "ai-translated"
+      }
+    },
+    "settings.aiUsage.chartTitle.daily": {
+      "zh-CN": {
+        "value": "每日用量统计",
+        "hash": "68133c5b",
+        "lastModified": "2025-12-08T10:40:05.668Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Daily Usage Statistics",
+        "hash": "04b33ed5",
+        "lastModified": "2025-12-08T10:40:05.668Z",
+        "status": "ai-translated"
+      }
+    },
+    "settings.aiUsage.chartTitle.monthly": {
+      "zh-CN": {
+        "value": "每月用量统计",
+        "hash": "2a76a7a1",
+        "lastModified": "2025-12-08T10:40:07.614Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Monthly Usage Statistics",
+        "hash": "7ef80671",
+        "lastModified": "2025-12-08T10:40:07.614Z",
+        "status": "ai-translated"
+      }
+    },
+    "settings.aiUsage.periodInfo.last30Days": {
+      "zh-CN": {
+        "value": "最近 30 天",
+        "hash": "b1681833",
+        "lastModified": "2025-12-08T10:40:09.162Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Last 30 days",
+        "hash": "25574914",
+        "lastModified": "2025-12-08T10:40:09.162Z",
+        "status": "ai-translated"
+      }
+    },
+    "settings.aiUsage.periodInfo.allTime": {
+      "zh-CN": {
+        "value": "全部时间",
+        "hash": "98c99f62",
+        "lastModified": "2025-12-08T10:40:10.790Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "All time",
+        "hash": "60dd0221",
+        "lastModified": "2025-12-08T10:40:10.790Z",
+        "status": "ai-translated"
+      }
+    },
+    "settings.aiUsage.periodInfo.template": {
+      "zh-CN": {
+        "value": "💡 数据统计周期：{{period}} | 数据来源：AI 用量追踪器",
+        "hash": "8611e99e",
+        "lastModified": "2025-12-08T10:40:13.042Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "💡 Data Statistics Period: {{period}} | Data Source: AI Usage Tracker",
+        "hash": "8f3d5ed2",
+        "lastModified": "2025-12-08T10:40:13.042Z",
+        "status": "ai-translated"
+      }
+    },
+    "settings.aiUsage.tooltip.tokenNonReasoning": {
+      "zh-CN": {
+        "value": "{{date}}\n{{label}}: {{value}}K",
+        "hash": "98d76698",
+        "lastModified": "2025-12-08T10:40:14.886Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{date}}\n{{label}}: {{value}}K",
+        "hash": "98d76698",
+        "lastModified": "2025-12-08T10:40:14.886Z",
+        "status": "ai-translated"
+      }
+    },
+    "settings.aiUsage.tooltip.tokenReasoning": {
+      "zh-CN": {
+        "value": "{{date}}\n{{label}}: {{value}}K\n{{totalLabel}}: {{total}}K",
+        "hash": "d73863f8",
+        "lastModified": "2025-12-08T10:40:16.934Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{date}}\n{{label}}: {{value}}K\n{{totalLabel}}: {{total}}K",
+        "hash": "d73863f8",
+        "lastModified": "2025-12-08T10:40:16.934Z",
+        "status": "ai-translated"
+      }
+    },
+    "settings.aiUsage.tooltip.callsNonReasoning": {
+      "zh-CN": {
+        "value": "{{date}}\n{{label}}: {{value}}{{unit}}",
+        "hash": "195eb327",
+        "lastModified": "2025-12-08T10:40:18.900Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{date}}\n{{label}}: {{value}}{{unit}}",
+        "hash": "195eb327",
+        "lastModified": "2025-12-08T10:40:18.900Z",
+        "status": "ai-translated"
+      }
+    },
+    "settings.aiUsage.tooltip.callsReasoning": {
+      "zh-CN": {
+        "value": "{{date}}\n{{label}}: {{value}}{{unit}}\n{{totalLabel}}: {{total}}{{unit}}",
+        "hash": "c3824ff0",
+        "lastModified": "2025-12-08T10:40:21.264Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{date}}\n{{label}}: {{value}}{{unit}}\n{{totalLabel}}: {{total}}{{unit}}",
+        "hash": "c3824ff0",
+        "lastModified": "2025-12-08T10:40:21.264Z",
+        "status": "ai-translated"
+      }
+    },
+    "settings.aiUsage.tooltip.costNonReasoning": {
+      "zh-CN": {
+        "value": "{{date}}\n{{label}}: ¥{{value}}",
+        "hash": "be272d4f",
+        "lastModified": "2025-12-08T10:40:23.384Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{date}}\n{{label}}: ¥{{value}}",
+        "hash": "be272d4f",
+        "lastModified": "2025-12-08T10:40:23.384Z",
+        "status": "ai-translated"
+      }
+    },
+    "settings.aiUsage.tooltip.costReasoning": {
+      "zh-CN": {
+        "value": "{{date}}\n{{label}}: ¥{{value}}\n{{totalLabel}}: ¥{{total}}",
+        "hash": "089b1833",
+        "lastModified": "2025-12-08T10:40:25.740Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "{{date}}\n{{label}}: ¥{{value}}\n{{totalLabel}}: ¥{{total}}",
+        "hash": "089b1833",
+        "lastModified": "2025-12-08T10:40:25.740Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.aiEngineAssignment.presets.custom.hint": {
+      "zh-CN": {
+        "value": "点击查看或修改您的自定义配置",
+        "hash": "5901eb3c",
+        "lastModified": "2025-12-08T10:48:27.986Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Click to view or modify your custom configuration",
+        "hash": "0689663e",
+        "lastModified": "2025-12-08T10:48:27.987Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.aiConfig.aiEngineAssignment.presets.custom.hint": {
+      "zh-CN": {
+        "value": "点击查看或修改您的自定义配置",
+        "hash": "5901eb3c",
+        "lastModified": "2025-12-08T10:48:29.583Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Click to view or modify your custom configuration",
+        "hash": "0689663e",
+        "lastModified": "2025-12-08T10:48:29.583Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.card.preferredRemote": {
+      "zh-CN": {
+        "value": "首选远程 AI",
+        "hash": "9a4a0b4f",
+        "lastModified": "2025-12-08T10:50:14.117Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Preferred Remote AI",
+        "hash": "d416e631",
+        "lastModified": "2025-12-08T10:50:14.118Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.card.preferredLocal": {
+      "zh-CN": {
+        "value": "首选本地 AI",
+        "hash": "3017e9ee",
+        "lastModified": "2025-12-08T10:50:15.874Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Preferred local AI",
+        "hash": "6c18860f",
+        "lastModified": "2025-12-08T10:50:15.874Z",
         "status": "ai-translated"
       }
     }

@@ -54,7 +54,10 @@ describe("ai-config", () => {
           maxOutputTokens: 768,
           timeoutMs: 45000
         },
-        engineAssignment: AI_ENGINE_PRESETS.intelligence.config
+        engineAssignment: AI_ENGINE_PRESETS.intelligence.config,
+        // Phase 12: Provider 偏好设置默认值
+        preferredRemoteProvider: "deepseek",
+        preferredLocalProvider: "ollama"
       })
     })
     

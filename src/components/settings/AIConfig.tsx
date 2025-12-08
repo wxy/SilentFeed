@@ -72,6 +72,10 @@ export function AIConfig() {
   // Phase 8: AI 引擎分配
   const [engineAssignment, setEngineAssignment] = useState<AIEngineAssignmentType | null>(null)
   
+  // Phase 12: Provider 偏好设置
+  const [preferredRemoteProvider, setPreferredRemoteProvider] = useState<"deepseek" | "openai">("deepseek")
+  const [preferredLocalProvider, setPreferredLocalProvider] = useState<"ollama">("ollama")
+  
   // 推荐配置
   const [maxRecommendations, setMaxRecommendations] = useState(3)
   const [isLearningStage, setIsLearningStage] = useState(false)
@@ -152,6 +156,10 @@ export function AIConfig() {
       : createDefaultLocalConfig()
     setLocalConfig(mergedLocal)
     setLocalAIChoice(mergedLocal.enabled ? 'ollama' : 'none')
+
+    // Phase 12: 加载 Provider 偏好设置
+    setPreferredRemoteProvider(config.preferredRemoteProvider || "deepseek")
+    setPreferredLocalProvider(config.preferredLocalProvider || "ollama")
 
     // Phase 8: 加载 AI 引擎分配配置
     getEngineAssignment().then(assignment => {
@@ -329,7 +337,10 @@ export function AIConfig() {
       providers,
       monthlyBudget,
       local: buildLocalConfigForSave(),
-      engineAssignment: engineAssignment || await getEngineAssignment()
+      engineAssignment: engineAssignment || await getEngineAssignment(),
+      // Phase 12: 保存 Provider 偏好设置
+      preferredRemoteProvider,
+      preferredLocalProvider
     })
 
     // 3. 重新初始化 aiManager 以加载新配置
@@ -405,7 +416,10 @@ export function AIConfig() {
         providers,
         monthlyBudget,
         local: localConfigForSave,
-        engineAssignment: engineAssignment || await getEngineAssignment()
+        engineAssignment: engineAssignment || await getEngineAssignment(),
+        // Phase 12: 保存 Provider 偏好设置
+        preferredRemoteProvider,
+        preferredLocalProvider
       })
       
       // Phase 8: 保存 AI 引擎分配配置
@@ -425,7 +439,7 @@ export function AIConfig() {
     } finally {
       setAutoSaving(false)
     }
-  }, [model, currentProvider, currentApiKey, apiKeys, monthlyBudget, enableReasoning, engineAssignment, maxRecommendations, localConfig, localAIChoice])
+  }, [model, currentProvider, currentApiKey, apiKeys, monthlyBudget, enableReasoning, engineAssignment, maxRecommendations, localConfig, localAIChoice, preferredRemoteProvider, preferredLocalProvider])
 
   /**
    * 触发自动保存（带防抖）
@@ -553,7 +567,10 @@ export function AIConfig() {
       providers,
       monthlyBudget,
       local: buildLocalConfigForSave(),
-      engineAssignment: engineAssignment || await getEngineAssignment()
+      engineAssignment: engineAssignment || await getEngineAssignment(),
+      // Phase 12: 保存 Provider 偏好设置
+      preferredRemoteProvider,
+      preferredLocalProvider
     })
     
     // Phase 8: 保存 AI 引擎分配配置
@@ -589,7 +606,10 @@ export function AIConfig() {
       providers: {},
       monthlyBudget: 5,
       local: buildLocalConfigForSave(false),
-      engineAssignment: await getEngineAssignment()
+      engineAssignment: await getEngineAssignment(),
+      // Phase 12: 保持 Provider 偏好设置
+      preferredRemoteProvider,
+      preferredLocalProvider
     })
     setModel("")
     setApiKeys({ openai: "", deepseek: "" })
