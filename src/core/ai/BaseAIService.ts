@@ -8,6 +8,7 @@
  * 2. Provider 只负责 API 调用（Chat-GPT 兼容接口）
  * 3. 通用逻辑复用（预处理、后处理、成本计算）
  * 4. 自动追踪 AI 用量和费用
+ * 5. 统一容错机制（指数退避重试 + 熔断器）
  */
 
 import type {
@@ -23,6 +24,11 @@ import type { AIUsagePurpose } from "@/types/ai-usage"
 import { promptManager } from "./prompts"
 import type { SupportedLanguage } from "./prompts"
 import ChromeStorageBackend from "@/i18n/chrome-storage-backend"
+import {
+  CircuitBreaker,
+  withExponentialBackoff,
+  type CircuitBreakerConfig
+} from "@/utils/resilience"
 
 /**
  * AI 服务基类
@@ -36,9 +42,20 @@ export abstract class BaseAIService implements AIProvider {
   protected config: AIProviderConfig
   protected language: SupportedLanguage = 'zh-CN'
   
-  constructor(config: AIProviderConfig) {
+  /** 熔断器实例（统一容错机制） */
+  public circuitBreaker: CircuitBreaker
+  
+  constructor(config: AIProviderConfig, circuitBreakerConfig?: Partial<CircuitBreakerConfig>) {
     this.config = config
     this.initializeLanguage()
+    
+    // 初始化熔断器（使用默认配置或自定义配置）
+    this.circuitBreaker = new CircuitBreaker({
+      failureThreshold: circuitBreakerConfig?.failureThreshold ?? 5, // 连续 5 次失败触发熔断
+      resetTimeout: circuitBreakerConfig?.resetTimeout ?? 60000, // 60s 后尝试恢复
+      halfOpenRequests: circuitBreakerConfig?.halfOpenRequests ?? 3, // 半开状态允许 3 个测试请求
+      tag: circuitBreakerConfig?.tag ?? this.name
+    })
   }
   
   /**
@@ -105,6 +122,30 @@ export abstract class BaseAIService implements AIProvider {
   }
   
   /**
+   * 包装 API 调用：添加指数退避重试和熔断器保护
+   * 
+   * @param operation - 要执行的操作
+   * @param taskType - 任务类型（用于日志标签）
+   * @returns 操作结果
+   */
+  protected async callWithResilience<T>(
+    operation: () => Promise<T>,
+    taskType: string = "API call"
+  ): Promise<T> {
+    // 熔断器包装
+    return this.circuitBreaker.execute(async () => {
+      // 指数退避重试包装
+      return withExponentialBackoff(operation, {
+        maxAttempts: 3,
+        baseDelay: 1000,
+        maxDelay: 10000,
+        jitter: true,
+        tag: `${this.name}.${taskType}`
+      })
+    })
+  }
+  
+  /**
    * 检查是否可用
    */
   async isAvailable(): Promise<boolean> {
@@ -139,28 +180,33 @@ export abstract class BaseAIService implements AIProvider {
     let cost = { input: 0, output: 0, total: 0 }
     
     try {
-      // 1. 内容预处理
-      const processedContent = this.preprocessContent(content, options)
-      
-      // 2. 使用 promptManager 构建提示词
-      const prompt = promptManager.getAnalyzeContentPrompt(
-        this.language,
-        processedContent,
-        options?.userProfile,
-        options?.useReasoning
-      )
-      
-      // 3. 调用 API
-      const response = await this.callChatAPI(prompt, {
-        maxTokens: options?.useReasoning ? 4000 : 500,
-        timeout: options?.timeout,
-        jsonMode: !options?.useReasoning,
-        useReasoning: options?.useReasoning
-      })
-      
-      if (!response.content || response.content.trim().length === 0) {
-        throw new Error("Empty response")
-      }
+      // 使用容错包装执行 API 调用
+      const response = await this.callWithResilience(async () => {
+        // 1. 内容预处理
+        const processedContent = this.preprocessContent(content, options)
+        
+        // 2. 使用 promptManager 构建提示词
+        const prompt = promptManager.getAnalyzeContentPrompt(
+          this.language,
+          processedContent,
+          options?.userProfile,
+          options?.useReasoning
+        )
+        
+        // 3. 调用 API
+        const apiResponse = await this.callChatAPI(prompt, {
+          maxTokens: options?.useReasoning ? 4000 : 500,
+          timeout: options?.timeout,
+          jsonMode: !options?.useReasoning,
+          useReasoning: options?.useReasoning
+        })
+        
+        if (!apiResponse.content || apiResponse.content.trim().length === 0) {
+          throw new Error("Empty response")
+        }
+        
+        return apiResponse
+      }, "analyzeContent")
       
       // 记录 token 用量
       tokensUsed = {
@@ -284,48 +330,53 @@ export abstract class BaseAIService implements AIProvider {
     let cost = { input: 0, output: 0, total: 0 }
     
     try {
-      // 1. 构建用户行为摘要
-      const behaviorSummary = this.buildBehaviorSummary(request)
-      
-      // 2. 使用 promptManager 构建提示词
-      const prompt = request.currentProfile
-        ? promptManager.getGenerateProfileIncrementalPrompt(
-            this.language,
-            behaviorSummary,
-            request.currentProfile
-          )
-        : promptManager.getGenerateProfileFullPrompt(
-            this.language,
-            behaviorSummary
-          )
-      
-      const responseFormat = this.getProfileResponseFormat()
+      // 使用容错包装执行 API 调用
+      const response = await this.callWithResilience(async () => {
+        // 1. 构建用户行为摘要
+        const behaviorSummary = this.buildBehaviorSummary(request)
+        
+        // 2. 使用 promptManager 构建提示词
+        const prompt = request.currentProfile
+          ? promptManager.getGenerateProfileIncrementalPrompt(
+              this.language,
+              behaviorSummary,
+              request.currentProfile
+            )
+          : promptManager.getGenerateProfileFullPrompt(
+              this.language,
+              behaviorSummary
+            )
+        
+        const responseFormat = this.getProfileResponseFormat()
 
-      // 4. 调用 API
-      // Phase 11: 本地 AI 需要更长的超时时间
-      // - 普通 Ollama 模型: 120s (用户报告 90s 仍不够)
-      // - 推理模型 (DeepSeek-R1): 180s (推理过程需要更多时间)
-      // - 远程 API: 30s
-      let timeout = 30000
-      if (this.name === 'Ollama') {
-        // @ts-ignore - OllamaProvider 有 isReasoningModel 属性
-        timeout = this.isReasoningModel ? 180000 : 120000
-      }
-      
-      // Phase 11: 推理模型需要更多 token（推理过程 + 最终答案）
-      const maxTokens = this.name === 'Ollama' && (this as any).isReasoningModel ? 3000 : 1000
-      
-      const response = await this.callChatAPI(prompt, {
-        maxTokens,
-        timeout,
-        jsonMode: !responseFormat,
-        responseFormat: responseFormat || undefined,
-        temperature: 0.3
-      })
-      
-      if (!response.content || response.content.trim().length === 0) {
-        throw new Error("Empty response")
-      }
+        // 4. 调用 API
+        // Phase 11: 本地 AI 需要更长的超时时间
+        // - 普通 Ollama 模型: 120s (用户报告 90s 仍不够)
+        // - 推理模型 (DeepSeek-R1): 180s (推理过程需要更多时间)
+        // - 远程 API: 30s
+        let timeout = 30000
+        if (this.name === 'Ollama') {
+          // @ts-ignore - OllamaProvider 有 isReasoningModel 属性
+          timeout = this.isReasoningModel ? 180000 : 120000
+        }
+        
+        // Phase 11: 推理模型需要更多 token（推理过程 + 最终答案）
+        const maxTokens = this.name === 'Ollama' && (this as any).isReasoningModel ? 3000 : 1000
+        
+        const apiResponse = await this.callChatAPI(prompt, {
+          maxTokens,
+          timeout,
+          jsonMode: !responseFormat,
+          responseFormat: responseFormat || undefined,
+          temperature: 0.3
+        })
+        
+        if (!apiResponse.content || apiResponse.content.trim().length === 0) {
+          throw new Error("Empty response")
+        }
+        
+        return apiResponse
+      }, "generateUserProfile")
       
       // 记录 token 用量
       tokensUsed = {
