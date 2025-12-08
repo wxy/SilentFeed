@@ -214,12 +214,28 @@ export async function getUnreadRecommendations(limit: number = 50): Promise<Reco
     .toArray()
   
   // Phase 10: 联查 feedArticles，过滤掉不在源中或不在推荐池中的文章
+  // 同时将无效的推荐标记为 inactive，避免重复查询
   const validRecommendations: Recommendation[] = []
+  const invalidRecommendations: Recommendation[] = []
+  
   for (const rec of recommendations) {
     const article = await db.feedArticles.where('link').equals(rec.url).first()
     if (article && article.inFeed !== false && article.inPool === true) {
       validRecommendations.push(rec)
+    } else {
+      invalidRecommendations.push(rec)
     }
+  }
+  
+  // 将无效推荐标记为 inactive 状态
+  if (invalidRecommendations.length > 0) {
+    await db.recommendations.bulkUpdate(
+      invalidRecommendations.map(rec => ({
+        key: rec.id,
+        changes: { status: 'inactive' as const }
+      }))
+    )
+    dbLogger.debug(`已将 ${invalidRecommendations.length} 条无效推荐标记为 inactive（不在源中或已移出推荐池）`)
   }
   
   // 按推荐分数降序排序，取前 N 条
@@ -227,7 +243,7 @@ export async function getUnreadRecommendations(limit: number = 50): Promise<Reco
     .sort((a, b) => (b.score || 0) - (a.score || 0))
     .slice(0, limit)
   
-  dbLogger.debug(`获取未读推荐: 总 ${recommendations.length}，有效 ${validRecommendations.length}，返回 ${result.length}`)
+  dbLogger.debug(`获取未读推荐: 有效 ${validRecommendations.length}，返回 ${result.length}`)
   
   return result
 }

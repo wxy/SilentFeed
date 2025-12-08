@@ -131,23 +131,23 @@ export class RecommendationService {
                 })
               } else {
                 reasoningDisabledReason = '用户未启用推理能力（AI 配置页面）'
-                recLogger.warn('⚠️ 推理模式降级：用户未在 AI 配置中启用推理能力')
+                recLogger.info('推理模式已关闭：用户在 AI 配置中未启用推理能力')
               }
             } else {
               reasoningDisabledReason = `模型 ${selectedModel} 不支持推理`
-              recLogger.warn(`⚠️ 推理模式降级：模型 ${selectedModel} 不支持推理能力`)
+              recLogger.info(`推理模式已关闭：模型 ${selectedModel} 不支持推理能力`)
             }
           } else {
             reasoningDisabledReason = '未知的模型提供商'
-            recLogger.warn(`⚠️ 推理模式降级：无法识别模型 ${selectedModel} 的提供商`)
+            recLogger.info(`推理模式已关闭：无法识别模型 ${selectedModel} 的提供商`)
           }
         } else {
           reasoningDisabledReason = '未选择模型'
-          recLogger.warn('⚠️ 推理模式降级：AI 配置中未选择模型')
+          recLogger.info('推理模式已关闭：AI 配置中未选择模型')
         }
 
         if (reasoningDisabledReason) {
-          recLogger.info(`降级原因: ${reasoningDisabledReason}，将使用标准模式`)
+          recLogger.info(`推理模式关闭原因: ${reasoningDisabledReason}，将使用标准模式`)
         }
       }
       

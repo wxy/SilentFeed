@@ -39,7 +39,8 @@ export class AIUsageTracker {
         provider: record.provider,
         purpose: record.purpose,
         tokens: record.tokens.total,
-        cost: record.cost.total.toFixed(4)
+        cost: record.cost.total.toFixed(4),
+        reasoning: record.reasoning || false
       })
     } catch (error) {
       usageLogger.error("记录 AI 用量失败:", error)
