@@ -522,5 +522,109 @@ describe('Phase 2.7 推荐功能', () => {
       const unread = await getUnreadRecommendations()
       expect(unread).toHaveLength(0)
     })
+
+    it('应该将无效推荐（不在源中或已移出推荐池）标记为 inactive', async () => {
+      const now = Date.now()
+      
+      // 创建 3 条推荐记录
+      await db.recommendations.bulkAdd([
+        {
+          id: '1',
+          url: 'https://example.com/valid',
+          title: '有效推荐',
+          summary: '在源中且在推荐池中',
+          source: 'Source',
+          sourceUrl: 'https://source.com',
+          recommendedAt: now - 3000,
+          score: 0.9,
+          isRead: false,
+          status: 'active'
+        },
+        {
+          id: '2',
+          url: 'https://example.com/not-in-feed',
+          title: '不在源中的推荐',
+          summary: '文章已从 RSS 源中移除',
+          source: 'Source',
+          sourceUrl: 'https://source.com',
+          recommendedAt: now - 2000,
+          score: 0.8,
+          isRead: false,
+          status: 'active'
+        },
+        {
+          id: '3',
+          url: 'https://example.com/not-in-pool',
+          title: '已移出推荐池的推荐',
+          summary: '文章在源中但已被移出推荐池',
+          source: 'Source',
+          sourceUrl: 'https://source.com',
+          recommendedAt: now - 1000,
+          score: 0.7,
+          isRead: false,
+          status: 'active'
+        }
+      ])
+      
+      // 创建对应的 feedArticles
+      await db.feedArticles.bulkAdd([
+        {
+          id: 'article-1',
+          feedId: 'feed-1',
+          link: 'https://example.com/valid',
+          title: '有效推荐',
+          published: now - 3000,
+          fetched: now,
+          read: false,
+          starred: false,
+          inFeed: true,   // 在源中
+          inPool: true    // 在推荐池中
+        },
+        {
+          id: 'article-2',
+          feedId: 'feed-1',
+          link: 'https://example.com/not-in-feed',
+          title: '不在源中的推荐',
+          published: now - 2000,
+          fetched: now,
+          read: false,
+          starred: false,
+          inFeed: false,  // 已从源中移除
+          inPool: true
+        },
+        {
+          id: 'article-3',
+          feedId: 'feed-1',
+          link: 'https://example.com/not-in-pool',
+          title: '已移出推荐池的推荐',
+          published: now - 1000,
+          fetched: now,
+          read: false,
+          starred: false,
+          inFeed: true,
+          inPool: false   // 已移出推荐池
+        }
+      ])
+      
+      // 第一次调用：应该返回 1 条有效推荐，并将 2 条无效推荐标记为 inactive
+      const unread1 = await getUnreadRecommendations()
+      expect(unread1).toHaveLength(1)
+      expect(unread1[0].id).toBe('1')
+      
+      // 验证无效推荐已被标记为 inactive
+      const invalidRec1 = await db.recommendations.get('2')
+      const invalidRec2 = await db.recommendations.get('3')
+      expect(invalidRec1?.status).toBe('inactive')
+      expect(invalidRec2?.status).toBe('inactive')
+      
+      // 第二次调用：应该只返回 1 条有效推荐，不会再查询到无效推荐
+      const unread2 = await getUnreadRecommendations()
+      expect(unread2).toHaveLength(1)
+      expect(unread2[0].id).toBe('1')
+      
+      // 验证有效推荐仍然是 active 状态
+      const validRec = await db.recommendations.get('1')
+      expect(validRec?.status).toBe('active')
+    })
   })
 })

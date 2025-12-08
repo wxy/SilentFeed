@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
-import { logger, LogLevel } from "./logger"
+import { logger, LogLevel, isNetworkError } from "./logger"
 
 describe("Logger", () => {
   let consoleLogSpy: any
@@ -201,6 +201,61 @@ describe("Logger", () => {
 
       logger.warn("复杂数据", complexData)
       expect(consoleWarnSpy).toHaveBeenCalledWith("复杂数据", complexData)
+    })
+  })
+
+  describe("isNetworkError", () => {
+    it("应该识别 'Failed to fetch' 错误", () => {
+      const error = new Error('Failed to fetch')
+      expect(isNetworkError(error)).toBe(true)
+    })
+
+    it("应该识别包含 'Failed to fetch' 的错误字符串", () => {
+      const error = new TypeError('Failed to fetch')
+      expect(isNetworkError(error)).toBe(true)
+    })
+
+    it("应该识别 NetworkError", () => {
+      const error = new Error('NetworkError: Connection lost')
+      expect(isNetworkError(error)).toBe(true)
+    })
+
+    it("应该识别超时错误", () => {
+      expect(isNetworkError(new Error('ETIMEDOUT'))).toBe(true)
+      expect(isNetworkError(new Error('Request timeout'))).toBe(true)
+      expect(isNetworkError(new Error('Gateway Timeout'))).toBe(true)
+    })
+
+    it("应该识别连接错误", () => {
+      expect(isNetworkError(new Error('ECONNREFUSED'))).toBe(true)
+      expect(isNetworkError(new Error('ECONNRESET'))).toBe(true)
+      expect(isNetworkError(new Error('ENOTFOUND'))).toBe(true)
+    })
+
+    it("应该识别服务不可用错误", () => {
+      expect(isNetworkError(new Error('Service Unavailable'))).toBe(true)
+      expect(isNetworkError(new Error('Too Many Requests'))).toBe(true)
+    })
+
+    it("应该识别 Chrome 网络错误", () => {
+      expect(isNetworkError(new Error('net::ERR_CONNECTION_REFUSED'))).toBe(true)
+      expect(isNetworkError(new Error('net::ERR_NAME_NOT_RESOLVED'))).toBe(true)
+    })
+
+    it("应该识别字符串错误", () => {
+      expect(isNetworkError('Failed to fetch')).toBe(true)
+      expect(isNetworkError('Network request failed')).toBe(true)
+    })
+
+    it("不应该将其他错误识别为网络错误", () => {
+      expect(isNetworkError(new Error('Syntax error'))).toBe(false)
+      expect(isNetworkError(new Error('Undefined is not a function'))).toBe(false)
+      expect(isNetworkError(new Error('Invalid JSON'))).toBe(false)
+    })
+
+    it("应该处理 null 和 undefined", () => {
+      expect(isNetworkError(null)).toBe(false)
+      expect(isNetworkError(undefined)).toBe(false)
     })
   })
 })

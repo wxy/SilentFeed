@@ -154,7 +154,12 @@ export class DeepSeekProvider extends BaseAIService {
         model: request.model
       }
     } catch (error) {
-      deepseekLogger.error("API call failed:", error)
+      // 网络错误是临时性的，使用 warn 级别
+      if (isNetworkError(error)) {
+        deepseekLogger.warn("⚠️ API 调用失败（网络问题）", error)
+      } else {
+        deepseekLogger.error("❌ API 调用失败", error)
+      }
       throw error
     }
   }

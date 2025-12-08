@@ -8,7 +8,7 @@ import type { Recommendation } from "@/types/database"
 import type { SupportedLanguage } from "./TranslationService"
 import { TranslationService } from "./TranslationService"
 import { getUIConfig } from "@/storage/ui-config"
-import { logger } from "@/utils/logger"
+import { logger, isNetworkError } from "@/utils/logger"
 import i18n from "@/i18n"
 
 const translationLogger = logger.withTag('RecommendationTranslator')
@@ -145,7 +145,12 @@ export async function translateOnDemand(
     
     return translated
   } catch (error) {
-    translationLogger.error('即时翻译失败:', error)
+    // 网络错误是临时性的，使用 warn 级别
+    if (isNetworkError(error)) {
+      translationLogger.warn('⚠️ 即时翻译服务暂时不可用（网络问题），显示原文', error)
+    } else {
+      translationLogger.error('❌ 即时翻译失败', error)
+    }
     return recommendation
   }
 }

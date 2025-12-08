@@ -13,16 +13,20 @@ vi.mock('@/storage/ai-config', () => ({
 }))
 
 // Mock logger
-vi.mock('@/utils/logger', () => ({
-  logger: {
-    withTag: () => ({
-      debug: vi.fn(),
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn()
-    })
+vi.mock('@/utils/logger', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/utils/logger')>()
+  return {
+    ...actual,
+    logger: {
+      withTag: () => ({
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn()
+      })
+    }
   }
-}))
+})
 
 import { getAIConfig } from '@/storage/ai-config'
 
