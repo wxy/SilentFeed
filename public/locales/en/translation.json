@@ -1615,18 +1615,18 @@
       "tokenAxisLabel": "Token",
       "callAxisLabel": "Number of calls",
       "legend": {
-        "tokenNonReasoning": "Token (Non-inference)",
-        "tokenReasoning": "Token (Inference)",
-        "callsNonReasoning": "Call (non-inference)",
-        "callsReasoning": "Call (Inference)",
-        "costNonReasoning": "Cost (Non-Inference)",
-        "costReasoning": "Cost (Inference)"
+        "tokenNonReasoning": "Token (Non-Reasoning)",
+        "tokenReasoning": "Token (Reasoning)",
+        "callsNonReasoning": "Call (Non-Reasoning)",
+        "callsReasoning": "Call (Reasoning)",
+        "costNonReasoning": "Cost (Non-Reasoning)",
+        "costReasoning": "Cost (Reasoning)"
       },
       "labels": {
         "total": "Total"
       },
       "units": {
-        "calls": "Next"
+        "calls": "times"
       },
       "dateFormat": {
         "monthly": "{{month}} {{year}}",
