@@ -69,8 +69,8 @@ describe('OllamaProvider', () => {
     }
 
     expect(thrown).not.toBeNull()
-    expect(thrown?.message).toMatch(/http:\/\/localhost:11434\/api\/chat/)
-    expect(thrown?.message).toMatch(/参数/)
+    // Phase 12: 错误被容错机制包装，检查基础错误信息
+    expect(thrown?.message).toMatch(/Ollama analyzeContent failed/)
   })
 
   it('isAvailable 应检测 /api/tags 返回模型列表', async () => {
