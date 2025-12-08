@@ -28,6 +28,7 @@ import { getAIConfig, getEngineAssignment, type AIProviderType, type LocalAIConf
 import type { AIEngineAssignment } from "@/types/ai-engine-assignment"
 import { logger, isNetworkError } from '../../utils/logger'
 import { AIUsageTracker } from './AIUsageTracker'
+import { BudgetChecker } from './BudgetChecker'
 
 // 创建带标签的 logger
 const aiLogger = logger.withTag('AICapabilityManager')
@@ -153,6 +154,13 @@ export class AICapabilityManager {
     taskType?: AITaskType,
     mode: ProviderSelectionMode = "auto"
   ): Promise<UnifiedAnalysisResult> {
+    // 预算检查：如果超预算，直接降级到关键词
+    const shouldDowngrade = await BudgetChecker.shouldDowngrade()
+    if (shouldDowngrade) {
+      aiLogger.warn("⚠️ 月度预算已超支，使用关键词分析模式")
+      return await this.fallbackProvider.analyzeContent(content, options)
+    }
+    
     // Phase 8: 如果提供了 taskType，使用新的任务路由逻辑
     if (taskType) {
       const { provider, useReasoning } = await this.getProviderForTask(taskType)
@@ -215,6 +223,32 @@ export class AICapabilityManager {
     request: UserProfileGenerationRequest,
     mode: ProviderSelectionMode = "auto"
   ): Promise<UserProfileGenerationResult> {
+    // 预算检查：如果超预算，直接返回降级结果
+    const shouldDowngrade = await BudgetChecker.shouldDowngrade()
+    if (shouldDowngrade) {
+      aiLogger.warn("⚠️ 月度预算已超支，跳过画像生成")
+      return {
+        profile: {
+          interests: [],
+          preferences: {
+            contentTypes: [],
+            topics: [],
+            styles: []
+          },
+          behavior: {
+            readingPatterns: [],
+            engagementLevel: "low",
+            topicDiversity: 0
+          }
+        },
+        metadata: {
+          provider: "budget-limit",
+          timestamp: Date.now(),
+          reasoning: false
+        }
+      }
+    }
+    
     // Phase 8: 优先使用 profileGeneration 任务配置
     const { provider: taskProvider, useReasoning } = await this.getProviderForTask("profileGeneration")
     

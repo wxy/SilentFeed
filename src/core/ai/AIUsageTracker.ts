@@ -359,6 +359,37 @@ export class AIUsageTracker {
   }
   
   /**
+   * 获取当前自然月的总费用
+   * 
+   * @returns 本月总费用（CNY）
+   */
+  static async getCurrentMonthCost(): Promise<number> {
+    // 动态导入避免循环依赖
+    const { getCurrentMonthRange } = await import('@/utils/date-utils')
+    const { start, end } = getCurrentMonthRange()
+    
+    return this.getTotalCost({
+      startTime: start,
+      endTime: end
+    })
+  }
+  
+  /**
+   * 获取当前自然月的统计数据
+   * 
+   * @returns 本月统计
+   */
+  static async getCurrentMonthStats(): Promise<AIUsageStats> {
+    const { getCurrentMonthRange } = await import('@/utils/date-utils')
+    const { start, end } = getCurrentMonthRange()
+    
+    return this.getStats({
+      startTime: start,
+      endTime: end
+    })
+  }
+  
+  /**
    * 获取按日统计数据
    * 
    * @param days - 统计最近 N 天（默认 30 天，0 表示所有时间）
