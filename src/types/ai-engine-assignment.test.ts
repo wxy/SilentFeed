@@ -24,24 +24,27 @@ describe("ai-engine-assignment", () => {
 
     it("隐私优先方案应该全部使用本地AI", () => {
       const preset = AI_ENGINE_PRESETS.privacy
-      expect(preset.config.pageAnalysis.provider).toBe("ollama")
-      expect(preset.config.feedAnalysis.provider).toBe("ollama")
-      expect(preset.config.profileGeneration.provider).toBe("ollama")
+      // Phase 12: 使用 local 抽象而非硬编码 ollama
+      expect(preset.config.pageAnalysis.provider).toBe("local")
+      expect(preset.config.feedAnalysis.provider).toBe("local")
+      expect(preset.config.profileGeneration.provider).toBe("local")
     })
 
     it("智能优先方案应该使用远程AI+推理", () => {
       const preset = AI_ENGINE_PRESETS.intelligence
-      expect(preset.config.pageAnalysis.provider).toBe("deepseek")
-      expect(preset.config.feedAnalysis.provider).toBe("deepseek")
-      expect(preset.config.profileGeneration.provider).toBe("deepseek")
+      // Phase 12: 使用 remote 抽象而非硬编码 deepseek
+      expect(preset.config.pageAnalysis.provider).toBe("remote")
+      expect(preset.config.feedAnalysis.provider).toBe("remote")
+      expect(preset.config.profileGeneration.provider).toBe("remote")
       expect(preset.config.profileGeneration.useReasoning).toBe(true)
     })
 
     it("经济优先方案应该使用远程AI标准模式", () => {
       const preset = AI_ENGINE_PRESETS.economic
-      expect(preset.config.pageAnalysis.provider).toBe("deepseek")
-      expect(preset.config.feedAnalysis.provider).toBe("deepseek")
-      expect(preset.config.profileGeneration.provider).toBe("deepseek")
+      // Phase 12: 使用 remote 抽象而非硬编码 deepseek
+      expect(preset.config.pageAnalysis.provider).toBe("remote")
+      expect(preset.config.feedAnalysis.provider).toBe("remote")
+      expect(preset.config.profileGeneration.provider).toBe("remote")
       expect(preset.config.profileGeneration.useReasoning).toBe(false)
     })
 
@@ -196,6 +199,49 @@ describe("ai-engine-assignment", () => {
 
     it("经济优先性能影响应该为无", () => {
       expect(AI_ENGINE_PRESETS.economic.performanceImpact).toContain("无")
+    })
+  })
+
+  describe("Phase 12: Provider 抽象类型", () => {
+    it("validateEngineConfig 应该接受 remote 抽象类型", () => {
+      const config: AIEngineConfig = {
+        provider: "remote",
+        useReasoning: false
+      }
+      expect(validateEngineConfig(config)).toBe(true)
+    })
+
+    it("validateEngineConfig 应该接受 local 抽象类型", () => {
+      const config: AIEngineConfig = {
+        provider: "local",
+        useReasoning: false
+      }
+      expect(validateEngineConfig(config)).toBe(true)
+    })
+
+    it("validateEngineConfig 应该继续接受具体 Provider 类型（向后兼容）", () => {
+      const configs: AIEngineConfig[] = [
+        { provider: "deepseek", useReasoning: false },
+        { provider: "openai", useReasoning: false },
+        { provider: "ollama", useReasoning: false }
+      ]
+      configs.forEach(config => {
+        expect(validateEngineConfig(config)).toBe(true)
+      })
+    })
+
+    it("所有预设方案应该只使用 remote 或 local 抽象类型", () => {
+      const abstractTypes = ["remote", "local"]
+      Object.values(AI_ENGINE_PRESETS).forEach(preset => {
+        const providers = [
+          preset.config.pageAnalysis.provider,
+          preset.config.feedAnalysis.provider,
+          preset.config.profileGeneration.provider
+        ]
+        providers.forEach(provider => {
+          expect(abstractTypes).toContain(provider)
+        })
+      })
     })
   })
 })

@@ -66,8 +66,10 @@ export function AIEngineAssignmentComponent({
 
   // 检测是否需要显示性能警告
   const shouldShowPerformanceWarning = (): boolean => {
-    return value.pageAnalysis.provider === "ollama" || 
-           value.feedAnalysis.provider === "ollama"
+    // Phase 12: 同时检测 local 抽象和 ollama 具体类型
+    const isLocalProvider = (provider: string) => provider === "local" || provider === "ollama"
+    return isLocalProvider(value.pageAnalysis.provider) || 
+           isLocalProvider(value.feedAnalysis.provider)
   }
 
   // 渲染引擎选择下拉框
@@ -87,9 +89,15 @@ export function AIEngineAssignmentComponent({
         disabled={disabled}
         className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-sm"
       >
-        <option value="deepseek">DeepSeek</option>
-        <option value="openai">OpenAI</option>
-        <option value="ollama">本地 Ollama</option>
+        <optgroup label={_("options.aiConfig.aiEngineAssignment.engineGroups.abstract")}>
+          <option value="remote">🌐 {_("options.aiConfig.aiEngineAssignment.engines.remote")}</option>
+          <option value="local">💻 {_("options.aiConfig.aiEngineAssignment.engines.local")}</option>
+        </optgroup>
+        <optgroup label={_("options.aiConfig.aiEngineAssignment.engineGroups.specific")}>
+          <option value="deepseek">DeepSeek</option>
+          <option value="openai">OpenAI</option>
+          <option value="ollama">本地 Ollama</option>
+        </optgroup>
       </select>
     )
   }
@@ -176,6 +184,53 @@ export function AIEngineAssignmentComponent({
     )
   }
 
+  // 渲染自定义预设卡片（始终可见，可点击展开高级配置）
+  const renderCustomCard = () => {
+    const isSelected = selectedPreset === "custom"
+    
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          // 点击自定义卡片时，展开高级配置
+          setShowAdvanced(true)
+          // 如果当前不是自定义状态，不改变配置（让用户自己修改）
+        }}
+        disabled={disabled}
+        className={`
+          w-full p-4 rounded-lg border-2 text-left transition-all
+          ${isSelected 
+            ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' 
+            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+          }
+          ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+        `}
+      >
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-2xl">⚙️</span>
+              <span className="font-medium">{_("options.aiConfig.aiEngineAssignment.presets.custom.name")}</span>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+              {isSelected 
+                ? _("options.aiConfig.aiEngineAssignment.presets.custom.description")
+                : _("options.aiConfig.aiEngineAssignment.presets.custom.hint")
+              }
+            </p>
+          </div>
+          {isSelected && (
+            <div className="ml-2">
+              <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-sm">✓</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </button>
+    )
+  }
+
   return (
     <div className="space-y-6">
       {/* 预设选择卡片 */}
@@ -187,6 +242,7 @@ export function AIEngineAssignmentComponent({
           {renderPresetCard("privacy")}
           {renderPresetCard("intelligence")}
           {renderPresetCard("economic")}
+          {renderCustomCard()}
         </div>
       </div>
 

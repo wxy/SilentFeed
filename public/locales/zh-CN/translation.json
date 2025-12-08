@@ -1053,6 +1053,17 @@
         },
         "closeButton": "我知道了"
       },
+      "providerPreferences": {
+        "title": "Provider 偏好设置",
+        "description": "当预设方案使用「远程AI」或「本地AI」时，将自动选择您设置的首选 Provider",
+        "remoteLabel": "首选远程 AI",
+        "localLabel": "首选本地 AI",
+        "remoteHint": "选择「远程AI」时使用此 Provider",
+        "localHint": "选择「本地AI」时使用此 Provider（目前仅支持 Ollama）",
+        "deepseekDesc": "- 性价比高，支持推理",
+        "openaiDesc": "- 综合能力强",
+        "ollamaDesc": "- 本地运行，完全隐私"
+      },
       "aiEngineAssignment": {
         "quickPresets": "快速预设",
         "recommended": "推荐",
@@ -1077,7 +1088,20 @@
             "description": "成本最低，标准质量足够好",
             "estimatedCost": "¥0.5-1/月",
             "performanceImpact": "✅ 无"
+          },
+          "custom": {
+            "name": "自定义",
+            "description": "您已自定义引擎配置，使用高级设置调整",
+            "hint": "点击查看或修改您的自定义配置"
           }
+        },
+        "engineGroups": {
+          "abstract": "首选方式",
+          "specific": "具体引擎"
+        },
+        "engines": {
+          "remote": "远程AI（使用首选）",
+          "local": "本地AI（使用首选）"
         },
         "table": {
           "task": "任务",
@@ -1125,6 +1149,10 @@
         "enableReasoning": "启用推理模式（成本约10倍，但质量更高）",
         "reasoningEnabled": "✅ 推理模式已开启：AI 将进行深度思考，提供更高质量的分析（消耗更多 tokens）",
         "reasoningDisabled": "💡 推理模式已关闭：仅作为许可开关，当前模型支持推理时才会生效",
+        "setPreferredRemote": "设为首选远程 AI",
+        "preferredRemoteHint": "勾选后，所有使用\"远程 AI\"的任务将优先选择此 AI",
+        "setPreferredLocal": "设为首选本地 AI",
+        "preferredLocalHint": "勾选后，所有使用\"本地 AI\"的任务将优先选择此 AI",
         "ollamaEnabled": "启用本地 AI (Ollama)",
         "ollamaEndpoint": "Ollama 端点",
         "ollamaEndpointHint": "OpenAI 兼容接口地址",
@@ -1146,6 +1174,8 @@
       "card": {
         "active": "在用",
         "supportsReasoning": "支持推理能力",
+        "preferredRemote": "首选远程 AI",
+        "preferredLocal": "首选本地 AI",
         "typeLocal": "本地",
         "typeRemote": "远程",
         "statusAvailable": "可用",
@@ -1308,7 +1338,20 @@
             "description": "成本最低，标准质量足够好",
             "estimatedCost": "¥0.5-1/月",
             "performanceImpact": "✅ 无"
+          },
+          "custom": {
+            "name": "自定义",
+            "description": "您已自定义引擎配置，使用高级设置调整",
+            "hint": "点击查看或修改您的自定义配置"
           }
+        },
+        "engineGroups": {
+          "abstract": "首选方式",
+          "specific": "具体引擎"
+        },
+        "engines": {
+          "remote": "远程AI（使用首选）",
+          "local": "本地AI（使用首选）"
         },
         "table": {
           "task": "任务",

@@ -46,6 +46,9 @@ export class AICapabilityManager {
   private fallbackProvider: FallbackKeywordProvider
   /** Phase 8: AI 引擎分配配置 */
   private engineAssignment: AIEngineAssignment | null = null
+  /** Phase 12: 缓存的 AI 配置（用于解析 Provider 偏好） */
+  private cachedPreferredRemoteProvider: "deepseek" | "openai" = "deepseek"
+  private cachedPreferredLocalProvider: "ollama" = "ollama"
   
   constructor() {
     this.fallbackProvider = new FallbackKeywordProvider()
@@ -54,10 +57,15 @@ export class AICapabilityManager {
   /**
    * 初始化（加载配置）
    * Phase 11: 从 providers 和 engineAssignment 读取配置
+   * Phase 12: 缓存 Provider 偏好设置
    */
   async initialize(): Promise<void> {
     try {
       const config = await getAIConfig()
+      
+      // Phase 12: 缓存 Provider 偏好设置（用于解析 remote/local 抽象类型）
+      this.cachedPreferredRemoteProvider = config.preferredRemoteProvider || "deepseek"
+      this.cachedPreferredLocalProvider = config.preferredLocalProvider || "ollama"
       
       // Phase 11: 从 engineAssignment 确定需要初始化哪些 Provider
       try {
@@ -66,14 +74,23 @@ export class AICapabilityManager {
         this.engineAssignment = null
       }
       
-      // 收集所有任务使用的 Provider
+      // Phase 12: 解析抽象 Provider 类型，收集实际需要初始化的 Provider
       const usedProviders = new Set<AIProviderType>()
+      let usesLocalProvider = false
+      
       if (this.engineAssignment) {
         const tasks: AITaskType[] = ['pageAnalysis', 'feedAnalysis', 'profileGeneration']
         for (const task of tasks) {
           const providerType = this.engineAssignment[task]?.provider
-          if (providerType && providerType !== 'ollama') {
-            usedProviders.add(providerType as AIProviderType)
+          if (!providerType) continue
+          
+          // 解析抽象类型
+          const resolvedType = await this.resolveProviderType(providerType)
+          
+          if (resolvedType === 'ollama') {
+            usesLocalProvider = true
+          } else if (resolvedType === 'deepseek' || resolvedType === 'openai') {
+            usedProviders.add(resolvedType as AIProviderType)
           }
         }
       }
@@ -105,16 +122,11 @@ export class AICapabilityManager {
         this.remoteProvider = null
       }
       
-      // Phase 11.1 回滚修复: 初始化本地 AI（如果有任务使用 ollama 且配置完整）
-      const usesOllama = this.engineAssignment && 
-        (['pageAnalysis', 'feedAnalysis', 'profileGeneration'] as AITaskType[]).some(
-          task => this.engineAssignment![task]?.provider === 'ollama'
-        )
-      
+      // Phase 12: 使用解析后的 usesLocalProvider 变量（已考虑 remote/local 抽象）
       // 检查配置完整性（而非 enabled 字段）
       const hasValidLocalConfig = config.local?.endpoint && config.local?.model
       
-      if (usesOllama && hasValidLocalConfig) {
+      if (usesLocalProvider && hasValidLocalConfig) {
         await this.initializeLocalProvider(config.local)
       } else {
         this.localProvider = null
@@ -276,6 +288,7 @@ export class AICapabilityManager {
   
   /**
    * Phase 8: 根据任务类型获取对应的 AI Provider
+   * Phase 12: 支持 remote/local 抽象类型解析
    * 
    * 从引擎分配配置中读取指定任务应该使用的引擎，并返回对应的 provider 实例
    * 
@@ -304,14 +317,17 @@ export class AICapabilityManager {
 
     const { provider: providerType, useReasoning = false } = engineConfig
 
+    // Phase 12: 解析抽象 provider 类型到具体实现
+    const resolvedProviderType = await this.resolveProviderType(providerType)
+    
     let provider: AIProvider | null = null
 
-    switch (providerType) {
+    switch (resolvedProviderType) {
       case "deepseek":
       case "openai":
         provider = this.remoteProvider
         if (!provider) {
-          aiLogger.warn(`Remote provider not available for ${providerType}, falling back to local`)
+          aiLogger.warn(`Remote provider not available for ${resolvedProviderType}, falling back to local`)
           provider = this.localProvider
         }
         break
@@ -325,13 +341,37 @@ export class AICapabilityManager {
         break
 
       default:
-        aiLogger.error(`Unknown engine type: ${providerType}`)
+        aiLogger.error(`Unknown engine type: ${resolvedProviderType}`)
         provider = this.remoteProvider || this.localProvider
     }
 
     return {
       provider,
       useReasoning: useReasoning ?? false
+    }
+  }
+
+  /**
+   * Phase 12: 解析抽象 Provider 类型到具体实现
+   * 
+   * 将 "remote"/"local" 解析为具体的 Provider 类型
+   * 
+   * @param providerType - Provider 类型（可能是抽象的 remote/local）
+   * @returns 具体的 Provider 类型
+   */
+  private async resolveProviderType(providerType: string): Promise<string> {
+    switch (providerType) {
+      case "remote":
+        // 解析为用户首选的远程 Provider
+        return this.cachedPreferredRemoteProvider
+      
+      case "local":
+        // 解析为用户首选的本地 Provider
+        return this.cachedPreferredLocalProvider
+      
+      default:
+        // 已经是具体类型，直接返回（向后兼容）
+        return providerType
     }
   }
 

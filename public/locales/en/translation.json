@@ -957,6 +957,17 @@
         "howToInstall": "How to install?",
         "viewGuide": "(View Installation Guide)"
       },
+      "providerPreferences": {
+        "title": "Provider Preferences",
+        "description": "When the preset uses \"Remote AI\" or \"Local AI\", your preferred Provider will be automatically selected.",
+        "remoteLabel": "Preferred Remote AI",
+        "localLabel": "Preferred local AI",
+        "remoteHint": "Use this Provider when selecting \"Remote AI\"",
+        "localHint": "Use this Provider when selecting \"Local AI\" (currently only supports Ollama)",
+        "deepseekDesc": "- High cost-performance ratio, supports inference",
+        "openaiDesc": "- Strong comprehensive ability",
+        "ollamaDesc": "- Run locally, complete privacy"
+      },
       "aiEngineAssignment": {
         "quickPresets": "Quick Presets",
         "recommended": "Recommend",
@@ -981,7 +992,20 @@
             "description": "Lowest cost, standard quality is good enough.",
             "estimatedCost": "¥0.5-1/month",
             "performanceImpact": "✅ None"
+          },
+          "custom": {
+            "name": "Customize",
+            "description": "You have customized the engine configuration and adjusted it using advanced settings.",
+            "hint": "Click to view or modify your custom configuration"
           }
+        },
+        "engineGroups": {
+          "abstract": "Preferred method",
+          "specific": "Specific Engine"
+        },
+        "engines": {
+          "remote": "Remote AI (Use Preferred)",
+          "local": "Local AI (Use Preferred)"
         },
         "table": {
           "task": "Task",
@@ -1024,7 +1048,9 @@
           "notConfigured": "API Key not configured",
           "localNotEnabled": "Local AI not enabled",
           "checkFailed": "Detection failed"
-        }
+        },
+        "preferredRemote": "Preferred Remote AI",
+        "preferredLocal": "Preferred local AI"
       },
       "providerPanel": {
         "title": "AI Provider Status",
@@ -1067,7 +1093,11 @@
         "modelName": "Model Name",
         "loadModelsHint": "Click the button above to load available models.",
         "reasoningEnabled": "✅ Reasoning mode enabled: AI will engage in deep thinking to provide higher-quality analysis (consumes more tokens)",
-        "reasoningDisabled": "💡 Reasoning mode is turned off: Only serves as a permission switch, and will take effect when the current model supports reasoning."
+        "reasoningDisabled": "💡 Reasoning mode is turned off: Only serves as a permission switch, and will take effect when the current model supports reasoning.",
+        "setPreferredRemote": "Set as Preferred Remote AI",
+        "preferredRemoteHint": "Once checked, all tasks using \"Remote AI\" will prioritize this AI.",
+        "setPreferredLocal": "Set as Preferred Local AI",
+        "preferredLocalHint": "Once checked, all tasks using \"Local AI\" will prioritize this AI."
       },
       "ollama": {
         "title": "Ollama Installation Guide",
@@ -1423,7 +1453,20 @@
             "description": "Lowest cost, standard quality is good enough.",
             "estimatedCost": "¥0.5-1/month",
             "performanceImpact": "✅ None"
+          },
+          "custom": {
+            "name": "Customize",
+            "description": "You have customized the engine configuration and adjusted it using advanced settings.",
+            "hint": "Click to view or modify your custom configuration"
           }
+        },
+        "engineGroups": {
+          "abstract": "Preferred method",
+          "specific": "Specific Engine"
+        },
+        "engines": {
+          "remote": "Remote AI (Use Preferred)",
+          "local": "Local AI (Use Preferred)"
         },
         "table": {
           "task": "Task",
@@ -1568,26 +1611,26 @@
   },
   "settings": {
     "aiUsage": {
-      "emptyState": "No data yet",
+      "emptyState": "No data available",
       "tokenAxisLabel": "Token",
-      "callAxisLabel": "Calls",
+      "callAxisLabel": "Number of calls",
       "legend": {
-        "tokenNonReasoning": "Token (non-reasoning)",
-        "tokenReasoning": "Token (reasoning)",
-        "callsNonReasoning": "Calls (non-reasoning)",
-        "callsReasoning": "Calls (reasoning)",
-        "costNonReasoning": "Cost (non-reasoning)",
-        "costReasoning": "Cost (reasoning)"
+        "tokenNonReasoning": "Token (Non-Reasoning)",
+        "tokenReasoning": "Token (Reasoning)",
+        "callsNonReasoning": "Call (Non-Reasoning)",
+        "callsReasoning": "Call (Reasoning)",
+        "costNonReasoning": "Cost (Non-Reasoning)",
+        "costReasoning": "Cost (Reasoning)"
       },
       "labels": {
         "total": "Total"
       },
       "units": {
-        "calls": "calls"
+        "calls": "times"
       },
       "dateFormat": {
-        "monthly": "{{year}}-{{month}}",
-        "daily": "{{year}}-{{month}}-{{day}}",
+        "monthly": "{{month}} {{year}}",
+        "daily": "{{year}}/{{month}}/{{day}}",
         "monthlyShort": "{{month}}",
         "dailyShort": "{{month}}/{{day}}"
       },
@@ -1596,15 +1639,15 @@
         "monthly": "Monthly Usage Statistics"
       },
       "periodInfo": {
-        "last30Days": "Last 30 Days",
-        "allTime": "All Time",
-        "template": "💡 Statistics Period: {{period}} | Data Source: AI Usage Tracker"
+        "last30Days": "Last 30 days",
+        "allTime": "All time",
+        "template": "💡 Data Statistics Period: {{period}} | Data Source: AI Usage Tracker"
       },
       "tooltip": {
         "tokenNonReasoning": "{{date}}\n{{label}}: {{value}}K",
         "tokenReasoning": "{{date}}\n{{label}}: {{value}}K\n{{totalLabel}}: {{total}}K",
-        "callsNonReasoning": "{{date}}\n{{label}}: {{value}} {{unit}}",
-        "callsReasoning": "{{date}}\n{{label}}: {{value}} {{unit}}\n{{totalLabel}}: {{total}} {{unit}}",
+        "callsNonReasoning": "{{date}}\n{{label}}: {{value}}{{unit}}",
+        "callsReasoning": "{{date}}\n{{label}}: {{value}}{{unit}}\n{{totalLabel}}: {{total}}{{unit}}",
         "costNonReasoning": "{{date}}\n{{label}}: ¥{{value}}",
         "costReasoning": "{{date}}\n{{label}}: ¥{{value}}\n{{totalLabel}}: ¥{{total}}"
       }

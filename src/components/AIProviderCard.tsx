@@ -12,6 +12,7 @@ export interface AIProviderCardProps {
   checking: boolean
   isActive?: boolean // 是否为当前正在使用的 Provider
   supportsReasoning?: boolean // 是否支持推理能力
+  isPreferred?: boolean // Phase 12: 是否为首选 Provider
 }
 
 /**
@@ -25,7 +26,8 @@ export function AIProviderCard({
   onConfigure,
   checking,
   isActive = false,
-  supportsReasoning = false
+  supportsReasoning = false,
+  isPreferred = false
 }: AIProviderCardProps) {
   const { _ } = useI18n()
   // 状态判断
@@ -69,6 +71,9 @@ export function AIProviderCard({
             <span className="text-sm" title={typeText}>{typeIcon}</span>
             {supportsReasoning && (
               <span className="text-sm" title={_("options.aiConfig.card.supportsReasoning")}>🔬</span>
+            )}
+            {isPreferred && (
+              <span className="text-sm" title={type === 'local' ? _("options.aiConfig.card.preferredLocal") : _("options.aiConfig.card.preferredRemote")}>⭐</span>
             )}
             {isActive && (
               <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded">

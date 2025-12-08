@@ -4,8 +4,11 @@
  * 允许用户为不同用途分配不同的 AI 引擎，优化成本、性能和隐私的平衡
  */
 
-/** AI 提供商类型 */
-export type AIProvider = "ollama" | "deepseek" | "openai"
+/** AI 提供商类型 - 具体实现 */
+export type ConcreteAIProvider = "ollama" | "deepseek" | "openai"
+
+/** AI 提供商类型 - 包含抽象类型 remote/local */
+export type AIProvider = ConcreteAIProvider | "remote" | "local"
 
 /** AI 引擎配置 */
 export interface AIEngineConfig {
@@ -67,18 +70,15 @@ export const AI_ENGINE_PRESETS: Record<PresetName, PresetDefinition> = {
     performanceImpact: "🔥🔥🔥 高",
     config: {
       pageAnalysis: {
-        provider: "ollama",
-        model: "qwen2.5:7b",
+        provider: "local",  // 抽象：使用本地 AI（默认 Ollama）
         useReasoning: false
       },
       feedAnalysis: {
-        provider: "ollama",
-        model: "qwen2.5:7b",
+        provider: "local",  // 抽象：使用本地 AI（默认 Ollama）
         useReasoning: false
       },
       profileGeneration: {
-        provider: "ollama",
-        model: "qwen2.5:7b",
+        provider: "local",  // 抽象：使用本地 AI（默认 Ollama）
         useReasoning: false
       }
     },
@@ -104,15 +104,15 @@ export const AI_ENGINE_PRESETS: Record<PresetName, PresetDefinition> = {
     performanceImpact: "🔥 低（仅低频任务稍慢）",
     config: {
       pageAnalysis: {
-        provider: "deepseek",
+        provider: "remote",  // 抽象：使用远程 AI（默认 DeepSeek）
         useReasoning: false
       },
       feedAnalysis: {
-        provider: "deepseek",
+        provider: "remote",  // 抽象：使用远程 AI（默认 DeepSeek）
         useReasoning: false
       },
       profileGeneration: {
-        provider: "deepseek",
+        provider: "remote",  // 抽象：使用远程 AI（默认 DeepSeek）
         useReasoning: true  // 画像生成使用推理模式提高准确性
       }
     },
@@ -137,15 +137,15 @@ export const AI_ENGINE_PRESETS: Record<PresetName, PresetDefinition> = {
     performanceImpact: "✅ 无",
     config: {
       pageAnalysis: {
-        provider: "deepseek",
+        provider: "remote",  // 抽象：使用远程 AI（默认 DeepSeek）
         useReasoning: false
       },
       feedAnalysis: {
-        provider: "deepseek",
+        provider: "remote",  // 抽象：使用远程 AI（默认 DeepSeek）
         useReasoning: false
       },
       profileGeneration: {
-        provider: "deepseek",
+        provider: "remote",  // 抽象：使用远程 AI（默认 DeepSeek）
         useReasoning: false  // 不用推理，省钱
       }
     },
@@ -172,8 +172,8 @@ export function getDefaultEngineAssignment(): AIEngineAssignment {
  * 验证引擎配置是否有效
  */
 export function validateEngineConfig(config: AIEngineConfig): boolean {
-  // 检查 provider 是否有效
-  const validProviders: AIProvider[] = ["ollama", "deepseek", "openai"]
+  // 检查 provider 是否有效（包括抽象类型 remote/local）
+  const validProviders: AIProvider[] = ["ollama", "deepseek", "openai", "remote", "local"]
   if (!validProviders.includes(config.provider)) {
     return false
   }
