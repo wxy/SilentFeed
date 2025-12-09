@@ -13,6 +13,10 @@ export interface AIProviderCardProps {
   isActive?: boolean // 是否为当前正在使用的 Provider
   supportsReasoning?: boolean // 是否支持推理能力
   isPreferred?: boolean // Phase 12: 是否为首选 Provider
+  // Phase 12.4: 预算相关
+  monthlyBudget?: number // 月度预算限制（provider 原生货币）
+  currentSpent?: number // 本月已消费（provider 原生货币）
+  currency?: 'USD' | 'CNY' // 货币单位
 }
 
 /**
@@ -27,7 +31,10 @@ export function AIProviderCard({
   checking,
   isActive = false,
   supportsReasoning = false,
-  isPreferred = false
+  isPreferred = false,
+  monthlyBudget,
+  currentSpent,
+  currency
 }: AIProviderCardProps) {
   const { _ } = useI18n()
   // 状态判断
@@ -113,6 +120,29 @@ export function AIProviderCard({
               <span>{error}</span>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Phase 12.4: 预算显示 */}
+      {monthlyBudget !== undefined && currentSpent !== undefined && currency && (
+        <div className="mb-3 p-2 bg-gray-50 dark:bg-gray-700/50 rounded">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-600 dark:text-gray-400">💰 {_("options.aiConfig.card.budget")}</span>
+            <span className="font-medium text-gray-900 dark:text-gray-100">
+              {currency === 'USD' ? '$' : '¥'}{currentSpent.toFixed(2)} / {currency === 'USD' ? '$' : '¥'}{monthlyBudget}
+            </span>
+          </div>
+          {/* 预算进度条 */}
+          <div className="mt-1 h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
+            <div 
+              className={`h-full transition-all ${
+                (currentSpent / monthlyBudget) >= 0.9 ? 'bg-red-500' :
+                (currentSpent / monthlyBudget) >= 0.7 ? 'bg-yellow-500' :
+                'bg-green-500'
+              }`}
+              style={{ width: `${Math.min(100, (currentSpent / monthlyBudget) * 100)}%` }}
+            />
+          </div>
         </div>
       )}
 

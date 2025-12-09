@@ -11,8 +11,23 @@ import { logger } from "@/utils/logger"
 import { withErrorHandling, withErrorHandlingSync } from "@/utils/error-handler"
 import type { AIEngineAssignment } from "@/types/ai-engine-assignment"
 import { getDefaultEngineAssignment } from "@/types/ai-engine-assignment"
+import { encryptApiKey as cryptoEncrypt, decryptApiKey as cryptoDecrypt } from "@/utils/crypto"
 
 const configLogger = logger.withTag('AIConfig')
+
+/**
+ * Phase 12.6: 默认超时配置
+ */
+export const DEFAULT_TIMEOUTS = {
+  remote: {
+    standard: 60000,      // 1 分钟（标准模式）
+    reasoning: 120000     // 2 分钟（推理模式）
+  },
+  local: {
+    standard: 60000,      // 1 分钟（本地 AI 响应可能较慢）
+    reasoning: 180000     // 3 分钟（本地推理因硬件限制可能更慢）
+  }
+} as const
 
 export type AIProviderType = "openai" | "deepseek"
 
@@ -108,8 +123,10 @@ export interface LocalAIConfig {
   temperature?: number
   /** 单次输出最大 token 数 */
   maxOutputTokens?: number
-  /** 请求超时（毫秒） */
+  /** Phase 12.6: 标准模式请求超时（毫秒），默认 30000 */
   timeoutMs?: number
+  /** Phase 12.6: 推理模式请求超时（毫秒），默认 180000 */
+  reasoningTimeoutMs?: number
   /** 缓存的模型列表（避免每次打开配置都要重新加载） */
   cachedModels?: Array<{ id: string; label: string; isReasoning?: boolean }>
   /** Phase 11.2: 当前模型是否支持推理（从 Ollama API 获取） */
@@ -119,6 +136,7 @@ export interface LocalAIConfig {
 /**
  * 单个远程 AI Provider 的配置
  * Phase 9.2: 重构 - 每个 provider 独立配置
+ * Phase 12.6: 超时配置
  */
 export interface RemoteProviderConfig {
   /** API Key */
@@ -127,17 +145,27 @@ export interface RemoteProviderConfig {
   model: string
   /** 是否启用推理能力 */
   enableReasoning?: boolean
+  
+  /** Phase 12.6: 标准模式超时（毫秒），默认 60000 */
+  timeoutMs?: number
+  /** Phase 12.6: 推理模式超时（毫秒），默认 120000 */
+  reasoningTimeoutMs?: number
 }
 
 /**
  * AI 配置数据结构
  * Phase 9.2+: 简化配置 - 只保留 providers 和 engineAssignment
+ * Phase 12.4: Provider 级别预算控制（多货币独立预算）
  * 
  * 设计原则：
  * - 使用 providers 管理远程 AI 配置（每个 provider 独立）
  * - 使用 engineAssignment 控制任务级引擎分配
  * - 移除全局 enabled 开关（由 engineAssignment 控制）
  * - 移除单一 AI 模式的遗留字段（provider、apiKeys、model 等）
+ * 
+ * 预算控制（Phase 12.4）：
+ * - providerBudgets: 每个 provider 的独立月度预算（使用各自原生货币）
+ * - 不需要货币转换，各 provider 独立计算
  */
 export interface AIConfig {
   /** 各提供商的配置（分别存储 API Key + Model） */
@@ -146,8 +174,29 @@ export interface AIConfig {
     deepseek?: RemoteProviderConfig
   }
   
-  /** 月度预算（美元或人民币），必须设置，最小 $1 或 ¥10 */
-  monthlyBudget: number
+  /**
+   * Phase 12.4: 每个 provider 的独立月度预算
+   * ⚠️ 使用各 provider 的原生货币单位：
+   * - openai: 美元（USD）
+   * - deepseek: 人民币（CNY）
+   * 
+   * 可选配置，未设置则不限制该 provider 预算
+   * 
+   * 示例：
+   * {
+   *   openai: 10,    // OpenAI 月度预算 $10 USD
+   *   deepseek: 50   // DeepSeek 月度预算 ¥50 CNY
+   * }
+   */
+  providerBudgets?: {
+    openai?: number
+    deepseek?: number
+  }
+  
+  /**
+   * @deprecated Phase 12.4: 已废弃，保留用于向后兼容
+   */
+  monthlyBudget?: number
 
   /** Phase 10: 本地 AI 配置（Ollama 等） */
   local: LocalAIConfig
@@ -167,7 +216,7 @@ export interface AIConfig {
  */
 const DEFAULT_CONFIG: AIConfig = {
   providers: {},
-  monthlyBudget: 5, // 默认 $5/月
+  providerBudgets: {}, // 默认不限制 provider 预算
   local: {
     enabled: false,
     provider: "ollama",
@@ -176,7 +225,8 @@ const DEFAULT_CONFIG: AIConfig = {
     apiKey: "ollama",
     temperature: 0.2,
     maxOutputTokens: 768,
-    timeoutMs: 45000
+    timeoutMs: DEFAULT_TIMEOUTS.local.standard, // Phase 12.6: 默认 60s
+    reasoningTimeoutMs: DEFAULT_TIMEOUTS.local.reasoning, // Phase 12.6: 默认 180s
   },
   engineAssignment: getDefaultEngineAssignment(), // Phase 11: 默认智能优先方案
   preferredRemoteProvider: "deepseek",  // Phase 12: 默认使用 DeepSeek
@@ -207,15 +257,41 @@ export async function getAIConfig(): Promise<AIConfig> {
             if (providerConfig && (providerConfig as any).apiKey) {
               providers[providerKey as AIProviderType] = {
                 ...(providerConfig as RemoteProviderConfig),
-                apiKey: decryptApiKey((providerConfig as RemoteProviderConfig).apiKey)
+                apiKey: await cryptoDecrypt((providerConfig as RemoteProviderConfig).apiKey)
               }
             }
           }
         }
         
+        // Phase 12.4: 处理预算配置迁移
+        // 如果存在旧的 monthlyBudget，迁移到 globalMonthlyBudget
+        const globalMonthlyBudget = config.globalMonthlyBudget 
+          || config.monthlyBudget 
+          || DEFAULT_CONFIG.globalMonthlyBudget
+        
+        // 如果没有 providerBudgets 但有旧的 monthlyBudget，自动分配
+        let providerBudgets = config.providerBudgets || {}
+        if (!config.providerBudgets && config.monthlyBudget && Object.keys(providers).length > 0) {
+          // 自动为已配置的 providers 平均分配预算
+          const providerCount = Object.keys(providers).length
+          const budgetPerProvider = Math.floor((config.monthlyBudget / providerCount) * 100) / 100
+          providerBudgets = Object.keys(providers).reduce((acc, key) => {
+            acc[key as AIProviderType] = budgetPerProvider
+            return acc
+          }, {} as NonNullable<AIConfig['providerBudgets']>)
+          
+          configLogger.info('📊 自动迁移预算配置', {
+            totalBudget: config.monthlyBudget,
+            providers: Object.keys(providers),
+            budgetPerProvider
+          })
+        }
+        
         return {
           providers,
-          monthlyBudget: config.monthlyBudget || DEFAULT_CONFIG.monthlyBudget,
+          globalMonthlyBudget,
+          globalBudgetCurrency: config.globalBudgetCurrency || DEFAULT_CONFIG.globalBudgetCurrency,
+          providerBudgets,
           local: {
             ...DEFAULT_CONFIG.local,
             ...(config.local || {})
@@ -255,16 +331,18 @@ export async function saveAIConfig(config: AIConfig): Promise<void> {
         for (const [providerKey, providerConfig] of Object.entries(config.providers)) {
           if (providerConfig && providerConfig.apiKey) {
             encryptedProviders[providerKey as AIProviderType] = {
-              ...providerConfig,
-              apiKey: encryptApiKey(providerConfig.apiKey)
+              ...providerConfig,  // Phase 12.6: 保留所有字段（包括超时配置）
+              apiKey: await cryptoEncrypt(providerConfig.apiKey)
             }
           }
         }
       }
       
       const encryptedConfig: AIConfig = {
-        providers: encryptedProviders,
-        monthlyBudget: config.monthlyBudget,
+        providers: encryptedProviders,  // Phase 12.6: 确保 providers 被保存（包含超时配置）
+        globalMonthlyBudget: config.globalMonthlyBudget,
+        globalBudgetCurrency: config.globalBudgetCurrency,
+        providerBudgets: config.providerBudgets,
         local: config.local,
         engineAssignment: config.engineAssignment,
         // Phase 12: 保存 Provider 偏好设置
@@ -327,71 +405,7 @@ export async function isAIConfigured(): Promise<boolean> {
   return false
 }
 
-/**
- * 加密 API Key
- * 
- * 使用 Base64 编码（简单混淆）
- * 注意：处理 Unicode 字符
- */
-function encryptApiKey(apiKey: string): string {
-  if (!apiKey) return ""
-  
-  return withErrorHandlingSync(
-    () => {
-      // 使用 TextEncoder 处理 Unicode
-      const encoder = new TextEncoder()
-      const data = encoder.encode(apiKey)
-      
-      // 转换为 Base64
-      const base64 = btoa(String.fromCharCode(...data))
-      return base64
-    },
-    {
-      tag: 'AIConfig.encryptApiKey',
-      fallback: apiKey, // 加密失败时返回原始值（总比丢失好）
-      errorCode: 'API_KEY_ENCRYPT_ERROR',
-      userMessage: 'API Key 加密失败'
-    }
-  ) as string
-}
-
-/**
- * 解密 API Key
- */
-function decryptApiKey(encryptedKey: string): string {
-  if (!encryptedKey) return ""
-  
-  // 检查是否是 Base64 格式（已加密）
-  // Base64 只包含 A-Z, a-z, 0-9, +, /, = 字符
-  const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/
-  if (!base64Regex.test(encryptedKey)) {
-    // 不是 Base64，可能是明文 API key（如 sk-xxx），直接返回
-    return encryptedKey
-  }
-  
-  return withErrorHandlingSync(
-    () => {
-      // 从 Base64 解码
-      const decoded = atob(encryptedKey)
-      
-      // 转换回 Uint8Array
-      const data = new Uint8Array(decoded.split('').map(c => c.charCodeAt(0)))
-      
-      // 使用 TextDecoder 处理 Unicode
-      const decoder = new TextDecoder()
-      return decoder.decode(data)
-    },
-    {
-      tag: 'AIConfig.decryptApiKey',
-      fallback: encryptedKey, // 如果解密失败，返回原始数据
-      errorCode: 'API_KEY_DECRYPT_ERROR',
-      userMessage: 'API Key 解密失败',
-      onError: () => {
-        configLogger.warn('Failed to decrypt API key, using as-is')
-      }
-    }
-  ) as string
-}
+// 注意：加密/解密函数已移至 @/utils/crypto，使用 AES-GCM 256 位加密
 
 /**
  * 验证 API Key 格式

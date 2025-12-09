@@ -719,7 +719,8 @@ describe("OpenAIProvider", () => {
         })
       } as Response)
       
-      await expect(provider.generateUserProfile(mockProfileRequest)).rejects.toThrow("Empty response")
+      // Phase 12: 错误被容错机制包装
+      await expect(provider.generateUserProfile(mockProfileRequest)).rejects.toThrow("OpenAI generateUserProfile failed")
     })
     
     it("应该处理无效 JSON", async () => {

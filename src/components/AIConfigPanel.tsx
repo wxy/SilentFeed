@@ -5,6 +5,7 @@ import { useAIProviderStatus } from "@/hooks/useAIProviderStatus"
 import { getAIConfig, saveAIConfig, AVAILABLE_MODELS, getProviderFromModel } from "@/storage/ai-config"
 import type { AIConfig } from "@/storage/ai-config"
 import { useI18n } from "@/i18n/helpers"
+import { getCurrentMonthUsage } from "@/utils/budget-utils"
 
 /**
  * AI Provider 配置面板
@@ -24,6 +25,16 @@ export function AIConfigPanel() {
   const [ollamaSupportsReasoning, setOllamaSupportsReasoning] = useState(false) // Phase 11.2: Ollama 推理能力状态
   const [preferredRemoteProvider, setPreferredRemoteProvider] = useState<"deepseek" | "openai">("deepseek") // Phase 12: 首选远程 AI
   const [preferredLocalProvider, setPreferredLocalProvider] = useState<"ollama">("ollama") // Phase 12: 首选本地 AI
+  
+  // Phase 12.4: 预算数据
+  const [providerBudgets, setProviderBudgets] = useState<{ openai?: number; deepseek?: number }>({})
+  const [monthlyUsage, setMonthlyUsage] = useState<{
+    openai: { amount: number; currency: 'USD' | 'CNY' }
+    deepseek: { amount: number; currency: 'USD' | 'CNY' }
+  }>({
+    openai: { amount: 0, currency: 'USD' },
+    deepseek: { amount: 0, currency: 'CNY' }
+  })
 
   // Provider 列表配置
   const providers = [
@@ -33,7 +44,7 @@ export function AIConfigPanel() {
   ]
 
   /**
-   * 加载当前使用的 Provider
+   * 加载当前使用的 Provider 和预算配置
    */
   useEffect(() => {
     const loadCurrentProvider = async () => {
@@ -45,6 +56,17 @@ export function AIConfigPanel() {
       // Phase 12: 读取首选 Provider 配置
       setPreferredRemoteProvider(config.preferredRemoteProvider || "deepseek")
       setPreferredLocalProvider(config.preferredLocalProvider || "ollama")
+      
+      // Phase 12.4: 读取预算配置
+      setProviderBudgets(config.providerBudgets || {})
+      
+      // Phase 12.4: 读取当前月消费
+      const openaiUsage = await getCurrentMonthUsage('openai')
+      const deepseekUsage = await getCurrentMonthUsage('deepseek')
+      setMonthlyUsage({
+        openai: openaiUsage,
+        deepseek: deepseekUsage
+      })
       
       // Phase 11: 从 engineAssignment 确定实际在用的 Provider
       // 优先级：profileGeneration（低频但重要）> feedAnalysis > pageAnalysis
@@ -132,12 +154,12 @@ export function AIConfigPanel() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="p-6 bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 rounded-lg">
       {/* 标题和全局操作 */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-          {_("options.aiConfig.providerPanel.title")}
-        </h2>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+          🤖 {_("options.aiConfig.providerPanel.title")}
+        </h3>
         <button
           onClick={handleCheckAll}
           disabled={loading}
@@ -155,24 +177,36 @@ export function AIConfigPanel() {
 
       {/* Provider 卡片列表 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {providers.map((provider) => (
-          <AIProviderCard
-            key={provider.id}
-            providerId={provider.id}
-            providerName={provider.name}
-            status={status[provider.id] || null}
-            onCheck={() => handleCheckProvider(provider.id, provider.type)}
-            onConfigure={() => handleConfigure(provider.id)}
-            checking={checkingProvider === provider.id}
-            isActive={currentProvider === provider.id}
-            supportsReasoning={provider.supportsReasoning}
-            isPreferred={
-              provider.type === 'remote' 
-                ? preferredRemoteProvider === provider.id 
-                : preferredLocalProvider === provider.id
-            }
-          />
-        ))}
+        {providers.map((provider) => {
+          // Phase 12.4: 准备预算数据（仅对远程 AI）
+          const budgetProps = provider.type === 'remote' && (provider.id === 'openai' || provider.id === 'deepseek')
+            ? {
+                monthlyBudget: providerBudgets[provider.id as 'openai' | 'deepseek'],
+                currentSpent: monthlyUsage[provider.id as 'openai' | 'deepseek']?.amount || 0,
+                currency: monthlyUsage[provider.id as 'openai' | 'deepseek']?.currency
+              }
+            : {}
+          
+          return (
+            <AIProviderCard
+              key={provider.id}
+              providerId={provider.id}
+              providerName={provider.name}
+              status={status[provider.id] || null}
+              onCheck={() => handleCheckProvider(provider.id, provider.type)}
+              onConfigure={() => handleConfigure(provider.id)}
+              checking={checkingProvider === provider.id}
+              isActive={currentProvider === provider.id}
+              supportsReasoning={provider.supportsReasoning}
+              isPreferred={
+                provider.type === 'remote' 
+                  ? preferredRemoteProvider === provider.id 
+                  : preferredLocalProvider === provider.id
+              }
+              {...budgetProps}
+            />
+          )
+        })}
       </div>
 
       {/* 配置弹窗 */}
@@ -211,6 +245,13 @@ function ConfigModal({
   // Phase 12: 设为首选状态
   const [isPreferred, setIsPreferred] = useState(false)
   
+  // Phase 12.4: 预算配置
+  const [monthlyBudget, setMonthlyBudget] = useState<number | undefined>(undefined)
+  
+  // Phase 12.6: 超时配置
+  const [timeoutMs, setTimeoutMs] = useState<number | undefined>(undefined)
+  const [reasoningTimeoutMs, setReasoningTimeoutMs] = useState<number | undefined>(undefined)
+  
   // Ollama 特有配置
   const [ollamaEndpoint, setOllamaEndpoint] = useState('http://localhost:11434/v1')
   const [ollamaModel, setOllamaModel] = useState('qwen2.5:7b')
@@ -239,6 +280,14 @@ function ConfigModal({
         
         // Phase 12: 读取首选远程 AI 状态
         setIsPreferred(currentConfig.preferredRemoteProvider === providerId)
+        
+        // Phase 12.4: 读取预算配置
+        const budgetValue = currentConfig.providerBudgets?.[providerId as 'openai' | 'deepseek']
+        setMonthlyBudget(budgetValue)
+        
+        // Phase 12.6: 读取超时配置
+        setTimeoutMs(providerConfig?.timeoutMs)
+        setReasoningTimeoutMs(providerConfig?.reasoningTimeoutMs)
       } else if (providerId === 'ollama') {
         setOllamaEndpoint(currentConfig.local?.endpoint || 'http://localhost:11434/v1')
         setOllamaModel(currentConfig.local?.model || 'qwen2.5:7b')
@@ -250,6 +299,10 @@ function ConfigModal({
         
         // Phase 12: 读取首选本地 AI 状态（目前只有 ollama）
         setIsPreferred(currentConfig.preferredLocalProvider === 'ollama')
+        
+        // Phase 12.6: 读取超时配置
+        setTimeoutMs(currentConfig.local?.timeoutMs)
+        setReasoningTimeoutMs(currentConfig.local?.reasoningTimeoutMs)
       }
     }
 
@@ -350,7 +403,10 @@ function ConfigModal({
             [providerId]: {
               apiKey: apiKey,
               model: selectedModel,
-              enableReasoning: enableReasoning
+              enableReasoning: enableReasoning,
+              // Phase 12.6: 保存超时配置
+              timeoutMs: timeoutMs,
+              reasoningTimeoutMs: reasoningTimeoutMs
             }
           },
           // 兼容：同时更新旧结构
@@ -361,7 +417,12 @@ function ConfigModal({
           // Phase 12: 更新首选远程 AI（勾选时设置，取消勾选不变）
           preferredRemoteProvider: isPreferred 
             ? (providerId as "deepseek" | "openai") 
-            : config!.preferredRemoteProvider
+            : config!.preferredRemoteProvider,
+          // Phase 12.4: 更新预算配置
+          providerBudgets: {
+            ...config!.providerBudgets,
+            [providerId]: monthlyBudget  // 允许 undefined（表示删除预算）
+          }
           // 注意：不要覆盖全局的 model/provider/enableReasoning
           // 这些字段应该由引擎分配机制管理
         }
@@ -388,7 +449,7 @@ function ConfigModal({
     } catch (error) {
       setTestResult({ 
         success: false, 
-        message: error instanceof Error ? error.message : '测试失败' 
+        message: error instanceof Error ? error.message : _('options.aiConfig.configModal.testResult.unknownError') 
       })
     } finally {
       setTesting(false)
@@ -527,7 +588,10 @@ function ConfigModal({
               model: selectedModelId,
               apiKey: 'ollama', // 强制设置为 "ollama"
               cachedModels: modelsWithDetails,
-              isReasoningModel: selectedModel?.isReasoning || false // 标记是否为推理模型
+              isReasoningModel: selectedModel?.isReasoning || false, // 标记是否为推理模型
+              // Phase 12.6: 保存超时配置
+              timeoutMs: timeoutMs,
+              reasoningTimeoutMs: reasoningTimeoutMs
             } as any,
             // Phase 12: 更新首选本地 AI（勾选时设置为 ollama，取消勾选不变）
             preferredLocalProvider: isPreferred ? 'ollama' : config!.preferredLocalProvider
@@ -571,7 +635,7 @@ function ConfigModal({
     } catch (error) {
       setTestResult({ 
         success: false, 
-        message: error instanceof Error ? error.message : '测试失败' 
+        message: error instanceof Error ? error.message : _('options.aiConfig.configModal.testResult.unknownError') 
       })
     } finally {
       setTesting(false)
@@ -681,6 +745,92 @@ function ConfigModal({
                 </p>
               </div>
 
+              {/* Phase 12.6: 高级设置（预算 + 超时）- 折叠面板 */}
+              <details className="group">
+                <summary className="flex items-center justify-between cursor-pointer p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">⚙️ {_("options.aiConfig.card.advancedSettings")}</span>
+                  <svg className="w-4 h-4 text-gray-500 transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </summary>
+                
+                <div className="mt-2 space-y-4 p-3 bg-gray-50/50 dark:bg-gray-800/30 rounded-lg border border-gray-100 dark:border-gray-700/50">
+                  {/* 月度预算 */}
+                  <div className="space-y-2">
+                    <label htmlFor="monthlyBudget" className="block text-xs font-medium text-gray-600 dark:text-gray-400">
+                      💰 {_("options.aiConfig.configModal.monthlyBudget")}
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        {providerId === 'openai' ? '$' : '¥'}
+                      </span>
+                      <input
+                        type="number"
+                        id="monthlyBudget"
+                        value={monthlyBudget ?? ''}
+                        onChange={(e) => {
+                          const value = e.target.value
+                          setMonthlyBudget(value === '' ? undefined : parseFloat(value))
+                        }}
+                        placeholder={_("options.aiConfig.configModal.budgetPlaceholder")}
+                        min="0"
+                        step="0.01"
+                        className="flex-1 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        / {_("options.aiConfig.configModal.perMonth")}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 超时配置 */}
+                  <div className="space-y-2">
+                    <span className="block text-xs font-medium text-gray-600 dark:text-gray-400">
+                      ⏱️ {_("options.aiConfig.card.timeout.description")}
+                    </span>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label htmlFor="timeoutMs" className="block text-xs text-gray-500 dark:text-gray-500 mb-1">
+                          {_("options.aiConfig.card.timeout.standard")}
+                        </label>
+                        <select
+                          id="timeoutMs"
+                          value={timeoutMs ?? 60000}
+                          onChange={(e) => setTimeoutMs(parseInt(e.target.value))}
+                          className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="30000">{_("options.aiConfig.card.timeout.seconds", { value: 30 })}</option>
+                          <option value="60000">{_("options.aiConfig.card.timeout.seconds", { value: 60 })}</option>
+                          <option value="90000">{_("options.aiConfig.card.timeout.seconds", { value: 90 })}</option>
+                          <option value="120000">{_("options.aiConfig.card.timeout.seconds", { value: 120 })}</option>
+                          <option value="180000">{_("options.aiConfig.card.timeout.seconds", { value: 180 })}</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label htmlFor="reasoningTimeoutMs" className="block text-xs text-gray-500 dark:text-gray-500 mb-1">
+                          {_("options.aiConfig.card.timeout.reasoning")}
+                        </label>
+                        <select
+                          id="reasoningTimeoutMs"
+                          value={reasoningTimeoutMs ?? 120000}
+                          onChange={(e) => setReasoningTimeoutMs(parseInt(e.target.value))}
+                          className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="60000">{_("options.aiConfig.card.timeout.seconds", { value: 60 })}</option>
+                          <option value="120000">{_("options.aiConfig.card.timeout.seconds", { value: 120 })}</option>
+                          <option value="180000">{_("options.aiConfig.card.timeout.seconds", { value: 180 })}</option>
+                          <option value="240000">{_("options.aiConfig.card.timeout.seconds", { value: 240 })}</option>
+                          <option value="300000">{_("options.aiConfig.card.timeout.seconds", { value: 300 })}</option>
+                        </select>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {_("options.aiConfig.card.timeout.hint")}
+                    </p>
+                  </div>
+                </div>
+              </details>
+
               {/* 测试连接按钮 */}
               <button
                 onClick={handleTestRemoteConnection}
@@ -765,6 +915,58 @@ function ConfigModal({
                   }
                 </p>
               </div>
+
+              {/* Phase 12.6: 超时配置 - 折叠面板 */}
+              <details className="group">
+                <summary className="flex items-center justify-between cursor-pointer p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">⏱️ {_("options.aiConfig.card.timeout.description")}</span>
+                  <svg className="w-4 h-4 text-gray-500 transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </summary>
+                
+                <div className="mt-2 space-y-3 p-3 bg-gray-50/50 dark:bg-gray-800/30 rounded-lg border border-gray-100 dark:border-gray-700/50">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label htmlFor="local-timeoutMs" className="block text-xs text-gray-500 dark:text-gray-500 mb-1">
+                        {_("options.aiConfig.card.timeout.standard")}
+                      </label>
+                      <select
+                        id="local-timeoutMs"
+                        value={timeoutMs ?? 60000}
+                        onChange={(e) => setTimeoutMs(parseInt(e.target.value))}
+                        className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="30000">{_("options.aiConfig.card.timeout.seconds", { value: 30 })}</option>
+                        <option value="45000">{_("options.aiConfig.card.timeout.seconds", { value: 45 })}</option>
+                        <option value="60000">{_("options.aiConfig.card.timeout.seconds", { value: 60 })}</option>
+                        <option value="90000">{_("options.aiConfig.card.timeout.seconds", { value: 90 })}</option>
+                        <option value="120000">{_("options.aiConfig.card.timeout.seconds", { value: 120 })}</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="local-reasoningTimeoutMs" className="block text-xs text-gray-500 dark:text-gray-500 mb-1">
+                        {_("options.aiConfig.card.timeout.reasoning")}
+                      </label>
+                      <select
+                        id="local-reasoningTimeoutMs"
+                        value={reasoningTimeoutMs ?? 180000}
+                        onChange={(e) => setReasoningTimeoutMs(parseInt(e.target.value))}
+                        className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="120000">{_("options.aiConfig.card.timeout.seconds", { value: 120 })}</option>
+                        <option value="180000">{_("options.aiConfig.card.timeout.seconds", { value: 180 })}</option>
+                        <option value="240000">{_("options.aiConfig.card.timeout.seconds", { value: 240 })}</option>
+                        <option value="300000">{_("options.aiConfig.card.timeout.seconds", { value: 300 })}</option>
+                        <option value="600000">{_("options.aiConfig.card.timeout.seconds", { value: 600 })}</option>
+                      </select>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {_("options.aiConfig.card.timeout.localHint")}
+                  </p>
+                </div>
+              </details>
 
               {/* Phase 12: 设为首选本地 AI */}
               <div className="space-y-2">

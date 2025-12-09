@@ -21,6 +21,7 @@ import type { AIEngineAssignment as AIEngineAssignmentType } from "@/types/ai-en
 import { getPageCount } from "@/storage/db"
 import { LEARNING_COMPLETE_PAGES } from "@/constants/progress"
 import { AIConfigPanel } from "@/components/AIConfigPanel"
+import { BudgetOverview } from "@/components/BudgetOverview"
 
 const DEFAULT_LOCAL_CONFIG: LocalAIConfig = {
   enabled: false,
@@ -52,7 +53,20 @@ export function AIConfig() {
     openai: "",
     deepseek: ""
   })  // 各提供商的 API Keys
-  const [monthlyBudget, setMonthlyBudget] = useState<number>(5) // 默认 $5/月
+  const [monthlyBudget, setMonthlyBudget] = useState<number>(5) // 默认 $5/月 (已废弃，保留兼容)
+  
+  // Phase 12.4: Provider 级别预算
+  const [providerBudgets, setProviderBudgets] = useState<{
+    openai?: number
+    deepseek?: number
+  }>({})
+  
+  // Phase 12.6: Provider 超时配置（远程 AI）
+  const [providerTimeouts, setProviderTimeouts] = useState<{
+    openai?: { standard?: number; reasoning?: number }
+    deepseek?: { standard?: number; reasoning?: number }
+  }>({})
+  
   const [enableReasoning, setEnableReasoning] = useState(false) // Phase 9: 推理能力
   const [localAIChoice, setLocalAIChoice] = useState<'none' | 'chromeAI' | 'ollama'>('none') // Phase 9: 本地 AI 三选一
   const [localConfig, setLocalConfig] = useState<LocalAIConfig>(createDefaultLocalConfig())
@@ -119,12 +133,11 @@ export function AIConfig() {
     return currentProvider === "deepseek" ? "¥" : "$"
   }
   
-  // 获取预算范围
-  const getBudgetRange = () => {
-    if (!currentProvider) return { min: 1, max: 100 }
-    return currentProvider === "deepseek" 
-    ? { min: 10, max: 500 }  // DeepSeek 用人民币
-    : { min: 1, max: 100 }   // OpenAI/Anthropic 用美元
+  // 获取预算范围（根据 provider 判断货币）
+  const getBudgetRange = (provider: AIProviderType) => {
+    return provider === "deepseek" 
+    ? { min: 10, max: 500, currency: 'CNY', symbol: '¥' }  // DeepSeek 用人民币
+    : { min: 1, max: 100, currency: 'USD', symbol: '$' }   // OpenAI 用美元
   }
 
   // 加载保存的配置
@@ -146,6 +159,21 @@ export function AIConfig() {
     setApiKeys({
       openai: config.providers?.openai?.apiKey || "",
       deepseek: config.providers?.deepseek?.apiKey || ""
+    })
+    
+    // Phase 12.4: 加载 Provider 预算
+    setProviderBudgets(config.providerBudgets || {})
+    
+    // Phase 12.6: 加载 Provider 超时配置
+    setProviderTimeouts({
+      openai: {
+        standard: config.providers?.openai?.timeoutMs,
+        reasoning: config.providers?.openai?.reasoningTimeoutMs
+      },
+      deepseek: {
+        standard: config.providers?.deepseek?.timeoutMs,
+        reasoning: config.providers?.deepseek?.reasoningTimeoutMs
+      }
     })
     
     // 加载其他配置
@@ -315,13 +343,15 @@ export function AIConfig() {
 
     // 2. 临时保存配置（以便 aiManager 可以读取）
     // 构建 providers 结构
-    const providers: Record<string, { apiKey: string; model: string; enableReasoning?: boolean }> = {}
+    const providers: Record<string, { apiKey: string; model: string; enableReasoning?: boolean; timeoutMs?: number; reasoningTimeoutMs?: number }> = {}
     
     if (apiKeys.openai) {
       providers.openai = {
         apiKey: apiKeys.openai,
         model: currentProvider === 'openai' ? model : 'gpt-4o-mini',
-        enableReasoning: currentProvider === 'openai' ? enableReasoning : false
+        enableReasoning: currentProvider === 'openai' ? enableReasoning : false,
+        timeoutMs: providerTimeouts.openai?.standard,  // Phase 12.6: 保存超时配置
+        reasoningTimeoutMs: providerTimeouts.openai?.reasoning
       }
     }
     
@@ -329,13 +359,15 @@ export function AIConfig() {
       providers.deepseek = {
         apiKey: apiKeys.deepseek,
         model: currentProvider === 'deepseek' ? model : 'deepseek-chat',
-        enableReasoning: currentProvider === 'deepseek' ? enableReasoning : false
+        enableReasoning: currentProvider === 'deepseek' ? enableReasoning : false,
+        timeoutMs: providerTimeouts.deepseek?.standard,  // Phase 12.6: 保存超时配置
+        reasoningTimeoutMs: providerTimeouts.deepseek?.reasoning
       }
     }
     
     await saveAIConfig({
       providers,
-      monthlyBudget,
+      providerBudgets,  // Phase 12.4: 保存 Provider 预算
       local: buildLocalConfigForSave(),
       engineAssignment: engineAssignment || await getEngineAssignment(),
       // Phase 12: 保存 Provider 偏好设置
@@ -393,14 +425,16 @@ export function AIConfig() {
       }
 
       // Phase 9.2: 使用新的 providers 结构保存配置
-      const providers: Record<string, { apiKey: string; model: string; enableReasoning?: boolean }> = {}
+      const providers: Record<string, { apiKey: string; model: string; enableReasoning?: boolean; timeoutMs?: number; reasoningTimeoutMs?: number }> = {}
       
       // 只保存有 API key 的 provider
       if (apiKeys.openai) {
         providers.openai = {
           apiKey: apiKeys.openai,
           model: currentProvider === 'openai' ? model : 'gpt-4o-mini',
-          enableReasoning: currentProvider === 'openai' ? enableReasoning : false
+          enableReasoning: currentProvider === 'openai' ? enableReasoning : false,
+          timeoutMs: providerTimeouts.openai?.standard,  // Phase 12.6: 保存超时配置
+          reasoningTimeoutMs: providerTimeouts.openai?.reasoning
         }
       }
       
@@ -408,13 +442,15 @@ export function AIConfig() {
         providers.deepseek = {
           apiKey: apiKeys.deepseek,
           model: currentProvider === 'deepseek' ? model : 'deepseek-chat',
-          enableReasoning: currentProvider === 'deepseek' ? enableReasoning : false
+          enableReasoning: currentProvider === 'deepseek' ? enableReasoning : false,
+          timeoutMs: providerTimeouts.deepseek?.standard,  // Phase 12.6: 保存超时配置
+          reasoningTimeoutMs: providerTimeouts.deepseek?.reasoning
         }
       }
       
       await saveAIConfig({
         providers,
-        monthlyBudget,
+        providerBudgets,  // Phase 12.4: 保存 Provider 预算
         local: localConfigForSave,
         engineAssignment: engineAssignment || await getEngineAssignment(),
         // Phase 12: 保存 Provider 偏好设置
@@ -439,7 +475,7 @@ export function AIConfig() {
     } finally {
       setAutoSaving(false)
     }
-  }, [model, currentProvider, currentApiKey, apiKeys, monthlyBudget, enableReasoning, engineAssignment, maxRecommendations, localConfig, localAIChoice, preferredRemoteProvider, preferredLocalProvider])
+  }, [model, currentProvider, currentApiKey, apiKeys, providerBudgets, providerTimeouts, enableReasoning, engineAssignment, maxRecommendations, localConfig, localAIChoice, preferredRemoteProvider, preferredLocalProvider])
 
   /**
    * 触发自动保存（带防抖）
@@ -477,7 +513,7 @@ export function AIConfig() {
       triggerAutoSave()
     }
     // 只监听需要自动保存的字段，不包括函数引用
-  }, [monthlyBudget, enableReasoning, engineAssignment, maxRecommendations, model, currentProvider, currentApiKey])
+  }, [providerBudgets, enableReasoning, engineAssignment, maxRecommendations, model, currentProvider, currentApiKey])
 
   // 监听 engineAssignment 变化，同步更新 RecommendationConfig
   useEffect(() => {
@@ -565,7 +601,7 @@ export function AIConfig() {
     
     await saveAIConfig({
       providers,
-      monthlyBudget,
+      providerBudgets,  // Phase 12.4: 保存 Provider 预算
       local: buildLocalConfigForSave(),
       engineAssignment: engineAssignment || await getEngineAssignment(),
       // Phase 12: 保存 Provider 偏好设置
@@ -604,7 +640,7 @@ export function AIConfig() {
     try {
     await saveAIConfig({
       providers: {},
-      monthlyBudget: 5,
+      providerBudgets: {},  // Phase 12.4: 清空 Provider 预算
       local: buildLocalConfigForSave(false),
       engineAssignment: await getEngineAssignment(),
       // Phase 12: 保持 Provider 偏好设置
@@ -613,6 +649,7 @@ export function AIConfig() {
     })
     setModel("")
     setApiKeys({ openai: "", deepseek: "" })
+    setProviderBudgets({})  // Phase 12.4: 清空预算状态
     setEnableReasoning(false)
     setLocalAIChoice('none')
     setMessage({ type: "success", text: _("options.aiConfig.messages.disableSuccess") })
@@ -638,7 +675,7 @@ export function AIConfig() {
 
     {/* 如何选择 AI 提供商（置顶） */}
     <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-      <h3 className="font-semibold mb-2">💡 {_("options.aiConfig.info.title")}</h3>
+      <h4 className="font-semibold mb-2">💡 {_("options.aiConfig.info.title")}</h4>
       <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
         <p>{_("options.aiConfig.info.overview")}</p>
         <div className="grid md:grid-cols-2 gap-3 mt-3">
@@ -661,13 +698,18 @@ export function AIConfig() {
     </div>
 
     {/* AI Provider 状态面板 */}
-    <div className="mb-8">
+    <div>
       <AIConfigPanel />
+    </div>
+
+    {/* Phase 12.4: 月度预算总览 */}
+    <div>
+      <BudgetOverview />
     </div>
 
     {/* Phase 8: AI 引擎分配 */}
     {engineAssignment && (
-    <div className="mt-6">
+    <div>
       <AIEngineAssignmentComponent
         value={engineAssignment}
         onChange={setEngineAssignment}
@@ -676,8 +718,10 @@ export function AIConfig() {
   )}
 
   {/* 智能推荐数量 */}
-  <div className="mt-6 p-6 bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 rounded-lg">
-    <h3 className="text-lg font-semibold mb-4">{_("options.recommendation.smartCount")}</h3>
+  <div className="p-6 bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 rounded-lg">
+    <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">
+      🎯 {_("options.recommendation.smartCount")}
+    </h3>
     {isLearningStage ? (
       <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
         <div className="flex items-start gap-3">

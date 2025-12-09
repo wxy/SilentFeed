@@ -3,8 +3,33 @@ import { render, screen } from '@testing-library/react'
 import React from 'react'
 import { AIConfigPanel } from './AIConfigPanel'
 
+// Mock i18n with actual translations for testing
 vi.mock('@/i18n/helpers', () => ({
-  useI18n: () => ({ _: (k: string) => k })
+  useI18n: () => ({
+    _: (key: string) => {
+      const translations: Record<string, string> = {
+        "options.aiConfig.providerPanel.title": "AI 提供商状态",
+        "options.aiConfig.providerPanel.checkAll": "检测全部",
+        "options.aiConfig.providerPanel.checking": "检测中...",
+        "options.aiConfig.card.statusAvailable": "可用",
+        "options.aiConfig.card.statusUnavailable": "不可用",
+        "options.aiConfig.card.statusNotConfigured": "未配置",
+        "options.aiConfig.card.typeLocal": "本地",
+        "options.aiConfig.card.typeRemote": "远程",
+        "options.aiConfig.card.active": "在用",
+        "options.aiConfig.card.supportsReasoning": "支持推理能力",
+        "options.aiConfig.card.preferredRemote": "首选远程 AI",
+        "options.aiConfig.card.preferredLocal": "首选本地 AI",
+        "options.aiConfig.card.latency": "延迟: {{value}}",
+        "options.aiConfig.card.lastChecked": "检测: {{time}}",
+        "options.aiConfig.card.check": "检测",
+        "options.aiConfig.card.checking": "检测中...",
+        "options.aiConfig.card.configure": "配置",
+        "options.aiConfig.card.budget": "月度预算"
+      }
+      return translations[key] || key
+    }
+  })
 }))
 
 vi.mock('@/storage/ai-config', () => ({
@@ -29,13 +54,14 @@ vi.mock('@/storage/ai-config', () => ({
 describe('AIConfigPanel 条件渲染', () => {
   it('应显示 Provider 面板标题与未配置状态', async () => {
     render(<AIConfigPanel />)
-    expect(screen.getByText('options.aiConfig.providerPanel.title')).toBeDefined()
-    expect(screen.getAllByText('options.aiConfig.card.statusNotConfigured').length).toBeGreaterThan(0)
+    // 使用部分文本匹配，因为 emoji 和文本可能被分开渲染
+    expect(screen.getByText(/AI 提供商状态/)).toBeDefined()
+    expect(screen.getAllByText('未配置').length).toBeGreaterThan(0)
   })
 
   it('应渲染检查与配置按钮', async () => {
     render(<AIConfigPanel />)
-    expect(screen.getAllByText('options.aiConfig.card.check').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('options.aiConfig.card.configure').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('检测').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('配置').length).toBeGreaterThan(0)
   })
 })
