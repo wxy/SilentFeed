@@ -11,6 +11,7 @@ import { logger } from "@/utils/logger"
 import { withErrorHandling, withErrorHandlingSync } from "@/utils/error-handler"
 import type { AIEngineAssignment } from "@/types/ai-engine-assignment"
 import { getDefaultEngineAssignment } from "@/types/ai-engine-assignment"
+import { encryptApiKey as cryptoEncrypt, decryptApiKey as cryptoDecrypt } from "@/utils/crypto"
 
 const configLogger = logger.withTag('AIConfig')
 
@@ -233,7 +234,7 @@ export async function getAIConfig(): Promise<AIConfig> {
             if (providerConfig && (providerConfig as any).apiKey) {
               providers[providerKey as AIProviderType] = {
                 ...(providerConfig as RemoteProviderConfig),
-                apiKey: decryptApiKey((providerConfig as RemoteProviderConfig).apiKey)
+                apiKey: await cryptoDecrypt((providerConfig as RemoteProviderConfig).apiKey)
               }
             }
           }
@@ -308,7 +309,7 @@ export async function saveAIConfig(config: AIConfig): Promise<void> {
           if (providerConfig && providerConfig.apiKey) {
             encryptedProviders[providerKey as AIProviderType] = {
               ...providerConfig,
-              apiKey: encryptApiKey(providerConfig.apiKey)
+              apiKey: await cryptoEncrypt(providerConfig.apiKey)
             }
           }
         }
@@ -381,71 +382,7 @@ export async function isAIConfigured(): Promise<boolean> {
   return false
 }
 
-/**
- * 加密 API Key
- * 
- * 使用 Base64 编码（简单混淆）
- * 注意：处理 Unicode 字符
- */
-function encryptApiKey(apiKey: string): string {
-  if (!apiKey) return ""
-  
-  return withErrorHandlingSync(
-    () => {
-      // 使用 TextEncoder 处理 Unicode
-      const encoder = new TextEncoder()
-      const data = encoder.encode(apiKey)
-      
-      // 转换为 Base64
-      const base64 = btoa(String.fromCharCode(...data))
-      return base64
-    },
-    {
-      tag: 'AIConfig.encryptApiKey',
-      fallback: apiKey, // 加密失败时返回原始值（总比丢失好）
-      errorCode: 'API_KEY_ENCRYPT_ERROR',
-      userMessage: 'API Key 加密失败'
-    }
-  ) as string
-}
-
-/**
- * 解密 API Key
- */
-function decryptApiKey(encryptedKey: string): string {
-  if (!encryptedKey) return ""
-  
-  // 检查是否是 Base64 格式（已加密）
-  // Base64 只包含 A-Z, a-z, 0-9, +, /, = 字符
-  const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/
-  if (!base64Regex.test(encryptedKey)) {
-    // 不是 Base64，可能是明文 API key（如 sk-xxx），直接返回
-    return encryptedKey
-  }
-  
-  return withErrorHandlingSync(
-    () => {
-      // 从 Base64 解码
-      const decoded = atob(encryptedKey)
-      
-      // 转换回 Uint8Array
-      const data = new Uint8Array(decoded.split('').map(c => c.charCodeAt(0)))
-      
-      // 使用 TextDecoder 处理 Unicode
-      const decoder = new TextDecoder()
-      return decoder.decode(data)
-    },
-    {
-      tag: 'AIConfig.decryptApiKey',
-      fallback: encryptedKey, // 如果解密失败，返回原始数据
-      errorCode: 'API_KEY_DECRYPT_ERROR',
-      userMessage: 'API Key 解密失败',
-      onError: () => {
-        configLogger.warn('Failed to decrypt API key, using as-is')
-      }
-    }
-  ) as string
-}
+// 注意：加密/解密函数已移至 @/utils/crypto，使用 AES-GCM 256 位加密
 
 /**
  * 验证 API Key 格式

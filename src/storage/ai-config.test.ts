@@ -24,6 +24,9 @@ const mockChromeStorage = {
 }
 
 global.chrome = {
+  runtime: {
+    id: 'test-extension-id-12345'
+  },
   storage: mockChromeStorage
 } as any
 
@@ -133,31 +136,18 @@ describe("ai-config", () => {
       
       await saveAIConfig(config)
       
-      expect(mockChromeStorage.sync.set).toHaveBeenCalledWith({
-        aiConfig: {
-          providers: {
-            openai: {
-              apiKey: btoa("sk-test-123"),
-              model: "gpt-4o-mini"
-            }
-          },
-          globalMonthlyBudget: 10,
-          providerBudgets: {
-            openai: 10
-          },
-          local: {
-            enabled: false,
-            provider: "ollama",
-            endpoint: "http://localhost:11434/v1",
-            model: "llama2",
-            apiKey: "ollama",
-            temperature: 0.2,
-            maxOutputTokens: 768,
-            timeoutMs: 45000
-          },
-          engineAssignment: AI_ENGINE_PRESETS.intelligence.config
-        }
-      })
+      // 验证调用了 chrome.storage.sync.set
+      expect(mockChromeStorage.sync.set).toHaveBeenCalled()
+      
+      // 验证 API Key 被加密（新格式：version:iv:ciphertext）
+      const savedData = mockChromeStorage.sync.set.mock.calls[0][0]
+      const encryptedKey = savedData.aiConfig.providers.openai.apiKey
+      
+      // 验证是新的加密格式
+      expect(encryptedKey).toMatch(/^1:[A-Za-z0-9+/=]+:[A-Za-z0-9+/=]+$/)
+      
+      // 验证不是明文
+      expect(encryptedKey).not.toBe("sk-test-123")
     })
     
     it("应该处理保存失败的情况", async () => {
