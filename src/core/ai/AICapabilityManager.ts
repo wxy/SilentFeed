@@ -28,6 +28,7 @@ import { getAIConfig, getEngineAssignment, type AIProviderType, type LocalAIConf
 import type { AIEngineAssignment } from "@/types/ai-engine-assignment"
 import { logger, isNetworkError } from '../../utils/logger'
 import { AIUsageTracker } from './AIUsageTracker'
+import { BudgetChecker } from './BudgetChecker'
 import { canMakeAICall, shouldDowngradeToKeyword } from '@/utils/budget-utils'
 
 // 创建带标签的 logger
@@ -242,23 +243,18 @@ export class AICapabilityManager {
     if (shouldDowngrade) {
       aiLogger.warn("⚠️ 月度预算已超支，跳过画像生成")
       return {
-        profile: {
-          interests: [],
-          preferences: {
-            contentTypes: [],
-            topics: [],
-            styles: []
-          },
-          behavior: {
-            readingPatterns: [],
-            engagementLevel: "low",
-            topicDiversity: 0
-          }
-        },
+        interests: "",
+        preferences: [],
+        avoidTopics: [],
         metadata: {
-          provider: "budget-limit",
+          provider: "keyword",
+          model: "fallback",
           timestamp: Date.now(),
-          reasoning: false
+          basedOn: {
+            browses: 0,
+            reads: 0,
+            dismisses: 0
+          }
         }
       }
     }
@@ -274,7 +270,12 @@ export class AICapabilityManager {
         // 直接跳到降级逻辑
       } else {
         try {
-          const result = await taskProvider.generateUserProfile(request, { useReasoning })
+          // 检查是否支持 useReasoning 参数（BaseAIService 类型）
+          // DeepSeekProvider、OpenAIProvider、OllamaProvider 继承自 BaseAIService
+          const isBaseAI = taskProvider.name !== "Fallback Keyword Provider"
+          const result = isBaseAI
+            ? await (taskProvider as any).generateUserProfile(request, { useReasoning })
+            : await taskProvider.generateUserProfile(request)
           if (result.metadata.tokensUsed) {
           }
           return result
@@ -671,9 +672,13 @@ export class AICapabilityManager {
         const outputCost = (metadata.tokensUsed.output / 1000) * 0.002
         const totalCost = inputCost + outputCost
         
+        // 转换 provider 类型（anthropic 已弃用，记录为 keyword）
+        const usageProvider: 'openai' | 'deepseek' | 'ollama' | 'keyword' = 
+          metadata.provider === 'anthropic' ? 'keyword' : metadata.provider
+        
         // 记录到 AIUsageTracker
         await AIUsageTracker.recordUsage({
-          provider: metadata.provider,
+          provider: usageProvider,
           model: metadata.model,
           purpose: 'recommend-content',  // 使用推荐内容类型
           tokens: {
@@ -690,7 +695,7 @@ export class AICapabilityManager {
             estimated: false
           },
           reasoning: useReasoning,  // 使用传入的推理模式标记
-          latency: metadata.latency || 0,
+          latency: 0,  // 推荐原因生成没有 latency 记录
           success: true,
           metadata: {
             confidence: result.confidence,
@@ -802,10 +807,7 @@ export class AICapabilityManager {
       if (!budgetStatus.allowed) {
         aiLogger.warn(`🚫 预算已超限 - ${providerName}`, {
           reason: budgetStatus.reason,
-          globalBudget: `$${budgetStatus.globalBudget.used.toFixed(2)}/$${budgetStatus.globalBudget.limit}`,
-          providerBudget: budgetStatus.providerBudget 
-            ? `$${budgetStatus.providerBudget.used.toFixed(2)}/$${budgetStatus.providerBudget.limit}`
-            : 'N/A'
+          budget: `$${budgetStatus.budget.used.toFixed(2)}/$${budgetStatus.budget.limit === 0 ? '无限制' : budgetStatus.budget.limit}`
         })
         return false
       }
@@ -814,10 +816,7 @@ export class AICapabilityManager {
       const shouldDowngrade = await shouldDowngradeToKeyword(providerType)
       if (shouldDowngrade) {
         aiLogger.warn(`⚠️ 预算接近上限 - ${providerName}`, {
-          globalUsage: `${(budgetStatus.globalBudget.usageRate * 100).toFixed(1)}%`,
-          providerUsage: budgetStatus.providerBudget 
-            ? `${(budgetStatus.providerBudget.usageRate * 100).toFixed(1)}%`
-            : 'N/A'
+          usage: `${(budgetStatus.budget.usageRate * 100).toFixed(1)}%`
         })
       }
       
