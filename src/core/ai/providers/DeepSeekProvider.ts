@@ -115,9 +115,8 @@ export class DeepSeekProvider extends BaseAIService {
       request.reasoning_effort = "high"
     }
     
-    // 超时设置
-    const defaultTimeout = options?.useReasoning ? 120000 : 60000
-    const timeout = options?.timeout || defaultTimeout
+    // Phase 12.6: 使用配置的超时（如果未指定，使用 getConfiguredTimeout）
+    const timeout = options?.timeout || this.getConfiguredTimeout(options?.useReasoning)
     
     try {
       const response = await fetch(this.endpoint, {

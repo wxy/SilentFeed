@@ -1198,6 +1198,15 @@
         "checking": "检测中...",
         "configure": "配置",
         "budget": "月度预算",
+        "timeout": {
+          "standard": "标准模式超时",
+          "reasoning": "推理模式超时",
+          "description": "超时设置",
+          "hint": "API 请求超时时间（区别于网络延迟检测）",
+          "localHint": "本地 AI 请求超时时间，性能较低的设备可能需要更长时间",
+          "seconds": "{{value}}秒"
+        },
+        "advancedSettings": "高级设置",
         "errors": {
           "notConfigured": "未配置 API Key",
           "localNotEnabled": "未启用本地 AI",

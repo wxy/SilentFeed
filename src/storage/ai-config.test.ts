@@ -14,12 +14,34 @@ import {
 } from "./ai-config"
 import { AI_ENGINE_PRESETS, type AIEngineAssignment } from "@/types/ai-engine-assignment"
 
-// Mock chrome.storage.sync
+// Mock chrome.storage.sync with persistent storage
+const mockStorage: Record<string, any> = {}
 const mockChromeStorage = {
   sync: {
-    get: vi.fn(),
-    set: vi.fn(),
-    remove: vi.fn()
+    get: vi.fn((keys?: string | string[]) => {
+      if (!keys) {
+        return Promise.resolve(mockStorage)
+      }
+      if (typeof keys === 'string') {
+        return Promise.resolve({ [keys]: mockStorage[keys] })
+      }
+      const result: Record<string, any> = {}
+      keys.forEach((key) => {
+        if (key in mockStorage) {
+          result[key] = mockStorage[key]
+        }
+      })
+      return Promise.resolve(result)
+    }),
+    set: vi.fn((items: Record<string, any>) => {
+      Object.assign(mockStorage, items)
+      return Promise.resolve(undefined)
+    }),
+    remove: vi.fn((keys: string | string[]) => {
+      const keysArray = typeof keys === 'string' ? [keys] : keys
+      keysArray.forEach((key) => delete mockStorage[key])
+      return Promise.resolve(undefined)
+    })
   }
 }
 
@@ -32,10 +54,39 @@ global.chrome = {
 
 describe("ai-config", () => {
   beforeEach(() => {
+    // 清空模拟存储
+    Object.keys(mockStorage).forEach((key) => delete mockStorage[key])
+    
+    // 重置所有 mock 实现（确保每个测试独立）
     vi.clearAllMocks()
-    mockChromeStorage.sync.get.mockResolvedValue({})
-    mockChromeStorage.sync.set.mockResolvedValue(undefined)
-    mockChromeStorage.sync.remove.mockResolvedValue(undefined)
+    
+    // 恢复 mock 的默认实现
+    mockChromeStorage.sync.get.mockImplementation((keys?: string | string[]) => {
+      if (!keys) {
+        return Promise.resolve(mockStorage)
+      }
+      if (typeof keys === 'string') {
+        return Promise.resolve({ [keys]: mockStorage[keys] })
+      }
+      const result: Record<string, any> = {}
+      keys.forEach((key) => {
+        if (key in mockStorage) {
+          result[key] = mockStorage[key]
+        }
+      })
+      return Promise.resolve(result)
+    })
+    
+    mockChromeStorage.sync.set.mockImplementation((items: Record<string, any>) => {
+      Object.assign(mockStorage, items)
+      return Promise.resolve(undefined)
+    })
+    
+    mockChromeStorage.sync.remove.mockImplementation((keys: string | string[]) => {
+      const keysArray = typeof keys === 'string' ? [keys] : keys
+      keysArray.forEach((key) => delete mockStorage[key])
+      return Promise.resolve(undefined)
+    })
   })
   
   describe("getAIConfig", () => {
@@ -55,7 +106,8 @@ describe("ai-config", () => {
           apiKey: "ollama",
           temperature: 0.2,
           maxOutputTokens: 768,
-          timeoutMs: 45000
+          timeoutMs: 60000, // Phase 12.6: 默认 60s
+          reasoningTimeoutMs: 180000 // Phase 12.6: 默认 180s
         },
         engineAssignment: AI_ENGINE_PRESETS.intelligence.config,
         // Phase 12: Provider 偏好设置默认值
@@ -589,6 +641,109 @@ describe("ai-config", () => {
       const loaded = await getAIConfig()
       
       expect(loaded.globalMonthlyBudget).toBe(15) // 使用新字段
+    })
+  })
+  
+  describe("Timeout Configuration (Phase 12.6)", () => {
+    it("应该保存和加载超时配置", async () => {
+      const config: AIConfig = {
+        providers: {
+          openai: {
+            apiKey: "test-key",
+            model: "gpt-5-mini",
+            timeoutMs: 90000,
+            reasoningTimeoutMs: 180000
+          },
+          deepseek: {
+            apiKey: "test-key-2",
+            model: "deepseek-chat",
+            timeoutMs: 45000,
+            reasoningTimeoutMs: 150000
+          }
+        },
+        providerBudgets: {},
+        local: {
+          enabled: false,
+          provider: "ollama",
+          endpoint: "http://localhost:11434/v1",
+          model: "",
+          apiKey: "ollama",
+          temperature: 0.2,
+          maxOutputTokens: 768,
+          timeoutMs: 45000
+        },
+        engineAssignment: AI_ENGINE_PRESETS.intelligence.config
+      }
+      
+      await saveAIConfig(config)
+      const loaded = await getAIConfig()
+      
+      expect(loaded.providers.openai?.timeoutMs).toBe(90000)
+      expect(loaded.providers.openai?.reasoningTimeoutMs).toBe(180000)
+      expect(loaded.providers.deepseek?.timeoutMs).toBe(45000)
+      expect(loaded.providers.deepseek?.reasoningTimeoutMs).toBe(150000)
+    })
+    
+    it("未配置超时时应返回 undefined（使用默认值）", async () => {
+      const config: AIConfig = {
+        providers: {
+          deepseek: {
+            apiKey: "test-key",
+            model: "deepseek-chat"
+            // 未设置 timeoutMs
+          }
+        },
+        providerBudgets: {},
+        local: {
+          enabled: false,
+          provider: "ollama",
+          endpoint: "http://localhost:11434/v1",
+          model: "",
+          apiKey: "ollama",
+          temperature: 0.2,
+          maxOutputTokens: 768,
+          timeoutMs: 45000
+        },
+        engineAssignment: AI_ENGINE_PRESETS.intelligence.config
+      }
+      
+      await saveAIConfig(config)
+      const loaded = await getAIConfig()
+      
+      // 应该回退到 undefined（在 Provider 调用时使用默认值）
+      expect(loaded.providers.deepseek?.timeoutMs).toBeUndefined()
+      expect(loaded.providers.deepseek?.reasoningTimeoutMs).toBeUndefined()
+    })
+    
+    it("应该支持只配置部分超时", async () => {
+      const config: AIConfig = {
+        providers: {
+          openai: {
+            apiKey: "test-key",
+            model: "gpt-5-mini",
+            timeoutMs: 75000
+            // 未设置 reasoningTimeoutMs
+          }
+        },
+        providerBudgets: {},
+        local: {
+          enabled: false,
+          provider: "ollama",
+          endpoint: "http://localhost:11434/v1",
+          model: "",
+          apiKey: "ollama",
+          temperature: 0.2,
+          maxOutputTokens: 768,
+          timeoutMs: 45000
+        },
+        engineAssignment: AI_ENGINE_PRESETS.intelligence.config
+      }
+      
+      await saveAIConfig(config)
+      const loaded = await getAIConfig()
+      
+      expect(loaded.providers.openai?.timeoutMs).toBe(75000)
+      expect(loaded.providers.openai?.reasoningTimeoutMs).toBeUndefined()
     })
   })
 })

@@ -61,6 +61,12 @@ export function AIConfig() {
     deepseek?: number
   }>({})
   
+  // Phase 12.6: Provider 超时配置（远程 AI）
+  const [providerTimeouts, setProviderTimeouts] = useState<{
+    openai?: { standard?: number; reasoning?: number }
+    deepseek?: { standard?: number; reasoning?: number }
+  }>({})
+  
   const [enableReasoning, setEnableReasoning] = useState(false) // Phase 9: 推理能力
   const [localAIChoice, setLocalAIChoice] = useState<'none' | 'chromeAI' | 'ollama'>('none') // Phase 9: 本地 AI 三选一
   const [localConfig, setLocalConfig] = useState<LocalAIConfig>(createDefaultLocalConfig())
@@ -157,6 +163,18 @@ export function AIConfig() {
     
     // Phase 12.4: 加载 Provider 预算
     setProviderBudgets(config.providerBudgets || {})
+    
+    // Phase 12.6: 加载 Provider 超时配置
+    setProviderTimeouts({
+      openai: {
+        standard: config.providers?.openai?.timeoutMs,
+        reasoning: config.providers?.openai?.reasoningTimeoutMs
+      },
+      deepseek: {
+        standard: config.providers?.deepseek?.timeoutMs,
+        reasoning: config.providers?.deepseek?.reasoningTimeoutMs
+      }
+    })
     
     // 加载其他配置
     setMonthlyBudget(config.monthlyBudget || 5)
@@ -325,13 +343,15 @@ export function AIConfig() {
 
     // 2. 临时保存配置（以便 aiManager 可以读取）
     // 构建 providers 结构
-    const providers: Record<string, { apiKey: string; model: string; enableReasoning?: boolean }> = {}
+    const providers: Record<string, { apiKey: string; model: string; enableReasoning?: boolean; timeoutMs?: number; reasoningTimeoutMs?: number }> = {}
     
     if (apiKeys.openai) {
       providers.openai = {
         apiKey: apiKeys.openai,
         model: currentProvider === 'openai' ? model : 'gpt-4o-mini',
-        enableReasoning: currentProvider === 'openai' ? enableReasoning : false
+        enableReasoning: currentProvider === 'openai' ? enableReasoning : false,
+        timeoutMs: providerTimeouts.openai?.standard,  // Phase 12.6: 保存超时配置
+        reasoningTimeoutMs: providerTimeouts.openai?.reasoning
       }
     }
     
@@ -339,7 +359,9 @@ export function AIConfig() {
       providers.deepseek = {
         apiKey: apiKeys.deepseek,
         model: currentProvider === 'deepseek' ? model : 'deepseek-chat',
-        enableReasoning: currentProvider === 'deepseek' ? enableReasoning : false
+        enableReasoning: currentProvider === 'deepseek' ? enableReasoning : false,
+        timeoutMs: providerTimeouts.deepseek?.standard,  // Phase 12.6: 保存超时配置
+        reasoningTimeoutMs: providerTimeouts.deepseek?.reasoning
       }
     }
     
@@ -403,14 +425,16 @@ export function AIConfig() {
       }
 
       // Phase 9.2: 使用新的 providers 结构保存配置
-      const providers: Record<string, { apiKey: string; model: string; enableReasoning?: boolean }> = {}
+      const providers: Record<string, { apiKey: string; model: string; enableReasoning?: boolean; timeoutMs?: number; reasoningTimeoutMs?: number }> = {}
       
       // 只保存有 API key 的 provider
       if (apiKeys.openai) {
         providers.openai = {
           apiKey: apiKeys.openai,
           model: currentProvider === 'openai' ? model : 'gpt-4o-mini',
-          enableReasoning: currentProvider === 'openai' ? enableReasoning : false
+          enableReasoning: currentProvider === 'openai' ? enableReasoning : false,
+          timeoutMs: providerTimeouts.openai?.standard,  // Phase 12.6: 保存超时配置
+          reasoningTimeoutMs: providerTimeouts.openai?.reasoning
         }
       }
       
@@ -418,7 +442,9 @@ export function AIConfig() {
         providers.deepseek = {
           apiKey: apiKeys.deepseek,
           model: currentProvider === 'deepseek' ? model : 'deepseek-chat',
-          enableReasoning: currentProvider === 'deepseek' ? enableReasoning : false
+          enableReasoning: currentProvider === 'deepseek' ? enableReasoning : false,
+          timeoutMs: providerTimeouts.deepseek?.standard,  // Phase 12.6: 保存超时配置
+          reasoningTimeoutMs: providerTimeouts.deepseek?.reasoning
         }
       }
       
@@ -449,7 +475,7 @@ export function AIConfig() {
     } finally {
       setAutoSaving(false)
     }
-  }, [model, currentProvider, currentApiKey, apiKeys, providerBudgets, enableReasoning, engineAssignment, maxRecommendations, localConfig, localAIChoice, preferredRemoteProvider, preferredLocalProvider])
+  }, [model, currentProvider, currentApiKey, apiKeys, providerBudgets, providerTimeouts, enableReasoning, engineAssignment, maxRecommendations, localConfig, localAIChoice, preferredRemoteProvider, preferredLocalProvider])
 
   /**
    * 触发自动保存（带防抖）
