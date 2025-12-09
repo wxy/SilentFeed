@@ -132,12 +132,17 @@ export interface RemoteProviderConfig {
 /**
  * AI 配置数据结构
  * Phase 9.2+: 简化配置 - 只保留 providers 和 engineAssignment
+ * Phase 12.4: Provider 级别预算控制（多货币独立预算）
  * 
  * 设计原则：
  * - 使用 providers 管理远程 AI 配置（每个 provider 独立）
  * - 使用 engineAssignment 控制任务级引擎分配
  * - 移除全局 enabled 开关（由 engineAssignment 控制）
  * - 移除单一 AI 模式的遗留字段（provider、apiKeys、model 等）
+ * 
+ * 预算控制（Phase 12.4）：
+ * - providerBudgets: 每个 provider 的独立月度预算（使用各自原生货币）
+ * - 不需要货币转换，各 provider 独立计算
  */
 export interface AIConfig {
   /** 各提供商的配置（分别存储 API Key + Model） */
@@ -146,8 +151,29 @@ export interface AIConfig {
     deepseek?: RemoteProviderConfig
   }
   
-  /** 月度预算（美元或人民币），必须设置，最小 $1 或 ¥10 */
-  monthlyBudget: number
+  /**
+   * Phase 12.4: 每个 provider 的独立月度预算
+   * ⚠️ 使用各 provider 的原生货币单位：
+   * - openai: 美元（USD）
+   * - deepseek: 人民币（CNY）
+   * 
+   * 可选配置，未设置则不限制该 provider 预算
+   * 
+   * 示例：
+   * {
+   *   openai: 10,    // OpenAI 月度预算 $10 USD
+   *   deepseek: 50   // DeepSeek 月度预算 ¥50 CNY
+   * }
+   */
+  providerBudgets?: {
+    openai?: number
+    deepseek?: number
+  }
+  
+  /**
+   * @deprecated Phase 12.4: 已废弃，保留用于向后兼容
+   */
+  monthlyBudget?: number
 
   /** Phase 10: 本地 AI 配置（Ollama 等） */
   local: LocalAIConfig
@@ -167,7 +193,7 @@ export interface AIConfig {
  */
 const DEFAULT_CONFIG: AIConfig = {
   providers: {},
-  monthlyBudget: 5, // 默认 $5/月
+  providerBudgets: {}, // 默认不限制 provider 预算
   local: {
     enabled: false,
     provider: "ollama",
@@ -213,9 +239,35 @@ export async function getAIConfig(): Promise<AIConfig> {
           }
         }
         
+        // Phase 12.4: 处理预算配置迁移
+        // 如果存在旧的 monthlyBudget，迁移到 globalMonthlyBudget
+        const globalMonthlyBudget = config.globalMonthlyBudget 
+          || config.monthlyBudget 
+          || DEFAULT_CONFIG.globalMonthlyBudget
+        
+        // 如果没有 providerBudgets 但有旧的 monthlyBudget，自动分配
+        let providerBudgets = config.providerBudgets || {}
+        if (!config.providerBudgets && config.monthlyBudget && Object.keys(providers).length > 0) {
+          // 自动为已配置的 providers 平均分配预算
+          const providerCount = Object.keys(providers).length
+          const budgetPerProvider = Math.floor((config.monthlyBudget / providerCount) * 100) / 100
+          providerBudgets = Object.keys(providers).reduce((acc, key) => {
+            acc[key as AIProviderType] = budgetPerProvider
+            return acc
+          }, {} as NonNullable<AIConfig['providerBudgets']>)
+          
+          configLogger.info('📊 自动迁移预算配置', {
+            totalBudget: config.monthlyBudget,
+            providers: Object.keys(providers),
+            budgetPerProvider
+          })
+        }
+        
         return {
           providers,
-          monthlyBudget: config.monthlyBudget || DEFAULT_CONFIG.monthlyBudget,
+          globalMonthlyBudget,
+          globalBudgetCurrency: config.globalBudgetCurrency || DEFAULT_CONFIG.globalBudgetCurrency,
+          providerBudgets,
           local: {
             ...DEFAULT_CONFIG.local,
             ...(config.local || {})
@@ -264,7 +316,9 @@ export async function saveAIConfig(config: AIConfig): Promise<void> {
       
       const encryptedConfig: AIConfig = {
         providers: encryptedProviders,
-        monthlyBudget: config.monthlyBudget,
+        globalMonthlyBudget: config.globalMonthlyBudget,
+        globalBudgetCurrency: config.globalBudgetCurrency,
+        providerBudgets: config.providerBudgets,
         local: config.local,
         engineAssignment: config.engineAssignment,
         // Phase 12: 保存 Provider 偏好设置

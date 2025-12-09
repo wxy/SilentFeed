@@ -30,7 +30,8 @@ vi.mock("@/i18n/helpers", () => ({
         "options.aiConfig.card.lastChecked": "检测: {{time}}",
         "options.aiConfig.card.check": "检测",
         "options.aiConfig.card.checking": "检测中...",
-        "options.aiConfig.card.configure": "配置"
+        "options.aiConfig.card.configure": "配置",
+        "options.aiConfig.card.budget": "月度预算"
       }
       let result = translations[key] || key
       // 简单的模板替换
@@ -195,5 +196,101 @@ describe("AIProviderCard", () => {
     render(<AIProviderCard {...defaultProps} status={status} />)
 
     expect(screen.getByText(/1分钟前/)).toBeInTheDocument()
+  })
+
+  // Phase 12.4: 预算显示测试
+  describe("预算显示", () => {
+    it("应该显示预算信息（USD）", () => {
+      render(
+        <AIProviderCard 
+          {...defaultProps} 
+          monthlyBudget={10}
+          currentSpent={5.23}
+          currency="USD"
+        />
+      )
+
+      expect(screen.getByText("💰 月度预算")).toBeInTheDocument()
+      expect(screen.getByText("$5.23 / $10")).toBeInTheDocument()
+    })
+
+    it("应该显示预算信息（CNY）", () => {
+      render(
+        <AIProviderCard 
+          {...defaultProps} 
+          monthlyBudget={100}
+          currentSpent={38.5}
+          currency="CNY"
+        />
+      )
+
+      expect(screen.getByText("💰 月度预算")).toBeInTheDocument()
+      expect(screen.getByText("¥38.50 / ¥100")).toBeInTheDocument()
+    })
+
+    it("预算未设置时不显示", () => {
+      const { container } = render(<AIProviderCard {...defaultProps} />)
+      
+      expect(container.textContent).not.toContain("月度预算")
+    })
+
+    it("预算进度条应该反映使用百分比 - 绿色 (<70%)", () => {
+      const { container } = render(
+        <AIProviderCard 
+          {...defaultProps} 
+          monthlyBudget={100}
+          currentSpent={50}
+          currency="USD"
+        />
+      )
+
+      const progressBar = container.querySelector('.bg-green-500')
+      expect(progressBar).toBeInTheDocument()
+      expect(progressBar).toHaveStyle({ width: '50%' })
+    })
+
+    it("预算进度条应该反映使用百分比 - 黄色 (70%-90%)", () => {
+      const { container } = render(
+        <AIProviderCard 
+          {...defaultProps} 
+          monthlyBudget={100}
+          currentSpent={80}
+          currency="USD"
+        />
+      )
+
+      const progressBar = container.querySelector('.bg-yellow-500')
+      expect(progressBar).toBeInTheDocument()
+      expect(progressBar).toHaveStyle({ width: '80%' })
+    })
+
+    it("预算进度条应该反映使用百分比 - 红色 (>=90%)", () => {
+      const { container } = render(
+        <AIProviderCard 
+          {...defaultProps} 
+          monthlyBudget={100}
+          currentSpent={95}
+          currency="USD"
+        />
+      )
+
+      const progressBar = container.querySelector('.bg-red-500')
+      expect(progressBar).toBeInTheDocument()
+      expect(progressBar).toHaveStyle({ width: '95%' })
+    })
+
+    it("超过预算时进度条不超过 100%", () => {
+      const { container } = render(
+        <AIProviderCard 
+          {...defaultProps} 
+          monthlyBudget={100}
+          currentSpent={120}
+          currency="USD"
+        />
+      )
+
+      const progressBar = container.querySelector('.bg-red-500')
+      expect(progressBar).toHaveStyle({ width: '100%' })
+    })
   })
 })

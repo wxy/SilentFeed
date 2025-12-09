@@ -53,17 +53,6 @@ function getProviderName(provider: string, _: (key: string) => string): string {
 }
 
 /**
- * 格式化货币显示
- */
-function formatCurrency(amount: number, currency: 'CNY' | 'USD' | 'FREE'): string {
-  if (currency === 'FREE') {
-    return '免费'
-  }
-  const symbol = currency === 'CNY' ? '¥' : '$'
-  return `${symbol}${amount.toFixed(4)}`
-}
-
-/**
  * 简单的进度条组件（用于数据可视化）
  */
 function ProgressBar({ 
@@ -393,7 +382,7 @@ export function CollectionStats() {
         {!aiUsageStats || aiUsageStats.totalCalls === 0 ? (
           <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 border-2 border-dashed border-gray-300 dark:border-gray-600">
             <p className="text-center text-gray-500 dark:text-gray-400 text-sm">
-              暂无 AI 调用数据
+              {_("options.collectionStats.aiUsage.noData")}
             </p>
             {!aiConfigStatus.configured && (
               <div className="mt-4 flex justify-center">
@@ -401,7 +390,7 @@ export function CollectionStats() {
                   href="/options.html?tab=ai-engine"
                   className="inline-flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
                 >
-                  <span>去配置 AI 引擎</span>
+                  <span>{_("options.collectionStats.aiConfigPromptLink")}</span>
                   <span>→</span>
                 </a>
               </div>
@@ -510,7 +499,7 @@ export function CollectionStats() {
 
             {/* 展开的详细信息 */}
             {showUsageDetails && (
-              <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
+              <div className="space-y-4 animate-in slide-in-from-top-2 duration-300 max-w-full overflow-hidden">
                 {/* 按 Provider 分组 */}
                 {Object.keys(aiUsageStats.byProvider).length > 0 && (
                   <div className="bg-gradient-to-br from-indigo-50/80 to-cyan-50/80 dark:from-indigo-900/20 dark:to-cyan-900/20 rounded-lg p-4 border border-indigo-200 dark:border-indigo-700">
@@ -766,15 +755,17 @@ export function CollectionStats() {
 
                 {/* 每日/每月用量统计柱形图 */}
                 {dailyStats.length > 0 && (
-                  <div className="bg-gradient-to-br from-slate-50/80 to-gray-50/80 dark:from-slate-900/20 dark:to-gray-900/20 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+                  <div className="bg-gradient-to-br from-slate-50/80 to-gray-50/80 dark:from-slate-900/20 dark:to-gray-900/20 rounded-lg p-4 border border-slate-200 dark:border-slate-700 max-w-[880px]">
                     <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
                       <span>📊</span>
                       <span>{_(usageStatsPeriod === '30days' ? 'settings.aiUsage.chartTitle.daily' : 'settings.aiUsage.chartTitle.monthly')}</span>
                     </h3>
-                    <AIUsageBarChart 
-                      data={dailyStats} 
-                      mode={usageStatsPeriod === '30days' ? 'daily' : 'monthly'} 
-                    />
+                    <div className="w-full overflow-hidden">
+                      <AIUsageBarChart 
+                        data={dailyStats} 
+                        mode={usageStatsPeriod === '30days' ? 'daily' : 'monthly'} 
+                      />
+                    </div>
                   </div>
                 )}
 
@@ -823,7 +814,7 @@ export function CollectionStats() {
         {!recommendationFunnel || recommendationFunnel.rssArticles === 0 ? (
           <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border-2 border-dashed border-gray-300 dark:border-gray-600">
             <p className="text-center text-gray-500 dark:text-gray-400 text-sm">
-              暂无推荐数据
+              {_("options.collectionStats.recommendationFunnelNoData")}
             </p>
           </div>
         ) : (

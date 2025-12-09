@@ -1029,7 +1029,8 @@
           "impact2": "CPU usage 30-50%",
           "impact3": "Battery life has significantly decreased.",
           "suggestion": "Suggestion: Use remote AI for high-frequency tasks, costing only ¥0.5 per month."
-        }
+        },
+        "title": "AI Engine Allocation"
       },
       "card": {
         "active": "In use",
@@ -1044,6 +1045,7 @@
         "check": "Detect",
         "checking": "Detecting...",
         "configure": "Configuration",
+        "budget": "Monthly Budget",
         "errors": {
           "notConfigured": "API Key not configured",
           "localNotEnabled": "Local AI not enabled",
@@ -1097,7 +1099,11 @@
         "setPreferredRemote": "Set as Preferred Remote AI",
         "preferredRemoteHint": "Once checked, all tasks using \"Remote AI\" will prioritize this AI.",
         "setPreferredLocal": "Set as Preferred Local AI",
-        "preferredLocalHint": "Once checked, all tasks using \"Local AI\" will prioritize this AI."
+        "preferredLocalHint": "Once checked, all tasks using \"Local AI\" will prioritize this AI.",
+        "monthlyBudget": "Monthly budget limit",
+        "budgetPlaceholder": "Leave blank for unlimited",
+        "perMonth": "Month",
+        "budgetHint": "Set the maximum monthly spending amount, and usage of this AI will be suspended once exceeded."
       },
       "ollama": {
         "title": "Ollama Installation Guide",
@@ -1146,7 +1152,13 @@
         },
         "closeButton": "I see."
       },
-      "autoSaving": "Auto-saving..."
+      "autoSaving": "Auto-saving...",
+      "budgetOverview": {
+        "title": "Monthly Budget Overview",
+        "description": "View budget usage for all AI Providers by currency",
+        "noBudgetSet": "No budget set",
+        "setBudgetHint": "Set the monthly budget in the configuration of the AI card above."
+      }
     },
     "rssManager": {
       "addSource": "Add feed",
@@ -1537,7 +1549,8 @@
           "check": "Check",
           "checking": "Checking...",
           "configure": "Configure"
-        }
+        },
+        "title": "AI Engine Allocation"
       },
       "labels": {
         "model": "Select AI Model",
