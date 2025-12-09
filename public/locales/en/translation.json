@@ -1052,7 +1052,19 @@
           "checkFailed": "Detection failed"
         },
         "preferredRemote": "Preferred Remote AI",
-        "preferredLocal": "Preferred local AI"
+        "preferredLocal": "Preferred local AI",
+        "timeout": {
+          "standard": "Standard mode timeout",
+          "reasoning": "Reasoning mode timeout",
+          "description": "Timeout Settings",
+          "hint": "API request timeout (distinct from network latency detection)",
+          "localHint": "Local AI request timeout duration, lower-performance devices may require more time",
+          "default60s": "Default (60 seconds)",
+          "default120s": "Default (120 seconds)",
+          "default180s": "Default (180 seconds)",
+          "seconds": "{{value}} seconds"
+        },
+        "advancedSettings": "Advanced Settings"
       },
       "providerPanel": {
         "title": "AI Provider Status",

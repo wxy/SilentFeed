@@ -29,6 +29,7 @@ import {
   withExponentialBackoff,
   type CircuitBreakerConfig
 } from "@/utils/resilience"
+import { DEFAULT_TIMEOUTS } from "@/storage/ai-config"
 
 /**
  * AI 服务基类
@@ -167,6 +168,32 @@ export abstract class BaseAIService implements AIProvider {
   }
   
   /**
+   * Phase 12.6: 获取配置的超时时间
+   * 
+   * 优先级：
+   * 1. 用户配置的超时（RemoteProviderConfig.timeoutMs / reasoningTimeoutMs）
+   * 2. 默认超时值（DEFAULT_TIMEOUTS）
+   * 
+   * @param useReasoning 是否使用推理模式
+   * @returns 超时时间（毫秒）
+   */
+  protected getConfiguredTimeout(useReasoning?: boolean): number {
+    // 从配置读取用户设置的超时
+    if (useReasoning && this.config.reasoningTimeoutMs) {
+      return this.config.reasoningTimeoutMs
+    }
+    if (!useReasoning && this.config.timeoutMs) {
+      return this.config.timeoutMs
+    }
+    
+    // 本地 AI 使用本地默认值（通过 name 判断）
+    const isLocal = this.name === 'Ollama'
+    const defaults = isLocal ? DEFAULT_TIMEOUTS.local : DEFAULT_TIMEOUTS.remote
+    
+    return useReasoning ? defaults.reasoning : defaults.standard
+  }
+  
+  /**
    * 分析内容
    */
   async analyzeContent(
@@ -196,7 +223,7 @@ export abstract class BaseAIService implements AIProvider {
         // 3. 调用 API
         const apiResponse = await this.callChatAPI(prompt, {
           maxTokens: options?.useReasoning ? 4000 : 500,
-          timeout: options?.timeout,
+          timeout: options?.timeout || this.getConfiguredTimeout(options?.useReasoning),
           jsonMode: !options?.useReasoning,
           useReasoning: options?.useReasoning
         })
@@ -350,15 +377,8 @@ export abstract class BaseAIService implements AIProvider {
         const responseFormat = this.getProfileResponseFormat()
 
         // 4. 调用 API
-        // Phase 11: 本地 AI 需要更长的超时时间
-        // - 普通 Ollama 模型: 120s (用户报告 90s 仍不够)
-        // - 推理模型 (DeepSeek-R1): 180s (推理过程需要更多时间)
-        // - 远程 API: 30s
-        let timeout = 30000
-        if (this.name === 'Ollama') {
-          // @ts-ignore - OllamaProvider 有 isReasoningModel 属性
-          timeout = this.isReasoningModel ? 180000 : 120000
-        }
+        // Phase 12.6: 使用配置的超时时间（如果未指定，使用默认值）
+        const timeout = this.getConfiguredTimeout(options?.useReasoning)
         
         // Phase 11: 推理模型需要更多 token（推理过程 + 最终答案）
         const maxTokens = this.name === 'Ollama' && (this as any).isReasoningModel ? 3000 : 1000

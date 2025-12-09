@@ -15,6 +15,20 @@ import { encryptApiKey as cryptoEncrypt, decryptApiKey as cryptoDecrypt } from "
 
 const configLogger = logger.withTag('AIConfig')
 
+/**
+ * Phase 12.6: 默认超时配置
+ */
+export const DEFAULT_TIMEOUTS = {
+  remote: {
+    standard: 60000,      // 1 分钟（标准模式）
+    reasoning: 120000     // 2 分钟（推理模式）
+  },
+  local: {
+    standard: 60000,      // 1 分钟（本地 AI 响应可能较慢）
+    reasoning: 180000     // 3 分钟（本地推理因硬件限制可能更慢）
+  }
+} as const
+
 export type AIProviderType = "openai" | "deepseek"
 
 /**
@@ -109,8 +123,10 @@ export interface LocalAIConfig {
   temperature?: number
   /** 单次输出最大 token 数 */
   maxOutputTokens?: number
-  /** 请求超时（毫秒） */
+  /** Phase 12.6: 标准模式请求超时（毫秒），默认 30000 */
   timeoutMs?: number
+  /** Phase 12.6: 推理模式请求超时（毫秒），默认 180000 */
+  reasoningTimeoutMs?: number
   /** 缓存的模型列表（避免每次打开配置都要重新加载） */
   cachedModels?: Array<{ id: string; label: string; isReasoning?: boolean }>
   /** Phase 11.2: 当前模型是否支持推理（从 Ollama API 获取） */
@@ -120,6 +136,7 @@ export interface LocalAIConfig {
 /**
  * 单个远程 AI Provider 的配置
  * Phase 9.2: 重构 - 每个 provider 独立配置
+ * Phase 12.6: 超时配置
  */
 export interface RemoteProviderConfig {
   /** API Key */
@@ -128,6 +145,11 @@ export interface RemoteProviderConfig {
   model: string
   /** 是否启用推理能力 */
   enableReasoning?: boolean
+  
+  /** Phase 12.6: 标准模式超时（毫秒），默认 60000 */
+  timeoutMs?: number
+  /** Phase 12.6: 推理模式超时（毫秒），默认 120000 */
+  reasoningTimeoutMs?: number
 }
 
 /**
@@ -203,7 +225,8 @@ const DEFAULT_CONFIG: AIConfig = {
     apiKey: "ollama",
     temperature: 0.2,
     maxOutputTokens: 768,
-    timeoutMs: 45000
+    timeoutMs: DEFAULT_TIMEOUTS.local.standard, // Phase 12.6: 默认 60s
+    reasoningTimeoutMs: DEFAULT_TIMEOUTS.local.reasoning, // Phase 12.6: 默认 180s
   },
   engineAssignment: getDefaultEngineAssignment(), // Phase 11: 默认智能优先方案
   preferredRemoteProvider: "deepseek",  // Phase 12: 默认使用 DeepSeek
@@ -308,7 +331,7 @@ export async function saveAIConfig(config: AIConfig): Promise<void> {
         for (const [providerKey, providerConfig] of Object.entries(config.providers)) {
           if (providerConfig && providerConfig.apiKey) {
             encryptedProviders[providerKey as AIProviderType] = {
-              ...providerConfig,
+              ...providerConfig,  // Phase 12.6: 保留所有字段（包括超时配置）
               apiKey: await cryptoEncrypt(providerConfig.apiKey)
             }
           }
@@ -316,7 +339,7 @@ export async function saveAIConfig(config: AIConfig): Promise<void> {
       }
       
       const encryptedConfig: AIConfig = {
-        providers: encryptedProviders,
+        providers: encryptedProviders,  // Phase 12.6: 确保 providers 被保存（包含超时配置）
         globalMonthlyBudget: config.globalMonthlyBudget,
         globalBudgetCurrency: config.globalBudgetCurrency,
         providerBudgets: config.providerBudgets,
