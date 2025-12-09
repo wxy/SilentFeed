@@ -232,12 +232,17 @@ export function AIEngineAssignmentComponent({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 rounded-lg">
+      {/* 标题 */}
+      <h3 className="text-xl font-bold mb-6 text-gray-900 dark:text-gray-100">
+        🚀 {_("options.aiConfig.aiEngineAssignment.title")}
+      </h3>
+      
       {/* 预设选择卡片 */}
-      <div>
-        <h3 className="text-lg font-medium mb-3">
+      <div className="mb-6">
+        <h4 className="text-lg font-medium mb-3 text-gray-800 dark:text-gray-200">
           🎯 {_("options.aiConfig.aiEngineAssignment.quickPresets")}
-        </h3>
+        </h4>
         <div className="grid gap-3">
           {renderPresetCard("privacy")}
           {renderPresetCard("intelligence")}
@@ -247,7 +252,7 @@ export function AIEngineAssignmentComponent({
       </div>
 
       {/* 高级配置折叠按钮 */}
-      <div>
+      <div className="mt-6">
         <button
           type="button"
           onClick={() => setShowAdvanced(!showAdvanced)}

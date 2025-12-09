@@ -43,7 +43,7 @@ describe("ai-config", () => {
       
       expect(config).toEqual({
         providers: {},
-        monthlyBudget: 5,
+        providerBudgets: {},
         local: {
           enabled: false,
           provider: "ollama",
@@ -69,7 +69,9 @@ describe("ai-config", () => {
             model: "gpt-4o-mini"
           }
         },
-        monthlyBudget: 10,
+        providerBudgets: {
+          openai: 10
+        },
         local: {
           enabled: false,
           provider: "ollama",
@@ -91,7 +93,6 @@ describe("ai-config", () => {
       
       expect(config.providers.openai?.apiKey).toBe("sk-test-123") // 应该解密
       expect(config.providers.openai?.model).toBe("gpt-4o-mini")
-      expect(config.monthlyBudget).toBe(10)
     })
     
     it("应该处理加载失败的情况", async () => {
@@ -101,7 +102,6 @@ describe("ai-config", () => {
       
       // 应该返回默认配置
       expect(config.providers).toEqual({})
-      expect(config.monthlyBudget).toBe(5)
     })
   })
   
@@ -114,7 +114,10 @@ describe("ai-config", () => {
             model: "gpt-4o-mini"
           }
         },
-        monthlyBudget: 10,
+        globalMonthlyBudget: 10,
+        providerBudgets: {
+          openai: 10
+        },
         local: {
           enabled: false,
           provider: "ollama",
@@ -138,7 +141,10 @@ describe("ai-config", () => {
               model: "gpt-4o-mini"
             }
           },
-          monthlyBudget: 10,
+          globalMonthlyBudget: 10,
+          providerBudgets: {
+            openai: 10
+          },
           local: {
             enabled: false,
             provider: "ollama",
@@ -164,7 +170,10 @@ describe("ai-config", () => {
             model: "gpt-4o-mini"
           }
         },
-        monthlyBudget: 10,
+        globalMonthlyBudget: 10,
+        providerBudgets: {
+          openai: 10
+        },
         local: {
           enabled: false,
           provider: "ollama",
@@ -208,7 +217,7 @@ describe("ai-config", () => {
               model: "gpt-4o-mini"
             }
           },
-          monthlyBudget: 5,
+          globalMonthlyBudget: 5,
           local: {
             enabled: false,
             provider: "ollama",
@@ -232,7 +241,7 @@ describe("ai-config", () => {
       mockChromeStorage.sync.get.mockResolvedValue({
         aiConfig: {
           providers: {},
-          monthlyBudget: 5,
+          globalMonthlyBudget: 5,
           local: {
             enabled: false,
             provider: "ollama",
@@ -336,7 +345,7 @@ describe("ai-config", () => {
                 model: "deepseek-chat"
               }
             },
-            monthlyBudget: 5,
+            globalMonthlyBudget: 5,
             local: {
               enabled: true,
               provider: "ollama",
@@ -366,7 +375,7 @@ describe("ai-config", () => {
                 model: "deepseek-chat"
               }
             },
-            monthlyBudget: 5,
+            globalMonthlyBudget: 5,
             local: {
               enabled: false,
               provider: "ollama",
@@ -396,7 +405,7 @@ describe("ai-config", () => {
               model: "deepseek-chat"
             }
           },
-          monthlyBudget: 10,
+          globalMonthlyBudget: 10,
           local: {
             enabled: false,
             provider: "ollama",
@@ -433,7 +442,7 @@ describe("ai-config", () => {
               enableReasoning: true
             }
           },
-          monthlyBudget: 10,
+          globalMonthlyBudget: 10,
           local: {
             enabled: true,
             provider: "ollama",
@@ -456,11 +465,141 @@ describe("ai-config", () => {
 
         expect(mockChromeStorage.sync.set).toHaveBeenCalledWith({
           aiConfig: expect.objectContaining({
-            monthlyBudget: 10,
+            globalMonthlyBudget: 10,
             engineAssignment: newAssignment
           })
         })
       })
     })
   })
+  
+  // Phase 12.4: 双层预算配置测试
+  describe('预算配置', () => {
+    it('应该支持全局预算和 provider 预算配置', async () => {
+      const config: AIConfig = {
+        providers: {
+          openai: {
+            apiKey: 'sk-test-openai',
+            model: 'gpt-5-mini'
+          },
+          deepseek: {
+            apiKey: 'sk-test-deepseek',
+            model: 'deepseek-chat'
+          }
+        },
+        globalMonthlyBudget: 10,
+        providerBudgets: {
+          openai: 6,
+          deepseek: 4
+        },
+        local: {
+          enabled: false,
+          provider: 'ollama',
+          endpoint: 'http://localhost:11434/v1',
+          model: '',
+          apiKey: 'ollama',
+          temperature: 0.2,
+          maxOutputTokens: 768,
+          timeoutMs: 45000
+        },
+        engineAssignment: AI_ENGINE_PRESETS.intelligence.config
+      }
+      
+      await saveAIConfig(config)
+      
+      const savedCall = mockChromeStorage.sync.set.mock.calls[0][0]
+      expect(savedCall.aiConfig.globalMonthlyBudget).toBe(10)
+      expect(savedCall.aiConfig.providerBudgets).toEqual({
+        openai: 6,
+        deepseek: 4
+      })
+    })
+    
+    it('应该自动迁移旧的 monthlyBudget 到 globalMonthlyBudget', async () => {
+      const oldConfig = {
+        providers: {
+          openai: {
+            apiKey: btoa('sk-test-123'),
+            model: 'gpt-5-mini'
+          },
+          deepseek: {
+            apiKey: btoa('sk-test-456'),
+            model: 'deepseek-chat'
+          }
+        },
+        monthlyBudget: 10, // 旧字段
+        local: {
+          enabled: false,
+          provider: 'ollama',
+          endpoint: 'http://localhost:11434/v1',
+          model: '',
+          apiKey: 'ollama'
+        },
+        engineAssignment: AI_ENGINE_PRESETS.intelligence.config
+      }
+      
+      mockChromeStorage.sync.get.mockResolvedValue({
+        aiConfig: oldConfig
+      })
+      
+      const config = await getAIConfig()
+      
+      // 应该迁移到 globalMonthlyBudget
+      expect(config.globalMonthlyBudget).toBe(10)
+      
+      // 应该自动为 providers 分配预算（平均分配）
+      expect(config.providerBudgets).toEqual({
+        openai: 5,
+        deepseek: 5
+      })
+    })
+    
+    it('应该在没有 provider 时正确迁移预算', async () => {
+      const oldConfig = {
+        providers: {},
+        monthlyBudget: 10,
+        local: {
+          enabled: false,
+          provider: 'ollama',
+          endpoint: 'http://localhost:11434/v1',
+          model: ''
+        },
+        engineAssignment: AI_ENGINE_PRESETS.intelligence.config
+      }
+      
+      mockChromeStorage.sync.get.mockResolvedValue({
+        aiConfig: oldConfig
+      })
+      
+      const config = await getAIConfig()
+      
+      expect(config.globalMonthlyBudget).toBe(10)
+      expect(config.providerBudgets).toEqual({}) // 没有 provider，不分配
+    })
+    
+    it('应该优先使用新的 globalMonthlyBudget（如果同时存在）', async () => {
+      const config = {
+        providers: {},
+        globalMonthlyBudget: 15,
+        monthlyBudget: 10, // 旧字段
+        providerBudgets: {},
+        local: {
+          enabled: false,
+          provider: 'ollama',
+          endpoint: 'http://localhost:11434/v1',
+          model: ''
+        },
+        engineAssignment: AI_ENGINE_PRESETS.intelligence.config
+      }
+      
+      mockChromeStorage.sync.get.mockResolvedValue({
+        aiConfig: config
+      })
+      
+      const loaded = await getAIConfig()
+      
+      expect(loaded.globalMonthlyBudget).toBe(15) // 使用新字段
+    })
+  })
 })
+

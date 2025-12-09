@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-12-08T10:50:16.384Z",
+  "lastUpdate": "2025-12-09T03:55:57.912Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -17779,6 +17779,160 @@
         "value": "Preferred local AI",
         "hash": "6c18860f",
         "lastModified": "2025-12-08T10:50:15.874Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.configModal.monthlyBudget": {
+      "zh-CN": {
+        "value": "月度预算限制",
+        "hash": "ee9ff41c",
+        "lastModified": "2025-12-08T12:55:18.559Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Monthly budget limit",
+        "hash": "edd2af6e",
+        "lastModified": "2025-12-08T12:55:18.560Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.configModal.budgetPlaceholder": {
+      "zh-CN": {
+        "value": "留空表示无限制",
+        "hash": "31b3fc3a",
+        "lastModified": "2025-12-08T12:55:20.382Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Leave blank for unlimited",
+        "hash": "ff131b86",
+        "lastModified": "2025-12-08T12:55:20.382Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.configModal.perMonth": {
+      "zh-CN": {
+        "value": "月",
+        "hash": "e42b99d5",
+        "lastModified": "2025-12-08T12:55:21.916Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Month",
+        "hash": "7cbb885a",
+        "lastModified": "2025-12-08T12:55:21.916Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.configModal.budgetHint": {
+      "zh-CN": {
+        "value": "设置每月最大消费金额，超出后将停止使用该 AI",
+        "hash": "6f5e2d9f",
+        "lastModified": "2025-12-08T12:55:24.623Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Set the maximum monthly spending amount, and usage of this AI will be suspended once exceeded.",
+        "hash": "48cb5af3",
+        "lastModified": "2025-12-08T12:55:24.623Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.budgetOverview.title": {
+      "zh-CN": {
+        "value": "月度预算总览",
+        "hash": "f59d4f33",
+        "lastModified": "2025-12-09T02:39:53.089Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Monthly Budget Overview",
+        "hash": "76425fb8",
+        "lastModified": "2025-12-09T02:39:53.090Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.budgetOverview.description": {
+      "zh-CN": {
+        "value": "按货币查看所有 AI Provider 的预算使用情况",
+        "hash": "d626a50f",
+        "lastModified": "2025-12-09T02:39:55.023Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "View budget usage for all AI Providers by currency",
+        "hash": "8d4438cd",
+        "lastModified": "2025-12-09T02:39:55.023Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.budgetOverview.noBudgetSet": {
+      "zh-CN": {
+        "value": "未设置预算",
+        "hash": "4047f3c8",
+        "lastModified": "2025-12-09T02:55:15.911Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "No budget set",
+        "hash": "cbfb3506",
+        "lastModified": "2025-12-09T02:55:15.911Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.budgetOverview.setBudgetHint": {
+      "zh-CN": {
+        "value": "在上方 AI 卡片的配置中设置月度预算",
+        "hash": "f4f8cf00",
+        "lastModified": "2025-12-09T02:55:18.163Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Set the monthly budget in the configuration of the AI card above.",
+        "hash": "e961611b",
+        "lastModified": "2025-12-09T02:55:18.163Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.aiEngineAssignment.title": {
+      "zh-CN": {
+        "value": "AI 引擎分配",
+        "hash": "25a84dea",
+        "lastModified": "2025-12-09T03:25:00.892Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "AI Engine Allocation",
+        "hash": "b68dbfa1",
+        "lastModified": "2025-12-09T03:25:00.893Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.card.budget": {
+      "zh-CN": {
+        "value": "月度预算",
+        "hash": "ca6d227c",
+        "lastModified": "2025-12-09T03:25:02.422Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Monthly Budget",
+        "hash": "e1bccb88",
+        "lastModified": "2025-12-09T03:25:02.422Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.aiConfig.aiEngineAssignment.title": {
+      "zh-CN": {
+        "value": "AI 引擎分配",
+        "hash": "25a84dea",
+        "lastModified": "2025-12-09T03:25:04.286Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "AI Engine Allocation",
+        "hash": "b68dbfa1",
+        "lastModified": "2025-12-09T03:25:04.286Z",
         "status": "ai-translated"
       }
     }

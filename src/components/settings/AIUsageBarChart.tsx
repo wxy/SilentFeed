@@ -40,8 +40,6 @@ export function AIUsageBarChart({ data, mode }: AIUsageBarChartProps) {
   const { _ } = useI18n()
   const chartScrollRef = React.useRef<HTMLDivElement>(null)
   const dateScrollRef = React.useRef<HTMLDivElement>(null)
-  const chartContainerRef = React.useRef<HTMLDivElement>(null)
-  const [measuredWidth, setMeasuredWidth] = React.useState<number | null>(null)
   const renderEmptyState = () => (
     <div className="text-center text-gray-500 dark:text-gray-400 py-8">
       {_("settings.aiUsage.emptyState")}
@@ -86,14 +84,13 @@ export function AIUsageBarChart({ data, mode }: AIUsageBarChartProps) {
   const callMaxDenom = callTicks[callTicks.length - 1] || Math.max(1, maxCalls)
   const costMaxDenom = Math.max(1, maxCost)
 
-  const baseViewportWidth = sortedData.length * BASE_DATE_WIDTH
-  const effectiveViewportWidth = measuredWidth && measuredWidth > 0 ? measuredWidth : baseViewportWidth
-  const scale = effectiveViewportWidth / baseViewportWidth
-  const barWidth = BASE_BAR_WIDTH * scale
-  const barGap = BASE_BAR_GAP * scale
-  const dateGap = BASE_DATE_GAP * scale
+  // 使用固定尺寸，不缩放 - 让外部容器处理滚动
+  const barWidth = BASE_BAR_WIDTH
+  const barGap = BASE_BAR_GAP
+  const dateGap = BASE_DATE_GAP
   const perDayWidth = barWidth * 3 + barGap * 2
   const dateWidth = perDayWidth + dateGap
+  const totalContentWidth = sortedData.length * dateWidth
   const latestDateKey = sortedData[sortedData.length - 1]?.date ?? ""
   const tokenAxisLabel = _("settings.aiUsage.tokenAxisLabel")
   const callAxisLabel = _("settings.aiUsage.callAxisLabel")
@@ -167,40 +164,7 @@ export function AIUsageBarChart({ data, mode }: AIUsageBarChartProps) {
     })
   }
 
-  React.useEffect(() => {
-    const container = chartContainerRef.current
-    if (!container) {
-      return
-    }
-
-    const updateWidth = () => {
-      const nextWidth = container.getBoundingClientRect().width
-      setMeasuredWidth(nextWidth > 0 ? nextWidth : null)
-    }
-
-    updateWidth()
-
-    const hasResizeObserver = typeof window !== "undefined" && typeof ResizeObserver !== "undefined"
-
-    if (hasResizeObserver) {
-      const observer = new ResizeObserver((entries) => {
-        const entry = entries[0]
-        if (!entry) {
-          return
-        }
-        const nextWidth = entry.contentRect.width
-        setMeasuredWidth(nextWidth > 0 ? nextWidth : null)
-      })
-      observer.observe(container)
-      return () => observer.disconnect()
-    }
-
-    if (typeof window !== "undefined") {
-      window.addEventListener("resize", updateWidth)
-      return () => window.removeEventListener("resize", updateWidth)
-    }
-  }, [sortedData.length])
-
+  // 滚动到最右侧（显示最新数据）
   React.useEffect(() => {
     const containers = [chartScrollRef.current, dateScrollRef.current]
     containers.forEach((container) => {
@@ -209,7 +173,7 @@ export function AIUsageBarChart({ data, mode }: AIUsageBarChartProps) {
       }
       container.scrollLeft = Math.max(0, container.scrollWidth - container.clientWidth)
     })
-  }, [latestDateKey, sortedData.length, effectiveViewportWidth])
+  }, [latestDateKey, sortedData.length])
 
   const syncScroll = (source: "chart" | "date") => (event: React.UIEvent<HTMLDivElement>) => {
     const partner = source === "chart" ? dateScrollRef.current : chartScrollRef.current
@@ -230,10 +194,10 @@ export function AIUsageBarChart({ data, mode }: AIUsageBarChartProps) {
   }
 
   return (
-    <div className="space-y-3">
-      <div className="relative">
-        <div className="flex">
-          <div className="relative text-[10px] text-gray-500 dark:text-gray-400 pr-2 h-40 w-12 text-right">
+    <div className="space-y-3 w-full max-w-full overflow-hidden">
+      <div className="relative w-full">
+        <div className="flex w-full">
+          <div className="relative text-[10px] text-gray-500 dark:text-gray-400 pr-2 h-40 w-12 shrink-0 text-right">
             {tokenTicks.map((tick) => (
               <div
                 key={tick}
@@ -246,8 +210,7 @@ export function AIUsageBarChart({ data, mode }: AIUsageBarChartProps) {
           </div>
 
           <div
-            ref={chartContainerRef}
-            className="relative h-40 border-l border-r border-b border-gray-300 dark:border-gray-600 flex-1 min-w-0"
+            className="relative h-40 border-l border-r border-b border-gray-300 dark:border-gray-600 flex-1 min-w-0 overflow-hidden"
           >
             {tokenTicks
               .filter((tick) => tick > 0)
@@ -259,13 +222,12 @@ export function AIUsageBarChart({ data, mode }: AIUsageBarChartProps) {
                 />
               ))}
 
-            <div className="absolute bottom-0 left-0 right-0 h-full flex justify-start">
+            <div className="absolute bottom-0 left-0 right-0 h-full">
               <div
                 ref={chartScrollRef}
                 data-testid="ai-usage-bars-scroll"
                 className="h-full overflow-x-auto overflow-y-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
                 style={{
-                  width: "100%",
                   scrollbarWidth: "none",
                   msOverflowStyle: "none",
                   scrollbarColor: "transparent transparent"
@@ -274,7 +236,7 @@ export function AIUsageBarChart({ data, mode }: AIUsageBarChartProps) {
               >
                 <div
                   className="flex items-end h-full"
-                  style={{ minWidth: `${sortedData.length * dateWidth}px` }}
+                  style={{ width: `${totalContentWidth}px` }}
                 >
                   {sortedData.map((item) => {
                   const totalTokens =
@@ -394,7 +356,7 @@ export function AIUsageBarChart({ data, mode }: AIUsageBarChartProps) {
             </div>
           </div>
 
-          <div className="relative text-[10px] text-gray-500 dark:text-gray-400 pl-2 h-40 w-12 text-left">
+          <div className="relative text-[10px] text-gray-500 dark:text-gray-400 pl-2 h-40 w-12 shrink-0 text-left">
             {callTicks.map((tick) => (
               <div
                 key={`call-${tick}`}
@@ -408,8 +370,8 @@ export function AIUsageBarChart({ data, mode }: AIUsageBarChartProps) {
         </div>
       </div>
 
-      <div className="flex items-center">
-        <div className="w-12 pr-2 text-[9px] text-right text-gray-500 dark:text-gray-400">{tokenAxisLabel}</div>
+      <div className="flex items-center w-full">
+        <div className="w-12 shrink-0 pr-2 text-[9px] text-right text-gray-500 dark:text-gray-400">{tokenAxisLabel}</div>
         <div
           className="flex-1 min-w-0 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
           ref={dateScrollRef}
@@ -423,7 +385,7 @@ export function AIUsageBarChart({ data, mode }: AIUsageBarChartProps) {
         >
           <div
             className="flex items-center"
-            style={{ minWidth: `${sortedData.length * dateWidth}px` }}
+            style={{ width: `${totalContentWidth}px` }}
           >
             {sortedData.map((item, index) => {
               const showLabel =
@@ -444,7 +406,7 @@ export function AIUsageBarChart({ data, mode }: AIUsageBarChartProps) {
             })}
           </div>
         </div>
-        <div className="w-10 pl-2 text-[9px] text-left text-gray-500 dark:text-gray-400">{callAxisLabel}</div>
+        <div className="w-10 shrink-0 pl-2 text-[9px] text-left text-gray-500 dark:text-gray-400">{callAxisLabel}</div>
       </div>
 
       <div className="flex items-center justify-center gap-4 pt-3 border-t border-gray-200 dark:border-gray-700 text-[11px]">

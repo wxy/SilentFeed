@@ -713,6 +713,12 @@
       "algorithmEngine": "算法引擎",
       "costManagement": "成本与配额管理",
       "usageScenarios": "AI 使用场景",
+      "budgetOverview": {
+        "title": "月度预算总览",
+        "description": "按货币查看所有 AI Provider 的预算使用情况",
+        "noBudgetSet": "未设置预算",
+        "setBudgetHint": "在上方 AI 卡片的配置中设置月度预算"
+      },
       "enableReasoning": "启用推理能力",
       "reasoningHint": "💡 在推荐等复杂任务时使用推理模式，获得更深入的思考过程",
       "reasoningWarning": "⚠️ 推理模式会显著增加成本，建议仅在需要深度分析时使用",
@@ -1065,6 +1071,7 @@
         "ollamaDesc": "- 本地运行，完全隐私"
       },
       "aiEngineAssignment": {
+        "title": "AI 引擎分配",
         "quickPresets": "快速预设",
         "recommended": "推荐",
         "advancedConfig": "高级配置",
@@ -1153,6 +1160,10 @@
         "preferredRemoteHint": "勾选后，所有使用\"远程 AI\"的任务将优先选择此 AI",
         "setPreferredLocal": "设为首选本地 AI",
         "preferredLocalHint": "勾选后，所有使用\"本地 AI\"的任务将优先选择此 AI",
+        "monthlyBudget": "月度预算限制",
+        "budgetPlaceholder": "留空表示无限制",
+        "perMonth": "月",
+        "budgetHint": "设置每月最大消费金额，超出后将停止使用该 AI",
         "ollamaEnabled": "启用本地 AI (Ollama)",
         "ollamaEndpoint": "Ollama 端点",
         "ollamaEndpointHint": "OpenAI 兼容接口地址",
@@ -1186,6 +1197,7 @@
         "check": "检测",
         "checking": "检测中...",
         "configure": "配置",
+        "budget": "月度预算",
         "errors": {
           "notConfigured": "未配置 API Key",
           "localNotEnabled": "未启用本地 AI",
@@ -1315,6 +1327,7 @@
       "description": "AI 是静阅的核心功能，需要配置后才能开始使用",
       "skipHint": "也可以点击'下一步'跳过，稍后在设置页面配置远程 AI 或本地 Ollama",
       "aiEngineAssignment": {
+        "title": "AI 引擎分配",
         "quickPresets": "快速预设",
         "recommended": "推荐",
         "advancedConfig": "高级配置",

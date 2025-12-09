@@ -28,6 +28,7 @@ import { getAIConfig, getEngineAssignment, type AIProviderType, type LocalAIConf
 import type { AIEngineAssignment } from "@/types/ai-engine-assignment"
 import { logger, isNetworkError } from '../../utils/logger'
 import { AIUsageTracker } from './AIUsageTracker'
+import { canMakeAICall, shouldDowngradeToKeyword } from '@/utils/budget-utils'
 
 // 创建带标签的 logger
 const aiLogger = logger.withTag('AICapabilityManager')
@@ -158,6 +159,13 @@ export class AICapabilityManager {
       const { provider, useReasoning } = await this.getProviderForTask(taskType)
       
       if (provider) {
+        // Phase 12.4: 检查预算状态
+        const budgetAllowed = await this.checkProviderBudget(provider.name)
+        if (!budgetAllowed) {
+          aiLogger.warn(`⚠️ 预算超限，降级到关键词分析（${taskType}）`)
+          return await this.fallbackProvider.analyzeContent(content, options)
+        }
+        
         try {
           const mergedOptions: AnalyzeOptions = {
             ...options,
@@ -186,6 +194,13 @@ export class AICapabilityManager {
     // 向后兼容：没有提供 taskType 时使用旧的 mode 逻辑
     const providers = await this.getProviderChain(mode)
     for (const provider of providers) {
+      // Phase 12.4: 检查预算状态
+      const budgetAllowed = await this.checkProviderBudget(provider.name)
+      if (!budgetAllowed) {
+        aiLogger.warn(`⚠️ 预算超限，跳过 ${provider.name}`)
+        continue // 尝试下一个 provider
+      }
+      
       try {
         const result = await provider.analyzeContent(content, options)
         this.recordUsage(result)
@@ -219,19 +234,26 @@ export class AICapabilityManager {
     const { provider: taskProvider, useReasoning } = await this.getProviderForTask("profileGeneration")
     
     if (taskProvider && taskProvider.generateUserProfile) {
-      try {
-        const result = await taskProvider.generateUserProfile(request, { useReasoning })
-        if (result.metadata.tokensUsed) {
+      // Phase 12.4: 检查预算状态
+      const budgetAllowed = await this.checkProviderBudget(taskProvider.name)
+      if (!budgetAllowed) {
+        aiLogger.warn(`⚠️ 预算超限，降级到关键词分析（profile generation）`)
+        // 直接跳到降级逻辑
+      } else {
+        try {
+          const result = await taskProvider.generateUserProfile(request, { useReasoning })
+          if (result.metadata.tokensUsed) {
+          }
+          return result
+        } catch (error) {
+          // 网络错误使用 warn 级别
+          if (isNetworkError(error)) {
+            aiLogger.warn(`⚠️ Provider ${taskProvider.name} 暂时不可用（profile generation），使用降级方案`, error)
+          } else {
+            aiLogger.error(`❌ Provider ${taskProvider.name} failed for profile generation`, error)
+          }
+          // 继续尝试降级逻辑
         }
-        return result
-      } catch (error) {
-        // 网络错误使用 warn 级别
-        if (isNetworkError(error)) {
-          aiLogger.warn(`⚠️ Provider ${taskProvider.name} 暂时不可用（profile generation），使用降级方案`, error)
-        } else {
-          aiLogger.error(`❌ Provider ${taskProvider.name} failed for profile generation`, error)
-        }
-        // 继续尝试降级逻辑
       }
     }
 
@@ -239,6 +261,13 @@ export class AICapabilityManager {
     const providers = await this.getProviderChain(mode)
     for (const provider of providers) {
       if (!provider.generateUserProfile) {
+        continue
+      }
+      
+      // Phase 12.4: 检查预算状态
+      const budgetAllowed = await this.checkProviderBudget(provider.name)
+      if (!budgetAllowed) {
+        aiLogger.warn(`⚠️ 预算超限，跳过 ${provider.name}`)
         continue
       }
 
@@ -704,14 +733,86 @@ export class AICapabilityManager {
     try {
       const available = await provider.isAvailable()
       if (!available) {
-        aiLogger.warn(` ${label} provider ${provider.name} not available`)
+        aiLogger.warn(`⚠️ ${label} provider ${provider.name} not available`)
         return null
       }
       return provider
     } catch (error) {
-      aiLogger.error(` Failed to check ${label} provider availability`, error)
+      aiLogger.error(`❌ Failed to check ${label} provider availability`, error)
       return null
     }
+  }
+  
+  /**
+   * Phase 12.4: 检查 provider 的预算状态
+   * 
+   * @param providerName - Provider 名称（如 "DeepSeek", "OpenAI"）
+   * @returns 是否允许调用（本地 provider 和 keyword 始终允许）
+   */
+  private async checkProviderBudget(providerName: string): Promise<boolean> {
+    // 本地 AI 和关键词分析不受预算限制
+    if (providerName === "Ollama" || providerName === "Keyword") {
+      return true
+    }
+    
+    // 解析 provider 类型
+    const providerType = this.parseProviderType(providerName)
+    if (!providerType) {
+      // 无法解析的 provider，默认允许（保守处理）
+      return true
+    }
+    
+    try {
+      // 检查预算状态（不考虑预估成本，仅检查当前状态）
+      const budgetStatus = await canMakeAICall(providerType, 0)
+      
+      if (!budgetStatus.allowed) {
+        aiLogger.warn(`🚫 预算已超限 - ${providerName}`, {
+          reason: budgetStatus.reason,
+          globalBudget: `$${budgetStatus.globalBudget.used.toFixed(2)}/$${budgetStatus.globalBudget.limit}`,
+          providerBudget: budgetStatus.providerBudget 
+            ? `$${budgetStatus.providerBudget.used.toFixed(2)}/$${budgetStatus.providerBudget.limit}`
+            : 'N/A'
+        })
+        return false
+      }
+      
+      // 如果接近预算上限（>=80%），给出警告
+      const shouldDowngrade = await shouldDowngradeToKeyword(providerType)
+      if (shouldDowngrade) {
+        aiLogger.warn(`⚠️ 预算接近上限 - ${providerName}`, {
+          globalUsage: `${(budgetStatus.globalBudget.usageRate * 100).toFixed(1)}%`,
+          providerUsage: budgetStatus.providerBudget 
+            ? `${(budgetStatus.providerBudget.usageRate * 100).toFixed(1)}%`
+            : 'N/A'
+        })
+      }
+      
+      return true
+    } catch (error) {
+      aiLogger.error("检查预算时出错:", error)
+      // 发生错误时保守处理 - 允许调用
+      return true
+    }
+  }
+  
+  /**
+   * 从 provider 名称解析 provider 类型
+   * 
+   * @param providerName - Provider 名称（如 "DeepSeek", "OpenAI"）
+   * @returns Provider 类型或 null
+   */
+  private parseProviderType(providerName: string): AIProviderType | null {
+    const lowerName = providerName.toLowerCase()
+    
+    if (lowerName.includes('deepseek')) {
+      return 'deepseek'
+    }
+    if (lowerName.includes('openai') || lowerName.includes('gpt')) {
+      return 'openai'
+    }
+    
+    return null
   }
 }
 
