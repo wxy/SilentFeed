@@ -227,10 +227,10 @@ chrome.runtime.onInstalled.addListener(async () => {
     // Phase 7: 启动所有后台调度器
     await startAllSchedulers()
     
-    // Phase 6: 启动推荐数量定期评估
-    bgLogger.info('创建推荐数量评估定时器（每周一次）...')
-    chrome.alarms.create('evaluate-recommendations', {
-      periodInMinutes: 7 * 24 * 60 // 每 7 天（1 周）
+    // Phase 6: 启动弹窗容量定期评估
+    bgLogger.info('创建弹窗容量评估定时器（每天一次）...')
+    chrome.alarms.create('evaluate-popup-capacity', {
+      periodInMinutes: 24 * 60 // 每 24 小时（1 天）
     })
     
     // Phase 12.7: 创建定期清理推荐池的定时器（每天一次）
@@ -660,10 +660,10 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   bgLogger.debug('定时器触发:', alarm.name)
   
   try {
-    if (alarm.name === 'evaluate-recommendations') {
-      bgLogger.info('开始评估推荐数量...')
+    if (alarm.name === 'evaluate-popup-capacity') {
+      bgLogger.info('开始评估弹窗容量...')
       const newCount = await evaluateAndAdjust()
-      bgLogger.info(`✅ 推荐数量已调整为: ${newCount} 条`)
+      bgLogger.info(`✅ 弹窗容量已调整为: ${newCount} 条`)
     } else if (alarm.name === 'generate-recommendation') {
       // Phase 7: 委托给 recommendationScheduler 处理
       await recommendationScheduler.handleAlarm()
