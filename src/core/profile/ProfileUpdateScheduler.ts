@@ -1,15 +1,14 @@
 /**
  * 用户画像自动更新管理器
  * 
- * 负责智能调度用户画像的自动更新：
- * - 避免过度频繁的计算
- * - 根据内容质量决定更新时机
- * - 使用后台任务减少性能影响
- * - 提供手动强制更新选项
+ * Phase 12.7 简化版：
+ * - 仅负责首次画像生成和手动更新
+ * - 浏览/阅读/拒绝行为的触发逻辑已迁移到 SemanticProfileBuilder
+ * - 使用统一的 3 小时全局时间间隔（在 SemanticProfileBuilder 中控制）
  */
 
 import { profileManager } from '@/core/profile/ProfileManager'
-import { getPageCount, getAnalysisStats, db } from '@/storage/db'
+import { getPageCount, db } from '@/storage/db'
 import { semanticProfileBuilder } from '@/core/profile/SemanticProfileBuilder'
 import type { ConfirmedVisit } from '@/types/database'
 
@@ -29,7 +28,9 @@ export class ProfileUpdateScheduler {
   }
 
   /**
-   * 智能判断是否需要更新用户画像
+   * Phase 12.7: 简化判断逻辑
+   * 仅检查首次画像生成条件
+   * 其他更新策略由 SemanticProfileBuilder 统一控制
    */
   static async shouldUpdateProfile(): Promise<{
     shouldUpdate: boolean
@@ -37,12 +38,9 @@ export class ProfileUpdateScheduler {
     priority: 'low' | 'medium' | 'high'
   }> {
     const currentPageCount = await getPageCount()
-    const timeSinceLastUpdate = Date.now() - this.schedule.lastUpdateTime
-    const newPagesCount = currentPageCount - this.schedule.lastUpdatePageCount
 
-
-    // 策略1: 首次更新（有10+页面时）
-    // ⚠️ 修复：检查数据库中是否已有画像，避免扩展重载后重复触发
+    // 策略1: 首次更新（有10+页面且无 AI 画像时）
+    // ⚠️ 检查数据库中是否已有画像，避免扩展重载后重复触发
     if (this.schedule.lastUpdateTime === 0 && currentPageCount >= 10) {
       const profile = await db.userProfile.get('singleton')
       
@@ -78,33 +76,9 @@ export class ProfileUpdateScheduler {
       }
     }
 
-    // 策略2: 积累了足够新页面（5页以上）
-    if (newPagesCount >= 5) {
-      return {
-        shouldUpdate: true,
-        reason: `新增${newPagesCount}页面`,
-        priority: 'medium'
-      }
-    }
-
-    // 策略3: 时间间隔够长（6小时以上）且有新内容
-    if (timeSinceLastUpdate > 6 * 60 * 60 * 1000 && newPagesCount > 0) {
-      return {
-        shouldUpdate: true,
-        reason: '定期更新',
-        priority: 'low'
-      }
-    }
-
-    // 策略4: 超过24小时强制更新
-    if (timeSinceLastUpdate > 24 * 60 * 60 * 1000) {
-      return {
-        shouldUpdate: true,
-        reason: '强制定期更新',
-        priority: 'medium'
-      }
-    }
-
+    // Phase 12.7: 移除策略2/3/4（已迁移到 SemanticProfileBuilder）
+    // 浏览/阅读/拒绝行为的触发由 SemanticProfileBuilder.onBrowse/onRead/onDismiss 处理
+    // 使用统一的 3 小时全局时间间隔
 
     return {
       shouldUpdate: false,
@@ -205,39 +179,12 @@ export class ProfileUpdateScheduler {
    * 确保用户的最新偏好能立即影响下次推荐
    * 
    * @param trigger - 触发原因（'user_read', 'user_dismiss'）
+   * @deprecated Phase 12.7: 此方法已弃用，阅读/拒绝行为由 SemanticProfileBuilder 直接处理
    */
   static async forceUpdateProfile(trigger: string): Promise<void> {
-    
-    // 防止并发更新
-    if (this.schedule.isUpdating) {
-      return
-    }
-    
-    await this.executeUpdate(trigger)
-  }
-
-  /**
-   * 检查是否适合进行更新（性能检查）
-   */
-  static async isGoodTimeToUpdate(): Promise<boolean> {
-    try {
-      const analysisStats = await getAnalysisStats()
-      
-      // 如果分析的页面数太多，可能影响性能
-      if (analysisStats.analyzedPages > 1000) {
-        return Math.random() < 0.3 // 30% 概率执行
-      }
-
-      // 如果页面数较少，可以更频繁更新
-      if (analysisStats.analyzedPages < 100) {
-        return true
-      }
-
-      return Math.random() < 0.7 // 70% 概率执行
-    } catch (error) {
-      console.error('[ProfileScheduler] 性能检查失败:', error)
-      return false
-    }
+    console.log(`[ProfileScheduler] forceUpdateProfile 已弃用，触发来源: ${trigger}`)
+    // Phase 12.7: 不再直接执行更新，由 SemanticProfileBuilder 的 onRead/onDismiss 处理
+    // 保留方法以保持向后兼容
   }
 
   /**
@@ -246,24 +193,7 @@ export class ProfileUpdateScheduler {
   static getScheduleStatus() {
     return {
       ...this.schedule,
-      nextUpdateETA: this.estimateNextUpdateTime()
+      nextUpdateETA: '由 SemanticProfileBuilder 控制'
     }
-  }
-
-  /**
-   * 估算下次更新时间
-   */
-  private static estimateNextUpdateTime(): string {
-    const timeSinceLastUpdate = Date.now() - this.schedule.lastUpdateTime
-    const nextMajorUpdate = 6 * 60 * 60 * 1000 - timeSinceLastUpdate // 6小时周期
-
-    if (nextMajorUpdate <= 0) {
-      return '随时可能更新'
-    }
-
-    const hours = Math.floor(nextMajorUpdate / (60 * 60 * 1000))
-    const minutes = Math.floor((nextMajorUpdate % (60 * 60 * 1000)) / (60 * 1000))
-    
-    return `约 ${hours}小时${minutes}分钟后`
   }
 }

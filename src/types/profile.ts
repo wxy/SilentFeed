@@ -38,7 +38,7 @@ export interface UserProfile {
     avoidTopics: string[]
     /** 生成元数据 */
     metadata: {
-      provider: "openai" | "anthropic" | "deepseek" | "keyword"
+      provider: "openai" | "anthropic" | "deepseek" | "keyword" | "ollama"
       model: string
       timestamp: number
       tokensUsed?: {
@@ -161,7 +161,7 @@ export interface InterestSnapshot {
     /** Top 3 偏好标签 */
     topPreferences: string[]
     /** Provider 类型 */
-    provider: "openai" | "deepseek" | "keyword"
+    provider: "openai" | "deepseek" | "keyword" | "ollama"
   }
   
   /** Phase 8.2: 行为统计（可选）*/
