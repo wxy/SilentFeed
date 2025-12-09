@@ -27,25 +27,29 @@ const MAX_READS = 50
 const MAX_DISMISSES = 30
 
 /**
- * 更新触发阈倿（智能触发机制：次数 + 时间间隔）
+ * Phase 12.7: 更新触发阈值（统一调度机制）
  * 
  * 核心设计：
- * - BROWSE_THRESHOLD: 浏览 100 页触发画像更新
- * - READ_THRESHOLD: 阅读 20 篇触发画像更新
- * - DISMISS_BATCH_THRESHOLD: 动态获取，等于弹窗容量 (maxRecommendations)
- *   → 弹窗 3 条，拒绝 3 次触发
- *   → 弹窗 5 条，拒绝 5 次触发
- *   → 自适应调整，符合用户使用习惯
+ * - BROWSE_THRESHOLD: 浏览 50 页触发画像更新
+ * - READ_THRESHOLD: 动态获取，等于弹窗容量 (maxRecommendations)
+ * - DISMISS_THRESHOLD: 动态获取，等于弹窗容量 (maxRecommendations)
+ * - GLOBAL_UPDATE_INTERVAL_MS: 3 小时全局间隔（所有行为共享）
+ * 
+ * 触发逻辑：
+ *   (距上次更新 ≥ 3小时) AND (浏览≥50 OR 阅读≥弹窗容量 OR 拒绝≥弹窗容量)
+ * 
+ * 频率控制：
+ *   工作日 8 小时 ÷ 3 小时间隔 = 最多 3 次自动更新
  */
-const BROWSE_THRESHOLD = 100    // 浏览 100 页触发全量更新（降低频率）
-const READ_THRESHOLD = 20       // 阅读 20 篇触发全量更新（提高阈值）
-// DISMISS_BATCH_THRESHOLD 动态获取，等于弹窗容量（3-5 条，根据用户行为自适应）
+const BROWSE_THRESHOLD = 50     // 浏览 50 页触发全量更新
+// READ_THRESHOLD 动态获取，等于弹窗容量（3-5 条）
+// DISMISS_THRESHOLD 动态获取，等于弹窗容量（3-5 条）
 
 /**
- * 时间间隔要求（防止过于频繁的更新）
+ * Phase 12.7: 全局时间间隔（所有行为共享）
  */
-const MIN_UPDATE_INTERVAL_MS = 3600000  // 最小更新间隔：1 小时（除非手动触发）
-const DISMISS_DEBOUNCE_MS = 300000      // 拒绝操作防抖时间：5 分钟（停止操作后才触发）
+const GLOBAL_UPDATE_INTERVAL_MS = 10800000  // 3 小时（控制自动更新频率）
+const DISMISS_DEBOUNCE_MS = 300000          // 拒绝操作防抖时间：5 分钟
 
 /**
  * AI 摘要结构（对齐 UserProfileGenerationResult）
@@ -55,7 +59,7 @@ interface AISummary {
   preferences: string[]
   avoidTopics: string[]
   metadata: {
-    provider: "openai" | "anthropic" | "deepseek" | "keyword"
+    provider: "openai" | "anthropic" | "deepseek" | "keyword" | "ollama"
     model: string
     timestamp: number
     tokensUsed?: {
@@ -75,13 +79,13 @@ interface AISummary {
  * 语义化画像构建器
  */
 export class SemanticProfileBuilder {
-  // 计数器（内存中，不持久化）
+  // 行为计数器（内存中，不持久化，触发后全部重置）
   private browseCount = 0
   private readCount = 0
   private dismissCount = 0
 
-  // 上次更新时间追踪
-  private lastUpdateTime = 0
+  // Phase 12.7: 全局时间控制（所有行为共享）
+  private lastAutoUpdateTime = 0
 
   // 防抖机制：拒绝操作
   private dismissDebounceTimer: NodeJS.Timeout | null = null
@@ -128,15 +132,15 @@ export class SemanticProfileBuilder {
     })
     
     if (this.browseCount >= BROWSE_THRESHOLD) {
-      // 达到阈值 → 检查时间间隔
-      const timeSinceLastUpdate = Date.now() - this.lastUpdateTime
-      if (timeSinceLastUpdate >= MIN_UPDATE_INTERVAL_MS) {
+      // 达到阈值 → 检查全局时间间隔
+      const timeSinceLastUpdate = Date.now() - this.lastAutoUpdateTime
+      if (timeSinceLastUpdate >= GLOBAL_UPDATE_INTERVAL_MS) {
         profileLogger.info('🔄 浏览阈值达到且时间间隔充足，触发全量更新')
         await this.triggerFullUpdate('browse')
-        this.browseCount = 0
-        this.lastUpdateTime = Date.now()
+        this.resetAllCounters()  // Phase 12.7: 重置所有计数器
+        this.lastAutoUpdateTime = Date.now()
       } else {
-        const remainingMinutes = Math.ceil((MIN_UPDATE_INTERVAL_MS - timeSinceLastUpdate) / 60000)
+        const remainingMinutes = Math.ceil((GLOBAL_UPDATE_INTERVAL_MS - timeSinceLastUpdate) / 60000)
         profileLogger.debug(`⏭️ 浏览阈值已达到，但距上次更新仅 ${Math.floor(timeSinceLastUpdate / 60000)} 分钟，需等待 ${remainingMinutes} 分钟`)
         // 继续累计，等待时间间隔满足
       }
@@ -180,16 +184,20 @@ export class SemanticProfileBuilder {
     
     this.readCount++
     
-    if (this.readCount >= READ_THRESHOLD) {
-      // 多次阅读 → 检查时间间隔
-      const timeSinceLastUpdate = Date.now() - this.lastUpdateTime
-      if (timeSinceLastUpdate >= MIN_UPDATE_INTERVAL_MS) {
-        profileLogger.info('🔄 阅读阈值达到且时间间隔充足，触发全量更新')
+    // Phase 12.7: 阅读阈值动态获取，等于弹窗容量（与拒绝对称）
+    const config = await getRecommendationConfig()
+    const readThreshold = config.maxRecommendations
+    
+    if (this.readCount >= readThreshold) {
+      // 达到阈值 → 检查全局时间间隔
+      const timeSinceLastUpdate = Date.now() - this.lastAutoUpdateTime
+      if (timeSinceLastUpdate >= GLOBAL_UPDATE_INTERVAL_MS) {
+        profileLogger.info(`🔄 阅读阈值达到 (${this.readCount}/${readThreshold}) 且时间间隔充足，触发全量更新`)
         await this.triggerFullUpdate('read')
-        this.readCount = 0
-        this.lastUpdateTime = Date.now()
+        this.resetAllCounters()  // Phase 12.7: 重置所有计数器
+        this.lastAutoUpdateTime = Date.now()
       } else {
-        const remainingMinutes = Math.ceil((MIN_UPDATE_INTERVAL_MS - timeSinceLastUpdate) / 60000)
+        const remainingMinutes = Math.ceil((GLOBAL_UPDATE_INTERVAL_MS - timeSinceLastUpdate) / 60000)
         profileLogger.debug(`⏭️ 阅读阈值已达到，但距上次更新仅 ${Math.floor(timeSinceLastUpdate / 60000)} 分钟，需等待 ${remainingMinutes} 分钟`)
       }
     }
@@ -197,6 +205,7 @@ export class SemanticProfileBuilder {
 
   /**
    * 用户拒绝推荐（优化版：防抖 + 批量阈值）
+   * Phase 12.7: 使用全局时间间隔控制
    */
   async onDismiss(article: Recommendation): Promise<void> {
     profileLogger.info('❌ 用户拒绝推荐', {
@@ -224,49 +233,60 @@ export class SemanticProfileBuilder {
     
     // 5. 检查是否达到批量阈值（一个弹窗容量的拒绝）
     if (this.dismissQueue.length >= dismissThreshold) {
-      const timeSinceLastUpdate = Date.now() - this.lastUpdateTime
-      if (timeSinceLastUpdate >= MIN_UPDATE_INTERVAL_MS) {
+      const timeSinceLastUpdate = Date.now() - this.lastAutoUpdateTime
+      if (timeSinceLastUpdate >= GLOBAL_UPDATE_INTERVAL_MS) {
         profileLogger.info(`🔄 达到批量阈值 (${this.dismissQueue.length}/${dismissThreshold}) 且时间间隔充足，触发画像更新`)
         
         // 立即执行画像更新
         await this.triggerFullUpdate('dismiss')
         
-        // 重置状态
+        // Phase 12.7: 重置所有状态
+        this.resetAllCounters()
         this.dismissQueue = []
-        this.dismissCount = 0
         this.dismissDebounceTimer = null
-        this.lastUpdateTime = Date.now()
+        this.lastAutoUpdateTime = Date.now()
         return
       } else {
-        const remainingMinutes = Math.ceil((MIN_UPDATE_INTERVAL_MS - timeSinceLastUpdate) / 60000)
+        const remainingMinutes = Math.ceil((GLOBAL_UPDATE_INTERVAL_MS - timeSinceLastUpdate) / 60000)
         profileLogger.info(`⏭️ 批量阈值已达到 (${this.dismissQueue.length}/${dismissThreshold})，但距上次更新仅 ${Math.floor(timeSinceLastUpdate / 60000)} 分钟，需等待 ${remainingMinutes} 分钟后再触发`)
         // 继续使用防抖机制
       }
     }
     
-    // 5. 设置新的防抖定时器（5分钟后执行）
+    // 6. 设置新的防抖定时器（5分钟后执行）
     this.dismissDebounceTimer = setTimeout(async () => {
       const count = this.dismissQueue.length
-      const timeSinceLastUpdate = Date.now() - this.lastUpdateTime
+      const timeSinceLastUpdate = Date.now() - this.lastAutoUpdateTime
       
-      if (timeSinceLastUpdate >= MIN_UPDATE_INTERVAL_MS) {
+      if (timeSinceLastUpdate >= GLOBAL_UPDATE_INTERVAL_MS) {
         profileLogger.info(`🔄 防抖触发: 批量处理 ${count} 条拒绝记录，触发画像更新`)
         
         // 执行画像更新
         await this.triggerFullUpdate('dismiss')
-        this.lastUpdateTime = Date.now()
+        this.resetAllCounters()
+        this.lastAutoUpdateTime = Date.now()
       } else {
-        const remainingMinutes = Math.ceil((MIN_UPDATE_INTERVAL_MS - timeSinceLastUpdate) / 60000)
+        const remainingMinutes = Math.ceil((GLOBAL_UPDATE_INTERVAL_MS - timeSinceLastUpdate) / 60000)
         profileLogger.info(`⏭️ 防抖触发但时间间隔不足（距上次更新 ${Math.floor(timeSinceLastUpdate / 60000)} 分钟），跳过更新，需等待 ${remainingMinutes} 分钟`)
       }
       
-      // 重置状态
+      // 重置队列状态
       this.dismissQueue = []
-      this.dismissCount = 0
       this.dismissDebounceTimer = null
     }, DISMISS_DEBOUNCE_MS)
     
     profileLogger.debug(`拒绝操作已加入队列 (${this.dismissQueue.length}/${this.dismissCount})，${DISMISS_DEBOUNCE_MS / 1000}秒后触发更新（或达到 ${dismissThreshold} 次立即触发）`)
+  }
+  
+  /**
+   * Phase 12.7: 重置所有行为计数器
+   * 触发更新后调用，确保行为已被学习
+   */
+  private resetAllCounters(): void {
+    this.browseCount = 0
+    this.readCount = 0
+    this.dismissCount = 0
+    profileLogger.debug('✅ 已重置所有行为计数器')
   }
   
   /**
@@ -289,18 +309,18 @@ export class SemanticProfileBuilder {
    * 
    * 用于设置页面的"强制更新"按钮
    * 忽略计数器和阈值，直接调用 AI 生成画像
+   * Phase 12.7: 手动触发不受时间间隔限制
    * 
    * @param trigger 触发来源（用于日志）
    */
   async forceGenerateAIProfile(trigger: string = 'manual'): Promise<void> {
     profileLogger.info('[AI Profile] 🚀 手动强制生成 AI 画像', { trigger })
     
-    // 重置计数器（避免重复触发）
-    this.browseCount = 0
-    this.readCount = 0
-    this.dismissCount = 0
+    // Phase 12.7: 重置所有计数器
+    this.resetAllCounters()
+    this.dismissQueue = []
     
-    // 直接调用全量更新
+    // 直接调用全量更新（手动触发不更新 lastAutoUpdateTime，不影响自动触发的时间窗口）
     await this.triggerFullUpdate(trigger as any)
   }
 

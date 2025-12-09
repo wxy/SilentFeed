@@ -100,12 +100,26 @@ describe("AIConfig", () => {
     
     // Mock getAIConfig 返回空配置
     vi.mocked(aiConfigModule.getAIConfig).mockResolvedValue({
-      provider: null,
-      apiKeys: {},
-      enabled: false,
-      monthlyBudget: 5,
-      model: undefined,
-      enableReasoning: false
+      providers: {},
+      providerBudgets: {},
+      local: {
+        enabled: false,
+        provider: "ollama",
+        endpoint: "http://localhost:11434/v1",
+        model: "",
+        apiKey: "ollama",
+        temperature: 0.2,
+        maxOutputTokens: 768,
+        timeoutMs: 60000,
+        reasoningTimeoutMs: 180000
+      },
+      engineAssignment: {
+        pageAnalysis: { provider: "local", useReasoning: false },
+        feedAnalysis: { provider: "local", useReasoning: false },
+        profileGeneration: { provider: "local", useReasoning: false }
+      },
+      preferredRemoteProvider: "deepseek",
+      preferredLocalProvider: "ollama"
     })
   })
 

@@ -227,11 +227,37 @@ chrome.runtime.onInstalled.addListener(async () => {
     // Phase 7: 启动所有后台调度器
     await startAllSchedulers()
     
-    // Phase 6: 启动推荐数量定期评估
-    bgLogger.info('创建推荐数量评估定时器（每周一次）...')
-    chrome.alarms.create('evaluate-recommendations', {
-      periodInMinutes: 7 * 24 * 60 // 每 7 天（1 周）
+    // Phase 6: 启动弹窗容量定期评估
+    bgLogger.info('创建弹窗容量评估定时器（每天一次）...')
+    chrome.alarms.create('evaluate-popup-capacity', {
+      periodInMinutes: 24 * 60 // 每 24 小时（1 天）
     })
+    
+    // Phase 12.7: 创建定期清理推荐池的定时器（每天一次）
+    bgLogger.info('创建推荐池清理定时器（每天一次）...')
+    chrome.alarms.create('cleanup-recommendation-pool', {
+      delayInMinutes: 1, // 启动 1 分钟后首次执行
+      periodInMinutes: 24 * 60 // 每 24 小时
+    })
+    
+    // Phase 12.7: 数据迁移 - 为旧推荐补充 status 字段
+    try {
+      const oldRecs = await db.recommendations
+        .filter(r => !r.status)
+        .toArray()
+      
+      if (oldRecs.length > 0) {
+        await db.recommendations.bulkUpdate(
+          oldRecs.map(rec => ({
+            key: rec.id,
+            changes: { status: 'active' as const }
+          }))
+        )
+        bgLogger.info(`📝 已为 ${oldRecs.length} 条旧推荐补充 status 字段`)
+      }
+    } catch (error) {
+      bgLogger.error('❌ 推荐数据迁移失败:', error)
+    }
     
     // Phase 6: 设置通知监听器
     bgLogger.info('设置推荐通知监听器...')
@@ -634,17 +660,101 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   bgLogger.debug('定时器触发:', alarm.name)
   
   try {
-    if (alarm.name === 'evaluate-recommendations') {
-      bgLogger.info('开始评估推荐数量...')
+    if (alarm.name === 'evaluate-popup-capacity') {
+      bgLogger.info('开始评估弹窗容量...')
       const newCount = await evaluateAndAdjust()
-      bgLogger.info(`✅ 推荐数量已调整为: ${newCount} 条`)
+      bgLogger.info(`✅ 弹窗容量已调整为: ${newCount} 条`)
     } else if (alarm.name === 'generate-recommendation') {
       // Phase 7: 委托给 recommendationScheduler 处理
       await recommendationScheduler.handleAlarm()
       // 更新徽章显示新推荐
       await updateBadge()
+    } else if (alarm.name === 'cleanup-recommendation-pool') {
+      // Phase 12.7: 清理超限的推荐池
+      bgLogger.info('开始清理推荐池...')
+      await cleanupRecommendationPool()
     }
   } catch (error) {
     bgLogger.error('❌ 定时器处理失败:', error)
   }
 })
+
+/**
+ * Phase 12.7: 清理推荐池中的超限推荐
+ * 
+ * 策略：
+ * 1. 获取当前池容量配置（maxRecommendations × 2）
+ * 2. 查询所有活跃的未读推荐
+ * 3. 如果超过容量限制，按分数排序，保留高分推荐，清理低分推荐
+ * 4. 将清理的推荐标记为 'replaced' 状态
+ * 5. 同步更新 feedArticles 的 inPool 状态
+ */
+async function cleanupRecommendationPool(): Promise<void> {
+  try {
+    const config = await getRecommendationConfig()
+    const poolCapacity = (config.maxRecommendations || 3) * 2  // 池容量 = 弹窗容量 × 2
+    
+    // 获取所有活跃的未读推荐（未忽略）
+    const activeRecs = await db.recommendations
+      .filter(r => {
+        const isActive = !r.status || r.status === 'active'
+        const isUnreadAndNotDismissed = !r.isRead && r.feedback !== 'dismissed'
+        return isActive && isUnreadAndNotDismissed
+      })
+      .toArray()
+    
+    bgLogger.info(`推荐池状态: ${activeRecs.length}/${poolCapacity} 条活跃推荐`)
+    
+    if (activeRecs.length > poolCapacity) {
+      bgLogger.warn(`⚠️ 推荐池超限: ${activeRecs.length} > ${poolCapacity}，开始清理...`)
+      
+      // 按分数降序排序，保留高分推荐
+      const sorted = activeRecs.sort((a, b) => (b.score || 0) - (a.score || 0))
+      const toKeep = sorted.slice(0, poolCapacity)
+      const toRemove = sorted.slice(poolCapacity)
+      
+      if (toRemove.length > 0) {
+        // 标记为 replaced 状态
+        await db.recommendations.bulkUpdate(
+          toRemove.map(rec => ({
+            key: rec.id,
+            changes: {
+              status: 'replaced' as const,
+              replacedAt: Date.now(),
+              replacedBy: 'pool-cleanup'
+            }
+          }))
+        )
+        
+        // 同步更新 feedArticles 的 inPool 状态
+        let updatedArticles = 0
+        for (const rec of toRemove) {
+          try {
+            const article = await db.feedArticles
+              .where('link').equals(rec.url)
+              .first()
+            
+            if (article) {
+              await db.feedArticles.update(article.id, {
+                inPool: false,
+                poolRemovedAt: Date.now(),
+                poolRemovedReason: 'pool-cleanup'
+              })
+              updatedArticles++
+            }
+          } catch (error) {
+            bgLogger.warn(`更新文章 inPool 状态失败: ${rec.url}`, error)
+          }
+        }
+        
+        bgLogger.info(`🧹 清理完成: 移除 ${toRemove.length} 条低分推荐，更新 ${updatedArticles} 篇文章状态`)
+        bgLogger.info(`   保留分数范围: ${toKeep[toKeep.length - 1]?.score.toFixed(2)} - ${toKeep[0]?.score.toFixed(2)}`)
+        bgLogger.info(`   移除分数范围: ${toRemove[toRemove.length - 1]?.score.toFixed(2)} - ${toRemove[0]?.score.toFixed(2)}`)
+      }
+    } else {
+      bgLogger.debug(`推荐池正常，无需清理`)
+    }
+  } catch (error) {
+    bgLogger.error('❌ 清理推荐池失败:', error)
+  }
+}

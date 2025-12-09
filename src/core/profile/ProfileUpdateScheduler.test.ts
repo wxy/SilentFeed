@@ -1,5 +1,6 @@
 /**
  * ProfileUpdateScheduler 测试
+ * Phase 12.7: 简化版 - 仅测试首次画像生成和手动更新
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
@@ -39,7 +40,7 @@ describe("ProfileUpdateScheduler", () => {
       expect(result.priority).toBe("high")
     })
 
-    it("应该在首次但页面不足10时仍可能建议更新（如果新增页面≥5）", async () => {
+    it("Phase 12.7: 应该在首次但页面不足10时不建议更新", async () => {
       const { getPageCount } = await import("@/storage/db")
       
       // 首次场景：lastUpdateTime = 0, lastUpdatePageCount = 0
@@ -50,16 +51,15 @@ describe("ProfileUpdateScheduler", () => {
 
       const result = await ProfileUpdateScheduler.shouldUpdateProfile()
 
-      // 虽然不足10页不触发首次构建，但新增5页会触发策略2
-      expect(result.shouldUpdate).toBe(true)
-      expect(result.reason).toBe("新增5页面")
-      expect(result.priority).toBe("medium")
+      // Phase 12.7: 移除了策略2（新增5页），不足10页不触发
+      expect(result.shouldUpdate).toBe(false)
+      expect(result.reason).toBe("暂不需要更新")
     })
 
-    it("应该在新增5+页面时建议更新", async () => {
+    it("Phase 12.7: 应该在非首次时不建议更新（由 SemanticProfileBuilder 控制）", async () => {
       const { getPageCount } = await import("@/storage/db")
       
-      // 设置上次更新时的页面数
+      // 设置上次更新时的页面数（非首次场景）
       ;(ProfileUpdateScheduler as any).schedule.lastUpdatePageCount = 100
       ;(ProfileUpdateScheduler as any).schedule.lastUpdateTime = Date.now()
       
@@ -68,12 +68,12 @@ describe("ProfileUpdateScheduler", () => {
 
       const result = await ProfileUpdateScheduler.shouldUpdateProfile()
 
-      expect(result.shouldUpdate).toBe(true)
-      expect(result.reason).toContain("新增5页面")
-      expect(result.priority).toBe("medium")
+      // Phase 12.7: 移除了策略2，浏览行为由 SemanticProfileBuilder 控制
+      expect(result.shouldUpdate).toBe(false)
+      expect(result.reason).toBe("暂不需要更新")
     })
 
-    it("应该在6小时后且有新内容时建议更新", async () => {
+    it("Phase 12.7: 应该在6小时后不自动更新（移除定期更新策略）", async () => {
       const { getPageCount } = await import("@/storage/db")
       
       const sixHoursAgo = Date.now() - 7 * 60 * 60 * 1000
@@ -84,12 +84,12 @@ describe("ProfileUpdateScheduler", () => {
 
       const result = await ProfileUpdateScheduler.shouldUpdateProfile()
 
-      expect(result.shouldUpdate).toBe(true)
-      expect(result.reason).toBe("定期更新")
-      expect(result.priority).toBe("low")
+      // Phase 12.7: 移除了策略3，定期更新由 SemanticProfileBuilder 控制
+      expect(result.shouldUpdate).toBe(false)
+      expect(result.reason).toBe("暂不需要更新")
     })
 
-    it("应该在24小时后强制更新", async () => {
+    it("Phase 12.7: 应该在24小时后不强制更新（移除强制更新策略）", async () => {
       const { getPageCount } = await import("@/storage/db")
       
       const oneDayAgo = Date.now() - 25 * 60 * 60 * 1000
@@ -100,9 +100,9 @@ describe("ProfileUpdateScheduler", () => {
 
       const result = await ProfileUpdateScheduler.shouldUpdateProfile()
 
-      expect(result.shouldUpdate).toBe(true)
-      expect(result.reason).toBe("强制定期更新")
-      expect(result.priority).toBe("medium")
+      // Phase 12.7: 移除了策略4，强制更新由 SemanticProfileBuilder 控制
+      expect(result.shouldUpdate).toBe(false)
+      expect(result.reason).toBe("暂不需要更新")
     })
   })
 
@@ -125,43 +125,22 @@ describe("ProfileUpdateScheduler", () => {
       
       ;(ProfileUpdateScheduler as any).schedule.lastUpdateTime = Date.now()
       ;(ProfileUpdateScheduler as any).schedule.lastUpdatePageCount = 100
-      vi.mocked(getPageCount).mockResolvedValue(102) // 只新增2页，不足5页
+      vi.mocked(getPageCount).mockResolvedValue(102) // Phase 12.7: 新增2页不触发
 
       await ProfileUpdateScheduler.checkAndScheduleUpdate()
 
       expect(profileManager.updateProfile).not.toHaveBeenCalled()
     })
 
-    it("应该在高优先级时立即执行更新", async () => {
+    it("应该在首次构建时立即执行更新", async () => {
       const { getPageCount } = await import("@/storage/db")
       const { profileManager } = await import("@/core/profile/ProfileManager")
       
       vi.mocked(getPageCount).mockResolvedValue(15)
       vi.mocked(profileManager.rebuildProfile).mockResolvedValue({} as any)
 
-      await ProfileUpdateScheduler.checkAndScheduleUpdate("high")
-
-      expect(profileManager.rebuildProfile).toHaveBeenCalled()
-    })
-
-    it("应该在中优先级时延迟执行更新", async () => {
-      const { getPageCount } = await import("@/storage/db")
-      const { profileManager } = await import("@/core/profile/ProfileManager")
-      
-      ;(ProfileUpdateScheduler as any).schedule.lastUpdatePageCount = 100
-      ;(ProfileUpdateScheduler as any).schedule.lastUpdateTime = Date.now()
-      vi.mocked(getPageCount).mockResolvedValue(105)
-      vi.mocked(profileManager.updateProfile).mockResolvedValue({} as any)
-
       await ProfileUpdateScheduler.checkAndScheduleUpdate()
 
-      // 应该不会立即执行
-      expect(profileManager.updateProfile).not.toHaveBeenCalled()
-
-      // 快进2秒
-      await vi.advanceTimersByTimeAsync(2000)
-
-      // 现在应该执行了
       expect(profileManager.rebuildProfile).toHaveBeenCalled()
     })
   })
@@ -219,57 +198,6 @@ describe("ProfileUpdateScheduler", () => {
     })
   })
 
-  describe("isGoodTimeToUpdate", () => {
-    it("应该在页面数较少时总是返回true", async () => {
-      const { getAnalysisStats } = await import("@/storage/db")
-      
-      vi.mocked(getAnalysisStats).mockResolvedValue({
-        analyzedPages: 50,
-        totalKeywords: 500,
-        avgKeywordsPerPage: 10,
-        languageDistribution: [],
-        topKeywords: [],
-      })
-
-      const result = await ProfileUpdateScheduler.isGoodTimeToUpdate()
-
-      expect(result).toBe(true)
-    })
-
-    it("应该在页面数较多时降低概率", async () => {
-      const { getAnalysisStats } = await import("@/storage/db")
-      
-      vi.mocked(getAnalysisStats).mockResolvedValue({
-        analyzedPages: 1500,
-        totalKeywords: 15000,
-        avgKeywordsPerPage: 10,
-        languageDistribution: [],
-        topKeywords: [],
-      })
-
-      // 运行多次检查概率（应该大约30%返回true）
-      const results = await Promise.all(
-        Array.from({ length: 100 }, () => ProfileUpdateScheduler.isGoodTimeToUpdate())
-      )
-      
-      const trueCount = results.filter(Boolean).length
-      
-      // 应该在10-50之间（30% ± 20%）
-      expect(trueCount).toBeGreaterThan(10)
-      expect(trueCount).toBeLessThan(50)
-    })
-
-    it("应该在发生错误时返回false", async () => {
-      const { getAnalysisStats } = await import("@/storage/db")
-      
-      vi.mocked(getAnalysisStats).mockRejectedValue(new Error("DB error"))
-
-      const result = await ProfileUpdateScheduler.isGoodTimeToUpdate()
-
-      expect(result).toBe(false)
-    })
-  })
-
   describe("getScheduleStatus", () => {
     it("应该返回当前调度状态", () => {
       const now = Date.now()
@@ -288,22 +216,11 @@ describe("ProfileUpdateScheduler", () => {
       expect(status.nextUpdateETA).toBeDefined()
     })
 
-    it("应该估算下次更新时间", () => {
-      const sixHoursAgo = Date.now() - 6 * 60 * 60 * 1000
-      ;(ProfileUpdateScheduler as any).schedule.lastUpdateTime = sixHoursAgo
-
+    it("Phase 12.7: 应该说明由 SemanticProfileBuilder 控制", () => {
       const status = ProfileUpdateScheduler.getScheduleStatus()
 
-      expect(status.nextUpdateETA).toBe("随时可能更新")
-    })
-
-    it("应该正确计算剩余时间", () => {
-      const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000
-      ;(ProfileUpdateScheduler as any).schedule.lastUpdateTime = twoHoursAgo
-
-      const status = ProfileUpdateScheduler.getScheduleStatus()
-
-      expect(status.nextUpdateETA).toContain("小时")
+      // Phase 12.7: 自动更新由 SemanticProfileBuilder 控制
+      expect(status.nextUpdateETA).toBe("由 SemanticProfileBuilder 控制")
     })
   })
 })

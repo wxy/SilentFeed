@@ -490,15 +490,15 @@ describe('SemanticProfileBuilder', () => {
 
   describe('降级方案', () => {
     it('应该在没有数据时生成基础画像', async () => {
-      // 模拟时间已过 1 小时（绕过时间间隔限制）
-      const oneHourAgo = Date.now() - 3600000 - 1000
-      ;(builder as any).lastUpdateTime = oneHourAgo
+      // 模拟时间已过 3 小时（Phase 12.7: 绕过全局时间间隔限制）
+      const threeHoursAgo = Date.now() - 10800000 - 1000
+      ;(builder as any).lastAutoUpdateTime = threeHoursAgo
       
       // 清空数据
       await db.confirmedVisits.clear()
       
       // 直接触发完整更新（绕过防抖）
-      await builder.triggerFullUpdate()
+      await (builder as any).triggerFullUpdate('manual')
       
       const profile = await db.userProfile.get('singleton')
       expect(profile?.aiSummary).toBeDefined()
@@ -507,9 +507,9 @@ describe('SemanticProfileBuilder', () => {
     })
 
     it('应该在有浏览数据时基于关键词生成画像', async () => {
-      // 模拟时间已过 1 小时（绕过时间间隔限制）
-      const oneHourAgo = Date.now() - 3600000 - 1000
-      ;(builder as any).lastUpdateTime = oneHourAgo
+      // 模拟时间已过 3 小时（Phase 12.7: 绕过全局时间间隔限制）
+      const threeHoursAgo = Date.now() - 10800000 - 1000
+      ;(builder as any).lastAutoUpdateTime = threeHoursAgo
       
       // 添加浏览记录
       const visit: ConfirmedVisit = {
@@ -535,7 +535,7 @@ describe('SemanticProfileBuilder', () => {
       await db.confirmedVisits.add(visit)
       
       // 直接触发完整更新（绕过防抖）
-      await builder.triggerFullUpdate()
+      await (builder as any).triggerFullUpdate('manual')
       
       const profile = await db.userProfile.get('singleton')
       expect(profile?.aiSummary).toBeDefined()
