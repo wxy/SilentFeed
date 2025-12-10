@@ -29,7 +29,7 @@
 
 1. **下载扩展包**
    - 访问 [GitHub Releases](https://github.com/wxy/SilentFeed/releases)
-   - 下载最新版本的 `chrome-mv3-prod-v0.3.0.zip`
+   - 下载最新版本的 `chrome-mv3-prod-v0.3.4.zip`
    - 解压到任意目录
 
 2. **加载到 Chrome**
@@ -188,8 +188,8 @@ Silent Feed 需要收集 **100 个有效页面访问** 才能建立完整的兴�
 - **DeepSeek Chat**（推荐）：成本低（¥0.001/篇），效果好
 - **DeepSeek Reasoner**：深度推理模式，成本较高（¥0.01/篇）
 - **本地 AI**：完全免费，自部署兼容 ChatGPT API 的服务
-- **OpenAI**（即将支持）：GPT-4o / GPT-4o-mini
-- **Anthropic**（即将支持）：Claude 3.5
+- **OpenAI**：GPT-4o / GPT-4o-mini
+- **Anthropic**：Claude 3.5
 
 **配置步骤**
 1. 选择 AI 引擎
@@ -199,10 +199,21 @@ Silent Feed 需要收集 **100 个有效页面访问** 才能建立完整的兴�
 3. 点击"测试连接"
 4. 保存配置
 
-**成本控制**
+**安全特性**（v0.3.x 新增）
+- 🔐 API 密钥使用 AES-GCM-256 加密存储
+- 🔑 每个浏览器实例生成独立密钥
+- 🛡️ 敏感信息不会明文存储
+
+**成本控制**（v0.3.x 增强）
 - 查看实时 AI 成本统计
 - 查看每日/每月使用量
-- 设置预算提醒（规划中）
+- 设置 Provider 级别预算上限（支持 USD/CNY）
+- AI 用量可视化仪表盘
+
+**容错机制**（v0.3.x 新增）
+- 自动重试：指数退避策略（最多 3 次）
+- 熔断保护：连续失败后暂停请求
+- 超时控制：每个 Provider 可配置超时时间
 
 <div align="center">
    <img src="assets/screenshots/screenshot-5-ai-config-cn.png" width="720" alt="AI 配置" />

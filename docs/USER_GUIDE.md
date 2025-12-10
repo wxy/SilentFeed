@@ -29,7 +29,7 @@
 
 1. **Download Extension Package**
    - Visit [GitHub Releases](https://github.com/wxy/SilentFeed/releases)
-   - Download latest `chrome-mv3-prod-v0.3.0.zip`
+   - Download latest `chrome-mv3-prod-v0.3.4.zip`
    - Extract to any directory
 
 2. **Load to Chrome**
@@ -188,8 +188,8 @@ Silent Feed needs **100 valid page visits** before full recommendations:
 - **DeepSeek Chat** (Recommended): Low cost (¥0.001/article), great performance
 - **DeepSeek Reasoner**: Deep reasoning mode, higher cost (¥0.01/article)
 - **Local AI**: Completely free, self-deployed ChatGPT API compatible service
-- **OpenAI** (Coming soon): GPT-4o / GPT-4o-mini
-- **Anthropic** (Coming soon): Claude 3.5
+- **OpenAI**: GPT-4o / GPT-4o-mini
+- **Anthropic**: Claude 3.5
 
 **Configuration Steps**
 1. Select AI engine
@@ -199,10 +199,21 @@ Silent Feed needs **100 valid page visits** before full recommendations:
 3. Click "Test Connection"
 4. Save configuration
 
-**Cost Control**
+**Security Features** (New in v0.3.x)
+- 🔐 API keys encrypted with AES-GCM-256
+- 🔑 Unique encryption key per browser instance
+- 🛡️ Sensitive data never stored in plaintext
+
+**Cost Control** (Enhanced in v0.3.x)
 - View real-time AI cost statistics
 - View daily/monthly usage
-- Set budget alerts (planned)
+- Set provider-level budget limits (supports USD/CNY)
+- AI usage visualization dashboard
+
+**Resilience Mechanisms** (New in v0.3.x)
+- Auto-retry: Exponential backoff strategy (up to 3 times)
+- Circuit breaker: Pause requests after consecutive failures
+- Timeout control: Configurable timeout per provider
 
 <div align="center">
    <img src="assets/screenshots/screenshot-5-ai-config-en.png" width="720" alt="AI Configuration" />

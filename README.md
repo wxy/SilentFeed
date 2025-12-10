@@ -14,7 +14,7 @@
 [![GitHub Release](https://img.shields.io/github/v/release/wxy/SilentFeed?style=for-the-badge)](https://github.com/wxy/SilentFeed/releases)
 [![License](https://img.shields.io/badge/License-Apache_2.0-green.svg?style=for-the-badge)](LICENSE)
 
-![Test Coverage](https://img.shields.io/badge/coverage-72.7%25-brightgreen?style=for-the-badge)
+![Test Coverage](https://img.shields.io/badge/coverage-74.9%25-brightgreen?style=for-the-badge)
 ![Stars](https://img.shields.io/github/stars/wxy/SilentFeed?style=for-the-badge&color=yellow)
 ![Last Commit](https://img.shields.io/github/last-commit/wxy/SilentFeed?style=for-the-badge)
 ![TypeScript](https://img.shields.io/badge/TypeScript-90%25-blue?style=for-the-badge&logo=typescript&logoColor=white)
@@ -183,10 +183,17 @@ npm test
 
 ### 📊 项目状态
 
-- **版本**: 0.3.1（测试稳定与类型修复）
+- **版本**: 0.3.4（AI 配置修复与安全增强）
 - **状态**: ✅ 已发布
-- **测试覆盖率**: 71%+
+- **测试覆盖率**: 74%+
 - **支持浏览器**: Chrome/Edge (Manifest V3)
+
+**v0.3.x 主要更新**:
+- 🔐 API 密钥 AES-GCM-256 加密存储
+- 💰 Provider 级别预算控制（支持多币种）
+- 🛡️ 统一容错机制（指数退避 + 熔断器）
+- 📊 AI 用量可视化仪表盘
+- 🔧 RSS 标题 HTML 实体解码和智能截断
 
 ### 💬 社区与支持
 
