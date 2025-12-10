@@ -178,14 +178,14 @@ describe("DeepSeekProvider", () => {
       
       const result = await provider.analyzeContent("测试")
       
-      // DeepSeek Reasoner 正确价格（10% 缓存命中率）:
+      // DeepSeek Chat 正确价格（10% 缓存命中率）:
       // 输入: 100 tokens * (0.1 * 0.2 + 0.9 * 2.0) / 1M = ¥0.000182
       // 输出: 50 tokens * 3.0 / 1M = ¥0.000150
       // 总计: ¥0.000332
       expect(result.metadata.cost).toBeCloseTo(0.000332, 6)
     })
     
-    it("应该在推理模式下使用 deepseek-chat + reasoning_effort", async () => {
+    it("应该在推理模式下使用 deepseek-reasoner 模型", async () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => mockSuccessResponse
@@ -197,10 +197,26 @@ describe("DeepSeekProvider", () => {
       const fetchCall = vi.mocked(fetch).mock.calls[0]
       const requestBody = JSON.parse(fetchCall[1]?.body as string)
       
-      // 应该使用 deepseek-chat 模型
-      expect(requestBody.model).toBe("deepseek-chat")
-      // 应该有 reasoning_effort 参数
-      expect(requestBody.reasoning_effort).toBe("high")
+      // 应该使用 deepseek-reasoner 模型
+      expect(requestBody.model).toBe("deepseek-reasoner")
+      // 不应该有 reasoning_effort 参数（推理能力内置于模型）
+      expect(requestBody.reasoning_effort).toBeUndefined()
+    })
+    
+    it("推理模式应该使用正确的定价", async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockSuccessResponse
+      } as Response)
+      
+      // 启用推理模式
+      const result = await provider.analyzeContent("测试", { useReasoning: true })
+      
+      // DeepSeek Reasoner 定价（无缓存）:
+      // 输入: 100 tokens * 4.0 / 1M = ¥0.0004
+      // 输出: 50 tokens * 16.0 / 1M = ¥0.0008
+      // 总计: ¥0.0012
+      expect(result.metadata.cost).toBeCloseTo(0.0012, 6)
     })
   
     it("默认应该使用 deepseek-chat 模型", async () => {

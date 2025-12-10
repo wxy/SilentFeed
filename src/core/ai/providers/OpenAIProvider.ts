@@ -150,7 +150,7 @@ export class OpenAIProvider extends BaseAIService {
           content: prompt
         }
       ],
-      max_tokens: options?.maxTokens || 1000,
+      max_tokens: options?.maxTokens || 8000,  // 使用 8K 作为默认值，避免截断
       temperature: options?.temperature ?? (isReasoning ? undefined : 0.7),
       stream: false
     }

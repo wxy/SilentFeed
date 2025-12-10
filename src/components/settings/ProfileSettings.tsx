@@ -13,6 +13,7 @@ import { useI18n } from "@/i18n/helpers"
 import { getUserProfile } from "@/storage/db"
 import { profileManager } from "@/core/profile/ProfileManager"
 import { getAIConfig, getProviderDisplayName, type AIProviderType } from "@/storage/ai-config"
+import { resolveProvider } from "@/utils/ai-provider-resolver"
 import type { UserProfile } from "@/types/profile"
 import { logger } from "@/utils/logger"
 import { formatMonthDay, formatDateTime } from "@/utils/date-formatter"
@@ -33,6 +34,9 @@ export function ProfileSettings() {
   const [isLoading, setIsLoading] = useState(true)
   const [isRebuilding, setIsRebuilding] = useState(false)
   const [rebuildProgress, setRebuildProgress] = useState(0) // Phase 11: 进度条状态（0-100）
+  const [rebuildStartTime, setRebuildStartTime] = useState(0) // 重建开始时间
+  const [rebuildTimeoutMs, setRebuildTimeoutMs] = useState(60000) // 进度条超时时间（毫秒）
+  const [useReasoning, setUseReasoning] = useState(false) // 是否使用推理模式
   const [aiConfigured, setAiConfigured] = useState(false)
   const [aiProvider, setAiProvider] = useState("")
   const [totalPages, setTotalPages] = useState(0)
@@ -82,15 +86,34 @@ export function ProfileSettings() {
         )
         setAiConfigured(hasAIProvider)
         // Derive active provider from engineAssignment (priority: profileGeneration > feedAnalysis > pageAnalysis)
-        const activeProvider = aiConfig.engineAssignment?.profileGeneration?.provider && aiConfig.engineAssignment.profileGeneration.provider !== 'ollama'
-          ? aiConfig.engineAssignment.profileGeneration.provider
-          : aiConfig.engineAssignment?.feedAnalysis?.provider && aiConfig.engineAssignment.feedAnalysis.provider !== 'ollama'
-          ? aiConfig.engineAssignment.feedAnalysis.provider
-          : aiConfig.engineAssignment?.pageAnalysis?.provider && aiConfig.engineAssignment.pageAnalysis.provider !== 'ollama'
-          ? aiConfig.engineAssignment.pageAnalysis.provider
+        // 使用 resolveProvider 处理抽象 provider
+        const profileProvider = resolveProvider(aiConfig.engineAssignment?.profileGeneration?.provider, aiConfig)
+        const feedProvider = resolveProvider(aiConfig.engineAssignment?.feedAnalysis?.provider, aiConfig)
+        const pageProvider = resolveProvider(aiConfig.engineAssignment?.pageAnalysis?.provider, aiConfig)
+        
+        const activeProvider = profileProvider !== 'ollama'
+          ? profileProvider
+          : feedProvider !== 'ollama'
+          ? feedProvider
+          : pageProvider !== 'ollama'
+          ? pageProvider
           : (Object.keys(aiConfig.providers)[0] as AIProviderType | undefined) || null
         setAiProvider(getProviderDisplayName(activeProvider))
         setTotalPages(actualTotalPages)
+        
+        // 读取推理模式配置
+        const profileEngine = aiConfig.engineAssignment?.profileGeneration
+        if (profileEngine?.provider === 'ollama') {
+          // 本地 AI：检查模型名称
+          const modelName = aiConfig.local?.model || ''
+          const isReasoningModel = ['r1', 'reasoning', 'think', 'cot'].some(
+            keyword => modelName.toLowerCase().includes(keyword)
+          )
+          setUseReasoning(isReasoningModel)
+        } else {
+          // 远程 AI：检查 useReasoning 配置
+          setUseReasoning(profileEngine?.useReasoning || false)
+        }
         
         // 如果有画像，添加为初始消息
         if (data && data.totalPages > 0) {
@@ -146,20 +169,20 @@ export function ProfileSettings() {
     setMessages(prev => [...prev, userMessage, generatingMessage])
 
     setIsRebuilding(true)
+    setRebuildStartTime(Date.now()) // 记录开始时间
     
     // Phase 11.1: 动态计算进度条超时时间
     // 根据当前使用的 AI 服务和模型类型确定超时
-    let timeoutMs = 30000 // 默认 30s（远程 AI）
+    let timeoutMs = 60000 // 默认 60s（远程 AI 标准模式）
     
     try {
-      const { getEngineAssignment } = await import("@/storage/ai-config")
+      const { getEngineAssignment, getAIConfig, DEFAULT_TIMEOUTS } = await import("@/storage/ai-config")
       const assignment = await getEngineAssignment()
       const profileEngine = assignment.profileGeneration
+      const config = await getAIConfig()
       
       if (profileEngine?.provider === 'ollama') {
         // 本地 AI：检查是否是推理模型
-        const { getAIConfig } = await import("@/storage/ai-config")
-        const config = await getAIConfig()
         const modelName = config.local?.model || ''
         
         // 推理模型检测逻辑（与 OllamaProvider 一致）
@@ -167,24 +190,86 @@ export function ProfileSettings() {
           keyword => modelName.toLowerCase().includes(keyword)
         )
         
-        timeoutMs = isReasoningModel ? 180000 : 120000 // 推理 180s，普通 120s
+        // 使用用户配置的超时或默认值
+        timeoutMs = isReasoningModel 
+          ? (config.local?.reasoningTimeoutMs || DEFAULT_TIMEOUTS.local.reasoning)
+          : (config.local?.timeoutMs || DEFAULT_TIMEOUTS.local.standard)
+      } else {
+        // 远程 AI（DeepSeek/OpenAI）
+        const useReasoning = profileEngine?.useReasoning || false
+        
+        // 解析实际的 provider（处理 "remote" 抽象类型）
+        const actualProvider = resolveProvider(profileEngine?.provider, config)
+        const providerConfig = config.providers?.[actualProvider]
+        
+        profileViewLogger.info("远程 AI 配置检查:", {
+          abstractProvider: profileEngine?.provider,
+          actualProvider,
+          useReasoning,
+          userConfiguredReasoningTimeout: providerConfig?.reasoningTimeoutMs,
+          userConfiguredStandardTimeout: providerConfig?.timeoutMs,
+          defaultReasoningTimeout: DEFAULT_TIMEOUTS.remote.reasoning,
+          defaultStandardTimeout: DEFAULT_TIMEOUTS.remote.standard
+        })
+        
+        if (useReasoning) {
+          // 推理模式：优先使用用户配置的推理超时
+          timeoutMs = providerConfig?.reasoningTimeoutMs || DEFAULT_TIMEOUTS.remote.reasoning
+          profileViewLogger.info("推理模式超时:", {
+            finalTimeout: timeoutMs,
+            source: providerConfig?.reasoningTimeoutMs ? '用户配置' : '默认值'
+          })
+        } else {
+          // 标准模式：优先使用用户配置的标准超时
+          timeoutMs = providerConfig?.timeoutMs || DEFAULT_TIMEOUTS.remote.standard
+          profileViewLogger.info("标准模式超时:", {
+            finalTimeout: timeoutMs,
+            source: providerConfig?.timeoutMs ? '用户配置' : '默认值'
+          })
+        }
       }
-      // 远程 AI 保持 30s
+      
+      // 进度条显示单次请求的预期时间，不考虑重试
+      // 如果发生重试，进度条会回退（这是正常行为）
     } catch (error) {
       profileViewLogger.warn("获取 AI 配置失败，使用默认超时", error)
+      timeoutMs = 60000 // 默认 60s
     }
     
     profileViewLogger.info("进度条超时设置:", { timeoutMs, timeoutSeconds: timeoutMs / 1000 })
     
+    // 保存到状态，供进度条使用
+    setRebuildTimeoutMs(timeoutMs)
+    
     // Phase 11: 启动进度条（动态超时）
     const progressInterval = setInterval(() => {
       setRebuildProgress(prev => {
-        // 每 100ms 增加的百分比 = 100 / (timeout / 100)
+        // 使用保存的 rebuildTimeoutMs 状态计算增量
+        // 注意：这里我们需要从外部访问 rebuildTimeoutMs，不能在 setState 回调中使用
+        // 因为 timeoutMs 已经保存到状态，直接使用即可
         const increment = 100 / (timeoutMs / 100)
         const newProgress = Math.min(prev + increment, 99) // 最多到 99%
         return newProgress
       })
     }, 100)
+    
+    // 监听重试：如果进度条接近100%但请求还在进行，说明发生了重试，重置进度条
+    let lastCheckTime = Date.now()
+    const retryCheckInterval = setInterval(() => {
+      const elapsed = Date.now() - lastCheckTime
+      // 使用当前保存的超时值
+      if (elapsed > timeoutMs * 0.9) {
+        setRebuildProgress(currentProgress => {
+          if (currentProgress > 90) {
+            profileViewLogger.warn("检测到可能的重试，重置进度条")
+            setRebuildStartTime(Date.now()) // 重新计时
+            lastCheckTime = Date.now()
+            return 30 // 重置到 30%，表示正在重试
+          }
+          return currentProgress
+        })
+      }
+    }, 1000)
 
     try {
       const newProfile = await profileManager.rebuildProfile()
@@ -194,6 +279,13 @@ export function ProfileSettings() {
       
       // 成功：进度条直接到 100%
       setRebuildProgress(100)
+      
+      // 检查是否使用了推理模式（根据实际返回的模型判断）
+      const actuallyUsedReasoning = newProfile.aiSummary?.metadata?.model === 'deepseek-reasoner'
+      if (actuallyUsedReasoning !== useReasoning) {
+        profileViewLogger.info("更新推理模式状态", { from: useReasoning, to: actuallyUsedReasoning })
+        setUseReasoning(actuallyUsedReasoning)
+      }
       
       // 3. 移除"生成中"消息，添加新画像消息
       setMessages(prev => {
@@ -227,12 +319,15 @@ export function ProfileSettings() {
       // 失败：重置进度条
       setRebuildProgress(0)
     } finally {
+      // 清理定时器
       clearInterval(progressInterval)
+      clearInterval(retryCheckInterval)
       setIsRebuilding(false)
       
-      // 延迟 1s 后重置进度条（让用户看到 100%）
+      // 延迟 1s 后重置进度条和开始时间（让用户看到 100%）
       setTimeout(() => {
         setRebuildProgress(0)
+        setRebuildStartTime(0)
       }, 1000)
     }
   }
@@ -241,15 +336,32 @@ export function ProfileSettings() {
   const highlightKeywords = (text: string, keywords: string[]) => {
     if (!keywords || keywords.length === 0) return text
     
-    // 创建正则表达式匹配所有关键字
-    const pattern = keywords.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')
+    // 过滤掉太短的关键词（避免误匹配单个字母）
+    const validKeywords = keywords.filter(k => k.length >= 2)
+    if (validKeywords.length === 0) return text
+    
+    // 使用单词边界匹配，避免误匹配部分字符串（如 Grid 中的 id）
+    // 对于中文关键词，使用精确匹配；对于英文关键词，使用单词边界
+    const pattern = validKeywords.map(k => {
+      const escaped = k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      // 检测是否包含中文字符
+      const hasChinese = /[\u4e00-\u9fa5]/.test(k)
+      if (hasChinese) {
+        // 中文关键词：精确匹配整个词，不允许部分匹配
+        return escaped
+      } else {
+        // 英文关键词：使用单词边界，避免匹配 Grid 中的 id
+        return `\\b${escaped}\\b`
+      }
+    }).join('|')
+    
     const regex = new RegExp(`(${pattern})`, 'gi')
     
     const parts = text.split(regex)
     return (
       <>
         {parts.map((part, index) => {
-          const isKeyword = keywords.some(k => 
+          const isKeyword = validKeywords.some(k => 
             k.toLowerCase() === part.toLowerCase()
           )
           return isKeyword ? (
@@ -284,10 +396,15 @@ export function ProfileSettings() {
     
     if (!aiSummary) {
       // AI 画像生成中 - 单个气泡 + 进度条
+      // 推理模式使用紫色，非推理模式使用蓝色
+      const avatarBgClass = useReasoning 
+        ? 'bg-gradient-to-br from-purple-400 to-violet-400'
+        : 'bg-gradient-to-br from-blue-400 to-indigo-400'
+      
       return (
         <div className="flex items-start gap-4 mb-6">
           <div className="flex-shrink-0">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-2xl shadow-md">
+            <div className={`w-12 h-12 ${avatarBgClass} rounded-full flex items-center justify-center text-2xl shadow-md`}>
               🤖
             </div>
           </div>
@@ -307,7 +424,14 @@ export function ProfileSettings() {
                     />
                   </div>
                   <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
-                    <span>{Math.floor(rebuildProgress)}%</span>
+                    <div className="flex items-center gap-2">
+                      <span>{Math.floor(rebuildProgress)}%</span>
+                      {rebuildStartTime > 0 && (
+                        <span className="text-gray-400 dark:text-gray-500">
+                          {Math.floor((Date.now() - rebuildStartTime) / 1000)}s
+                        </span>
+                      )}
+                    </div>
                     <span>{rebuildProgress >= 99 ? '即将完成...' : '分析中...'}</span>
                   </div>
                 </div>
@@ -324,12 +448,18 @@ export function ProfileSettings() {
       .map(s => s.trim())
       .filter(s => s.length > 1 && s.length < 10)
     
+    // 推理模式使用紫色渐变，非推理模式使用蓝色渐变
+    const isReasoningMode = aiSummary.metadata.model === 'deepseek-reasoner'
+    const avatarBgClass = isReasoningMode
+      ? 'bg-gradient-to-br from-purple-500 to-violet-500'
+      : 'bg-gradient-to-br from-blue-500 to-indigo-500'
+    
     return (
       <div className="space-y-3 mb-6">
         {/* 气泡 1: 兴趣介绍 */}
         <div className="flex items-start gap-4">
           <div className="flex-shrink-0">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-2xl shadow-md">
+            <div className={`w-12 h-12 ${avatarBgClass} rounded-full flex items-center justify-center text-2xl shadow-md`}>
               🤖
             </div>
           </div>
