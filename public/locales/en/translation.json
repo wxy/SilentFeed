@@ -48,7 +48,7 @@
     "noRSSFeeds": {
       "title": "Not subscribed to any feeds yet",
       "description": "After adding a subscription source, we can recommend exciting content for you.",
-      "action": "Go to add feed"
+      "action": "Go to add a feed"
     }
   },
   "languages": {
@@ -170,7 +170,7 @@
     "rss": {
       "title": "Feed Management",
       "disabled": "Will be enabled after completing 100 pages",
-      "description": "Manage your Feeds"
+      "description": "Manage your feeds"
     },
     "ai": {
       "title": "AI Configuration",
@@ -214,7 +214,7 @@
       "saveSuccess": "✓ Successfully saved",
       "generating": "Generating...",
       "generateNow": "Recommend now",
-      "resetConfirm": "⚠️ Are you sure you want to reset all recommendation data?\n\nThis will clear:\n- All recommendations in the recommendation pool\n- Recommendation count statistics for feeds\n- AI scoring and analysis data for all articles (can be re-analyzed)\n- TF-IDF scoring cache for all articles (can be recalculated)\n- Recommendation-related statistical data\n\n⚠️ Note: Full-text content that has been crawled will be retained\n\nThis operation cannot be undone!",
+      "resetConfirm": "⚠️ Are you sure you want to reset all recommendation data?\n\nThis will clear:\n- All recommendations in the recommendation pool\n- Recommendation count statistics for feeds\n- AI scoring and analysis data for all articles (can be re-analyzed)\n- TF-IDF scoring cache for all articles (can be recalculated)\n- Recommendation-related statistics\n\n⚠️ Note: Full-text content that has been crawled will be retained\n\nThis operation cannot be undone!",
       "resetSuccess": "✅ Recommended data has been reset",
       "resetFailed": "❌ Reset failed: {{error}}",
       "saveFailed": "Save failed, please try again",
@@ -275,7 +275,7 @@
       "currentLabel": "Current",
       "hint": {
         "recommendation": "💡 The recommendation system supports three AI engines: Remote AI, Inference AI, and Local AI (Remote AI is used by default).",
-        "feed": "💡 Feed analysis supports 2 AI engines: Remote AI, Local AI (reasoning mode not supported due to cost and speed considerations)"
+        "feed": "💡Feed analysis supports 2 AI engines: Remote AI, Local AI (reasoning mode not supported due to cost and speed considerations)"
       },
       "label": "Analytical Engine",
       "desc": {
@@ -1188,7 +1188,7 @@
       "ignored": "Ignored",
       "candidateCount": "({{count}})",
       "noFeeds": "No discovered feeds",
-      "noFeedsHint": "When browsing websites with Feeds, we automatically discover and display them here.",
+      "noFeedsHint": "When browsing websites containing feeds, we automatically discover and display them here.",
       "from": "From",
       "source": {
         "discovered": "Auto Discovery",
@@ -1258,7 +1258,7 @@
         "defaultTitle": "Silent Feed Subscription List",
         "uncategorized": "Uncategorized"
       },
-      "opmlHint": "Support import/export subscription lists from other feed readers",
+      "opmlHint": "Support importing/exporting subscription lists from other feed readers",
       "loading": "Loading...",
       "discoveredFrom": "From",
       "discoveredAt": "Discovered in",
@@ -1266,7 +1266,7 @@
       "discoveredFeeds": "Discovered Feeds ({{count}})",
       "discoveredFeedsHint": "These feeds are automatically discovered from the pages you browse. Click the title to view the feed content.",
       "subscribedFeeds": "Subscribed ({{count}})",
-      "subscribedFeedsHint": "You have subscribed to the feed and can unsubscribe at any time.",
+      "subscribedFeedsHint": "Your subscribed feeds can be unsubscribed at any time.",
       "ignoredFeeds": "Ignored ({{count}})",
       "clickToToggle": "Click {{action}}",
       "expand": "Expand",
@@ -1580,12 +1580,15 @@
       "buttons": {
         "test": "Test connection",
         "testing": "Testing...",
-        "tested": "✓ Tested"
+        "tested": "✓ Tested",
+        "skip": "Skip",
+        "nextWithConfig": "Next step"
       },
-      "skipHint": "You can also click 'Next' to skip and configure the remote AI or local Ollama later in the settings page."
+      "skipHint": "You can also click 'Next' to skip and configure the remote AI or local Ollama later in the settings page.",
+      "skipHint2": "You can skip this step and configure the remote AI or local Ollama later in the settings page."
     },
     "rssSetup": {
-      "title": "Add Feed",
+      "title": "Add a feed",
       "description": "Add at least one feed to start receiving recommendations",
       "labels": {
         "feedUrl": "Feed URL",
@@ -1626,7 +1629,7 @@
       "invalidApiKeyFormat": "The API key format is incorrect.",
       "connectionFailed": "Connection failed: {{message}}",
       "testFailed": "Test failed: {{error}}",
-      "enterRssUrl": "Please enter the feed address",
+      "enterRssUrl": "Please enter the subscription source address",
       "addFeedFailed": "Add failed: {{error}}",
       "opmlImportFailed": "Import failed: {{error}}"
     },
