@@ -435,13 +435,18 @@ export class RecommendationService {
     const now = Date.now()
     const existingUrls = new Set<string>()
 
-    // Phase 6: 获取当前推荐池（数据库中未读且未被标记为不想读的推荐）
+    // Phase 6/12.7: 获取当前推荐池（数据库中活跃的、未读且未被标记为不想读的推荐）
     // ✅ 优化：使用复合索引 [isRead+recommendedAt]
     // Dexie 的 boolean 索引需要使用 filter，但我们可以减少扫描范围
     const currentPool = await db.recommendations
       .orderBy('recommendedAt')
       .reverse()
-      .filter(rec => !rec.isRead && rec.feedback !== 'dismissed')
+      .filter(rec => {
+        // Phase 12.7: 只统计活跃状态的推荐
+        const isActive = !rec.status || rec.status === 'active'
+        const isUnreadAndNotDismissed = !rec.isRead && rec.feedback !== 'dismissed'
+        return isActive && isUnreadAndNotDismissed
+      })
       .toArray()
     
     // 核心公式：推荐池容量 = 弹窗容量 × POOL_SIZE_MULTIPLIER

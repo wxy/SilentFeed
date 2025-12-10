@@ -29,8 +29,8 @@
     "dismiss": "Don't want to read",
     "readLater": "Read Later",
     "notInterested": "Not interested",
-    "rssFeeds": "RSS Feed",
-    "manageRSSFeeds": "Manage RSS Feeds",
+    "rssFeeds": "Feed",
+    "manageRSSFeeds": "Manage Feeds",
     "generateNow": "Recommend immediately",
     "generating": "Generating...",
     "generateNowTitle": "Generate recommendations instantly",
@@ -46,9 +46,9 @@
     "openInGoogleTranslate": "Open via Google Translate",
     "clickToTranslate": "Click to visit the version translated into {{language}}",
     "noRSSFeeds": {
-      "title": "Not subscribed to any RSS feeds yet.",
-      "description": "After adding an RSS feed, we can recommend great content for you.",
-      "action": "Go add RSS feeds"
+      "title": "Not subscribed to any feeds yet",
+      "description": "After adding a subscription source, we can recommend exciting content for you.",
+      "action": "Go to add feed"
     }
   },
   "languages": {
@@ -168,9 +168,9 @@
       "autoTranslateHint": "💡 Toggle between original and translation using language tag button"
     },
     "rss": {
-      "title": "RSS Feed Management",
+      "title": "Feed Management",
       "disabled": "Will be enabled after completing 100 pages",
-      "description": "Manage your RSS feeds"
+      "description": "Manage your Feeds"
     },
     "ai": {
       "title": "AI Configuration",
@@ -214,7 +214,7 @@
       "saveSuccess": "✓ Successfully saved",
       "generating": "Generating...",
       "generateNow": "Recommend now",
-      "resetConfirm": "⚠️ Are you sure you want to reset all recommendation data?\n\nThis will clear:\n- All recommendations in the recommendation pool\n- Recommendation count statistics for RSS feeds\n- AI scoring and analysis data for all articles (can be re-analyzed)\n- TF-IDF score cache for all articles (can be recalculated)\n- Recommendation-related statistics\n\n⚠️ Note: Fully crawled article content will be preserved\n\nThis action cannot be undone!",
+      "resetConfirm": "⚠️ Are you sure you want to reset all recommendation data?\n\nThis will clear:\n- All recommendations in the recommendation pool\n- Recommendation count statistics for feeds\n- AI scoring and analysis data for all articles (can be re-analyzed)\n- TF-IDF scoring cache for all articles (can be recalculated)\n- Recommendation-related statistical data\n\n⚠️ Note: Full-text content that has been crawled will be retained\n\nThis operation cannot be undone!",
       "resetSuccess": "✅ Recommended data has been reset",
       "resetFailed": "❌ Reset failed: {{error}}",
       "saveFailed": "Save failed, please try again",
@@ -229,7 +229,7 @@
     },
     "tabs": {
       "general": "Regular",
-      "rss": "RSS feed",
+      "rss": "Feed",
       "ai": "AI",
       "privacy": "Privacy",
       "recommendations": "Analyze Configuration",
@@ -451,11 +451,11 @@
       "learningStageHint": "Currently viewed {{current}}/{{total}} pages, continue browsing to complete interest learning",
       "recommendationCount": "Intelligent Recommendation Quantity",
       "learningStageNote": "Not recommended during the exploration phase, focusing on learning your interests.",
-      "rssArticleCountLabel": "Total number of RSS articles",
+      "rssArticleCountLabel": "Total number of feed articles",
       "rssArticleCountHint": "Total number of articles from all feeds",
       "recommendationFunnelTitle": "Recommended Filter Funnel",
       "recommendationFunnelNoData": "No recommended data available",
-      "funnelTotal": "Total number of RSS articles",
+      "funnelTotal": "Total number of feed articles",
       "funnelAnalyzed": "Articles analyzed",
       "funnelRecommended": "Enter the recommendation pool",
       "funnelRead": "Read",
@@ -477,7 +477,7 @@
       "totalTokenUsageLabel": "Total Token Usage",
       "funnelRecommendationRate": "Recommendation Rate",
       "funnelReadingRate": "Read rate",
-      "funnelRssToPool": "RSS → Recommendation Pool",
+      "funnelRssToPool": "Feed → Recommendation Pool",
       "funnelPoolToRead": "Recommendation Pool → Read",
       "aiUsage": {
         "title": "AI Usage Statistics",
@@ -1174,21 +1174,21 @@
     },
     "rssManager": {
       "addSource": "Add feed",
-      "manualSubscribe": "Manually subscribe to RSS URL",
+      "manualSubscribe": "Manually subscribe to feed URL",
       "manualPlaceholder": "https://example.com/feed.xml",
       "subscribing": "Verifying...",
       "subscribe": "Subscribe",
       "importOPML": "Import OPML",
       "selectOPML": "Select OPML file",
       "importing": "Importing...",
-      "importHint": "Supports subscription lists exported from other RSS readers",
-      "discovered": "Discovered RSS feeds",
-      "discoveredHint": "These RSS feeds were automatically discovered from the pages you browsed. Click the title to view the feed content.",
+      "importHint": "Supports subscription lists exported from other feed readers",
+      "discovered": "Discovered Feeds",
+      "discoveredHint": "These Feeds were automatically discovered from the pages you browsed. Click the title to view the feed content.",
       "subscribed": "Subscribed",
       "ignored": "Ignored",
       "candidateCount": "({{count}})",
-      "noFeeds": "No RSS feeds found",
-      "noFeedsHint": "When browsing websites with RSS feeds, we automatically discover and display them here.",
+      "noFeeds": "No discovered feeds",
+      "noFeedsHint": "When browsing websites with Feeds, we automatically discover and display them here.",
       "from": "From",
       "source": {
         "discovered": "Auto Discovery",
@@ -1212,7 +1212,7 @@
         "parseError": "OPML file parsing failed",
         "importFailed": "OPML import failed",
         "exportFailed": "OPML export failed",
-        "revalidationFailed": "RSS feed revalidation failed, deleted",
+        "revalidationFailed": "Feed revalidation failed, deleted.",
         "renameFailed": "Rename failed, please try again later."
       },
       "metadata": {
@@ -1236,17 +1236,17 @@
       },
       "errors": {
         "renameFailed": "Rename failed, please try again later",
-        "invalidUrl": "Please enter a valid RSS URL",
+        "invalidUrl": "Please enter a valid feed URL",
         "fetchFailed": "Unable to retrieve the content of this URL",
-        "notRSS": "This URL is not a valid RSS feed",
+        "notRSS": "This URL is not a valid feed",
         "alreadyExists": "This source already exists.",
         "networkError": "Network error, please check your connection",
         "parseError": "Failed to parse OPML file",
         "noFeeds": "No feeds found in the OPML file.",
-        "validationFailed": "RSS verification failed",
+        "validationFailed": "Feed verification failed",
         "subscribeFailed": "Subscription failed",
         "importFailed": "OPML Import Failed",
-        "revalidationFailed": "RSS feed revalidation failed, has been deleted",
+        "revalidationFailed": "Feed revalidation failed, deleted.",
         "exportFailed": "OPML Export Failed"
       },
       "success": {
@@ -1258,15 +1258,15 @@
         "defaultTitle": "Silent Feed Subscription List",
         "uncategorized": "Uncategorized"
       },
-      "opmlHint": "Support import/export subscription lists from other RSS readers",
+      "opmlHint": "Support import/export subscription lists from other feed readers",
       "loading": "Loading...",
       "discoveredFrom": "From",
       "discoveredAt": "Discovered in",
       "subscribedAt": "Subscribed on",
-      "discoveredFeeds": "Discovered RSS Feeds ({{count}})",
-      "discoveredFeedsHint": "These RSS feeds were automatically discovered from the pages you browsed. Click the title to view the feed content.",
+      "discoveredFeeds": "Discovered Feeds ({{count}})",
+      "discoveredFeedsHint": "These feeds are automatically discovered from the pages you browse. Click the title to view the feed content.",
       "subscribedFeeds": "Subscribed ({{count}})",
-      "subscribedFeedsHint": "Your subscribed RSS feeds can be unsubscribed at any time",
+      "subscribedFeedsHint": "You have subscribed to the feed and can unsubscribe at any time.",
       "ignoredFeeds": "Ignored ({{count}})",
       "clickToToggle": "Click {{action}}",
       "expand": "Expand",
@@ -1284,7 +1284,9 @@
         "openOrToggle": "Open or switch preview",
         "loading": "Loading preview...",
         "latestArticles": "Latest Articles",
-        "noArticles": "No articles available"
+        "noArticles": "No articles available",
+        "expand": "Expand preview",
+        "collapse": "Collapse preview"
       },
       "openXML": "View original XML",
       "fetch": {
@@ -1432,7 +1434,7 @@
           "description": "Based on your browsing habits, automatically recommend content of interest."
         },
         "rss": {
-          "title": "RSS Subscription Management",
+          "title": "Feed Subscription Management",
           "description": "Centralize your information sources and never miss important updates."
         },
         "privacy": {
@@ -1583,14 +1585,14 @@
       "skipHint": "You can also click 'Next' to skip and configure the remote AI or local Ollama later in the settings page."
     },
     "rssSetup": {
-      "title": "Add RSS feed",
-      "description": "Add at least one RSS feed to start receiving recommendations",
+      "title": "Add Feed",
+      "description": "Add at least one feed to start receiving recommendations",
       "labels": {
-        "feedUrl": "RSS feed URL",
+        "feedUrl": "Feed URL",
         "importOpml": "Or import an OPML file"
       },
       "placeholders": {
-        "enterUrl": "Enter the RSS feed URL (e.g., https://example.com/feed.xml)"
+        "enterUrl": "Enter the feed URL (e.g., https://example.com/feed.xml)"
       },
       "buttons": {
         "add": "Add",
@@ -1624,7 +1626,7 @@
       "invalidApiKeyFormat": "The API key format is incorrect.",
       "connectionFailed": "Connection failed: {{message}}",
       "testFailed": "Test failed: {{error}}",
-      "enterRssUrl": "Please enter the RSS feed address",
+      "enterRssUrl": "Please enter the feed address",
       "addFeedFailed": "Add failed: {{error}}",
       "opmlImportFailed": "Import failed: {{error}}"
     },

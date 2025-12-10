@@ -13,6 +13,7 @@
 import { db } from "@/storage/db"
 import type { AIUsageRecord, AIUsageStats, UsageStatsQuery, AIUsagePurpose, DailyUsageStats } from "@/types/ai-usage"
 import { logger } from "@/utils/logger"
+import { getCurrentMonthRange } from '@/utils/date-utils'
 
 const usageLogger = logger.withTag("AIUsage")
 
@@ -364,8 +365,6 @@ export class AIUsageTracker {
    * @returns 本月总费用（CNY）
    */
   static async getCurrentMonthCost(): Promise<number> {
-    // 动态导入避免循环依赖
-    const { getCurrentMonthRange } = await import('@/utils/date-utils')
     const { start, end } = getCurrentMonthRange()
     
     return this.getTotalCost({
@@ -380,7 +379,6 @@ export class AIUsageTracker {
    * @returns 本月统计
    */
   static async getCurrentMonthStats(): Promise<AIUsageStats> {
-    const { getCurrentMonthRange } = await import('@/utils/date-utils')
     const { start, end } = getCurrentMonthRange()
     
     return this.getStats({

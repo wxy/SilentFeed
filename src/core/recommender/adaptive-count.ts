@@ -3,6 +3,8 @@
  * Phase 6: 根据用户行为智能调整推荐数量
  */
 
+import { getRecommendationConfig, saveRecommendationConfig } from '@/storage/recommendation-config'
+
 const STORAGE_KEY = "adaptive-metrics"
 
 /**
@@ -225,10 +227,6 @@ export async function adjustRecommendationCount(
  * 定期评估并调整推荐数量（建议每周运行一次）
  */
 export async function evaluateAndAdjust(): Promise<number> {
-  const { getRecommendationConfig, saveRecommendationConfig } = await import(
-    "../../storage/recommendation-config"
-  )
-  
   const config = await getRecommendationConfig()
   const newCount = await adjustRecommendationCount(config.maxRecommendations)
   
