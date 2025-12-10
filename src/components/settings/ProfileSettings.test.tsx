@@ -456,4 +456,143 @@ describe("ProfileSettings 组件", () => {
       })
     })
   })
+
+  describe("关键词高亮", () => {
+    it("应该正确高亮完整单词，避免部分匹配", async () => {
+      // 准备数据
+      const mockProfile = {
+        totalPages: 100,
+        startDate: new Date("2024-10-06"),
+        topics: createTopics({ [Topic.TECHNOLOGY]: 0.8 }),
+        aiSummary: {
+          summary: "对前端开发技术有强烈兴趣，特别关注CSS Grid布局、HTML元素（如div、id、class）",
+          interests: "Grid、id、class、div",
+          preferences: ["前端开发", "CSS技术"],
+          avoidTopics: ["娱乐八卦"],
+          metadata: {
+            provider: "deepseek",
+            model: "deepseek-chat",
+            timestamp: Date.now(),
+            tokensUsed: 1000,
+            costUSD: 0.001
+          }
+        }
+      }
+
+      mockGetUserProfile.mockResolvedValue(mockProfile)
+      mockGetAIConfig.mockResolvedValue({
+        providers: {
+          deepseek: {
+            apiKey: "test-key",
+            model: "deepseek-chat",
+            temperature: 0.2,
+            maxOutputTokens: 768
+          }
+        },
+        monthlyBudget: 5,
+        local: {
+          enabled: false,
+          provider: "ollama",
+          endpoint: "http://localhost:11434/v1",
+          model: "llama2",
+          apiKey: "ollama",
+          temperature: 0.2,
+          maxOutputTokens: 768,
+          timeoutMs: 45000
+        },
+        engineAssignment: AI_ENGINE_PRESETS.intelligence.config
+      })
+
+      render(<ProfileSettings />)
+
+      await waitFor(() => {
+        // 等待渲染完成 - 检查关键词是否被正确高亮
+        expect(screen.getAllByText("Grid").length).toBeGreaterThan(0)
+      })
+
+      // 检查高亮逻辑：
+      // 1. "Grid" 应该被高亮（完整单词）
+      const gridElements = screen.getAllByText("Grid")
+      expect(gridElements.length).toBeGreaterThan(0)
+      const highlightedGrid = gridElements.find(el => 
+        el.classList.contains("text-blue-600") || el.classList.contains("dark:text-blue-400")
+      )
+      expect(highlightedGrid).toBeDefined()
+      expect(highlightedGrid?.textContent).toBe("Grid") // 完整单词，不会被拆分
+
+      // 2. "id" 应该只在独立出现时被高亮
+      const idElements = screen.getAllByText("id")
+      expect(idElements.length).toBeGreaterThan(0)
+      const highlightedId = idElements.find(el => 
+        el.classList.contains("text-blue-600") || el.classList.contains("dark:text-blue-400")
+      )
+      expect(highlightedId).toBeDefined()
+    })
+
+    it("应该过滤太短的关键词（<2字符）", async () => {
+      const mockProfile = {
+        totalPages: 100,
+        startDate: new Date("2024-10-06"),
+        topics: createTopics({ [Topic.TECHNOLOGY]: 0.8 }),
+        aiSummary: {
+          summary: "对AI技术有兴趣",
+          interests: "A、AI、技术",
+          preferences: ["AI技术"],
+          avoidTopics: [],
+          metadata: {
+            provider: "deepseek",
+            model: "deepseek-chat",
+            timestamp: Date.now(),
+            tokensUsed: 1000,
+            costUSD: 0.001
+          }
+        }
+      }
+
+      mockGetUserProfile.mockResolvedValue(mockProfile)
+      mockGetAIConfig.mockResolvedValue({
+        providers: {
+          deepseek: {
+            apiKey: "test-key",
+            model: "deepseek-chat",
+            temperature: 0.2,
+            maxOutputTokens: 768
+          }
+        },
+        monthlyBudget: 5,
+        local: {
+          enabled: false,
+          provider: "ollama",
+          endpoint: "http://localhost:11434/v1",
+          model: "llama2",
+          apiKey: "ollama",
+          temperature: 0.2,
+          maxOutputTokens: 768,
+          timeoutMs: 45000
+        },
+        engineAssignment: AI_ENGINE_PRESETS.intelligence.config
+      })
+
+      render(<ProfileSettings />)
+
+      await waitFor(() => {
+        // 等待渲染完成 - 检查 AI 关键词是否被正确高亮
+        expect(screen.getAllByText("AI").length).toBeGreaterThan(0)
+      })
+
+      // "AI" 应该被高亮（≥2 字符）
+      const aiElements = screen.getAllByText("AI")
+      const highlightedAI = aiElements.find(el => 
+        el.classList.contains("text-blue-600") || el.classList.contains("dark:text-blue-400")
+      )
+      expect(highlightedAI).toBeDefined()
+      
+      // "技术" 也应该被高亮
+      const techElements = screen.getAllByText("技术")
+      const highlightedTech = techElements.find(el => 
+        el.classList.contains("text-blue-600") || el.classList.contains("dark:text-blue-400")
+      )
+      expect(highlightedTech).toBeDefined()
+    })
+  })
 })

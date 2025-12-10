@@ -628,7 +628,7 @@ describe("OpenAIProvider", () => {
       
       expect(requestBody.model).toBe("gpt-5-mini")
       expect(requestBody.temperature).toBe(0.3)  // 低温度保证一致性
-      expect(requestBody.max_tokens).toBe(1000)
+      expect(requestBody.max_tokens).toBe(8000)
     })
     
     it("应该处理空行为记录", async () => {

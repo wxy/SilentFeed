@@ -3,6 +3,7 @@ import { createPortal } from "react-dom"
 import { AIProviderCard } from "./AIProviderCard"
 import { useAIProviderStatus } from "@/hooks/useAIProviderStatus"
 import { getAIConfig, saveAIConfig, AVAILABLE_MODELS, getProviderFromModel } from "@/storage/ai-config"
+import { resolveProvider } from "@/utils/ai-provider-resolver"
 import type { AIConfig } from "@/storage/ai-config"
 import { useI18n } from "@/i18n/helpers"
 import { getCurrentMonthUsage } from "@/utils/budget-utils"
@@ -73,21 +74,19 @@ export function AIConfigPanel() {
       let activeProvider: string | null = null
       
       if (config.engineAssignment) {
+        // 使用 resolveProvider 解析抽象 provider
+        const profileProvider = resolveProvider(config.engineAssignment.profileGeneration?.provider, config)
+        const feedProvider = resolveProvider(config.engineAssignment.feedAnalysis?.provider, config)
+        const pageProvider = resolveProvider(config.engineAssignment.pageAnalysis?.provider, config)
+        
         // 优先看 profileGeneration（用户画像生成最重要）
-        const profileProvider = config.engineAssignment.profileGeneration?.provider
-        if (profileProvider && profileProvider !== 'ollama') {
+        if (profileProvider !== 'ollama') {
           activeProvider = profileProvider
-        } else if (config.engineAssignment.feedAnalysis?.provider && 
-                   config.engineAssignment.feedAnalysis.provider !== 'ollama') {
-          // 其次看 feedAnalysis
-          activeProvider = config.engineAssignment.feedAnalysis.provider
-        } else if (config.engineAssignment.pageAnalysis?.provider && 
-                   config.engineAssignment.pageAnalysis.provider !== 'ollama') {
-          // 最后看 pageAnalysis
-          activeProvider = config.engineAssignment.pageAnalysis.provider
-        } else if (profileProvider === 'ollama' || 
-                   config.engineAssignment.feedAnalysis?.provider === 'ollama' ||
-                   config.engineAssignment.pageAnalysis?.provider === 'ollama') {
+        } else if (feedProvider !== 'ollama') {
+          activeProvider = feedProvider
+        } else if (pageProvider !== 'ollama') {
+          activeProvider = pageProvider
+        } else if (profileProvider === 'ollama' || feedProvider === 'ollama' || pageProvider === 'ollama') {
           // 如果任何任务使用 ollama，标记为 ollama
           activeProvider = 'ollama'
         }

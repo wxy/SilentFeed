@@ -30,6 +30,7 @@ import {
   type CircuitBreakerConfig
 } from "@/utils/resilience"
 import { DEFAULT_TIMEOUTS } from "@/storage/ai-config"
+import { isNetworkError } from "@/utils/logger"
 
 /**
  * AI 服务基类
@@ -380,15 +381,28 @@ export abstract class BaseAIService implements AIProvider {
         // Phase 12.6: 使用配置的超时时间（如果未指定，使用默认值）
         const timeout = this.getConfiguredTimeout(options?.useReasoning)
         
-        // Phase 11: 推理模型需要更多 token（推理过程 + 最终答案）
-        const maxTokens = this.name === 'Ollama' && (this as any).isReasoningModel ? 3000 : 1000
+        // Phase 11: 推理模式需要更多 token
+        // 不同 Provider 有不同的默认值，通过 callChatAPI 的默认参数处理
+        // - DeepSeek 推理模式：64K（官方最大值）
+        // - Ollama 推理模式：16K（本地模型）
+        // - 标准模式：8K
+        let maxTokens: number | undefined = undefined
+        
+        // 只为 Ollama 指定值，其他 Provider 使用各自默认值
+        if (this.name === 'Ollama' && (this as any).isReasoningModel) {
+          maxTokens = 16000  // 本地推理模式：16K
+        } else if (this.name === 'Ollama') {
+          maxTokens = 8000   // 本地标准模式：8K
+        }
+        // DeepSeek/OpenAI/Anthropic 使用各自 Provider 的默认值（不传 maxTokens）
         
         const apiResponse = await this.callChatAPI(prompt, {
-          maxTokens,
+          ...(maxTokens !== undefined && { maxTokens }),  // 只在有值时传递
           timeout,
           jsonMode: !responseFormat,
           responseFormat: responseFormat || undefined,
-          temperature: 0.3
+          temperature: 0.3,
+          useReasoning: options?.useReasoning  // 传递推理模式参数
         })
         
         if (!apiResponse.content || apiResponse.content.trim().length === 0) {

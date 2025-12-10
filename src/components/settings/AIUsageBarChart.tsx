@@ -108,39 +108,27 @@ export function AIUsageBarChart({ data, mode }: AIUsageBarChartProps) {
   const formatTokenTooltip = (date: string, label: string, value: number, total?: number) => {
     const formattedDate = formatDate(date, mode, _)
     const valueK = (value / 1000).toFixed(1)
-    if (typeof total === "number") {
-      const totalK = (total / 1000).toFixed(1)
-      return _("settings.aiUsage.tooltip.tokenReasoning", {
-        date: formattedDate,
-        label,
-        value: valueK,
-        totalLabel,
-        total: totalK
-      })
-    }
-    return _("settings.aiUsage.tooltip.tokenNonReasoning", {
+    const totalK = typeof total === "number" ? (total / 1000).toFixed(1) : valueK
+    // 统一使用带总量的格式
+    return _("settings.aiUsage.tooltip.tokenReasoning", {
       date: formattedDate,
       label,
-      value: valueK
+      value: valueK,
+      totalLabel,
+      total: totalK
     })
   }
 
   const formatCallTooltip = (date: string, label: string, value: number, total?: number) => {
     const formattedDate = formatDate(date, mode, _)
-    if (typeof total === "number") {
-      return _("settings.aiUsage.tooltip.callsReasoning", {
-        date: formattedDate,
-        label,
-        value,
-        totalLabel,
-        total,
-        unit: callUnit
-      })
-    }
-    return _("settings.aiUsage.tooltip.callsNonReasoning", {
+    const totalValue = typeof total === "number" ? total : value
+    // 统一使用带总量的格式
+    return _("settings.aiUsage.tooltip.callsReasoning", {
       date: formattedDate,
       label,
       value,
+      totalLabel,
+      total: totalValue,
       unit: callUnit
     })
   }
@@ -148,19 +136,14 @@ export function AIUsageBarChart({ data, mode }: AIUsageBarChartProps) {
   const formatCostTooltip = (date: string, label: string, value: number, total?: number) => {
     const formattedDate = formatDate(date, mode, _)
     const formattedValue = value.toFixed(4)
-    if (typeof total === "number") {
-      return _("settings.aiUsage.tooltip.costReasoning", {
-        date: formattedDate,
-        label,
-        value: formattedValue,
-        totalLabel,
-        total: total.toFixed(4)
-      })
-    }
-    return _("settings.aiUsage.tooltip.costNonReasoning", {
+    const totalValue = typeof total === "number" ? total : value
+    // 统一使用带总量的格式
+    return _("settings.aiUsage.tooltip.costReasoning", {
       date: formattedDate,
       label,
-      value: formattedValue
+      value: formattedValue,
+      totalLabel,
+      total: totalValue.toFixed(4)
     })
   }
 
@@ -262,20 +245,21 @@ export function AIUsageBarChart({ data, mode }: AIUsageBarChartProps) {
                         <div className="relative flex-1 h-full">
                           {item.byReasoning.withoutReasoning.tokens.total > 0 && (
                             <div
-                              className="absolute bottom-0 left-0 right-0 bg-sky-500 dark:bg-sky-600 hover:bg-sky-600 dark:hover:bg-sky-500 transition-colors cursor-pointer"
+                              className="absolute bottom-0 left-0 right-0 bg-sky-400 dark:bg-sky-500 hover:bg-sky-500 dark:hover:bg-sky-400 transition-colors cursor-pointer"
                               style={{
                                 height: `${heightPct(item.byReasoning.withoutReasoning.tokens.total || 0, tokenMaxDenom)}%`
                               }}
                               title={formatTokenTooltip(
                                 item.date,
                                 legendLabels.tokenNonReasoning,
-                                item.byReasoning.withoutReasoning.tokens.total || 0
+                                item.byReasoning.withoutReasoning.tokens.total || 0,
+                                totalTokens
                               )}
                             />
                           )}
                           {item.byReasoning.withReasoning.tokens.total > 0 && (
                             <div
-                              className="absolute left-0 right-0 bg-indigo-500 dark:bg-indigo-600 hover:bg-indigo-600 dark:hover:bg-indigo-500 transition-colors cursor-pointer rounded-t-sm"
+                              className="absolute left-0 right-0 bg-indigo-600 dark:bg-indigo-700 hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-colors cursor-pointer rounded-t-sm"
                               style={{
                                 bottom: `${heightPct(item.byReasoning.withoutReasoning.tokens.total || 0, tokenMaxDenom)}%`,
                                 height: `${heightPct(item.byReasoning.withReasoning.tokens.total || 0, tokenMaxDenom)}%`
@@ -293,18 +277,19 @@ export function AIUsageBarChart({ data, mode }: AIUsageBarChartProps) {
                         <div className="relative flex-1 h-full">
                           {item.byReasoning.withoutReasoning.calls > 0 && (
                             <div
-                              className="absolute bottom-0 left-0 right-0 bg-emerald-500 dark:bg-emerald-600 hover:bg-emerald-600 dark:hover:bg-emerald-500 transition-colors cursor-pointer"
+                              className="absolute bottom-0 left-0 right-0 bg-emerald-400 dark:bg-emerald-500 hover:bg-emerald-500 dark:hover:bg-emerald-400 transition-colors cursor-pointer"
                               style={{ height: `${heightPct(item.byReasoning.withoutReasoning.calls || 0, callMaxDenom)}%` }}
                               title={formatCallTooltip(
                                 item.date,
                                 legendLabels.callsNonReasoning,
-                                item.byReasoning.withoutReasoning.calls || 0
+                                item.byReasoning.withoutReasoning.calls || 0,
+                                totalCalls
                               )}
                             />
                           )}
                           {item.byReasoning.withReasoning.calls > 0 && (
                             <div
-                              className="absolute left-0 right-0 bg-teal-500 dark:bg-teal-600 hover:bg-teal-600 dark:hover:bg-teal-500 transition-colors cursor-pointer rounded-t-sm"
+                              className="absolute left-0 right-0 bg-teal-600 dark:bg-teal-700 hover:bg-teal-700 dark:hover:bg-teal-600 transition-colors cursor-pointer rounded-t-sm"
                               style={{
                                 bottom: `${heightPct(item.byReasoning.withoutReasoning.calls || 0, callMaxDenom)}%`,
                                 height: `${heightPct(item.byReasoning.withReasoning.calls || 0, callMaxDenom)}%`
@@ -322,18 +307,19 @@ export function AIUsageBarChart({ data, mode }: AIUsageBarChartProps) {
                         <div className="relative flex-1 h-full">
                           {item.byReasoning.withoutReasoning.cost.total > 0 && (
                             <div
-                              className="absolute bottom-0 left-0 right-0 bg-orange-400 dark:bg-orange-500 hover:bg-orange-500 dark:hover:bg-orange-400 transition-colors cursor-pointer"
+                              className="absolute bottom-0 left-0 right-0 bg-orange-300 dark:bg-orange-400 hover:bg-orange-400 dark:hover:bg-orange-300 transition-colors cursor-pointer"
                               style={{ height: `${heightPct(item.byReasoning.withoutReasoning.cost.total || 0, costMaxDenom)}%` }}
                               title={formatCostTooltip(
                                 item.date,
                                 legendLabels.costNonReasoning,
-                                item.byReasoning.withoutReasoning.cost.total || 0
+                                item.byReasoning.withoutReasoning.cost.total || 0,
+                                totalCost
                               )}
                             />
                           )}
                           {item.byReasoning.withReasoning.cost.total > 0 && (
                             <div
-                              className="absolute left-0 right-0 bg-rose-400 dark:bg-rose-500 hover:bg-rose-500 dark:hover:bg-rose-400 transition-colors cursor-pointer rounded-t-sm"
+                              className="absolute left-0 right-0 bg-rose-500 dark:bg-rose-600 hover:bg-rose-600 dark:hover:bg-rose-500 transition-colors cursor-pointer rounded-t-sm"
                               style={{
                                 bottom: `${heightPct(item.byReasoning.withoutReasoning.cost.total || 0, costMaxDenom)}%`,
                                 height: `${heightPct(item.byReasoning.withReasoning.cost.total || 0, costMaxDenom)}%`
