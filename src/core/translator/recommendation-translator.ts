@@ -10,6 +10,7 @@ import { TranslationService } from "./TranslationService"
 import { getUIConfig } from "@/storage/ui-config"
 import { logger, isNetworkError } from "@/utils/logger"
 import i18n from "@/i18n"
+import { db } from '@/storage/db'
 
 const translationLogger = logger.withTag('RecommendationTranslator')
 
@@ -137,7 +138,6 @@ export async function translateOnDemand(
     
     // 如果翻译成功，更新数据库
     if (translated.translation) {
-      const { db } = await import('@/storage/db')
       await db.recommendations.update(recommendation.id, {
         translation: translated.translation
       })
