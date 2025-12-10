@@ -67,12 +67,15 @@ export function useAIProviderStatus() {
         let provider
         const { apiKey, model, enableReasoning = false } = providerConfig
         
+        // 清理 API Key 中的非 ASCII 字符
+        const cleanApiKey = apiKey.replace(/[^\x20-\x7E]/g, '').trim()
+        
         if (providerId === 'deepseek') {
           const { DeepSeekProvider } = await import('@/core/ai/providers/DeepSeekProvider')
-          provider = new DeepSeekProvider({ apiKey, model })
+          provider = new DeepSeekProvider({ apiKey: cleanApiKey, model })
         } else if (providerId === 'openai') {
           const { OpenAIProvider } = await import('@/core/ai/providers/OpenAIProvider')
-          provider = new OpenAIProvider({ apiKey, model })
+          provider = new OpenAIProvider({ apiKey: cleanApiKey, model })
         } else {
           throw new Error(`不支持的提供商: ${providerId}`)
         }
@@ -196,12 +199,15 @@ export function useAIProviderStatus() {
               let providerInstance
               const { apiKey, model, enableReasoning = false } = providerConfig
               
+              // 清理 API Key 中的非 ASCII 字符
+              const cleanApiKey = apiKey.replace(/[^\x20-\x7E]/g, '').trim()
+              
               if (provider.id === 'deepseek') {
                 const { DeepSeekProvider } = await import('@/core/ai/providers/DeepSeekProvider')
-                providerInstance = new DeepSeekProvider({ apiKey, model })
+                providerInstance = new DeepSeekProvider({ apiKey: cleanApiKey, model })
               } else if (provider.id === 'openai') {
                 const { OpenAIProvider } = await import('@/core/ai/providers/OpenAIProvider')
-                providerInstance = new OpenAIProvider({ apiKey, model })
+                providerInstance = new OpenAIProvider({ apiKey: cleanApiKey, model })
               } else {
                 throw new Error(`不支持的提供商: ${provider.id}`)
               }

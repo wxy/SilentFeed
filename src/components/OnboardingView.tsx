@@ -359,6 +359,17 @@ function AIConfigStep({
 }: AIConfigStepProps) {
   const { _ } = useI18n()
 
+  /**
+   * 清理 API Key 中的非 ASCII 字符
+   * 
+   * 问题：用户可能复制了包含不可见 Unicode 字符的 API Key
+   * 解决：移除所有非 ASCII 可打印字符
+   */
+  const sanitizeApiKey = (key: string): string => {
+    // 只保留 ASCII 可打印字符 (0x20-0x7E)
+    return key.replace(/[^\x20-\x7E]/g, '').trim()
+  }
+
   // 测试连接
   const handleTestConnection = async () => {
     if (!model) {
@@ -374,32 +385,60 @@ function AIConfigStep({
       return
     }
 
+    // 清理 API Key
+    const cleanApiKey = sanitizeApiKey(apiKey)
+
     setIsTestingConnection(true)
     setError(null)
     setSuccess(null)
 
     try {
       // 1. 验证格式
-      const isValid = validateApiKey(currentProvider, apiKey)
+      const isValid = validateApiKey(currentProvider, cleanApiKey)
       if (!isValid) {
         setError(_("onboarding.errors.invalidApiKeyFormat"))
         setIsTestingConnection(false)
         return
       }
 
-      // 2. 保存完整配置
+      // 2. 获取当前配置（保留其他设置）
+      const currentConfig = await getAIConfig()
+
+      // 3. 使用新的 providers 结构保存配置
       await saveAIConfig({
-        provider: currentProvider,
-        apiKeys: { [currentProvider]: apiKey },
-        enabled: true,
-        monthlyBudget: 5,
-        model, // 添加 model 字段
-        enableReasoning: false
+        ...currentConfig,
+        providers: {
+          ...currentConfig.providers,
+          [currentProvider]: {
+            apiKey: cleanApiKey,
+            model: model,
+            enableReasoning: false
+          }
+        },
+        // 设为首选 Provider
+        preferredRemoteProvider: currentProvider as "deepseek" | "openai"
       })
 
-      // 3. 初始化并测试
-      await aiManager.initialize()
-      const result = await aiManager.testConnection()
+      // 4. 直接创建 Provider 实例测试（避免依赖 aiManager 初始化）
+      let provider: { testConnection: (enableReasoning: boolean) => Promise<{ success: boolean; message?: string; latency?: number }> }
+      
+      if (currentProvider === 'deepseek') {
+        const { DeepSeekProvider } = await import('@/core/ai/providers/DeepSeekProvider')
+        provider = new DeepSeekProvider({ 
+          apiKey: cleanApiKey,
+          model: model
+        })
+      } else if (currentProvider === 'openai') {
+        const { OpenAIProvider } = await import('@/core/ai/providers/OpenAIProvider')
+        provider = new OpenAIProvider({ 
+          apiKey: cleanApiKey,
+          model: model
+        })
+      } else {
+        throw new Error(_("onboarding.errors.unsupportedProvider", { provider: currentProvider }))
+      }
+      
+      const result = await provider.testConnection(false)
 
       if (result.success) {
         setSuccess(_("onboarding.success.connectionTested"))
