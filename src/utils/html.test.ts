@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { decodeHtmlEntities, stripHtmlTags, sanitizeHtml } from './html'
+import { decodeHtmlEntities, stripHtmlTags, sanitizeHtml, formatFeedTitle } from './html'
 
 // Mock DOM elements for testing
 let mockTextarea: HTMLTextAreaElement
@@ -152,6 +152,61 @@ describe('HTML工具函数', () => {
       const input = '<p>This is a <strong>great</strong> article about &quot;AI&quot; &amp; technology.</p>'
       const result = sanitizeHtml(input)
       expect(result).toBe('This is a great article about "AI" & technology.')
+    })
+  })
+
+  describe('formatFeedTitle', () => {
+    it('应该解码HTML实体', () => {
+      const title = 'M365 customers should explore alternatives &#8211; Computerworld'
+      const result = formatFeedTitle(title, 'www.computerworld.com')
+      expect(result).toContain('–') // &#8211; 应该被解码为 –
+      expect(result).not.toContain('&#8211;')
+    })
+
+    it('应该截断过长的标题', () => {
+      const title = 'M365 customers should explore alternatives, plan to dicker as prices hikes loom — analysts – Computerworld - www-computerworld-com.translate.goog'
+      const domain = 'www.computerworld.com'
+      const result = formatFeedTitle(title, domain, 80)
+      
+      // 结果应该包含省略号
+      expect(result).toContain('...')
+      // 结果长度应该小于原始标题
+      expect(result.length).toBeLessThan(title.length)
+      // 结果长度应该合理（不超过 maxLength - domain - 括号）
+      expect(result.length).toBeLessThanOrEqual(80 - domain.length - 3)
+    })
+
+    it('应该在单词边界处截断', () => {
+      const title = 'This is a very long title that should be truncated at word boundary for better readability'
+      const domain = 'example.com'
+      const result = formatFeedTitle(title, domain, 50)
+      
+      // 应该不在单词中间截断
+      expect(result).toContain('...')
+      const beforeEllipsis = result.substring(0, result.indexOf('...'))
+      expect(beforeEllipsis.trim()).not.toMatch(/\S$\s/) // 不应该以部分单词结束
+    })
+
+    it('应该保持短标题不变', () => {
+      const title = 'Short Title'
+      const domain = 'example.com'
+      const result = formatFeedTitle(title, domain)
+      
+      expect(result).toBe(title)
+      expect(result).not.toContain('...')
+    })
+
+    it('应该清理多余空格', () => {
+      const title = 'Title   with    extra     spaces'
+      const domain = 'example.com'
+      const result = formatFeedTitle(title, domain)
+      
+      expect(result).toBe('Title with extra spaces')
+    })
+
+    it('应该处理空标题', () => {
+      const result = formatFeedTitle('', 'example.com')
+      expect(result).toBe('')
     })
   })
 })

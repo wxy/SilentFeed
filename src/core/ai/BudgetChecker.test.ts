@@ -26,14 +26,20 @@ describe('BudgetChecker', () => {
     // 默认配置: $10/月预算
     vi.mocked(getAIConfig).mockResolvedValue({
       monthlyBudget: 10,
-      selectedProvider: 'deepseek',
-      selectedModel: 'deepseek-chat',
-      apiKeys: {},
-      enableReasoning: false,
-      engineAssignment: {
-        pageAnalysis: { type: 'remote' },
-        profileGeneration: { type: 'remote' },
-        recommendation: { type: 'remote' }
+      providers: {
+        deepseek: {
+          apiKey: 'test-key',
+          model: 'deepseek-chat',
+          enableReasoning: false
+        }
+      },
+      preferredRemoteProvider: 'deepseek',
+      preferredLocalProvider: 'ollama',
+      local: {
+        enabled: false,
+        provider: 'ollama',
+        endpoint: '',
+        model: ''
       }
     })
     
@@ -86,14 +92,20 @@ describe('BudgetChecker', () => {
     it('应该处理无预算配置（默认 $5）', async () => {
       vi.mocked(getAIConfig).mockResolvedValue({
         monthlyBudget: 0, // 未设置
-        selectedProvider: 'deepseek',
-        selectedModel: 'deepseek-chat',
-        apiKeys: {},
-        enableReasoning: false,
-        engineAssignment: {
-          pageAnalysis: { type: 'remote' },
-          profileGeneration: { type: 'remote' },
-          recommendation: { type: 'remote' }
+        providers: {
+          deepseek: {
+            apiKey: 'test-key',
+            model: 'deepseek-chat',
+            enableReasoning: false
+          }
+        },
+        preferredRemoteProvider: 'deepseek',
+        preferredLocalProvider: 'ollama',
+        local: {
+          enabled: false,
+          provider: 'ollama',
+          endpoint: '',
+          model: ''
         }
       })
       

@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-12-10T04:50:00.831Z",
+  "lastUpdate": "2025-12-10T12:04:45.040Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -536,15 +536,15 @@
     },
     "options.rss.description": {
       "zh-CN": {
-        "value": "管理你的 RSS 订阅源",
-        "hash": "48553f38",
-        "lastModified": "2025-11-02T11:53:21.364Z",
+        "value": "管理你的订阅源",
+        "hash": "fa8582ea",
+        "lastModified": "2025-12-10T11:52:40.894Z",
         "status": "verified"
       },
       "en": {
-        "value": "Manage your RSS feeds",
-        "hash": "12a56f4e",
-        "lastModified": "2025-11-02T11:53:21.364Z",
+        "value": "Manage your feeds",
+        "hash": "e4e35b58",
+        "lastModified": "2025-12-10T11:52:40.894Z",
         "status": "ai-translated"
       }
     },
@@ -4526,15 +4526,15 @@
     },
     "options.rssManager.manualSubscribe": {
       "zh-CN": {
-        "value": "手动订阅 RSS URL",
-        "hash": "e5813cba",
-        "lastModified": "2025-11-10T15:49:20.005Z",
+        "value": "手动订阅订阅源 URL",
+        "hash": "7c720126",
+        "lastModified": "2025-12-10T11:52:42.693Z",
         "status": "verified"
       },
       "en": {
-        "value": "Manually subscribe to RSS URL",
-        "hash": "ffba8502",
-        "lastModified": "2025-11-10T15:49:20.005Z",
+        "value": "Manually subscribe to feed URL",
+        "hash": "cd29c87c",
+        "lastModified": "2025-12-10T11:52:42.693Z",
         "status": "ai-translated"
       }
     },
@@ -4708,29 +4708,29 @@
     },
     "options.rssManager.noFeeds": {
       "zh-CN": {
-        "value": "暂无发现的 订阅源",
-        "hash": "5c33c2e8",
-        "lastModified": "2025-12-10T04:49:33.629Z",
+        "value": "暂无发现的订阅源",
+        "hash": "73af0000",
+        "lastModified": "2025-12-10T11:52:46.805Z",
         "status": "verified"
       },
       "en": {
         "value": "No discovered feeds",
         "hash": "566e5dec",
-        "lastModified": "2025-12-10T04:49:33.629Z",
+        "lastModified": "2025-12-10T11:52:46.805Z",
         "status": "ai-translated"
       }
     },
     "options.rssManager.noFeedsHint": {
       "zh-CN": {
-        "value": "浏览包含 RSS 订阅的网站时，我们会自动发现并在这里显示",
-        "hash": "437de39f",
-        "lastModified": "2025-11-10T15:49:44.972Z",
+        "value": "浏览包含订阅源的网站时，我们会自动发现并在这里显示",
+        "hash": "7dfae52b",
+        "lastModified": "2025-12-10T11:52:49.257Z",
         "status": "verified"
       },
       "en": {
-        "value": "When browsing websites with RSS feeds, we automatically discover and display them here.",
-        "hash": "a342c4a1",
-        "lastModified": "2025-11-10T15:49:44.972Z",
+        "value": "When browsing websites containing feeds, we automatically discover and display them here.",
+        "hash": "e3b9306b",
+        "lastModified": "2025-12-10T11:52:49.257Z",
         "status": "ai-translated"
       }
     },
@@ -5016,15 +5016,15 @@
     },
     "options.rssManager.errors.invalidUrl": {
       "zh-CN": {
-        "value": "请输入有效的 RSS URL",
-        "hash": "eb1e2b5a",
-        "lastModified": "2025-11-10T15:50:21.632Z",
+        "value": "请输入有效的订阅源 URL",
+        "hash": "85e7bc55",
+        "lastModified": "2025-12-10T11:52:58.269Z",
         "status": "verified"
       },
       "en": {
-        "value": "Please enter a valid RSS URL",
-        "hash": "e3c51588",
-        "lastModified": "2025-11-10T15:50:21.633Z",
+        "value": "Please enter a valid feed URL",
+        "hash": "1547e977",
+        "lastModified": "2025-12-10T11:52:58.269Z",
         "status": "ai-translated"
       }
     },
@@ -5044,15 +5044,15 @@
     },
     "options.rssManager.errors.notRSS": {
       "zh-CN": {
-        "value": "该 URL 不是有效的 订阅源",
-        "hash": "d15aa2c3",
-        "lastModified": "2025-12-10T04:49:46.835Z",
+        "value": "该 URL 不是有效的订阅源",
+        "hash": "73d0de92",
+        "lastModified": "2025-12-10T11:52:59.910Z",
         "status": "verified"
       },
       "en": {
         "value": "This URL is not a valid feed",
         "hash": "1f990332",
-        "lastModified": "2025-12-10T04:49:46.835Z",
+        "lastModified": "2025-12-10T11:52:59.910Z",
         "status": "ai-translated"
       }
     },
@@ -5142,15 +5142,15 @@
     },
     "options.rssManager.opmlHint": {
       "zh-CN": {
-        "value": "支持从其他 RSS 阅读器导入/导出订阅列表",
-        "hash": "f244deaf",
-        "lastModified": "2025-11-18T15:47:08.649Z",
+        "value": "支持从其他订阅源阅读器导入/导出订阅列表",
+        "hash": "582ff342",
+        "lastModified": "2025-12-10T11:52:44.554Z",
         "status": "verified"
       },
       "en": {
-        "value": "Support import/export subscription lists from other RSS readers",
-        "hash": "863e6ed9",
-        "lastModified": "2025-11-18T15:47:08.649Z",
+        "value": "Support importing/exporting subscription lists from other feed readers",
+        "hash": "d546e2a1",
+        "lastModified": "2025-12-10T11:52:44.554Z",
         "status": "ai-translated"
       }
     },
@@ -5198,29 +5198,29 @@
     },
     "options.rssManager.discoveredFeeds": {
       "zh-CN": {
-        "value": "发现的 订阅源 ({{count}})",
-        "hash": "fb427d15",
-        "lastModified": "2025-12-10T04:49:35.466Z",
+        "value": "发现的订阅源 ({{count}})",
+        "hash": "6bebb809",
+        "lastModified": "2025-12-10T11:52:52.125Z",
         "status": "verified"
       },
       "en": {
         "value": "Discovered Feeds ({{count}})",
         "hash": "01d82c3e",
-        "lastModified": "2025-12-10T04:49:35.466Z",
+        "lastModified": "2025-12-10T11:52:52.125Z",
         "status": "ai-translated"
       }
     },
     "options.rssManager.discoveredFeedsHint": {
       "zh-CN": {
-        "value": "这些 订阅源是从你浏览的页面中自动发现的，点击标题查看源内容",
-        "hash": "7e04c66d",
-        "lastModified": "2025-12-10T04:49:37.590Z",
+        "value": "这些订阅源是从你浏览的页面中自动发现的，点击标题查看源内容",
+        "hash": "c1f2286f",
+        "lastModified": "2025-12-10T11:52:54.486Z",
         "status": "verified"
       },
       "en": {
         "value": "These feeds are automatically discovered from the pages you browse. Click the title to view the feed content.",
         "hash": "74a330ab",
-        "lastModified": "2025-12-10T04:49:37.590Z",
+        "lastModified": "2025-12-10T11:52:54.486Z",
         "status": "ai-translated"
       }
     },
@@ -5240,15 +5240,15 @@
     },
     "options.rssManager.subscribedFeedsHint": {
       "zh-CN": {
-        "value": "你已订阅的 订阅源，可以随时取消订阅",
-        "hash": "12c8272f",
-        "lastModified": "2025-12-10T04:49:39.649Z",
+        "value": "你已订阅的订阅源，可以随时取消订阅",
+        "hash": "2b4d8fbb",
+        "lastModified": "2025-12-10T11:52:56.329Z",
         "status": "verified"
       },
       "en": {
-        "value": "You have subscribed to the feed and can unsubscribe at any time.",
-        "hash": "db1a35b1",
-        "lastModified": "2025-12-10T04:49:39.649Z",
+        "value": "Your subscribed feeds can be unsubscribed at any time.",
+        "hash": "15a97ad0",
+        "lastModified": "2025-12-10T11:52:56.329Z",
         "status": "ai-translated"
       }
     },
@@ -5352,15 +5352,15 @@
     },
     "options.rssManager.errors.validationFailed": {
       "zh-CN": {
-        "value": "RSS 验证失败",
-        "hash": "41d6a37a",
-        "lastModified": "2025-11-10T16:00:38.060Z",
+        "value": "订阅源验证失败",
+        "hash": "8b8d9e27",
+        "lastModified": "2025-12-10T11:53:01.450Z",
         "status": "verified"
       },
       "en": {
-        "value": "RSS verification failed",
-        "hash": "4bdf5517",
-        "lastModified": "2025-11-10T16:00:38.060Z",
+        "value": "Feed verification failed",
+        "hash": "ec96daad",
+        "lastModified": "2025-12-10T11:53:01.450Z",
         "status": "ai-translated"
       }
     },
@@ -5912,29 +5912,29 @@
     },
     "popup.rssFeeds": {
       "zh-CN": {
-        "value": "RSS源",
-        "hash": "72355b2b",
-        "lastModified": "2025-11-12T10:07:57.718Z",
+        "value": "订阅源",
+        "hash": "0c7d604b",
+        "lastModified": "2025-12-10T11:52:34.924Z",
         "status": "verified"
       },
       "en": {
-        "value": "RSS Feed",
-        "hash": "7eca39de",
-        "lastModified": "2025-11-12T10:07:57.718Z",
+        "value": "Feed",
+        "hash": "a8042547",
+        "lastModified": "2025-12-10T11:52:34.924Z",
         "status": "ai-translated"
       }
     },
     "popup.manageRSSFeeds": {
       "zh-CN": {
-        "value": "管理RSS订阅源",
-        "hash": "5408aff1",
-        "lastModified": "2025-11-12T10:07:59.360Z",
+        "value": "管理订阅源",
+        "hash": "4925df02",
+        "lastModified": "2025-12-10T11:52:36.571Z",
         "status": "verified"
       },
       "en": {
-        "value": "Manage RSS Feeds",
-        "hash": "d92ede02",
-        "lastModified": "2025-11-12T10:07:59.360Z",
+        "value": "Manage Feeds",
+        "hash": "6d8e9ad3",
+        "lastModified": "2025-12-10T11:52:36.571Z",
         "status": "ai-translated"
       }
     },
@@ -6948,15 +6948,15 @@
     },
     "options.recommendation.resetConfirm": {
       "zh-CN": {
-        "value": "⚠️ 确定要重置所有推荐数据吗？\n\n这将清空：\n- 推荐池中的所有推荐\n- 订阅源的推荐数统计\n- 所有文章的 AI 评分和分析数据（可重新分析）\n- 所有文章的 TF-IDF 评分缓存（可重新计算）\n- 推荐相关的统计数据\n\n⚠️ 注意：已抓取的全文内容会保留\n\n此操作不可恢复！",
-        "hash": "e65b6911",
-        "lastModified": "2025-12-10T04:49:52.739Z",
+        "value": "⚠️ 确定要重置所有推荐数据吗？\n\n这将清空：\n- 推荐池中的所有推荐\n-订阅源的推荐数统计\n- 所有文章的 AI 评分和分析数据（可重新分析）\n- 所有文章的 TF-IDF 评分缓存（可重新计算）\n- 推荐相关的统计数据\n\n⚠️ 注意：已抓取的全文内容会保留\n\n此操作不可恢复！",
+        "hash": "158dde00",
+        "lastModified": "2025-12-10T11:53:06.155Z",
         "status": "verified"
       },
       "en": {
-        "value": "⚠️ Are you sure you want to reset all recommendation data?\n\nThis will clear:\n- All recommendations in the recommendation pool\n- Recommendation count statistics for feeds\n- AI scoring and analysis data for all articles (can be re-analyzed)\n- TF-IDF scoring cache for all articles (can be recalculated)\n- Recommendation-related statistical data\n\n⚠️ Note: Full-text content that has been crawled will be retained\n\nThis operation cannot be undone!",
-        "hash": "55a88418",
-        "lastModified": "2025-12-10T04:49:52.740Z",
+        "value": "⚠️ Are you sure you want to reset all recommendation data?\n\nThis will clear:\n- All recommendations in the recommendation pool\n- Recommendation count statistics for feeds\n- AI scoring and analysis data for all articles (can be re-analyzed)\n- TF-IDF scoring cache for all articles (can be recalculated)\n- Recommendation-related statistics\n\n⚠️ Note: Full-text content that has been crawled will be retained\n\nThis operation cannot be undone!",
+        "hash": "89f828aa",
+        "lastModified": "2025-12-10T11:53:06.155Z",
         "status": "ai-translated"
       }
     },
@@ -8334,15 +8334,15 @@
     },
     "options.analysisEngine.hint.feed": {
       "zh-CN": {
-        "value": "💡 订阅源分析支持2种 AI 引擎：远程 AI、本地 AI（不支持推理模式，成本和速度考虑）",
-        "hash": "30a62f62",
-        "lastModified": "2025-11-26T13:33:16.413Z",
+        "value": "💡订阅源分析支持2种 AI 引擎：远程 AI、本地 AI（不支持推理模式，成本和速度考虑）",
+        "hash": "84d574b7",
+        "lastModified": "2025-12-10T11:52:39.183Z",
         "status": "verified"
       },
       "en": {
-        "value": "💡 Feed analysis supports 2 AI engines: Remote AI, Local AI (reasoning mode not supported due to cost and speed considerations)",
-        "hash": "2338788d",
-        "lastModified": "2025-11-26T13:33:16.413Z",
+        "value": "💡Feed analysis supports 2 AI engines: Remote AI, Local AI (reasoning mode not supported due to cost and speed considerations)",
+        "hash": "e1dd254f",
+        "lastModified": "2025-12-10T11:52:39.183Z",
         "status": "ai-translated"
       }
     },
@@ -10350,29 +10350,29 @@
     },
     "onboarding.rssSetup.title": {
       "zh-CN": {
-        "value": "添加 RSS 订阅源",
-        "hash": "e9e1cbcb",
-        "lastModified": "2025-11-25T08:23:27.770Z",
+        "value": "添加订阅源",
+        "hash": "498f1d06",
+        "lastModified": "2025-12-10T11:53:17.009Z",
         "status": "verified"
       },
       "en": {
-        "value": "Add RSS feed",
-        "hash": "deac7e07",
-        "lastModified": "2025-11-25T08:23:27.770Z",
+        "value": "Add a feed",
+        "hash": "da4503f2",
+        "lastModified": "2025-12-10T11:53:17.010Z",
         "status": "ai-translated"
       }
     },
     "onboarding.rssSetup.description": {
       "zh-CN": {
-        "value": "添加至少一个 订阅源，开始接收推荐",
-        "hash": "599253e0",
-        "lastModified": "2025-12-10T04:49:54.516Z",
+        "value": "添加至少一个订阅源，开始接收推荐",
+        "hash": "85472bb2",
+        "lastModified": "2025-12-10T11:53:18.699Z",
         "status": "verified"
       },
       "en": {
         "value": "Add at least one feed to start receiving recommendations",
         "hash": "0fe3f156",
-        "lastModified": "2025-12-10T04:49:54.517Z",
+        "lastModified": "2025-12-10T11:53:18.699Z",
         "status": "ai-translated"
       }
     },
@@ -10406,15 +10406,15 @@
     },
     "onboarding.rssSetup.placeholders.enterUrl": {
       "zh-CN": {
-        "value": "输入 订阅源 URL（例如：https://example.com/feed.xml）",
-        "hash": "6e55c66a",
-        "lastModified": "2025-12-10T04:49:58.317Z",
+        "value": "输入订阅源 URL（例如：https://example.com/feed.xml）",
+        "hash": "b366dfb1",
+        "lastModified": "2025-12-10T11:53:20.697Z",
         "status": "verified"
       },
       "en": {
         "value": "Enter the feed URL (e.g., https://example.com/feed.xml)",
         "hash": "42546aa8",
-        "lastModified": "2025-12-10T04:49:58.317Z",
+        "lastModified": "2025-12-10T11:53:20.697Z",
         "status": "ai-translated"
       }
     },
@@ -10700,15 +10700,15 @@
     },
     "onboarding.errors.enterRssUrl": {
       "zh-CN": {
-        "value": "请输入 订阅源地址",
-        "hash": "67590fa9",
-        "lastModified": "2025-12-10T04:50:00.320Z",
+        "value": "请输入订阅源地址",
+        "hash": "5b2a778f",
+        "lastModified": "2025-12-10T11:53:22.335Z",
         "status": "verified"
       },
       "en": {
-        "value": "Please enter the feed address",
-        "hash": "f31c25c7",
-        "lastModified": "2025-12-10T04:50:00.320Z",
+        "value": "Please enter the subscription source address",
+        "hash": "9823edee",
+        "lastModified": "2025-12-10T11:53:22.335Z",
         "status": "ai-translated"
       }
     },
@@ -10868,43 +10868,43 @@
     },
     "popup.noRSSFeeds.title": {
       "zh-CN": {
-        "value": "还没有订阅任何 订阅源",
-        "hash": "cdfaa3de",
-        "lastModified": "2025-12-10T04:49:23.242Z",
+        "value": "还没有订阅任何订阅源",
+        "hash": "92ea1010",
+        "lastModified": "2025-12-10T11:52:29.565Z",
         "status": "verified"
       },
       "en": {
         "value": "Not subscribed to any feeds yet",
         "hash": "ba867839",
-        "lastModified": "2025-12-10T04:49:23.243Z",
+        "lastModified": "2025-12-10T11:52:29.566Z",
         "status": "ai-translated"
       }
     },
     "popup.noRSSFeeds.description": {
       "zh-CN": {
-        "value": "添加 订阅源后，我们才能为你推荐精彩内容",
-        "hash": "10812d4b",
-        "lastModified": "2025-12-10T04:49:25.012Z",
+        "value": "添加订阅源后，我们才能为你推荐精彩内容",
+        "hash": "44f6ce5c",
+        "lastModified": "2025-12-10T11:52:31.955Z",
         "status": "verified"
       },
       "en": {
         "value": "After adding a subscription source, we can recommend exciting content for you.",
         "hash": "e48d3ae1",
-        "lastModified": "2025-12-10T04:49:25.012Z",
+        "lastModified": "2025-12-10T11:52:31.955Z",
         "status": "ai-translated"
       }
     },
     "popup.noRSSFeeds.action": {
       "zh-CN": {
-        "value": "去添加 订阅源",
-        "hash": "32c763b7",
-        "lastModified": "2025-12-10T04:49:26.889Z",
+        "value": "去添加订阅源",
+        "hash": "9ffb8a72",
+        "lastModified": "2025-12-10T11:52:33.511Z",
         "status": "verified"
       },
       "en": {
-        "value": "Go to add feed",
-        "hash": "5d421504",
-        "lastModified": "2025-12-10T04:49:26.889Z",
+        "value": "Go to add a feed",
+        "hash": "83ab6413",
+        "lastModified": "2025-12-10T11:52:33.511Z",
         "status": "ai-translated"
       }
     },
@@ -11750,15 +11750,15 @@
     },
     "options.collectionStats.rssArticleCountLabel": {
       "zh-CN": {
-        "value": "RSS 文章总数",
-        "hash": "ef820c4d",
-        "lastModified": "2025-11-26T13:43:27.177Z",
+        "value": "订阅源文章总数",
+        "hash": "580528b9",
+        "lastModified": "2025-12-10T11:53:08.100Z",
         "status": "verified"
       },
       "en": {
-        "value": "Total number of RSS articles",
-        "hash": "f3b4a351",
-        "lastModified": "2025-11-26T13:43:27.178Z",
+        "value": "Total number of feed articles",
+        "hash": "c0fb56db",
+        "lastModified": "2025-12-10T11:53:08.100Z",
         "status": "ai-translated"
       }
     },
@@ -11806,15 +11806,15 @@
     },
     "options.collectionStats.funnelTotal": {
       "zh-CN": {
-        "value": "RSS 文章总数",
-        "hash": "ef820c4d",
-        "lastModified": "2025-11-26T13:43:34.783Z",
+        "value": "订阅源文章总数",
+        "hash": "580528b9",
+        "lastModified": "2025-12-10T11:53:09.743Z",
         "status": "verified"
       },
       "en": {
-        "value": "Total number of RSS articles",
-        "hash": "f3b4a351",
-        "lastModified": "2025-11-26T13:43:34.783Z",
+        "value": "Total number of feed articles",
+        "hash": "c0fb56db",
+        "lastModified": "2025-12-10T11:53:09.743Z",
         "status": "ai-translated"
       }
     },
@@ -14228,15 +14228,15 @@
     },
     "options.collectionStats.funnelRssToPool": {
       "zh-CN": {
-        "value": "RSS → 推荐池",
-        "hash": "0cfe54b4",
-        "lastModified": "2025-11-28T15:04:58.755Z",
+        "value": "订阅源 → 推荐池",
+        "hash": "31387457",
+        "lastModified": "2025-12-10T11:53:11.502Z",
         "status": "verified"
       },
       "en": {
-        "value": "RSS → Recommendation Pool",
-        "hash": "0f467d6a",
-        "lastModified": "2025-11-28T15:04:58.755Z",
+        "value": "Feed → Recommendation Pool",
+        "hash": "96eb81e5",
+        "lastModified": "2025-12-10T11:53:11.502Z",
         "status": "ai-translated"
       }
     },
@@ -18101,6 +18101,48 @@
         "value": "Collapse preview",
         "hash": "e760095d",
         "lastModified": "2025-12-10T04:49:43.560Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.aiConfig.buttons.skip": {
+      "zh-CN": {
+        "value": "跳过",
+        "hash": "92636e8c",
+        "lastModified": "2025-12-10T12:04:42.696Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Skip",
+        "hash": "72ef2b9b",
+        "lastModified": "2025-12-10T12:04:42.698Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.aiConfig.buttons.nextWithConfig": {
+      "zh-CN": {
+        "value": "下一步",
+        "hash": "38ce27d8",
+        "lastModified": "2025-12-10T12:04:44.534Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Next step",
+        "hash": "c290a594",
+        "lastModified": "2025-12-10T12:04:44.534Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.aiConfig.skipHint2": {
+      "zh-CN": {
+        "value": "可以跳过此步，稍后在设置页面配置远程 AI 或本地 Ollama",
+        "hash": "708ccf9e",
+        "lastModified": "2025-12-10T12:03:22.734Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "You can skip this step and configure the remote AI or local Ollama later in the settings page.",
+        "hash": "2c04543b",
+        "lastModified": "2025-12-10T12:03:22.735Z",
         "status": "ai-translated"
       }
     }

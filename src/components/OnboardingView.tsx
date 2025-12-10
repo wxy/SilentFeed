@@ -28,6 +28,7 @@ import {
 import { aiManager } from "@/core/ai/AICapabilityManager"
 import { FeedManager } from "@/core/rss/managers/FeedManager"
 import { OPMLImporter } from "@/core/rss/OPMLImporter"
+import { saveProviderStatus } from "@/storage/ai-provider-status"
 
 interface OnboardingViewProps {
   onComplete: () => void  // 完成引导后的回调
@@ -90,23 +91,17 @@ export function OnboardingView({ onComplete }: OnboardingViewProps) {
     setError(null)
     setSuccess(null)
     
-    // Step 2 AI 配置：如果已测试通过，保存配置；否则允许跳过
-    if (currentStep === 2 && connectionTested && model && apiKey) {
-      try {
-        const provider = getProviderFromModel(model) as AIProviderType
-        await saveAIConfig({
-          provider,
-          apiKey,
-          model,
-          endpoint: "",
-          temperature: 0.7,
-          maxTokens: 4096,
-          timeout: 30000
-        })
-      } catch (error) {
-        console.error("Failed to save AI config:", error)
-      }
-    }
+    // Note: AI 配置已在 handleTestConnection() 中保存，这里无需重复保存
+    
+    const newStep = currentStep + 1
+    setCurrentStep(newStep)
+    await updateOnboardingStep(newStep)
+  }
+  
+  // 跳过 AI 配置（不保存任何配置）
+  const skipAIConfig = async () => {
+    setError(null)
+    setSuccess(null)
     
     const newStep = currentStep + 1
     setCurrentStep(newStep)
@@ -165,6 +160,8 @@ export function OnboardingView({ onComplete }: OnboardingViewProps) {
               setError={setError}
               success={success}
               setSuccess={setSuccess}
+              skipAIConfig={skipAIConfig}
+              nextStep={nextStep}
             />
           )}
           
@@ -200,8 +197,10 @@ export function OnboardingView({ onComplete }: OnboardingViewProps) {
             </div>
           )}
           
+          {/* 导航按钮（AI 配置步骤使用专用按钮，这里隐藏） */}
           {/* 导航按钮 */}
           <div className="flex justify-between mt-6">
+            {/* 上一步按钮 - 所有步骤都显示 */}
             <button
               onClick={prevStep}
               disabled={currentStep === 1}
@@ -210,13 +209,16 @@ export function OnboardingView({ onComplete }: OnboardingViewProps) {
               {_("onboarding.buttons.back")}
             </button>
             
-            <button
-              onClick={nextStep}
-              disabled={currentStep === 4}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-            >
-              {currentStep === 3 ? _("onboarding.buttons.finish") : _("onboarding.buttons.next")}
-            </button>
+            {/* 下一步按钮 - Step 2 不显示（使用专用按钮） */}
+            {currentStep !== 2 && (
+              <button
+                onClick={nextStep}
+                disabled={currentStep === 4}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                {currentStep === 3 ? _("onboarding.buttons.finish") : _("onboarding.buttons.next")}
+              </button>
+            )}
           </div>
       </div>
     </div>
@@ -340,6 +342,8 @@ interface AIConfigStepProps {
   setError: (error: string | null) => void
   success: string | null
   setSuccess: (success: string | null) => void
+  skipAIConfig: () => Promise<void>
+  nextStep: () => Promise<void>
 }
 
 function AIConfigStep({
@@ -355,9 +359,22 @@ function AIConfigStep({
   error,
   setError,
   success,
-  setSuccess
+  setSuccess,
+  skipAIConfig,
+  nextStep
 }: AIConfigStepProps) {
   const { _ } = useI18n()
+
+  /**
+   * 清理 API Key 中的非 ASCII 字符
+   * 
+   * 问题：用户可能复制了包含不可见 Unicode 字符的 API Key
+   * 解决：移除所有非 ASCII 可打印字符
+   */
+  const sanitizeApiKey = (key: string): string => {
+    // 只保留 ASCII 可打印字符 (0x20-0x7E)
+    return key.replace(/[^\x20-\x7E]/g, '').trim()
+  }
 
   // 测试连接
   const handleTestConnection = async () => {
@@ -374,36 +391,73 @@ function AIConfigStep({
       return
     }
 
+    // 清理 API Key
+    const cleanApiKey = sanitizeApiKey(apiKey)
+
     setIsTestingConnection(true)
     setError(null)
     setSuccess(null)
 
     try {
       // 1. 验证格式
-      const isValid = validateApiKey(currentProvider, apiKey)
+      const isValid = validateApiKey(currentProvider, cleanApiKey)
       if (!isValid) {
         setError(_("onboarding.errors.invalidApiKeyFormat"))
         setIsTestingConnection(false)
         return
       }
 
-      // 2. 保存完整配置
+      // 2. 获取当前配置（保留其他设置）
+      const currentConfig = await getAIConfig()
+
+      // 3. 使用新的 providers 结构保存配置
       await saveAIConfig({
-        provider: currentProvider,
-        apiKeys: { [currentProvider]: apiKey },
-        enabled: true,
-        monthlyBudget: 5,
-        model, // 添加 model 字段
-        enableReasoning: false
+        ...currentConfig,
+        providers: {
+          ...currentConfig.providers,
+          [currentProvider]: {
+            apiKey: cleanApiKey,
+            model: model,
+            enableReasoning: false
+          }
+        },
+        // 设为首选 Provider
+        preferredRemoteProvider: currentProvider as "deepseek" | "openai"
       })
 
-      // 3. 初始化并测试
-      await aiManager.initialize()
-      const result = await aiManager.testConnection()
+      // 4. 直接创建 Provider 实例测试（避免依赖 aiManager 初始化）
+      let provider: { testConnection: (enableReasoning: boolean) => Promise<{ success: boolean; message?: string; latency?: number }> }
+      
+      if (currentProvider === 'deepseek') {
+        const { DeepSeekProvider } = await import('@/core/ai/providers/DeepSeekProvider')
+        provider = new DeepSeekProvider({ 
+          apiKey: cleanApiKey,
+          model: model
+        })
+      } else if (currentProvider === 'openai') {
+        const { OpenAIProvider } = await import('@/core/ai/providers/OpenAIProvider')
+        provider = new OpenAIProvider({ 
+          apiKey: cleanApiKey,
+          model: model
+        })
+      } else {
+        throw new Error(_("onboarding.errors.unsupportedProvider", { provider: currentProvider }))
+      }
+      
+      const result = await provider.testConnection(false)
 
       if (result.success) {
         setSuccess(_("onboarding.success.connectionTested"))
         setConnectionTested(true)
+        
+        // 保存 Provider 测试状态（使设置页显示正确）
+        await saveProviderStatus({
+          providerId: currentProvider,
+          type: 'remote',
+          available: true,
+          lastChecked: Date.now(),
+          latency: result.latency
+        })
       } else {
         setError(_("onboarding.errors.connectionFailed", { message: result.message }))
       }
@@ -502,10 +556,29 @@ function AIConfigStep({
         </button>
       )}
 
+      {/* AI 配置步骤专用导航按钮 */}
+      <div className="mt-6 flex gap-3">
+        <button
+          onClick={skipAIConfig}
+          disabled={connectionTested}
+          className="flex-1 px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {_("onboarding.aiConfig.buttons.skip")}
+        </button>
+        
+        <button
+          onClick={nextStep}
+          disabled={!connectionTested}
+          className="flex-1 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {_("onboarding.aiConfig.buttons.nextWithConfig")}
+        </button>
+      </div>
+      
       {/* 跳过说明 */}
       <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
         <p className="text-sm text-blue-700 dark:text-blue-300">
-          💡 {_("onboarding.aiConfig.skipHint")}
+          💡 {_("onboarding.aiConfig.skipHint2")}
         </p>
       </div>
     </div>

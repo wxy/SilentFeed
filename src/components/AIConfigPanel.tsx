@@ -348,6 +348,17 @@ function ConfigModal({
   }
 
   /**
+   * 清理 API Key 中的非 ASCII 字符
+   * 
+   * 问题：用户可能复制了包含不可见 Unicode 字符的 API Key
+   * 解决：移除所有非 ASCII 可打印字符
+   */
+  const sanitizeApiKey = (key: string): string => {
+    // 只保留 ASCII 可打印字符 (0x20-0x7E)
+    return key.replace(/[^\x20-\x7E]/g, '').trim()
+  }
+
+  /**
    * 测试远程 AI 连接
    * Phase 9.1: 直接创建 provider 实例测试，不依赖 AICapabilityManager
    */
@@ -356,6 +367,9 @@ function ConfigModal({
       setTestResult({ success: false, message: _("options.aiConfig.configModal.testResult.missingConfig") })
       return
     }
+
+    // 清理 API Key
+    const cleanApiKey = sanitizeApiKey(apiKey)
 
     setTesting(true)
     setTestResult(null)
@@ -368,13 +382,13 @@ function ConfigModal({
       if (providerId === 'deepseek') {
         const { DeepSeekProvider } = await import('@/core/ai/providers/DeepSeekProvider')
         provider = new DeepSeekProvider({ 
-          apiKey,
+          apiKey: cleanApiKey,
           model: selectedModel
         })
       } else if (providerId === 'openai') {
         const { OpenAIProvider } = await import('@/core/ai/providers/OpenAIProvider')
         provider = new OpenAIProvider({ 
-          apiKey,
+          apiKey: cleanApiKey,
           model: selectedModel
         })
       } else {
@@ -401,18 +415,13 @@ function ConfigModal({
           providers: {
             ...config!.providers,
             [providerId]: {
-              apiKey: apiKey,
+              apiKey: cleanApiKey,
               model: selectedModel,
               enableReasoning: enableReasoning,
               // Phase 12.6: 保存超时配置
               timeoutMs: timeoutMs,
               reasoningTimeoutMs: reasoningTimeoutMs
             }
-          },
-          // 兼容：同时更新旧结构
-          apiKeys: {
-            ...config!.apiKeys,
-            [providerId]: apiKey
           },
           // Phase 12: 更新首选远程 AI（勾选时设置，取消勾选不变）
           preferredRemoteProvider: isPreferred 

@@ -57,11 +57,16 @@ vi.mock('../../storage/recommendation-config', () => ({
 
 vi.mock('../../storage/ai-config', () => ({
   getAIConfig: vi.fn().mockResolvedValue({
-    provider: 'deepseek',
-    model: 'deepseek-chat',
-    apiKeys: { deepseek: 'test-key' },
-    enabled: true,
-    enableReasoning: false,
+    providers: {
+      deepseek: {
+        apiKey: 'test-key',
+        model: 'deepseek-chat',
+        enableReasoning: false
+      }
+    },
+    preferredRemoteProvider: 'deepseek',
+    preferredLocalProvider: 'ollama',
+    monthlyBudget: 5,
     local: {
       enabled: false,
       provider: 'ollama',
@@ -499,11 +504,10 @@ describe('RecommendationService', () => {
     test('应该支持本地AI配置', async () => {
       const { getAIConfig } = await import('../../storage/ai-config')
       vi.mocked(getAIConfig).mockResolvedValueOnce({
-        provider: 'deepseek',
-        model: 'deepseek-chat',
-        apiKeys: {},
-        enabled: true,
-        enableReasoning: false,
+        providers: {},
+        preferredRemoteProvider: 'deepseek',
+        preferredLocalProvider: 'ollama',
+        monthlyBudget: 5,
         local: {
           enabled: true,
           provider: 'ollama',
@@ -535,11 +539,16 @@ describe('RecommendationService', () => {
     test('应该支持推理模式配置', async () => {
       const { getAIConfig } = await import('../../storage/ai-config')
       vi.mocked(getAIConfig).mockResolvedValueOnce({
-        provider: 'deepseek',
-        model: 'deepseek-chat',
-        apiKeys: { deepseek: 'test-key' },
-        enabled: true,
-        enableReasoning: true, // 启用推理
+        providers: {
+          deepseek: {
+            apiKey: 'test-key',
+            model: 'deepseek-chat',
+            enableReasoning: true // 启用推理
+          }
+        },
+        preferredRemoteProvider: 'deepseek',
+        preferredLocalProvider: 'ollama',
+        monthlyBudget: 5,
         local: {
           enabled: false,
           provider: 'ollama',
@@ -729,11 +738,16 @@ describe('RecommendationService', () => {
     test('任务级 useReasoning=false 应该覆盖全局 enableReasoning=true', async () => {
       const { getAIConfig } = await import('../../storage/ai-config')
       vi.mocked(getAIConfig).mockResolvedValueOnce({
-        provider: 'deepseek',
-        model: 'deepseek-chat',
-        apiKeys: {},
-        enabled: true,
-        enableReasoning: false,
+        providers: {
+          deepseek: {
+            apiKey: 'test-key',
+            model: 'deepseek-chat',
+            enableReasoning: true // 全局启用
+          }
+        },
+        preferredRemoteProvider: 'deepseek',
+        preferredLocalProvider: 'ollama',
+        monthlyBudget: 5,
         local: {
           enabled: false,
           provider: 'ollama',
@@ -781,11 +795,16 @@ describe('RecommendationService', () => {
     test('任务级 useReasoning=true 应该启用推理', async () => {
       const { getAIConfig } = await import('../../storage/ai-config')
       vi.mocked(getAIConfig).mockResolvedValueOnce({
-        provider: 'deepseek',
-        model: 'deepseek-chat',
-        apiKeys: {},
-        enabled: true,
-        enableReasoning: false,
+        providers: {
+          deepseek: {
+            apiKey: 'test-key',
+            model: 'deepseek-chat',
+            enableReasoning: false // 全局禁用
+          }
+        },
+        preferredRemoteProvider: 'deepseek',
+        preferredLocalProvider: 'ollama',
+        monthlyBudget: 5,
         local: {
           enabled: false,
           provider: 'ollama',
@@ -832,11 +851,16 @@ describe('RecommendationService', () => {
     test('任务级配置未设置时应该回退到全局配置', async () => {
       const { getAIConfig } = await import('../../storage/ai-config')
       vi.mocked(getAIConfig).mockResolvedValueOnce({
-        provider: 'deepseek',
-        model: 'deepseek-chat',
-        apiKeys: {},
-        enabled: true,
-        enableReasoning: false,
+        providers: {
+          deepseek: {
+            apiKey: 'test-key',
+            model: 'deepseek-chat',
+            enableReasoning: false
+          }
+        },
+        preferredRemoteProvider: 'deepseek',
+        preferredLocalProvider: 'ollama',
+        monthlyBudget: 5,
         local: {
           enabled: false,
           provider: 'ollama',

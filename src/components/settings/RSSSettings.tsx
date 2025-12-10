@@ -6,6 +6,7 @@ import { RSSValidator } from "@/core/rss/RSSValidator"
 import { RSSFetcher, type FeedItem } from "@/core/rss/RSSFetcher"
 import { OPMLImporter } from "@/core/rss/OPMLImporter"
 import { getFaviconUrl, handleFaviconError } from "@/utils/favicon"
+import { formatFeedTitle, decodeHtmlEntities } from "@/utils/html"
 import type { DiscoveredFeed } from "@/types/rss"
 import { logger } from "@/utils/logger"
 import { formatDateTime as formatDateTimeI18n } from "@/utils/date-formatter"
@@ -13,12 +14,14 @@ import { formatDateTime as formatDateTimeI18n } from "@/utils/date-formatter"
 const rssManagerLogger = logger.withTag("RSSManager")
 
 /**
- * 解码 HTML 实体（如 &#xxxx;）
+ * 从 URL 提取主机名
  */
-function decodeHtmlEntities(text: string): string {
-  const textarea = document.createElement('textarea')
-  textarea.innerHTML = text
-  return textarea.value
+function getHostname(url: string): string {
+  try {
+    return new URL(url).hostname
+  } catch {
+    return url
+  }
 }
 
 /**
@@ -784,7 +787,9 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                     e.currentTarget.title = feed.url
                   }}
                 >
-                  <span className="truncate">{feed.title} ({getHostname(feed.link || feed.url)})</span>
+                  <span className="truncate">
+                    {formatFeedTitle(feed.title, getHostname(feed.link || feed.url))} ({getHostname(feed.link || feed.url)})
+                  </span>
                 </a>
                 
                 {/* 展开/折叠图标 */}

@@ -134,12 +134,10 @@ describe("AIConfig", () => {
     it("启用本地AI且存在 endpoint 时应自动加载本地模型", async () => {
       // 准备：返回启用的本地配置
       vi.mocked(aiConfigModule.getAIConfig).mockResolvedValueOnce({
-        provider: null,
-        apiKeys: {},
-        enabled: false,
+        providers: {},
+        preferredRemoteProvider: "deepseek",
+        preferredLocalProvider: "ollama",
         monthlyBudget: 5,
-        model: undefined,
-        enableReasoning: false,
         local: {
           enabled: true,
           provider: "ollama",
@@ -171,12 +169,10 @@ describe("AIConfig", () => {
     it("缺少 endpoint 时不应调用本地模型加载", async () => {
       // 准备：本地启用但 endpoint 为空
       vi.mocked(aiConfigModule.getAIConfig).mockResolvedValueOnce({
-        provider: null,
-        apiKeys: {},
-        enabled: false,
+        providers: {},
+        preferredRemoteProvider: "deepseek",
+        preferredLocalProvider: "ollama",
         monthlyBudget: 5,
-        model: undefined,
-        enableReasoning: false,
         local: {
           enabled: true,
           provider: "ollama",
