@@ -34,6 +34,7 @@ vi.mock('../../../storage/db', () => ({
     discoveredFeeds: {
       add: vi.fn(),
       get: vi.fn(),
+      toArray: vi.fn(() => Promise.resolve([])), // 添加 toArray mock
       where: vi.fn(() => ({
         equals: vi.fn(() => ({
           first: vi.fn(),
@@ -73,12 +74,12 @@ describe('FeedManager', () => {
         discoveredAt: Date.now()
       }
       
-      // Mock where().equals().first() 返回 undefined（源不存在）
+      // Mock toArray 返回空数组（没有已存在的源）
+      vi.mocked(db.discoveredFeeds.toArray).mockResolvedValue([])
+      
       // Mock where().equals().toArray() 返回空数组（同源不存在）
-      const mockFirst = vi.fn().mockResolvedValue(undefined)
       const mockToArray = vi.fn().mockResolvedValue([])
       const mockEquals = vi.fn().mockReturnValue({ 
-        first: mockFirst,
         toArray: mockToArray 
       })
       const mockWhere = vi.fn().mockReturnValue({ equals: mockEquals })
@@ -121,11 +122,104 @@ describe('FeedManager', () => {
         recommendedCount: 0
       }
       
-      // Mock where().equals().first() 返回已存在的源
-      const mockFirst = vi.fn().mockResolvedValue(existingFeed)
-      const mockEquals = vi.fn().mockReturnValue({ first: mockFirst })
+      // Mock toArray 返回已存在的源
+      vi.mocked(db.discoveredFeeds.toArray).mockResolvedValue([existingFeed])
+      
+      // Mock where().equals().toArray() 返回空数组（同源不存在）
+      const mockToArray = vi.fn().mockResolvedValue([])
+      const mockEquals = vi.fn().mockReturnValue({ toArray: mockToArray })
       const mockWhere = vi.fn().mockReturnValue({ equals: mockEquals })
       vi.mocked(db.discoveredFeeds.where).mockReturnValue(mockWhere() as any)
+      
+      const id = await feedManager.addCandidate(mockFeed)
+      
+      expect(id).toBe('existing-id')
+      expect(db.discoveredFeeds.add).not.toHaveBeenCalled()
+    })
+    
+    it('应该识别尾部带 / 的重复 URL', async () => {
+      const mockFeed = {
+        url: 'https://example.com/feed.xml/',
+        title: 'Example Feed',
+        discoveredFrom: 'https://example.com',
+        discoveredAt: Date.now()
+      }
+      
+      const existingFeed: DiscoveredFeed = {
+        id: 'existing-id',
+        url: 'https://example.com/feed.xml',
+        title: 'Example Feed',
+        discoveredFrom: 'https://example.com',
+        discoveredAt: Date.now(),
+        status: 'candidate',
+        isActive: true,
+        articleCount: 0,
+        unreadCount: 0,
+        recommendedCount: 0
+      }
+      
+      // Mock toArray 返回已存在的源
+      vi.mocked(db.discoveredFeeds.toArray).mockResolvedValue([existingFeed])
+      
+      const id = await feedManager.addCandidate(mockFeed)
+      
+      expect(id).toBe('existing-id')
+      expect(db.discoveredFeeds.add).not.toHaveBeenCalled()
+    })
+    
+    it('应该识别尾部带 index.html 的重复 URL', async () => {
+      const mockFeed = {
+        url: 'https://example.com/feed/index.xml',
+        title: 'Example Feed',
+        discoveredFrom: 'https://example.com',
+        discoveredAt: Date.now()
+      }
+      
+      const existingFeed: DiscoveredFeed = {
+        id: 'existing-id',
+        url: 'https://example.com/feed',
+        title: 'Example Feed',
+        discoveredFrom: 'https://example.com',
+        discoveredAt: Date.now(),
+        status: 'candidate',
+        isActive: true,
+        articleCount: 0,
+        unreadCount: 0,
+        recommendedCount: 0
+      }
+      
+      // Mock toArray 返回已存在的源
+      vi.mocked(db.discoveredFeeds.toArray).mockResolvedValue([existingFeed])
+      
+      const id = await feedManager.addCandidate(mockFeed)
+      
+      expect(id).toBe('existing-id')
+      expect(db.discoveredFeeds.add).not.toHaveBeenCalled()
+    })
+    
+    it('应该识别组合情况：尾部带 / 和 index.rss', async () => {
+      const mockFeed = {
+        url: 'https://example.com/blog/index.rss/',
+        title: 'Example Feed',
+        discoveredFrom: 'https://example.com',
+        discoveredAt: Date.now()
+      }
+      
+      const existingFeed: DiscoveredFeed = {
+        id: 'existing-id',
+        url: 'https://example.com/blog',
+        title: 'Example Feed',
+        discoveredFrom: 'https://example.com',
+        discoveredAt: Date.now(),
+        status: 'candidate',
+        isActive: true,
+        articleCount: 0,
+        unreadCount: 0,
+        recommendedCount: 0
+      }
+      
+      // Mock toArray 返回已存在的源
+      vi.mocked(db.discoveredFeeds.toArray).mockResolvedValue([existingFeed])
       
       const id = await feedManager.addCandidate(mockFeed)
       

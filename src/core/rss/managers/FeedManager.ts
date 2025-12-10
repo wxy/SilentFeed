@@ -18,6 +18,35 @@ const feedLogger = logger.withTag('FeedManager')
 
 export class FeedManager {
   /**
+   * 规范化 URL 用于去重比较
+   * 
+   * 规则：
+   * 1. 移除尾部的 '/'
+   * 2. 移除尾部的 index.html、index.xml、index.rss 等索引文件
+   * 
+   * @param url - 原始 URL
+   * @returns 规范化后的 URL
+   */
+  private normalizeUrlForDedup(url: string): string {
+    try {
+      const urlObj = new URL(url)
+      let pathname = urlObj.pathname
+      
+      // 移除尾部的 '/'
+      pathname = pathname.replace(/\/+$/, '')
+      
+      // 移除尾部的索引文件（index.html, index.xml, index.rss, index.atom 等）
+      pathname = pathname.replace(/\/index\.[^/]*$/, '')
+      
+      urlObj.pathname = pathname
+      return urlObj.toString()
+    } catch {
+      // 如果 URL 无效，返回原始 URL
+      return url
+    }
+  }
+  
+  /**
    * 更新源标题（重命名）
    * 
    * @param id - 源 ID
@@ -45,14 +74,23 @@ export class FeedManager {
    * @param feed - 源信息（不需要 id，会自动生成）
    */
   async addCandidate(feed: Omit<DiscoveredFeed, 'id' | 'status' | 'isActive' | 'articleCount' | 'unreadCount' | 'recommendedCount'>): Promise<string> {
-    // 1. 检查完全相同的 URL
-    const existingByUrl = await db.discoveredFeeds.where('url').equals(feed.url).first()
+    // 1. 规范化 URL 用于去重
+    const normalizedUrl = this.normalizeUrlForDedup(feed.url)
+    
+    // 2. 检查完全相同的 URL（使用规范化后的 URL）
+    const allFeeds = await db.discoveredFeeds.toArray()
+    const existingByUrl = allFeeds.find(f => this.normalizeUrlForDedup(f.url) === normalizedUrl)
+    
     if (existingByUrl) {
-      feedLogger.debug('源已存在（相同 URL）:', feed.url)
+      feedLogger.debug('源已存在（规范化 URL 相同）:', {
+        existing: existingByUrl.url,
+        new: feed.url,
+        normalized: normalizedUrl
+      })
       return existingByUrl.id
     }
     
-    // 2. 检查同一来源页面的相似源（同一网站的不同格式/路径）
+    // 3. 检查同一来源页面的相似源（同一网站的不同格式/路径）
     const existingFromSameSource = await db.discoveredFeeds
       .where('discoveredFrom')
       .equals(feed.discoveredFrom)
@@ -78,7 +116,7 @@ export class FeedManager {
       }
     }
     
-    // 3. 没有重复，添加新源
+    // 4. 没有重复，添加新源
     const id = crypto.randomUUID()
     const newFeed: DiscoveredFeed = {
       ...feed,
