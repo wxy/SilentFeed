@@ -34,7 +34,18 @@ vi.mock('@/storage/db', () => ({
 }))
 
 vi.mock('@/storage/ai-config', () => ({
-  getAIConfig: vi.fn(async () => ({ enabled: false, provider: null, apiKeys: {} })),
+  getAIConfig: vi.fn(async () => ({
+    providers: {},
+    preferredRemoteProvider: "deepseek",
+    preferredLocalProvider: "ollama",
+    monthlyBudget: 5,
+    local: {
+      enabled: false,
+      provider: "ollama",
+      endpoint: "",
+      model: ""
+    }
+  })),
   getProviderDisplayName: (p: any) => String(p ?? '')
 }))
 
