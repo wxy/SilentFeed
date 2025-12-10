@@ -25,9 +25,9 @@
     "noRecommendations": "暂无推荐",
     "checkBackLater": "稍后回来查看新推荐",
     "noRSSFeeds": {
-      "title": "还没有订阅任何 RSS 源",
-      "description": "添加 RSS 源后，我们才能为你推荐精彩内容",
-      "action": "去添加 RSS 源"
+      "title": "还没有订阅任何 订阅源",
+      "description": "添加 订阅源后，我们才能为你推荐精彩内容",
+      "action": "去添加 订阅源"
     },
     "later": "稍后读",
     "dismiss": "不想读",
@@ -86,7 +86,7 @@
     "tabs": {
       "general": "常规",
       "preferences": "偏好",
-      "rss": "RSS 源",
+      "rss": "订阅源",
       "feeds": "订阅源",
       "ai": "AI",
       "aiEngine": "AI 引擎",
@@ -193,7 +193,7 @@
       "autoTranslateHint": "💡 翻译后可以通过语言标签按钮在原文和译文之间切换"
     },
     "rss": {
-      "title": "RSS 源管理",
+      "title": "订阅源管理",
       "disabled": "将在完成 100 页面后启用",
       "description": "管理你的 RSS 订阅源"
     },
@@ -211,15 +211,15 @@
       "opmlHint": "支持从其他 RSS 阅读器导入/导出订阅列表",
       "noSubscribedFeeds": "暂无已订阅的源",
       "loading": "加载中...",
-      "noFeeds": "暂无发现的 RSS 源",
+      "noFeeds": "暂无发现的 订阅源",
       "noFeedsHint": "浏览包含 RSS 订阅的网站时，我们会自动发现并在这里显示",
       "discoveredFrom": "来自",
       "discoveredAt": "发现于",
       "subscribedAt": "订阅于",
-      "discoveredFeeds": "发现的 RSS 源 ({{count}})",
-      "discoveredFeedsHint": "这些 RSS 源是从你浏览的页面中自动发现的，点击标题查看源内容",
+      "discoveredFeeds": "发现的 订阅源 ({{count}})",
+      "discoveredFeedsHint": "这些 订阅源是从你浏览的页面中自动发现的，点击标题查看源内容",
       "subscribedFeeds": "已订阅 ({{count}})",
-      "subscribedFeedsHint": "你已订阅的 RSS 源，可以随时取消订阅",
+      "subscribedFeedsHint": "你已订阅的 订阅源，可以随时取消订阅",
       "ignoredFeeds": "已忽略 ({{count}})",
       "clickToToggle": "点击{{action}}",
       "expand": "展开",
@@ -233,7 +233,9 @@
         "loading": "加载预览中...",
         "latestArticles": "最新文章",
         "noArticles": "暂无文章",
-        "openOrToggle": "打开或切换预览"
+        "openOrToggle": "打开或切换预览",
+        "expand": "展开预览",
+        "collapse": "收起预览"
       },
       "actions": {
         "subscribe": "订阅",
@@ -252,7 +254,7 @@
         "parseError": "OPML 文件解析失败",
         "importFailed": "OPML 导入失败",
         "exportFailed": "OPML 导出失败",
-        "revalidationFailed": "RSS 源重新验证失败，已删除",
+        "revalidationFailed": "订阅源重新验证失败，已删除",
         "renameFailed": "重命名失败，请稍后重试"
       },
       "metadata": {
@@ -330,7 +332,7 @@
       "errors": {
         "invalidUrl": "请输入有效的 RSS URL",
         "fetchFailed": "无法获取该 URL 的内容",
-        "notRSS": "该 URL 不是有效的 RSS 源",
+        "notRSS": "该 URL 不是有效的 订阅源",
         "validationFailed": "RSS 验证失败",
         "alreadyExists": "该源已存在",
         "subscribeFailed": "订阅失败",
@@ -338,7 +340,7 @@
         "parseError": "OPML 文件解析失败",
         "importFailed": "OPML 导入失败",
         "exportFailed": "OPML 导出失败",
-        "revalidationFailed": "RSS 源重新验证失败，已删除"
+        "revalidationFailed": "订阅源重新验证失败，已删除"
       },
       "success": {
         "subscribed": "订阅成功！",
@@ -395,7 +397,7 @@
       "saveSuccess": "✓ 保存成功",
       "generating": "生成中...",
       "generateNow": "马上推荐",
-      "resetConfirm": "⚠️ 确定要重置所有推荐数据吗？\n\n这将清空：\n- 推荐池中的所有推荐\n- RSS 源的推荐数统计\n- 所有文章的 AI 评分和分析数据（可重新分析）\n- 所有文章的 TF-IDF 评分缓存（可重新计算）\n- 推荐相关的统计数据\n\n⚠️ 注意：已抓取的全文内容会保留\n\n此操作不可恢复！",
+      "resetConfirm": "⚠️ 确定要重置所有推荐数据吗？\n\n这将清空：\n- 推荐池中的所有推荐\n- 订阅源的推荐数统计\n- 所有文章的 AI 评分和分析数据（可重新分析）\n- 所有文章的 TF-IDF 评分缓存（可重新计算）\n- 推荐相关的统计数据\n\n⚠️ 注意：已抓取的全文内容会保留\n\n此操作不可恢复！",
       "resetSuccess": "✅ 推荐数据已重置",
       "resetFailed": "❌ 重置失败: {{error}}",
       "saveFailed": "保存失败，请重试"
@@ -1418,13 +1420,13 @@
     },
     "rssSetup": {
       "title": "添加 RSS 订阅源",
-      "description": "添加至少一个 RSS 源，开始接收推荐",
+      "description": "添加至少一个 订阅源，开始接收推荐",
       "labels": {
-        "feedUrl": "RSS 源地址",
+        "feedUrl": "订阅源地址",
         "importOpml": "或导入 OPML 文件"
       },
       "placeholders": {
-        "enterUrl": "输入 RSS 源 URL（例如：https://example.com/feed.xml）"
+        "enterUrl": "输入 订阅源 URL（例如：https://example.com/feed.xml）"
       },
       "buttons": {
         "add": "添加",
@@ -1457,7 +1459,7 @@
       "invalidApiKeyFormat": "API 密钥格式不正确",
       "connectionFailed": "连接失败：{{message}}",
       "testFailed": "测试失败：{{error}}",
-      "enterRssUrl": "请输入 RSS 源地址",
+      "enterRssUrl": "请输入 订阅源地址",
       "addFeedFailed": "添加失败：{{error}}",
       "opmlImportFailed": "导入失败：{{error}}"
     },

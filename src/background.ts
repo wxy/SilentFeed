@@ -372,13 +372,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               }
               
               const metadata = result.metadata
-              const sourceDomain = new URL(sourceURL).hostname
+              // 使用 RSS feed 自身的 link 域名，而不是来源页面域名（避免谷歌翻译等代理域名）
+              const feedDomain = metadata.link ? new URL(metadata.link).hostname : new URL(sourceURL).hostname
               
               // 3. 添加到候选列表（使用 RSS 标题 + 域名）
               bgLogger.info('添加到候选列表:', metadata.title)
               const feedId = await feedManager.addCandidate({
                 url: feed.url,
-                title: `${metadata.title} - ${sourceDomain}`,
+                title: `${metadata.title} (${feedDomain})`,
                 description: metadata.description,
                 link: metadata.link,
                 language: metadata.language,

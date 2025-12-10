@@ -771,13 +771,31 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                 autoFocus
               />
             ) : (
-              <button
-                onClick={() => loadPreviewArticles(feed.id, feed.url)}
-                className="font-medium text-blue-600 dark:text-blue-400 hover:underline truncate text-left"
-                title={_('options.rssManager.preview.openOrToggle')}
-              >
-                <span className="truncate">{feed.title} ({getHostname(feed.link || feed.url)})</span>
-              </button>
+              <>
+                {/* 标题（可点击打开 XML） */}
+                <a
+                  href={feed.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-blue-600 dark:text-blue-400 hover:underline truncate"
+                  title={`${_('options.rssManager.openXML')}\n${feed.url}`}
+                  onMouseEnter={(e) => {
+                    // 显示完整 URL
+                    e.currentTarget.title = feed.url
+                  }}
+                >
+                  <span className="truncate">{feed.title} ({getHostname(feed.link || feed.url)})</span>
+                </a>
+                
+                {/* 展开/折叠图标 */}
+                <button
+                  onClick={() => loadPreviewArticles(feed.id, feed.url)}
+                  className="ml-1 px-1 py-0.5 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+                  title={expandedFeedId === feed.id ? _('options.rssManager.preview.collapse') : _('options.rssManager.preview.expand')}
+                >
+                  {expandedFeedId === feed.id ? '▼' : '▶'}
+                </button>
+              </>
             )}
 
             {/* 内联重命名按钮 */}
