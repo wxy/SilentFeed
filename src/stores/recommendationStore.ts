@@ -119,7 +119,7 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
       
       // 无数据时不是错误，只是空状态
       if (result.recommendations.length === 0 && result.stats?.reason) {
-        console.warn('[RecommendationStore] 无推荐数据:', result.stats.reason)
+        console.debug('[RecommendationStore] 无推荐数据:', result.stats.reason)
         set({ 
           recommendations: [], 
           isLoading: false,

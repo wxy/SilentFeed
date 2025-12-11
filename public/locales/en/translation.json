@@ -24,6 +24,16 @@
     "confirmDismiss": "Are you sure you want to mark all {{count}} recommendations as \"Not interested\"?",
     "noRecommendations": "No recommendations yet",
     "checkBackLater": "Come back later for new recommendations",
+    "allCaughtUp": {
+      "messages": [
+        "Congratulations! You've escaped the information overload",
+        "The world is quiet now",
+        "You've got all the information you need for today",
+        "Take a break and enjoy the moment of peace",
+        "Perfect! All important information is yours"
+      ],
+      "subtitle": "All recommendations have been reviewed"
+    },
     "confirmDismissAll": "Are you sure you want to mark all {{count}} recommendations as \"Not Interested\"?",
     "later": "Read Later",
     "dismiss": "Don't want to read",

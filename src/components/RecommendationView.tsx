@@ -369,7 +369,30 @@ export function RecommendationView() {
       )
     }
     
-    // 其他情况：通用空状态
+    // ready 状态且有 RSS 源：显示"全部读完"的鼓励消息
+    if (isReady && hasRSSFeeds) {
+      // 从预设消息中随机选择一条
+      const messages = t("popup.allCaughtUp.messages", { returnObjects: true }) as string[]
+      const randomMessage = messages[Math.floor(Math.random() * messages.length)]
+      
+      return (
+        <div className="flex flex-col">
+          <div className="h-[300px] flex items-center justify-center">
+            <div className="text-center px-6">
+              <div className="text-4xl mb-4">✨</div>
+              <p className="text-sm text-gray-900 dark:text-gray-100 font-medium mb-2">
+                {randomMessage}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-500">
+                {_("popup.allCaughtUp.subtitle")}
+              </p>
+            </div>
+          </div>
+        </div>
+      )
+    }
+    
+    // 其他情况：通用空状态（学习阶段等）
     return (
       <div className="flex flex-col">
         {/* 空状态 */}

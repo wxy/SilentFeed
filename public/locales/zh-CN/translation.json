@@ -24,6 +24,16 @@
     "confirmDismissAll": "确定要标记所有 {{count}} 条推荐为「不想读」吗？",
     "noRecommendations": "暂无推荐",
     "checkBackLater": "稍后回来查看新推荐",
+    "allCaughtUp": {
+      "messages": [
+        "恭喜，您已从信息洪流中解脱",
+        "世界安静了",
+        "您已获得今日所需的信息食粮",
+        "休息一下，享受片刻宁静",
+        "完美，所有重要信息已收入囊中"
+      ],
+      "subtitle": "所有推荐都已查看完毕"
+    },
     "noRSSFeeds": {
       "title": "还没有订阅任何订阅源",
       "description": "添加订阅源后，我们才能为你推荐精彩内容",

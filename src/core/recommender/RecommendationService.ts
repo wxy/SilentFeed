@@ -218,8 +218,8 @@ export class RecommendationService {
       // 2. 获取RSS文章数据（Phase 6: 优先获取未分析的文章）
       const articles = await this.collectArticles(sources, batchSize)
       if (articles.length === 0) {
-        // 无数据时返回温和提示：所有文章都已分析，需要等待新文章
-        recLogger.warn('所有订阅的RSS文章都已分析，请等待新文章或添加更多RSS源')
+        // 无数据时返回调试信息：所有文章都已分析完成
+        recLogger.debug('所有订阅的RSS文章都已分析完成')
         return {
           recommendations: [],
           stats: {
@@ -227,7 +227,7 @@ export class RecommendationService {
             analyzed: 0,
             recommended: 0,
             filtered: 0,
-            reason: '所有订阅的RSS文章都已分析，请等待新文章或添加更多RSS源'
+            reason: 'allAnalyzed' // 使用标识符而非具体消息
           }
         }
       }

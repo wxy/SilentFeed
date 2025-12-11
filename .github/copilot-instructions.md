@@ -223,12 +223,15 @@ TypeScript 示例:
 **⚠️ 强制规则**: 
 - **禁止在 master 分支直接开发**: 任何修改都必须先创建功能分支
 - **自动分支创建**: 当用户在 master 分支请求修改时，必须先提示并创建对应的功能分支
+  - **例外情况**: 仅当用户明确表示正在做 GitHub 发布版本时，才允许在 master 分支操作
+  - **强制执行**: 在执行任何代码修改前，必须先检查当前分支，如果在 master 且不是发布版本，立即创建新分支
 - **分支命名规范**: 
   - 新功能: `feature/功能描述` (如 `feature/rss-discovery`)
   - Bug 修复: `fix/问题描述` (如 `fix/recommendation-click`)
   - 测试: `test/测试范围` (如 `test/profile-builder`)
   - 文档: `docs/文档主题` (如 `docs/api-design`)
   - 工具/构建: `chore/任务说明` (如 `chore/update-deps`)
+  - 优化改进: `improve/改进描述` (如 `improve/empty-state-messages`)
 
 ### Commit Messages (中文)
 
