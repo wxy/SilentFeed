@@ -428,8 +428,26 @@ export function CollectionStats() {
                 <div className="text-xs text-indigo-600 dark:text-indigo-400 mb-1">
                   {_("options.collectionStats.aiUsage.overview.totalCost")}
                 </div>
-                <div className="text-2xl font-bold text-indigo-900 dark:text-indigo-100 text-right">
-                  ¥{aiUsageStats.cost.total.toFixed(4)}
+                <div className="text-right space-y-1">
+                  {(() => {
+                    const items: Array<{ label: string; value: number }> = [
+                      { label: "¥", value: aiUsageStats.byCurrency?.CNY?.total || 0 },
+                      { label: "$", value: aiUsageStats.byCurrency?.USD?.total || 0 }
+                    ]
+                    const visible = items.filter(i => i.value > 0)
+                    if (visible.length === 0) {
+                      return <div className="text-sm text-gray-500 dark:text-gray-400">{_("options.collectionStats.aiUsage.noCost")}</div>
+                    }
+                    return (
+                      <div className="flex flex-col items-end gap-0.5">
+                        {visible.map((i, idx) => (
+                          <div key={idx} className="text-2xl font-bold text-indigo-900 dark:text-indigo-100">
+                            {i.label}{i.value.toFixed(4)}
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  })()}
                 </div>
               </div>
 
@@ -472,8 +490,13 @@ export function CollectionStats() {
                   <div className="text-lg font-bold text-purple-900 dark:text-purple-100">
                     {(aiUsageStats.tokens.input / 1000).toFixed(1)}K
                   </div>
-                  <div className="text-xs text-purple-600 dark:text-purple-400 mt-0.5">
-                    ¥{aiUsageStats.cost.input.toFixed(4)}
+                  <div className="text-xs text-purple-600 dark:text-purple-400 mt-0.5 flex flex-col items-center gap-0.5">
+                    {aiUsageStats.byCurrency?.CNY?.input > 0 && (
+                      <span>¥{aiUsageStats.byCurrency.CNY.input.toFixed(4)}</span>
+                    )}
+                    {aiUsageStats.byCurrency?.USD?.input > 0 && (
+                      <span>${aiUsageStats.byCurrency.USD.input.toFixed(4)}</span>
+                    )}
                   </div>
                 </div>
                 <div className="text-center">
@@ -481,8 +504,13 @@ export function CollectionStats() {
                   <div className="text-lg font-bold text-pink-900 dark:text-pink-100">
                     {(aiUsageStats.tokens.output / 1000).toFixed(1)}K
                   </div>
-                  <div className="text-xs text-pink-600 dark:text-pink-400 mt-0.5">
-                    ¥{aiUsageStats.cost.output.toFixed(4)}
+                  <div className="text-xs text-pink-600 dark:text-pink-400 mt-0.5 flex flex-col items-center gap-0.5">
+                    {aiUsageStats.byCurrency?.CNY?.output > 0 && (
+                      <span>¥{aiUsageStats.byCurrency.CNY.output.toFixed(4)}</span>
+                    )}
+                    {aiUsageStats.byCurrency?.USD?.output > 0 && (
+                      <span>${aiUsageStats.byCurrency.USD.output.toFixed(4)}</span>
+                    )}
                   </div>
                 </div>
                 <div className="text-center">
@@ -490,8 +518,13 @@ export function CollectionStats() {
                   <div className="text-lg font-bold text-indigo-900 dark:text-indigo-100">
                     {(aiUsageStats.tokens.total / 1000).toFixed(1)}K
                   </div>
-                  <div className="text-xs text-indigo-600 dark:text-indigo-400 mt-0.5">
-                    ¥{aiUsageStats.cost.total.toFixed(4)}
+                  <div className="text-xs text-indigo-600 dark:text-indigo-400 mt-0.5 flex flex-col items-center gap-0.5">
+                    {aiUsageStats.byCurrency?.CNY?.total > 0 && (
+                      <span>¥{aiUsageStats.byCurrency.CNY.total.toFixed(4)}</span>
+                    )}
+                    {aiUsageStats.byCurrency?.USD?.total > 0 && (
+                      <span>${aiUsageStats.byCurrency.USD.total.toFixed(4)}</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -518,9 +551,17 @@ export function CollectionStats() {
                                 {getProviderName(provider, _)}
                               </span>
                               <div className="text-right">
-                                <div className="text-sm font-bold text-indigo-600 dark:text-indigo-400">
-                                  ¥{data.cost.total.toFixed(4)}
-                                </div>
+                                {(() => {
+                                  const symbol = data.currency === 'USD' ? '$' : (data.currency === 'CNY' ? '¥' : '')
+                                  const value = data.cost.total || 0
+                                  return value > 0 && symbol ? (
+                                    <div className="text-sm font-bold text-indigo-600 dark:text-indigo-400">
+                                      {symbol}{value.toFixed(4)}
+                                    </div>
+                                  ) : (
+                                    <div className="text-xs text-gray-400">{_("options.collectionStats.aiUsage.noCost")}</div>
+                                  )
+                                })()}
                               </div>
                             </div>
                             <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 mb-2">
@@ -575,8 +616,14 @@ export function CollectionStats() {
                                 {purposeLabels[purpose] || purpose}
                               </span>
                               <div className="text-right">
-                                <div className="text-sm font-bold text-green-600 dark:text-green-400">
-                                  ¥{data.cost.total.toFixed(4)}
+                                {/* 按用途的币种细分（隐藏为 0 的币种） */}
+                                <div className="text-sm font-bold text-green-600 dark:text-green-400 flex items-center gap-2">
+                                  {data.byCurrency?.USD?.total && data.byCurrency.USD.total > 0 && (
+                                    <span className="inline-block">${data.byCurrency.USD.total.toFixed(4)}</span>
+                                  )}
+                                  {data.byCurrency?.CNY?.total && data.byCurrency.CNY.total > 0 && (
+                                    <span className="inline-block">¥{data.byCurrency.CNY.total.toFixed(4)}</span>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -598,7 +645,7 @@ export function CollectionStats() {
                               </div>
                               <div className="flex items-center gap-2">
                                 <span className="text-xs text-gray-400 w-12">{_("options.collectionStats.aiUsage.chart.cost")}</span>
-                                <ProgressBar value={data.cost.total} max={maxCost} color="amber" height="h-1.5" />
+                                <ProgressBar value={(data.byCurrency?.USD?.total || 0) + (data.byCurrency?.CNY?.total || 0)} max={maxCost} color="amber" height="h-1.5" />
                               </div>
                             </div>
                           </div>
@@ -703,7 +750,14 @@ export function CollectionStats() {
                           </div>
                           <div className="flex justify-between">
                             <span>{_("options.collectionStats.aiUsage.byReasoning.cost")}</span>
-                            <span className="font-semibold">¥{aiUsageStats.byReasoning.withReasoning.cost.total.toFixed(4)}</span>
+                            <span className="font-semibold flex gap-2">
+                              {aiUsageStats.byCurrency?.USD?.total > 0 && (
+                                <span>${aiUsageStats.byReasoning.withReasoning.cost.total.toFixed(4)}</span>
+                              )}
+                              {aiUsageStats.byCurrency?.CNY?.total > 0 && (
+                                <span>¥{aiUsageStats.byReasoning.withReasoning.cost.total.toFixed(4)}</span>
+                              )}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -733,7 +787,14 @@ export function CollectionStats() {
                           </div>
                           <div className="flex justify-between">
                             <span>{_("options.collectionStats.aiUsage.byReasoning.cost")}</span>
-                            <span className="font-semibold">¥{aiUsageStats.byReasoning.withoutReasoning.cost.total.toFixed(4)}</span>
+                            <span className="font-semibold flex gap-2">
+                              {aiUsageStats.byCurrency?.USD?.total > 0 && (
+                                <span>${aiUsageStats.byReasoning.withoutReasoning.cost.total.toFixed(4)}</span>
+                              )}
+                              {aiUsageStats.byCurrency?.CNY?.total > 0 && (
+                                <span>¥{aiUsageStats.byReasoning.withoutReasoning.cost.total.toFixed(4)}</span>
+                              )}
+                            </span>
                           </div>
                         </div>
                       </div>

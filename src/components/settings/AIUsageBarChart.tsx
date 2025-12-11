@@ -133,18 +133,31 @@ export function AIUsageBarChart({ data, mode }: AIUsageBarChartProps) {
     })
   }
 
-  const formatCostTooltip = (date: string, label: string, value: number, total?: number) => {
+  const formatCostTooltip = (
+    date: string,
+    label: string,
+    value: number,
+    total?: number,
+    currencies?: { CNY?: number; USD?: number }
+  ) => {
     const formattedDate = formatDate(date, mode, _)
     const formattedValue = value.toFixed(4)
     const totalValue = typeof total === "number" ? total : value
     // 统一使用带总量的格式
-    return _("settings.aiUsage.tooltip.costReasoning", {
+    const base = _("settings.aiUsage.tooltip.costReasoning", {
       date: formattedDate,
       label,
       value: formattedValue,
       totalLabel,
       total: totalValue.toFixed(4)
     })
+    // 附加币种费用详情（隐藏为 0 的币种）
+    const usd = currencies?.USD ?? 0
+    const cny = currencies?.CNY ?? 0
+    const parts: string[] = []
+    if (usd > 0) parts.push(`USD: $${usd.toFixed(4)}`)
+    if (cny > 0) parts.push(`CNY: ¥${cny.toFixed(4)}`)
+    return parts.length > 0 ? `${base} (${parts.join(', ')})` : base
   }
 
   // 滚动到最右侧（显示最新数据）
@@ -222,6 +235,8 @@ export function AIUsageBarChart({ data, mode }: AIUsageBarChartProps) {
                   style={{ width: `${totalContentWidth}px` }}
                 >
                   {sortedData.map((item) => {
+                  const usdTotal = (item.byCurrency?.USD?.total ?? 0)
+                  const cnyTotal = (item.byCurrency?.CNY?.total ?? 0)
                   const totalTokens =
                     (item.byReasoning.withReasoning.tokens.total || 0) +
                     (item.byReasoning.withoutReasoning.tokens.total || 0)
@@ -313,7 +328,8 @@ export function AIUsageBarChart({ data, mode }: AIUsageBarChartProps) {
                                 item.date,
                                 legendLabels.costNonReasoning,
                                 item.byReasoning.withoutReasoning.cost.total || 0,
-                                totalCost
+                                totalCost,
+                                { USD: usdTotal, CNY: cnyTotal }
                               )}
                             />
                           )}
@@ -328,7 +344,8 @@ export function AIUsageBarChart({ data, mode }: AIUsageBarChartProps) {
                                 item.date,
                                 legendLabels.costReasoning,
                                 item.byReasoning.withReasoning.cost.total || 0,
-                                totalCost
+                                totalCost,
+                                { USD: usdTotal, CNY: cnyTotal }
                               )}
                             />
                           )}

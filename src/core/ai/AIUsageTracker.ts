@@ -259,7 +259,12 @@ export class AIUsageTracker {
           stats.byPurpose[record.purpose as AIUsagePurpose] = {
             calls: 0,
             tokens: { input: 0, output: 0, total: 0 },
-            cost: { input: 0, output: 0, total: 0 }
+            cost: { input: 0, output: 0, total: 0 },
+            byCurrency: {
+              CNY: { input: 0, output: 0, total: 0 },
+              USD: { input: 0, output: 0, total: 0 },
+              FREE: { input: 0, output: 0, total: 0 }
+            }
           }
         }
         
@@ -269,6 +274,12 @@ export class AIUsageTracker {
         purposeStats.tokens.output += record.tokens.output
         purposeStats.tokens.total += record.tokens.total
         
+        // 按币种累计费用（保留 FREE）
+        purposeStats.byCurrency![currency].input += record.cost.input
+        purposeStats.byCurrency![currency].output += record.cost.output
+        purposeStats.byCurrency![currency].total += record.cost.total
+
+        // 汇总非 FREE 的费用到用途总计
         if (!isFree) {
           purposeStats.cost.input += record.cost.input
           purposeStats.cost.output += record.cost.output
@@ -443,6 +454,11 @@ export class AIUsageTracker {
           failedCalls: dayRecords.filter(r => !r.success).length,
           tokens: { input: 0, output: 0, total: 0 },
           cost: { input: 0, output: 0, total: 0 },
+          byCurrency: {
+            CNY: { input: 0, output: 0, total: 0 },
+            USD: { input: 0, output: 0, total: 0 },
+            FREE: { input: 0, output: 0, total: 0 }
+          },
           byReasoning: {
             withReasoning: {
               calls: 0,
@@ -474,6 +490,11 @@ export class AIUsageTracker {
             stats.cost.output += record.cost.output
             stats.cost.total += record.cost.total
           }
+
+          // 按币种累计每日费用（包含 FREE）
+          stats.byCurrency![currency].input += record.cost.input
+          stats.byCurrency![currency].output += record.cost.output
+          stats.byCurrency![currency].total += record.cost.total
           
           // 推理模式统计（reasoning === undefined 视为 false）
           const reasoningStats = record.reasoning 
@@ -517,7 +538,12 @@ export class AIUsageTracker {
             stats.byPurpose[record.purpose as AIUsagePurpose] = {
               calls: 0,
               tokens: { input: 0, output: 0, total: 0 },
-              cost: { input: 0, output: 0, total: 0 }
+              cost: { input: 0, output: 0, total: 0 },
+              byCurrency: {
+                CNY: { input: 0, output: 0, total: 0 },
+                USD: { input: 0, output: 0, total: 0 },
+                FREE: { input: 0, output: 0, total: 0 }
+              }
             }
           }
           
@@ -527,6 +553,12 @@ export class AIUsageTracker {
           purposeStats.tokens.output += record.tokens.output
           purposeStats.tokens.total += record.tokens.total
           
+          // 按币种累计用途费用（包含 FREE）
+          purposeStats.byCurrency![currency].input += record.cost.input
+          purposeStats.byCurrency![currency].output += record.cost.output
+          purposeStats.byCurrency![currency].total += record.cost.total
+
+          // 汇总非 FREE 的费用到用途总计
           if (!isFree) {
             purposeStats.cost.input += record.cost.input
             purposeStats.cost.output += record.cost.output
@@ -590,9 +622,10 @@ export class AIUsageTracker {
         'Input Tokens',
         'Output Tokens',
         'Total Tokens',
-        'Input Cost (¥)',
-        'Output Cost (¥)',
-        'Total Cost (¥)',
+        'Currency',
+        'Input Cost',
+        'Output Cost',
+        'Total Cost',
         'Latency (ms)',
         'Success',
         'Error'
@@ -608,6 +641,7 @@ export class AIUsageTracker {
         r.tokens.input,
         r.tokens.output,
         r.tokens.total,
+        r.cost.currency || 'CNY',
         r.cost.input.toFixed(6),
         r.cost.output.toFixed(6),
         r.cost.total.toFixed(6),
