@@ -49,8 +49,9 @@ describe('BudgetChecker', () => {
   
   describe('getBudgetStatus', () => {
     it('应该返回正常状态（未超预算）', async () => {
-      // 本月消费 ¥35 = $5
-      vi.mocked(AIUsageTracker.getCurrentMonthCost).mockResolvedValue(35)
+      // 本月消费：CNY=¥35, USD=$0 → combinedUSD=$5
+      vi.mocked(AIUsageTracker.getTotalCostByCurrency as any).mockResolvedValueOnce(35) // CNY
+      vi.mocked(AIUsageTracker.getTotalCostByCurrency as any).mockResolvedValueOnce(0)  // USD
       
       const status = await BudgetChecker.getBudgetStatus()
       
@@ -66,8 +67,9 @@ describe('BudgetChecker', () => {
     })
     
     it('应该识别接近预算（>= 80%）', async () => {
-      // 本月消费 ¥56 = $8 (80%)
-      vi.mocked(AIUsageTracker.getCurrentMonthCost).mockResolvedValue(56)
+      // 本月消费：CNY=¥56, USD=$0 → combinedUSD=$8 (80%)
+      vi.mocked(AIUsageTracker.getTotalCostByCurrency as any).mockResolvedValueOnce(56) // CNY
+      vi.mocked(AIUsageTracker.getTotalCostByCurrency as any).mockResolvedValueOnce(0)  // USD
       
       const status = await BudgetChecker.getBudgetStatus()
       
@@ -77,8 +79,9 @@ describe('BudgetChecker', () => {
     })
     
     it('应该识别超预算', async () => {
-      // 本月消费 ¥77 = $11 (110%)
-      vi.mocked(AIUsageTracker.getCurrentMonthCost).mockResolvedValue(77)
+      // 本月消费：CNY=¥77, USD=$0 → combinedUSD=$11 (110%)
+      vi.mocked(AIUsageTracker.getTotalCostByCurrency as any).mockResolvedValueOnce(77) // CNY
+      vi.mocked(AIUsageTracker.getTotalCostByCurrency as any).mockResolvedValueOnce(0)  // USD
       
       const status = await BudgetChecker.getBudgetStatus()
       
@@ -109,7 +112,9 @@ describe('BudgetChecker', () => {
         }
       })
       
-      vi.mocked(AIUsageTracker.getCurrentMonthCost).mockResolvedValue(21)
+      // CNY=¥21 → combinedUSD=$3
+      vi.mocked(AIUsageTracker.getTotalCostByCurrency as any).mockResolvedValueOnce(21) // CNY
+      vi.mocked(AIUsageTracker.getTotalCostByCurrency as any).mockResolvedValueOnce(0)  // USD
       
       const status = await BudgetChecker.getBudgetStatus()
       
@@ -119,7 +124,8 @@ describe('BudgetChecker', () => {
     
     it('应该处理月末（剩余0天）', async () => {
       vi.mocked(dateUtils.getRemainingDaysInMonth).mockReturnValue(0)
-      vi.mocked(AIUsageTracker.getCurrentMonthCost).mockResolvedValue(35)
+      vi.mocked(AIUsageTracker.getTotalCostByCurrency as any).mockResolvedValueOnce(35) // CNY
+      vi.mocked(AIUsageTracker.getTotalCostByCurrency as any).mockResolvedValueOnce(0)  // USD
       
       const status = await BudgetChecker.getBudgetStatus()
       
@@ -127,21 +133,23 @@ describe('BudgetChecker', () => {
       expect(status.suggestedDailyBudget).toBe(0)
     })
     
-    it('应该处理查询失败（返回默认状态）', async () => {
-      vi.mocked(AIUsageTracker.getCurrentMonthCost).mockRejectedValue(new Error('DB error'))
+    it('查询失败时仍保留配置预算并视为未超支', async () => {
+      // 两币种查询都抛错；预算读取不受影响，保持配置的 $10
+      vi.mocked(AIUsageTracker.getTotalCostByCurrency as any).mockRejectedValue(new Error('DB error'))
       
       const status = await BudgetChecker.getBudgetStatus()
       
-      // 应该返回安全的默认值
-      expect(status.monthlyBudget).toBe(5)
-      expect(status.currentSpent).toBe(0)
+      expect(status.monthlyBudget).toBe(10) // 预算来自配置
+      expect(status.currentSpentUSD).toBeCloseTo(0, 4)
       expect(status.isOverBudget).toBe(false)
+      expect(status.nearingBudget).toBe(false)
     })
   })
   
   describe('canMakeAICall', () => {
     it('应该允许正常情况下的调用', async () => {
-      vi.mocked(AIUsageTracker.getCurrentMonthCost).mockResolvedValue(35) // $5
+      vi.mocked(AIUsageTracker.getTotalCostByCurrency as any).mockResolvedValueOnce(35) // CNY=$5
+      vi.mocked(AIUsageTracker.getTotalCostByCurrency as any).mockResolvedValueOnce(0)  // USD
       
       const result = await BudgetChecker.canMakeAICall()
       
@@ -150,7 +158,8 @@ describe('BudgetChecker', () => {
     })
     
     it('应该拒绝超预算时的调用', async () => {
-      vi.mocked(AIUsageTracker.getCurrentMonthCost).mockResolvedValue(77) // $11 > $10
+      vi.mocked(AIUsageTracker.getTotalCostByCurrency as any).mockResolvedValueOnce(77) // CNY=$11 > $10
+      vi.mocked(AIUsageTracker.getTotalCostByCurrency as any).mockResolvedValueOnce(0)
       
       const result = await BudgetChecker.canMakeAICall()
       
@@ -159,7 +168,8 @@ describe('BudgetChecker', () => {
     })
     
     it('应该检查预估费用是否会超预算', async () => {
-      vi.mocked(AIUsageTracker.getCurrentMonthCost).mockResolvedValue(63) // $9
+      vi.mocked(AIUsageTracker.getTotalCostByCurrency as any).mockResolvedValueOnce(63) // CNY=$9
+      vi.mocked(AIUsageTracker.getTotalCostByCurrency as any).mockResolvedValueOnce(0)
       
       // 预估费用 $2，总计会达到 $11 > $10
       const result = await BudgetChecker.canMakeAICall(2)
@@ -169,7 +179,8 @@ describe('BudgetChecker', () => {
     })
     
     it('应该允许不会超预算的预估调用', async () => {
-      vi.mocked(AIUsageTracker.getCurrentMonthCost).mockResolvedValue(35) // $5
+      vi.mocked(AIUsageTracker.getTotalCostByCurrency as any).mockResolvedValueOnce(35) // CNY=$5
+      vi.mocked(AIUsageTracker.getTotalCostByCurrency as any).mockResolvedValueOnce(0)
       
       // 预估费用 $3，总计 $8 < $10
       const result = await BudgetChecker.canMakeAICall(3)
@@ -180,7 +191,8 @@ describe('BudgetChecker', () => {
   
   describe('shouldDowngrade', () => {
     it('应该在超预算时建议降级', async () => {
-      vi.mocked(AIUsageTracker.getCurrentMonthCost).mockResolvedValue(77) // $11
+      vi.mocked(AIUsageTracker.getTotalCostByCurrency as any).mockResolvedValueOnce(77) // CNY=$11
+      vi.mocked(AIUsageTracker.getTotalCostByCurrency as any).mockResolvedValueOnce(0)
       
       const shouldDowngrade = await BudgetChecker.shouldDowngrade()
       
@@ -188,7 +200,8 @@ describe('BudgetChecker', () => {
     })
     
     it('应该在正常情况下不建议降级', async () => {
-      vi.mocked(AIUsageTracker.getCurrentMonthCost).mockResolvedValue(35) // $5
+      vi.mocked(AIUsageTracker.getTotalCostByCurrency as any).mockResolvedValueOnce(35) // CNY=$5
+      vi.mocked(AIUsageTracker.getTotalCostByCurrency as any).mockResolvedValueOnce(0)
       
       const shouldDowngrade = await BudgetChecker.shouldDowngrade()
       
@@ -196,7 +209,8 @@ describe('BudgetChecker', () => {
     })
     
     it('应该在接近预算但未超出时不建议降级', async () => {
-      vi.mocked(AIUsageTracker.getCurrentMonthCost).mockResolvedValue(63) // $9 (90%)
+      vi.mocked(AIUsageTracker.getTotalCostByCurrency as any).mockResolvedValueOnce(63) // CNY=$9 (90%)
+      vi.mocked(AIUsageTracker.getTotalCostByCurrency as any).mockResolvedValueOnce(0)
       
       const shouldDowngrade = await BudgetChecker.shouldDowngrade()
       
@@ -206,7 +220,8 @@ describe('BudgetChecker', () => {
   
   describe('getBudgetWarning', () => {
     it('应该在正常情况下不返回警告', async () => {
-      vi.mocked(AIUsageTracker.getCurrentMonthCost).mockResolvedValue(35) // $5 (50%)
+      vi.mocked(AIUsageTracker.getTotalCostByCurrency as any).mockResolvedValueOnce(35) // CNY=$5 (50%)
+      vi.mocked(AIUsageTracker.getTotalCostByCurrency as any).mockResolvedValueOnce(0)
       
       const warning = await BudgetChecker.getBudgetWarning()
       
@@ -214,7 +229,8 @@ describe('BudgetChecker', () => {
     })
     
     it('应该在接近预算时返回警告', async () => {
-      vi.mocked(AIUsageTracker.getCurrentMonthCost).mockResolvedValue(63) // $9 (90%)
+      vi.mocked(AIUsageTracker.getTotalCostByCurrency as any).mockResolvedValueOnce(63) // CNY=$9 (90%)
+      vi.mocked(AIUsageTracker.getTotalCostByCurrency as any).mockResolvedValueOnce(0)
       
       const warning = await BudgetChecker.getBudgetWarning()
       
@@ -223,7 +239,8 @@ describe('BudgetChecker', () => {
     })
     
     it('应该在超预算时返回严重警告', async () => {
-      vi.mocked(AIUsageTracker.getCurrentMonthCost).mockResolvedValue(77) // $11
+      vi.mocked(AIUsageTracker.getTotalCostByCurrency as any).mockResolvedValueOnce(77) // CNY=$11
+      vi.mocked(AIUsageTracker.getTotalCostByCurrency as any).mockResolvedValueOnce(0)
       
       const warning = await BudgetChecker.getBudgetWarning()
       

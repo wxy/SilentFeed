@@ -358,6 +358,21 @@ export class AIUsageTracker {
     const stats = await this.getStats(query)
     return stats.cost.total
   }
+
+  /**
+   * 获取指定货币的总费用（避免跨货币相加）
+   *
+   * @param currency 货币类型：'CNY' | 'USD' | 'FREE'
+   * @param query 查询条件
+   * @returns 指定货币的总费用
+   */
+  static async getTotalCostByCurrency(
+    currency: 'CNY' | 'USD' | 'FREE',
+    query: UsageStatsQuery = {}
+  ): Promise<number> {
+    const stats = await this.getStats(query)
+    return stats.byCurrency[currency].total
+  }
   
   /**
    * 获取当前自然月的总费用

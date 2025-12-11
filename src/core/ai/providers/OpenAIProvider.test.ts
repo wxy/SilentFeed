@@ -245,7 +245,7 @@ describe("OpenAIProvider", () => {
     })
     
     describe("成本计算", () => {
-      it("gpt-5-nano 应该正确计算成本", async () => {
+      it("gpt-5-nano 应该正确计算成本（无缓存数据时假设全部未命中，USD）", async () => {
         const nanoProvider = new OpenAIProvider({
           apiKey: mockApiKey,
           model: "gpt-5-nano"
@@ -263,14 +263,49 @@ describe("OpenAIProvider", () => {
         
         const result = await nanoProvider.analyzeContent("测试")
         
-        // gpt-5-nano 价格（10% 缓存命中率，USD → CNY，汇率 7.2）:
-        // 输入: 100 tokens * (0.1 * 0.005 + 0.9 * 0.050) / 1M * 7.2 = ￥0.00003276
-        // 输出: 50 tokens * 0.400 / 1M * 7.2 = ￥0.000144
-        // 总计: ￥0.00017676
-        expect(result.metadata.cost).toBeCloseTo(0.00017676, 5)
+        // gpt-5-nano 价格（无缓存数据，全部按未命中计算，USD）:
+        // 输入: 100 tokens * 0.050 / 1M = $0.000005
+        // 输出: 50 tokens * 0.400 / 1M = $0.00002
+        // 总计: $0.000025
+        expect(result.metadata.cost).toBeCloseTo(0.000025, 6)
       })
       
-      it("gpt-5-mini 应该正确计算成本", async () => {
+      it("gpt-5-nano 应该使用 API 返回的缓存数据精确计费", async () => {
+        const nanoProvider = new OpenAIProvider({
+          apiKey: mockApiKey,
+          model: "gpt-5-nano"
+        })
+        
+        // 模拟包含缓存统计的 API 响应
+        const responseWithCache = {
+          ...mockSuccessResponse,
+          model: "gpt-5-nano",
+          usage: {
+            prompt_tokens: 100,
+            completion_tokens: 50,
+            total_tokens: 150,
+            prompt_tokens_details: {
+              cached_tokens: 80  // 80 tokens 缓存命中
+            }
+          }
+        }
+        
+        vi.mocked(fetch).mockResolvedValueOnce({
+          ok: true,
+          json: async () => responseWithCache
+        } as Response)
+        
+        const result = await nanoProvider.analyzeContent("测试")
+        
+        // gpt-5-nano 价格（使用真实缓存数据，USD）:
+        // 缓存命中: 80 tokens * 0.005 / 1M = $0.0000004
+        // 缓存未命中: 20 tokens * 0.050 / 1M = $0.000001
+        // 输出: 50 tokens * 0.400 / 1M = $0.00002
+        // 总计: $0.0000214
+        expect(result.metadata.cost).toBeCloseTo(0.0000214, 7)
+      })
+      
+      it("gpt-5-mini 应该正确计算成本（无缓存数据，USD）", async () => {
         vi.mocked(fetch).mockResolvedValueOnce({
           ok: true,
           json: async () => mockSuccessResponse
@@ -278,14 +313,14 @@ describe("OpenAIProvider", () => {
         
         const result = await provider.analyzeContent("测试")
         
-        // gpt-5-mini 价格（10% 缓存命中率，USD → CNY，汇率 7.2）:
-        // 输入: 100 tokens * (0.1 * 0.025 + 0.9 * 0.250) / 1M * 7.2 = ￥0.00016380
-        // 输出: 50 tokens * 2.0 / 1M * 7.2 = ￥0.00072
-        // 总计: ￥0.0008838
-        expect(result.metadata.cost).toBeCloseTo(0.0008838, 5)
+        // gpt-5-mini 价格（无缓存数据，全部按未命中计算，USD）:
+        // 输入: 100 tokens * 0.250 / 1M = $0.000025
+        // 输出: 50 tokens * 2.0 / 1M = $0.0001
+        // 总计: $0.000125
+        expect(result.metadata.cost).toBeCloseTo(0.000125, 6)
       })
       
-      it("gpt-5 应该正确计算成本", async () => {
+      it("gpt-5 应该正确计算成本（无缓存数据，USD）", async () => {
         const gpt5Provider = new OpenAIProvider({
           apiKey: mockApiKey,
           model: "gpt-5"
@@ -303,14 +338,14 @@ describe("OpenAIProvider", () => {
         
         const result = await gpt5Provider.analyzeContent("测试")
         
-        // gpt-5 价格（10% 缓存命中率，USD → CNY，汇率 7.2）:
-        // 输入: 100 tokens * (0.1 * 0.125 + 0.9 * 1.25) / 1M * 7.2 = ￥0.00081900
-        // 输出: 50 tokens * 10.0 / 1M * 7.2 = ￥0.00360
-        // 总计: ￥0.004419
-        expect(result.metadata.cost).toBeCloseTo(0.004419, 5)
+        // gpt-5 价格（无缓存数据，全部按未命中计算，USD）:
+        // 输入: 100 tokens * 1.25 / 1M = $0.000125
+        // 输出: 50 tokens * 10.0 / 1M = $0.0005
+        // 总计: $0.000625
+        expect(result.metadata.cost).toBeCloseTo(0.000625, 6)
       })
       
-      it("o4-mini 应该正确计算成本", async () => {
+      it("o4-mini 应该正确计算成本（无缓存数据，USD）", async () => {
         const o4Provider = new OpenAIProvider({
           apiKey: mockApiKey,
           model: "o4-mini"
@@ -328,11 +363,11 @@ describe("OpenAIProvider", () => {
         
         const result = await o4Provider.analyzeContent("测试")
         
-        // o4-mini 价格（10% 缓存命中率，USD → CNY，汇率 7.2）:
-        // 输入: 100 tokens * (0.1 * 1.0 + 0.9 * 4.0) / 1M * 7.2 = ¥0.002664
-        // 输出: 50 tokens * 16.0 / 1M * 7.2 = ¥0.00576
-        // 总计: ¥0.008424
-        expect(result.metadata.cost).toBeCloseTo(0.008424, 6)
+        // o4-mini 价格（无缓存数据，全部按未命中计算，USD）:
+        // 输入: 100 tokens * 4.0 / 1M = $0.0004
+        // 输出: 50 tokens * 16.0 / 1M = $0.0008
+        // 总计: $0.0012
+        expect(result.metadata.cost).toBeCloseTo(0.0012, 6)
       })
     })
     
@@ -676,7 +711,7 @@ describe("OpenAIProvider", () => {
       expect(result.metadata.basedOn.dismisses).toBe(0)
     })
     
-    it("应该正确计算成本", async () => {
+    it("应该正确计算成本（无缓存数据，USD）", async () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => mockProfileResponse
@@ -684,11 +719,11 @@ describe("OpenAIProvider", () => {
       
       const result = await provider.generateUserProfile(mockProfileRequest)
       
-      // gpt-5-mini 价格（10% 缓存命中率，USD → CNY，汇率 7.2）:
-      // 输入: 500 tokens * (0.1 * 0.025 + 0.9 * 0.250) / 1M * 7.2 = ¥0.00081900
-      // 输出: 120 tokens * 2.0 / 1M * 7.2 = ¥0.001728
-      // 总计: ¥0.00254700
-      expect(result.metadata.cost).toBeCloseTo(0.002547, 5)
+      // gpt-5-mini 价格（无缓存数据，全部按未命中计算，USD）:
+      // 输入: 500 tokens * 0.250 / 1M = $0.000125
+      // 输出: 120 tokens * 2.0 / 1M = $0.00024
+      // 总计: $0.000365
+      expect(result.metadata.cost).toBeCloseTo(0.000365, 6)
     })
     
     it("应该处理 API 错误", async () => {

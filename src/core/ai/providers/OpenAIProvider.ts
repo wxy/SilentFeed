@@ -12,39 +12,23 @@
  */
 
 import { BaseAIService } from "../BaseAIService"
+import { OpenAICostCalculator, type TokenUsage } from "../CostCalculator"
 import type { AIProviderConfig } from "@/types/ai"
 import { logger } from "@/utils/logger"
 
 const openaiLogger = logger.withTag("OpenAIProvider")
 
-/**
- * OpenAI 模型定价（每 1M tokens，美元）
- * 数据来源: https://openai.com/api/pricing/ (2025-11)
- */
-const MODEL_PRICING = {
-  "gpt-5-nano": {
-    input: 0.050,
-    inputCached: 0.005,
-    output: 0.400
-  },
-  "gpt-5-mini": {
-    input: 0.250,
-    inputCached: 0.025,
-    output: 2.0
-  },
-  "gpt-5": {
-    input: 1.25,
-    inputCached: 0.125,
-    output: 10.0
-  },
-  "o4-mini": {
-    input: 4.0,
-    inputCached: 1.0,
-    output: 16.0
-  }
-} as const
+// 使用统一的成本计算器
+const costCalculator = new OpenAICostCalculator()
 
-type OpenAIModel = keyof typeof MODEL_PRICING
+// 支持的模型列表（用于类型检查）
+const SUPPORTED_MODELS = [
+  'gpt-4o', 'gpt-4o-mini',
+  'o1', 'o1-mini',
+  'gpt-5-nano', 'gpt-5-mini', 'gpt-5', 'o4-mini'
+] as const
+
+type OpenAIModel = typeof SUPPORTED_MODELS[number]
 
 type OpenAIResponseFormat =
   | {
@@ -103,12 +87,15 @@ export class OpenAIProvider extends BaseAIService {
   private model: OpenAIModel = "gpt-5-mini"
   private lastUsedModel: OpenAIModel = this.model
   
-  // 假设缓存命中率（用于成本估算）
-  private readonly CACHE_HIT_RATE = 0.1 // 10%
+  // 追踪最后一次请求的缓存命中情况（用于精确计费）
+  private lastCacheStats: {
+    cachedTokens: number
+    uncachedTokens: number
+  } | null = null
   
   constructor(config: AIProviderConfig) {
     super(config)
-    if (config.model && config.model in MODEL_PRICING) {
+    if (config.model && SUPPORTED_MODELS.includes(config.model as OpenAIModel)) {
       this.model = config.model as OpenAIModel
     }
     this.lastUsedModel = this.model
@@ -197,6 +184,23 @@ export class OpenAIProvider extends BaseAIService {
       // o1 模型会在 reasoning 字段返回思维链，但我们只需要最终答案
       
       this.lastUsedModel = requestModel
+      
+      // 保存缓存统计信息（用于成本计算）
+      const cachedTokens = data.usage.prompt_tokens_details?.cached_tokens || 0
+      this.lastCacheStats = {
+        cachedTokens,
+        uncachedTokens: data.usage.prompt_tokens - cachedTokens
+      }
+      
+      // 日志记录缓存命中情况
+      if (cachedTokens > 0) {
+        openaiLogger.debug("缓存统计", {
+          cachedTokens,
+          uncachedTokens: this.lastCacheStats.uncachedTokens,
+          hitRate: (cachedTokens / data.usage.prompt_tokens) * 100
+        })
+      }
+      
       return {
         content,
         tokensUsed: {
@@ -214,27 +218,40 @@ export class OpenAIProvider extends BaseAIService {
   }
   
   /**
-   * 实现：计算成本（人民币）
+   * 实现：获取货币类型
+   */
+  protected getCurrency(): 'CNY' | 'USD' | 'FREE' {
+    return 'USD'  // OpenAI 使用美元
+  }
+
+  /**
+   * 实现：计算成本（美元）
    */
   protected calculateCost(inputTokens: number, outputTokens: number): number {
-    const pricing = MODEL_PRICING[this.lastUsedModel] || MODEL_PRICING["gpt-5-mini"]
+    const breakdown = this.calculateCostBreakdown(inputTokens, outputTokens)
+    return breakdown.input + breakdown.output
+  }
+  
+  /**
+   * 实现：计算成本明细（输入和输出分开，美元）
+   * 
+   * 使用 API 返回的真实缓存命中数据计算成本
+   */
+  protected calculateCostBreakdown(inputTokens: number, outputTokens: number): { input: number; output: number } {
+    // 构建 TokenUsage 对象
+    const usage: TokenUsage = {
+      input: inputTokens,
+      output: outputTokens,
+      // 如果有缓存数据，使用真实的缓存命中数
+      cachedInput: this.lastCacheStats?.cachedTokens
+    }
     
-    // 假设部分输入 tokens 命中缓存
-    const cachedTokens = Math.floor(inputTokens * this.CACHE_HIT_RATE)
-    const uncachedTokens = inputTokens - cachedTokens
+    // 使用统一的成本计算器
+    const result = costCalculator.calculateCost(usage, this.lastUsedModel)
     
-    // 计算成本（美元）
-    const inputCost = (uncachedTokens / 1_000_000) * pricing.input +
-                     (cachedTokens / 1_000_000) * pricing.inputCached
-    const outputCost = (outputTokens / 1_000_000) * pricing.output
-    const totalCostUSD = inputCost + outputCost
+    openaiLogger.debug(`💰 成本计算: ${inputTokens} input (${usage.cachedInput || 0} cached) + ${outputTokens} output = $${result.total.toFixed(6)}`)
     
-    // 转换为人民币（汇率约 7.2）
-    const totalCostCNY = totalCostUSD * 7.2
-    
-    openaiLogger.debug(`💰 成本计算: ${inputTokens} input (${cachedTokens} cached) + ${outputTokens} output = $${totalCostUSD.toFixed(4)} ≈ ¥${totalCostCNY.toFixed(4)}`)
-    
-    return totalCostCNY
+    return { input: result.input, output: result.output }
   }
 
   protected getProfileResponseFormat(): Record<string, unknown> | null {

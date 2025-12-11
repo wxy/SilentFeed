@@ -21,6 +21,7 @@ import type {
 } from "@/types/ai"
 import { AIUsageTracker } from "./AIUsageTracker"
 import type { AIUsagePurpose } from "@/types/ai-usage"
+import type { Currency } from "./CostCalculator"
 import { promptManager } from "./prompts"
 import type { SupportedLanguage } from "./prompts"
 import ChromeStorageBackend from "@/i18n/chrome-storage-backend"
@@ -112,6 +113,13 @@ export abstract class BaseAIService implements AIProvider {
   }>
   
   /**
+   * 子类必须实现：获取货币类型
+   * 
+   * @returns 货币类型（CNY=人民币, USD=美元, FREE=免费/本地模型）
+   */
+  protected abstract getCurrency(): Currency
+  
+  /**
    * 子类可选实现：计算成本
    * 
    * @param inputTokens - 输入 tokens 数量
@@ -121,6 +129,28 @@ export abstract class BaseAIService implements AIProvider {
   protected calculateCost(inputTokens: number, outputTokens: number): number {
     // 默认返回 0（如果 Provider 不支持成本计算）
     return 0
+  }
+  
+  /**
+   * 子类可选实现：计算成本明细（输入和输出分开）
+   * 
+   * @param inputTokens - 输入 tokens 数量
+   * @param outputTokens - 输出 tokens 数量
+   * @returns 成本明细 { input: number, output: number }
+   */
+  protected calculateCostBreakdown(inputTokens: number, outputTokens: number): { input: number; output: number } {
+    // 默认返回 0（如果 Provider 不支持成本计算）
+    // 子类应该覆盖此方法提供准确的成本分解
+    const totalCost = this.calculateCost(inputTokens, outputTokens)
+    // 默认按 token 比例分配（粗略估计）
+    const totalTokens = inputTokens + outputTokens
+    if (totalTokens === 0) {
+      return { input: 0, output: 0 }
+    }
+    return {
+      input: totalCost * (inputTokens / totalTokens),
+      output: totalCost * (outputTokens / totalTokens)
+    }
   }
   
   /**
@@ -260,16 +290,16 @@ export abstract class BaseAIService implements AIProvider {
       const analysis = JSON.parse(jsonContent) as { topics: Record<string, number>; summary?: string }
       const normalizedTopics = this.normalizeTopicProbabilities(analysis.topics)
       
-      // 5. 计算成本
-      const calculatedCost = this.calculateCost(
+      // 5. 计算成本（分别计算输入和输出）
+      const costBreakdown = this.calculateCostBreakdown(
         response.tokensUsed.input,
         response.tokensUsed.output
       )
       
       cost = {
-        input: calculatedCost, // 简化：这里只有总成本
-        output: 0,
-        total: calculatedCost
+        input: costBreakdown.input,
+        output: costBreakdown.output,
+        total: costBreakdown.input + costBreakdown.output
       }
       
       success = true
@@ -284,6 +314,7 @@ export abstract class BaseAIService implements AIProvider {
           estimated: false // API 返回的是准确值
         },
         cost: {
+          currency: this.getCurrency(),
           ...cost,
           estimated: false
         },
@@ -311,7 +342,7 @@ export abstract class BaseAIService implements AIProvider {
             completion: response.tokensUsed.output,
             total: response.tokensUsed.input + response.tokensUsed.output
           },
-          cost: calculatedCost
+          cost: cost.total
         }
       }
     } catch (err) {
@@ -328,6 +359,7 @@ export abstract class BaseAIService implements AIProvider {
           estimated: true
         },
         cost: {
+          currency: this.getCurrency(),
           ...cost,
           estimated: true
         },
@@ -439,16 +471,16 @@ export abstract class BaseAIService implements AIProvider {
         avoidTopics: string[]
       }
       
-      // 5. 计算成本
-      const calculatedCost = this.calculateCost(
+      // 5. 计算成本（分别计算输入和输出）
+      const costBreakdown = this.calculateCostBreakdown(
         response.tokensUsed.input,
         response.tokensUsed.output
       )
       
       cost = {
-        input: calculatedCost,
-        output: 0,
-        total: calculatedCost
+        input: costBreakdown.input,
+        output: costBreakdown.output,
+        total: costBreakdown.input + costBreakdown.output
       }
       
       success = true
@@ -463,6 +495,7 @@ export abstract class BaseAIService implements AIProvider {
           estimated: false
         },
         cost: {
+          currency: this.getCurrency(),
           ...cost,
           estimated: false
         },
@@ -496,7 +529,7 @@ export abstract class BaseAIService implements AIProvider {
             reads: request.totalCounts?.reads || 0,
             dismisses: request.totalCounts?.dismisses || 0
           },
-          cost: calculatedCost
+          cost: cost.total
         }
       }
     } catch (err) {
@@ -513,6 +546,7 @@ export abstract class BaseAIService implements AIProvider {
           estimated: true
         },
         cost: {
+          currency: this.getCurrency(),
           ...cost,
           estimated: true
         },
@@ -624,6 +658,7 @@ export abstract class BaseAIService implements AIProvider {
           estimated: true // 测试连接不需要精确统计
         },
         cost: {
+          currency: this.getCurrency(),
           input: 0,
           output: 0,
           total: 0,
@@ -654,6 +689,7 @@ export abstract class BaseAIService implements AIProvider {
           estimated: true
         },
         cost: {
+          currency: this.getCurrency(),
           input: 0,
           output: 0,
           total: 0,

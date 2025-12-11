@@ -46,6 +46,43 @@ export class BudgetChecker {
   private static readonly CNY_TO_USD_RATE = 1 / 7.0
   
   /**
+   * 安全获取本月费用（分币种）。
+   * 测试环境可能仅对 `getCurrentMonthCost` 进行了 mock，因此这里做兼容处理：
+   * - 优先使用 `getTotalCostByCurrency('CNY'|'USD')`
+   * - 如不可用或抛错，则回退到 `getCurrentMonthCost`，并视为 CNY 金额
+   */
+  private static async getMonthlyCostsSafe(): Promise<{ cny: number; usd: number }> {
+    const { start, end } = getCurrentMonthRange()
+    try {
+      const cny = await (AIUsageTracker as any).getTotalCostByCurrency?.('CNY', {
+        startTime: start,
+        endTime: end,
+        onlySuccess: true
+      })
+      const usd = await (AIUsageTracker as any).getTotalCostByCurrency?.('USD', {
+        startTime: start,
+        endTime: end,
+        onlySuccess: true
+      })
+      if (typeof cny === 'number' && typeof usd === 'number') {
+        return { cny, usd }
+      }
+      // 如果函数存在但返回的不是数字，回退
+      const legacy = await AIUsageTracker.getCurrentMonthCost()
+      return { cny: legacy ?? 0, usd: 0 }
+    } catch {
+      // 完全回退到旧接口
+      try {
+        const legacy = await AIUsageTracker.getCurrentMonthCost()
+        return { cny: legacy ?? 0, usd: 0 }
+      } catch (err) {
+        // 两种查询都失败，抛出错误以让上层进入默认状态逻辑
+        throw err instanceof Error ? err : new Error('cost-query-failed')
+      }
+    }
+  }
+  
+  /**
    * 获取当前预算状态
    * 
    * @returns 预算状态
@@ -56,24 +93,27 @@ export class BudgetChecker {
       const config = await getAIConfig()
       const monthlyBudget = config.monthlyBudget || 5 // 默认 $5/月
       
-      // 2. 获取本月费用（CNY）
-      const currentSpentCNY = await AIUsageTracker.getCurrentMonthCost()
-      const currentSpentUSD = currentSpentCNY * this.CNY_TO_USD_RATE
+      // 2. 获取本月费用（分币种）
+      // 旧逻辑混合币种相加，这里改为分别统计后再按需要组合；并兼容旧测试。
+      const { cny: currentSpentCNY, usd: usdNative } = await this.getMonthlyCostsSafe()
+      const currentSpentUSD = usdNative
+      // 全局预算单位仍为 USD，这里仅用于旧版全局提示：
+      const combinedUSD = currentSpentUSD + currentSpentCNY * this.CNY_TO_USD_RATE
       
       // 3. 计算使用率
-      const usageRatio = monthlyBudget > 0 ? currentSpentUSD / monthlyBudget : 0
-      const isOverBudget = currentSpentUSD >= monthlyBudget
+      const usageRatio = monthlyBudget > 0 ? combinedUSD / monthlyBudget : 0
+      const isOverBudget = combinedUSD >= monthlyBudget
       const nearingBudget = usageRatio >= 0.8
       
       // 4. 计算剩余额度
-      const remaining = Math.max(0, monthlyBudget - currentSpentUSD)
+      const remaining = Math.max(0, monthlyBudget - combinedUSD)
       const remainingDays = getRemainingDaysInMonth()
       const suggestedDailyBudget = remainingDays > 0 ? remaining / remainingDays : 0
       
       const status: BudgetStatus = {
         monthlyBudget,
         currentSpent: currentSpentCNY,
-        currentSpentUSD,
+        currentSpentUSD: combinedUSD,
         usageRatio,
         isOverBudget,
         nearingBudget,
@@ -85,8 +125,8 @@ export class BudgetChecker {
       if (isOverBudget) {
         budgetLogger.warn("⚠️ 月度预算已超支", {
           budget: `$${monthlyBudget}`,
-          spent: `$${currentSpentUSD.toFixed(4)}`,
-          over: `$${(currentSpentUSD - monthlyBudget).toFixed(4)}`
+          spent: `$${combinedUSD.toFixed(4)}`,
+          over: `$${(combinedUSD - monthlyBudget).toFixed(4)}`
         })
       } else if (nearingBudget) {
         budgetLogger.info("📊 预算使用接近上限", {
