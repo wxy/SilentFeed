@@ -47,7 +47,9 @@ vi.mock("@/i18n/helpers", () => ({
         "popup.retry": "重试",
         "popup.noRecommendations": "暂无推荐",
         "popup.checkBackLater": "稍后再来看看吧",
-        "popup.learningStage.subtitle": "稍后回来查看新推荐",
+        "popup.learningStage.title": "正在学习你的兴趣偏好",
+        "popup.learningStage.progress": `已浏览 ${params?.current || 0}/${params?.total || 100} 页`,
+        "popup.learningStage.subtitle": "数据存储在本地，分析由你的 AI 完成",
         "popup.recommendations": "为你推荐",
         "popup.recommendationCount": `${params?.count || 0} 条推荐`,
         "popup.dismissAll": "全部忽略",
@@ -55,18 +57,25 @@ vi.mock("@/i18n/helpers", () => ({
         "popup.confirmDismissAll": `确定要忽略全部 ${params?.count || 0} 条推荐吗？`,
         "popup.settings": "⚙️ 设置",
         "popup.notInterested": "不想读",
+        // 空窗期随机消息
+        "popup.allCaughtUp.messages.0": "已读完当前推荐",
+        "popup.allCaughtUp.messages.1": "新内容正在路上",
+        "popup.allCaughtUp.subtitle": "稍后回来查看新推荐",
+        // Tips
+        "popup.tips.philosophy.0.emoji": "💡",
+        "popup.tips.philosophy.0.text": "克制的信息消费，只推荐真正值得读的",
       }
       return translations[key] || key
     },
     t: (key: string, options?: any) => {
-      // 处理学习阶段的随机消息
-      if (key === "popup.learningStage.messages" && options?.returnObjects) {
+      // 处理空窗期随机消息
+      if (key === "popup.allCaughtUp.messages" && options?.returnObjects) {
         return [
-          "正在为你寻找有价值的内容",
-          "好的推荐需要一点时间",
-          "在安静中，等待灵感的到来",
-          "慢慢来，精彩内容值得等待",
-          "我们正在挑选最适合你的信息"
+          "已读完当前推荐",
+          "新内容正在路上",
+          "休息一下，稍后再来",
+          "精彩内容很快到来",
+          "你已经全部读完了"
         ]
       }
       return key
@@ -173,23 +182,8 @@ describe("RecommendationView 组件", () => {
 
       // 学习阶段使用 🌱 图标
       expect(screen.getByText("🌱")).toBeInTheDocument()
-      // 检查是否显示了某个学习阶段消息（随机选择的）
-      const learningMessages = [
-        "正在为你寻找有价值的内容",
-        "好的推荐需要一点时间",
-        "在安静中，等待灵感的到来",
-        "慢慢来，精彩内容值得等待",
-        "我们正在挑选最适合你的信息"
-      ]
-      const hasMessage = learningMessages.some(msg => {
-        try {
-          screen.getByText(msg)
-          return true
-        } catch {
-          return false
-        }
-      })
-      expect(hasMessage).toBe(true)
+      // 检查是否显示了学习阶段标题
+      expect(screen.getByText("正在学习你的兴趣偏好")).toBeInTheDocument()
     })
   })
 
