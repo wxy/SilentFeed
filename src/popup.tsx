@@ -31,9 +31,11 @@ function IndexPopup() {
   const [uiStyle, setUiStyle] = useState<UIStyle>("normal")
   const [toolbarState, setToolbarState] = useState<{
     hasRSSFeeds: boolean
+    hasCandidateFeeds: boolean  // 新发现的订阅源
+    hasRecommendations: boolean  // 是否有推荐内容
     onDismissAll?: () => Promise<void>
     onOpenRSSManagement?: () => void
-  }>({ hasRSSFeeds: false })
+  }>({ hasRSSFeeds: false, hasCandidateFeeds: false, hasRecommendations: false })
 
   const COLD_START_THRESHOLD = LEARNING_COMPLETE_PAGES
 
@@ -196,25 +198,13 @@ function IndexPopup() {
         }>
           <h1 className={isSketchyStyle ? "sketchy-title text-sm font-medium" : "text-base font-bold text-white drop-shadow-sm"}>{_("app.name")}</h1>
           
-          {/* 右上角工具图标 - 仅在推荐阶段显示完整工具栏 */}
+          {/* 右上角工具图标 - 设置图标固定在最右端 */}
           <div className="flex items-center gap-1.5">
-            {/* 设置按钮始终显示 */}
-            <button
-              onClick={() => chrome.runtime.openOptionsPage()}
-              className={isSketchyStyle 
-                ? "p-1.5 hover:bg-white/50 dark:hover:bg-gray-700/50 rounded transition-colors"
-                : "p-1.5 hover:bg-white/20 rounded transition-colors"
-              }
-              title={_("popup.settings")}
-            >
-              <span className={isSketchyStyle ? "text-sm" : "text-sm text-white drop-shadow"}>⚙️</span>
-            </button>
-            
             {/* 推荐阶段显示额外按钮 */}
             {!isColdStart && (
               <>
-                {/* RSS源按钮 - 仅在有发现的源时显示 */}
-                {toolbarState.hasRSSFeeds && (
+                {/* RSS源按钮 - 仅在有新发现的订阅源时显示 */}
+                {toolbarState.hasCandidateFeeds && (
                   <button
                     onClick={toolbarState.onOpenRSSManagement}
                     className={isSketchyStyle 
@@ -227,19 +217,33 @@ function IndexPopup() {
                   </button>
                 )}
                 
-                {/* 全部不想读按钮 */}
-                <button
-                  onClick={toolbarState.onDismissAll}
-                  className={isSketchyStyle 
-                    ? "p-1.5 hover:bg-white/50 dark:hover:bg-gray-700/50 rounded transition-colors"
-                    : "p-1.5 hover:bg-white/20 rounded transition-colors"
-                  }
-                  title={_("popup.dismissAll")}
-                >
-                  <span className={isSketchyStyle ? "text-sm" : "text-sm text-white drop-shadow"}>👎</span>
-                </button>
+                {/* 全部不想读按钮 - 仅在有推荐内容时显示 */}
+                {toolbarState.hasRecommendations && (
+                  <button
+                    onClick={toolbarState.onDismissAll}
+                    className={isSketchyStyle 
+                      ? "p-1.5 hover:bg-white/50 dark:hover:bg-gray-700/50 rounded transition-colors"
+                      : "p-1.5 hover:bg-white/20 rounded transition-colors"
+                    }
+                    title={_("popup.dismissAll")}
+                  >
+                    <span className={isSketchyStyle ? "text-sm" : "text-sm text-white drop-shadow"}>👎</span>
+                  </button>
+                )}
               </>
             )}
+            
+            {/* 设置按钮始终显示，固定在最右端 */}
+            <button
+              onClick={() => chrome.runtime.openOptionsPage()}
+              className={isSketchyStyle 
+                ? "p-1.5 hover:bg-white/50 dark:hover:bg-gray-700/50 rounded transition-colors"
+                : "p-1.5 hover:bg-white/20 rounded transition-colors"
+              }
+              title={_("popup.settings")}
+            >
+              <span className={isSketchyStyle ? "text-sm" : "text-sm text-white drop-shadow"}>⚙️</span>
+            </button>
           </div>
         </div>
 
