@@ -24,6 +24,52 @@
     "confirmDismiss": "Are you sure you want to mark all {{count}} recommendations as \"Not interested\"?",
     "noRecommendations": "No recommendations yet",
     "checkBackLater": "Come back later for new recommendations",
+    "allCaughtUp": {
+      "messages": [
+        "Congratulations! You've escaped the information overload",
+        "The world is quiet now",
+        "You've got all the information you need for today",
+        "Take a break and enjoy the moment of peace",
+        "Perfect! All important information is yours"
+      ],
+      "subtitle": "All recommendations have been reviewed"
+    },
+    "learningStage": {
+      "title": "Learning your interests",
+      "progress": "Browsed {{current}}/{{total}} pages",
+      "subtitle": "Data stays local, your AI does the analysis"
+    },
+    "tips": {
+      "philosophy": [
+        { "emoji": "💡", "text": "Mindful reading — only what truly matters" },
+        { "emoji": "🌊", "text": "Calm the noise of endless feeds" },
+        { "emoji": "🎯", "text": "Hundreds in, only the best out" },
+        { "emoji": "🧘", "text": "Less is More: Read less, think more" }
+      ],
+      "privacy": [
+        { "emoji": "🔒", "text": "We collect nothing — your AI does the thinking" },
+        { "emoji": "🤖", "text": "Your AI, your data, your control" },
+        { "emoji": "🏠", "text": "Data stays local, AI handles the rest" }
+      ],
+      "usage": [
+        { "emoji": "📚", "text": "Subscribe freely — we'll pick the gems" },
+        { "emoji": "🌐", "text": "Auto-translate foreign content, no barriers" },
+        { "emoji": "🎨", "text": "Try Sketchy mode — you might love it" },
+        { "emoji": "🛡️", "text": "Privacy concerns? Try Privacy-First mode" },
+        { "emoji": "👤", "text": "Curious how we see you? Check your profile" },
+        { "emoji": "🕸️", "text": "Which feed isn't worth it? The radar chart knows" }
+      ],
+      "howItWorks": [
+        { "emoji": "🧠", "text": "Every click teaches us your taste" },
+        { "emoji": "🔄", "text": "Always learning from your clicks and skips" },
+        { "emoji": "🚀", "text": "Silence is golden — we're learning behind the scenes" },
+        { "emoji": "📖", "text": "Just 100 pages to unlock recommendations" }
+      ],
+      "features": [
+        { "emoji": "✨", "text": "Hundreds screened, only the best served" },
+        { "emoji": "🎲", "text": "Deep analysis is sharper — just costs a bit more" }
+      ]
+    },
     "confirmDismissAll": "Are you sure you want to mark all {{count}} recommendations as \"Not Interested\"?",
     "later": "Read Later",
     "dismiss": "Don't want to read",

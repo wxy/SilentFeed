@@ -8,9 +8,10 @@ const items = [
 ] as any
 
 describe("RecommendationView", () => {
-  it("空列表应显示占位", () => {
+  it("空列表应显示学习阶段提示", () => {
     render(<RecommendationView items={[]} loading={false} error={null} />)
-    expect(screen.getByText(/暂无推荐/)).toBeDefined()
+    // 学习阶段会随机显示一条消息，只需检查存在学习阶段的图标
+    expect(screen.getByText("🌱")).toBeDefined()
   })
 })
 /**
@@ -46,6 +47,9 @@ vi.mock("@/i18n/helpers", () => ({
         "popup.retry": "重试",
         "popup.noRecommendations": "暂无推荐",
         "popup.checkBackLater": "稍后再来看看吧",
+        "popup.learningStage.title": "正在学习你的兴趣偏好",
+        "popup.learningStage.progress": `已浏览 ${params?.current || 0}/${params?.total || 100} 页`,
+        "popup.learningStage.subtitle": "数据存储在本地，分析由你的 AI 完成",
         "popup.recommendations": "为你推荐",
         "popup.recommendationCount": `${params?.count || 0} 条推荐`,
         "popup.dismissAll": "全部忽略",
@@ -53,10 +57,29 @@ vi.mock("@/i18n/helpers", () => ({
         "popup.confirmDismissAll": `确定要忽略全部 ${params?.count || 0} 条推荐吗？`,
         "popup.settings": "⚙️ 设置",
         "popup.notInterested": "不想读",
+        // 空窗期随机消息
+        "popup.allCaughtUp.messages.0": "已读完当前推荐",
+        "popup.allCaughtUp.messages.1": "新内容正在路上",
+        "popup.allCaughtUp.subtitle": "稍后回来查看新推荐",
+        // Tips
+        "popup.tips.philosophy.0.emoji": "💡",
+        "popup.tips.philosophy.0.text": "克制的信息消费，只推荐真正值得读的",
       }
       return translations[key] || key
     },
-    t: (key: string) => key,
+    t: (key: string, options?: any) => {
+      // 处理空窗期随机消息
+      if (key === "popup.allCaughtUp.messages" && options?.returnObjects) {
+        return [
+          "已读完当前推荐",
+          "新内容正在路上",
+          "休息一下，稍后再来",
+          "精彩内容很快到来",
+          "你已经全部读完了"
+        ]
+      }
+      return key
+    },
   }),
 }))
 
@@ -153,13 +176,14 @@ describe("RecommendationView 组件", () => {
   })
 
   describe("空推荐状态", () => {
-    it("应该显示暂无推荐提示", () => {
+    it("应该显示学习阶段提示", () => {
       mockRecommendations = []
       render(<RecommendationView />)
 
-      expect(screen.getByText("✨")).toBeInTheDocument()
-      expect(screen.getByText("暂无推荐")).toBeInTheDocument()
-      expect(screen.getByText("稍后再来看看吧")).toBeInTheDocument()
+      // 学习阶段使用 🌱 图标
+      expect(screen.getByText("🌱")).toBeInTheDocument()
+      // 检查是否显示了学习阶段标题
+      expect(screen.getByText("正在学习你的兴趣偏好")).toBeInTheDocument()
     })
   })
 

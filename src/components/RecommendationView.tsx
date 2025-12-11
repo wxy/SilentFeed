@@ -4,9 +4,10 @@
  * - 头部工具栏移至popup（设置、RSS源、全部不想读）
  * - 推荐列表：智能显示摘要，优化空间利用
  * - 用户行为跟踪：点击、不想读、全部不想读
+ * - 学习阶段和空窗期显示 Tips
  */
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useI18n } from "@/i18n/helpers"
 import { useRecommendationStore } from "@/stores/recommendationStore"
 import { FeedManager } from "@/core/rss/managers/FeedManager"
@@ -24,8 +25,38 @@ import { logger } from "@/utils/logger"
 import { getDisplayText, formatLanguageLabel, translateOnDemand } from "@/core/translator/recommendation-translator"
 import { getUIConfig } from "@/storage/ui-config"
 import { getOnboardingState } from "@/storage/onboarding-state"
+import { getPageCount } from "@/storage/db"
 
 const recViewLogger = logger.withTag("RecommendationView")
+
+/** Tip 数据结构 */
+interface Tip {
+  emoji: string
+  text: string
+}
+
+/**
+ * 获取随机 Tip（学习阶段优先工作原理类，推荐阶段优先理念和技巧类）
+ */
+function getRandomTip(tips: Record<string, Tip[]>, isLearningStage: boolean): Tip {
+  // 学习阶段优先展示工作原理类
+  const learningPriority = ['howItWorks', 'privacy', 'philosophy', 'features']
+  // 推荐阶段优先展示理念和技巧类
+  const readyPriority = ['philosophy', 'usage', 'features', 'privacy']
+  
+  const priority = isLearningStage ? learningPriority : readyPriority
+  
+  // 收集所有可用的 tips
+  const allTips: Tip[] = []
+  for (const category of priority) {
+    if (tips[category]) {
+      allTips.push(...tips[category])
+    }
+  }
+  
+  // 随机选择一条
+  return allTips[Math.floor(Math.random() * allTips.length)]
+}
 
 /**
  * 生成谷歌翻译页面URL
@@ -147,6 +178,7 @@ export function RecommendationView() {
   const [maxRecommendations, setMaxRecommendations] = useState(5)
   const [hasRSSFeeds, setHasRSSFeeds] = useState(false)
   const [isReady, setIsReady] = useState(false)
+  const [currentPageCount, setCurrentPageCount] = useState(0)
   
   // 加载推荐配置
   useEffect(() => {
@@ -157,14 +189,25 @@ export function RecommendationView() {
     loadConfig()
   }, [])
 
-  // 检查 onboarding 状态
+  // 检查 onboarding 状态和页面计数
   useEffect(() => {
     const checkOnboardingState = async () => {
       const status = await getOnboardingState()
       setIsReady(status.state === 'ready')
+      
+      // 获取当前页面计数
+      const count = await getPageCount()
+      setCurrentPageCount(count)
     }
     checkOnboardingState()
   }, [])
+
+  // 获取随机 Tip（使用 useMemo 避免每次渲染都随机）
+  const randomTip = useMemo(() => {
+    const tips = t("popup.tips", { returnObjects: true }) as Record<string, Tip[]>
+    if (!tips || typeof tips !== 'object') return null
+    return getRandomTip(tips, !isReady)
+  }, [t, isReady])
 
   // 检查是否有RSS源
   useEffect(() => {
@@ -369,19 +412,78 @@ export function RecommendationView() {
       )
     }
     
-    // 其他情况：通用空状态
+    // ready 状态且有 RSS 源：显示"全部读完"的鼓励消息 + Tip
+    if (isReady && hasRSSFeeds) {
+      // 从预设消息中随机选择一条
+      const messages = t("popup.allCaughtUp.messages", { returnObjects: true }) as string[]
+      const randomMessage = messages[Math.floor(Math.random() * messages.length)]
+      
+      return (
+        <div className="flex flex-col">
+          <div className="h-[300px] flex items-center justify-center">
+            <div className="text-center px-6">
+              <div className="text-4xl mb-3">✨</div>
+              <p className="text-sm text-gray-900 dark:text-gray-100 font-medium mb-1">
+                {randomMessage}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-500 mb-4">
+                {_("popup.allCaughtUp.subtitle")}
+              </p>
+              
+              {/* Tip 卡片 */}
+              {randomTip && (
+                <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                    <span className="mr-1.5">{randomTip.emoji}</span>
+                    {randomTip.text}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )
+    }
+    
+    // 其他情况：学习阶段，显示进度 + 说明 + Tip
+    const totalPages = 100
+    const progress = Math.min(currentPageCount, totalPages)
+    
     return (
       <div className="flex flex-col">
-        {/* 空状态 */}
         <div className="h-[300px] flex items-center justify-center">
           <div className="text-center px-6">
-            <div className="text-4xl mb-4">✨</div>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-              {_("popup.noRecommendations")}
+            <div className="text-4xl mb-3">🌱</div>
+            <p className="text-sm text-gray-900 dark:text-gray-100 font-medium mb-1">
+              {_("popup.learningStage.title")}
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-500">
-              {_("popup.checkBackLater")}
+            
+            {/* 进度显示 */}
+            <p className="text-xs text-blue-600 dark:text-blue-400 font-medium mb-2">
+              {_("popup.learningStage.progress", { current: progress, total: totalPages })}
             </p>
+            
+            {/* 进度条 */}
+            <div className="w-32 mx-auto h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mb-3">
+              <div 
+                className="h-full bg-gradient-to-r from-green-400 to-blue-500 transition-all"
+                style={{ width: `${(progress / totalPages) * 100}%` }}
+              ></div>
+            </div>
+            
+            <p className="text-xs text-gray-500 dark:text-gray-500 mb-4">
+              {_("popup.learningStage.subtitle")}
+            </p>
+            
+            {/* Tip 卡片 */}
+            {randomTip && (
+              <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  <span className="mr-1.5">{randomTip.emoji}</span>
+                  {randomTip.text}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
