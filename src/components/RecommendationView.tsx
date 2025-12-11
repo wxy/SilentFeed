@@ -209,15 +209,19 @@ export function RecommendationView() {
     return getRandomTip(tips, !isReady)
   }, [t, isReady])
 
-  // 检查是否有RSS源
+  // 检查 RSS 源状态
+  const [hasCandidateFeeds, setHasCandidateFeeds] = useState(false)
+  
   useEffect(() => {
     const checkRSSFeeds = async () => {
       try {
         const feedManager = new FeedManager()
         // 检查所有已订阅的源（subscribed状态）
         const subscribedFeeds = await feedManager.getFeeds('subscribed')
+        // 检查待确认的源（candidate状态）- 新发现的订阅源
         const candidateFeeds = await feedManager.getFeeds('candidate')
         setHasRSSFeeds(subscribedFeeds.length > 0 || candidateFeeds.length > 0)
+        setHasCandidateFeeds(candidateFeeds.length > 0)
       } catch (error) {
         recViewLogger.error('检查RSS源失败:', error)
       }
@@ -348,11 +352,13 @@ export function RecommendationView() {
     if (typeof window !== 'undefined') {
       (window as any).__recommendationViewToolbar = {
         hasRSSFeeds,
+        hasCandidateFeeds,  // 新发现的订阅源
+        hasRecommendations: displayedRecommendations.length > 0,  // 是否有推荐内容
         onDismissAll: handleDismissAll,
         onOpenRSSManagement: openRSSManagement
       }
     }
-  }, [hasRSSFeeds])
+  }, [hasRSSFeeds, hasCandidateFeeds, displayedRecommendations.length])
 
   if (isLoading && recommendations.length === 0) {
     return (
