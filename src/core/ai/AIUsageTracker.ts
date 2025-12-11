@@ -459,6 +459,20 @@ export class AIUsageTracker {
             USD: { input: 0, output: 0, total: 0 },
             FREE: { input: 0, output: 0, total: 0 }
           },
+          byCurrencyReasoning: {
+            CNY: {
+              withReasoning: { input: 0, output: 0, total: 0 },
+              withoutReasoning: { input: 0, output: 0, total: 0 }
+            },
+            USD: {
+              withReasoning: { input: 0, output: 0, total: 0 },
+              withoutReasoning: { input: 0, output: 0, total: 0 }
+            },
+            FREE: {
+              withReasoning: { input: 0, output: 0, total: 0 },
+              withoutReasoning: { input: 0, output: 0, total: 0 }
+            }
+          },
           byReasoning: {
             withReasoning: {
               calls: 0,
@@ -495,6 +509,17 @@ export class AIUsageTracker {
           stats.byCurrency![currency].input += record.cost.input
           stats.byCurrency![currency].output += record.cost.output
           stats.byCurrency![currency].total += record.cost.total
+
+          // 按币种 + 推理模式累计每日费用（包含 FREE）
+          if (record.reasoning) {
+            stats.byCurrencyReasoning![currency].withReasoning.input += record.cost.input
+            stats.byCurrencyReasoning![currency].withReasoning.output += record.cost.output
+            stats.byCurrencyReasoning![currency].withReasoning.total += record.cost.total
+          } else {
+            stats.byCurrencyReasoning![currency].withoutReasoning.input += record.cost.input
+            stats.byCurrencyReasoning![currency].withoutReasoning.output += record.cost.output
+            stats.byCurrencyReasoning![currency].withoutReasoning.total += record.cost.total
+          }
           
           // 推理模式统计（reasoning === undefined 视为 false）
           const reasoningStats = record.reasoning 

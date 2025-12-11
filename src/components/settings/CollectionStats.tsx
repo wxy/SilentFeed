@@ -616,13 +616,13 @@ export function CollectionStats() {
                                 {purposeLabels[purpose] || purpose}
                               </span>
                               <div className="text-right">
-                                {/* 按用途的币种细分（隐藏为 0 的币种） */}
-                                <div className="text-sm font-bold text-green-600 dark:text-green-400 flex items-center gap-2">
-                                  {data.byCurrency?.USD?.total && data.byCurrency.USD.total > 0 && (
-                                    <span className="inline-block">${data.byCurrency.USD.total.toFixed(4)}</span>
+                                {/* 按用途的币种细分（隐藏为 0 的币种） - 垂直排列避免折行 */}
+                                <div className="text-sm font-bold text-green-600 dark:text-green-400 flex flex-col items-end gap-0.5">
+                                  {(data.byCurrency?.USD?.total ?? 0) > 0 && (
+                                    <span className="inline-block">${data.byCurrency!.USD!.total!.toFixed(4)}</span>
                                   )}
-                                  {data.byCurrency?.CNY?.total && data.byCurrency.CNY.total > 0 && (
-                                    <span className="inline-block">¥{data.byCurrency.CNY.total.toFixed(4)}</span>
+                                  {(data.byCurrency?.CNY?.total ?? 0) > 0 && (
+                                    <span className="inline-block">¥{data.byCurrency!.CNY!.total!.toFixed(4)}</span>
                                   )}
                                 </div>
                                 {/* 仅展示各币种总费用，不区分输入/输出（零值隐藏） */}

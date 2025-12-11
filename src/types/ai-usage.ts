@@ -232,6 +232,21 @@ export interface DailyUsageStats {
     USD: { input: number; output: number; total: number }
     FREE: { input: number; output: number; total: number }
   }
+  /** 按币种+推理模式分组的费用统计（可选，便于可视化堆叠） */
+  byCurrencyReasoning?: {
+    CNY: {
+      withReasoning: { input: number; output: number; total: number }
+      withoutReasoning: { input: number; output: number; total: number }
+    }
+    USD: {
+      withReasoning: { input: number; output: number; total: number }
+      withoutReasoning: { input: number; output: number; total: number }
+    }
+    FREE: {
+      withReasoning: { input: number; output: number; total: number }
+      withoutReasoning: { input: number; output: number; total: number }
+    }
+  }
   
   /** 按推理模式分组 */
   byReasoning: {
