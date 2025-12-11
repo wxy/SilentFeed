@@ -34,6 +34,16 @@
       ],
       "subtitle": "All recommendations have been reviewed"
     },
+    "learningStage": {
+      "messages": [
+        "Seeking valuable content for you",
+        "Good recommendations take a little time",
+        "In silence, awaiting inspiration",
+        "Take it slow, great content is worth the wait",
+        "We're selecting the best information for you"
+      ],
+      "subtitle": "Check back later for new recommendations"
+    },
     "confirmDismissAll": "Are you sure you want to mark all {{count}} recommendations as \"Not Interested\"?",
     "later": "Read Later",
     "dismiss": "Don't want to read",

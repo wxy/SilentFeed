@@ -392,18 +392,21 @@ export function RecommendationView() {
       )
     }
     
-    // 其他情况：通用空状态（学习阶段等）
+    // 其他情况：学习阶段，显示温暖的等待消息
+    // 从预设消息中随机选择一条，避免重复感
+    const learningMessages = t("popup.learningStage.messages", { returnObjects: true }) as string[]
+    const randomLearningMessage = learningMessages[Math.floor(Math.random() * learningMessages.length)]
+    
     return (
       <div className="flex flex-col">
-        {/* 空状态 */}
         <div className="h-[300px] flex items-center justify-center">
           <div className="text-center px-6">
-            <div className="text-4xl mb-4">✨</div>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-              {_("popup.noRecommendations")}
+            <div className="text-4xl mb-4">🌱</div>
+            <p className="text-sm text-gray-900 dark:text-gray-100 font-medium mb-2">
+              {randomLearningMessage}
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-500">
-              {_("popup.checkBackLater")}
+              {_("popup.learningStage.subtitle")}
             </p>
           </div>
         </div>

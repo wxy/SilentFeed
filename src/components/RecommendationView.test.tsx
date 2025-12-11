@@ -8,9 +8,10 @@ const items = [
 ] as any
 
 describe("RecommendationView", () => {
-  it("空列表应显示占位", () => {
+  it("空列表应显示学习阶段提示", () => {
     render(<RecommendationView items={[]} loading={false} error={null} />)
-    expect(screen.getByText(/暂无推荐/)).toBeDefined()
+    // 学习阶段会随机显示一条消息，只需检查存在学习阶段的图标
+    expect(screen.getByText("🌱")).toBeDefined()
   })
 })
 /**
@@ -46,6 +47,7 @@ vi.mock("@/i18n/helpers", () => ({
         "popup.retry": "重试",
         "popup.noRecommendations": "暂无推荐",
         "popup.checkBackLater": "稍后再来看看吧",
+        "popup.learningStage.subtitle": "稍后回来查看新推荐",
         "popup.recommendations": "为你推荐",
         "popup.recommendationCount": `${params?.count || 0} 条推荐`,
         "popup.dismissAll": "全部忽略",
@@ -56,7 +58,19 @@ vi.mock("@/i18n/helpers", () => ({
       }
       return translations[key] || key
     },
-    t: (key: string) => key,
+    t: (key: string, options?: any) => {
+      // 处理学习阶段的随机消息
+      if (key === "popup.learningStage.messages" && options?.returnObjects) {
+        return [
+          "正在为你寻找有价值的内容",
+          "好的推荐需要一点时间",
+          "在安静中，等待灵感的到来",
+          "慢慢来，精彩内容值得等待",
+          "我们正在挑选最适合你的信息"
+        ]
+      }
+      return key
+    },
   }),
 }))
 
@@ -153,13 +167,29 @@ describe("RecommendationView 组件", () => {
   })
 
   describe("空推荐状态", () => {
-    it("应该显示暂无推荐提示", () => {
+    it("应该显示学习阶段提示", () => {
       mockRecommendations = []
       render(<RecommendationView />)
 
-      expect(screen.getByText("✨")).toBeInTheDocument()
-      expect(screen.getByText("暂无推荐")).toBeInTheDocument()
-      expect(screen.getByText("稍后再来看看吧")).toBeInTheDocument()
+      // 学习阶段使用 🌱 图标
+      expect(screen.getByText("🌱")).toBeInTheDocument()
+      // 检查是否显示了某个学习阶段消息（随机选择的）
+      const learningMessages = [
+        "正在为你寻找有价值的内容",
+        "好的推荐需要一点时间",
+        "在安静中，等待灵感的到来",
+        "慢慢来，精彩内容值得等待",
+        "我们正在挑选最适合你的信息"
+      ]
+      const hasMessage = learningMessages.some(msg => {
+        try {
+          screen.getByText(msg)
+          return true
+        } catch {
+          return false
+        }
+      })
+      expect(hasMessage).toBe(true)
     })
   })
 
