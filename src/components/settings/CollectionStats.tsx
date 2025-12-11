@@ -625,6 +625,8 @@ export function CollectionStats() {
                                     <span className="inline-block">¥{data.byCurrency.CNY.total.toFixed(4)}</span>
                                   )}
                                 </div>
+                                {/* 仅展示各币种总费用，不区分输入/输出（零值隐藏） */}
+                                {/* 需求说明：按用途分组只关心不同币种各有多少 */}
                               </div>
                             </div>
                             <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 mb-2">
