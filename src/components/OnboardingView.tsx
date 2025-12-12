@@ -29,6 +29,7 @@ import { aiManager } from "@/core/ai/AICapabilityManager"
 import { FeedManager } from "@/core/rss/managers/FeedManager"
 import { OPMLImporter } from "@/core/rss/OPMLImporter"
 import { saveProviderStatus } from "@/storage/ai-provider-status"
+import { listLocalModels } from "@/utils/local-ai-endpoint"
 
 interface OnboardingViewProps {
   onComplete: () => void  // 完成引导后的回调
@@ -365,6 +366,13 @@ function AIConfigStep({
 }: AIConfigStepProps) {
   const { _ } = useI18n()
 
+  // 新增：在冷启动阶段支持选择本地 Ollama
+  const [useLocal, setUseLocal] = useState(false)
+  const [localEndpoint, setLocalEndpoint] = useState("http://localhost:11434/v1")
+  const [localModel, setLocalModel] = useState<string>("")
+  const [isTestingLocal, setIsTestingLocal] = useState(false)
+  const [localModels, setLocalModels] = useState<Array<{ id: string; label: string }>>([])
+
   /**
    * 清理 API Key 中的非 ASCII 字符
    * 
@@ -378,6 +386,12 @@ function AIConfigStep({
 
   // 测试连接
   const handleTestConnection = async () => {
+    if (useLocal) {
+      // 选择了本地 AI，改走本地测试流程
+      await handleTestLocal()
+      return
+    }
+
     if (!model) {
       setError(_("onboarding.errors.selectModel"))
       return
@@ -468,6 +482,61 @@ function AIConfigStep({
     }
   }
 
+  // 测试本地 Ollama 连接（冷启动阶段）
+  const handleTestLocal = async () => {
+    if (!localEndpoint.trim()) {
+      setError(_("") || "请输入 Ollama 端点")
+      return
+    }
+    setIsTestingLocal(true)
+    setIsTestingConnection(true)
+    setError(null)
+    setSuccess(null)
+    try {
+      // 直接调用工具列出模型以验证端点可用
+      const { models } = await listLocalModels(localEndpoint, undefined)
+      setLocalModels(models)
+      if (models.length === 0) {
+        setError("未获取到模型，请先在本机拉取模型（如：ollama pull llama3.2）")
+        setConnectionTested(false)
+        return
+      }
+      // 选择第一个模型作为默认
+      const selectedModel = localModel || models[0].id
+      setLocalModel(selectedModel)
+
+      // 保存配置到 storage
+      const currentConfig = await getAIConfig()
+      await saveAIConfig({
+        ...currentConfig,
+        local: {
+          enabled: true,
+          provider: "ollama",
+          endpoint: localEndpoint,
+          model: selectedModel,
+          apiKey: "ollama"
+        }
+      })
+
+      // 标记 Provider 可用
+      await saveProviderStatus({
+        providerId: 'ollama',
+        type: 'local',
+        available: true,
+        lastChecked: Date.now()
+      })
+
+      setSuccess("本地 Ollama 连接成功")
+      setConnectionTested(true)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+      setConnectionTested(false)
+    } finally {
+      setIsTestingLocal(false)
+      setIsTestingConnection(false)
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="text-center space-y-1">
@@ -479,7 +548,66 @@ function AIConfigStep({
         </p>
       </div>
 
+      {/* 远程 / 本地 选择开关 */}
+      <div className="flex gap-2 justify-center">
+        <button
+          type="button"
+          onClick={() => { setUseLocal(false); setConnectionTested(false); setError(null); setSuccess(null) }}
+          className={`px-3 py-1.5 text-sm rounded border ${!useLocal ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300'}`}
+        >
+          ☁️ 远程 AI
+        </button>
+        <button
+          type="button"
+          onClick={() => { setUseLocal(true); setConnectionTested(false); setError(null); setSuccess(null) }}
+          className={`px-3 py-1.5 text-sm rounded border ${useLocal ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300'}`}
+        >
+          💻 本地 Ollama
+        </button>
+      </div>
+
+      {/* 本地 Ollama 配置（简化版） */}
+      {useLocal && (
+        <div className="space-y-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Ollama 端点</label>
+            <input
+              type="text"
+              value={localEndpoint}
+              onChange={(e) => { setLocalEndpoint(e.target.value); setConnectionTested(false) }}
+              placeholder="http://localhost:11434/v1"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+            />
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">确保已运行 `ollama serve` 且允许此扩展访问</p>
+          </div>
+
+          {localModels.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">模型</label>
+              <select
+                value={localModel}
+                onChange={(e) => setLocalModel(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+              >
+                {localModels.map((m) => (
+                  <option key={m.id} value={m.id}>{m.label || m.id}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <button
+            onClick={handleTestLocal}
+            disabled={isTestingLocal}
+            className={`w-full px-4 py-2 rounded-lg font-medium transition-colors ${isTestingLocal ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+          >
+            {isTestingLocal ? '测试中…' : '测试连接并启用'}
+          </button>
+        </div>
+      )}
+
       {/* 模型选择 */}
+      {!useLocal && (
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           {_("onboarding.aiConfig.labels.model")}
@@ -506,9 +634,10 @@ function AIConfigStep({
           ))}
         </select>
       </div>
+      )}
 
       {/* API Key */}
-      {model && currentProvider && (
+      {!useLocal && model && currentProvider && (
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             {_("onboarding.aiConfig.labels.apiKey")} ({currentProvider.toUpperCase()})
@@ -542,7 +671,7 @@ function AIConfigStep({
       )}
 
       {/* 测试按钮 */}
-      {model && apiKey && (
+      {(!useLocal && model && apiKey) || useLocal ? (
         <button
           onClick={handleTestConnection}
           disabled={isTestingConnection || connectionTested}
@@ -552,9 +681,9 @@ function AIConfigStep({
             ? _("onboarding.aiConfig.buttons.testing")
             : connectionTested
             ? _("onboarding.aiConfig.buttons.tested")
-            : _("onboarding.aiConfig.buttons.test")}
+            : (useLocal ? '测试连接' : _("onboarding.aiConfig.buttons.test"))}
         </button>
-      )}
+      ) : null}
 
       {/* AI 配置步骤专用导航按钮 */}
       <div className="mt-6 flex gap-3">
