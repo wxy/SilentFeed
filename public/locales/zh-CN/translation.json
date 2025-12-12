@@ -1122,6 +1122,8 @@
         "title": "AI 引擎分配",
         "quickPresets": "快速预设",
         "recommended": "推荐",
+        "requiresLocal": "需本地AI",
+        "requiresRemote": "需远程AI",
         "advancedConfig": "高级配置",
         "detailedConfig": "详细配置",
         "advancedConfigHint": "自定义每个任务使用的 AI 引擎",

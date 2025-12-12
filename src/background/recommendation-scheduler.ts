@@ -11,6 +11,7 @@
  * - 待推荐 1-4 条 → 10 分钟
  * - 待推荐 0 条 → 20 分钟（保持监控）
  * - 检查学习阶段（< 100 页不生成）
+ * - 检查 AI 配置（未配置时跳过生成）
  * - 更新徽章显示新推荐
  * - 详细的日志记录
  */
@@ -19,6 +20,7 @@ import { getPageCount, getUnrecommendedArticleCount } from '../storage/db'
 import { recommendationService } from '../core/recommender/RecommendationService'
 import { logger } from '@/utils/logger'
 import { LEARNING_COMPLETE_PAGES } from '@/constants/progress'
+import { hasAnyAIAvailable } from '@/storage/ai-config'
 
 const schedLogger = logger.withTag('RecommendationScheduler')
 
@@ -346,6 +348,23 @@ export class RecommendationScheduler {
     this.isGenerating = true
     
     try {
+      // Phase 8: 检查 AI 是否可用
+      const aiStatus = await hasAnyAIAvailable()
+      if (!aiStatus.hasAny) {
+        const message = '跳过推荐生成：未配置任何 AI 引擎（请先在设置中配置 DeepSeek/OpenAI/Ollama）'
+        schedLogger.debug(message)
+        return {
+          shouldGenerate: false,
+          stats: {
+            recommendedCount: 0,
+            processedArticles: 0,
+            totalArticles: 0,
+            processingTimeMs: 0
+          },
+          message
+        }
+      }
+      
       // 1. 检查是否达到学习阈值
       const pageCount = await getPageCount()
       if (pageCount < LEARNING_COMPLETE_PAGES) {

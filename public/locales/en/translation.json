@@ -1017,6 +1017,8 @@
       "aiEngineAssignment": {
         "quickPresets": "Quick Presets",
         "recommended": "Recommend",
+        "requiresLocal": "Requires Local AI",
+        "requiresRemote": "Requires Remote AI",
         "advancedConfig": "Advanced Configuration",
         "detailedConfig": "Detailed Configuration",
         "advancedConfigHint": "Customize the AI engine used for each task",

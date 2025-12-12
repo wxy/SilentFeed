@@ -83,16 +83,8 @@ export function AIProviderCard({
               <span className="text-sm" title={type === 'local' ? _("options.aiConfig.card.preferredLocal") : _("options.aiConfig.card.preferredRemote")}>⭐</span>
             )}
             {isActive && (
-              <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded">
-                {_("options.aiConfig.card.active")}
-              </span>
+              <span className="text-sm" title={_("options.aiConfig.card.active")}>🔵</span>
             )}
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <span className={`text-sm font-medium ${statusColorClass}`}>
-              {statusText}
-            </span>
           </div>
         </div>
       </div>

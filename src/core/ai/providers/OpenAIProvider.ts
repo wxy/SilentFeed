@@ -307,8 +307,9 @@ export class OpenAIProvider extends BaseAIService {
     try {
       const startTime = Date.now()
       
+      // 使用足够大的 maxTokens 避免触发截断警告
       await this.callChatAPI("测试连接，请回复 OK", {
-        maxTokens: 10,
+        maxTokens: 200,
         timeout: 10000,
         jsonMode: false
       })

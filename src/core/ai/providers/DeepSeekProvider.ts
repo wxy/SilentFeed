@@ -233,6 +233,16 @@ export class DeepSeekProvider extends BaseAIService {
           ? "Response truncated due to max_tokens limit. Consider increasing max_tokens."
           : "Empty response from DeepSeek API"
         
+        // 仅在非测试场景（maxTokens > 200）时才记录截断警告
+        // 测试连接时的截断是预期行为，不应该显示警告
+        if (finishReason === 'length' && (request.max_tokens || 0) > 200) {
+          deepseekLogger.warn("⚠️ 响应因 max_tokens 限制被截断", {
+            model: request.model,
+            maxTokens: request.max_tokens,
+            reasoningContentPreview: reasoningContent?.substring(0, 200)
+          })
+        }
+        
         deepseekLogger.error("❌ API 返回空 content", {
           model: request.model,
           finishReason,
@@ -323,8 +333,10 @@ export class DeepSeekProvider extends BaseAIService {
     try {
       const startTime = Date.now()
       
+      // 使用足够大的 maxTokens 避免触发截断警告
+      // "测试连接"这种简单提示通常只需要几十个 token，但设置 200 确保不会截断
       await this.callChatAPI("测试连接", {
-        maxTokens: 10,
+        maxTokens: 200,
         timeout: 10000,
         jsonMode: false
       })
