@@ -651,6 +651,28 @@ function RSSSetupStep({
     }
   }
 
+  // 直接通过 URL 添加（用于示例源“添加”按钮）
+  const addFeedByUrl = async (url: string) => {
+    if (!url.trim()) return
+    setIsAddingFeed(true)
+    setError(null)
+    setSuccess(null)
+    try {
+      const id = await feedManager.addCandidate({
+        url: url.trim(),
+        title: "Example Feed",
+        discoveredFrom: 'example',
+        discoveredAt: Date.now()
+      })
+      await feedManager.subscribe(id, 'manual')
+      setAddedFeeds([...addedFeeds, url.trim()])
+    } catch (err) {
+      setError(_("onboarding.errors.addFeedFailed", { error: err instanceof Error ? err.message : String(err) }))
+    } finally {
+      setIsAddingFeed(false)
+    }
+  }
+
   // 导入 OPML
   const handleImportOPML = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -748,14 +770,16 @@ function RSSSetupStep({
             name={_("onboarding.rssSetup.exampleFeeds.solidot")}
             url="https://www.solidot.org/index.rss"
             onAdd={(url) => {
-              setRssUrl(url)
+              // 直接添加并订阅
+              addFeedByUrl(url)
             }}
           />
           <ExampleFeed
             name={_("onboarding.rssSetup.exampleFeeds.hackernews")}
             url="https://news.ycombinator.com/rss"
             onAdd={(url) => {
-              setRssUrl(url)
+              // 直接添加并订阅
+              addFeedByUrl(url)
             }}
           />
         </div>

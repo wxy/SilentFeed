@@ -70,7 +70,7 @@ describe("ColdStartView 组件", () => {
     it("应该显示提示信息", () => {
       render(<ColdStartView pageCount={0} />)
 
-      expect(screen.getByText("📖")).toBeInTheDocument()
+      expect(screen.getByText("💡")).toBeInTheDocument()
       expect(screen.getByText("开始浏览，我会自动学习")).toBeInTheDocument()
     })
   })

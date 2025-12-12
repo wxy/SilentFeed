@@ -152,13 +152,14 @@ export function ColdStartView({ pageCount, totalPages = LEARNING_COMPLETE_PAGES,
       {isSketchyStyle ? (
         <div className="sketchy-card w-full sketchy-float-hover">
           <p className="sketchy-text text-sm text-center flex items-center justify-center gap-2">
-            <span className="sketchy-emoji">📖</span>
+            <span className="sketchy-emoji">💡</span>
             <span>{_("popup.hint")}</span>
           </p>
         </div>
       ) : (
         <GlassCard variant="primary" className="w-full">
           <p className="text-xs text-center text-gray-700 dark:text-gray-300">
+            <span className="mr-1.5">💡</span>
             {_("popup.hint")}
           </p>
         </GlassCard>
