@@ -27,6 +27,26 @@ vi.mock("@/i18n/helpers", () => ({
       }
       return translations[key] || key
     },
+    t: (key: string, options?: any) => {
+      if (key === "popup.tips" && options?.returnObjects) {
+        return {
+          howItWorks: [
+            { emoji: "🧠", text: "每次停留和点击，都让推荐更懂你" },
+            { emoji: "🔄", text: "持续进化：点击和「不想读」都是学习信号" }
+          ],
+          privacy: [
+            { emoji: "🔒", text: "我们不收集任何数据，分析由你的 AI 完成" }
+          ],
+          philosophy: [
+            { emoji: "💡", text: "克制的信息消费，只推荐真正值得读的" }
+          ],
+          features: [
+            { emoji: "✨", text: "从上百篇文章中精选最匹配的几条" }
+          ]
+        }
+      }
+      return key
+    }
   }),
 }))
 
@@ -50,9 +70,16 @@ describe("ColdStartView 组件", () => {
     it("应该显示提示信息", () => {
       render(<ColdStartView pageCount={0} />)
 
-      expect(screen.getByText("📖")).toBeInTheDocument()
+      expect(screen.getByText("💡")).toBeInTheDocument()
       expect(screen.getByText("开始浏览，我会自动学习")).toBeInTheDocument()
     })
+  })
+
+  it("学习阶段应显示一条 tips", () => {
+    const spy = vi.spyOn(Math, "random").mockReturnValue(0)
+    render(<ColdStartView pageCount={0} uiStyle="normal" />)
+    expect(screen.getByText("每次停留和点击，都让推荐更懂你")).toBeInTheDocument()
+    spy.mockRestore()
   })
 
   describe("成长阶段显示", () => {

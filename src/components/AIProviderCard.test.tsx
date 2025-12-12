@@ -66,7 +66,9 @@ describe("AIProviderCard", () => {
     render(<AIProviderCard {...defaultProps} />)
 
     expect(screen.getByText("DeepSeek")).toBeInTheDocument()
-    expect(screen.getByText("未配置")).toBeInTheDocument()
+    // 未配置状态显示灰色图标 ⚪
+    const card = screen.getByText("DeepSeek").closest("div")
+    expect(card).toHaveTextContent("⚪")
   })
 
   it("应该渲染可用状态", () => {
@@ -80,7 +82,9 @@ describe("AIProviderCard", () => {
 
     render(<AIProviderCard {...defaultProps} status={status} />)
 
-    expect(screen.getByText("可用")).toBeInTheDocument()
+    // 可用状态显示绿色图标 🟢
+    const card = screen.getByText("DeepSeek").closest("div")
+    expect(card).toHaveTextContent("🟢")
     expect(screen.getByText(/120ms/)).toBeInTheDocument()
   })
 
@@ -95,7 +99,9 @@ describe("AIProviderCard", () => {
 
     render(<AIProviderCard {...defaultProps} status={status} />)
 
-    expect(screen.getByText("不可用")).toBeInTheDocument()
+    // 不可用状态显示红色图标 🔴
+    const card = screen.getByText("DeepSeek").closest("div")
+    expect(card).toHaveTextContent("🔴")
     expect(screen.getByText("连接失败")).toBeInTheDocument()
   })
 
@@ -139,7 +145,9 @@ describe("AIProviderCard", () => {
 
     render(<AIProviderCard {...defaultProps} status={status} isActive={true} />)
 
-    expect(screen.getByText("在用")).toBeInTheDocument()
+    // 在用状态显示蓝色图标 🔵
+    const card = screen.getByText("DeepSeek").closest("div")
+    expect(card).toHaveTextContent("🔵")
   })
 
   it("应该调用 onCheck 当点击检测按钮", () => {

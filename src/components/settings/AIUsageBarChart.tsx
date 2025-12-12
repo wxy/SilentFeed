@@ -67,14 +67,11 @@ export function AIUsageBarChart({ data, mode }: AIUsageBarChartProps) {
     ),
     0
   )
-  const maxCost = Math.max(
-    ...aggregatedData.map(
-      (d) => (d.byReasoning.withReasoning.cost.total || 0) + (d.byReasoning.withoutReasoning.cost.total || 0)
-    ),
-    0
-  )
+  // 费用按币种独立计算最大值，避免跨币种比例失真
+  const maxUsdCost = Math.max(...aggregatedData.map((d) => d.byCurrency?.USD?.total ?? 0), 0)
+  const maxCnyCost = Math.max(...aggregatedData.map((d) => d.byCurrency?.CNY?.total ?? 0), 0)
 
-  if (maxTokens === 0 && maxCalls === 0 && maxCost === 0) {
+  if (maxTokens === 0 && maxCalls === 0 && maxUsdCost === 0 && maxCnyCost === 0) {
     return renderEmptyState()
   }
 
@@ -82,13 +79,15 @@ export function AIUsageBarChart({ data, mode }: AIUsageBarChartProps) {
   const callTicks = generateTicks(maxCalls, 5)
   const tokenMaxDenom = tokenTicks[tokenTicks.length - 1] || Math.max(1, maxTokens)
   const callMaxDenom = callTicks[callTicks.length - 1] || Math.max(1, maxCalls)
-  const costMaxDenom = Math.max(1, maxCost)
+  const usdCostMaxDenom = Math.max(1, maxUsdCost)
+  const cnyCostMaxDenom = Math.max(1, maxCnyCost)
 
   // 使用固定尺寸，不缩放 - 让外部容器处理滚动
   const barWidth = BASE_BAR_WIDTH
   const barGap = BASE_BAR_GAP
   const dateGap = BASE_DATE_GAP
-  const perDayWidth = barWidth * 3 + barGap * 2
+  // 每日包含 4 列：Tokens、Calls、USD 费用、CNY 费用
+  const perDayWidth = barWidth * 4 + barGap * 3
   const dateWidth = perDayWidth + dateGap
   const totalContentWidth = sortedData.length * dateWidth
   const latestDateKey = sortedData[sortedData.length - 1]?.date ?? ""
@@ -133,18 +132,17 @@ export function AIUsageBarChart({ data, mode }: AIUsageBarChartProps) {
     })
   }
 
-  const formatCostTooltip = (date: string, label: string, value: number, total?: number) => {
+  const formatCostTooltip = (
+    date: string,
+    currency: 'USD' | 'CNY',
+    value: number,
+    total: number,
+    reasoning: boolean
+  ) => {
     const formattedDate = formatDate(date, mode, _)
-    const formattedValue = value.toFixed(4)
-    const totalValue = typeof total === "number" ? total : value
-    // 统一使用带总量的格式
-    return _("settings.aiUsage.tooltip.costReasoning", {
-      date: formattedDate,
-      label,
-      value: formattedValue,
-      totalLabel,
-      total: totalValue.toFixed(4)
-    })
+    const symbol = currency === 'USD' ? '$' : '¥'
+    const label = reasoning ? _("settings.aiUsage.legend.costReasoning") : _("settings.aiUsage.legend.costNonReasoning")
+    return `${formattedDate}\n${label}：${symbol}${value.toFixed(4)}\n${totalLabel}：${symbol}${total.toFixed(4)}`
   }
 
   // 滚动到最右侧（显示最新数据）
@@ -178,6 +176,7 @@ export function AIUsageBarChart({ data, mode }: AIUsageBarChartProps) {
 
   return (
     <div className="space-y-3 w-full max-w-full overflow-hidden">
+      {/* 顶部最大值提示移除 */}
       <div className="relative w-full">
         <div className="flex w-full">
           <div className="relative text-[10px] text-gray-500 dark:text-gray-400 pr-2 h-40 w-12 shrink-0 text-right">
@@ -193,7 +192,7 @@ export function AIUsageBarChart({ data, mode }: AIUsageBarChartProps) {
           </div>
 
           <div
-            className="relative h-40 border-l border-r border-b border-gray-300 dark:border-gray-600 flex-1 min-w-0 overflow-hidden"
+            className="relative h-40 border border-gray-300 dark:border-gray-600 flex-1 min-w-0 overflow-hidden"
           >
             {tokenTicks
               .filter((tick) => tick > 0)
@@ -222,15 +221,19 @@ export function AIUsageBarChart({ data, mode }: AIUsageBarChartProps) {
                   style={{ width: `${totalContentWidth}px` }}
                 >
                   {sortedData.map((item) => {
+                  const usdTotal = item.byCurrency?.USD?.total ?? 0
+                  const cnyTotal = item.byCurrency?.CNY?.total ?? 0
+                  const usdWithout = item.byCurrencyReasoning?.USD?.withoutReasoning.total ?? 0
+                  const usdWith = item.byCurrencyReasoning?.USD?.withReasoning.total ?? 0
+                  const cnyWithout = item.byCurrencyReasoning?.CNY?.withoutReasoning.total ?? 0
+                  const cnyWith = item.byCurrencyReasoning?.CNY?.withReasoning.total ?? 0
                   const totalTokens =
                     (item.byReasoning.withReasoning.tokens.total || 0) +
                     (item.byReasoning.withoutReasoning.tokens.total || 0)
                   const totalCalls =
                     (item.byReasoning.withReasoning.calls || 0) +
                     (item.byReasoning.withoutReasoning.calls || 0)
-                  const totalCost =
-                    (item.byReasoning.withReasoning.cost.total || 0) +
-                    (item.byReasoning.withoutReasoning.cost.total || 0)
+                  // 费用列改为按币种独立显示，不再堆叠推理/非推理
 
                   return (
                     <div
@@ -304,32 +307,44 @@ export function AIUsageBarChart({ data, mode }: AIUsageBarChartProps) {
                           )}
                         </div>
 
+                        {/* USD 费用列（零值不绘制），按非推理在下、推理在上堆叠 */}
                         <div className="relative flex-1 h-full">
-                          {item.byReasoning.withoutReasoning.cost.total > 0 && (
+                          {usdWithout > 0 && (
                             <div
                               className="absolute bottom-0 left-0 right-0 bg-orange-300 dark:bg-orange-400 hover:bg-orange-400 dark:hover:bg-orange-300 transition-colors cursor-pointer"
-                              style={{ height: `${heightPct(item.byReasoning.withoutReasoning.cost.total || 0, costMaxDenom)}%` }}
-                              title={formatCostTooltip(
-                                item.date,
-                                legendLabels.costNonReasoning,
-                                item.byReasoning.withoutReasoning.cost.total || 0,
-                                totalCost
-                              )}
+                              style={{ height: `${heightPct(usdWithout, usdCostMaxDenom)}%` }}
+                              title={formatCostTooltip(item.date, 'USD', usdWithout, usdTotal, false)}
                             />
                           )}
-                          {item.byReasoning.withReasoning.cost.total > 0 && (
+                          {usdWith > 0 && (
                             <div
                               className="absolute left-0 right-0 bg-rose-500 dark:bg-rose-600 hover:bg-rose-600 dark:hover:bg-rose-500 transition-colors cursor-pointer rounded-t-sm"
                               style={{
-                                bottom: `${heightPct(item.byReasoning.withoutReasoning.cost.total || 0, costMaxDenom)}%`,
-                                height: `${heightPct(item.byReasoning.withReasoning.cost.total || 0, costMaxDenom)}%`
+                                bottom: `${heightPct(usdWithout, usdCostMaxDenom)}%`,
+                                height: `${heightPct(usdWith, usdCostMaxDenom)}%`
                               }}
-                              title={formatCostTooltip(
-                                item.date,
-                                legendLabels.costReasoning,
-                                item.byReasoning.withReasoning.cost.total || 0,
-                                totalCost
-                              )}
+                              title={formatCostTooltip(item.date, 'USD', usdWith, usdTotal, true)}
+                            />
+                          )}
+                        </div>
+
+                        {/* CNY 费用列（零值不绘制），按非推理在下、推理在上堆叠 */}
+                        <div className="relative flex-1 h-full">
+                          {cnyWithout > 0 && (
+                            <div
+                              className="absolute bottom-0 left-0 right-0 bg-orange-300 dark:bg-orange-400 hover:bg-orange-400 dark:hover:bg-orange-300 transition-colors cursor-pointer"
+                              style={{ height: `${heightPct(cnyWithout, cnyCostMaxDenom)}%` }}
+                              title={formatCostTooltip(item.date, 'CNY', cnyWithout, cnyTotal, false)}
+                            />
+                          )}
+                          {cnyWith > 0 && (
+                            <div
+                              className="absolute left-0 right-0 bg-rose-500 dark:bg-rose-600 hover:bg-rose-600 dark:hover:bg-rose-500 transition-colors cursor-pointer rounded-t-sm"
+                              style={{
+                                bottom: `${heightPct(cnyWithout, cnyCostMaxDenom)}%`,
+                                height: `${heightPct(cnyWith, cnyCostMaxDenom)}%`
+                              }}
+                              title={formatCostTooltip(item.date, 'CNY', cnyWith, cnyTotal, true)}
                             />
                           )}
                         </div>

@@ -6,10 +6,14 @@
  */
 
 import { BaseAIService } from "../BaseAIService"
+import { DeepSeekCostCalculator, type TokenUsage } from "../CostCalculator"
 import type { AIProviderConfig } from "@/types/ai"
 import { logger, isNetworkError } from "@/utils/logger"
 
 const deepseekLogger = logger.withTag("DeepSeekProvider")
+
+// 使用统一的成本计算器
+const costCalculator = new DeepSeekCostCalculator()
 
 /**
  * DeepSeek API 请求类型
@@ -43,6 +47,9 @@ interface DeepSeekResponse {
     prompt_tokens: number
     completion_tokens: number
     total_tokens: number
+    // DeepSeek 缓存统计字段（用于精确计费）
+    prompt_cache_hit_tokens?: number   // 缓存命中的输入 tokens
+    prompt_cache_miss_tokens?: number  // 缓存未命中的输入 tokens
   }
 }
 
@@ -55,17 +62,14 @@ export class DeepSeekProvider extends BaseAIService {
   // 推理模式使用的模型
   private readonly REASONING_MODEL = "deepseek-reasoner"
   
-  // 追踪最后一次请求是否使用了推理模式（用于成本计算）
-  private lastRequestUsedReasoning = false
+  // 追踪最后一次请求的缓存命中情况（用于精确计费）
+  private lastCacheStats: {
+    hitTokens: number
+    missTokens: number
+  } | null = null
   
-  // 定价（每 1M tokens，人民币）
-  // deepseek-chat 定价
-  private readonly PRICE_INPUT_CACHED = 0.2 // ¥0.2/M (缓存命中)
-  private readonly PRICE_INPUT_UNCACHED = 2.0 // ¥2/M (缓存未命中)
-  private readonly PRICE_OUTPUT = 3.0 // ¥3/M
-  // deepseek-reasoner 定价（约 10 倍）
-  private readonly REASONER_PRICE_INPUT = 4.0 // ¥4/M
-  private readonly REASONER_PRICE_OUTPUT = 16.0 // ¥16/M
+  // 追踪最后一次请求使用的模型（用于成本计算）
+  private lastUsedModel = "deepseek-chat"
   
   constructor(config: AIProviderConfig) {
     super(config)
@@ -102,8 +106,8 @@ export class DeepSeekProvider extends BaseAIService {
     const useReasoning = options?.useReasoning || false
     const actualModel = useReasoning ? this.REASONING_MODEL : this.model
     
-    // 记录是否使用推理模式（用于成本计算）
-    this.lastRequestUsedReasoning = useReasoning
+    // 记录使用的模型（用于成本计算）
+    this.lastUsedModel = actualModel
     
     const request: DeepSeekRequest = {
       model: actualModel,
@@ -229,6 +233,16 @@ export class DeepSeekProvider extends BaseAIService {
           ? "Response truncated due to max_tokens limit. Consider increasing max_tokens."
           : "Empty response from DeepSeek API"
         
+        // 仅在非测试场景（maxTokens > 200）时才记录截断警告
+        // 测试连接时的截断是预期行为，不应该显示警告
+        if (finishReason === 'length' && (request.max_tokens || 0) > 200) {
+          deepseekLogger.warn("⚠️ 响应因 max_tokens 限制被截断", {
+            model: request.model,
+            maxTokens: request.max_tokens,
+            reasoningContentPreview: reasoningContent?.substring(0, 200)
+          })
+        }
+        
         deepseekLogger.error("❌ API 返回空 content", {
           model: request.model,
           finishReason,
@@ -236,6 +250,21 @@ export class DeepSeekProvider extends BaseAIService {
           reasoningContentPreview: reasoningContent?.substring(0, 200)
         })
         throw new Error(errorMsg)
+      }
+      
+      // 保存缓存统计信息（用于成本计算）
+      this.lastCacheStats = {
+        hitTokens: data.usage.prompt_cache_hit_tokens || 0,
+        missTokens: data.usage.prompt_cache_miss_tokens || data.usage.prompt_tokens // 如果没有缓存字段，全部视为未命中
+      }
+      
+      // 日志记录缓存命中情况
+      if (data.usage.prompt_cache_hit_tokens !== undefined) {
+        deepseekLogger.debug("缓存统计", {
+          hitTokens: this.lastCacheStats.hitTokens,
+          missTokens: this.lastCacheStats.missTokens,
+          hitRate: this.lastCacheStats.hitTokens / (this.lastCacheStats.hitTokens + this.lastCacheStats.missTokens) * 100
+        })
       }
       
       return {
@@ -258,25 +287,39 @@ export class DeepSeekProvider extends BaseAIService {
   }
   
   /**
+   * 实现：获取货币类型
+   */
+  protected getCurrency(): 'CNY' | 'USD' | 'FREE' {
+    return 'CNY'  // DeepSeek 使用人民币
+  }
+
+  /**
    * 实现：计算成本
    * 
-   * deepseek-chat: 假设 10% 缓存命中率
-   * deepseek-reasoner: 无缓存，直接计算
+   * 使用统一的 CostCalculator 计算成本
    */
   protected calculateCost(inputTokens: number, outputTokens: number): number {
-    if (this.lastRequestUsedReasoning) {
-      // deepseek-reasoner 定价（无缓存）
-      const inputCost = (inputTokens / 1000000) * this.REASONER_PRICE_INPUT
-      const outputCost = (outputTokens / 1000000) * this.REASONER_PRICE_OUTPUT
-      return inputCost + outputCost
-    } else {
-      // deepseek-chat 定价（有缓存）
-      const cacheHitRate = 0.1
-      const cachedInputCost = (inputTokens * cacheHitRate / 1000000) * this.PRICE_INPUT_CACHED
-      const uncachedInputCost = (inputTokens * (1 - cacheHitRate) / 1000000) * this.PRICE_INPUT_UNCACHED
-      const outputCost = (outputTokens / 1000000) * this.PRICE_OUTPUT
-      return cachedInputCost + uncachedInputCost + outputCost
+    const breakdown = this.calculateCostBreakdown(inputTokens, outputTokens)
+    return breakdown.input + breakdown.output
+  }
+  
+  /**
+   * 实现：计算成本明细（输入和输出分开）
+   * 
+   * 使用 API 返回的真实缓存命中数据计算成本
+   */
+  protected calculateCostBreakdown(inputTokens: number, outputTokens: number): { input: number; output: number } {
+    // 构建 TokenUsage 对象
+    const usage: TokenUsage = {
+      input: inputTokens,
+      output: outputTokens,
+      // 如果有缓存数据，使用真实的缓存命中数
+      cachedInput: this.lastCacheStats?.hitTokens
     }
+    
+    // 使用统一的成本计算器
+    const result = costCalculator.calculateCost(usage, this.lastUsedModel)
+    return { input: result.input, output: result.output }
   }
   
   /**
@@ -290,8 +333,10 @@ export class DeepSeekProvider extends BaseAIService {
     try {
       const startTime = Date.now()
       
+      // 使用足够大的 maxTokens 避免触发截断警告
+      // "测试连接"这种简单提示通常只需要几十个 token，但设置 200 确保不会截断
       await this.callChatAPI("测试连接", {
-        maxTokens: 10,
+        maxTokens: 200,
         timeout: 10000,
         jsonMode: false
       })

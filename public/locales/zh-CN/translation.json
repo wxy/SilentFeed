@@ -493,7 +493,7 @@
       "startLearningTimeLabel": "开始学习时间",
       "avgDailyPagesShort": "平均每日 {{count}} 页",
       "aiCostAnalysisTitle": "AI 成本分析",
-      "totalTokenUsageLabel": "Token 总用量",
+      "totalTokenUsageLabel": "词元(Token)总用量",
       "totalPagesLabel": "累计采集页面",
       "dwellTimeHint": "停留超过30秒的页面",
       "storageLabel": "存储占用",
@@ -507,7 +507,7 @@
       "durationSeconds": "{{seconds}}秒",
       "durationMinutes": "{{minutes}}分{{seconds}}秒",
       "aiQualityTitle": "AI 分析质量",
-      "providerLabel": "服务提供商",
+      "providerLabel": "服务服务商",
       "providerKeyword": "关键词",
       "providerStatusAI": "AI 语义理解",
       "providerStatusKeyword": "传统关键词",
@@ -519,15 +519,15 @@
       "totalCostCNY": "¥{{cost}}",
       "avgCostPerPage": "均 {{currency}}{{cost}}/页",
       "noCost": "暂无消费",
-      "tokenUsageLabel": "Token 用量",
+      "tokenUsageLabel": "词元(Token)用量",
       "tokenUsageK": "{{tokens}}K",
-      "avgTokensPerPage": "均 {{tokens}} tokens/页",
-      "providerDistributionTitle": "提供商分布",
+      "avgTokensPerPage": "均 {{tokens}} 词元(Token)/页",
+      "providerDistributionTitle": "服务商分布",
       "providerDistributionCount": "{{count}} 页 ({{percentage}}%)",
       "providerCostDistributionTitle": "AI 成本分布",
-      "providerTokens": "{{tokens}}K tokens",
+      "providerTokens": "{{tokens}}K 词元(Token)",
       "aiConfigPromptTitle": "想要更准确的内容分析？",
-      "aiConfigPromptDesc": "配置 AI 提供商（OpenAI、Anthropic、DeepSeek），获得更精准的语义理解和主题分类。",
+      "aiConfigPromptDesc": "配置 AI 服务商（OpenAI、Anthropic、DeepSeek），获得更精准的语义理解和主题分类。",
       "aiConfigPromptLink": "前往配置",
       "recommendationFunnelTitle": "推荐筛选漏斗",
       "recommendationFunnelNoData": "暂无推荐数据",
@@ -645,15 +645,15 @@
           "avgLatency": "平均延迟"
         },
         "tokens": {
-          "title": "Token 使用统计",
+          "title": "词元(Token)使用统计",
           "input": "输入",
           "output": "输出",
           "total": "总计"
         },
         "byProvider": {
-          "title": "按 AI Provider 分组",
+          "title": "按 AI 服务商分组",
           "calls": "次调用",
-          "tokens": "tokens",
+          "tokens": "词元(Token)",
           "inputOutput": "输入 {{input}}K / 输出 {{output}}K"
         },
         "byPurpose": {
@@ -663,7 +663,7 @@
           "generateProfile": "👤 画像生成",
           "testConnection": "🔗 连接测试",
           "calls": "次调用",
-          "tokens": "tokens",
+          "tokens": "词元(Token)",
           "inputOutput": "输入 {{input}}K / 输出 {{output}}K"
         },
         "byReasoning": {
@@ -672,7 +672,7 @@
           "withoutReasoning": "标准模式",
           "calls": "调用次数：",
           "callsUnit": "次",
-          "tokenUsage": "Token 用量：",
+          "tokenUsage": "词元(Token)用量：",
           "avgLatency": "平均延迟：",
           "cost": "费用：",
           "comparisonHint": "💡 推理模式延迟约为标准模式的",
@@ -682,7 +682,7 @@
           "title": "本地 AI 使用统计",
           "free": "免费",
           "calls": "次调用",
-          "tokenUsage": "Token 用量",
+          "tokenUsage": "词元(Token)用量",
           "avgDuration": "平均耗时",
           "localInference": "本地硬件推理",
           "hint": "💡 本地模型无 API 费用，但会占用计算资源"
@@ -699,10 +699,10 @@
         },
         "chart": {
           "calls": "调用",
-          "tokens": "Token",
+          "tokens": "词元(Token)",
           "cost": "费用",
           "callsComparison": "调用次数对比",
-          "tokensComparison": "Token 用量对比",
+          "tokensComparison": "词元(Token)用量对比",
           "callsUnit": "次"
         },
         "expandDetails": "展开详细信息",
@@ -763,7 +763,7 @@
       "usageScenarios": "AI 使用场景",
       "budgetOverview": {
         "title": "月度预算总览",
-        "description": "按货币查看所有 AI Provider 的预算使用情况",
+        "description": "按货币查看所有 AI 服务商的预算使用情况",
         "noBudgetSet": "未设置预算",
         "setBudgetHint": "在上方 AI 卡片的配置中设置月度预算"
       },
@@ -802,7 +802,7 @@
       "monthlyBudget": "月度预算",
       "monthlyUsage": "本月消费",
       "totalCost": "累计消费",
-      "tokenUsage": "Token 使用",
+      "tokenUsage": "词元(Token)使用",
       "contentAnalysisTokens": "内容分析",
       "recommendationTokens": "推荐生成",
       "profileTokens": "用户画像",
@@ -837,14 +837,14 @@
       "localAIForm": {
         "endpoint": "服务地址",
         "endpointHint": "默认 http://localhost:11434/v1（OpenAI 兼容），亦支持 http://localhost:11434/api",
-        "apiKey": "访问令牌 (Bearer Token)",
-        "apiKeyHint": "启用 Ollama OpenAI 兼容接口时需要 Bearer Token，默认值为 \"ollama\"",
-        "apiKeyPlaceholder": "例如 ollama 或自定义 token",
+        "apiKey": "<ruby>访问令牌<rt>Bearer Token</rt></ruby>",
+        "apiKeyHint": "启用 Ollama OpenAI 兼容接口时需要访问令牌，默认值为 \"ollama\"",
+        "apiKeyPlaceholder": "例如 ollama 或自定义访问令牌",
         "model": "默认模型",
         "modelPlaceholder": "点击右侧刷新按钮获取可用模型",
         "modelHint": "使用 `ollama list` 查看已下载模型，例如 qwen2.5:7b",
         "temperature": "温度 (0-1)",
-        "maxTokens": "最大输出 tokens",
+        "maxTokens": "最大输出词元(Token)",
         "timeout": "超时 (ms)",
         "buttons": {
           "test": "测试连接并获取模型",
@@ -881,7 +881,7 @@
         "note": "TF-IDF 准确性略低于 AI，适合日常轻量使用"
       },
       "labels": {
-        "provider": "AI 提供商",
+        "provider": "AI 服务商",
         "apiKey": "API 密钥",
         "model": "模型选择",
         "modelAndProvider": "选择 AI 模型"
@@ -895,11 +895,11 @@
       "hints": {
         "apiKey": "API 密钥将加密存储在浏览器本地，不会上传到服务器"
       },
-      "providerLabel": "AI 提供商",
+      "providerLabel": "AI 服务商",
       "apiKeyLabel": "API 密钥",
       "budgetLabel": "月度预算限制",
       "budgetUnit": "/ 月",
-      "selectProviderPlaceholder": "请选择 AI 提供商",
+      "selectProviderPlaceholder": "请选择 AI 服务商",
       "apiKeyPlaceholder": "输入你的 {{provider}} API 密钥",
       "apiKeyHint": "API 密钥将加密存储在浏览器本地，不会上传到服务器",
       "budgetHint": "超出预算后将自动降级到免费的关键词分析",
@@ -966,19 +966,19 @@
         "latency": "（延迟: {{ms}}ms）"
       },
       "errors": {
-        "selectProvider": "请选择 AI 提供商",
+        "selectProvider": "请选择 AI 服务商",
         "selectModel": "请选择 AI 模型",
         "invalidModel": "无效的模型选择",
         "enterApiKey": "请输入 API 密钥",
-        "selectProviderAndKey": "请选择提供商并输入 API 密钥",
-        "selectProviderAndKeyFirst": "请先选择提供商并输入 API 密钥",
+        "selectProviderAndKey": "请选择服务商并输入 API 密钥",
+        "selectProviderAndKeyFirst": "请先选择服务商并输入 API 密钥",
         "invalidApiKeyFormat": "API 密钥格式不正确",
         "saveFailed": "保存失败：{{error}}",
         "testFailed": "测试失败：{{error}}",
         "disableFailed": "禁用失败：{{error}}"
       },
       "info": {
-        "title": "如何选择 AI 提供商",
+        "title": "如何选择 AI 服务商",
         "overview": "静阅提供远程 AI 和本地 AI 两种分析方式，你可以根据需求灵活选择：",
         "remoteTitle": "远程 AI",
         "remoteDesc": "更强大准确，需要 API 密钥和网络，按使用量付费",
@@ -1013,7 +1013,7 @@
         "testing": "测试中...",
         "testSuccess": "测试成功",
         "temperature": "温度 (0-1)",
-        "maxTokens": "最大输出 tokens",
+        "maxTokens": "最大输出词元(Token)",
         "timeout": "超时 (ms)",
         "advancedOptions": "高级选项",
         "errors": {
@@ -1021,14 +1021,14 @@
         }
       },
       "cost": {
-        "title": "成本参考（每百万 tokens）",
-        "example": "假设每天浏览 50 个页面，每个页面平均 1000 tokens，10% 缓存命中率：",
+        "title": "成本参考，每百万词元(Token)",
+        "example": "假设每天浏览 50 个页面，每个页面平均 1000 词元(Token)，10% 缓存命中率：",
         "note": "实际成本会根据页面内容长度、访问频率等因素有所不同",
         "deepseek": {
           "title": "DeepSeek（人民币计价）",
-          "inputUncached": "输入（缓存未命中）: ¥2.00/M tokens",
-          "inputCached": "输入（缓存命中）: ¥0.20/M tokens",
-          "output": "输出: ¥3.00/M tokens",
+          "inputUncached": "输入（缓存未命中）: ¥2.00/百万词元(Token)",
+          "inputCached": "输入（缓存命中）: ¥0.20/百万词元(Token)",
+          "output": "输出: ¥3.00/百万词元(Token)",
           "estimate": "约 ¥1.41/月 (≈ $0.20/月)"
         },
         "openai": {
@@ -1122,6 +1122,8 @@
         "title": "AI 引擎分配",
         "quickPresets": "快速预设",
         "recommended": "推荐",
+        "requiresLocal": "需本地AI",
+        "requiresRemote": "需远程AI",
         "advancedConfig": "高级配置",
         "detailedConfig": "详细配置",
         "advancedConfigHint": "自定义每个任务使用的 AI 引擎",
@@ -1183,7 +1185,7 @@
         }
       },
       "providerPanel": {
-        "title": "AI 提供商状态",
+        "title": "AI 服务商状态",
         "checkAll": "检测全部",
         "checking": "检测中..."
       },
@@ -1202,7 +1204,7 @@
         "selectModel": "选择模型",
         "selectModelPlaceholder": "-- 选择模型 --",
         "enableReasoning": "启用推理模式（成本约10倍，但质量更高）",
-        "reasoningEnabled": "✅ 推理模式已开启：AI 将进行深度思考，提供更高质量的分析（消耗更多 tokens）",
+        "reasoningEnabled": "✅ 推理模式已开启：AI 将进行深度思考，提供更高质量的分析，但消耗更多词元(Token)",
         "reasoningDisabled": "💡 推理模式已关闭：仅作为许可开关，当前模型支持推理时才会生效",
         "setPreferredRemote": "设为首选远程 AI",
         "preferredRemoteHint": "勾选后，所有使用\"远程 AI\"的任务将优先选择此 AI",
@@ -1463,7 +1465,7 @@
         "test": "测试连接",
         "testing": "测试中...",
         "tested": "✓ 已测试",
-        "skip": "跳过",
+        "skip": "跳过，稍后设置",
         "nextWithConfig": "下一步"
       }
     },
@@ -1521,15 +1523,15 @@
   "settings": {
     "aiUsage": {
       "emptyState": "暂无数据",
-      "tokenAxisLabel": "词元（Token）",
+      "tokenAxisLabel": "词元(Token)",
       "callAxisLabel": "调用次数",
       "legend": {
-        "tokenNonReasoning": "词元（Token）（非推理）",
-        "tokenReasoning": "词元（Token）（推理）",
-        "callsNonReasoning": "调用（非推理）",
-        "callsReasoning": "调用（推理）",
-        "costNonReasoning": "费用（非推理）",
-        "costReasoning": "费用（推理）"
+        "tokenNonReasoning": "词元(Token)，非推理",
+        "tokenReasoning": "词元(Token)，推理",
+        "callsNonReasoning": "调用，非推理",
+        "callsReasoning": "调用，推理",
+        "costNonReasoning": "费用，非推理",
+        "costReasoning": "费用，推理"
       },
       "labels": {
         "total": "总计"

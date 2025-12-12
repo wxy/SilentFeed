@@ -63,7 +63,7 @@ export function BudgetOverview() {
     const symbol = currency === 'USD' ? '$' : '¥'
     const providerName = currency === 'USD' ? 'OpenAI' : 'DeepSeek'
     
-    if (data.total === 0) {
+    if (data.total === 0 && data.used === 0) {
       // 未设置预算时显示提示
       return (
         <div key={currency} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600">
@@ -108,6 +108,14 @@ export function BudgetOverview() {
         {/* 百分比 */}
         <div className="mt-1 text-xs text-right text-gray-500 dark:text-gray-400">
           {(usageRate * 100).toFixed(1)}%
+        </div>
+        {/* 本月费用小计（隐藏 0）*/}
+        <div className="mt-2 text-xs text-gray-600 dark:text-gray-400">
+          {data.used > 0 && (
+            <span>
+              {currency === 'USD' ? `$${data.used.toFixed(2)}` : `¥${data.used.toFixed(2)}`}
+            </span>
+          )}
         </div>
       </div>
     )

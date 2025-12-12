@@ -5,7 +5,7 @@
  * Phase 5.1: 当有 RSS 发现时，临时用雷达图标替换小树
  */
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useI18n } from "@/i18n/helpers"
 import type { UIStyle } from "@/storage/ui-config"
 import { FeedManager } from "@/core/rss/managers/FeedManager"
@@ -41,8 +41,27 @@ const getGrowthStage = (pageCount: number, totalPages: number) => {
 }
 
 export function ColdStartView({ pageCount, totalPages = LEARNING_COMPLETE_PAGES, uiStyle = "sketchy" }: ColdStartViewProps) {
-  const { _ } = useI18n()
+  const { _, t } = useI18n()
   const [hasRSSDiscovery, setHasRSSDiscovery] = useState(false)
+  
+  // 学习阶段 Tip（与推荐阶段空窗策略一致：学习优先 howItWorks/privacy/philosophy/features）
+  interface Tip { emoji: string; text: string }
+  const randomTip = useMemo(() => {
+    try {
+      const tips = t("popup.tips", { returnObjects: true }) as Record<string, Tip[]>
+      if (!tips || typeof tips !== 'object') return null
+      const learningPriority = ['howItWorks', 'privacy', 'philosophy', 'features']
+      const all: Tip[] = []
+      for (const cat of learningPriority) {
+        if (Array.isArray(tips[cat])) all.push(...tips[cat])
+      }
+      if (all.length === 0) return null
+      const idx = Math.floor(Math.random() * all.length)
+      return all[idx]
+    } catch {
+      return null
+    }
+  }, [t])
   
   // 检查是否有 RSS 发现
   useEffect(() => {
@@ -133,16 +152,36 @@ export function ColdStartView({ pageCount, totalPages = LEARNING_COMPLETE_PAGES,
       {isSketchyStyle ? (
         <div className="sketchy-card w-full sketchy-float-hover">
           <p className="sketchy-text text-sm text-center flex items-center justify-center gap-2">
-            <span className="sketchy-emoji">📖</span>
+            <span className="sketchy-emoji">💡</span>
             <span>{_("popup.hint")}</span>
           </p>
         </div>
       ) : (
         <GlassCard variant="primary" className="w-full">
           <p className="text-xs text-center text-gray-700 dark:text-gray-300">
+            <span className="mr-1.5">💡</span>
             {_("popup.hint")}
           </p>
         </GlassCard>
+      )}
+
+      {/* 学习阶段 Tip 卡片（与推荐阶段空窗期一致） */}
+      {randomTip && (
+        isSketchyStyle ? (
+          <div className="sketchy-card w-full sketchy-float-hover">
+            <p className="sketchy-text text-xs text-center flex items-center justify-center gap-2">
+              <span className="sketchy-emoji">{randomTip.emoji}</span>
+              <span>{randomTip.text}</span>
+            </p>
+          </div>
+        ) : (
+          <GlassCard variant="secondary" className="w-full">
+            <p className="text-xs text-center text-gray-600 dark:text-gray-400">
+              <span className="mr-1.5">{randomTip.emoji}</span>
+              {randomTip.text}
+            </p>
+          </GlassCard>
+        )
       )}
     </div>
   )

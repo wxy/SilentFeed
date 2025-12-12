@@ -9,6 +9,7 @@ import { RecommendationScheduler } from './recommendation-scheduler'
 import { getPageCount, getUnrecommendedArticleCount } from '../storage/db'
 import { recommendationService } from '../core/recommender/RecommendationService'
 import { LEARNING_COMPLETE_PAGES } from '@/constants/progress'
+import { hasAnyAIAvailable } from '@/storage/ai-config'
 
 // Mock dependencies
 vi.mock('../storage/db', () => ({
@@ -20,6 +21,11 @@ vi.mock('../core/recommender/RecommendationService', () => ({
   recommendationService: {
     generateRecommendations: vi.fn()
   }
+}))
+
+// Mock AI config
+vi.mock('@/storage/ai-config', () => ({
+  hasAnyAIAvailable: vi.fn()
 }))
 
 // Mock chrome.alarms API
@@ -36,6 +42,13 @@ describe('RecommendationScheduler', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     scheduler = new RecommendationScheduler()
+    // Phase 8: 默认模拟 AI 可用
+    vi.mocked(hasAnyAIAvailable).mockResolvedValue({
+      hasAny: true,
+      hasRemote: true,
+      hasLocal: false,
+      remoteProviders: ['deepseek']
+    })
   })
 
   afterEach(async () => {
@@ -143,6 +156,22 @@ describe('RecommendationScheduler', () => {
       expect(result.success).toBe(false)
       expect(result.recommendedCount).toBe(0)
       expect(result.message).toContain('跳过推荐生成')
+    })
+
+    it('应该在 AI 未配置时返回失败', async () => {
+      vi.mocked(getPageCount).mockResolvedValue(LEARNING_COMPLETE_PAGES)
+      vi.mocked(hasAnyAIAvailable).mockResolvedValue({
+        hasAny: false,
+        hasRemote: false,
+        hasLocal: false,
+        remoteProviders: []
+      })
+
+      const result = await scheduler.triggerNow()
+
+      expect(result.success).toBe(false)
+      expect(result.recommendedCount).toBe(0)
+      expect(result.message).toContain('未配置任何 AI 引擎')
     })
 
     it('应该在学习完成后成功生成推荐', async () => {

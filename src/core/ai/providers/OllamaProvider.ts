@@ -1,4 +1,5 @@
 import { BaseAIService } from "../BaseAIService"
+import { OllamaCostCalculator } from "../CostCalculator"
 import type { AIProviderConfig } from "@/types/ai"
 import { logger } from "@/utils/logger"
 import {
@@ -7,6 +8,9 @@ import {
   type LocalAIEndpointMode,
   type LocalAIEndpointSet
 } from "@/utils/local-ai-endpoint"
+
+// 使用统一的成本计算器（本地模型免费）
+const costCalculator = new OllamaCostCalculator()
 
 interface OllamaChatMessage {
   role: "system" | "user" | "assistant"
@@ -169,6 +173,32 @@ export class OllamaProvider extends BaseAIService {
         message: `连接失败: ${error instanceof Error ? error.message : String(error)}`
       }
     }
+  }
+  
+  /**
+   * 实现：获取货币类型
+   */
+  protected getCurrency(): 'CNY' | 'USD' | 'FREE' {
+    return 'FREE'  // Ollama 是本地模型，免费
+  }
+
+  /**
+   * 实现：计算成本（本地模型免费）
+   * 
+   * Ollama 是本地运行的模型，不产生费用
+   * 但仍然追踪 token 用量用于统计
+   */
+  protected calculateCost(inputTokens: number, outputTokens: number): number {
+    return 0
+  }
+  
+  /**
+   * 实现：计算成本明细（本地模型免费）
+   */
+  protected calculateCostBreakdown(inputTokens: number, outputTokens: number): { input: number; output: number } {
+    // 使用统一的成本计算器（返回 0）
+    const result = costCalculator.calculateCost({ input: inputTokens, output: outputTokens })
+    return { input: result.input, output: result.output }
   }
 
   protected getDefaultModelName(): string {

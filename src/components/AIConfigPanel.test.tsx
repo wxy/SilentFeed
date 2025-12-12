@@ -56,7 +56,8 @@ describe('AIConfigPanel 条件渲染', () => {
     render(<AIConfigPanel />)
     // 使用部分文本匹配，因为 emoji 和文本可能被分开渲染
     expect(screen.getByText(/AI 提供商状态/)).toBeDefined()
-    expect(screen.getAllByText('未配置').length).toBeGreaterThan(0)
+    // 未配置状态现在用 emoji ⚪ 显示
+    expect(screen.getAllByText('⚪').length).toBeGreaterThan(0)
   })
 
   it('应渲染检查与配置按钮', async () => {

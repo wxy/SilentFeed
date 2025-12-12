@@ -30,6 +30,7 @@ import { logger, isNetworkError } from '../../utils/logger'
 import { AIUsageTracker } from './AIUsageTracker'
 import { BudgetChecker } from './BudgetChecker'
 import { canMakeAICall, shouldDowngradeToKeyword } from '@/utils/budget-utils'
+import { CostCalculatorFactory } from './CostCalculator'
 
 // 创建带标签的 logger
 const aiLogger = logger.withTag('AICapabilityManager')
@@ -667,14 +668,19 @@ export class AICapabilityManager {
           `推荐理由生成 - tokens: ${metadata.tokensUsed.input + metadata.tokensUsed.output}`
         )
         
-        // 计算实际成本（DeepSeek 定价：输入 ¥0.001/1K tokens，输出 ¥0.002/1K tokens）
-        const inputCost = (metadata.tokensUsed.input / 1000) * 0.001
-        const outputCost = (metadata.tokensUsed.output / 1000) * 0.002
-        const totalCost = inputCost + outputCost
-        
         // 转换 provider 类型（anthropic 已弃用，记录为 keyword）
         const usageProvider: 'openai' | 'deepseek' | 'ollama' | 'keyword' = 
           metadata.provider === 'anthropic' ? 'keyword' : metadata.provider
+        
+        // 使用 CostCalculatorFactory 获取正确的计算器
+        const costCalculator = CostCalculatorFactory.getCalculator(usageProvider)
+        const costBreakdown = costCalculator.calculateCost(
+          {
+            input: metadata.tokensUsed.input,
+            output: metadata.tokensUsed.output
+          },
+          metadata.model
+        )
         
         // 记录到 AIUsageTracker
         await AIUsageTracker.recordUsage({
@@ -688,10 +694,10 @@ export class AICapabilityManager {
             estimated: false
           },
           cost: {
-            currency: 'CNY',
-            input: inputCost,
-            output: outputCost,
-            total: totalCost,
+            currency: costBreakdown.currency,
+            input: costBreakdown.input,
+            output: costBreakdown.output,
+            total: costBreakdown.total,
             estimated: false
           },
           reasoning: useReasoning,  // 使用传入的推理模式标记

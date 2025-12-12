@@ -22,7 +22,8 @@ const BAR_WIDTH = 12
 const BAR_GAP = 4
 const DATE_GAP = 32
 const VISIBLE_DAYS = 7
-const DATE_WIDTH = BAR_WIDTH * 3 + BAR_GAP * 2 + DATE_GAP
+// 每日包含 4 列：Tokens、Calls、USD 费用、CNY 费用
+const DATE_WIDTH = BAR_WIDTH * 4 + BAR_GAP * 3 + DATE_GAP
 
 const createDailyStat = (date: string): DailyUsageStats => ({
   date,

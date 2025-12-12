@@ -147,6 +147,12 @@ export interface AIUsageStats {
     calls: number
     tokens: { input: number; output: number; total: number }
     cost: { input: number; output: number; total: number }
+    /** 该用途下按币种分组的费用统计 */
+    byCurrency?: {
+      CNY: { input: number; output: number; total: number }
+      USD: { input: number; output: number; total: number }
+      FREE: { input: number; output: number; total: number }
+    }
   }>
   
   /** 按推理模式分组的统计（可选，仅在有推理调用时存在） */
@@ -220,6 +226,27 @@ export interface DailyUsageStats {
     output: number
     total: number
   }
+  /** 按币种分组的费用统计 */
+  byCurrency?: {
+    CNY: { input: number; output: number; total: number }
+    USD: { input: number; output: number; total: number }
+    FREE: { input: number; output: number; total: number }
+  }
+  /** 按币种+推理模式分组的费用统计（可选，便于可视化堆叠） */
+  byCurrencyReasoning?: {
+    CNY: {
+      withReasoning: { input: number; output: number; total: number }
+      withoutReasoning: { input: number; output: number; total: number }
+    }
+    USD: {
+      withReasoning: { input: number; output: number; total: number }
+      withoutReasoning: { input: number; output: number; total: number }
+    }
+    FREE: {
+      withReasoning: { input: number; output: number; total: number }
+      withoutReasoning: { input: number; output: number; total: number }
+    }
+  }
   
   /** 按推理模式分组 */
   byReasoning: {
@@ -247,5 +274,11 @@ export interface DailyUsageStats {
     calls: number
     tokens: { input: number; output: number; total: number }
     cost: { input: number; output: number; total: number }
+    /** 该用途下按币种分组的费用统计 */
+    byCurrency?: {
+      CNY: { input: number; output: number; total: number }
+      USD: { input: number; output: number; total: number }
+      FREE: { input: number; output: number; total: number }
+    }
   }>
 }

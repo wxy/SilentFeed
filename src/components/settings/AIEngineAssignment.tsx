@@ -7,6 +7,14 @@ import {
   type PresetName,
   type AIEngineConfig
 } from "@/types/ai-engine-assignment"
+import {
+  hasAnyAIAvailable,
+  getRecommendedPreset,
+  saveAIConfig,
+  getAIConfig,
+  type AIAvailabilityStatus
+} from "@/storage/ai-config"
+import { saveProviderStatus, getAllProviderStatus, type AIProvidersStatus } from "@/storage/ai-provider-status"
 
 interface AIEngineAssignmentProps {
   value: AIEngineAssignment
@@ -26,6 +34,139 @@ export function AIEngineAssignmentComponent({
   const { _ } = useI18n()
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [selectedPreset, setSelectedPreset] = useState<PresetName | "custom">("intelligence")
+  const [aiStatus, setAiStatus] = useState<AIAvailabilityStatus | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  // 检测 AI 可用性并处理预设切换
+  // 考虑配置和实际测试结果两个维度
+  const checkAIStatusAndAdjustPreset = async () => {
+    try {
+      // 获取配置状态
+      const configStatus = await hasAnyAIAvailable()
+      
+      // 获取实际测试状态
+      const providerStatuses = await getAllProviderStatus()
+      
+      // 增强的可用性判断：配置存在 AND (未测试 OR 测试通过)
+      // 远程 AI：检查每个配置的 provider
+      const availableRemoteProviders = configStatus.remoteProviders.filter(provider => {
+        const status = providerStatuses[provider]
+        // 如果没有测试记录，假设可用（用户刚配置）
+        // 如果有测试记录，检查是否可用
+        return !status || status.available !== false
+      })
+      const hasRemoteActual = availableRemoteProviders.length > 0
+      
+      // 本地 AI：检查 ollama 状态
+      const ollamaStatus = providerStatuses['ollama']
+      // 如果配置了本地 AI，且（未测试 OR 测试通过），则可用
+      const hasLocalActual = configStatus.hasLocal && (!ollamaStatus || ollamaStatus.available !== false)
+      
+      // 构建实际可用状态
+      const actualStatus: AIAvailabilityStatus = {
+        hasAny: hasRemoteActual || hasLocalActual,
+        hasRemote: hasRemoteActual,
+        hasLocal: hasLocalActual,
+        remoteProviders: availableRemoteProviders
+      }
+      
+      const previousStatus = aiStatus
+      setAiStatus(actualStatus)
+      
+      console.log('[AIEngineAssignment] AI 可用性状态:', {
+        配置状态: configStatus,
+        测试状态: providerStatuses,
+        实际可用: actualStatus
+      })
+      
+      // 如果有 AI 且当前未选择预设，自动选择推荐预设
+      if (actualStatus.hasAny && selectedPreset === "custom") {
+        const recommended = await getRecommendedPreset()
+        if (recommended) {
+          // 验证推荐的预设是否实际可用
+          const presetAvailable = 
+            (recommended === 'privacy' && actualStatus.hasLocal) ||
+            ((recommended === 'intelligence' || recommended === 'economic') && actualStatus.hasRemote)
+          
+          if (presetAvailable) {
+            setSelectedPreset(recommended)
+          }
+        }
+      }
+      
+      // 检查当前选中的预设是否仍然可用
+      // 如果不可用，自动切换到其他可用预设
+      if (previousStatus && selectedPreset !== "custom") {
+        const presetRequirements = {
+          privacy: actualStatus.hasLocal,
+          intelligence: actualStatus.hasRemote,
+          economic: actualStatus.hasRemote
+        }
+        
+        const currentPresetAvailable = presetRequirements[selectedPreset as PresetName]
+        
+        if (!currentPresetAvailable) {
+          // 当前预设不可用，寻找替代方案
+          let newPreset: PresetName | null = null
+          
+          if (actualStatus.hasRemote) {
+            // 优先选择智能优先
+            newPreset = 'intelligence'
+          } else if (actualStatus.hasLocal) {
+            // 否则选择隐私优先
+            newPreset = 'privacy'
+          }
+          
+          if (newPreset) {
+            console.log(`[AIEngineAssignment] 当前预设 ${selectedPreset} 不可用，自动切换到 ${newPreset}`)
+            await handlePresetSelect(newPreset)
+          } else {
+            // 没有可用的预设，切换到自定义
+            console.log('[AIEngineAssignment] 没有可用的预设，切换到自定义模式')
+            setSelectedPreset('custom')
+          }
+        }
+      }
+      
+      return actualStatus
+    } catch (error) {
+      console.error('检测 AI 状态失败:', error)
+      return null
+    }
+  }
+
+  // 初始加载时检测 AI 可用性
+  useEffect(() => {
+    const loadInitialStatus = async () => {
+      setIsLoading(true)
+      await checkAIStatusAndAdjustPreset()
+      setIsLoading(false)
+    }
+    
+    loadInitialStatus()
+  }, [])
+
+  // 监听 storage 变化，实时更新 AI 可用性状态
+  useEffect(() => {
+    const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }, areaName: string) => {
+      // 监听 AI 配置变化（sync 区域）
+      if (areaName === 'sync' && changes.aiConfig) {
+        console.log('[AIEngineAssignment] 检测到 AI 配置变化，刷新状态')
+        checkAIStatusAndAdjustPreset()
+      }
+      // 监听 provider 状态变化（local 区域，key 是 aiProvidersStatus）
+      if (areaName === 'local' && changes.aiProvidersStatus) {
+        console.log('[AIEngineAssignment] 检测到 Provider 状态变化，刷新状态')
+        checkAIStatusAndAdjustPreset()
+      }
+    }
+    
+    chrome.storage.onChanged.addListener(handleStorageChange)
+    
+    return () => {
+      chrome.storage.onChanged.removeListener(handleStorageChange)
+    }
+  }, [selectedPreset, aiStatus]) // 依赖 selectedPreset 和 aiStatus 以便在切换时能正确判断
 
   // 初始化时检测当前配置匹配的预设
   useEffect(() => {
@@ -33,9 +174,45 @@ export function AIEngineAssignmentComponent({
   }, [value])
 
   // 预设选择处理
-  const handlePresetSelect = (presetName: PresetName) => {
+  const handlePresetSelect = async (presetName: PresetName) => {
     setSelectedPreset(presetName)
-    onChange(AI_ENGINE_PRESETS[presetName].config)
+    const presetConfig = AI_ENGINE_PRESETS[presetName].config
+    onChange(presetConfig)
+    
+    // 同时保存到 storage 确保持久化
+    try {
+      const currentConfig = await getAIConfig()
+      await saveAIConfig({
+        ...currentConfig,
+        engineAssignment: presetConfig
+      })
+      
+      // 根据预设类型更新 provider 状态
+      if (presetName === 'privacy') {
+        // 隐私优先：标记本地 AI 为活跃
+        if (aiStatus?.hasLocal) {
+          await saveProviderStatus({
+            providerId: 'ollama',
+            type: 'local',
+            available: true,
+            lastChecked: Date.now()
+          })
+        }
+      } else {
+        // 智能/经济优先：标记远程 AI 为活跃
+        if (aiStatus?.hasRemote && aiStatus.remoteProviders.length > 0) {
+          const preferredProvider = currentConfig.preferredRemoteProvider || aiStatus.remoteProviders[0]
+          await saveProviderStatus({
+            providerId: preferredProvider,
+            type: 'remote',
+            available: true,
+            lastChecked: Date.now()
+          })
+        }
+      }
+    } catch (error) {
+      console.error('保存预设配置失败:', error)
+    }
   }
 
   // 检测当前配置是否匹配某个预设
@@ -131,22 +308,25 @@ export function AIEngineAssignmentComponent({
   }
 
   // 渲染预设卡片
-  const renderPresetCard = (presetName: PresetName) => {
+  const renderPresetCard = (presetName: PresetName, isDisabled: boolean = false) => {
     const preset = AI_ENGINE_PRESETS[presetName]
     const isSelected = selectedPreset === presetName
+    const isActuallyDisabled = disabled || isDisabled
     
     return (
       <button
         key={presetName}
-        onClick={() => handlePresetSelect(presetName)}
-        disabled={disabled}
+        onClick={() => !isActuallyDisabled && handlePresetSelect(presetName)}
+        disabled={isActuallyDisabled}
         className={`
           w-full p-4 rounded-lg border-2 text-left transition-all
           ${isSelected 
             ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
-            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+            : isActuallyDisabled
+              ? 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50'
+              : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
           }
-          ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+          ${isActuallyDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
         `}
       >
         <div className="flex items-start justify-between">
@@ -154,25 +334,33 @@ export function AIEngineAssignmentComponent({
             <div className="flex items-center gap-2 mb-1">
               <span className="text-2xl">{preset.icon}</span>
               <span className="font-medium">{_(`options.aiConfig.aiEngineAssignment.presets.${presetName}.name`)}</span>
-              {preset.recommended && (
+              {preset.recommended && !isDisabled && (
                 <span className="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded">
                   {_("options.aiConfig.aiEngineAssignment.recommended")}
                 </span>
               )}
+              {isDisabled && (
+                <span className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded">
+                  {presetName === 'privacy' 
+                    ? _("options.aiConfig.aiEngineAssignment.requiresLocal")
+                    : _("options.aiConfig.aiEngineAssignment.requiresRemote")
+                  }
+                </span>
+              )}
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+            <p className={`text-sm mb-2 ${isDisabled ? 'text-gray-400 dark:text-gray-500' : 'text-gray-600 dark:text-gray-400'}`}>
               {_(`options.aiConfig.aiEngineAssignment.presets.${presetName}.description`)}
             </p>
             <div className="flex items-center gap-4 text-xs">
-              <span className="text-gray-500 dark:text-gray-400">
+              <span className={isDisabled ? 'text-gray-400 dark:text-gray-500' : 'text-gray-500 dark:text-gray-400'}>
                 💰 {_(`options.aiConfig.aiEngineAssignment.presets.${presetName}.estimatedCost`)}
               </span>
-              <span className="text-gray-500 dark:text-gray-400">
+              <span className={isDisabled ? 'text-gray-400 dark:text-gray-500' : 'text-gray-500 dark:text-gray-400'}>
                 {_(`options.aiConfig.aiEngineAssignment.presets.${presetName}.performanceImpact`)}
               </span>
             </div>
           </div>
-          {isSelected && (
+          {isSelected && !isDisabled && (
             <div className="ml-2">
               <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
                 <span className="text-white text-sm">✓</span>
@@ -238,25 +426,57 @@ export function AIEngineAssignmentComponent({
         🚀 {_("options.aiConfig.aiEngineAssignment.title")}
       </h3>
       
-      {/* 预设选择卡片 */}
-      <div className="mb-6">
-        <h4 className="text-lg font-medium mb-3 text-gray-800 dark:text-gray-200">
-          🎯 {_("options.aiConfig.aiEngineAssignment.quickPresets")}
-        </h4>
-        <div className="grid gap-3">
-          {renderPresetCard("privacy")}
-          {renderPresetCard("intelligence")}
-          {renderPresetCard("economic")}
-          {renderCustomCard()}
+      {/* 加载中 */}
+      {isLoading && (
+        <div className="text-center py-8">
+          <div className="text-2xl mb-2">⏳</div>
+          <p className="text-gray-500 dark:text-gray-400">检测 AI 配置中...</p>
         </div>
-      </div>
+      )}
+      
+      {/* 无 AI 配置时的提示 */}
+      {!isLoading && aiStatus && !aiStatus.hasAny && (
+        <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">⚠️</span>
+            <div className="flex-1">
+              <p className="font-medium text-yellow-800 dark:text-yellow-200 mb-1">
+                {_("options.analysisEngine.noAIAvailable.title")}
+              </p>
+              <p className="text-sm text-yellow-700 dark:text-yellow-300 mb-2">
+                {_("options.analysisEngine.noAIAvailable.description")}
+              </p>
+              <p className="text-sm text-yellow-600 dark:text-yellow-400">
+                💡 {_("options.analysisEngine.noAIAvailable.hint")}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* 有 AI 配置时显示预设和高级配置 */}
+      {!isLoading && aiStatus?.hasAny && (
+        <>
+          {/* 预设选择卡片 */}
+          <div className="mb-6">
+            <h4 className="text-lg font-medium mb-3 text-gray-800 dark:text-gray-200">
+              🎯 {_("options.aiConfig.aiEngineAssignment.quickPresets")}
+            </h4>
+            <div className="grid gap-3">
+              {/* 始终显示所有预设，根据 AI 可用性禁用不可用选项 */}
+              {renderPresetCard("privacy", !aiStatus.hasLocal)}
+              {renderPresetCard("intelligence", !aiStatus.hasRemote)}
+              {renderPresetCard("economic", !aiStatus.hasRemote)}
+              {renderCustomCard()}
+            </div>
+          </div>
 
-      {/* 高级配置折叠按钮 */}
-      <div className="mt-6">
-        <button
-          type="button"
-          onClick={() => setShowAdvanced(!showAdvanced)}
-          className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 flex items-center gap-1"
+          {/* 高级配置折叠按钮 */}
+          <div className="mt-6">
+            <button
+              type="button"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 flex items-center gap-1"
         >
           <span>{showAdvanced ? '▼' : '▶'}</span>
           {_("options.aiConfig.aiEngineAssignment.advancedConfig")}
@@ -360,6 +580,8 @@ export function AIEngineAssignmentComponent({
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   )

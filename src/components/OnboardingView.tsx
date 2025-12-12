@@ -23,12 +23,15 @@ import {
   validateApiKey,
   type AIProviderType,
   AVAILABLE_MODELS,
-  getProviderFromModel
+  getProviderFromModel,
+  getRecommendedPreset
 } from "@/storage/ai-config"
+import { AI_ENGINE_PRESETS } from "@/types/ai-engine-assignment"
 import { aiManager } from "@/core/ai/AICapabilityManager"
 import { FeedManager } from "@/core/rss/managers/FeedManager"
 import { OPMLImporter } from "@/core/rss/OPMLImporter"
 import { saveProviderStatus } from "@/storage/ai-provider-status"
+import { listLocalModels } from "@/utils/local-ai-endpoint"
 
 interface OnboardingViewProps {
   onComplete: () => void  // 完成引导后的回调
@@ -40,6 +43,7 @@ export function OnboardingView({ onComplete }: OnboardingViewProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const nextHandlerRef = useRef<(() => Promise<void>) | null>(null)
   
   // Step 2: AI 配置状态
   const [model, setModel] = useState("")
@@ -52,8 +56,7 @@ export function OnboardingView({ onComplete }: OnboardingViewProps) {
   const [addedFeeds, setAddedFeeds] = useState<string[]>([])
   const [isAddingFeed, setIsAddingFeed] = useState(false)
 
-  // 获取当前 Provider
-  const currentProvider = model ? getProviderFromModel(model) : null
+  // 获取当前 Provider（已由下拉选择替代，移除推导）
 
   // 初始化：加载保存的状态
   useEffect(() => {
@@ -151,7 +154,6 @@ export function OnboardingView({ onComplete }: OnboardingViewProps) {
               setModel={setModel}
               apiKey={apiKey}
               setApiKey={setApiKey}
-              currentProvider={currentProvider}
               isTestingConnection={isTestingConnection}
               setIsTestingConnection={setIsTestingConnection}
               connectionTested={connectionTested}
@@ -160,8 +162,8 @@ export function OnboardingView({ onComplete }: OnboardingViewProps) {
               setError={setError}
               success={success}
               setSuccess={setSuccess}
-              skipAIConfig={skipAIConfig}
               nextStep={nextStep}
+              registerNextHandler={(cb) => { nextHandlerRef.current = cb }}
             />
           )}
           
@@ -197,10 +199,9 @@ export function OnboardingView({ onComplete }: OnboardingViewProps) {
             </div>
           )}
           
-          {/* 导航按钮（AI 配置步骤使用专用按钮，这里隐藏） */}
-          {/* 导航按钮 */}
-          <div className="flex justify-between mt-6">
-            {/* 上一步按钮 - 所有步骤都显示 */}
+          {/* 底部统一导航行 */}
+          <div className="flex justify-between items-center mt-6">
+            {/* 上一步 */}
             <button
               onClick={prevStep}
               disabled={currentStep === 1}
@@ -208,9 +209,32 @@ export function OnboardingView({ onComplete }: OnboardingViewProps) {
             >
               {_("onboarding.buttons.back")}
             </button>
-            
-            {/* 下一步按钮 - Step 2 不显示（使用专用按钮） */}
-            {currentStep !== 2 && (
+
+            {/* 右侧：根据步骤渲染 */}
+            {currentStep === 2 ? (
+              <div className="flex gap-3">
+                <button
+                  onClick={skipAIConfig}
+                  disabled={false}
+                  className="px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {_("onboarding.aiConfig.buttons.skip")}
+                </button>
+                <button
+                  onClick={async () => {
+                    if (nextHandlerRef.current) {
+                      await nextHandlerRef.current()
+                    } else {
+                      await nextStep()
+                    }
+                  }}
+                  disabled={!connectionTested}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {_("onboarding.aiConfig.buttons.nextWithConfig")}
+                </button>
+              </div>
+            ) : (
               <button
                 onClick={nextStep}
                 disabled={currentStep === 4}
@@ -333,7 +357,6 @@ interface AIConfigStepProps {
   setModel: (model: string) => void
   apiKey: string
   setApiKey: (key: string) => void
-  currentProvider: AIProviderType | null
   isTestingConnection: boolean
   setIsTestingConnection: (testing: boolean) => void
   connectionTested: boolean
@@ -342,8 +365,8 @@ interface AIConfigStepProps {
   setError: (error: string | null) => void
   success: string | null
   setSuccess: (success: string | null) => void
-  skipAIConfig: () => Promise<void>
   nextStep: () => Promise<void>
+  registerNextHandler: (cb: () => Promise<void>) => void
 }
 
 function AIConfigStep({
@@ -351,7 +374,6 @@ function AIConfigStep({
   setModel,
   apiKey,
   setApiKey,
-  currentProvider,
   isTestingConnection,
   setIsTestingConnection,
   connectionTested,
@@ -360,10 +382,18 @@ function AIConfigStep({
   setError,
   success,
   setSuccess,
-  skipAIConfig,
-  nextStep
+  nextStep,
+  registerNextHandler
 }: AIConfigStepProps) {
   const { _ } = useI18n()
+
+  // 单一下拉选择：deepseek / openai / ollama
+  const [selectedProvider, setSelectedProvider] = useState<AIProviderType | 'ollama' | ''>('')
+  const useLocal = selectedProvider === 'ollama'
+  const [localEndpoint, setLocalEndpoint] = useState("http://localhost:11434/v1")
+  const [localModel, setLocalModel] = useState<string>("")
+  const [isTestingLocal, setIsTestingLocal] = useState(false)
+  const [localModels, setLocalModels] = useState<Array<{ id: string; label: string }>>([])
 
   /**
    * 清理 API Key 中的非 ASCII 字符
@@ -376,14 +406,25 @@ function AIConfigStep({
     return key.replace(/[^\x20-\x7E]/g, '').trim()
   }
 
+  // 向父级注册下一步处理逻辑（保存配置后进入下一步）
+  useEffect(() => {
+    registerNextHandler(handleNext)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [useLocal, localEndpoint, localModel, JSON.stringify(localModels), selectedProvider, model, apiKey, connectionTested])
+
   // 测试连接
   const handleTestConnection = async () => {
-    if (!model) {
+    if (useLocal) {
+      await handleTestLocal()
+      return
+    }
+
+    if (!selectedProvider) {
       setError(_("onboarding.errors.selectModel"))
       return
     }
-    if (!currentProvider) {
-      setError(_("onboarding.errors.invalidModel"))
+    if (!model) {
+      setError(_("onboarding.errors.selectModel"))
       return
     }
     if (!apiKey) {
@@ -400,7 +441,7 @@ function AIConfigStep({
 
     try {
       // 1. 验证格式
-      const isValid = validateApiKey(currentProvider, cleanApiKey)
+      const isValid = validateApiKey(selectedProvider as AIProviderType, cleanApiKey)
       if (!isValid) {
         setError(_("onboarding.errors.invalidApiKeyFormat"))
         setIsTestingConnection(false)
@@ -415,33 +456,33 @@ function AIConfigStep({
         ...currentConfig,
         providers: {
           ...currentConfig.providers,
-          [currentProvider]: {
+          [selectedProvider as AIProviderType]: {
             apiKey: cleanApiKey,
             model: model,
             enableReasoning: false
           }
         },
         // 设为首选 Provider
-        preferredRemoteProvider: currentProvider as "deepseek" | "openai"
+        preferredRemoteProvider: selectedProvider as "deepseek" | "openai"
       })
 
       // 4. 直接创建 Provider 实例测试（避免依赖 aiManager 初始化）
       let provider: { testConnection: (enableReasoning: boolean) => Promise<{ success: boolean; message?: string; latency?: number }> }
       
-      if (currentProvider === 'deepseek') {
+      if (selectedProvider === 'deepseek') {
         const { DeepSeekProvider } = await import('@/core/ai/providers/DeepSeekProvider')
         provider = new DeepSeekProvider({ 
           apiKey: cleanApiKey,
           model: model
         })
-      } else if (currentProvider === 'openai') {
+      } else if (selectedProvider === 'openai') {
         const { OpenAIProvider } = await import('@/core/ai/providers/OpenAIProvider')
         provider = new OpenAIProvider({ 
           apiKey: cleanApiKey,
           model: model
         })
       } else {
-        throw new Error(_("onboarding.errors.unsupportedProvider", { provider: currentProvider }))
+        throw new Error(_("onboarding.errors.unsupportedProvider", { provider: selectedProvider }))
       }
       
       const result = await provider.testConnection(false)
@@ -452,7 +493,7 @@ function AIConfigStep({
         
         // 保存 Provider 测试状态（使设置页显示正确）
         await saveProviderStatus({
-          providerId: currentProvider,
+          providerId: selectedProvider,
           type: 'remote',
           available: true,
           lastChecked: Date.now(),
@@ -468,6 +509,102 @@ function AIConfigStep({
     }
   }
 
+  // 测试本地 Ollama 连接（冷启动阶段）
+  const handleTestLocal = async () => {
+    if (!localEndpoint.trim()) {
+      setError(_("") || "请输入 Ollama 端点")
+      return
+    }
+    setIsTestingLocal(true)
+    setError(null)
+    setSuccess(null)
+    try {
+      // 直接调用工具列出模型以验证端点可用
+      const { models } = await listLocalModels(localEndpoint, undefined)
+      setLocalModels(models)
+      if (models.length === 0) {
+        setError("未获取到模型，请先在本机拉取模型（如：ollama pull llama3.2）")
+        setConnectionTested(false)
+        return
+      }
+      // 选择第一个模型作为默认
+      const selectedModel = localModel || models[0].id
+      setLocalModel(selectedModel)
+
+      // 保存配置到 storage
+      const currentConfig = await getAIConfig()
+      await saveAIConfig({
+        ...currentConfig,
+        local: {
+          enabled: true,
+          provider: "ollama",
+          endpoint: localEndpoint,
+          model: selectedModel,
+          apiKey: "ollama"
+        }
+      })
+
+      // 标记 Provider 可用
+      await saveProviderStatus({
+        providerId: 'ollama',
+        type: 'local',
+        available: true,
+        lastChecked: Date.now()
+      })
+
+      setSuccess("本地 Ollama 连接成功")
+      setConnectionTested(true)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+      setConnectionTested(false)
+    } finally {
+      setIsTestingLocal(false)
+    }
+  }
+
+  // 下一步前再次保存（本地模型可能在测试后调整）并自动应用推荐预设
+  const handleNext = async () => {
+    if (!connectionTested) return
+    try {
+      const currentConfig = await getAIConfig()
+      
+      if (useLocal) {
+        // 本地 AI: 保存配置并应用隐私优先预设
+        await saveAIConfig({
+          ...currentConfig,
+          local: {
+            ...(currentConfig.local as any),
+            enabled: true,
+            provider: 'ollama',
+            endpoint: localEndpoint,
+            model: localModel || (localModels[0]?.id || ''),
+            apiKey: 'ollama'
+          },
+          // 自动应用隐私优先预设
+          engineAssignment: AI_ENGINE_PRESETS.privacy.config
+        })
+      } else if (selectedProvider === 'deepseek' || selectedProvider === 'openai') {
+        // 远程 AI: 保存配置并应用智能优先预设
+        await saveAIConfig({
+          ...currentConfig,
+          providers: {
+            ...currentConfig.providers,
+            [selectedProvider]: {
+              apiKey,
+              model,
+              enableReasoning: false
+            }
+          },
+          preferredRemoteProvider: selectedProvider,
+          // 自动应用智能优先预设
+          engineAssignment: AI_ENGINE_PRESETS.intelligence.config
+        })
+      }
+    } finally {
+      await nextStep()
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="text-center space-y-1">
@@ -479,7 +616,73 @@ function AIConfigStep({
         </p>
       </div>
 
+      {/* 引擎选择下拉：远程与本地合并 */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">选择引擎</label>
+        <select
+          value={selectedProvider}
+          onChange={(e) => { setSelectedProvider(e.target.value as any); setConnectionTested(false); setError(null); setSuccess(null) }}
+          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">请选择</option>
+          <optgroup label="远程 AI">
+            <option value="deepseek">DeepSeek</option>
+            <option value="openai">OpenAI</option>
+          </optgroup>
+          <optgroup label="本地 AI">
+            <option value="ollama">本地 Ollama</option>
+          </optgroup>
+        </select>
+      </div>
+
+      {/* 本地 Ollama 配置（简化版） */}
+      {useLocal && (
+        <div className="space-y-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Ollama 端点</label>
+            <input
+              type="text"
+              value={localEndpoint}
+              onChange={(e) => { setLocalEndpoint(e.target.value); setConnectionTested(false) }}
+              placeholder="http://localhost:11434/v1"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+            />
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">确保已运行 `ollama serve` 且允许此扩展访问</p>
+          </div>
+
+          {localModels.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">模型</label>
+              <select
+                value={localModel}
+                onChange={(e) => setLocalModel(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+              >
+                {localModels.map((m) => (
+                  <option key={m.id} value={m.id}>{m.label || m.id}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {!connectionTested ? (
+            <button
+              onClick={handleTestLocal}
+              disabled={isTestingLocal}
+              className={`w-full px-4 py-2 rounded-lg font-medium transition-colors ${isTestingLocal ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+            >
+              {isTestingLocal ? '测试中…' : '测试并载入模型'}
+            </button>
+          ) : (
+            <div className="text-sm text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md px-3 py-2">
+              ✓ 已载入 {localModels.length} 个模型，连接已就绪
+            </div>
+          )}
+        </div>
+      )}
+
       {/* 模型选择 */}
+      {!useLocal && selectedProvider && (
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           {_("onboarding.aiConfig.labels.model")}
@@ -495,23 +698,20 @@ function AIConfigStep({
           className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
         >
           <option value="">{_("onboarding.aiConfig.placeholders.selectModel")}</option>
-          {Object.entries(AVAILABLE_MODELS).map(([provider, models]) => (
-            <optgroup key={provider} label={provider.toUpperCase()}>
-              {models.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {_(`options.aiConfig.models.${m.id}.name`)} - {_(`options.aiConfig.models.${m.id}.description`)}
-                </option>
-              ))}
-            </optgroup>
+          {(AVAILABLE_MODELS[selectedProvider as keyof typeof AVAILABLE_MODELS] || []).map((m) => (
+            <option key={m.id} value={m.id}>
+              {_(`options.aiConfig.models.${m.id}.name`)} - {_(`options.aiConfig.models.${m.id}.description`)}
+            </option>
           ))}
         </select>
       </div>
+      )}
 
       {/* API Key */}
-      {model && currentProvider && (
+      {!useLocal && selectedProvider && model && (
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            {_("onboarding.aiConfig.labels.apiKey")} ({currentProvider.toUpperCase()})
+            {_("onboarding.aiConfig.labels.apiKey")} ({selectedProvider.toUpperCase()})
           </label>
           <input
             type="password"
@@ -530,19 +730,19 @@ function AIConfigStep({
           <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
             {_("onboarding.aiConfig.help.getApiKey")}{" "}
             <a
-              href={currentProvider === "deepseek" ? "https://platform.deepseek.com" : "https://platform.openai.com/api-keys"}
+              href={selectedProvider === "deepseek" ? "https://platform.deepseek.com" : "https://platform.openai.com/api-keys"}
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 dark:text-blue-400 hover:underline"
             >
-              {currentProvider === "deepseek" ? "DeepSeek Platform" : "OpenAI Platform"}
+              {selectedProvider === "deepseek" ? "DeepSeek Platform" : "OpenAI Platform"}
             </a>
           </p>
         </div>
       )}
 
       {/* 测试按钮 */}
-      {model && apiKey && (
+      {(!useLocal && selectedProvider && model && apiKey) ? (
         <button
           onClick={handleTestConnection}
           disabled={isTestingConnection || connectionTested}
@@ -554,33 +754,9 @@ function AIConfigStep({
             ? _("onboarding.aiConfig.buttons.tested")
             : _("onboarding.aiConfig.buttons.test")}
         </button>
-      )}
+      ) : null}
 
-      {/* AI 配置步骤专用导航按钮 */}
-      <div className="mt-6 flex gap-3">
-        <button
-          onClick={skipAIConfig}
-          disabled={connectionTested}
-          className="flex-1 px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          {_("onboarding.aiConfig.buttons.skip")}
-        </button>
-        
-        <button
-          onClick={nextStep}
-          disabled={!connectionTested}
-          className="flex-1 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          {_("onboarding.aiConfig.buttons.nextWithConfig")}
-        </button>
-      </div>
-      
-      {/* 跳过说明 */}
-      <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-        <p className="text-sm text-blue-700 dark:text-blue-300">
-          💡 {_("onboarding.aiConfig.skipHint2")}
-        </p>
-      </div>
+      {/* 已移除“可以跳过”提示，以节省空间 */}
     </div>
   )
 }
@@ -644,6 +820,28 @@ function RSSSetupStep({
       setAddedFeeds([...addedFeeds, rssUrl.trim()])
       // 不显示成功消息，已添加列表已经提供了视觉反馈
       setRssUrl("")
+    } catch (err) {
+      setError(_("onboarding.errors.addFeedFailed", { error: err instanceof Error ? err.message : String(err) }))
+    } finally {
+      setIsAddingFeed(false)
+    }
+  }
+
+  // 直接通过 URL 添加（用于示例源“添加”按钮）
+  const addFeedByUrl = async (url: string) => {
+    if (!url.trim()) return
+    setIsAddingFeed(true)
+    setError(null)
+    setSuccess(null)
+    try {
+      const id = await feedManager.addCandidate({
+        url: url.trim(),
+        title: "Example Feed",
+        discoveredFrom: 'example',
+        discoveredAt: Date.now()
+      })
+      await feedManager.subscribe(id, 'manual')
+      setAddedFeeds([...addedFeeds, url.trim()])
     } catch (err) {
       setError(_("onboarding.errors.addFeedFailed", { error: err instanceof Error ? err.message : String(err) }))
     } finally {
@@ -748,14 +946,16 @@ function RSSSetupStep({
             name={_("onboarding.rssSetup.exampleFeeds.solidot")}
             url="https://www.solidot.org/index.rss"
             onAdd={(url) => {
-              setRssUrl(url)
+              // 直接添加并订阅
+              addFeedByUrl(url)
             }}
           />
           <ExampleFeed
             name={_("onboarding.rssSetup.exampleFeeds.hackernews")}
             url="https://news.ycombinator.com/rss"
             onAdd={(url) => {
-              setRssUrl(url)
+              // 直接添加并订阅
+              addFeedByUrl(url)
             }}
           />
         </div>

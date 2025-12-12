@@ -73,33 +73,51 @@ export function AIConfigPanel() {
       // 优先级：profileGeneration（低频但重要）> feedAnalysis > pageAnalysis
       let activeProvider: string | null = null
       
-      if (config.engineAssignment) {
+      // 先检查是否有任何 AI 实际配置了
+      const hasDeepSeek = !!(config.remote?.deepseek?.apiKey)
+      const hasOpenAI = !!(config.remote?.openai?.apiKey)
+      const hasOllama = !!(config.local?.enabled)
+      
+      if (config.engineAssignment && (hasDeepSeek || hasOpenAI || hasOllama)) {
         // 使用 resolveProvider 解析抽象 provider
         const profileProvider = resolveProvider(config.engineAssignment.profileGeneration?.provider, config)
         const feedProvider = resolveProvider(config.engineAssignment.feedAnalysis?.provider, config)
         const pageProvider = resolveProvider(config.engineAssignment.pageAnalysis?.provider, config)
         
+        // 只有当 provider 实际配置了时，才标记为在用
+        const isProviderConfigured = (provider: string) => {
+          if (provider === 'ollama') return hasOllama
+          if (provider === 'deepseek') return hasDeepSeek
+          if (provider === 'openai') return hasOpenAI
+          return false
+        }
+        
         // 优先看 profileGeneration（用户画像生成最重要）
-        if (profileProvider !== 'ollama') {
+        if (profileProvider !== 'ollama' && isProviderConfigured(profileProvider)) {
           activeProvider = profileProvider
-        } else if (feedProvider !== 'ollama') {
+        } else if (feedProvider !== 'ollama' && isProviderConfigured(feedProvider)) {
           activeProvider = feedProvider
-        } else if (pageProvider !== 'ollama') {
+        } else if (pageProvider !== 'ollama' && isProviderConfigured(pageProvider)) {
           activeProvider = pageProvider
-        } else if (profileProvider === 'ollama' || feedProvider === 'ollama' || pageProvider === 'ollama') {
-          // 如果任何任务使用 ollama，标记为 ollama
+        } else if ((profileProvider === 'ollama' || feedProvider === 'ollama' || pageProvider === 'ollama') && hasOllama) {
+          // 如果任何任务使用 ollama 且 ollama 已配置，标记为 ollama
           activeProvider = 'ollama'
         }
       }
       
       // 降级处理：如果没有 engineAssignment，从旧字段推导
       if (!activeProvider) {
-        // 从当前选择的模型推导 Provider
+        // 从当前选择的模型推导 Provider（仅当实际配置了时）
         if (config.model) {
           const provider = getProviderFromModel(config.model)
-          activeProvider = provider
-        } else if (config.local?.enabled) {
-          // 如果启用了本地 AI，标记为 ollama
+          // 检查 provider 是否实际配置
+          if ((provider === 'deepseek' && hasDeepSeek) ||
+              (provider === 'openai' && hasOpenAI) ||
+              (provider === 'ollama' && hasOllama)) {
+            activeProvider = provider
+          }
+        } else if (config.local?.enabled && hasOllama) {
+          // 如果启用了本地 AI 且实际可用，标记为 ollama
           activeProvider = 'ollama'
         }
       }
