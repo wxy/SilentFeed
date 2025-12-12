@@ -507,7 +507,7 @@
       "durationSeconds": "{{seconds}}秒",
       "durationMinutes": "{{minutes}}分{{seconds}}秒",
       "aiQualityTitle": "AI 分析质量",
-      "providerLabel": "服务提供商",
+      "providerLabel": "服务服务商",
       "providerKeyword": "关键词",
       "providerStatusAI": "AI 语义理解",
       "providerStatusKeyword": "传统关键词",
@@ -522,12 +522,12 @@
       "tokenUsageLabel": "词元(Token)用量",
       "tokenUsageK": "{{tokens}}K",
       "avgTokensPerPage": "均 {{tokens}} 词元(Token)/页",
-      "providerDistributionTitle": "提供商分布",
+      "providerDistributionTitle": "服务商分布",
       "providerDistributionCount": "{{count}} 页 ({{percentage}}%)",
       "providerCostDistributionTitle": "AI 成本分布",
       "providerTokens": "{{tokens}}K 词元(Token)",
       "aiConfigPromptTitle": "想要更准确的内容分析？",
-      "aiConfigPromptDesc": "配置 AI 提供商（OpenAI、Anthropic、DeepSeek），获得更精准的语义理解和主题分类。",
+      "aiConfigPromptDesc": "配置 AI 服务商（OpenAI、Anthropic、DeepSeek），获得更精准的语义理解和主题分类。",
       "aiConfigPromptLink": "前往配置",
       "recommendationFunnelTitle": "推荐筛选漏斗",
       "recommendationFunnelNoData": "暂无推荐数据",
@@ -651,7 +651,7 @@
           "total": "总计"
         },
         "byProvider": {
-          "title": "按 AI 提供商分组",
+          "title": "按 AI 服务商分组",
           "calls": "次调用",
           "tokens": "词元(Token)",
           "inputOutput": "输入 {{input}}K / 输出 {{output}}K"
@@ -763,7 +763,7 @@
       "usageScenarios": "AI 使用场景",
       "budgetOverview": {
         "title": "月度预算总览",
-        "description": "按货币查看所有 AI 提供商的预算使用情况",
+        "description": "按货币查看所有 AI 服务商的预算使用情况",
         "noBudgetSet": "未设置预算",
         "setBudgetHint": "在上方 AI 卡片的配置中设置月度预算"
       },
@@ -881,7 +881,7 @@
         "note": "TF-IDF 准确性略低于 AI，适合日常轻量使用"
       },
       "labels": {
-        "provider": "AI 提供商",
+        "provider": "AI 服务商",
         "apiKey": "API 密钥",
         "model": "模型选择",
         "modelAndProvider": "选择 AI 模型"
@@ -895,11 +895,11 @@
       "hints": {
         "apiKey": "API 密钥将加密存储在浏览器本地，不会上传到服务器"
       },
-      "providerLabel": "AI 提供商",
+      "providerLabel": "AI 服务商",
       "apiKeyLabel": "API 密钥",
       "budgetLabel": "月度预算限制",
       "budgetUnit": "/ 月",
-      "selectProviderPlaceholder": "请选择 AI 提供商",
+      "selectProviderPlaceholder": "请选择 AI 服务商",
       "apiKeyPlaceholder": "输入你的 {{provider}} API 密钥",
       "apiKeyHint": "API 密钥将加密存储在浏览器本地，不会上传到服务器",
       "budgetHint": "超出预算后将自动降级到免费的关键词分析",
@@ -966,19 +966,19 @@
         "latency": "（延迟: {{ms}}ms）"
       },
       "errors": {
-        "selectProvider": "请选择 AI 提供商",
+        "selectProvider": "请选择 AI 服务商",
         "selectModel": "请选择 AI 模型",
         "invalidModel": "无效的模型选择",
         "enterApiKey": "请输入 API 密钥",
-        "selectProviderAndKey": "请选择提供商并输入 API 密钥",
-        "selectProviderAndKeyFirst": "请先选择提供商并输入 API 密钥",
+        "selectProviderAndKey": "请选择服务商并输入 API 密钥",
+        "selectProviderAndKeyFirst": "请先选择服务商并输入 API 密钥",
         "invalidApiKeyFormat": "API 密钥格式不正确",
         "saveFailed": "保存失败：{{error}}",
         "testFailed": "测试失败：{{error}}",
         "disableFailed": "禁用失败：{{error}}"
       },
       "info": {
-        "title": "如何选择 AI 提供商",
+        "title": "如何选择 AI 服务商",
         "overview": "静阅提供远程 AI 和本地 AI 两种分析方式，你可以根据需求灵活选择：",
         "remoteTitle": "远程 AI",
         "remoteDesc": "更强大准确，需要 API 密钥和网络，按使用量付费",
@@ -1183,7 +1183,7 @@
         }
       },
       "providerPanel": {
-        "title": "AI 提供商状态",
+        "title": "AI 服务商状态",
         "checkAll": "检测全部",
         "checking": "检测中..."
       },
