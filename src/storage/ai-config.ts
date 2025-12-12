@@ -405,6 +405,75 @@ export async function isAIConfigured(): Promise<boolean> {
   return false
 }
 
+/**
+ * AI 可用性状态
+ */
+export interface AIAvailabilityStatus {
+  /** 是否有任何 AI 可用 */
+  hasAny: boolean
+  /** 是否有远程 AI 可用 */
+  hasRemote: boolean
+  /** 是否有本地 AI 可用 */
+  hasLocal: boolean
+  /** 可用的远程 Provider 列表 */
+  remoteProviders: AIProviderType[]
+}
+
+/**
+ * 检查是否有任何 AI 可用（远程或本地）
+ * 这是全局 AI 可用性检测的核心函数
+ */
+export async function hasAnyAIAvailable(): Promise<AIAvailabilityStatus> {
+  const config = await getAIConfig()
+  
+  // 检查远程 AI
+  const remoteProviders: AIProviderType[] = []
+  if (config.providers) {
+    for (const [providerKey, providerConfig] of Object.entries(config.providers)) {
+      if (providerConfig && providerConfig.apiKey && providerConfig.apiKey !== "") {
+        remoteProviders.push(providerKey as AIProviderType)
+      }
+    }
+  }
+  const hasRemote = remoteProviders.length > 0
+  
+  // 检查本地 AI
+  const hasLocal = config.local?.enabled === true && 
+                   !!config.local?.endpoint && 
+                   !!config.local?.model
+  
+  return {
+    hasAny: hasRemote || hasLocal,
+    hasRemote,
+    hasLocal,
+    remoteProviders
+  }
+}
+
+/**
+ * 根据当前 AI 配置返回推荐的预设方案
+ * - 仅有本地 AI: 返回 'privacy'
+ * - 有远程 AI: 返回 'intelligence'
+ * - 无 AI: 返回 null
+ */
+export async function getRecommendedPreset(): Promise<'privacy' | 'intelligence' | 'economic' | null> {
+  const status = await hasAnyAIAvailable()
+  
+  if (!status.hasAny) {
+    return null // 无 AI 配置，不推荐任何预设
+  }
+  
+  if (status.hasRemote) {
+    return 'intelligence' // 有远程 AI，推荐智能优先
+  }
+  
+  if (status.hasLocal) {
+    return 'privacy' // 仅有本地 AI，推荐隐私优先
+  }
+  
+  return null
+}
+
 // 注意：加密/解密函数已移至 @/utils/crypto，使用 AES-GCM 256 位加密
 
 /**

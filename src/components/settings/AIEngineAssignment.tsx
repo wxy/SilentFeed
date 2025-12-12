@@ -7,6 +7,14 @@ import {
   type PresetName,
   type AIEngineConfig
 } from "@/types/ai-engine-assignment"
+import {
+  hasAnyAIAvailable,
+  getRecommendedPreset,
+  saveAIConfig,
+  getAIConfig,
+  type AIAvailabilityStatus
+} from "@/storage/ai-config"
+import { saveProviderStatus } from "@/storage/ai-provider-status"
 
 interface AIEngineAssignmentProps {
   value: AIEngineAssignment
@@ -26,6 +34,33 @@ export function AIEngineAssignmentComponent({
   const { _ } = useI18n()
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [selectedPreset, setSelectedPreset] = useState<PresetName | "custom">("intelligence")
+  const [aiStatus, setAiStatus] = useState<AIAvailabilityStatus | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  // 检测 AI 可用性
+  useEffect(() => {
+    const checkAIStatus = async () => {
+      setIsLoading(true)
+      try {
+        const status = await hasAnyAIAvailable()
+        setAiStatus(status)
+        
+        // 如果有 AI 且当前未选择预设，自动选择推荐预设
+        if (status.hasAny && selectedPreset === "custom") {
+          const recommended = await getRecommendedPreset()
+          if (recommended) {
+            setSelectedPreset(recommended)
+          }
+        }
+      } catch (error) {
+        console.error('检测 AI 状态失败:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    checkAIStatus()
+  }, [])
 
   // 初始化时检测当前配置匹配的预设
   useEffect(() => {
@@ -33,9 +68,45 @@ export function AIEngineAssignmentComponent({
   }, [value])
 
   // 预设选择处理
-  const handlePresetSelect = (presetName: PresetName) => {
+  const handlePresetSelect = async (presetName: PresetName) => {
     setSelectedPreset(presetName)
-    onChange(AI_ENGINE_PRESETS[presetName].config)
+    const presetConfig = AI_ENGINE_PRESETS[presetName].config
+    onChange(presetConfig)
+    
+    // 同时保存到 storage 确保持久化
+    try {
+      const currentConfig = await getAIConfig()
+      await saveAIConfig({
+        ...currentConfig,
+        engineAssignment: presetConfig
+      })
+      
+      // 根据预设类型更新 provider 状态
+      if (presetName === 'privacy') {
+        // 隐私优先：标记本地 AI 为活跃
+        if (aiStatus?.hasLocal) {
+          await saveProviderStatus({
+            providerId: 'ollama',
+            type: 'local',
+            available: true,
+            lastChecked: Date.now()
+          })
+        }
+      } else {
+        // 智能/经济优先：标记远程 AI 为活跃
+        if (aiStatus?.hasRemote && aiStatus.remoteProviders.length > 0) {
+          const preferredProvider = currentConfig.preferredRemoteProvider || aiStatus.remoteProviders[0]
+          await saveProviderStatus({
+            providerId: preferredProvider,
+            type: 'remote',
+            available: true,
+            lastChecked: Date.now()
+          })
+        }
+      }
+    } catch (error) {
+      console.error('保存预设配置失败:', error)
+    }
   }
 
   // 检测当前配置是否匹配某个预设
@@ -238,25 +309,57 @@ export function AIEngineAssignmentComponent({
         🚀 {_("options.aiConfig.aiEngineAssignment.title")}
       </h3>
       
-      {/* 预设选择卡片 */}
-      <div className="mb-6">
-        <h4 className="text-lg font-medium mb-3 text-gray-800 dark:text-gray-200">
-          🎯 {_("options.aiConfig.aiEngineAssignment.quickPresets")}
-        </h4>
-        <div className="grid gap-3">
-          {renderPresetCard("privacy")}
-          {renderPresetCard("intelligence")}
-          {renderPresetCard("economic")}
-          {renderCustomCard()}
+      {/* 加载中 */}
+      {isLoading && (
+        <div className="text-center py-8">
+          <div className="text-2xl mb-2">⏳</div>
+          <p className="text-gray-500 dark:text-gray-400">检测 AI 配置中...</p>
         </div>
-      </div>
+      )}
+      
+      {/* 无 AI 配置时的提示 */}
+      {!isLoading && aiStatus && !aiStatus.hasAny && (
+        <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">⚠️</span>
+            <div className="flex-1">
+              <p className="font-medium text-yellow-800 dark:text-yellow-200 mb-1">
+                {_("options.analysisEngine.noAIAvailable.title")}
+              </p>
+              <p className="text-sm text-yellow-700 dark:text-yellow-300 mb-2">
+                {_("options.analysisEngine.noAIAvailable.description")}
+              </p>
+              <p className="text-sm text-yellow-600 dark:text-yellow-400">
+                💡 {_("options.analysisEngine.noAIAvailable.hint")}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* 有 AI 配置时显示预设和高级配置 */}
+      {!isLoading && aiStatus?.hasAny && (
+        <>
+          {/* 预设选择卡片 */}
+          <div className="mb-6">
+            <h4 className="text-lg font-medium mb-3 text-gray-800 dark:text-gray-200">
+              🎯 {_("options.aiConfig.aiEngineAssignment.quickPresets")}
+            </h4>
+            <div className="grid gap-3">
+              {/* 根据 AI 可用性条件渲染预设卡片 */}
+              {aiStatus.hasLocal && renderPresetCard("privacy")}
+              {aiStatus.hasRemote && renderPresetCard("intelligence")}
+              {aiStatus.hasRemote && renderPresetCard("economic")}
+              {renderCustomCard()}
+            </div>
+          </div>
 
-      {/* 高级配置折叠按钮 */}
-      <div className="mt-6">
-        <button
-          type="button"
-          onClick={() => setShowAdvanced(!showAdvanced)}
-          className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 flex items-center gap-1"
+          {/* 高级配置折叠按钮 */}
+          <div className="mt-6">
+            <button
+              type="button"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 flex items-center gap-1"
         >
           <span>{showAdvanced ? '▼' : '▶'}</span>
           {_("options.aiConfig.aiEngineAssignment.advancedConfig")}
@@ -360,6 +463,8 @@ export function AIEngineAssignmentComponent({
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   )

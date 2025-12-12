@@ -1627,7 +1627,7 @@
         "test": "Test connection",
         "testing": "Testing...",
         "tested": "✓ Tested",
-        "skip": "Skip",
+        "skip": "Skip, configure later",
         "nextWithConfig": "Next step"
       },
       "skipHint": "You can also click 'Next' to skip and configure the remote AI or local Ollama later in the settings page.",
