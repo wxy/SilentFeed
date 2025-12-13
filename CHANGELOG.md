@@ -4,48 +4,95 @@
 
 ### Added
 
-- **Multi-Currency AI Cost Architecture** ([#81](https://github.com/wxy/SilentFeed/pull/81))
-  - Currency-aware cost calculation for each provider (USD, CNY, FREE)
-  - Separate budget tracking and statistics per currency
+- **Multi-Currency AI Cost Architecture**
+  - Complete rewrite of cost calculation system to handle different currencies properly
+  - Currency-aware cost calculation: OpenAI (USD), DeepSeek (CNY), Ollama (FREE)
+  - Separate budget tracking per provider with native currency
+  - `CostCalculator` factory pattern for provider-specific calculations
+  - `AIUsageTracker.getTotalCostByCurrency()` for currency-grouped statistics
   - Auto-hide zero-value currencies in all cost views
   - CSV export with Currency column
-  - Unified `formatCurrency()` utility function
-  - 100% test coverage with all pre-push checks passing
+  - New architecture documentation: `docs/AI_COST_ARCHITECTURE.md`
 
-- **Enhanced Onboarding Experience**
-  - Local Ollama support in AI configuration step (Step 2)
+- **Local Ollama Support in Onboarding**
+  - Step 2 now includes "Local Ollama" option
   - Auto-detect local AI service availability
-  - Preset strategy auto-apply after successful connection test
-  - Tips cards in learning phase (consistent with recommendation empty state)
-  - One-click RSS feed subscription from example sources
-  - Real feed names (Hacker News, 奇客Solidot) instead of placeholders
+  - Auto-save configuration after successful connection test
+  - Display model loading status after local test success
+
+- **Preset Strategy Auto-Apply**
+  - New `hasAnyAIAvailable()` global detection function
+  - New `getRecommendedPreset()` for smart preset recommendation
+  - Remote AI (DeepSeek/OpenAI) → Smart Priority preset
+  - Local AI (Ollama) → Privacy Priority preset
+
+- **Tips System for Learning Phase**
+  - 16 product tips (concepts/privacy/techniques/principles/features)
+  - Learning phase prioritizes "how it works" tips
+  - Recommendation phase prioritizes "usage tips"
+  - Bilingual support (Chinese/English)
+  - Unified 💡 emoji for tip cards
+
+- **Learning Phase UX Improvements**
+  - Progress display: `X/100 pages` + progress bar
+  - Privacy notes emphasizing local data processing
+  - 5 randomized encouraging messages (warmer, more humanized)
+  - 🌱 icon for "growth" metaphor
+
+- **Empty State Optimizations**
+  - "All caught up" shows encouraging messages (e.g., "Congrats, you've escaped the information flood")
+  - Aligns with product philosophy: "Making the feed quieter"
+  - Positive feedback without pushing for more subscriptions
 
 - **AI Provider Card UI Improvements**
   - Status icons (🟢🔴⚪) moved to left side, next to provider name
-  - Type and feature icons (☁️🔬⭐🔵) right-aligned
-  - All icons with help cursor (cursor-help) for discoverability
+  - Type/feature icons (☁️🔬⭐🔵) right-aligned
+  - All icons with `cursor-help` for discoverability
   - Vertical centering with `items-center`
   - Buttons fixed to card bottom
 
+- **RSS Example Source Improvements**
+  - One-click subscription (no need to click "Add" again)
+  - Real feed names (Hacker News, 奇客Solidot) instead of placeholders
+  - Duplicate subscription prevention
+
 ### Changed
 
-- **Cost Display Optimization**
-  - Removed top hints and column gridlines from cost charts
-  - Simplified to show total cost per currency (removed input/output breakdown)
-  - Multi-currency stacked display with improved tooltip formatting
+- **Cost Display Simplification**
+  - Removed USD/CNY max value hints at chart top
+  - Removed 25/50/75% gridlines inside columns
+  - Removed input/output breakdown, showing only currency totals
+  - Unified currency formatting: `$1.23` (USD) / `¥1.23` (CNY) / `免费` (FREE)
 
-- **Learning Phase UX**
-  - Warmer, more humanized empty state messages
-  - Unified emoji (💡) for tip cards
-  - Better progress indication
+- **Onboarding UI Streamlining**
+  - Step 2 simplified to single engine dropdown
+  - Hide preset/advanced config when no AI configured, show hint card instead
+  - Unified bottom navigation: Skip/Next alongside Previous
+
+- **Progress Display Colors**
+  - Generating avatar: Purple (reasoning) / Blue (standard), no longer red
+  - Daily usage stats: Dark for reasoning, light for non-reasoning (better contrast)
 
 ### Fixed
 
-- **AI Configuration & Testing**
-  - Fixed DeepSeek/OpenAI token truncation warnings (maxTokens: 100→200)
-  - Suppress truncation warning during test connections only
-  - Fixed "在用" (In Use) status showing incorrectly for unconfigured providers
-  - Fixed abstract provider parsing issues
+- **Abstract Provider Parsing**
+  - Config using abstract types (`'remote'`, `'local'`) now correctly resolves to concrete providers (`'deepseek'`, `'openai'`, `'ollama'`)
+  - Fixed `ProfileSettings.tsx` progress bar timeout calculation
+  - Fixed `AIConfigPanel.tsx` activeProvider computation
+  - New `resolveProvider()` utility function
+  - New `ai-provider-resolver.test.ts` (12 tests)
+
+- **Test Connection Truncation Warning**
+  - Increased `maxTokens` from 100 to 200 for test connections
+  - Truncation warning only shown when `maxTokens > 200`
+
+- **"In Use" Status Display**
+  - Enhanced `AIConfigPanel` logic: only mark as "In Use" when provider is actually configured
+  - New `isProviderConfigured()` check function
+
+- **Preset Persistence**
+  - Fixed preset selection not being persisted
+  - Fixed provider status not syncing
 
 - **Internationalization**
   - Corrected translation errors
@@ -55,9 +102,7 @@
 ### Technical
 
 - Currency type system: `ProviderCurrency = 'USD' | 'CNY' | 'FREE'`
-- Provider-specific cost calculators with currency awareness
-- Budget checker validates per currency (no mixing)
-- UI components: AIProviderCard, AIUsageBarChart, BudgetOverview, CollectionStats
+- `BudgetChecker` refactored to aggregate monthly cost by currency with safe fallback
 - Test suite: 1691 tests passing (102 test files)
 - Coverage: Lines 71.94%, Functions 74.7%, Branches 60.39%
 
