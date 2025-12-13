@@ -4,7 +4,7 @@
 
 # 🤫 Silent Feed
 
-> 当前版本：`0.3.1`
+> 当前版本：`0.3.5`
 
 **AI-powered RSS reader that learns what you love**
 
