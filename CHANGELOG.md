@@ -1,5 +1,66 @@
 # Changelog
 
+## [0.3.5] - 2025-12-13
+
+### Added
+
+- **Multi-Currency AI Cost Architecture** ([#81](https://github.com/wxy/SilentFeed/pull/81))
+  - Currency-aware cost calculation for each provider (USD, CNY, FREE)
+  - Separate budget tracking and statistics per currency
+  - Auto-hide zero-value currencies in all cost views
+  - CSV export with Currency column
+  - Unified `formatCurrency()` utility function
+  - 100% test coverage with all pre-push checks passing
+
+- **Enhanced Onboarding Experience**
+  - Local Ollama support in AI configuration step (Step 2)
+  - Auto-detect local AI service availability
+  - Preset strategy auto-apply after successful connection test
+  - Tips cards in learning phase (consistent with recommendation empty state)
+  - One-click RSS feed subscription from example sources
+  - Real feed names (Hacker News, 奇客Solidot) instead of placeholders
+
+- **AI Provider Card UI Improvements**
+  - Status icons (🟢🔴⚪) moved to left side, next to provider name
+  - Type and feature icons (☁️🔬⭐🔵) right-aligned
+  - All icons with help cursor (cursor-help) for discoverability
+  - Vertical centering with `items-center`
+  - Buttons fixed to card bottom
+
+### Changed
+
+- **Cost Display Optimization**
+  - Removed top hints and column gridlines from cost charts
+  - Simplified to show total cost per currency (removed input/output breakdown)
+  - Multi-currency stacked display with improved tooltip formatting
+
+- **Learning Phase UX**
+  - Warmer, more humanized empty state messages
+  - Unified emoji (💡) for tip cards
+  - Better progress indication
+
+### Fixed
+
+- **AI Configuration & Testing**
+  - Fixed DeepSeek/OpenAI token truncation warnings (maxTokens: 100→200)
+  - Suppress truncation warning during test connections only
+  - Fixed "在用" (In Use) status showing incorrectly for unconfigured providers
+  - Fixed abstract provider parsing issues
+
+- **Internationalization**
+  - Corrected translation errors
+  - Fixed i18n key inconsistencies
+  - Improved Chinese-English parity
+
+### Technical
+
+- Currency type system: `ProviderCurrency = 'USD' | 'CNY' | 'FREE'`
+- Provider-specific cost calculators with currency awareness
+- Budget checker validates per currency (no mixing)
+- UI components: AIProviderCard, AIUsageBarChart, BudgetOverview, CollectionStats
+- Test suite: 1691 tests passing (102 test files)
+- Coverage: Lines 71.94%, Functions 74.7%, Branches 60.39%
+
 ## [0.3.2] - 2025-12-07
 
 ### Added
