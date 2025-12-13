@@ -1483,7 +1483,8 @@
         "add": "添加",
         "adding": "添加中...",
         "selectFile": "选择 OPML 文件",
-        "addThis": "添加"
+        "addThis": "添加",
+        "added": "已添加"
       },
       "exampleFeeds": {
         "title": "示例源：",

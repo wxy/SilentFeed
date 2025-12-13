@@ -30,6 +30,7 @@ import { AI_ENGINE_PRESETS } from "@/types/ai-engine-assignment"
 import { aiManager } from "@/core/ai/AICapabilityManager"
 import { FeedManager } from "@/core/rss/managers/FeedManager"
 import { OPMLImporter } from "@/core/rss/OPMLImporter"
+import { RSSFetcher } from "@/core/rss/RSSFetcher"
 import { saveProviderStatus } from "@/storage/ai-provider-status"
 import { listLocalModels } from "@/utils/local-ai-endpoint"
 
@@ -830,13 +831,30 @@ function RSSSetupStep({
   // 直接通过 URL 添加（用于示例源“添加”按钮）
   const addFeedByUrl = async (url: string) => {
     if (!url.trim()) return
+    
+    // 检查是否已添加
+    if (addedFeeds.includes(url.trim())) {
+      return
+    }
+    
     setIsAddingFeed(true)
     setError(null)
     setSuccess(null)
     try {
+      // 先获取 feed 的真实信息
+      const fetcher = new RSSFetcher()
+      const result = await fetcher.fetch(url.trim())
+      
+      if (!result.success) {
+        throw new Error(result.error || '获取 RSS 信息失败')
+      }
+      
+      // 使用真实的标题
+      const feedTitle = result.feedInfo.title || "未命名源"
+      
       const id = await feedManager.addCandidate({
         url: url.trim(),
-        title: "Example Feed",
+        title: feedTitle,
         discoveredFrom: 'example',
         discoveredAt: Date.now()
       })
@@ -849,7 +867,6 @@ function RSSSetupStep({
     }
   }
 
-  // 导入 OPML
   const handleImportOPML = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
@@ -945,6 +962,7 @@ function RSSSetupStep({
           <ExampleFeed
             name={_("onboarding.rssSetup.exampleFeeds.solidot")}
             url="https://www.solidot.org/index.rss"
+            isAdded={addedFeeds.includes("https://www.solidot.org/index.rss")}
             onAdd={(url) => {
               // 直接添加并订阅
               addFeedByUrl(url)
@@ -953,6 +971,7 @@ function RSSSetupStep({
           <ExampleFeed
             name={_("onboarding.rssSetup.exampleFeeds.hackernews")}
             url="https://news.ycombinator.com/rss"
+            isAdded={addedFeeds.includes("https://news.ycombinator.com/rss")}
             onAdd={(url) => {
               // 直接添加并订阅
               addFeedByUrl(url)
@@ -976,18 +995,24 @@ function RSSSetupStep({
 /**
  * 示例 RSS 源
  */
-function ExampleFeed({ name, url, onAdd }: { name: string; url: string; onAdd: (url: string) => void }) {
+function ExampleFeed({ name, url, onAdd, isAdded }: { name: string; url: string; onAdd: (url: string) => void; isAdded: boolean }) {
   const { _ } = useI18n()
   
   return (
     <div className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
       <span className="text-xs text-gray-700 dark:text-gray-300">{name}</span>
-      <button
-        onClick={() => onAdd(url)}
-        className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
-      >
-        {_("onboarding.rssSetup.buttons.addThis")}
-      </button>
+      {isAdded ? (
+        <span className="text-xs text-green-600 dark:text-green-400 font-medium">
+          ✓ {_("onboarding.rssSetup.buttons.added")}
+        </span>
+      ) : (
+        <button
+          onClick={() => onAdd(url)}
+          className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
+        >
+          {_("onboarding.rssSetup.buttons.addThis")}
+        </button>
+      )}
     </div>
   )
 }

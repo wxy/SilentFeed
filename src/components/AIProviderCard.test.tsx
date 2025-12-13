@@ -67,8 +67,7 @@ describe("AIProviderCard", () => {
 
     expect(screen.getByText("DeepSeek")).toBeInTheDocument()
     // 未配置状态显示灰色图标 ⚪
-    const card = screen.getByText("DeepSeek").closest("div")
-    expect(card).toHaveTextContent("⚪")
+    expect(screen.getByText("⚪")).toBeInTheDocument()
   })
 
   it("应该渲染可用状态", () => {
@@ -83,8 +82,7 @@ describe("AIProviderCard", () => {
     render(<AIProviderCard {...defaultProps} status={status} />)
 
     // 可用状态显示绿色图标 🟢
-    const card = screen.getByText("DeepSeek").closest("div")
-    expect(card).toHaveTextContent("🟢")
+    expect(screen.getByText("🟢")).toBeInTheDocument()
     expect(screen.getByText(/120ms/)).toBeInTheDocument()
   })
 
@@ -100,8 +98,7 @@ describe("AIProviderCard", () => {
     render(<AIProviderCard {...defaultProps} status={status} />)
 
     // 不可用状态显示红色图标 🔴
-    const card = screen.getByText("DeepSeek").closest("div")
-    expect(card).toHaveTextContent("🔴")
+    expect(screen.getByText("🔴")).toBeInTheDocument()
     expect(screen.getByText("连接失败")).toBeInTheDocument()
   })
 
@@ -116,8 +113,7 @@ describe("AIProviderCard", () => {
     render(<AIProviderCard {...defaultProps} status={status} />)
 
     // 远程 AI 显示云图标
-    const card = screen.getByText("DeepSeek").closest("div")
-    expect(card).toHaveTextContent("☁️")
+    expect(screen.getByText("☁️")).toBeInTheDocument()
   })
 
   it("应该显示类型图标 - 本地 AI", () => {
@@ -131,8 +127,7 @@ describe("AIProviderCard", () => {
     render(<AIProviderCard {...defaultProps} providerId="ollama" providerName="Ollama" status={status} />)
 
     // 本地 AI 显示电脑图标
-    const card = screen.getByText("Ollama").closest("div")
-    expect(card).toHaveTextContent("💻")
+    expect(screen.getByText("💻")).toBeInTheDocument()
   })
 
   it("应该显示'在用'标志", () => {
@@ -146,8 +141,7 @@ describe("AIProviderCard", () => {
     render(<AIProviderCard {...defaultProps} status={status} isActive={true} />)
 
     // 在用状态显示蓝色图标 🔵
-    const card = screen.getByText("DeepSeek").closest("div")
-    expect(card).toHaveTextContent("🔵")
+    expect(screen.getByText("🔵")).toBeInTheDocument()
   })
 
   it("应该调用 onCheck 当点击检测按钮", () => {

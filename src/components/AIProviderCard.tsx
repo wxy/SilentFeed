@@ -61,85 +61,94 @@ export function AIProviderCard({
   return (
     <div
       className={`
-        border rounded-lg p-4 transition-all
+        border rounded-lg p-4 transition-all flex flex-col
         ${available ? 'border-green-200 dark:border-green-800' : 'border-gray-200 dark:border-gray-700'}
         ${isActive ? 'ring-2 ring-blue-500 shadow-lg' : 'hover:shadow-md'}
         bg-white dark:bg-gray-800
       `}
     >
       {/* 卡片头部 */}
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-2xl">{statusIcon}</span>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              {providerName}
-            </h3>
-            <span className="text-sm" title={typeText}>{typeIcon}</span>
-            {supportsReasoning && (
-              <span className="text-sm" title={_("options.aiConfig.card.supportsReasoning")}>🔬</span>
-            )}
-            {isPreferred && (
-              <span className="text-sm" title={type === 'local' ? _("options.aiConfig.card.preferredLocal") : _("options.aiConfig.card.preferredRemote")}>⭐</span>
-            )}
-            {isActive && (
-              <span className="text-sm" title={_("options.aiConfig.card.active")}>🔵</span>
-            )}
-          </div>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2 flex-1">
+          {/* 状态图标，鼠标悬停显示帮助光标 */}
+          <span 
+            className="text-2xl cursor-help" 
+            title={statusText}
+          >
+            {statusIcon}
+          </span>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            {providerName}
+          </h3>
+        </div>
+        {/* 类型和特性图标右对齐 */}
+        <div className="flex items-center gap-1">
+          <span className="text-sm cursor-help" title={typeText}>{typeIcon}</span>
+          {supportsReasoning && (
+            <span className="text-sm cursor-help" title={_("options.aiConfig.card.supportsReasoning")}>🔬</span>
+          )}
+          {isPreferred && (
+            <span className="text-sm cursor-help" title={type === 'local' ? _("options.aiConfig.card.preferredLocal") : _("options.aiConfig.card.preferredRemote")}>⭐</span>
+          )}
+          {isActive && (
+            <span className="text-sm cursor-help" title={_("options.aiConfig.card.active")}>🔵</span>
+          )}
         </div>
       </div>
 
       {/* 状态详情 - 直接显示，不需要展开 */}
-      {hasConfig && (
-        <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400 mb-3">
-          {latency !== undefined && (
-            <div className="flex items-center gap-2">
-              <span>🕒</span>
-              <span>{_("options.aiConfig.card.latency", { value: formatLatency(latency) })}</span>
-            </div>
-          )}
-          
-          {lastChecked && (
-            <div className="flex items-center gap-2">
-              <span>📅</span>
-              <span>{_("options.aiConfig.card.lastChecked", { time: formatLastChecked(lastChecked) })}</span>
-            </div>
-          )}
+      <div className="flex-1">
+        {hasConfig && (
+          <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400 mb-3">
+            {latency !== undefined && (
+              <div className="flex items-center gap-2">
+                <span>🕒</span>
+                <span>{_("options.aiConfig.card.latency", { value: formatLatency(latency) })}</span>
+              </div>
+            )}
+            
+            {lastChecked && (
+              <div className="flex items-center gap-2">
+                <span>📅</span>
+                <span>{_("options.aiConfig.card.lastChecked", { time: formatLastChecked(lastChecked) })}</span>
+              </div>
+            )}
 
-          {error && (
-            <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
-              <span>⚠️</span>
-              <span>{error}</span>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Phase 12.4: 预算显示 */}
-      {monthlyBudget !== undefined && currentSpent !== undefined && currency && (
-        <div className="mb-3 p-2 bg-gray-50 dark:bg-gray-700/50 rounded">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600 dark:text-gray-400">💰 {_("options.aiConfig.card.budget")}</span>
-            <span className="font-medium text-gray-900 dark:text-gray-100">
-              {currency === 'USD' ? '$' : '¥'}{currentSpent.toFixed(2)} / {currency === 'USD' ? '$' : '¥'}{monthlyBudget}
-            </span>
+            {error && (
+              <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                <span>⚠️</span>
+                <span>{error}</span>
+              </div>
+            )}
           </div>
-          {/* 预算进度条 */}
-          <div className="mt-1 h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
-            <div 
-              className={`h-full transition-all ${
-                (currentSpent / monthlyBudget) >= 0.9 ? 'bg-red-500' :
-                (currentSpent / monthlyBudget) >= 0.7 ? 'bg-yellow-500' :
-                'bg-green-500'
-              }`}
-              style={{ width: `${Math.min(100, (currentSpent / monthlyBudget) * 100)}%` }}
-            />
-          </div>
-        </div>
-      )}
+        )}
 
-      {/* 操作按钮 */}
-      <div className="flex gap-2">
+        {/* Phase 12.4: 预算显示 */}
+        {monthlyBudget !== undefined && currentSpent !== undefined && currency && (
+          <div className="mb-3 p-2 bg-gray-50 dark:bg-gray-700/50 rounded">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-600 dark:text-gray-400">💰 {_("options.aiConfig.card.budget")}</span>
+              <span className="font-medium text-gray-900 dark:text-gray-100">
+                {currency === 'USD' ? '$' : '¥'}{currentSpent.toFixed(2)} / {currency === 'USD' ? '$' : '¥'}{monthlyBudget}
+              </span>
+            </div>
+            {/* 预算进度条 */}
+            <div className="mt-1 h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
+              <div 
+                className={`h-full transition-all ${
+                  (currentSpent / monthlyBudget) >= 0.9 ? 'bg-red-500' :
+                  (currentSpent / monthlyBudget) >= 0.7 ? 'bg-yellow-500' :
+                  'bg-green-500'
+                }`}
+                style={{ width: `${Math.min(100, (currentSpent / monthlyBudget) * 100)}%` }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 操作按钮 - 固定在底部 */}
+      <div className="flex gap-2 mt-auto pt-3">
         <button
           onClick={(e) => {
             e.stopPropagation()

@@ -1649,7 +1649,8 @@
         "add": "Add",
         "adding": "Adding...",
         "selectFile": "Select OPML file",
-        "addThis": "Add"
+        "addThis": "Add",
+        "added": "Added"
       },
       "exampleFeeds": {
         "title": "Example source:",
