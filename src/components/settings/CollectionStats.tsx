@@ -930,7 +930,8 @@ export function CollectionStats() {
                   }
 
                   // 定义各层数据 - 从小到大排序（底部到顶部）
-                  const layers: LayerConfig[] = [
+                  // 添加渐变ID用于美化
+                  const layers: (LayerConfig & { gradientId: string })[] = [
                     {
                       key: 'reading',
                       label: _('options.collectionStats.recommendationFunnelReading'),
@@ -939,8 +940,9 @@ export function CollectionStats() {
                       textColor: '#1f2937',
                       value: funnel.read,
                       percent: funnel.inPool > 0 ? `${((funnel.read / funnel.inPool) * 100).toFixed(1)}%` : '0%',
-                      bodyOpacity: 0.75,
-                      ellipseOpacity: 0.6
+                      bodyOpacity: 0.85,
+                      ellipseOpacity: 0.7,
+                      gradientId: 'gradReading'
                     },
                     {
                       key: 'recommendations',
@@ -950,8 +952,9 @@ export function CollectionStats() {
                       textColor: '#1f2937',
                       value: funnel.inPool,
                       percent: funnel.rssArticles > 0 ? `${((funnel.inPool / funnel.rssArticles) * 100).toFixed(1)}%` : '0%',
-                      bodyOpacity: 0.72,
-                      ellipseOpacity: 0.55
+                      bodyOpacity: 0.82,
+                      ellipseOpacity: 0.65,
+                      gradientId: 'gradRecommendations'
                     },
                     {
                       key: 'articles',
@@ -961,8 +964,9 @@ export function CollectionStats() {
                       textColor: '#0f172a',
                       value: funnel.rssArticles,
                       percent: '100%',
-                      bodyOpacity: 0.7,
-                      ellipseOpacity: 0.5
+                      bodyOpacity: 0.8,
+                      ellipseOpacity: 0.6,
+                      gradientId: 'gradArticles'
                     }
                   ]
 
@@ -1069,14 +1073,35 @@ export function CollectionStats() {
                     <>
                       <defs>
                         <filter id="funnelShadow" x="-20%" y="-20%" width="140%" height="160%">
-                          <feDropShadow dx="0" dy="12" stdDeviation="18" floodColor="#000" floodOpacity="0.28" />
+                          <feDropShadow dx="0" dy="8" stdDeviation="12" floodColor="#000" floodOpacity="0.2" />
                         </filter>
+                        {/* 各层渐变定义 */}
+                        <linearGradient id="gradReading" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="#FEF9C3" stopOpacity="0.95" />
+                          <stop offset="50%" stopColor="#FDE047" stopOpacity="0.85" />
+                          <stop offset="100%" stopColor="#FACC15" stopOpacity="0.75" />
+                        </linearGradient>
+                        <linearGradient id="gradRecommendations" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="#D9F99D" stopOpacity="0.95" />
+                          <stop offset="50%" stopColor="#A3E635" stopOpacity="0.85" />
+                          <stop offset="100%" stopColor="#84CC16" stopOpacity="0.75" />
+                        </linearGradient>
+                        <linearGradient id="gradArticles" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="#BAE6FD" stopOpacity="0.95" />
+                          <stop offset="50%" stopColor="#38BDF8" stopOpacity="0.85" />
+                          <stop offset="100%" stopColor="#0EA5E9" stopOpacity="0.75" />
+                        </linearGradient>
+                        <linearGradient id="gradInternet" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="#E0E7FF" stopOpacity="0.9" />
+                          <stop offset="50%" stopColor="#A5B4FC" stopOpacity="0.8" />
+                          <stop offset="100%" stopColor="#818CF8" stopOpacity="0.7" />
+                        </linearGradient>
                       </defs>
                       
                       {/* 漏斗主体 */}
                       <g filter="url(#funnelShadow)">
                         {/* 各层曲面段 */}
-                        {layersWithGeometry.map((layer) => (
+                        {layersWithGeometry.map((layer, layerIndex) => (
                           <g key={`segment-${layer.key}`}>
                             {/* 底部椭圆 - 代表该层筛选后的数值 */}
                             <ellipse
@@ -1084,13 +1109,13 @@ export function CollectionStats() {
                               cy={layer.bottomY}
                               rx={layer.bottomRadius}
                               ry={layer.bottomRy}
-                              fill={layer.ellipseColor}
+                              fill={`url(#${layer.gradientId})`}
                               opacity={layer.ellipseOpacity}
                             />
-                            {/* 曲面主体 */}
+                            {/* 曲面主体 - 使用渐变 */}
                             <path
                               d={buildCurvedPath(layer)}
-                              fill={layer.color}
+                              fill={`url(#${layer.gradientId})`}
                               opacity={layer.bodyOpacity}
                             />
                             {/* 顶部椭圆 */}
@@ -1099,37 +1124,77 @@ export function CollectionStats() {
                               cy={layer.topY}
                               rx={layer.topRadius}
                               ry={layer.topRy}
-                              fill={layer.ellipseColor}
-                              opacity={Math.min(layer.ellipseOpacity + 0.15, 1)}
+                              fill={layerIndex === layersWithGeometry.length - 1 ? 'url(#gradInternet)' : `url(#${layer.gradientId})`}
+                              opacity={Math.min(layer.ellipseOpacity + 0.2, 1)}
+                            />
+                            {/* 层间高光分界线 */}
+                            <ellipse
+                              cx={centerX}
+                              cy={layer.bottomY}
+                              rx={layer.bottomRadius}
+                              ry={layer.bottomRy}
+                              fill="none"
+                              stroke="rgba(255,255,255,0.6)"
+                              strokeWidth="1.5"
                             />
                           </g>
                         ))}
                       </g>
-                      {/* 顶部RSS图标 */}
+                      
+                      {/* 顶部互联网标识 */}
                       <g>
-                        {[-55, 0, 55].map((offset, index) => (
+                        <text 
+                          x={centerX} 
+                          y={(layersWithGeometry[layersWithGeometry.length - 1]?.topY ?? funnelTopY) - 8}
+                          textAnchor="middle" 
+                          fontSize="28" 
+                          fill="#FFFFFF"
+                          fontWeight="300"
+                          opacity="0.95"
+                          style={{ textShadow: '0 1px 3px rgba(0,0,0,0.3)' }}
+                        >
+                          ∞
+                        </text>
+                        <text 
+                          x={centerX} 
+                          y={(layersWithGeometry[layersWithGeometry.length - 1]?.topY ?? funnelTopY) + 12}
+                          textAnchor="middle" 
+                          fontSize="10" 
+                          fill="#FFFFFF"
+                          opacity="0.85"
+                          style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}
+                        >
+                          {_('options.collectionStats.recommendationFunnelUniverse')}
+                        </text>
+                      </g>
+                      
+                      {/* 顶部RSS图标 - 移到两侧 */}
+                      <g>
+                        {[-90, 90].map((offset, index) => (
                           <image
                             key={`rss-icon-${index}`}
                             href={extensionIconUrl}
-                            x={centerX + offset - 20}
-                            y={20}
-                            width={40}
-                            height={40}
-                            opacity={0.95 - index * 0.15}
+                            x={centerX + offset - 16}
+                            y={(layersWithGeometry[layersWithGeometry.length - 1]?.topY ?? funnelTopY) - 20}
+                            width={32}
+                            height={32}
+                            opacity={0.7}
                           />
                         ))}
                       </g>
                       
                       {/* 文字标签 - 靠近底部截面显示 */}
                       <g pointerEvents="none">
-                        {layersWithGeometry.map((layer) => {
+                        {layersWithGeometry.map((layer, layerIdx) => {
                           // 统一字号
                           const labelFontSize = 12
                           const valueFontSize = 16
                           const percentFontSize = 11
                           
                           // 文字位置靠近底部截面（底部截面代表该层数值）
-                          const textBaseY = layer.bottomY - layer.segmentHeight * 0.15
+                          // 上层（文章、推荐）offsetMultiplier 更小，让文字更靠近底部
+                          const offsetMultiplier = layerIdx === 0 ? 0.15 : 0.05
+                          const textBaseY = layer.bottomY - layer.segmentHeight * offsetMultiplier
                           const labelY = textBaseY - 28
                           const valueY = textBaseY - 8
                           const percentY = textBaseY + 12
@@ -1186,93 +1251,85 @@ export function CollectionStats() {
                 })()}
               </svg>
 
-              {/* 侧边数据球 */}
-              <div className="flex flex-col gap-6">
+              {/* 侧边信息卡片 - 展示关联数据 */}
+              <div className="flex flex-col gap-3 min-w-[180px]">
+                {/* 学习页面卡片 - 阅读是其中一部分 */}
                 <div className="relative">
-                  <svg width="120" height="120" viewBox="0 0 120 120">
-                    <defs>
-                      <radialGradient id="sphereGradient1" cx="40%" cy="35%">
-                        <stop offset="0%" stopColor="#FFFBEB" stopOpacity="1" />
-                        <stop offset="25%" stopColor="#FEF3C7" stopOpacity="0.95" />
-                        <stop offset="50%" stopColor="#FDE68A" stopOpacity="0.9" />
-                        <stop offset="75%" stopColor="#FCD34D" stopOpacity="0.75" />
-                        <stop offset="100%" stopColor="#F59E0B" stopOpacity="0.6" />
-                      </radialGradient>
-                      <radialGradient id="sphereHighlight1" cx="35%" cy="30%">
-                        <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.8" />
-                        <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.3" />
-                        <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
-                      </radialGradient>
-                      <filter id="sphereShadow1">
-                        <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
-                        <feOffset dx="2" dy="5"/>
-                        <feComponentTransfer>
-                          <feFuncA type="linear" slope="0.5"/>
-                        </feComponentTransfer>
-                        <feMerge>
-                          <feMergeNode/>
-                          <feMergeNode in="SourceGraphic"/>
-                        </feMerge>
-                      </filter>
-                    </defs>
-                    <circle cx="60" cy="55" r="45" fill="url(#sphereGradient1)" filter="url(#sphereShadow1)"/>
-                    <ellipse cx="48" cy="42" rx="20" ry="15" fill="url(#sphereHighlight1)" opacity="0.8"/>
-                    <text x="52" y="44" textAnchor="middle" fill="#78350F" fontSize="18" fontWeight="700">
+                  <div className="bg-gradient-to-br from-amber-50 to-yellow-100 dark:from-amber-900/30 dark:to-yellow-900/20 rounded-xl p-4 border-2 border-amber-300 dark:border-amber-600 shadow-md">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-lg">📚</span>
+                      <span className="text-sm font-semibold text-amber-800 dark:text-amber-200">
+                        {_("options.collectionStats.funnelLearningPages")}
+                      </span>
+                    </div>
+                    <div className="text-3xl font-bold text-amber-900 dark:text-amber-100">
                       {recommendationFunnel.learningPages}
-                    </text>
-                    <text x="60" y="70" textAnchor="middle" fill="#78350F" fontSize="12" fontWeight="600">
-                      {_("options.collectionStats.funnelLearningPages").split("\n").map((line, i) => (
-                        <tspan key={i} x="60" dy={i === 0 ? 0 : "1.2em"}>
-                          {i === 0 ? "📚 " : ""}{line}
-                        </tspan>
-                      ))}
-                    </text>
-                  </svg>
+                    </div>
+                    <div className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                      {_("options.collectionStats.funnelLearningPagesDesc")}
+                    </div>
+                    {/* 关系指示：阅读 ⊂ 学习页面 */}
+                    <div className="mt-3 pt-3 border-t border-amber-200 dark:border-amber-700">
+                      <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-300">
+                        <span className="inline-block w-2 h-2 rounded-full bg-yellow-400"></span>
+                        <span>{_("options.collectionStats.funnelReadingIncluded")}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
+
+                {/* 不想读卡片 - 来自推荐 */}
                 <div className="relative">
-                  <svg width="120" height="120" viewBox="0 0 120 120">
-                    <defs>
-                      <radialGradient id="sphereGradient2" cx="40%" cy="35%">
-                        <stop offset="0%" stopColor="#FFF7ED" stopOpacity="1" />
-                        <stop offset="25%" stopColor="#FFEDD5" stopOpacity="0.95" />
-                        <stop offset="50%" stopColor="#FDBA74" stopOpacity="0.9" />
-                        <stop offset="75%" stopColor="#FB923C" stopOpacity="0.75" />
-                        <stop offset="100%" stopColor="#F97316" stopOpacity="0.6" />
-                      </radialGradient>
-                      <radialGradient id="sphereHighlight2" cx="35%" cy="30%">
-                        <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.8" />
-                        <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.3" />
-                        <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
-                      </radialGradient>
-                      <filter id="sphereShadow2">
-                        <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
-                        <feOffset dx="2" dy="5"/>
-                        <feComponentTransfer>
-                          <feFuncA type="linear" slope="0.5"/>
-                        </feComponentTransfer>
-                        <feMerge>
-                          <feMergeNode/>
-                          <feMergeNode in="SourceGraphic"/>
-                        </feMerge>
-                      </filter>
-                    </defs>
-                    <circle cx="60" cy="55" r="45" fill="url(#sphereGradient2)" filter="url(#sphereShadow2)"/>
-                    <ellipse cx="48" cy="42" rx="20" ry="15" fill="url(#sphereHighlight2)" opacity="0.8"/>
-                    <text x="52" y="44" textAnchor="middle" fill="#7C2D12" fontSize="18" fontWeight="700">
+                  <div className="bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/30 dark:to-red-900/20 rounded-xl p-4 border-2 border-orange-300 dark:border-orange-600 shadow-md">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-lg">🚫</span>
+                      <span className="text-sm font-semibold text-orange-800 dark:text-orange-200">
+                        {_("options.collectionStats.funnelDismissed")}
+                      </span>
+                    </div>
+                    <div className="text-3xl font-bold text-orange-900 dark:text-orange-100">
                       {recommendationFunnel.dismissed}
-                    </text>
-                    <text x="60" y="70" textAnchor="middle" fill="#7C2D12" fontSize="12" fontWeight="600">
-                      {_("options.collectionStats.funnelDismissed").split("\n").map((line, i) => (
-                        <tspan key={i} x="60" dy={i === 0 ? 0 : "1.2em"}>
-                          {i === 0 ? "❌ " : ""}{line}
-                        </tspan>
-                      ))}
-                    </text>
-                  </svg>
+                    </div>
+                    <div className="text-xs text-orange-600 dark:text-orange-400 mt-2">
+                      {recommendationFunnel.inPool > 0 
+                        ? `${((recommendationFunnel.dismissed / recommendationFunnel.inPool) * 100).toFixed(1)}% ${_("options.collectionStats.funnelDismissedDesc")}`
+                        : _("options.collectionStats.funnelDismissedDesc")
+                      }
+                    </div>
+                    {/* 关系指示：不想读 ⊂ 推荐 */}
+                    <div className="mt-3 pt-3 border-t border-orange-200 dark:border-orange-700">
+                      <div className="flex items-center gap-2 text-xs text-orange-700 dark:text-orange-300">
+                        <span className="inline-block w-2 h-2 rounded-full bg-lime-400"></span>
+                        <span>{_("options.collectionStats.funnelDismissedFrom")}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
+
+                {/* 数据关系图示 */}
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-600 shadow-sm">
+                  <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-3">
+                    📊 {_("options.collectionStats.funnelDataRelation")}
+                  </div>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-block w-3 h-3 rounded bg-lime-400"></span>
+                      <span className="text-gray-600 dark:text-gray-400">{_("options.collectionStats.recommendationFunnelRecommendations")}</span>
+                      <span className="text-gray-400">=</span>
+                      <span className="inline-block w-3 h-3 rounded bg-yellow-400"></span>
+                      <span className="text-gray-600 dark:text-gray-400">+</span>
+                      <span className="inline-block w-3 h-3 rounded bg-orange-400"></span>
+                    </div>
+                    <div className="flex items-center gap-2 pl-1">
+                      <span className="text-gray-500 dark:text-gray-400">
+                        {recommendationFunnel.inPool} = {recommendationFunnel.read} + {recommendationFunnel.dismissed}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
+          </div>
 
             {/* 转化率总结 */}
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-5 border border-blue-200 dark:border-blue-700">

@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-12-10T12:04:45.040Z",
+  "lastUpdate": "2025-12-14T09:18:06.932Z",
   "translations": {
     "app.name": {
       "zh-CN": {
@@ -1712,15 +1712,15 @@
     },
     "options.collectionStats.providerLabel": {
       "zh-CN": {
-        "value": "服务提供商",
-        "hash": "c8973d6b",
-        "lastModified": "2025-11-09T13:53:43.736Z",
+        "value": "服务服务商",
+        "hash": "4a9d5d37",
+        "lastModified": "2025-12-14T09:16:24.844Z",
         "status": "verified"
       },
       "en": {
         "value": "Service Provider",
         "hash": "508a05a7",
-        "lastModified": "2025-11-09T13:53:43.736Z",
+        "lastModified": "2025-12-14T09:16:24.844Z",
         "status": "ai-translated"
       }
     },
@@ -1880,15 +1880,15 @@
     },
     "options.collectionStats.tokenUsageLabel": {
       "zh-CN": {
-        "value": "Token 用量",
-        "hash": "8952bc8d",
-        "lastModified": "2025-11-09T13:54:08.436Z",
+        "value": "词元(Token)用量",
+        "hash": "55ce306d",
+        "lastModified": "2025-12-14T09:16:26.382Z",
         "status": "verified"
       },
       "en": {
         "value": "Token Usage",
         "hash": "5a7d7793",
-        "lastModified": "2025-11-09T13:54:08.436Z",
+        "lastModified": "2025-12-14T09:16:26.382Z",
         "status": "ai-translated"
       }
     },
@@ -1908,29 +1908,29 @@
     },
     "options.collectionStats.avgTokensPerPage": {
       "zh-CN": {
-        "value": "均 {{tokens}} tokens/页",
-        "hash": "32c8232b",
-        "lastModified": "2025-11-09T13:54:11.823Z",
+        "value": "均 {{tokens}} 词元(Token)/页",
+        "hash": "173e8b0d",
+        "lastModified": "2025-12-14T09:16:28.956Z",
         "status": "verified"
       },
       "en": {
-        "value": "{{tokens}} tokens/page",
-        "hash": "7a812d27",
-        "lastModified": "2025-11-09T13:54:11.823Z",
+        "value": "Average {{tokens}} tokens/page",
+        "hash": "ab211009",
+        "lastModified": "2025-12-14T09:16:28.956Z",
         "status": "ai-translated"
       }
     },
     "options.collectionStats.providerDistributionTitle": {
       "zh-CN": {
-        "value": "提供商分布",
-        "hash": "98bb61fa",
-        "lastModified": "2025-11-09T13:54:14.458Z",
+        "value": "服务商分布",
+        "hash": "96d669e7",
+        "lastModified": "2025-12-14T09:16:30.684Z",
         "status": "verified"
       },
       "en": {
-        "value": "Provider Distribution",
-        "hash": "759a307f",
-        "lastModified": "2025-11-09T13:54:14.458Z",
+        "value": "Service Provider Distribution",
+        "hash": "8f7c6b89",
+        "lastModified": "2025-12-14T09:16:30.684Z",
         "status": "ai-translated"
       }
     },
@@ -1964,15 +1964,15 @@
     },
     "options.collectionStats.aiConfigPromptDesc": {
       "zh-CN": {
-        "value": "配置 AI 提供商（OpenAI、Anthropic、DeepSeek），获得更精准的语义理解和主题分类。",
-        "hash": "cc1e6fa1",
-        "lastModified": "2025-11-09T13:54:20.906Z",
+        "value": "配置 AI 服务商（OpenAI、Anthropic、DeepSeek），获得更精准的语义理解和主题分类。",
+        "hash": "eaebd088",
+        "lastModified": "2025-12-14T09:16:35.183Z",
         "status": "verified"
       },
       "en": {
-        "value": "Configure AI providers (OpenAI, Anthropic, DeepSeek) for more accurate semantic understanding and topic classification.",
-        "hash": "18fc1b19",
-        "lastModified": "2025-11-09T13:54:20.906Z",
+        "value": "Configure AI service providers (OpenAI, Anthropic, DeepSeek) for more accurate semantic understanding and topic classification.",
+        "hash": "ac519627",
+        "lastModified": "2025-12-14T09:16:35.183Z",
         "status": "ai-translated"
       }
     },
@@ -3630,15 +3630,15 @@
     },
     "options.aiConfig.providerLabel": {
       "zh-CN": {
-        "value": "AI 提供商",
-        "hash": "8ab9206e",
-        "lastModified": "2025-11-09T14:36:13.873Z",
+        "value": "AI 服务商",
+        "hash": "78bac7a4",
+        "lastModified": "2025-12-14T09:17:17.376Z",
         "status": "verified"
       },
       "en": {
-        "value": "AI Provider",
-        "hash": "c410594b",
-        "lastModified": "2025-11-09T14:36:13.873Z",
+        "value": "AI service provider",
+        "hash": "8bf95d11",
+        "lastModified": "2025-12-14T09:17:17.376Z",
         "status": "ai-translated"
       }
     },
@@ -3686,15 +3686,15 @@
     },
     "options.aiConfig.selectProviderPlaceholder": {
       "zh-CN": {
-        "value": "请选择 AI 提供商",
-        "hash": "39e9619c",
-        "lastModified": "2025-11-09T14:36:22.881Z",
+        "value": "请选择 AI 服务商",
+        "hash": "e9003856",
+        "lastModified": "2025-12-14T09:17:18.889Z",
         "status": "verified"
       },
       "en": {
-        "value": "Please select an AI provider",
-        "hash": "02af49e8",
-        "lastModified": "2025-11-09T14:36:22.881Z",
+        "value": "Please select an AI service provider",
+        "hash": "fa1909a6",
+        "lastModified": "2025-12-14T09:17:18.889Z",
         "status": "ai-translated"
       }
     },
@@ -3980,29 +3980,29 @@
     },
     "options.aiConfig.errors.selectProviderAndKey": {
       "zh-CN": {
-        "value": "请选择提供商并输入 API 密钥",
-        "hash": "ead755bc",
-        "lastModified": "2025-11-29T14:54:39.472Z",
+        "value": "请选择服务商并输入 API 密钥",
+        "hash": "3b1fdb5b",
+        "lastModified": "2025-12-14T09:17:22.797Z",
         "status": "verified"
       },
       "en": {
-        "value": "Please select a provider and enter the API key",
-        "hash": "41dcd061",
-        "lastModified": "2025-11-29T14:54:39.472Z",
+        "value": "Please select a service provider and enter the API key",
+        "hash": "7fee66e3",
+        "lastModified": "2025-12-14T09:17:22.797Z",
         "status": "ai-translated"
       }
     },
     "options.aiConfig.errors.selectProviderAndKeyFirst": {
       "zh-CN": {
-        "value": "请先选择提供商并输入 API 密钥",
-        "hash": "e8729e86",
-        "lastModified": "2025-11-29T14:54:41.519Z",
+        "value": "请先选择服务商并输入 API 密钥",
+        "hash": "0b0144a9",
+        "lastModified": "2025-12-14T09:17:25.156Z",
         "status": "verified"
       },
       "en": {
-        "value": "Please select a provider and enter the API key first.",
-        "hash": "52eff065",
-        "lastModified": "2025-11-29T14:54:41.519Z",
+        "value": "Please select a service provider and enter the API key first.",
+        "hash": "48e28016",
+        "lastModified": "2025-12-14T09:17:25.157Z",
         "status": "ai-translated"
       }
     },
@@ -4064,15 +4064,15 @@
     },
     "options.aiConfig.info.title": {
       "zh-CN": {
-        "value": "如何选择 AI 提供商",
-        "hash": "202ca42f",
-        "lastModified": "2025-11-29T14:54:45.102Z",
+        "value": "如何选择 AI 服务商",
+        "hash": "e98fe789",
+        "lastModified": "2025-12-14T09:17:27.201Z",
         "status": "verified"
       },
       "en": {
-        "value": "How to Choose an AI Provider",
-        "hash": "7d900e27",
-        "lastModified": "2025-11-29T14:54:45.102Z",
+        "value": "How to Choose an AI Service Provider",
+        "hash": "69691da1",
+        "lastModified": "2025-12-14T09:17:27.201Z",
         "status": "ai-translated"
       }
     },
@@ -4134,29 +4134,29 @@
     },
     "options.aiConfig.cost.title": {
       "zh-CN": {
-        "value": "成本参考（每百万 tokens）",
-        "hash": "9b268796",
-        "lastModified": "2025-11-09T14:37:34.554Z",
+        "value": "成本参考，每百万词元(Token)",
+        "hash": "b09bf9f0",
+        "lastModified": "2025-12-14T09:17:30.680Z",
         "status": "verified"
       },
       "en": {
-        "value": "Cost Reference (per million tokens)",
-        "hash": "5978254b",
-        "lastModified": "2025-11-09T14:37:34.554Z",
+        "value": "Cost reference, per million tokens",
+        "hash": "3241878f",
+        "lastModified": "2025-12-14T09:17:30.680Z",
         "status": "ai-translated"
       }
     },
     "options.aiConfig.cost.example": {
       "zh-CN": {
-        "value": "假设每天浏览 50 个页面，每个页面平均 1000 tokens，10% 缓存命中率：",
-        "hash": "657f8cfe",
-        "lastModified": "2025-11-09T14:37:37.217Z",
+        "value": "假设每天浏览 50 个页面，每个页面平均 1000 词元(Token)，10% 缓存命中率：",
+        "hash": "fe5a2cb5",
+        "lastModified": "2025-12-14T09:17:34.681Z",
         "status": "verified"
       },
       "en": {
-        "value": "Assuming 50 pages browsed per day, with an average of 1000 tokens per page and a 10% cache hit rate:",
-        "hash": "c0662792",
-        "lastModified": "2025-11-09T14:37:37.217Z",
+        "value": "Assuming 50 pages are browsed per day, with an average of 1000 tokens per page and a 10% cache hit rate:",
+        "hash": "ec3db5d5",
+        "lastModified": "2025-12-14T09:17:34.681Z",
         "status": "ai-translated"
       }
     },
@@ -4190,43 +4190,43 @@
     },
     "options.aiConfig.cost.deepseek.inputUncached": {
       "zh-CN": {
-        "value": "输入（缓存未命中）: ¥2.00/M tokens",
-        "hash": "6756b4dd",
-        "lastModified": "2025-11-09T14:37:43.668Z",
+        "value": "输入（缓存未命中）: ¥2.00/百万词元(Token)",
+        "hash": "9cc04905",
+        "lastModified": "2025-12-14T09:17:39.078Z",
         "status": "verified"
       },
       "en": {
-        "value": "Input (cache miss): ¥2.00/M tokens",
-        "hash": "e953eb65",
-        "lastModified": "2025-11-09T14:37:43.668Z",
+        "value": "Input (cache miss): ¥2.00/million tokens",
+        "hash": "644f2d4c",
+        "lastModified": "2025-12-14T09:17:39.079Z",
         "status": "ai-translated"
       }
     },
     "options.aiConfig.cost.deepseek.inputCached": {
       "zh-CN": {
-        "value": "输入（缓存命中）: ¥0.20/M tokens",
-        "hash": "91ca7010",
-        "lastModified": "2025-11-09T14:37:45.816Z",
+        "value": "输入（缓存命中）: ¥0.20/百万词元(Token)",
+        "hash": "e85870b3",
+        "lastModified": "2025-12-14T09:17:40.922Z",
         "status": "verified"
       },
       "en": {
-        "value": "Input (cache hit): ¥0.20/M tokens",
-        "hash": "b584a6ab",
-        "lastModified": "2025-11-09T14:37:45.816Z",
+        "value": "Input (cache hit): ¥0.20/million tokens",
+        "hash": "fb9b1391",
+        "lastModified": "2025-12-14T09:17:40.922Z",
         "status": "ai-translated"
       }
     },
     "options.aiConfig.cost.deepseek.output": {
       "zh-CN": {
-        "value": "输出: ¥3.00/M tokens",
-        "hash": "bdc70142",
-        "lastModified": "2025-11-09T14:37:48.230Z",
+        "value": "输出: ¥3.00/百万词元(Token)",
+        "hash": "77cd2487",
+        "lastModified": "2025-12-14T09:17:42.662Z",
         "status": "verified"
       },
       "en": {
-        "value": "Output: ¥3.00/M tokens",
-        "hash": "0f7964b7",
-        "lastModified": "2025-11-09T14:37:48.230Z",
+        "value": "Output: ¥3.00/million tokens",
+        "hash": "989d705e",
+        "lastModified": "2025-12-14T09:17:42.662Z",
         "status": "ai-translated"
       }
     },
@@ -4358,15 +4358,15 @@
     },
     "options.aiConfig.errors.selectProvider": {
       "zh-CN": {
-        "value": "请选择 AI 提供商",
-        "hash": "39e9619c",
-        "lastModified": "2025-11-09T14:47:25.885Z",
+        "value": "请选择 AI 服务商",
+        "hash": "e9003856",
+        "lastModified": "2025-12-14T09:17:20.789Z",
         "status": "verified"
       },
       "en": {
-        "value": "Please select an AI provider",
-        "hash": "02af49e8",
-        "lastModified": "2025-11-09T14:47:25.885Z",
+        "value": "Please select an AI service provider",
+        "hash": "fa1909a6",
+        "lastModified": "2025-12-14T09:17:20.789Z",
         "status": "ai-translated"
       }
     },
@@ -4386,15 +4386,15 @@
     },
     "options.aiConfig.labels.provider": {
       "zh-CN": {
-        "value": "AI 提供商",
-        "hash": "8ab9206e",
-        "lastModified": "2025-11-09T14:48:56.300Z",
+        "value": "AI 服务商",
+        "hash": "78bac7a4",
+        "lastModified": "2025-12-14T09:17:15.628Z",
         "status": "verified"
       },
       "en": {
-        "value": "AI Provider",
-        "hash": "c410594b",
-        "lastModified": "2025-11-09T14:48:56.300Z",
+        "value": "AI Service Provider",
+        "hash": "691e3398",
+        "lastModified": "2025-12-14T09:17:15.628Z",
         "status": "ai-translated"
       }
     },
@@ -7564,15 +7564,15 @@
     },
     "options.aiConfig.tokenUsage": {
       "zh-CN": {
-        "value": "Token 使用",
-        "hash": "94535ba2",
-        "lastModified": "2025-11-18T16:20:18.496Z",
+        "value": "词元(Token)使用",
+        "hash": "78294b46",
+        "lastModified": "2025-12-14T09:17:05.105Z",
         "status": "verified"
       },
       "en": {
         "value": "Token Usage",
         "hash": "5a7d7793",
-        "lastModified": "2025-11-18T16:20:18.496Z",
+        "lastModified": "2025-12-14T09:17:05.105Z",
         "status": "ai-translated"
       }
     },
@@ -9426,15 +9426,15 @@
     },
     "options.collectionStats.providerTokens": {
       "zh-CN": {
-        "value": "{{tokens}}K tokens",
-        "hash": "34446080",
-        "lastModified": "2025-11-19T10:34:16.043Z",
+        "value": "{{tokens}}K 词元(Token)",
+        "hash": "9b00d8ae",
+        "lastModified": "2025-12-14T09:16:32.623Z",
         "status": "verified"
       },
       "en": {
-        "value": "{{tokens}}K tokens",
-        "hash": "34446080",
-        "lastModified": "2025-11-19T10:34:16.043Z",
+        "value": "{{tokens}}K Tokens",
+        "hash": "bc708f91",
+        "lastModified": "2025-12-14T09:16:32.623Z",
         "status": "ai-translated"
       }
     },
@@ -12142,43 +12142,43 @@
     },
     "options.aiConfig.localAIForm.apiKey": {
       "zh-CN": {
-        "value": "访问令牌 (Bearer Token)",
-        "hash": "3f4f7239",
-        "lastModified": "2025-11-27T13:33:12.502Z",
+        "value": "<ruby>访问令牌<rt>Bearer Token</rt></ruby>",
+        "hash": "acb4edc8",
+        "lastModified": "2025-12-14T09:17:07.335Z",
         "status": "verified"
       },
       "en": {
-        "value": "Access Token (Bearer Token)",
-        "hash": "c5d5f059",
-        "lastModified": "2025-11-27T13:33:12.502Z",
+        "value": "<ruby>Access Token<rt>Bearer Token</rt></ruby>",
+        "hash": "70cc6089",
+        "lastModified": "2025-12-14T09:17:07.335Z",
         "status": "ai-translated"
       }
     },
     "options.aiConfig.localAIForm.apiKeyHint": {
       "zh-CN": {
-        "value": "启用 Ollama OpenAI 兼容接口时需要 Bearer Token，默认值为 \"ollama\"",
-        "hash": "ed4c9ac8",
-        "lastModified": "2025-11-27T13:33:14.757Z",
+        "value": "启用 Ollama OpenAI 兼容接口时需要访问令牌，默认值为 \"ollama\"",
+        "hash": "4910dc0f",
+        "lastModified": "2025-12-14T09:17:09.800Z",
         "status": "verified"
       },
       "en": {
-        "value": "To enable the Ollama OpenAI-compatible interface, a Bearer Token is required, with the default value being \"ollama\".",
-        "hash": "93583ef9",
-        "lastModified": "2025-11-27T13:33:14.757Z",
+        "value": "When enabling the Ollama OpenAI-compatible interface, an access token is required, with the default value being \"ollama\".",
+        "hash": "bcd60d9a",
+        "lastModified": "2025-12-14T09:17:09.800Z",
         "status": "ai-translated"
       }
     },
     "options.aiConfig.localAIForm.apiKeyPlaceholder": {
       "zh-CN": {
-        "value": "例如 ollama 或自定义 token",
-        "hash": "e119d79f",
-        "lastModified": "2025-11-27T13:33:16.905Z",
+        "value": "例如 ollama 或自定义访问令牌",
+        "hash": "3b71bfe9",
+        "lastModified": "2025-12-14T09:17:12.011Z",
         "status": "verified"
       },
       "en": {
-        "value": "For example, ollama or custom tokens",
-        "hash": "b0b714ec",
-        "lastModified": "2025-11-27T13:33:16.905Z",
+        "value": "For example, ollama or custom access tokens",
+        "hash": "6b5f2186",
+        "lastModified": "2025-12-14T09:17:12.012Z",
         "status": "ai-translated"
       }
     },
@@ -12240,15 +12240,15 @@
     },
     "options.aiConfig.localAIForm.maxTokens": {
       "zh-CN": {
-        "value": "最大输出 tokens",
-        "hash": "90e351c9",
-        "lastModified": "2025-11-27T13:33:28.375Z",
+        "value": "最大输出词元(Token)",
+        "hash": "062f6fcd",
+        "lastModified": "2025-12-14T09:17:13.793Z",
         "status": "verified"
       },
       "en": {
         "value": "Maximum output tokens",
         "hash": "c33008ae",
-        "lastModified": "2025-11-27T13:33:28.375Z",
+        "lastModified": "2025-12-14T09:17:13.793Z",
         "status": "ai-translated"
       }
     },
@@ -12814,15 +12814,15 @@
     },
     "options.aiConfig.local.maxTokens": {
       "zh-CN": {
-        "value": "最大输出 tokens",
-        "hash": "90e351c9",
-        "lastModified": "2025-11-27T14:13:00.586Z",
+        "value": "最大输出词元(Token)",
+        "hash": "062f6fcd",
+        "lastModified": "2025-12-14T09:17:28.738Z",
         "status": "verified"
       },
       "en": {
         "value": "Maximum output tokens",
         "hash": "c33008ae",
-        "lastModified": "2025-11-27T14:13:00.586Z",
+        "lastModified": "2025-12-14T09:17:28.738Z",
         "status": "ai-translated"
       }
     },
@@ -14172,15 +14172,15 @@
     },
     "options.collectionStats.totalTokenUsageLabel": {
       "zh-CN": {
-        "value": "Token 总用量",
-        "hash": "496fa555",
-        "lastModified": "2025-11-28T14:55:24.980Z",
+        "value": "词元(Token)总用量",
+        "hash": "450b15d6",
+        "lastModified": "2025-12-14T09:16:23.311Z",
         "status": "verified"
       },
       "en": {
         "value": "Total Token Usage",
         "hash": "5968a1f8",
-        "lastModified": "2025-11-28T14:55:24.980Z",
+        "lastModified": "2025-12-14T09:16:23.311Z",
         "status": "ai-translated"
       }
     },
@@ -14984,15 +14984,15 @@
     },
     "options.aiConfig.providerPanel.title": {
       "zh-CN": {
-        "value": "AI 提供商状态",
-        "hash": "7248c11e",
-        "lastModified": "2025-11-29T14:55:38.659Z",
+        "value": "AI 服务商状态",
+        "hash": "3455ffd6",
+        "lastModified": "2025-12-14T09:17:48.117Z",
         "status": "verified"
       },
       "en": {
-        "value": "AI Provider Status",
-        "hash": "c10e57c4",
-        "lastModified": "2025-11-29T14:55:38.659Z",
+        "value": "AI Service Provider Status",
+        "hash": "682f7b0a",
+        "lastModified": "2025-12-14T09:17:48.117Z",
         "status": "ai-translated"
       }
     },
@@ -15530,15 +15530,15 @@
     },
     "options.collectionStats.aiUsage.tokens.title": {
       "zh-CN": {
-        "value": "Token 使用统计",
-        "hash": "c2790a18",
-        "lastModified": "2025-11-30T10:59:31.463Z",
+        "value": "词元(Token)使用统计",
+        "hash": "ee3aee7c",
+        "lastModified": "2025-12-14T09:16:48.187Z",
         "status": "verified"
       },
       "en": {
         "value": "Token Usage Statistics",
         "hash": "5da08317",
-        "lastModified": "2025-11-30T10:59:31.463Z",
+        "lastModified": "2025-12-14T09:16:48.187Z",
         "status": "ai-translated"
       }
     },
@@ -15586,15 +15586,15 @@
     },
     "options.collectionStats.aiUsage.byProvider.title": {
       "zh-CN": {
-        "value": "按 AI Provider 分组",
-        "hash": "b54cfaba",
-        "lastModified": "2025-11-30T10:59:38.523Z",
+        "value": "按 AI 服务商分组",
+        "hash": "1e809120",
+        "lastModified": "2025-12-14T09:16:49.986Z",
         "status": "verified"
       },
       "en": {
-        "value": "Group by AI Provider",
-        "hash": "b89cf47d",
-        "lastModified": "2025-11-30T10:59:38.524Z",
+        "value": "Group by AI Service Provider",
+        "hash": "b2a503a5",
+        "lastModified": "2025-12-14T09:16:49.986Z",
         "status": "ai-translated"
       }
     },
@@ -15614,15 +15614,15 @@
     },
     "options.collectionStats.aiUsage.byProvider.tokens": {
       "zh-CN": {
-        "value": "tokens",
-        "hash": "25d7186f",
-        "lastModified": "2025-11-30T10:59:42.107Z",
+        "value": "词元(Token)",
+        "hash": "1368a992",
+        "lastModified": "2025-12-14T09:16:51.804Z",
         "status": "verified"
       },
       "en": {
-        "value": "tokens",
-        "hash": "25d7186f",
-        "lastModified": "2025-11-30T10:59:42.107Z",
+        "value": "Token",
+        "hash": "459a6f79",
+        "lastModified": "2025-12-14T09:16:51.804Z",
         "status": "ai-translated"
       }
     },
@@ -15712,15 +15712,15 @@
     },
     "options.collectionStats.aiUsage.byPurpose.tokens": {
       "zh-CN": {
-        "value": "tokens",
-        "hash": "25d7186f",
-        "lastModified": "2025-11-30T10:59:54.610Z",
+        "value": "词元(Token)",
+        "hash": "1368a992",
+        "lastModified": "2025-12-14T09:16:54.133Z",
         "status": "verified"
       },
       "en": {
-        "value": "tokens",
-        "hash": "25d7186f",
-        "lastModified": "2025-11-30T10:59:54.610Z",
+        "value": "Token",
+        "hash": "459a6f79",
+        "lastModified": "2025-12-14T09:16:54.133Z",
         "status": "ai-translated"
       }
     },
@@ -15810,15 +15810,15 @@
     },
     "options.collectionStats.aiUsage.byReasoning.tokenUsage": {
       "zh-CN": {
-        "value": "Token 用量：",
-        "hash": "5b9425c2",
-        "lastModified": "2025-11-30T11:00:08.731Z",
+        "value": "词元(Token)用量：",
+        "hash": "8757076c",
+        "lastModified": "2025-12-14T09:16:55.791Z",
         "status": "verified"
       },
       "en": {
         "value": "Token Usage:",
         "hash": "57905040",
-        "lastModified": "2025-11-30T11:00:08.731Z",
+        "lastModified": "2025-12-14T09:16:55.791Z",
         "status": "ai-translated"
       }
     },
@@ -15922,15 +15922,15 @@
     },
     "options.collectionStats.aiUsage.localAI.tokenUsage": {
       "zh-CN": {
-        "value": "Token 用量",
-        "hash": "8952bc8d",
-        "lastModified": "2025-11-30T11:00:23.275Z",
+        "value": "词元(Token)用量",
+        "hash": "55ce306d",
+        "lastModified": "2025-12-14T09:16:57.627Z",
         "status": "verified"
       },
       "en": {
-        "value": "Token Usage",
-        "hash": "5a7d7793",
-        "lastModified": "2025-11-30T11:00:23.275Z",
+        "value": "Token usage",
+        "hash": "f9118358",
+        "lastModified": "2025-12-14T09:16:57.627Z",
         "status": "ai-translated"
       }
     },
@@ -16174,15 +16174,15 @@
     },
     "options.collectionStats.aiUsage.chart.tokens": {
       "zh-CN": {
-        "value": "Token",
-        "hash": "459a6f79",
-        "lastModified": "2025-11-30T12:51:13.000Z",
+        "value": "词元(Token)",
+        "hash": "1368a992",
+        "lastModified": "2025-12-14T09:16:59.550Z",
         "status": "verified"
       },
       "en": {
         "value": "Token",
         "hash": "459a6f79",
-        "lastModified": "2025-11-30T12:51:13.000Z",
+        "lastModified": "2025-12-14T09:16:59.550Z",
         "status": "ai-translated"
       }
     },
@@ -16216,15 +16216,15 @@
     },
     "options.collectionStats.aiUsage.chart.tokensComparison": {
       "zh-CN": {
-        "value": "Token 用量对比",
-        "hash": "9359f09c",
-        "lastModified": "2025-11-30T12:51:18.849Z",
+        "value": "词元(Token)用量对比",
+        "hash": "725a92b7",
+        "lastModified": "2025-12-14T09:17:01.398Z",
         "status": "verified"
       },
       "en": {
         "value": "Token Usage Comparison",
         "hash": "5095aa7a",
-        "lastModified": "2025-11-30T12:51:18.849Z",
+        "lastModified": "2025-12-14T09:17:01.398Z",
         "status": "ai-translated"
       }
     },
@@ -16986,15 +16986,15 @@
     },
     "options.aiConfig.configModal.reasoningEnabled": {
       "zh-CN": {
-        "value": "✅ 推理模式已开启：AI 将进行深度思考，提供更高质量的分析（消耗更多 tokens）",
-        "hash": "7bef0198",
-        "lastModified": "2025-12-05T18:07:28.777Z",
+        "value": "✅ 推理模式已开启：AI 将进行深度思考，提供更高质量的分析，但消耗更多词元(Token)",
+        "hash": "3a9f5ed1",
+        "lastModified": "2025-12-14T09:17:50.342Z",
         "status": "verified"
       },
       "en": {
-        "value": "✅ Reasoning mode enabled: AI will engage in deep thinking to provide higher-quality analysis (consumes more tokens)",
-        "hash": "afe6ab47",
-        "lastModified": "2025-12-05T18:07:28.778Z",
+        "value": "✅ Reasoning mode enabled: AI will engage in deep thinking to provide higher-quality analysis, but will consume more tokens.",
+        "hash": "b9e4df26",
+        "lastModified": "2025-12-14T09:17:50.342Z",
         "status": "ai-translated"
       }
     },
@@ -17378,15 +17378,15 @@
     },
     "settings.aiUsage.tokenAxisLabel": {
       "zh-CN": {
-        "value": "词元（Token）",
-        "hash": "2d0ddf04",
-        "lastModified": "2025-12-08T10:39:40.742Z",
+        "value": "词元(Token)",
+        "hash": "1368a992",
+        "lastModified": "2025-12-14T09:17:55.768Z",
         "status": "verified"
       },
       "en": {
         "value": "Token",
         "hash": "459a6f79",
-        "lastModified": "2025-12-08T10:39:40.742Z",
+        "lastModified": "2025-12-14T09:17:55.768Z",
         "status": "ai-translated"
       }
     },
@@ -17406,85 +17406,85 @@
     },
     "settings.aiUsage.legend.tokenNonReasoning": {
       "zh-CN": {
-        "value": "词元（Token）（非推理）",
-        "hash": "9016de41",
-        "lastModified": "2025-12-08T10:39:44.216Z",
+        "value": "词元(Token)，非推理",
+        "hash": "d2ea2421",
+        "lastModified": "2025-12-14T09:17:58.124Z",
         "status": "verified"
       },
       "en": {
-        "value": "Token (Non-inference)",
-        "hash": "623aaba7",
-        "lastModified": "2025-12-08T10:39:44.216Z",
+        "value": "Token, non-inference",
+        "hash": "5136d4bb",
+        "lastModified": "2025-12-14T09:17:58.124Z",
         "status": "ai-translated"
       }
     },
     "settings.aiUsage.legend.tokenReasoning": {
       "zh-CN": {
-        "value": "词元（Token）（推理）",
-        "hash": "787ffa56",
-        "lastModified": "2025-12-08T10:39:46.315Z",
+        "value": "词元(Token)，推理",
+        "hash": "46d5b9f9",
+        "lastModified": "2025-12-14T09:17:59.766Z",
         "status": "verified"
       },
       "en": {
-        "value": "Token (Inference)",
-        "hash": "c25bd351",
-        "lastModified": "2025-12-08T10:39:46.315Z",
+        "value": "Token, Inference",
+        "hash": "81537449",
+        "lastModified": "2025-12-14T09:17:59.766Z",
         "status": "ai-translated"
       }
     },
     "settings.aiUsage.legend.callsNonReasoning": {
       "zh-CN": {
-        "value": "调用（非推理）",
-        "hash": "05060495",
-        "lastModified": "2025-12-08T10:39:48.437Z",
+        "value": "调用，非推理",
+        "hash": "c0f51da2",
+        "lastModified": "2025-12-14T09:18:01.303Z",
         "status": "verified"
       },
       "en": {
-        "value": "Call (non-inference)",
-        "hash": "9b89c972",
-        "lastModified": "2025-12-08T10:39:48.437Z",
+        "value": "Call, not inference",
+        "hash": "b54b5346",
+        "lastModified": "2025-12-14T09:18:01.304Z",
         "status": "ai-translated"
       }
     },
     "settings.aiUsage.legend.callsReasoning": {
       "zh-CN": {
-        "value": "调用（推理）",
-        "hash": "e4f0bf3d",
-        "lastModified": "2025-12-08T10:39:50.309Z",
+        "value": "调用，推理",
+        "hash": "72642be5",
+        "lastModified": "2025-12-14T09:18:03.041Z",
         "status": "verified"
       },
       "en": {
-        "value": "Call (Inference)",
-        "hash": "7ab6e294",
-        "lastModified": "2025-12-08T10:39:50.309Z",
+        "value": "Call, inference",
+        "hash": "6bca6f16",
+        "lastModified": "2025-12-14T09:18:03.041Z",
         "status": "ai-translated"
       }
     },
     "settings.aiUsage.legend.costNonReasoning": {
       "zh-CN": {
-        "value": "费用（非推理）",
-        "hash": "f8398043",
-        "lastModified": "2025-12-08T10:39:52.561Z",
+        "value": "费用，非推理",
+        "hash": "8c7c72f2",
+        "lastModified": "2025-12-14T09:18:04.882Z",
         "status": "verified"
       },
       "en": {
-        "value": "Cost (Non-Inference)",
-        "hash": "4ab90fcc",
-        "lastModified": "2025-12-08T10:39:52.561Z",
+        "value": "Cost, non-inference",
+        "hash": "57e97041",
+        "lastModified": "2025-12-14T09:18:04.882Z",
         "status": "ai-translated"
       }
     },
     "settings.aiUsage.legend.costReasoning": {
       "zh-CN": {
-        "value": "费用（推理）",
-        "hash": "e583d82c",
-        "lastModified": "2025-12-08T10:39:54.100Z",
+        "value": "费用，推理",
+        "hash": "c2ca620e",
+        "lastModified": "2025-12-14T09:18:06.421Z",
         "status": "verified"
       },
       "en": {
-        "value": "Cost (Inference)",
-        "hash": "828669f3",
-        "lastModified": "2025-12-08T10:39:54.100Z",
+        "value": "Cost, Inference",
+        "hash": "baffc9a5",
+        "lastModified": "2025-12-14T09:18:06.421Z",
         "status": "ai-translated"
       }
     },
@@ -17854,15 +17854,15 @@
     },
     "options.aiConfig.budgetOverview.description": {
       "zh-CN": {
-        "value": "按货币查看所有 AI Provider 的预算使用情况",
-        "hash": "d626a50f",
-        "lastModified": "2025-12-09T02:39:55.023Z",
+        "value": "按货币查看所有 AI 服务商的预算使用情况",
+        "hash": "507f18c1",
+        "lastModified": "2025-12-14T09:17:03.346Z",
         "status": "verified"
       },
       "en": {
-        "value": "View budget usage for all AI Providers by currency",
-        "hash": "8d4438cd",
-        "lastModified": "2025-12-09T02:39:55.023Z",
+        "value": "View budget usage of all AI service providers by currency",
+        "hash": "bb8962c6",
+        "lastModified": "2025-12-14T09:17:03.346Z",
         "status": "ai-translated"
       }
     },
@@ -18106,15 +18106,15 @@
     },
     "onboarding.aiConfig.buttons.skip": {
       "zh-CN": {
-        "value": "跳过",
-        "hash": "92636e8c",
-        "lastModified": "2025-12-10T12:04:42.696Z",
+        "value": "跳过，稍后设置",
+        "hash": "b43d62f3",
+        "lastModified": "2025-12-14T09:17:52.184Z",
         "status": "verified"
       },
       "en": {
-        "value": "Skip",
-        "hash": "72ef2b9b",
-        "lastModified": "2025-12-10T12:04:42.698Z",
+        "value": "Skip, set up later",
+        "hash": "58055cde",
+        "lastModified": "2025-12-14T09:17:52.184Z",
         "status": "ai-translated"
       }
     },
@@ -18143,6 +18143,188 @@
         "value": "You can skip this step and configure the remote AI or local Ollama later in the settings page.",
         "hash": "2c04543b",
         "lastModified": "2025-12-10T12:03:22.735Z",
+        "status": "ai-translated"
+      }
+    },
+    "popup.allCaughtUp.subtitle": {
+      "zh-CN": {
+        "value": "所有推荐都已查看完毕",
+        "hash": "8a52b344",
+        "lastModified": "2025-12-14T09:16:16.332Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "All recommendations have been viewed.",
+        "hash": "012edeca",
+        "lastModified": "2025-12-14T09:16:16.333Z",
+        "status": "ai-translated"
+      }
+    },
+    "popup.learningStage.title": {
+      "zh-CN": {
+        "value": "正在学习你的兴趣偏好",
+        "hash": "d2538485",
+        "lastModified": "2025-12-14T09:16:17.989Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Learning your interests and preferences",
+        "hash": "1e46b469",
+        "lastModified": "2025-12-14T09:16:17.990Z",
+        "status": "ai-translated"
+      }
+    },
+    "popup.learningStage.progress": {
+      "zh-CN": {
+        "value": "已浏览 {{current}}/{{total}} 页",
+        "hash": "1a3130de",
+        "lastModified": "2025-12-14T09:16:19.906Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Viewed {{current}}/{{total}} pages",
+        "hash": "943b03a8",
+        "lastModified": "2025-12-14T09:16:19.906Z",
+        "status": "ai-translated"
+      }
+    },
+    "popup.learningStage.subtitle": {
+      "zh-CN": {
+        "value": "数据存储在本地，分析由你的 AI 完成",
+        "hash": "df23f9a5",
+        "lastModified": "2025-12-14T09:16:21.889Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Data is stored locally, and analysis is performed by your AI.",
+        "hash": "6b10783d",
+        "lastModified": "2025-12-14T09:16:21.889Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.funnelLearningPagesDesc": {
+      "zh-CN": {
+        "value": "用于构建用户画像",
+        "hash": "5df88b1d",
+        "lastModified": "2025-12-14T09:16:37.537Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "For building user profiles",
+        "hash": "e1870de7",
+        "lastModified": "2025-12-14T09:16:37.537Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.funnelDismissedDesc": {
+      "zh-CN": {
+        "value": "从推荐中忽略",
+        "hash": "4375ba60",
+        "lastModified": "2025-12-14T09:16:39.073Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Ignore from recommendations",
+        "hash": "a8bf3674",
+        "lastModified": "2025-12-14T09:16:39.073Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.funnelRelationHint": {
+      "zh-CN": {
+        "value": "阅读 + 不想读 = 推荐",
+        "hash": "86c5579e",
+        "lastModified": "2025-12-14T09:16:41.022Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Reading + Not Wanting to Read = Recommendation",
+        "hash": "a43412d7",
+        "lastModified": "2025-12-14T09:16:41.022Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.funnelReadingIncluded": {
+      "zh-CN": {
+        "value": "包含→阅读页面",
+        "hash": "105c0bc2",
+        "lastModified": "2025-12-14T09:16:42.603Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Include → Reading Page",
+        "hash": "d9051dd0",
+        "lastModified": "2025-12-14T09:16:42.603Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.funnelDismissedFrom": {
+      "zh-CN": {
+        "value": "来自→推荐分支",
+        "hash": "c05a1410",
+        "lastModified": "2025-12-14T09:16:44.498Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "From → Recommended Branch",
+        "hash": "5bbb4c6e",
+        "lastModified": "2025-12-14T09:16:44.498Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.collectionStats.funnelDataRelation": {
+      "zh-CN": {
+        "value": "数据关系",
+        "hash": "65db16ef",
+        "lastModified": "2025-12-14T09:16:46.040Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Data Relationship",
+        "hash": "037a4cd8",
+        "lastModified": "2025-12-14T09:16:46.041Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.aiEngineAssignment.requiresLocal": {
+      "zh-CN": {
+        "value": "需本地AI",
+        "hash": "60ab33e3",
+        "lastModified": "2025-12-14T09:17:44.526Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Requires local AI",
+        "hash": "8469946f",
+        "lastModified": "2025-12-14T09:17:44.526Z",
+        "status": "ai-translated"
+      }
+    },
+    "options.aiConfig.aiEngineAssignment.requiresRemote": {
+      "zh-CN": {
+        "value": "需远程AI",
+        "hash": "b77b3982",
+        "lastModified": "2025-12-14T09:17:46.656Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Requires remote AI",
+        "hash": "01b68848",
+        "lastModified": "2025-12-14T09:17:46.656Z",
+        "status": "ai-translated"
+      }
+    },
+    "onboarding.rssSetup.buttons.added": {
+      "zh-CN": {
+        "value": "已添加",
+        "hash": "b189550a",
+        "lastModified": "2025-12-14T09:17:53.770Z",
+        "status": "verified"
+      },
+      "en": {
+        "value": "Added",
+        "hash": "f29ddbfb",
+        "lastModified": "2025-12-14T09:17:53.770Z",
         "status": "ai-translated"
       }
     }
