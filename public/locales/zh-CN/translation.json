@@ -642,6 +642,7 @@
       "aiUsage": {
         "title": "AI 用量统计",
         "noData": "暂无 AI 用量数据",
+        "noCost": "暂无消费",
         "hint": "开始使用 AI 功能后，这里将显示详细的用量和费用统计",
         "overview": {
           "title": "AI 成本分析",

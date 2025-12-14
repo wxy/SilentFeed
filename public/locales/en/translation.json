@@ -139,7 +139,7 @@
     "generateNowTitle": "Generate recommendations instantly",
     "reason": "Reason",
     "engine": {
-      "reasoningAI": "Inference AI",
+      "reasoningAI": "Reasoning AI",
       "ai": "AI",
       "algorithm": "Algorithm"
     },
@@ -179,7 +179,7 @@
     },
     "source": {
       "algorithm": "Algorithm recommendation",
-      "reasoningAI": "Inference AI Recommendations",
+      "reasoningAI": "Reasoning AI Recommendations",
       "smartAI": "AI Smart Recommendation",
       "ai": "AI Recommendations",
       "chromeAI": "Chrome AI Recommendations"
@@ -354,7 +354,7 @@
       "feed": "Feed Analysis Engine",
       "options": {
         "remoteAI": "Remote AI (Standard)",
-        "remoteAIWithReasoning": "Remote AI (Inference Mode)",
+        "remoteAIWithReasoning": "Remote AI (Reasoning Mode)",
         "localAI": "Local AI",
         "keyword": "Pure keywords"
       },
@@ -377,7 +377,7 @@
       "recommendedLabel": "Recommend",
       "currentLabel": "Current",
       "hint": {
-        "recommendation": "💡 The recommendation system supports three AI engines: Remote AI, Inference AI, and Local AI (Remote AI is used by default).",
+        "recommendation": "💡 The recommendation system supports three AI engines: Remote AI, Reasoning AI, and Local AI (Remote AI is used by default).",
         "feed": "💡Feed analysis supports 2 AI engines: Remote AI, Local AI (reasoning mode not supported due to cost and speed considerations)"
       },
       "label": "Analytical Engine",
@@ -389,7 +389,7 @@
       },
       "unavailable": {
         "remoteAI": "AI API is not configured, please go to the AI configuration page to set it up.",
-        "remoteAIWithReasoning": "Requires DeepSeek API with inference capability enabled",
+        "remoteAIWithReasoning": "Requires DeepSeek API with reasoning capability enabled",
         "localAI": "No local AI detected (requires installation of Ollama or a browser with Chrome AI support)",
         "keyword": "Always available"
       },
@@ -591,6 +591,7 @@
       "aiUsage": {
         "title": "AI Usage Statistics",
         "noData": "No AI usage data available",
+        "noCost": "No cost",
         "hint": "After enabling AI features, detailed usage and cost statistics will be displayed here.",
         "overview": {
           "title": "AI Cost Analysis",
@@ -814,8 +815,8 @@
           "nano": "GPT-5 Nano: $0.05/M input, $0.40/M output (approx. $0.07/month)",
           "mini": "GPT-5 Mini: $0.25/M input, $2.0/M output (approx. $0.33/month)",
           "standard": "GPT-5: $1.25/M input, $10.0/M output (approx. $1.66/month)",
-          "o4mini": "o4-mini: $4.0/M input, $16.0/M output (approx. $6.20/month, inference model)",
-          "o1mini": "o1-mini: $3.00/M input, $12.0/M output (approx. $2.20/month, inference model)"
+          "o4mini": "o4-mini: $4.0/M input, $16.0/M output (approx. $6.20/month, reasoning model)",
+          "o1mini": "o1-mini: $3.00/M input, $12.0/M output (approx. $2.20/month, reasoning model)"
         },
         "anthropic": {
           "title": "Anthropic Claude 3 Haiku (USD)",
@@ -944,9 +945,9 @@
       "enableReasoning": "Enable reasoning capability",
       "reasoningHint": "💡 Use reasoning mode for complex tasks like recommendations to get a deeper thought process.",
       "reasoningWarning": "⚠️ Reasoning mode significantly increases costs and is recommended only when deep analysis is needed.",
-      "reasoningUnavailable": "❌ The current provider does not support inference mode (only DeepSeek supports it).",
-      "reasoningAvailableDeepSeek": "DeepSeek-R1 inference mode is available.",
-      "reasoningFutureSupport": "{{provider}} does not currently support inference mode, which may be available in future versions.",
+      "reasoningUnavailable": "❌ The current provider does not support reasoning mode (only DeepSeek supports it).",
+      "reasoningAvailableDeepSeek": "DeepSeek-R1 reasoning mode is available.",
+      "reasoningFutureSupport": "{{provider}} does not currently support reasoning mode, which may be available in future versions.",
       "chromeAI": {
         "title": "Chrome AI Status",
         "description": "Chrome AI is Google's built-in Gemini Nano model in the Chrome browser, running entirely offline to protect privacy.",
@@ -1002,13 +1003,13 @@
         "installOllama": "Install Ollama"
       },
       "subtitle": "Configure remote AI services for more accurate content analysis.",
-      "reasoningSupported": "The current model supports inference mode.",
-      "reasoningNotSupported": "The current model does not support inference mode.",
+      "reasoningSupported": "The current model supports reasoning mode.",
+      "reasoningNotSupported": "The current model does not support reasoning mode.",
       "reasoningCost": "Cost approximately {{multiplier}}x",
       "models": {
         "deepseek-chat": {
           "name": "DeepSeek",
-          "description": "China-friendly, supports inference mode (R1)"
+          "description": "China-friendly, supports reasoning mode (R1)"
         },
         "gpt-5-nano": {
           "name": "GPT-5 Nano",
@@ -1073,7 +1074,7 @@
         "localLabel": "Preferred local AI",
         "remoteHint": "Use this Provider when selecting \"Remote AI\"",
         "localHint": "Use this Provider when selecting \"Local AI\" (currently only supports Ollama)",
-        "deepseekDesc": "- High cost-performance ratio, supports inference",
+        "deepseekDesc": "- High cost-performance ratio, supports reasoning",
         "openaiDesc": "- Strong comprehensive ability",
         "ollamaDesc": "- Run locally, complete privacy"
       },
@@ -1196,7 +1197,7 @@
         "apiKeyPlaceholder": "Please enter the {{provider}} API key",
         "selectModel": "Select Model",
         "selectModelPlaceholder": "-- Select Model --",
-        "enableReasoning": "Enable inference mode (costs about 10x more, but with higher quality)",
+        "enableReasoning": "Enable reasoning mode (costs about 10x more, but with higher quality)",
         "ollamaEnabled": "Enable Local AI (Ollama)",
         "ollamaEndpoint": "Ollama endpoint",
         "ollamaEndpointPlaceholder": "http://localhost:11434/v1",
@@ -1204,7 +1205,7 @@
         "ollamaModelPlaceholder": "e.g., qwen2.5:7b",
         "testResult": {
           "success": "Connection successful! Latency: {{latency}}ms",
-          "successWithReasoning": "Connection successful! Latency: {{latency}}ms (Inference mode enabled)",
+          "successWithReasoning": "Connection successful! Latency: {{latency}}ms (Reasoning mode enabled)",
           "error": "Translate the following Chinese text into English:\n{{message}}",
           "missingConfig": "Please configure the API Key and select a model first.",
           "missingEndpoint": "Please configure the Ollama endpoint first.",
@@ -1757,12 +1758,12 @@
       "tokenAxisLabel": "Token",
       "callAxisLabel": "Number of calls",
       "legend": {
-        "tokenNonReasoning": "Token, non-inference",
-        "tokenReasoning": "Token, Inference",
-        "callsNonReasoning": "Call, not inference",
-        "callsReasoning": "Call, inference",
-        "costNonReasoning": "Cost, non-inference",
-        "costReasoning": "Cost, Inference"
+        "tokenNonReasoning": "Token, non-reasoning",
+        "tokenReasoning": "Token, Reasoning",
+        "callsNonReasoning": "Calls, non-reasoning",
+        "callsReasoning": "Calls, Reasoning",
+        "costNonReasoning": "Cost, non-reasoning",
+        "costReasoning": "Cost, Reasoning"
       },
       "labels": {
         "total": "Total"
