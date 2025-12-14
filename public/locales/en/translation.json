@@ -32,42 +32,99 @@
         "Take a break and enjoy the moment of peace",
         "Perfect! All important information is yours"
       ],
-      "subtitle": "All recommendations have been reviewed"
+      "subtitle": "All recommendations have been viewed."
     },
     "learningStage": {
-      "title": "Learning your interests",
-      "progress": "Browsed {{current}}/{{total}} pages",
-      "subtitle": "Data stays local, your AI does the analysis"
+      "title": "Learning your interests and preferences",
+      "progress": "Viewed {{current}}/{{total}} pages",
+      "subtitle": "Data is stored locally, and analysis is performed by your AI."
     },
     "tips": {
       "philosophy": [
-        { "emoji": "💡", "text": "Mindful reading — only what truly matters" },
-        { "emoji": "🌊", "text": "Calm the noise of endless feeds" },
-        { "emoji": "🎯", "text": "Hundreds in, only the best out" },
-        { "emoji": "🧘", "text": "Less is More: Read less, think more" }
+        {
+          "emoji": "💡",
+          "text": "Mindful reading — only what truly matters"
+        },
+        {
+          "emoji": "🌊",
+          "text": "Calm the noise of endless feeds"
+        },
+        {
+          "emoji": "🎯",
+          "text": "Hundreds in, only the best out"
+        },
+        {
+          "emoji": "🧘",
+          "text": "Less is More: Read less, think more"
+        }
       ],
       "privacy": [
-        { "emoji": "🔒", "text": "We collect nothing — your AI does the thinking" },
-        { "emoji": "🤖", "text": "Your AI, your data, your control" },
-        { "emoji": "🏠", "text": "Data stays local, AI handles the rest" }
+        {
+          "emoji": "🔒",
+          "text": "We collect nothing — your AI does the thinking"
+        },
+        {
+          "emoji": "🤖",
+          "text": "Your AI, your data, your control"
+        },
+        {
+          "emoji": "🏠",
+          "text": "Data stays local, AI handles the rest"
+        }
       ],
       "usage": [
-        { "emoji": "📚", "text": "Subscribe freely — we'll pick the gems" },
-        { "emoji": "🌐", "text": "Auto-translate foreign content, no barriers" },
-        { "emoji": "🎨", "text": "Try Sketchy mode — you might love it" },
-        { "emoji": "🛡️", "text": "Privacy concerns? Try Privacy-First mode" },
-        { "emoji": "👤", "text": "Curious how we see you? Check your profile" },
-        { "emoji": "🕸️", "text": "Which feed isn't worth it? The radar chart knows" }
+        {
+          "emoji": "📚",
+          "text": "Subscribe freely — we'll pick the gems"
+        },
+        {
+          "emoji": "🌐",
+          "text": "Auto-translate foreign content, no barriers"
+        },
+        {
+          "emoji": "🎨",
+          "text": "Try Sketchy mode — you might love it"
+        },
+        {
+          "emoji": "🛡️",
+          "text": "Privacy concerns? Try Privacy-First mode"
+        },
+        {
+          "emoji": "👤",
+          "text": "Curious how we see you? Check your profile"
+        },
+        {
+          "emoji": "🕸️",
+          "text": "Which feed isn't worth it? The radar chart knows"
+        }
       ],
       "howItWorks": [
-        { "emoji": "🧠", "text": "Every click teaches us your taste" },
-        { "emoji": "🔄", "text": "Always learning from your clicks and skips" },
-        { "emoji": "🚀", "text": "Silence is golden — we're learning behind the scenes" },
-        { "emoji": "📖", "text": "Just 100 pages to unlock recommendations" }
+        {
+          "emoji": "🧠",
+          "text": "Every click teaches us your taste"
+        },
+        {
+          "emoji": "🔄",
+          "text": "Always learning from your clicks and skips"
+        },
+        {
+          "emoji": "🚀",
+          "text": "Silence is golden — we're learning behind the scenes"
+        },
+        {
+          "emoji": "📖",
+          "text": "Just 100 pages to unlock recommendations"
+        }
       ],
       "features": [
-        { "emoji": "✨", "text": "Hundreds screened, only the best served" },
-        { "emoji": "🎲", "text": "Deep analysis is sharper — just costs a bit more" }
+        {
+          "emoji": "✨",
+          "text": "Hundreds screened, only the best served"
+        },
+        {
+          "emoji": "🎲",
+          "text": "Deep analysis is sharper — just costs a bit more"
+        }
       ]
     },
     "confirmDismissAll": "Are you sure you want to mark all {{count}} recommendations as \"Not Interested\"?",
@@ -82,7 +139,7 @@
     "generateNowTitle": "Generate recommendations instantly",
     "reason": "Reason",
     "engine": {
-      "reasoningAI": "Inference AI",
+      "reasoningAI": "Reasoning AI",
       "ai": "AI",
       "algorithm": "Algorithm"
     },
@@ -122,7 +179,7 @@
     },
     "source": {
       "algorithm": "Algorithm recommendation",
-      "reasoningAI": "Inference AI Recommendations",
+      "reasoningAI": "Reasoning AI Recommendations",
       "smartAI": "AI Smart Recommendation",
       "ai": "AI Recommendations",
       "chromeAI": "Chrome AI Recommendations"
@@ -297,7 +354,7 @@
       "feed": "Feed Analysis Engine",
       "options": {
         "remoteAI": "Remote AI (Standard)",
-        "remoteAIWithReasoning": "Remote AI (Inference Mode)",
+        "remoteAIWithReasoning": "Remote AI (Reasoning Mode)",
         "localAI": "Local AI",
         "keyword": "Pure keywords"
       },
@@ -320,7 +377,7 @@
       "recommendedLabel": "Recommend",
       "currentLabel": "Current",
       "hint": {
-        "recommendation": "💡 The recommendation system supports three AI engines: Remote AI, Inference AI, and Local AI (Remote AI is used by default).",
+        "recommendation": "💡 The recommendation system supports three AI engines: Remote AI, Reasoning AI, and Local AI (Remote AI is used by default).",
         "feed": "💡Feed analysis supports 2 AI engines: Remote AI, Local AI (reasoning mode not supported due to cost and speed considerations)"
       },
       "label": "Analytical Engine",
@@ -332,7 +389,7 @@
       },
       "unavailable": {
         "remoteAI": "AI API is not configured, please go to the AI configuration page to set it up.",
-        "remoteAIWithReasoning": "Requires DeepSeek API with inference capability enabled",
+        "remoteAIWithReasoning": "Requires DeepSeek API with reasoning capability enabled",
         "localAI": "No local AI detected (requires installation of Ollama or a browser with Chrome AI support)",
         "keyword": "Always available"
       },
@@ -424,11 +481,11 @@
       "noCost": "No consumption",
       "tokenUsageLabel": "Token Usage",
       "tokenUsageK": "{{tokens}}K",
-      "avgTokensPerPage": "{{tokens}} tokens/page",
-      "providerDistributionTitle": "Provider Distribution",
+      "avgTokensPerPage": "Average {{tokens}} tokens/page",
+      "providerDistributionTitle": "Service Provider Distribution",
       "providerDistributionCount": "{{count}} pages ({{percentage}}%)",
       "aiConfigPromptTitle": "Want more accurate content analysis?",
-      "aiConfigPromptDesc": "Configure AI providers (OpenAI, Anthropic, DeepSeek) for more accurate semantic understanding and topic classification.",
+      "aiConfigPromptDesc": "Configure AI service providers (OpenAI, Anthropic, DeepSeek) for more accurate semantic understanding and topic classification.",
       "aiConfigPromptLink": "Go to Configuration",
       "textAnalysisNoData": "No text analysis data available",
       "totalKeywordsLabel": "Total number of keywords",
@@ -490,7 +547,7 @@
       "topSourcesTitle": "Popular Sources",
       "sourceStats": "{{count}} items • Read rate {{readRate}}%",
       "providerCostDistributionTitle": "AI Cost Distribution",
-      "providerTokens": "{{tokens}}K tokens",
+      "providerTokens": "{{tokens}}K Tokens",
       "dismissedRecommendationsLabel": "Don't want to read",
       "dismissedRate": "Don't want to read {{rate}}%",
       "learningStageTitle": "Exploration Learning Phase",
@@ -505,8 +562,14 @@
       "funnelAnalyzed": "Articles analyzed",
       "funnelRecommended": "Enter the recommendation pool",
       "funnelRead": "Read",
-      "funnelDismissed": "Don't feel\nlike reading",
-      "funnelLearningPages": "Learning\npage",
+      "funnelDismissed": "Dismissed",
+      "funnelLearningPages": "Learning Pages",
+      "funnelLearningPagesDesc": "For building user profiles",
+      "funnelDismissedDesc": "Ignore from recommendations",
+      "funnelRelationHint": "Reading + Not Wanting to Read = Recommendation",
+      "funnelReadingIncluded": "Include → Reading Page",
+      "funnelDismissedFrom": "From → Recommended Branch",
+      "funnelDataRelation": "Data Relationship",
       "analysisRate": "Analysis rate",
       "recommendationRate": "Recommendation rate",
       "recommendationFunnelUniverse": "Internet",
@@ -528,6 +591,7 @@
       "aiUsage": {
         "title": "AI Usage Statistics",
         "noData": "No AI usage data available",
+        "noCost": "No cost",
         "hint": "After enabling AI features, detailed usage and cost statistics will be displayed here.",
         "overview": {
           "title": "AI Cost Analysis",
@@ -543,9 +607,9 @@
           "total": "Total"
         },
         "byProvider": {
-          "title": "Group by AI Provider",
+          "title": "Group by AI Service Provider",
           "calls": "Sub-call",
-          "tokens": "tokens",
+          "tokens": "Token",
           "inputOutput": "Input {{input}}K / Output {{output}}K"
         },
         "byPurpose": {
@@ -554,7 +618,7 @@
           "generateProfile": "👤 Profile Generation",
           "testConnection": "🔗 Connection Test",
           "calls": "Sub-call",
-          "tokens": "tokens",
+          "tokens": "Token",
           "inputOutput": "Input {{input}}K / Output {{output}}K",
           "recommendContent": "🎯 Content Recommendations"
         },
@@ -574,7 +638,7 @@
           "title": "Local AI Usage Statistics",
           "free": "Free",
           "calls": "Sub-call",
-          "tokenUsage": "Token Usage",
+          "tokenUsage": "Token usage",
           "avgDuration": "Average time taken",
           "localInference": "Local hardware inference",
           "hint": "💡 Local models have no API fees but consume computational resources."
@@ -668,11 +732,11 @@
       "title": "AI Configuration",
       "description": "Configure remote AI services for more accurate content analysis",
       "temporarilyUnavailable": "Temporarily Unavailable",
-      "providerLabel": "AI Provider",
+      "providerLabel": "AI service provider",
       "apiKeyLabel": "API Key",
       "budgetLabel": "Monthly budget limit",
       "budgetUnit": "/ month",
-      "selectProviderPlaceholder": "Please select an AI provider",
+      "selectProviderPlaceholder": "Please select an AI service provider",
       "apiKeyPlaceholder": "Enter your {{provider}} API key",
       "apiKeyHint": "The API key will be encrypted and stored locally in the browser, and will not be uploaded to the server.",
       "budgetHint": "Will automatically downgrade to free keyword analysis after exceeding the budget",
@@ -709,19 +773,19 @@
         "latency": "(Delay: {{ms}}ms)"
       },
       "errors": {
-        "selectProviderAndKey": "Please select a provider and enter the API key",
-        "selectProviderAndKeyFirst": "Please select a provider and enter the API key first.",
+        "selectProviderAndKey": "Please select a service provider and enter the API key",
+        "selectProviderAndKeyFirst": "Please select a service provider and enter the API key first.",
         "invalidApiKeyFormat": "The API key format is incorrect.",
         "saveFailed": "Save failed: {{error}}",
         "testFailed": "Test failed: {{error}}",
         "disableFailed": "Disable failed: {{error}}",
-        "selectProvider": "Please select an AI provider",
+        "selectProvider": "Please select an AI service provider",
         "enterApiKey": "Please enter the API key",
         "selectModel": "Please select an AI model",
         "invalidModel": "Invalid model selection"
       },
       "info": {
-        "title": "How to Choose an AI Provider",
+        "title": "How to Choose an AI Service Provider",
         "withConfig": "After configuration: Prioritize AI analysis (more accurate, paid)",
         "withoutConfig": "Not configured: Use free keyword analysis (available but with lower accuracy)",
         "fallback": "Downgrade strategy: Automatically fall back to keyword analysis when API fails or exceeds budget.",
@@ -733,14 +797,14 @@
         "localDesc": "Completely offline, protects privacy, requires local installation or enabling Chrome AI."
       },
       "cost": {
-        "title": "Cost Reference (per million tokens)",
-        "example": "Assuming 50 pages browsed per day, with an average of 1000 tokens per page and a 10% cache hit rate:",
+        "title": "Cost reference, per million tokens",
+        "example": "Assuming 50 pages are browsed per day, with an average of 1000 tokens per page and a 10% cache hit rate:",
         "note": "The actual cost may vary depending on factors such as page content length and access frequency.",
         "deepseek": {
           "title": "DeepSeek (RMB Denominated)",
-          "inputUncached": "Input (cache miss): ¥2.00/M tokens",
-          "inputCached": "Input (cache hit): ¥0.20/M tokens",
-          "output": "Output: ¥3.00/M tokens",
+          "inputUncached": "Input (cache miss): ¥2.00/million tokens",
+          "inputCached": "Input (cache hit): ¥0.20/million tokens",
+          "output": "Output: ¥3.00/million tokens",
           "estimate": "Approx. ¥1.41/month (≈ $0.20/month)"
         },
         "openai": {
@@ -751,8 +815,8 @@
           "nano": "GPT-5 Nano: $0.05/M input, $0.40/M output (approx. $0.07/month)",
           "mini": "GPT-5 Mini: $0.25/M input, $2.0/M output (approx. $0.33/month)",
           "standard": "GPT-5: $1.25/M input, $10.0/M output (approx. $1.66/month)",
-          "o4mini": "o4-mini: $4.0/M input, $16.0/M output (approx. $6.20/month, inference model)",
-          "o1mini": "o1-mini: $3.00/M input, $12.0/M output (approx. $2.20/month, inference model)"
+          "o4mini": "o4-mini: $4.0/M input, $16.0/M output (approx. $6.20/month, reasoning model)",
+          "o1mini": "o1-mini: $3.00/M input, $12.0/M output (approx. $2.20/month, reasoning model)"
         },
         "anthropic": {
           "title": "Anthropic Claude 3 Haiku (USD)",
@@ -763,7 +827,7 @@
         "reference": "Cost Reference"
       },
       "labels": {
-        "provider": "AI Provider",
+        "provider": "AI Service Provider",
         "apiKey": "API Key",
         "model": "Model Selection",
         "modelAndProvider": "Select AI Model"
@@ -834,9 +898,9 @@
       "localAIForm": {
         "endpoint": "Service address",
         "endpointHint": "Default http://localhost:11434/v1 (OpenAI compatible), also supports http://localhost:11434/api",
-        "apiKey": "Access Token (Bearer Token)",
-        "apiKeyHint": "To enable the Ollama OpenAI-compatible interface, a Bearer Token is required, with the default value being \"ollama\".",
-        "apiKeyPlaceholder": "For example, ollama or custom tokens",
+        "apiKey": "<ruby>Access Token<rt>Bearer Token</rt></ruby>",
+        "apiKeyHint": "When enabling the Ollama OpenAI-compatible interface, an access token is required, with the default value being \"ollama\".",
+        "apiKeyPlaceholder": "For example, ollama or custom access tokens",
         "model": "Default model",
         "modelPlaceholder": "Click the refresh button on the right to get available models.",
         "modelHint": "Use `ollama list` to view downloaded models, such as qwen2.5:7b",
@@ -881,9 +945,9 @@
       "enableReasoning": "Enable reasoning capability",
       "reasoningHint": "💡 Use reasoning mode for complex tasks like recommendations to get a deeper thought process.",
       "reasoningWarning": "⚠️ Reasoning mode significantly increases costs and is recommended only when deep analysis is needed.",
-      "reasoningUnavailable": "❌ The current provider does not support inference mode (only DeepSeek supports it).",
-      "reasoningAvailableDeepSeek": "DeepSeek-R1 inference mode is available.",
-      "reasoningFutureSupport": "{{provider}} does not currently support inference mode, which may be available in future versions.",
+      "reasoningUnavailable": "❌ The current provider does not support reasoning mode (only DeepSeek supports it).",
+      "reasoningAvailableDeepSeek": "DeepSeek-R1 reasoning mode is available.",
+      "reasoningFutureSupport": "{{provider}} does not currently support reasoning mode, which may be available in future versions.",
       "chromeAI": {
         "title": "Chrome AI Status",
         "description": "Chrome AI is Google's built-in Gemini Nano model in the Chrome browser, running entirely offline to protect privacy.",
@@ -939,13 +1003,13 @@
         "installOllama": "Install Ollama"
       },
       "subtitle": "Configure remote AI services for more accurate content analysis.",
-      "reasoningSupported": "The current model supports inference mode.",
-      "reasoningNotSupported": "The current model does not support inference mode.",
+      "reasoningSupported": "The current model supports reasoning mode.",
+      "reasoningNotSupported": "The current model does not support reasoning mode.",
       "reasoningCost": "Cost approximately {{multiplier}}x",
       "models": {
         "deepseek-chat": {
           "name": "DeepSeek",
-          "description": "China-friendly, supports inference mode (R1)"
+          "description": "China-friendly, supports reasoning mode (R1)"
         },
         "gpt-5-nano": {
           "name": "GPT-5 Nano",
@@ -1010,15 +1074,15 @@
         "localLabel": "Preferred local AI",
         "remoteHint": "Use this Provider when selecting \"Remote AI\"",
         "localHint": "Use this Provider when selecting \"Local AI\" (currently only supports Ollama)",
-        "deepseekDesc": "- High cost-performance ratio, supports inference",
+        "deepseekDesc": "- High cost-performance ratio, supports reasoning",
         "openaiDesc": "- Strong comprehensive ability",
         "ollamaDesc": "- Run locally, complete privacy"
       },
       "aiEngineAssignment": {
         "quickPresets": "Quick Presets",
         "recommended": "Recommend",
-        "requiresLocal": "Requires Local AI",
-        "requiresRemote": "Requires Remote AI",
+        "requiresLocal": "Requires local AI",
+        "requiresRemote": "Requires remote AI",
         "advancedConfig": "Advanced Configuration",
         "detailedConfig": "Detailed Configuration",
         "advancedConfigHint": "Customize the AI engine used for each task",
@@ -1115,7 +1179,7 @@
         "advancedSettings": "Advanced Settings"
       },
       "providerPanel": {
-        "title": "AI Provider Status",
+        "title": "AI Service Provider Status",
         "checkAll": "Check All",
         "checking": "Detecting..."
       },
@@ -1133,7 +1197,7 @@
         "apiKeyPlaceholder": "Please enter the {{provider}} API key",
         "selectModel": "Select Model",
         "selectModelPlaceholder": "-- Select Model --",
-        "enableReasoning": "Enable inference mode (costs about 10x more, but with higher quality)",
+        "enableReasoning": "Enable reasoning mode (costs about 10x more, but with higher quality)",
         "ollamaEnabled": "Enable Local AI (Ollama)",
         "ollamaEndpoint": "Ollama endpoint",
         "ollamaEndpointPlaceholder": "http://localhost:11434/v1",
@@ -1141,7 +1205,7 @@
         "ollamaModelPlaceholder": "e.g., qwen2.5:7b",
         "testResult": {
           "success": "Connection successful! Latency: {{latency}}ms",
-          "successWithReasoning": "Connection successful! Latency: {{latency}}ms (Inference mode enabled)",
+          "successWithReasoning": "Connection successful! Latency: {{latency}}ms (Reasoning mode enabled)",
           "error": "Translate the following Chinese text into English:\n{{message}}",
           "missingConfig": "Please configure the API Key and select a model first.",
           "missingEndpoint": "Please configure the Ollama endpoint first.",
@@ -1154,7 +1218,7 @@
         "ollamaEndpointHint": "OpenAI compatible interface address",
         "modelName": "Model Name",
         "loadModelsHint": "Click the button above to load available models.",
-        "reasoningEnabled": "✅ Reasoning mode enabled: AI will engage in deep thinking to provide higher-quality analysis (consumes more tokens)",
+        "reasoningEnabled": "✅ Reasoning mode enabled: AI will engage in deep thinking to provide higher-quality analysis, but will consume more tokens.",
         "reasoningDisabled": "💡 Reasoning mode is turned off: Only serves as a permission switch, and will take effect when the current model supports reasoning.",
         "setPreferredRemote": "Set as Preferred Remote AI",
         "preferredRemoteHint": "Once checked, all tasks using \"Remote AI\" will prioritize this AI.",
@@ -1215,7 +1279,7 @@
       "autoSaving": "Auto-saving...",
       "budgetOverview": {
         "title": "Monthly Budget Overview",
-        "description": "View budget usage for all AI Providers by currency",
+        "description": "View budget usage of all AI service providers by currency",
         "noBudgetSet": "No budget set",
         "setBudgetHint": "Set the monthly budget in the configuration of the AI card above."
       }
@@ -1629,7 +1693,7 @@
         "test": "Test connection",
         "testing": "Testing...",
         "tested": "✓ Tested",
-        "skip": "Skip, configure later",
+        "skip": "Skip, set up later",
         "nextWithConfig": "Next step"
       },
       "skipHint": "You can also click 'Next' to skip and configure the remote AI or local Ollama later in the settings page.",
@@ -1694,12 +1758,12 @@
       "tokenAxisLabel": "Token",
       "callAxisLabel": "Number of calls",
       "legend": {
-        "tokenNonReasoning": "Token (Non-Reasoning)",
-        "tokenReasoning": "Token (Reasoning)",
-        "callsNonReasoning": "Call (Non-Reasoning)",
-        "callsReasoning": "Call (Reasoning)",
-        "costNonReasoning": "Cost (Non-Reasoning)",
-        "costReasoning": "Cost (Reasoning)"
+        "tokenNonReasoning": "Token, non-reasoning",
+        "tokenReasoning": "Token, Reasoning",
+        "callsNonReasoning": "Calls, non-reasoning",
+        "callsReasoning": "Calls, Reasoning",
+        "costNonReasoning": "Cost, non-reasoning",
+        "costReasoning": "Cost, Reasoning"
       },
       "labels": {
         "total": "Total"

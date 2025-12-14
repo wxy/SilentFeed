@@ -110,9 +110,9 @@ describe("AIUsageBarChart", () => {
 
     expect(screen.getByText("Token")).toBeInTheDocument()
     expect(screen.getByText("Number of calls")).toBeInTheDocument()
-    expect(screen.getByText("Token (Reasoning)")).toBeInTheDocument()
-    expect(screen.getByText("Call (Non-Reasoning)")).toBeInTheDocument()
-    expect(screen.getByText("Cost (Reasoning)")).toBeInTheDocument()
+    expect(screen.getByText("Token, Reasoning")).toBeInTheDocument()
+    expect(screen.getByText("Calls, non-reasoning")).toBeInTheDocument()
+    expect(screen.getByText("Cost, Reasoning")).toBeInTheDocument()
   })
 
   it("sorts data chronologically and constrains viewport to seven days", () => {

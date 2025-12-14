@@ -70,7 +70,9 @@ describe("ColdStartView 组件", () => {
     it("应该显示提示信息", () => {
       render(<ColdStartView pageCount={0} />)
 
-      expect(screen.getByText("💡")).toBeInTheDocument()
+      // 页面上有多个 💡 元素（hint 和 tips 的 philosophy）
+      const hintEmojis = screen.getAllByText("💡")
+      expect(hintEmojis.length).toBeGreaterThanOrEqual(1)
       expect(screen.getByText("开始浏览，我会自动学习")).toBeInTheDocument()
     })
   })

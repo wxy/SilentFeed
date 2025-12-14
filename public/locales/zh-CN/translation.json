@@ -542,6 +542,12 @@
       "funnelRead": "已读",
       "funnelDismissed": "不想读",
       "funnelLearningPages": "学习页面",
+      "funnelLearningPagesDesc": "用于构建用户画像",
+      "funnelDismissedDesc": "从推荐中忽略",
+      "funnelRelationHint": "阅读 + 不想读 = 推荐",
+      "funnelReadingIncluded": "包含→阅读页面",
+      "funnelDismissedFrom": "来自→推荐分支",
+      "funnelDataRelation": "数据关系",
       "funnelRecommendationRate": "推荐率",
       "funnelReadingRate": "阅读率",
       "funnelRssToPool": "订阅源 → 推荐池",
@@ -636,6 +642,7 @@
       "aiUsage": {
         "title": "AI 用量统计",
         "noData": "暂无 AI 用量数据",
+        "noCost": "暂无消费",
         "hint": "开始使用 AI 功能后，这里将显示详细的用量和费用统计",
         "overview": {
           "title": "AI 成本分析",
