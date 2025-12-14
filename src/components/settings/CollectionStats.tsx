@@ -882,13 +882,13 @@ export function CollectionStats() {
           </div>
         ) : (
           <div className="space-y-6">
-            {/* 立体漏斗可视化 - 曲面圆锥结构 */}
+            {/* 立体漏斗可视化 - 圆锥曲面，截面面积与数值成比例 */}
             <div className="rounded-2xl bg-gray-50 dark:bg-gray-800 p-6 md:p-8">
               <div className="flex flex-col xl:flex-row justify-center items-center gap-8">
               <svg
-                width="420"
-                height="540"
-                viewBox="0 0 420 540"
+                width="440"
+                height="480"
+                viewBox="0 0 440 480"
                 className="max-w-full h-auto"
               >
                 {(() => {
@@ -897,38 +897,40 @@ export function CollectionStats() {
                   }
 
                   const funnel = recommendationFunnel
-                  const svgWidth = 420
+                  const svgWidth = 440
                   const centerX = svgWidth / 2
-                  const baseBottomY = 440
-                  const baseHeight = 85
-                  const baseRadius = 48
-                  const radiusStep = 34
+                  
+                  // 漏斗几何参数
+                  const funnelTopY = 120     // 漏斗顶部Y坐标（留空更多）
+                  const funnelBottomY = 400  // 漏斗底部Y坐标
+                  const funnelHeight = funnelBottomY - funnelTopY
+                  const maxRadius = 140      // 数据层最大半径
+                  const topExpandRadius = 200 // 互联网层放大半径
+                  const minRadius = 25       // 最小半径（漏斗出口）
+                  
                   // 漏斗顶部：扩展图标（代表RSS订阅源）
                   const extensionIconUrl = typeof chrome !== 'undefined' && chrome.runtime?.getURL
                     ? chrome.runtime.getURL('assets/icons/128/base-static.png')
                     : 'assets/icons/128/base-static.png'
-                  // 漏斗底部：专业人士头像（用户应该是专业人士）
-                  const professionalIconUrl = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%234B5563"%3E%3Cpath d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/%3E%3C/svg%3E'
 
-                  const getEllipseRy = (radius: number) => Math.max(12, radius * 0.28)
+                  // 椭圆纵向半径（透视效果）
+                  const getEllipseRy = (radius: number) => Math.max(10, radius * 0.22)
 
-                  type SegmentConfig = {
+                  // 数据层配置（从底部到顶部）
+                  type LayerConfig = {
                     key: string
                     label: string
                     color: string
                     ellipseColor: string
                     textColor: string
-                    value?: number
-                    percent?: string
-                    displayValue?: string
-                    heightScale: number
-                    radiusScale: number
-                    isCap?: boolean
+                    value: number
+                    percent: string
                     bodyOpacity: number
                     ellipseOpacity: number
                   }
 
-                  const segmentsConfig: SegmentConfig[] = [
+                  // 定义各层数据 - 从小到大排序（底部到顶部）
+                  const layers: LayerConfig[] = [
                     {
                       key: 'reading',
                       label: _('options.collectionStats.recommendationFunnelReading'),
@@ -937,10 +939,8 @@ export function CollectionStats() {
                       textColor: '#1f2937',
                       value: funnel.read,
                       percent: funnel.inPool > 0 ? `${((funnel.read / funnel.inPool) * 100).toFixed(1)}%` : '0%',
-                      heightScale: 0.65,
-                      radiusScale: 0.7,
-                      bodyOpacity: 0.65,
-                      ellipseOpacity: 0.5
+                      bodyOpacity: 0.75,
+                      ellipseOpacity: 0.6
                     },
                     {
                       key: 'recommendations',
@@ -950,10 +950,8 @@ export function CollectionStats() {
                       textColor: '#1f2937',
                       value: funnel.inPool,
                       percent: funnel.rssArticles > 0 ? `${((funnel.inPool / funnel.rssArticles) * 100).toFixed(1)}%` : '0%',
-                      heightScale: 0.78,
-                      radiusScale: 0.85,
-                      bodyOpacity: 0.62,
-                      ellipseOpacity: 0.45
+                      bodyOpacity: 0.72,
+                      ellipseOpacity: 0.55
                     },
                     {
                       key: 'articles',
@@ -963,73 +961,106 @@ export function CollectionStats() {
                       textColor: '#0f172a',
                       value: funnel.rssArticles,
                       percent: '100%',
-                      heightScale: 0.92,
-                      radiusScale: 1.05,
-                      bodyOpacity: 0.6,
-                      ellipseOpacity: 0.42
-                    },
-                    {
-                      key: 'universe',
-                      label: _('options.collectionStats.recommendationFunnelUniverse'),
-                      color: 'rgba(226, 232, 240, 0.8)',
-                      ellipseColor: 'rgba(241, 245, 249, 0.85)',
-                      textColor: '#111827',
-                      displayValue: _('options.collectionStats.recommendationFunnelInfinitySymbol'),
-                      heightScale: 1.15,
-                      radiusScale: 1.4,
-                      isCap: true,
-                      bodyOpacity: 0.55,
-                      ellipseOpacity: 0.55
+                      bodyOpacity: 0.7,
+                      ellipseOpacity: 0.5
                     }
                   ]
 
-                  type SegmentWithLayout = SegmentConfig & {
-                    yTop: number
-                    yBottom: number
-                    topRadius: number
-                    bottomRadius: number
-                    topRy: number
-                    bottomRy: number
-                    midY: number
-                    height: number
+                  // 计算基准值：最大值作为100%面积
+                  const maxValue = Math.max(...layers.map(l => l.value), 1)
+                  
+                  // 根据数值计算半径：面积 ∝ r²，因此 r ∝ √value
+                  // 每层的【底部截面】代表该层数值
+                  const getRadiusForValue = (value: number): number => {
+                    if (value <= 0) return minRadius
+                    // r = maxRadius * sqrt(value / maxValue)
+                    const radius = maxRadius * Math.sqrt(value / maxValue)
+                    return Math.max(radius, minRadius)
                   }
 
-                  let currentBottomY = baseBottomY
-                  let currentBottomRadius = baseRadius
-
-                  const segmentsWithLayout: SegmentWithLayout[] = segmentsConfig.map((segment) => {
-                    const height = baseHeight * segment.heightScale
-                    const radiusDelta = radiusStep * segment.radiusScale
-                    const yBottom = currentBottomY
-                    const yTop = yBottom - height
-                    const bottomRadius = currentBottomRadius
-                    const topRadius = bottomRadius + radiusDelta
-                    const layout: SegmentWithLayout = {
-                      ...segment,
-                      yTop,
-                      yBottom,
-                      topRadius,
-                      bottomRadius,
-                      topRy: getEllipseRy(topRadius),
-                      bottomRy: getEllipseRy(bottomRadius),
-                      midY: (yTop + yBottom) / 2,
-                      height
+                  // 计算每层底部的半径（代表该层筛选后的数值）
+                  const layerBottomRadii = layers.map(l => getRadiusForValue(l.value))
+                  
+                  // 计算每层顶部的半径（等于上一层的底部，最顶层放大代表互联网）
+                  const layerTopRadii = layers.map((_, i) => {
+                    if (i === layers.length - 1) {
+                      // 最顶层顶部放大，代表无尽的互联网信息
+                      return topExpandRadius
                     }
-                    currentBottomY = yTop
-                    currentBottomRadius = topRadius
-                    return layout
+                    // 其他层顶部 = 下一层的底部
+                    return layerBottomRadii[i + 1]
                   })
+                  
+                  // 根据半径差异分配垂直空间
+                  const radiusDiffs: number[] = layers.map((_, i) => 
+                    layerTopRadii[i] - layerBottomRadii[i]
+                  )
+                  const totalRadiusDiff = radiusDiffs.reduce((a, b) => a + b, 0) || 1
+                  
+                  // 计算各层的Y坐标
+                  type LayerWithGeometry = LayerConfig & {
+                    bottomY: number
+                    topY: number
+                    bottomRadius: number
+                    topRadius: number
+                    bottomRy: number
+                    topRy: number
+                    segmentHeight: number
+                  }
 
-                  const buildFrontPath = (segment: SegmentWithLayout) => {
-                    const leftBottomX = centerX - segment.bottomRadius
-                    const rightBottomX = centerX + segment.bottomRadius
-                    const leftTopX = centerX - segment.topRadius
-                    const rightTopX = centerX + segment.topRadius
+                  const layersWithGeometry: LayerWithGeometry[] = []
+                  let currentY = funnelBottomY
+                  
+                  // 各层等高
+                  const equalSegmentHeight = funnelHeight / layers.length
+                  
+                  for (let i = 0; i < layers.length; i++) {
+                    const bottomRadius = layerBottomRadii[i]
+                    const topRadius = layerTopRadii[i]
+                    const segmentHeight = equalSegmentHeight
+                    
+                    layersWithGeometry.push({
+                      ...layers[i],
+                      bottomY: currentY,
+                      topY: currentY - segmentHeight,
+                      bottomRadius,
+                      topRadius,
+                      bottomRy: getEllipseRy(bottomRadius),
+                      topRy: getEllipseRy(topRadius),
+                      segmentHeight
+                    })
+                    
+                    currentY -= segmentHeight
+                  }
+
+                  // 三次贝塞尔曲线构建曲面路径
+                  // 控制点靠近下一层位置，曲率变化更自然
+                  const buildCurvedPath = (layer: LayerWithGeometry) => {
+                    const leftBottom = centerX - layer.bottomRadius
+                    const rightBottom = centerX + layer.bottomRadius
+                    const leftTop = centerX - layer.topRadius
+                    const rightTop = centerX + layer.topRadius
+                    
+                    // 控制点位于截面位置（顶部和底部的中点半径）
+                    // 不做水平外扩，曲线沿漏斗轮廓自然过渡
+                    const midRadius = (layer.bottomRadius + layer.topRadius) / 2
+                    const leftMidX = centerX - midRadius
+                    const rightMidX = centerX + midRadius
+                    const midY = (layer.bottomY + layer.topY) / 2
+                    
+                    // 使用三次贝塞尔曲线 C (两个控制点)
+                    // 控制点1靠近底部，控制点2在截面中间位置，曲率变化靠近下一层更自然
                     return [
-                      `M ${leftBottomX} ${segment.yBottom}`,
-                      `A ${segment.bottomRadius} ${segment.bottomRy} 0 0 1 ${rightBottomX} ${segment.yBottom}`,
-                      `L ${rightTopX} ${segment.yTop}`,
-                      `A ${segment.topRadius} ${segment.topRy} 0 0 0 ${leftTopX} ${segment.yTop}`,
+                      // 从左下角开始
+                      `M ${leftBottom} ${layer.bottomY}`,
+                      // 底部椭圆弧（前半部分）
+                      `A ${layer.bottomRadius} ${layer.bottomRy} 0 0 1 ${rightBottom} ${layer.bottomY}`,
+                      // 右侧三次贝塞尔曲线向上
+                      `C ${rightBottom} ${layer.bottomY - layer.segmentHeight * 0.4}, ${rightMidX} ${midY}, ${rightTop} ${layer.topY}`,
+                      // 顶部椭圆弧（后半部分）
+                      `A ${layer.topRadius} ${layer.topRy} 0 0 0 ${leftTop} ${layer.topY}`,
+                      // 左侧三次贝塞尔曲线向下
+                      `C ${leftMidX} ${midY}, ${leftBottom} ${layer.bottomY - layer.segmentHeight * 0.4}, ${leftBottom} ${layer.bottomY}`,
                       'Z'
                     ].join(' ')
                   }
@@ -1041,117 +1072,112 @@ export function CollectionStats() {
                           <feDropShadow dx="0" dy="12" stdDeviation="18" floodColor="#000" floodOpacity="0.28" />
                         </filter>
                       </defs>
+                      
+                      {/* 漏斗主体 */}
                       <g filter="url(#funnelShadow)">
-                      {segmentsWithLayout.map((segment) => (
-                        <g key={`segment-${segment.key}`}>
-                          <ellipse
-                            cx={centerX}
-                            cy={segment.yBottom}
-                            rx={segment.bottomRadius}
-                            ry={segment.bottomRy}
-                            fill={segment.ellipseColor}
-                            opacity={segment.ellipseOpacity}
-                          />
-                          <path
-                            d={buildFrontPath(segment)}
-                            fill={segment.color}
-                            opacity={segment.bodyOpacity}
-                          />
-                          <ellipse
-                            cx={centerX}
-                            cy={segment.yTop}
-                            rx={segment.topRadius}
-                            ry={segment.topRy}
-                            fill={segment.ellipseColor}
-                            opacity={Math.min(segment.ellipseOpacity + 0.1, 1)}
-                          />
-                        </g>
-                      ))}
+                        {/* 各层曲面段 */}
+                        {layersWithGeometry.map((layer) => (
+                          <g key={`segment-${layer.key}`}>
+                            {/* 底部椭圆 - 代表该层筛选后的数值 */}
+                            <ellipse
+                              cx={centerX}
+                              cy={layer.bottomY}
+                              rx={layer.bottomRadius}
+                              ry={layer.bottomRy}
+                              fill={layer.ellipseColor}
+                              opacity={layer.ellipseOpacity}
+                            />
+                            {/* 曲面主体 */}
+                            <path
+                              d={buildCurvedPath(layer)}
+                              fill={layer.color}
+                              opacity={layer.bodyOpacity}
+                            />
+                            {/* 顶部椭圆 */}
+                            <ellipse
+                              cx={centerX}
+                              cy={layer.topY}
+                              rx={layer.topRadius}
+                              ry={layer.topRy}
+                              fill={layer.ellipseColor}
+                              opacity={Math.min(layer.ellipseOpacity + 0.15, 1)}
+                            />
+                          </g>
+                        ))}
                       </g>
+                      {/* 顶部RSS图标 */}
                       <g>
-                        {[ -70, 0, 70 ].map((offset, index) => (
+                        {[-55, 0, 55].map((offset, index) => (
                           <image
                             key={`rss-icon-${index}`}
                             href={extensionIconUrl}
-                            x={centerX + offset - 24}
-                            y={segmentsWithLayout[segmentsWithLayout.length - 1].yTop - 60}
-                            width={48}
-                            height={48}
+                            x={centerX + offset - 20}
+                            y={20}
+                            width={40}
+                            height={40}
                             opacity={0.95 - index * 0.15}
                           />
                         ))}
                       </g>
+                      
+                      {/* 文字标签 - 靠近底部截面显示 */}
                       <g pointerEvents="none">
-                        {segmentsWithLayout.map((segment) => {
-                          const labelFontSize = Math.min(Math.max(segment.height * 0.16, 11), 18)
-                          const infoFontSize = Math.min(Math.max(segment.height * 0.2, 13), 22)
-                          const labelY = segment.yBottom + labelFontSize * 0.45
-                          const infoY = Math.min(segment.yBottom - segment.bottomRy * 0.2, segment.yTop + segment.height * 0.75)
-                          const infoSpacing = Math.min(segment.topRadius * 0.45, 90)
-                          if (segment.isCap) {
-                            return (
-                              <g key={`segment-text-${segment.key}`}>
-                                <text
-                                  x={centerX}
-                                  y={segment.yTop + segment.height * 0.45}
-                                  textAnchor="middle"
-                                  fill={segment.textColor}
-                                  fontSize={infoFontSize + 10}
-                                  fontWeight="600"
-                                >
-                                  {segment.displayValue}
-                                </text>
-                                <text
-                                  x={centerX}
-                                  y={labelY}
-                                  textAnchor="middle"
-                                  fill={segment.textColor}
-                                  fontSize={labelFontSize + 2}
-                                  fontWeight="600"
-                                >
-                                  {segment.label}
-                                </text>
-                              </g>
-                            )
-                          }
+                        {layersWithGeometry.map((layer) => {
+                          // 统一字号
+                          const labelFontSize = 12
+                          const valueFontSize = 16
+                          const percentFontSize = 11
+                          
+                          // 文字位置靠近底部截面（底部截面代表该层数值）
+                          const textBaseY = layer.bottomY - layer.segmentHeight * 0.15
+                          const labelY = textBaseY - 28
+                          const valueY = textBaseY - 8
+                          const percentY = textBaseY + 12
+                          
                           return (
-                            <g key={`segment-text-${segment.key}`}>
+                            <g key={`segment-text-${layer.key}`}>
+                              {/* 层标签 */}
                               <text
                                 x={centerX}
                                 y={labelY}
                                 textAnchor="middle"
-                                fill={segment.textColor}
+                                fill={layer.textColor}
                                 fontSize={labelFontSize}
                                 fontWeight="600"
                               >
-                                {segment.label}
+                                {layer.label}
                               </text>
+                              {/* 数值 */}
                               <text
-                                x={centerX - infoSpacing / 2}
-                                y={infoY}
+                                x={centerX}
+                                y={valueY}
                                 textAnchor="middle"
-                                fill={segment.textColor}
-                                fontSize={infoFontSize}
+                                fill={layer.textColor}
+                                fontSize={valueFontSize}
                                 fontWeight="700"
                               >
-                                {segment.value ?? 0}
+                                {layer.value}
                               </text>
+                              {/* 百分比 */}
                               <text
-                                x={centerX + infoSpacing / 2}
-                                y={infoY}
+                                x={centerX}
+                                y={percentY}
                                 textAnchor="middle"
-                                fill={segment.textColor}
-                                fontSize={infoFontSize - 2}
-                                fontWeight="600"
+                                fill={layer.textColor}
+                                fontSize={percentFontSize}
+                                fontWeight="500"
+                                opacity={0.75}
                               >
-                                {segment.percent ?? '0%'}
+                                {layer.percent}
                               </text>
                             </g>
                           )
                         })}
                       </g>
+                      
+                      {/* 底部用户图标 */}
                       <g>
-                        <text x={centerX} y={baseBottomY + 70} textAnchor="middle" fontSize="32">
+                        <text x={centerX} y={funnelBottomY + 70} textAnchor="middle" fontSize="32">
                           👨‍💻
                         </text>
                       </g>
