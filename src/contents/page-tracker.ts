@@ -493,52 +493,36 @@ async function recordPageVisit(): Promise<void> {
     let recommendationId: string | undefined
     
     try {
-      // 检查 chrome.storage 是否可用
-      if (!checkExtensionContext() || !chrome?.storage?.session) {
-        logger.debug('⚠️ [PageTracker] Chrome storage 不可用，跳过来源检测')
+      // 检查扩展上下文是否有效
+      if (!checkExtensionContext()) {
+        logger.debug('⚠️ [PageTracker] 扩展上下文失效，跳过来源检测')
         // 继续记录，但使用默认来源
       } else {
         try {
-          // 1. 检查是否是从弹窗点击的推荐文章
-          const clickKey = `recommendation_clicked_${pageInfo.url}`
-          const clickData = await chrome.storage.session.get(clickKey)
-          const clickInfo = clickData[clickKey]
+          // ⚠️ 架构修正：通过 background 访问 session storage
+          // Content Script 在某些网站（如有严格 CSP 的）无法直接访问 chrome.storage
+          // 解决方案：发送消息给 background，由其访问 storage 并返回结果
           
-          if (clickInfo) {
-            source = 'recommended'
-            recommendationId = clickInfo.recommendationId
-            logger.debug('🔗 [PageTracker] 检测到弹窗点击推荐', { 
-              recommendationId, 
-              title: clickInfo.title,
-              clickedAt: new Date(clickInfo.clickedAt).toLocaleTimeString()
-            })
-            
-            // 使用后立即删除追踪信息
-            await chrome.storage.session.remove(clickKey)
-          }
+          const response = await chrome.runtime.sendMessage({
+            type: 'GET_RECOMMENDATION_SOURCE',
+            payload: { url: pageInfo.url }
+          })
           
-          // 2. 检查是否是从阅读列表打开的推荐文章
-          if (!recommendationId) {
-            const readingListKey = `readingList_opened_${pageInfo.url}`
-            const readingListData = await chrome.storage.session.get(readingListKey)
-            const readingListInfo = readingListData[readingListKey]
+          if (response?.success && response.data) {
+            source = response.data.source
+            recommendationId = response.data.recommendationId
             
-            if (readingListInfo && readingListInfo.recommendationId) {
-              source = 'recommended'
-              recommendationId = readingListInfo.recommendationId
-              logger.debug('📖 [PageTracker] 检测到阅读列表打开推荐', { 
+            if (source === 'recommended') {
+              logger.debug('🔗 [PageTracker] 检测到推荐来源', { 
+                source: response.data.sourceType,
                 recommendationId, 
-                title: readingListInfo.title,
-                openedAt: new Date(readingListInfo.openedAt).toLocaleTimeString()
+                title: response.data.title
               })
-              
-              // 使用后立即删除追踪信息
-              await chrome.storage.session.remove(readingListKey)
+            } else if (source === 'search') {
+              logger.debug('🔍 [PageTracker] 检测到搜索引擎来源')
             }
-          }
-          
-          // 3. 如果没有检测到推荐来源，检测是否来自搜索引擎（基于 referrer）
-          if (!recommendationId) {
+          } else {
+            // 如果 background 无法检测到推荐来源，检查 referrer
             const referrer = document.referrer
             if (referrer) {
               try {
@@ -546,11 +530,10 @@ async function recordPageVisit(): Promise<void> {
                 const searchEngines = ['google.com', 'bing.com', 'baidu.com', 'duckduckgo.com']
                 if (searchEngines.some(engine => referrerUrl.hostname.includes(engine))) {
                   source = 'search'
-                  logger.debug('🔍 [PageTracker] 检测到搜索引擎来源', { referrer })
+                  logger.debug('🔍 [PageTracker] 检测到搜索引擎来源（通过 referrer）', { referrer })
                 }
               } catch (urlError) {
                 // 无效的 referrer URL，忽略
-                logger.debug('⚠️ [PageTracker] 无效的 referrer URL')
               }
             }
           }

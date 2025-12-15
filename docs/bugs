@@ -1,2 +1,0 @@
-- [ ] https://juejin.cn/rss 这个源解析有问题，它将分类解析为`[{"__cdata":"Web"},{"__cdata":"Frontend Development"},{"__cdata":"iOS"},{"__cdata":"Android"},{"__cdata":"Backend Development"},{"__cdata":"Freebie"},{"__cdata":"Ai"},{"__cdata":"Career"},{"__cdata":"Article"}]`，看起来是没有处理 `<![CDATA[ Web ]]>` 这种标记。而且这里引入一个新的问题，如果给出的类别很多，我们是否都需要记录并显示？
-  - 并且现在会将标题后的 `（域名）` 重复两次。

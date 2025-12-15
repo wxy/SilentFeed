@@ -683,6 +683,69 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           }
           break
         
+        // 获取推荐来源（由 page-tracker 调用）
+        case 'GET_RECOMMENDATION_SOURCE':
+          try {
+            const { url } = message.payload as { url: string }
+            
+            // 1. 检查是否是从弹窗点击的推荐文章
+            const clickKey = `recommendation_clicked_${url}`
+            const clickData = await chrome.storage.session.get(clickKey)
+            const clickInfo = clickData[clickKey]
+            
+            if (clickInfo) {
+              // 删除已使用的追踪信息
+              await chrome.storage.session.remove(clickKey)
+              
+              sendResponse({
+                success: true,
+                data: {
+                  source: 'recommended',
+                  sourceType: 'popup_click',
+                  recommendationId: clickInfo.recommendationId,
+                  title: clickInfo.title
+                }
+              })
+              break
+            }
+            
+            // 2. 检查是否是从阅读列表打开的推荐文章
+            const readingListKey = `readingList_opened_${url}`
+            const readingListData = await chrome.storage.session.get(readingListKey)
+            const readingListInfo = readingListData[readingListKey]
+            
+            if (readingListInfo && readingListInfo.recommendationId) {
+              // 删除已使用的追踪信息
+              await chrome.storage.session.remove(readingListKey)
+              
+              sendResponse({
+                success: true,
+                data: {
+                  source: 'recommended',
+                  sourceType: 'reading_list',
+                  recommendationId: readingListInfo.recommendationId,
+                  title: readingListInfo.title
+                }
+              })
+              break
+            }
+            
+            // 3. 没有找到推荐来源，返回 organic
+            sendResponse({
+              success: true,
+              data: {
+                source: 'organic',
+                sourceType: null,
+                recommendationId: undefined,
+                title: undefined
+              }
+            })
+          } catch (error) {
+            bgLogger.error('❌ 获取推荐来源失败:', error)
+            sendResponse({ success: false, error: String(error) })
+          }
+          break
+        
         default:
           sendResponse({ success: false, error: 'Unknown message type' })
       }
