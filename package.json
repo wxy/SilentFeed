@@ -73,7 +73,8 @@
       "storage",
       "alarms",
       "notifications",
-      "declarativeNetRequestWithHostAccess"
+      "declarativeNetRequestWithHostAccess",
+      "readingList"
     ],
     "declarative_net_request": {
       "rule_resources": [

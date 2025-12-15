@@ -14,6 +14,7 @@ import { LEARNING_COMPLETE_PAGES } from '@/constants/progress'
 import { aiManager } from './core/ai/AICapabilityManager'
 import { getAIConfig, saveAIConfig, isAIConfigured } from '@/storage/ai-config'
 import { getRecommendationConfig, saveRecommendationConfig } from '@/storage/recommendation-config'
+import { ReadingListManager } from './core/reading-list/reading-list-manager'
 
 const bgLogger = logger.withTag('Background')
 
@@ -223,6 +224,10 @@ chrome.runtime.onInstalled.addListener(async () => {
     }
     
     await updateBadge()
+    
+    // 初始化阅读列表监听器
+    ReadingListManager.setupListeners()
+    bgLogger.info('✅ 阅读列表监听器已设置')
     
     // Phase 7: 启动所有后台调度器
     await startAllSchedulers()
@@ -637,6 +642,43 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             sendResponse({ success: true })
           } catch (error) {
             bgLogger.error('❌ 测试通知失败:', error)
+            sendResponse({ success: false, error: String(error) })
+          }
+          break
+        
+        // 阅读列表：页面从阅读列表打开
+        case 'READING_LIST_PAGE_OPENED':
+          try {
+            const { url, title } = message.payload as {
+              url: string
+              title: string
+            }
+            bgLogger.info('检测到从阅读列表打开页面:', { url, title })
+            
+            // 查询数据库找到对应的推荐记录
+            const recommendations = await db.recommendations.toArray()
+            const matchedRec = recommendations.find(rec => rec.url === url)
+            
+            if (matchedRec) {
+              bgLogger.info('✓ 匹配到推荐记录:', { 
+                recommendationId: matchedRec.id, 
+                title: matchedRec.title 
+              })
+            }
+            
+            // 标记该 URL 为已打开（后续在 page-tracker 和 onEntryRemoved 时可以区分）
+            // 使用 chrome.storage.session 临时存储（会话级别）
+            await chrome.storage.session.set({
+              [`readingList_opened_${url}`]: {
+                recommendationId: matchedRec?.id,
+                title: title,
+                openedAt: Date.now()
+              }
+            })
+            
+            sendResponse({ success: true })
+          } catch (error) {
+            bgLogger.error('❌ 处理阅读列表打开失败:', error)
             sendResponse({ success: false, error: String(error) })
           }
           break

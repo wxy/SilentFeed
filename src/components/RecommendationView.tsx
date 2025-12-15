@@ -17,6 +17,7 @@ import {
   trackDismiss,
   trackDismissAll
 } from "@/core/recommender/adaptive-count"
+import { ReadingListManager } from "@/core/reading-list/reading-list-manager"
 import { sanitizeHtml } from "@/utils/html"
 import { getFaviconUrl, handleFaviconError } from "@/utils/favicon"
 import { formatRecommendationReason } from "@/utils/formatReason"
@@ -172,7 +173,8 @@ export function RecommendationView() {
     loadRecommendations,
     markAsRead,
     dismissAll,
-    dismissSelected
+    dismissSelected,
+    removeFromList
   } = useRecommendationStore()
   
   const [maxRecommendations, setMaxRecommendations] = useState(5)
@@ -246,11 +248,17 @@ export function RecommendationView() {
       // Phase 6: 跟踪推荐点击
       await trackRecommendationClick()
       
-      // ⚠️ 关键修复：先标记为已读，再打开链接
-      // 因为 chrome.tabs.create() 会关闭弹窗，导致后续异步操作被中断
-      recViewLogger.debug(`开始标记为已读: ${rec.id}`)
-      await markAsRead(rec.id)
-      recViewLogger.info(`✅ 标记已读完成: ${rec.id}`)
+      // 策略B：不立即标记为已读，等待 page-tracker 检测到 30 秒阅读
+      // 在 session storage 中标记这是从推荐点击的，供 page-tracker 使用
+      await chrome.storage.session.set({
+        [`recommendation_clicked_${rec.url}`]: {
+          recommendationId: rec.id,
+          title: rec.title,
+          clickedAt: Date.now(),
+        },
+      })
+      
+      recViewLogger.info(`✅ 已标记推荐点击，等待 30 秒阅读验证: ${rec.id}`)
       
       // 最后打开链接（这会关闭弹窗）
       await chrome.tabs.create({ url: rec.url })
@@ -292,6 +300,39 @@ export function RecommendationView() {
       
     } catch (error) {
       recViewLogger.error('❌ 标记不想读失败:', error)
+    }
+  }
+
+  const handleSaveToReadingList = async (rec: Recommendation, event: React.MouseEvent) => {
+    event.stopPropagation() // 阻止点击事件冒泡
+    
+    try {
+      recViewLogger.debug(`保存到稍后读: ${rec.id} - ${rec.title}`)
+      
+      // 立即添加视觉反馈
+      const element = (event.target as HTMLElement).closest('[data-recommendation-id]') as HTMLElement
+      if (element) {
+        element.style.opacity = '0.6'
+        element.style.pointerEvents = 'none'
+      }
+      
+      // 保存到 Chrome 阅读列表
+      await ReadingListManager.saveRecommendation(rec)
+      recViewLogger.info(`✅ 已保存到稍后读: ${rec.id}`)
+      
+      // 从推荐列表移除（但不标记为不想读）
+      await removeFromList([rec.id])
+      recViewLogger.info(`✅ 已从推荐列表移除: ${rec.id}`)
+      
+    } catch (error) {
+      recViewLogger.error('❌ 保存到稍后读失败:', error)
+      
+      // 恢复视觉状态
+      const element = (event.target as HTMLElement).closest('[data-recommendation-id]') as HTMLElement
+      if (element) {
+        element.style.opacity = '1'
+        element.style.pointerEvents = 'auto'
+      }
     }
   }
 
@@ -508,6 +549,7 @@ export function RecommendationView() {
             showExcerpt={shouldShowExcerpt(index)} // 智能决定是否显示摘要
             onClick={(e) => handleItemClick(rec, e)}
             onDismiss={(e) => handleDismiss(rec.id, e)}
+            onSaveToReadingList={(e) => handleSaveToReadingList(rec, e)}
           />
         ))}
       </div>
@@ -528,9 +570,10 @@ interface RecommendationItemProps {
   showExcerpt: boolean // 是否显示摘要
   onClick: (event: React.MouseEvent) => void
   onDismiss: (event: React.MouseEvent) => void
+  onSaveToReadingList?: (event: React.MouseEvent) => void // 保存到稍后读
 }
 
-function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, onDismiss }: RecommendationItemProps) {
+function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, onDismiss, onSaveToReadingList }: RecommendationItemProps) {
   const { _, t, i18n } = useI18n()
   const { markAsRead } = useRecommendationStore()
   const [showOriginal, setShowOriginal] = useState(false)
@@ -694,9 +737,20 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
             })()}
           </div>
           
+          {/* 稍后读按钮 */}
+          {onSaveToReadingList && (
+            <button
+              onClick={onSaveToReadingList}
+              className="text-base hover:scale-110 transition-transform flex-shrink-0 ml-3"
+              title={_("popup.saveToReadingList")}
+            >
+              🔖
+            </button>
+          )}
+          
           <button
             onClick={onDismiss}
-            className="text-base hover:scale-110 transition-transform flex-shrink-0"
+            className="text-base hover:scale-110 transition-transform flex-shrink-0 ml-2"
             title={_("popup.notInterested")}
           >
             👎
@@ -829,9 +883,20 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
           })()}
         </div>
         
+        {/* 稍后读按钮 */}
+        {onSaveToReadingList && (
+          <button
+            onClick={onSaveToReadingList}
+            className="text-base hover:scale-110 transition-transform flex-shrink-0 ml-3"
+            title={_("popup.saveToReadingList")}
+          >
+            🔖
+          </button>
+        )}
+        
         <button
           onClick={onDismiss}
-          className="text-base hover:scale-110 transition-transform flex-shrink-0"
+          className="text-base hover:scale-110 transition-transform flex-shrink-0 ml-2"
           title={_("popup.notInterested")}
         >
           👎

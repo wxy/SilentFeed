@@ -494,25 +494,51 @@ async function recordPageVisit(): Promise<void> {
     
     try {
       // 检查 chrome.storage 是否可用
-      if (!checkExtensionContext() || !chrome?.storage?.local) {
+      if (!checkExtensionContext() || !chrome?.storage?.session) {
         logger.debug('⚠️ [PageTracker] Chrome storage 不可用，跳过来源检测')
         // 继续记录，但使用默认来源
       } else {
         try {
-          // 1. 尝试从 chrome.storage 读取追踪信息
-          const trackingKey = `tracking_${pageInfo.url}`
-          const result = await chrome.storage.local.get(trackingKey)
-          const trackingInfo = result[trackingKey]
+          // 1. 检查是否是从弹窗点击的推荐文章
+          const clickKey = `recommendation_clicked_${pageInfo.url}`
+          const clickData = await chrome.storage.session.get(clickKey)
+          const clickInfo = clickData[clickKey]
           
-          if (trackingInfo && trackingInfo.expiresAt > Date.now()) {
-            source = trackingInfo.source || 'organic'
-            recommendationId = trackingInfo.recommendationId
-            logger.debug('🔗 [PageTracker] 检测到推荐来源', { source, recommendationId })
+          if (clickInfo) {
+            source = 'recommended'
+            recommendationId = clickInfo.recommendationId
+            logger.debug('🔗 [PageTracker] 检测到弹窗点击推荐', { 
+              recommendationId, 
+              title: clickInfo.title,
+              clickedAt: new Date(clickInfo.clickedAt).toLocaleTimeString()
+            })
             
             // 使用后立即删除追踪信息
-            await chrome.storage.local.remove(trackingKey)
-          } else {
-            // 2. 检测是否来自搜索引擎（基于 referrer）
+            await chrome.storage.session.remove(clickKey)
+          }
+          
+          // 2. 检查是否是从阅读列表打开的推荐文章
+          if (!recommendationId) {
+            const readingListKey = `readingList_opened_${pageInfo.url}`
+            const readingListData = await chrome.storage.session.get(readingListKey)
+            const readingListInfo = readingListData[readingListKey]
+            
+            if (readingListInfo && readingListInfo.recommendationId) {
+              source = 'recommended'
+              recommendationId = readingListInfo.recommendationId
+              logger.debug('📖 [PageTracker] 检测到阅读列表打开推荐', { 
+                recommendationId, 
+                title: readingListInfo.title,
+                openedAt: new Date(readingListInfo.openedAt).toLocaleTimeString()
+              })
+              
+              // 使用后立即删除追踪信息
+              await chrome.storage.session.remove(readingListKey)
+            }
+          }
+          
+          // 3. 如果没有检测到推荐来源，检测是否来自搜索引擎（基于 referrer）
+          if (!recommendationId) {
             const referrer = document.referrer
             if (referrer) {
               try {
@@ -924,6 +950,38 @@ function resetPageTracking(): void {
 
 // ==================== 初始化 ====================
 
+/**
+ * 检查当前页面是否在阅读列表中
+ * 如果是，通知 background 标记为已打开
+ */
+async function checkReadingListStatus(): Promise<void> {
+  try {
+    const currentUrl = window.location.href
+    
+    // 查询阅读列表中是否有此 URL
+    const entries = await chrome.readingList.query({ url: currentUrl })
+    
+    if (entries.length > 0 && !entries[0].hasBeenRead) {
+      logger.info('📖 [PageTracker] 检测到从阅读列表打开的页面', {
+        url: currentUrl,
+        title: document.title,
+      })
+      
+      // 通知 background 记录为阅读列表打开
+      chrome.runtime.sendMessage({
+        type: 'READING_LIST_PAGE_OPENED',
+        payload: {
+          url: currentUrl,
+          title: document.title,
+        },
+      })
+    }
+  } catch (error) {
+    // 阅读列表 API 可能不可用或权限不足，静默失败
+    logger.debug('[PageTracker] 检查阅读列表状态失败', error)
+  }
+}
+
 function init(): void {
   // 初始化 DwellTimeCalculator
   calculator = new DwellTimeCalculator()
@@ -933,6 +991,9 @@ function init(): void {
   
   // 添加学习开始标记
   titleManager.startLearning()
+  
+  // 检查是否从阅读列表打开
+  checkReadingListStatus()
   
   logger.info('🚀 [PageTracker] 页面访问追踪已启动', {
     页面: document.title,
