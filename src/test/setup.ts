@@ -70,6 +70,12 @@ global.chrome = {
       remove: () => Promise.resolve(),
       clear: () => Promise.resolve(),
     },
+    session: {
+      get: () => Promise.resolve({}),
+      set: () => Promise.resolve(),
+      remove: () => Promise.resolve(),
+      clear: () => Promise.resolve(),
+    },
     onChanged: {
       addListener: vi.fn(),
       removeListener: vi.fn(),

@@ -250,15 +250,19 @@ export function RecommendationView() {
       
       // 策略B：不立即标记为已读，等待 page-tracker 检测到 30 秒阅读
       // 在 session storage 中标记这是从推荐点击的，供 page-tracker 使用
-      await chrome.storage.session.set({
-        [`recommendation_clicked_${rec.url}`]: {
-          recommendationId: rec.id,
-          title: rec.title,
-          clickedAt: Date.now(),
-        },
-      })
-      
-      recViewLogger.info(`✅ 已标记推荐点击，等待 30 秒阅读验证: ${rec.id}`)
+      try {
+        await chrome.storage.session.set({
+          [`recommendation_clicked_${rec.url}`]: {
+            recommendationId: rec.id,
+            title: rec.title,
+            clickedAt: Date.now(),
+          },
+        })
+        recViewLogger.info(`✅ 已标记推荐点击，等待 30 秒阅读验证: ${rec.id}`)
+      } catch (storageError) {
+        // 即使 session storage 失败，也继续打开链接
+        recViewLogger.error('⚠️ 保存推荐追踪信息失败，但继续打开链接:', storageError)
+      }
       
       // 最后打开链接（这会关闭弹窗）
       await chrome.tabs.create({ url: rec.url })
@@ -267,9 +271,11 @@ export function RecommendationView() {
       recViewLogger.error('❌ 处理点击失败:', error)
       
       // 恢复视觉状态（如果操作失败）
-      const element = event.currentTarget as HTMLElement
-      element.style.opacity = '1'
-      element.style.pointerEvents = 'auto'
+      if (event.currentTarget) {
+        const element = event.currentTarget as HTMLElement
+        element.style.opacity = '1'
+        element.style.pointerEvents = 'auto'
+      }
     }
   }
 
