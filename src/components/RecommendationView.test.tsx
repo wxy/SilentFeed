@@ -25,15 +25,25 @@ import userEvent from "@testing-library/user-event"
 import { RecommendationView } from "./RecommendationView"
 import type { Recommendation } from "@/types/database"
 
-// Mock chrome API
+// Mock chrome API (移到文件顶部，统一管理)
+const mockTabsCreate = vi.fn().mockResolvedValue({})
+const mockStorageLocalSet = vi.fn().mockResolvedValue(undefined)
+const mockStorageLocalGet = vi.fn().mockResolvedValue({})
+const mockStorageSessionSet = vi.fn().mockResolvedValue(undefined)
+const mockStorageSessionGet = vi.fn().mockResolvedValue({})
+
 global.chrome = {
   tabs: {
-    create: vi.fn().mockResolvedValue({}),
+    create: mockTabsCreate,
   },
   storage: {
     local: {
-      set: vi.fn().mockResolvedValue(undefined),
-      get: vi.fn().mockResolvedValue({}),
+      set: mockStorageLocalSet,
+      get: mockStorageLocalGet,
+    },
+    session: {
+      set: mockStorageSessionSet,
+      get: mockStorageSessionGet,
     },
   },
 } as any
@@ -136,6 +146,20 @@ describe("RecommendationView 组件", () => {
     mockIsLoading = false
     mockError = null
     window.confirm = vi.fn()
+    
+    // 重置 Chrome API mocks
+    mockTabsCreate.mockClear()
+    mockStorageLocalSet.mockClear()
+    mockStorageLocalGet.mockClear()
+    mockStorageSessionSet.mockClear()
+    mockStorageSessionGet.mockClear()
+    
+    // 重置为默认行为
+    mockTabsCreate.mockResolvedValue({})
+    mockStorageLocalSet.mockResolvedValue(undefined)
+    mockStorageLocalGet.mockResolvedValue({})
+    mockStorageSessionSet.mockResolvedValue(undefined)
+    mockStorageSessionGet.mockResolvedValue({})
   })
 
   describe("加载状态", () => {
@@ -330,8 +354,10 @@ describe("RecommendationView 组件", () => {
       const item = screen.getByText("测试文章")
       await user.click(item)
 
-      expect(chrome.tabs.create).toHaveBeenCalledWith({
-        url: "https://example.com/article",
+      await waitFor(() => {
+        expect(mockTabsCreate).toHaveBeenCalledWith({
+          url: "https://example.com/article",
+        })
       })
     })
 
@@ -343,20 +369,21 @@ describe("RecommendationView 组件", () => {
       const item = screen.getByText("测试文章")
       await user.click(item)
 
-      // Phase 6: 改为使用 adaptive-metrics 追踪点击次数
+      // 策略B：保存推荐点击信息到 session storage
       await waitFor(() => {
-        expect(chrome.storage.local.set).toHaveBeenCalledWith(
+        expect(mockStorageSessionSet).toHaveBeenCalledWith(
           expect.objectContaining({
-            "adaptive-metrics": expect.objectContaining({
-              clickCount: expect.any(Number),
-              lastUpdated: expect.any(Number),
+            'recommendation_clicked_https://example.com/article': expect.objectContaining({
+              recommendationId: 'rec-1',
+              title: '测试文章',
+              clickedAt: expect.any(Number),
             }),
           })
         )
       })
     })
 
-    it("点击推荐应该标记为已读", async () => {
+    it("点击推荐不应该立即标记为已读（策略B）", async () => {
       const user = userEvent.setup()
       mockRecommendations = [mockRec]
       render(<RecommendationView />)
@@ -364,9 +391,13 @@ describe("RecommendationView 组件", () => {
       const item = screen.getByText("测试文章")
       await user.click(item)
 
+      // 策略B：不立即标记为已读，等待 30 秒阅读验证
       await waitFor(() => {
-        expect(mockMarkAsRead).toHaveBeenCalledWith("rec-1")
+        expect(mockTabsCreate).toHaveBeenCalled()
       })
+      
+      // 不应该立即调用 markAsRead
+      expect(mockMarkAsRead).not.toHaveBeenCalled()
     })
 
     it("当保存追踪信息失败时应该继续打开链接", async () => {
@@ -375,10 +406,8 @@ describe("RecommendationView 组件", () => {
         .spyOn(console, "error")
         .mockImplementation(() => {})
       
-      // trackRecommendationClick 内部会捕获存储错误并输出到 console
-      chrome.storage.local.set = vi
-        .fn()
-        .mockRejectedValue(new Error("Storage error"))
+      // session storage 失败时应该继续打开链接
+      mockStorageSessionSet.mockRejectedValue(new Error("Storage error"))
 
       mockRecommendations = [mockRec]
       render(<RecommendationView />)
@@ -386,9 +415,13 @@ describe("RecommendationView 组件", () => {
       const item = screen.getByText("测试文章")
       await user.click(item)
 
-      // 即使保存失败，仍应该打开链接并标记为已读
-      expect(chrome.tabs.create).toHaveBeenCalled()
-      expect(mockMarkAsRead).toHaveBeenCalled()
+      // 即使保存失败，仍应该打开链接
+      await waitFor(() => {
+        expect(mockTabsCreate).toHaveBeenCalled()
+      })
+      
+      // 策略B：不立即标记为已读
+      expect(mockMarkAsRead).not.toHaveBeenCalled()
 
       consoleErrorSpy.mockRestore()
     })

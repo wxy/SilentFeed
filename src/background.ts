@@ -14,6 +14,7 @@ import { LEARNING_COMPLETE_PAGES } from '@/constants/progress'
 import { aiManager } from './core/ai/AICapabilityManager'
 import { getAIConfig, saveAIConfig, isAIConfigured } from '@/storage/ai-config'
 import { getRecommendationConfig, saveRecommendationConfig } from '@/storage/recommendation-config'
+import { ReadingListManager } from './core/reading-list/reading-list-manager'
 
 const bgLogger = logger.withTag('Background')
 
@@ -224,6 +225,10 @@ chrome.runtime.onInstalled.addListener(async () => {
     
     await updateBadge()
     
+    // 初始化阅读列表监听器
+    ReadingListManager.setupListeners()
+    bgLogger.info('✅ 阅读列表监听器已设置')
+    
     // Phase 7: 启动所有后台调度器
     await startAllSchedulers()
     
@@ -289,6 +294,35 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             }
             
             const visitData = message.data as Omit<ConfirmedVisit, 'id'> & { id: string }
+            
+            // 检查是否是推荐文章（通过 session storage）
+            // 优先级：弹窗点击 > 阅读列表打开
+            try {
+              // 1. 检查弹窗点击
+              const clickKey = `recommendation_clicked_${visitData.url}`
+              const clickData = await chrome.storage.session.get(clickKey)
+              const clickInfo = clickData[clickKey]
+              
+              if (clickInfo) {
+                visitData.source = 'recommended'
+                visitData.recommendationId = clickInfo.recommendationId
+                await chrome.storage.session.remove(clickKey)
+              } else {
+                // 2. 检查阅读列表打开
+                const readingListKey = `readingList_opened_${visitData.url}`
+                const readingListData = await chrome.storage.session.get(readingListKey)
+                const readingListInfo = readingListData[readingListKey]
+                
+                if (readingListInfo && readingListInfo.recommendationId) {
+                  visitData.source = 'recommended'
+                  visitData.recommendationId = readingListInfo.recommendationId
+                  await chrome.storage.session.remove(readingListKey)
+                }
+              }
+            } catch (storageError) {
+              // 继续保存，使用 visitData 中的默认 source
+            }
+            
             await db.confirmedVisits.add(visitData)
             await updateBadge()
             // Phase 8: 传递访问数据给 ProfileUpdateScheduler 用于语义画像学习
@@ -641,6 +675,44 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           }
           break
         
+        // 阅读列表：页面从阅读列表打开
+        case 'READING_LIST_PAGE_OPENED':
+          try {
+            const { url, title } = message.payload as {
+              url: string
+              title: string
+            }
+            bgLogger.info('检测到从阅读列表打开页面:', { url, title })
+            
+            // 查询数据库找到对应的推荐记录
+            const recommendations = await db.recommendations.toArray()
+            const matchedRec = recommendations.find(rec => rec.url === url)
+            
+            if (matchedRec) {
+              bgLogger.info('✓ 匹配到推荐记录:', { 
+                recommendationId: matchedRec.id, 
+                title: matchedRec.title 
+              })
+            }
+            
+            // 标记该 URL 为已打开（后续在 page-tracker 和 onEntryRemoved 时可以区分）
+            // 使用 chrome.storage.session 临时存储（会话级别）
+            await chrome.storage.session.set({
+              [`readingList_opened_${url}`]: {
+                recommendationId: matchedRec?.id,
+                title: title,
+                openedAt: Date.now()
+              }
+            })
+            
+            sendResponse({ success: true })
+          } catch (error) {
+            bgLogger.error('❌ 处理阅读列表打开失败:', error)
+            sendResponse({ success: false, error: String(error) })
+          }
+          break
+        
+
         default:
           sendResponse({ success: false, error: 'Unknown message type' })
       }

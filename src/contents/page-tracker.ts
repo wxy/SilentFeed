@@ -488,52 +488,25 @@ async function recordPageVisit(): Promise<void> {
   try {
     const pageInfo = getPageInfo()
     
-      // Phase 2.7 Step 6: 检测访问来源
+    // Phase 2.7 Step 6: 检测访问来源（基于 referrer）
+    // 注意：推荐来源检测已移到 background 的 SAVE_PAGE_VISIT 处理器中
     let source: 'organic' | 'recommended' | 'search' = 'organic'
-    let recommendationId: string | undefined
     
     try {
-      // 检查 chrome.storage 是否可用
-      if (!checkExtensionContext() || !chrome?.storage?.local) {
-        logger.debug('⚠️ [PageTracker] Chrome storage 不可用，跳过来源检测')
-        // 继续记录，但使用默认来源
-      } else {
+      const referrer = document.referrer
+      if (referrer) {
         try {
-          // 1. 尝试从 chrome.storage 读取追踪信息
-          const trackingKey = `tracking_${pageInfo.url}`
-          const result = await chrome.storage.local.get(trackingKey)
-          const trackingInfo = result[trackingKey]
-          
-          if (trackingInfo && trackingInfo.expiresAt > Date.now()) {
-            source = trackingInfo.source || 'organic'
-            recommendationId = trackingInfo.recommendationId
-            logger.debug('🔗 [PageTracker] 检测到推荐来源', { source, recommendationId })
-            
-            // 使用后立即删除追踪信息
-            await chrome.storage.local.remove(trackingKey)
-          } else {
-            // 2. 检测是否来自搜索引擎（基于 referrer）
-            const referrer = document.referrer
-            if (referrer) {
-              try {
-                const referrerUrl = new URL(referrer)
-                const searchEngines = ['google.com', 'bing.com', 'baidu.com', 'duckduckgo.com']
-                if (searchEngines.some(engine => referrerUrl.hostname.includes(engine))) {
-                  source = 'search'
-                  logger.debug('🔍 [PageTracker] 检测到搜索引擎来源', { referrer })
-                }
-              } catch (urlError) {
-                // 无效的 referrer URL，忽略
-                logger.debug('⚠️ [PageTracker] 无效的 referrer URL')
-              }
-            }
+          const referrerUrl = new URL(referrer)
+          const searchEngines = ['google.com', 'bing.com', 'baidu.com', 'duckduckgo.com']
+          if (searchEngines.some(engine => referrerUrl.hostname.includes(engine))) {
+            source = 'search'
           }
-        } catch (storageError) {
-          logger.debug('⚠️ [PageTracker] Chrome storage 访问失败，使用默认来源', storageError)
+        } catch (urlError) {
+          // 无效的 referrer URL，忽略
         }
       }
     } catch (error) {
-      logger.debug('⚠️ [PageTracker] 检测来源失败，使用默认值', error)
+      // 检测失败，使用默认值
     }
     
     logger.info('💾 [PageTracker] 准备记录页面访问', {
@@ -576,8 +549,8 @@ async function recordPageVisit(): Promise<void> {
       interactionCount: 0, // TODO: 实际记录交互次数
       
       // Phase 2.7 Step 6: 来源追踪
+      // 注意：source 可能会被 background 覆盖（如果检测到推荐来源）
       source,
-      recommendationId,
       
       // Phase 3.2: 提取页面内容和分析
       meta: metadata,
@@ -924,6 +897,38 @@ function resetPageTracking(): void {
 
 // ==================== 初始化 ====================
 
+/**
+ * 检查当前页面是否在阅读列表中
+ * 如果是，通知 background 标记为已打开
+ */
+async function checkReadingListStatus(): Promise<void> {
+  try {
+    const currentUrl = window.location.href
+    
+    // 查询阅读列表中是否有此 URL
+    const entries = await chrome.readingList.query({ url: currentUrl })
+    
+    if (entries.length > 0 && !entries[0].hasBeenRead) {
+      logger.info('📖 [PageTracker] 检测到从阅读列表打开的页面', {
+        url: currentUrl,
+        title: document.title,
+      })
+      
+      // 通知 background 记录为阅读列表打开
+      chrome.runtime.sendMessage({
+        type: 'READING_LIST_PAGE_OPENED',
+        payload: {
+          url: currentUrl,
+          title: document.title,
+        },
+      })
+    }
+  } catch (error) {
+    // 阅读列表 API 可能不可用或权限不足，静默失败
+    logger.debug('[PageTracker] 检查阅读列表状态失败', error)
+  }
+}
+
 function init(): void {
   // 初始化 DwellTimeCalculator
   calculator = new DwellTimeCalculator()
@@ -933,6 +938,9 @@ function init(): void {
   
   // 添加学习开始标记
   titleManager.startLearning()
+  
+  // 检查是否从阅读列表打开
+  checkReadingListStatus()
   
   logger.info('🚀 [PageTracker] 页面访问追踪已启动', {
     页面: document.title,

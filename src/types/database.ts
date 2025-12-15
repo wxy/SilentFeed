@@ -147,6 +147,23 @@ export interface Recommendation {
     /** 翻译时间 */
     translatedAt: number
   }
+
+  /**
+   * 阅读列表相关字段
+   * 追踪"稍后读"行为及后续真实阅读
+   */
+  
+  /** 是否已保存到 Chrome 阅读列表 */
+  savedToReadingList?: boolean
+  
+  /** 保存到阅读列表的时间戳 */
+  savedAt?: number
+  
+  /** 从阅读列表真实阅读的时间戳 */
+  readAt?: number
+  
+  /** 访问次数（包括从阅读列表的访问） */
+  visitCount?: number
 }
 
 /**

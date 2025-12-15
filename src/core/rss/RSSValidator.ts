@@ -142,6 +142,34 @@ export class RSSValidator {
     
     return String(value).trim()
   }
+
+  /**
+   * 获取分类列表并转为字符串
+   * 注意：
+   * - 正确处理 CDATA 标记（如 {__cdata: "Web"}）
+   * - 限制最多返回3个分类，避免显示过多
+   * - 返回逗号分隔的字符串
+   */
+  private static getCategories(category: any): string | undefined {
+    if (!category) return undefined
+    
+    const categories = Array.isArray(category) ? category : [category]
+    const extracted = categories
+      .map(cat => {
+        // 特殊处理：如果是包含 __cdata 的对象，直接提取 __cdata 值
+        if (cat && typeof cat === 'object' && cat['__cdata']) {
+          return String(cat['__cdata']).trim()
+        }
+        // 否则使用通用 getText
+        return this.getText(cat)
+      })
+      .filter((cat): cat is string => !!cat && cat !== '{}')
+    
+    if (extracted.length === 0) return undefined
+    
+    // 限制最多3个分类，用逗号分隔
+    return extracted.slice(0, 3).join(', ')
+  }
   
   /**
    * 验证 RSS 2.0 格式
@@ -164,7 +192,7 @@ export class RSSValidator {
       
       // 提取扩展元数据
       const language = this.getText(channel.language)
-      const category = this.getText(channel.category)
+      const category = this.getCategories(channel.category)  // 使用专门的 getCategories 处理
       const lastBuildDate = this.getText(channel.lastBuildDate)
       const pubDate = this.getText(channel.pubDate)
       const generator = this.getText(channel.generator)
@@ -236,9 +264,19 @@ export class RSSValidator {
       
       // 提取扩展元数据
       const language = feed['@_xml:lang'] || this.getText(feed.language)
-      const category = feed.category ? 
-        (Array.isArray(feed.category) ? feed.category[0]['@_term'] : feed.category['@_term']) :
-        undefined
+      
+      // Atom category 使用 @_term 属性
+      let category: string | undefined
+      if (feed.category) {
+        const categories = Array.isArray(feed.category) ? feed.category : [feed.category]
+        const extracted = categories
+          .map((cat: any) => cat['@_term'])
+          .filter((term: any): term is string => !!term)
+          .slice(0, 3)  // 限制最多3个
+        
+        category = extracted.length > 0 ? extracted.join(', ') : undefined
+      }
+      
       const updated = this.getText(feed.updated)
       const generator = this.getText(feed.generator)
       const rights = this.getText(feed.rights)

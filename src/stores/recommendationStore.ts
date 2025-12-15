@@ -54,6 +54,7 @@ interface RecommendationState {
   markAsRead: (id: string, duration?: number, depth?: number) => Promise<void>
   dismissAll: () => Promise<void>
   dismissSelected: (ids: string[]) => Promise<void>
+  removeFromList: (ids: string[]) => Promise<void>  // 从列表移除但不标记为不想读（用于稍后读）
   reload: () => Promise<void>
 }
 
@@ -314,6 +315,48 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
         error: error instanceof Error ? error.message : '操作失败',
         isLoading: false
       })
+    }
+  },
+  
+  /**
+   * 从推荐列表移除但不标记为不想读
+   * 用于稍后读功能：移除显示但不记录负面反馈
+   */
+  removeFromList: async (ids: string[]) => {
+    if (ids.length === 0) return
+    
+    try {
+      // 第一步：从 UI 移除
+      const currentRecs = get().recommendations
+      const remainingRecs = currentRecs.filter(r => !ids.includes(r.id))
+      
+      // 第二步：填充新推荐
+      const config = await getRecommendationConfig()
+      const needCount = config.maxRecommendations - remainingRecs.length
+      
+      const freshRecommendations = await getUnreadRecommendations(config.maxRecommendations * 2)
+      const newRecs = freshRecommendations
+        .filter(r => !remainingRecs.some(existing => existing.id === r.id))
+        .filter(r => !ids.includes(r.id))
+        .sort((a: Recommendation, b: Recommendation) => b.score - a.score)
+        .slice(0, needCount)
+      
+      // 立即更新 UI
+      const updatedRecommendations = [...remainingRecs, ...newRecs]
+        .sort((a, b) => b.score - a.score)
+        .slice(0, config.maxRecommendations)
+      
+      set({ 
+        recommendations: updatedRecommendations,
+        isLoading: false,
+        error: null 
+      })
+      
+      // 第三步：刷新统计（不需要标记为不想读）
+      await get().refreshStats()
+      
+    } catch (error) {
+      console.error('[RecommendationStore] 移除推荐失败:', error)
     }
   },
   
