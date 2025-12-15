@@ -294,6 +294,46 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             }
             
             const visitData = message.data as Omit<ConfirmedVisit, 'id'> & { id: string }
+            
+            // 检查是否是推荐文章（通过 session storage）
+            // 优先级：弹窗点击 > 阅读列表打开
+            try {
+              // 1. 检查弹窗点击
+              const clickKey = `recommendation_clicked_${visitData.url}`
+              const clickData = await chrome.storage.session.get(clickKey)
+              const clickInfo = clickData[clickKey]
+              
+              if (clickInfo) {
+                visitData.source = 'recommended'
+                visitData.recommendationId = clickInfo.recommendationId
+                await chrome.storage.session.remove(clickKey)
+                
+                bgLogger.debug('✓ 检测到推荐来源（弹窗点击）', {
+                  recommendationId: clickInfo.recommendationId,
+                  title: clickInfo.title
+                })
+              } else {
+                // 2. 检查阅读列表打开
+                const readingListKey = `readingList_opened_${visitData.url}`
+                const readingListData = await chrome.storage.session.get(readingListKey)
+                const readingListInfo = readingListData[readingListKey]
+                
+                if (readingListInfo && readingListInfo.recommendationId) {
+                  visitData.source = 'recommended'
+                  visitData.recommendationId = readingListInfo.recommendationId
+                  await chrome.storage.session.remove(readingListKey)
+                  
+                  bgLogger.debug('✓ 检测到推荐来源（阅读列表）', {
+                    recommendationId: readingListInfo.recommendationId,
+                    title: readingListInfo.title
+                  })
+                }
+              }
+            } catch (storageError) {
+              bgLogger.debug('检查推荐来源失败，使用默认来源', storageError)
+              // 继续保存，使用 visitData 中的默认 source
+            }
+            
             await db.confirmedVisits.add(visitData)
             await updateBadge()
             // Phase 8: 传递访问数据给 ProfileUpdateScheduler 用于语义画像学习
@@ -683,69 +723,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           }
           break
         
-        // 获取推荐来源（由 page-tracker 调用）
-        case 'GET_RECOMMENDATION_SOURCE':
-          try {
-            const { url } = message.payload as { url: string }
-            
-            // 1. 检查是否是从弹窗点击的推荐文章
-            const clickKey = `recommendation_clicked_${url}`
-            const clickData = await chrome.storage.session.get(clickKey)
-            const clickInfo = clickData[clickKey]
-            
-            if (clickInfo) {
-              // 删除已使用的追踪信息
-              await chrome.storage.session.remove(clickKey)
-              
-              sendResponse({
-                success: true,
-                data: {
-                  source: 'recommended',
-                  sourceType: 'popup_click',
-                  recommendationId: clickInfo.recommendationId,
-                  title: clickInfo.title
-                }
-              })
-              break
-            }
-            
-            // 2. 检查是否是从阅读列表打开的推荐文章
-            const readingListKey = `readingList_opened_${url}`
-            const readingListData = await chrome.storage.session.get(readingListKey)
-            const readingListInfo = readingListData[readingListKey]
-            
-            if (readingListInfo && readingListInfo.recommendationId) {
-              // 删除已使用的追踪信息
-              await chrome.storage.session.remove(readingListKey)
-              
-              sendResponse({
-                success: true,
-                data: {
-                  source: 'recommended',
-                  sourceType: 'reading_list',
-                  recommendationId: readingListInfo.recommendationId,
-                  title: readingListInfo.title
-                }
-              })
-              break
-            }
-            
-            // 3. 没有找到推荐来源，返回 organic
-            sendResponse({
-              success: true,
-              data: {
-                source: 'organic',
-                sourceType: null,
-                recommendationId: undefined,
-                title: undefined
-              }
-            })
-          } catch (error) {
-            bgLogger.error('❌ 获取推荐来源失败:', error)
-            sendResponse({ success: false, error: String(error) })
-          }
-          break
-        
+
         default:
           sendResponse({ success: false, error: 'Unknown message type' })
       }

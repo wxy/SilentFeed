@@ -585,8 +585,8 @@ async function recordPageVisit(): Promise<void> {
       interactionCount: 0, // TODO: 实际记录交互次数
       
       // Phase 2.7 Step 6: 来源追踪
+      // 注意：source 可能会被 background 覆盖（如果检测到推荐来源）
       source,
-      recommendationId,
       
       // Phase 3.2: 提取页面内容和分析
       meta: metadata,
