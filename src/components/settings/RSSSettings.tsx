@@ -788,7 +788,7 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                   }}
                 >
                   <span className="truncate">
-                    {formatFeedTitle(feed.title, getHostname(feed.link || feed.url))} ({getHostname(feed.link || feed.url)})
+                    {formatFeedTitle(feed.title, getHostname(feed.link || feed.url))}
                   </span>
                 </a>
                 

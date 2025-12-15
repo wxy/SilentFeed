@@ -289,14 +289,27 @@ export class RSSFetcher {
 
   /**
    * 获取分类列表
+   * 注意：
+   * - 正确处理 CDATA 标记（如 {__cdata: "Web"}）
+   * - 限制最多返回3个分类，避免显示过多
    */
   private getCategories(category: any): string[] {
     if (!category) return []
     
     const categories = Array.isArray(category) ? category : [category]
-    return categories
-      .map(cat => this.getText(cat))
-      .filter((cat): cat is string => !!cat)
+    const extracted = categories
+      .map(cat => {
+        // 特殊处理：如果是包含 __cdata 的对象，直接提取 __cdata 值
+        if (cat && typeof cat === 'object' && cat['__cdata']) {
+          return String(cat['__cdata']).trim()
+        }
+        // 否则使用通用 getText
+        return this.getText(cat)
+      })
+      .filter((cat): cat is string => !!cat && cat !== '{}')
+    
+    // 限制最多3个分类
+    return extracted.slice(0, 3)
   }
 
   /**
