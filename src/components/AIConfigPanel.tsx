@@ -74,8 +74,9 @@ export function AIConfigPanel() {
       let activeProvider: string | null = null
       
       // 先检查是否有任何 AI 实际配置了
-      const hasDeepSeek = !!(config.remote?.deepseek?.apiKey)
-      const hasOpenAI = !!(config.remote?.openai?.apiKey)
+      // Phase 9.2: 使用新的 providers 配置结构
+      const hasDeepSeek = !!(config.providers?.deepseek?.apiKey)
+      const hasOpenAI = !!(config.providers?.openai?.apiKey)
       const hasOllama = !!(config.local?.enabled)
       
       if (config.engineAssignment && (hasDeepSeek || hasOpenAI || hasOllama)) {
@@ -93,14 +94,18 @@ export function AIConfigPanel() {
         }
         
         // 优先看 profileGeneration（用户画像生成最重要）
+        // 修复：先检查远程 Provider 是否配置，优先显示已配置的远程 AI
         if (profileProvider !== 'ollama' && isProviderConfigured(profileProvider)) {
           activeProvider = profileProvider
         } else if (feedProvider !== 'ollama' && isProviderConfigured(feedProvider)) {
           activeProvider = feedProvider
         } else if (pageProvider !== 'ollama' && isProviderConfigured(pageProvider)) {
           activeProvider = pageProvider
-        } else if ((profileProvider === 'ollama' || feedProvider === 'ollama' || pageProvider === 'ollama') && hasOllama) {
-          // 如果任何任务使用 ollama 且 ollama 已配置，标记为 ollama
+        }
+        
+        // 如果没有任何远程 Provider 配置，但 Ollama 已配置且被任何任务使用，才标记 Ollama 为在用
+        if (!activeProvider && hasOllama && 
+            (profileProvider === 'ollama' || feedProvider === 'ollama' || pageProvider === 'ollama')) {
           activeProvider = 'ollama'
         }
       }

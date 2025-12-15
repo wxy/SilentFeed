@@ -298,7 +298,7 @@ export function CollectionStats() {
             <div className="text-sm text-indigo-600 dark:text-indigo-400 mb-1">
               {_("options.collectionStats.learningPagesLabel")}
             </div>
-            <div className="text-3xl font-bold text-indigo-900 dark:text-indigo-100 text-right">
+            <div className="text-2xl font-bold text-indigo-900 dark:text-indigo-100 text-right">
               {stats.pageCount}
             </div>
             <div className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">
@@ -311,7 +311,7 @@ export function CollectionStats() {
             <div className="text-sm text-green-600 dark:text-green-400 mb-1">
               {_("options.collectionStats.storageLabel")}
             </div>
-            <div className="text-3xl font-bold text-green-900 dark:text-green-100 text-right">
+            <div className="text-2xl font-bold text-green-900 dark:text-green-100 text-right">
               {_("options.collectionStats.storageSizeMB", { size: stats.totalSizeMB })}
             </div>
             <div className="text-xs text-green-600 dark:text-green-400 mt-1">
@@ -324,7 +324,7 @@ export function CollectionStats() {
             <div className="text-sm text-cyan-600 dark:text-cyan-400 mb-1">
               {_("options.collectionStats.startLearningTimeLabel")}
             </div>
-            <div className="text-lg font-bold text-cyan-900 dark:text-cyan-100 text-right">
+            <div className="text-2xl font-bold text-cyan-900 dark:text-cyan-100 text-right">
               {formatDate(stats.firstCollectionTime)}
             </div>
             <div className="text-xs text-cyan-600 dark:text-cyan-400 mt-1">
@@ -458,13 +458,13 @@ export function CollectionStats() {
                 </div>
                 {aiUsageStats.byReasoning ? (
                   <>
-                    <div className="flex items-baseline gap-2">
+                    <div className="flex items-baseline gap-2 justify-end">
                       <div className="text-lg font-bold text-amber-900 dark:text-amber-100">
                         {(aiUsageStats.byReasoning.withReasoning.avgLatency / 1000).toFixed(2)}s
                       </div>
                       <div className="text-xs text-amber-600 dark:text-amber-400">{_("options.collectionStats.aiUsage.latency.reasoning")}</div>
                     </div>
-                    <div className="flex items-baseline gap-2 mt-1">
+                    <div className="flex items-baseline gap-2 mt-1 justify-end">
                       <div className="text-lg font-bold text-amber-700 dark:text-amber-300">
                         {(aiUsageStats.byReasoning.withoutReasoning.avgLatency / 1000).toFixed(2)}s
                       </div>
@@ -472,7 +472,7 @@ export function CollectionStats() {
                     </div>
                   </>
                 ) : (
-                  <div className="text-2xl font-bold text-amber-900 dark:text-amber-100">
+                  <div className="text-2xl font-bold text-amber-900 dark:text-amber-100 text-right">
                     {(aiUsageStats.avgLatency / 1000).toFixed(2)}s
                   </div>
                 )}
