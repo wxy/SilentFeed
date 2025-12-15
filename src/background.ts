@@ -307,11 +307,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 visitData.source = 'recommended'
                 visitData.recommendationId = clickInfo.recommendationId
                 await chrome.storage.session.remove(clickKey)
-                
-                bgLogger.debug('✓ 检测到推荐来源（弹窗点击）', {
-                  recommendationId: clickInfo.recommendationId,
-                  title: clickInfo.title
-                })
               } else {
                 // 2. 检查阅读列表打开
                 const readingListKey = `readingList_opened_${visitData.url}`
@@ -322,15 +317,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                   visitData.source = 'recommended'
                   visitData.recommendationId = readingListInfo.recommendationId
                   await chrome.storage.session.remove(readingListKey)
-                  
-                  bgLogger.debug('✓ 检测到推荐来源（阅读列表）', {
-                    recommendationId: readingListInfo.recommendationId,
-                    title: readingListInfo.title
-                  })
                 }
               }
             } catch (storageError) {
-              bgLogger.debug('检查推荐来源失败，使用默认来源', storageError)
               // 继续保存，使用 visitData 中的默认 source
             }
             

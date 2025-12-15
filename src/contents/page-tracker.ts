@@ -488,61 +488,25 @@ async function recordPageVisit(): Promise<void> {
   try {
     const pageInfo = getPageInfo()
     
-      // Phase 2.7 Step 6: 检测访问来源
+    // Phase 2.7 Step 6: 检测访问来源（基于 referrer）
+    // 注意：推荐来源检测已移到 background 的 SAVE_PAGE_VISIT 处理器中
     let source: 'organic' | 'recommended' | 'search' = 'organic'
-    let recommendationId: string | undefined
     
     try {
-      // 检查扩展上下文是否有效
-      if (!checkExtensionContext()) {
-        logger.debug('⚠️ [PageTracker] 扩展上下文失效，跳过来源检测')
-        // 继续记录，但使用默认来源
-      } else {
+      const referrer = document.referrer
+      if (referrer) {
         try {
-          // ⚠️ 架构修正：通过 background 访问 session storage
-          // Content Script 在某些网站（如有严格 CSP 的）无法直接访问 chrome.storage
-          // 解决方案：发送消息给 background，由其访问 storage 并返回结果
-          
-          const response = await chrome.runtime.sendMessage({
-            type: 'GET_RECOMMENDATION_SOURCE',
-            payload: { url: pageInfo.url }
-          })
-          
-          if (response?.success && response.data) {
-            source = response.data.source
-            recommendationId = response.data.recommendationId
-            
-            if (source === 'recommended') {
-              logger.debug('🔗 [PageTracker] 检测到推荐来源', { 
-                source: response.data.sourceType,
-                recommendationId, 
-                title: response.data.title
-              })
-            } else if (source === 'search') {
-              logger.debug('🔍 [PageTracker] 检测到搜索引擎来源')
-            }
-          } else {
-            // 如果 background 无法检测到推荐来源，检查 referrer
-            const referrer = document.referrer
-            if (referrer) {
-              try {
-                const referrerUrl = new URL(referrer)
-                const searchEngines = ['google.com', 'bing.com', 'baidu.com', 'duckduckgo.com']
-                if (searchEngines.some(engine => referrerUrl.hostname.includes(engine))) {
-                  source = 'search'
-                  logger.debug('🔍 [PageTracker] 检测到搜索引擎来源（通过 referrer）', { referrer })
-                }
-              } catch (urlError) {
-                // 无效的 referrer URL，忽略
-              }
-            }
+          const referrerUrl = new URL(referrer)
+          const searchEngines = ['google.com', 'bing.com', 'baidu.com', 'duckduckgo.com']
+          if (searchEngines.some(engine => referrerUrl.hostname.includes(engine))) {
+            source = 'search'
           }
-        } catch (storageError) {
-          logger.debug('⚠️ [PageTracker] Chrome storage 访问失败，使用默认来源', storageError)
+        } catch (urlError) {
+          // 无效的 referrer URL，忽略
         }
       }
     } catch (error) {
-      logger.debug('⚠️ [PageTracker] 检测来源失败，使用默认值', error)
+      // 检测失败，使用默认值
     }
     
     logger.info('💾 [PageTracker] 准备记录页面访问', {
