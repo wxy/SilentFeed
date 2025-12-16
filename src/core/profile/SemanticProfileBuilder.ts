@@ -79,10 +79,14 @@ interface AISummary {
  * 语义化画像构建器
  */
 export class SemanticProfileBuilder {
-  // 行为计数器（内存中，不持久化，触发后全部重置）
+  // 行为计数器存储键
+  private static readonly STORAGE_KEY = 'profile_update_counters'
+  
+  // 行为计数器（持久化到 chrome.storage.local）
   private browseCount = 0
   private readCount = 0
   private dismissCount = 0
+  private countersLoaded = false  // 标记计数器是否已从存储加载
 
   // Phase 12.7: 全局时间控制（所有行为共享）
   private lastAutoUpdateTime = 0
@@ -100,9 +104,64 @@ export class SemanticProfileBuilder {
   private readonly BROWSE_DEDUP_MS = 5 * 60 * 1000  // 5分钟去重窗口
 
   /**
+   * 从存储加载计数器（Service Worker 启动时调用）
+   */
+  async loadCounters(): Promise<void> {
+    try {
+      const result = await chrome.storage.local.get(SemanticProfileBuilder.STORAGE_KEY)
+      const data = result[SemanticProfileBuilder.STORAGE_KEY]
+      if (data) {
+        this.browseCount = data.browseCount || 0
+        this.readCount = data.readCount || 0
+        this.dismissCount = data.dismissCount || 0
+        this.lastAutoUpdateTime = data.lastAutoUpdateTime || 0
+        profileLogger.info('📊 已从存储加载计数器', {
+          browseCount: this.browseCount,
+          readCount: this.readCount,
+          dismissCount: this.dismissCount
+        })
+      }
+      this.countersLoaded = true
+    } catch (error) {
+      profileLogger.error('加载计数器失败:', error)
+      this.countersLoaded = true  // 即使失败也标记为已加载，避免阻塞
+    }
+  }
+
+  /**
+   * 保存计数器到存储
+   */
+  private async saveCounters(): Promise<void> {
+    try {
+      await chrome.storage.local.set({
+        [SemanticProfileBuilder.STORAGE_KEY]: {
+          browseCount: this.browseCount,
+          readCount: this.readCount,
+          dismissCount: this.dismissCount,
+          lastAutoUpdateTime: this.lastAutoUpdateTime
+        }
+      })
+    } catch (error) {
+      profileLogger.error('保存计数器失败:', error)
+    }
+  }
+
+  /**
+   * 确保计数器已加载
+   */
+  private async ensureCountersLoaded(): Promise<void> {
+    if (!this.countersLoaded) {
+      await this.loadCounters()
+    }
+  }
+
+  /**
    * 用户浏览页面
    */
   async onBrowse(page: ConfirmedVisit): Promise<void> {
+    // 确保计数器已加载
+    await this.ensureCountersLoaded()
+    
     // 去重检查：5分钟内相同 URL 只处理一次
     const now = Date.now()
     const lastBrowseTime = this.recentBrowses.get(page.url)
@@ -123,6 +182,7 @@ export class SemanticProfileBuilder {
     this.cleanupRecentBrowses(now)
     
     this.browseCount++
+    await this.saveCounters()  // 持久化计数器
     
     profileLogger.debug('用户浏览页面', {
       title: page.title,
@@ -137,7 +197,7 @@ export class SemanticProfileBuilder {
       if (timeSinceLastUpdate >= GLOBAL_UPDATE_INTERVAL_MS) {
         profileLogger.info('🔄 浏览阈值达到且时间间隔充足，触发全量更新')
         await this.triggerFullUpdate('browse')
-        this.resetAllCounters()  // Phase 12.7: 重置所有计数器
+        await this.resetAllCounters()  // Phase 12.7: 重置所有计数器
         this.lastAutoUpdateTime = Date.now()
       } else {
         const remainingMinutes = Math.ceil((GLOBAL_UPDATE_INTERVAL_MS - timeSinceLastUpdate) / 60000)
@@ -169,6 +229,9 @@ export class SemanticProfileBuilder {
     readDuration: number,
     scrollDepth: number
   ): Promise<void> {
+    // 确保计数器已加载
+    await this.ensureCountersLoaded()
+    
     // 1. 计算权重
     const weight = this.calculateReadWeight(readDuration, scrollDepth)
     
@@ -183,6 +246,7 @@ export class SemanticProfileBuilder {
     await this.recordReadBehavior(article, readDuration, scrollDepth, weight)
     
     this.readCount++
+    await this.saveCounters()  // 持久化计数器
     
     // Phase 12.7: 阅读阈值动态获取，等于弹窗容量（与拒绝对称）
     const config = await getRecommendationConfig()
@@ -194,7 +258,7 @@ export class SemanticProfileBuilder {
       if (timeSinceLastUpdate >= GLOBAL_UPDATE_INTERVAL_MS) {
         profileLogger.info(`🔄 阅读阈值达到 (${this.readCount}/${readThreshold}) 且时间间隔充足，触发全量更新`)
         await this.triggerFullUpdate('read')
-        this.resetAllCounters()  // Phase 12.7: 重置所有计数器
+        await this.resetAllCounters()  // Phase 12.7: 重置所有计数器
         this.lastAutoUpdateTime = Date.now()
       } else {
         const remainingMinutes = Math.ceil((GLOBAL_UPDATE_INTERVAL_MS - timeSinceLastUpdate) / 60000)
@@ -208,6 +272,9 @@ export class SemanticProfileBuilder {
    * Phase 12.7: 使用全局时间间隔控制
    */
   async onDismiss(article: Recommendation): Promise<void> {
+    // 确保计数器已加载
+    await this.ensureCountersLoaded()
+    
     profileLogger.info('❌ 用户拒绝推荐', {
       title: article.title,
       当前队列: this.dismissQueue.length
@@ -219,6 +286,7 @@ export class SemanticProfileBuilder {
     // 2. 加入待处理队列
     this.dismissQueue.push(article)
     this.dismissCount++
+    await this.saveCounters()  // 持久化计数器
     
     // 3. 清除旧的防抖定时器
     if (this.dismissDebounceTimer) {
@@ -241,7 +309,7 @@ export class SemanticProfileBuilder {
         await this.triggerFullUpdate('dismiss')
         
         // Phase 12.7: 重置所有状态
-        this.resetAllCounters()
+        await this.resetAllCounters()
         this.dismissQueue = []
         this.dismissDebounceTimer = null
         this.lastAutoUpdateTime = Date.now()
@@ -263,7 +331,7 @@ export class SemanticProfileBuilder {
         
         // 执行画像更新
         await this.triggerFullUpdate('dismiss')
-        this.resetAllCounters()
+        await this.resetAllCounters()
         this.lastAutoUpdateTime = Date.now()
       } else {
         const remainingMinutes = Math.ceil((GLOBAL_UPDATE_INTERVAL_MS - timeSinceLastUpdate) / 60000)
@@ -282,10 +350,11 @@ export class SemanticProfileBuilder {
    * Phase 12.7: 重置所有行为计数器
    * 触发更新后调用，确保行为已被学习
    */
-  private resetAllCounters(): void {
+  private async resetAllCounters(): Promise<void> {
     this.browseCount = 0
     this.readCount = 0
     this.dismissCount = 0
+    await this.saveCounters()  // 持久化重置后的计数器
     profileLogger.debug('✅ 已重置所有行为计数器')
   }
   
@@ -317,7 +386,7 @@ export class SemanticProfileBuilder {
     profileLogger.info('[AI Profile] 🚀 手动强制生成 AI 画像', { trigger })
     
     // Phase 12.7: 重置所有计数器
-    this.resetAllCounters()
+    await this.resetAllCounters()
     this.dismissQueue = []
     
     // 直接调用全量更新（手动触发不更新 lastAutoUpdateTime，不影响自动触发的时间窗口）
@@ -934,6 +1003,9 @@ export class SemanticProfileBuilder {
     dismissProgress: { current: number; threshold: number; percentage: number }
     hasNewData: boolean  // 是否有新数据需要处理
   }> {
+    // 确保计数器已加载
+    await this.ensureCountersLoaded()
+    
     // 获取动态阈值
     const config = await getRecommendationConfig()
     const readThreshold = config.maxRecommendations || 3
