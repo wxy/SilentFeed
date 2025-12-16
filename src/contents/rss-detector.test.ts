@@ -155,6 +155,96 @@ describe("RSS Detector", () => {
     })
   })
   
+  describe("convertGoogleTranslateUrl", () => {
+    /**
+     * 辅助函数：模拟 convertGoogleTranslateUrl 的逻辑
+     * 用于测试 Google 翻译 URL 转换
+     */
+    function convertGoogleTranslateUrl(translateUrl: URL): string | null {
+      try {
+        const hostname = translateUrl.hostname
+        const translatedDomain = hostname.replace('.translate.goog', '')
+        
+        const placeholder = '\x00'
+        const originalDomain = translatedDomain
+          .replace(/--/g, placeholder)
+          .replace(/-/g, '.')
+          .replace(new RegExp(placeholder, 'g'), '-')
+        
+        const originalUrl = new URL(translateUrl.pathname, `https://${originalDomain}`)
+        
+        const params = new URLSearchParams(translateUrl.search)
+        const translateParams = ['_x_tr_sl', '_x_tr_tl', '_x_tr_hl', '_x_tr_pto', '_x_tr_hist']
+        translateParams.forEach(param => params.delete(param))
+        
+        if (params.toString()) {
+          originalUrl.search = params.toString()
+        }
+        
+        return originalUrl.href
+      } catch {
+        return null
+      }
+    }
+    
+    it("应该转换简单的翻译 URL", () => {
+      // arstechnica-com.translate.goog → arstechnica.com
+      const translateUrl = new URL("https://arstechnica-com.translate.goog/feed")
+      const result = convertGoogleTranslateUrl(translateUrl)
+      expect(result).toBe("https://arstechnica.com/feed")
+    })
+    
+    it("应该转换带 www 的翻译 URL", () => {
+      // www-example-com.translate.goog → www.example.com
+      const translateUrl = new URL("https://www-example-com.translate.goog/rss.xml")
+      const result = convertGoogleTranslateUrl(translateUrl)
+      expect(result).toBe("https://www.example.com/rss.xml")
+    })
+    
+    it("应该处理原本包含连字符的域名", () => {
+      // my--site-com.translate.goog → my-site.com（双连字符 = 原始连字符）
+      const translateUrl = new URL("https://my--site-com.translate.goog/feed")
+      const result = convertGoogleTranslateUrl(translateUrl)
+      expect(result).toBe("https://my-site.com/feed")
+    })
+    
+    it("应该处理多级 TLD", () => {
+      // example-co-uk.translate.goog → example.co.uk
+      const translateUrl = new URL("https://example-co-uk.translate.goog/feed")
+      const result = convertGoogleTranslateUrl(translateUrl)
+      expect(result).toBe("https://example.co.uk/feed")
+    })
+    
+    it("应该处理子域名和多级 TLD", () => {
+      // www-bbc-co-uk.translate.goog → www.bbc.co.uk
+      const translateUrl = new URL("https://www-bbc-co-uk.translate.goog/feeds/rss")
+      const result = convertGoogleTranslateUrl(translateUrl)
+      expect(result).toBe("https://www.bbc.co.uk/feeds/rss")
+    })
+    
+    it("应该移除翻译相关的查询参数", () => {
+      const translateUrl = new URL(
+        "https://example-com.translate.goog/feed?_x_tr_sl=en&_x_tr_tl=zh-CN&_x_tr_hl=zh-CN"
+      )
+      const result = convertGoogleTranslateUrl(translateUrl)
+      expect(result).toBe("https://example.com/feed")
+    })
+    
+    it("应该保留非翻译相关的查询参数", () => {
+      const translateUrl = new URL(
+        "https://example-com.translate.goog/feed?category=tech&_x_tr_sl=en&_x_tr_tl=zh-CN"
+      )
+      const result = convertGoogleTranslateUrl(translateUrl)
+      expect(result).toBe("https://example.com/feed?category=tech")
+    })
+    
+    it("应该正确处理路径", () => {
+      const translateUrl = new URL("https://blog-example-com.translate.goog/posts/2024/feed.xml")
+      const result = convertGoogleTranslateUrl(translateUrl)
+      expect(result).toBe("https://blog.example.com/posts/2024/feed.xml")
+    })
+  })
+  
   describe("generateCandidateURLs", () => {
     it("应该生成常见 RSS 路径", () => {
       const origin = "https://example.com"
