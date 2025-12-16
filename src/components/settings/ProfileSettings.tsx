@@ -12,7 +12,6 @@ import { useState, useEffect, useRef } from "react"
 import { useI18n } from "@/i18n/helpers"
 import { getUserProfile } from "@/storage/db"
 import { profileManager } from "@/core/profile/ProfileManager"
-import { semanticProfileBuilder } from "@/core/profile/SemanticProfileBuilder"
 import { getAIConfig, getProviderDisplayName, type AIProviderType } from "@/storage/ai-config"
 import { resolveProvider } from "@/utils/ai-provider-resolver"
 import type { UserProfile } from "@/types/profile"
@@ -135,10 +134,12 @@ export function ProfileSettings() {
           }])
         }
         
-        // 加载画像更新进度
+        // 加载画像更新进度（从 Background 获取，因为计数器在 Background 实例中）
         try {
-          const progress = await semanticProfileBuilder.getUpdateProgress()
-          setUpdateProgress(progress)
+          const response = await chrome.runtime.sendMessage({ type: 'GET_PROFILE_UPDATE_PROGRESS' })
+          if (response?.success && response.data) {
+            setUpdateProgress(response.data)
+          }
         } catch (progressError) {
           profileViewLogger.warn("加载画像更新进度失败:", progressError)
         }

@@ -713,6 +713,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             sendResponse({ success: false, error: String(error) })
           }
           break
+        
+        // 获取画像更新进度（从 Background 实例读取）
+        case 'GET_PROFILE_UPDATE_PROGRESS':
+          try {
+            const progress = await semanticProfileBuilder.getUpdateProgress()
+            sendResponse({ success: true, data: progress })
+          } catch (error) {
+            bgLogger.error('❌ 获取画像更新进度失败:', error)
+            sendResponse({ success: false, error: String(error) })
+          }
+          break
 
         default:
           sendResponse({ success: false, error: 'Unknown message type' })
