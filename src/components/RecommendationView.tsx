@@ -268,6 +268,9 @@ export function RecommendationView() {
       await removeFromList([rec.id])
       recViewLogger.info(`✅ 已从推荐列表移除，等待阅读验证: ${rec.id}`)
       
+      // 等待一帧，确保 React 完成重新渲染
+      await new Promise(resolve => requestAnimationFrame(resolve))
+      
       // 最后打开链接（这会关闭弹窗）
       await chrome.tabs.create({ url: rec.url })
       
@@ -560,6 +563,7 @@ export function RecommendationView() {
             onClick={(e) => handleItemClick(rec, e)}
             onDismiss={(e) => handleDismiss(rec.id, e)}
             onSaveToReadingList={(e) => handleSaveToReadingList(rec, e)}
+            onRemoveFromList={() => removeFromList([rec.id])}
           />
         ))}
       </div>
@@ -581,9 +585,10 @@ interface RecommendationItemProps {
   onClick: (event: React.MouseEvent) => void
   onDismiss: (event: React.MouseEvent) => void
   onSaveToReadingList?: (event: React.MouseEvent) => void // 保存到稍后读
+  onRemoveFromList?: () => Promise<void> // 从列表移除（不标记为不想读）
 }
 
-function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, onDismiss, onSaveToReadingList }: RecommendationItemProps) {
+function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, onDismiss, onSaveToReadingList, onRemoveFromList }: RecommendationItemProps) {
   const { _, t, i18n } = useI18n()
   const { markAsRead } = useRecommendationStore()
   const [showOriginal, setShowOriginal] = useState(false)
@@ -726,11 +731,27 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
                     try {
                       const translateUrl = getGoogleTranslateUrl(currentRecommendation.url, i18n.language)
                       
-                      // ⚠️ 关键：先标记为已读，再打开链接
-                      // 因为 chrome.tabs.create() 会关闭弹窗，导致后续操作被中断
-                      recViewLogger.debug(`点击语言标签，标记为已读: ${currentRecommendation.id}`)
-                      await markAsRead(currentRecommendation.id)
-                      recViewLogger.info(`✅ 标记已读完成，打开翻译: ${currentRecommendation.id}`)
+                      // 策略B：保存追踪信息，等待30秒阅读验证
+                      recViewLogger.debug(`点击翻译按钮: ${currentRecommendation.id}`)
+                      
+                      // 保存到 session storage
+                      await chrome.storage.session.set({
+                        [`recommendation_clicked_${currentRecommendation.url}`]: {
+                          recommendationId: currentRecommendation.id,
+                          title: currentRecommendation.title,
+                          clickedAt: Date.now(),
+                        },
+                      })
+                      
+                      // 从推荐列表移除（不标记为不想读）
+                      if (onRemoveFromList) {
+                        await onRemoveFromList()
+                      }
+                      
+                      recViewLogger.info(`✅ 已标记翻译点击，等待阅读验证: ${currentRecommendation.id}`)
+                      
+                      // 等待一帧，确保 React 完成重新渲染
+                      await new Promise(resolve => requestAnimationFrame(resolve))
                       
                       // 最后打开翻译链接（这会关闭弹窗）
                       await chrome.tabs.create({ url: translateUrl })
@@ -794,13 +815,10 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
         </h3>
       </div>
       
-      {/* 摘要 - 智能显示，2行，点击后删除 */}
+      {/* 摘要 - 智能显示，2行，点击后移除（等待阅读验证） */}
       {showExcerpt && displayText.summary && (
         <div 
-          onClick={(e) => {
-            onClick(e)  // 打开链接
-            onDismiss(e)  // 删除推荐
-          }}
+          onClick={(e) => onClick(e)}  // 打开链接并移除（策略B：等待30秒验证）
           className="cursor-pointer"
         >
           <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">

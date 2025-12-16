@@ -326,11 +326,23 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
     if (ids.length === 0) return
     
     try {
-      // 第一步：从 UI 移除
+      // 第一步：在数据库中标记为 replaced（从推荐池移除）
+      // 策略B：不立即标记为已读，等待 page-tracker 验证
+      await db.recommendations.bulkUpdate(
+        ids.map(id => ({
+          key: id,
+          changes: {
+            status: 'replaced',
+            replacedAt: Date.now()
+          }
+        }))
+      )
+      
+      // 第二步：从 UI 移除
       const currentRecs = get().recommendations
       const remainingRecs = currentRecs.filter(r => !ids.includes(r.id))
       
-      // 第二步：填充新推荐
+      // 第三步：填充新推荐
       const config = await getRecommendationConfig()
       const needCount = config.maxRecommendations - remainingRecs.length
       
@@ -352,7 +364,7 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
         error: null 
       })
       
-      // 第三步：刷新统计（不需要标记为不想读）
+      // 第四步：刷新统计
       await get().refreshStats()
       
     } catch (error) {
