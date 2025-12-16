@@ -96,7 +96,7 @@ function generateCandidateURLs(): string[] {
  * 功能：
  * - 转换相对路径为绝对路径
  * - 验证 URL 有效性
- * - 过滤不需要的域名（如谷歌翻译）
+ * - 将谷歌翻译 URL 转换为原始 URL
  */
 function normalizeURL(url: string): string | null {
   try {
@@ -108,13 +108,84 @@ function normalizeURL(url: string): string | null {
       return null
     }
     
-    // 过滤谷歌翻译域名（translate.goog 及其子域）
-    // 这些页面的 RSS 链接指向翻译后的内容，不是原始订阅源
-    if (absoluteURL.hostname.endsWith('.translate.goog') || absoluteURL.hostname === 'translate.goog') {
+    // 检测并转换谷歌翻译 URL
+    // 格式：https://原域名-用-替换点.translate.goog/路径
+    // 例如：https://arstechnica-com.translate.goog/feed → https://arstechnica.com/feed
+    if (absoluteURL.hostname.endsWith('.translate.goog')) {
+      const originalUrl = convertGoogleTranslateUrl(absoluteURL)
+      if (originalUrl) {
+        return originalUrl
+      }
+      // 转换失败则忽略
+      return null
+    }
+    
+    // 直接忽略 translate.goog 主域
+    if (absoluteURL.hostname === 'translate.goog') {
       return null
     }
     
     return absoluteURL.href
+  } catch {
+    return null
+  }
+}
+
+/**
+ * 将谷歌翻译 URL 转换为原始 URL
+ * 
+ * Google 翻译 URL 格式：
+ * - 原始: https://example.com/path
+ * - 翻译: https://example-com.translate.goog/path?_x_tr_sl=auto&_x_tr_tl=zh-CN&...
+ * 
+ * 转换规则：
+ * 1. 提取子域名部分（.translate.goog 之前）
+ * 2. 将 "-" 替换回 "."（但需要处理原本就有 "-" 的域名）
+ * 3. 重建原始 URL（保留路径，去除翻译参数）
+ * 
+ * @param translateUrl 谷歌翻译 URL
+ * @returns 原始 URL 或 null（如果转换失败）
+ */
+function convertGoogleTranslateUrl(translateUrl: URL): string | null {
+  try {
+    const hostname = translateUrl.hostname
+    
+    // 提取 .translate.goog 之前的部分
+    // 例如：arstechnica-com.translate.goog → arstechnica-com
+    const translatedDomain = hostname.replace('.translate.goog', '')
+    
+    // 将最后一个 "-" 后的部分视为 TLD（顶级域名）
+    // 例如：arstechnica-com → arstechnica.com
+    // 例如：www-example-co-uk → www.example.co.uk（需要处理多级 TLD）
+    
+    // 策略：从右向左，将 "-" 替换为 "."
+    // 但要注意：原始域名中可能本身包含 "-"（如 my-site.com）
+    // Google 翻译会将 "." 替换为 "-"，所以：
+    // my-site.com → my--site-com.translate.goog（双 "-" 表示原始 "-"）
+    
+    // 更安全的策略：
+    // 1. 先将 "--" 替换为临时占位符
+    // 2. 将 "-" 替换为 "."
+    // 3. 将占位符替换回 "-"
+    const placeholder = '\x00' // 使用不可见字符作为占位符
+    const originalDomain = translatedDomain
+      .replace(/--/g, placeholder)
+      .replace(/-/g, '.')
+      .replace(new RegExp(placeholder, 'g'), '-')
+    
+    // 重建原始 URL（保留路径，去除翻译相关参数）
+    const originalUrl = new URL(translateUrl.pathname, `https://${originalDomain}`)
+    
+    // 保留非翻译相关的查询参数
+    const params = new URLSearchParams(translateUrl.search)
+    const translateParams = ['_x_tr_sl', '_x_tr_tl', '_x_tr_hl', '_x_tr_pto', '_x_tr_hist']
+    translateParams.forEach(param => params.delete(param))
+    
+    if (params.toString()) {
+      originalUrl.search = params.toString()
+    }
+    
+    return originalUrl.href
   } catch {
     return null
   }

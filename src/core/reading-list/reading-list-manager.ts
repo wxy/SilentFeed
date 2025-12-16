@@ -10,7 +10,7 @@
 
 import { logger } from '@/utils/logger'
 import type { Recommendation, ConfirmedVisit } from '@/types/database'
-import { db } from '@/storage/db'
+import { db, dismissRecommendations } from '@/storage/db'
 
 const rlLogger = logger.withTag('ReadingListManager')
 
@@ -45,6 +45,26 @@ export class ReadingListManager {
         savedToReadingList: true,
         savedAt: Date.now(),
       })
+      
+      // 3. 统一追踪机制：预设追踪标记
+      // 用途：30秒验证时识别"来自阅读列表"
+      // 注：Chrome Reading List API 无 onEntryOpened 事件
+      //     保存时预设标记，打开时无法直接监听
+      // 使用 local storage 而非 session，避免扩展重启后丢失
+      try {
+        await chrome.storage.local.set({
+          [`recommendation_tracking_${recommendation.url}`]: {
+            recommendationId: recommendation.id,
+            title: recommendation.title,
+            source: 'readingList',
+            action: 'opened',  // 表示"通过阅读列表打开"
+            timestamp: Date.now(),
+          },
+        })
+        rlLogger.debug('已预设阅读列表追踪标记', { url: recommendation.url })
+      } catch (storageError) {
+        rlLogger.warn('保存追踪标记失败（不影响主功能）', storageError)
+      }
 
       rlLogger.info('已保存到阅读列表', {
         id: recommendation.id,
@@ -244,21 +264,17 @@ export class ReadingListManager {
       }
 
       // 3. 没有访问记录，说明从未打开或未达到 30 秒阈值，视为"不想读"
+      // 统一追踪机制：使用与dismissSelected相同的逻辑
       rlLogger.info('❌ [稍后读] 删除前从未阅读 → 视为【不想读】', {
         id: recommendation.id,
         title: recommendation.title,
         url,
-        处理方式: '标记 feedback=dismissed（无 ConfirmedVisit）',
+        source: 'readingList',
+        处理方式: '调用 dismissRecommendations(统一逻辑)',
       })
 
-      await db.recommendations.update(recommendation.id, {
-        feedback: 'dismissed' as const,
-        feedbackAt: Date.now(),
-        status: 'dismissed' as const,
-      })
-
-      // 注意：不需要发送消息通知 background
-      // 推荐状态已更新，如需要可以在 ProfileUpdateScheduler 中处理
+      // 使用统一的 dismissRecommendations 函数
+      await dismissRecommendations([recommendation.id])
     } catch (error) {
       rlLogger.error('处理阅读列表删除失败', error)
     }

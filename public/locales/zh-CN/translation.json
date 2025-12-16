@@ -757,6 +757,13 @@
         "rebuild": "重建画像",
         "rebuilding": "重建中...",
         "rebuildComplete": "重建完成"
+      },
+      "updateProgress": {
+        "title": "画像更新进度",
+        "browse": "浏览",
+        "read": "阅读",
+        "dismiss": "拒绝",
+        "hint": "达到任一阈值后，系统将自动更新您的兴趣画像"
       }
     },
     "aiConfig": {

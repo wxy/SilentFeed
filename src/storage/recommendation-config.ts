@@ -9,6 +9,7 @@
  */
 
 import { getAIConfig, isAIConfigured, validateApiKey, type AIProviderType } from './ai-config'
+import { resolveProvider } from '@/utils/ai-provider-resolver'
 import { aiManager } from '../core/ai/AICapabilityManager'
 import { logger } from '@/utils/logger'
 import type { RecommendationAnalysisEngine, FeedAnalysisEngine } from '@/types/analysis-engine'
@@ -167,7 +168,7 @@ const DEFAULT_CONFIG: RecommendationConfig = {
  */
 export async function getRecommendationConfig(): Promise<RecommendationConfig> {
   try {
-    const result = await chrome.storage.local.get(STORAGE_KEY)
+    const result = await chrome.storage.sync.get(STORAGE_KEY)
     const config = result[STORAGE_KEY] as RecommendationConfig | undefined
     
     const merged = {
@@ -209,7 +210,7 @@ export async function getRecommendationConfig(): Promise<RecommendationConfig> {
     
     // 自动保存更新后的配置
     if (needsUpdate) {
-      await chrome.storage.local.set({ [STORAGE_KEY]: merged })
+      await chrome.storage.sync.set({ [STORAGE_KEY]: merged })
       configLogger.info('配置已自动更新')
     }
     
@@ -238,7 +239,7 @@ export async function saveRecommendationConfig(
       updated.maxRecommendations = 5
     }
     
-    await chrome.storage.local.set({ [STORAGE_KEY]: updated })
+    await chrome.storage.sync.set({ [STORAGE_KEY]: updated })
     configLogger.debug("配置已保存:", updated)
   } catch (error) {
     configLogger.error("保存失败:", error)
@@ -260,7 +261,9 @@ export async function checkAIConfigStatus(): Promise<AIConfigStatus> {
     // 根据配置的提供商选择对应的成本（从 engineAssignment.feedAnalysis 读取）
     let usedAmount = 0
     const feedProvider = aiConfig.engineAssignment?.feedAnalysis?.provider
-    const actualProvider = feedProvider && feedProvider !== 'ollama' ? feedProvider : null
+    // 解析抽象 provider 类型（"remote" → "deepseek"）
+    const resolvedProvider = feedProvider ? resolveProvider(feedProvider, aiConfig) : null
+    const actualProvider = resolvedProvider && resolvedProvider !== 'ollama' ? resolvedProvider as AIProviderType : null
     if (actualProvider) {
       // DeepSeek 使用 CNY，其他使用 USD
       usedAmount = actualProvider === 'deepseek' ? aiStats.totalCostCNY : aiStats.totalCostUSD

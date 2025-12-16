@@ -1,5 +1,6 @@
 import { ProfileUpdateScheduler } from './core/profile/ProfileUpdateScheduler'
-import { initializeDatabase, getPageCount, getUnreadRecommendations, db } from './storage/db'
+import { semanticProfileBuilder } from './core/profile/SemanticProfileBuilder'
+import { initializeDatabase, getPageCount, getUnreadRecommendations, db, markAsRead } from './storage/db'
 import type { ConfirmedVisit } from '@/types/database'
 import { FeedManager } from './core/rss/managers/FeedManager'
 import { RSSValidator } from './core/rss/RSSValidator'
@@ -156,7 +157,7 @@ async function initializeDefaultConfigs() {
     
     // 2. 检查并初始化推荐配置
     const recommendConfig = await getRecommendationConfig()
-    const hasRecommendConfig = await chrome.storage.local.get('recommendation-config')
+    const hasRecommendConfig = await chrome.storage.sync.get('recommendation-config')
     if (!hasRecommendConfig['recommendation-config']) {
       bgLogger.info('  首次安装，保存推荐默认配置到数据库')
       await saveRecommendationConfig(recommendConfig) // recommendConfig 已经是完整的默认配置
@@ -245,6 +246,14 @@ chrome.runtime.onInstalled.addListener(async () => {
       periodInMinutes: 24 * 60 // 每 24 小时
     })
     
+    // 创建每日画像更新定时器（每天一次）
+    // 确保即使用户行为未达到触发阈值，画像也能每天至少更新一次
+    bgLogger.info('创建每日画像更新定时器（每天一次）...')
+    chrome.alarms.create('daily-profile-update', {
+      delayInMinutes: 60, // 启动 1 小时后首次执行（避免启动时资源竞争）
+      periodInMinutes: 24 * 60 // 每 24 小时
+    })
+    
     // Phase 12.7: 数据迁移 - 为旧推荐补充 status 字段
     try {
       const oldRecs = await db.recommendations
@@ -295,35 +304,118 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             
             const visitData = message.data as Omit<ConfirmedVisit, 'id'> & { id: string }
             
-            // 检查是否是推荐文章（通过 session storage）
-            // 优先级：弹窗点击 > 阅读列表打开
+            // 统一追踪机制：优先使用 Tab ID，备用 URL
+            // Tab ID 更可靠，因为 URL 可能因跳转/翻译/短链接等变化
             try {
-              // 1. 检查弹窗点击
-              const clickKey = `recommendation_clicked_${visitData.url}`
-              const clickData = await chrome.storage.session.get(clickKey)
-              const clickInfo = clickData[clickKey]
+              let trackingInfo = null
+              let trackingSource = ''
               
-              if (clickInfo) {
-                visitData.source = 'recommended'
-                visitData.recommendationId = clickInfo.recommendationId
-                await chrome.storage.session.remove(clickKey)
-              } else {
-                // 2. 检查阅读列表打开
-                const readingListKey = `readingList_opened_${visitData.url}`
-                const readingListData = await chrome.storage.session.get(readingListKey)
-                const readingListInfo = readingListData[readingListKey]
+              // 🔍 调试：打印 sender 信息
+              bgLogger.info('🔍 SAVE_PAGE_VISIT sender 信息:', {
+                tabId: sender.tab?.id,
+                tabUrl: sender.tab?.url,
+                frameId: sender.frameId,
+                url: sender.url,
+                visitUrl: visitData.url
+              })
+              
+              // 1. 优先尝试通过 Tab ID 查找追踪信息
+              const tabId = sender.tab?.id
+              if (tabId) {
+                const tabTrackingKey = `recommendation_tab_${tabId}`
                 
-                if (readingListInfo && readingListInfo.recommendationId) {
-                  visitData.source = 'recommended'
-                  visitData.recommendationId = readingListInfo.recommendationId
-                  await chrome.storage.session.remove(readingListKey)
+                // 🔍 调试：查看所有 local storage 中的追踪信息
+                const allLocalData = await chrome.storage.local.get(null)
+                const trackingKeys = Object.keys(allLocalData).filter(k => k.startsWith('recommendation_tab_'))
+                bgLogger.info('🔍 当前 local storage 中的追踪 keys:', trackingKeys)
+                
+                const tabTrackingData = await chrome.storage.local.get(tabTrackingKey)
+                bgLogger.info('🔍 查找 Tab ID 追踪:', { tabTrackingKey, found: !!tabTrackingData[tabTrackingKey] })
+                
+                trackingInfo = tabTrackingData[tabTrackingKey]
+                if (trackingInfo) {
+                  trackingSource = 'tabId'
+                  bgLogger.debug('通过 Tab ID 找到追踪信息', { tabId, trackingInfo })
+                  // 立即清理 Tab ID 追踪信息
+                  await chrome.storage.local.remove(tabTrackingKey)
+                }
+              } else {
+                bgLogger.warn('⚠️ sender.tab.id 为空，无法通过 Tab ID 查找追踪')
+              }
+              
+              // 2. 备用：通过 URL 查找（兼容旧逻辑和阅读列表）
+              if (!trackingInfo) {
+                const urlTrackingKey = `recommendation_tracking_${visitData.url}`
+                const urlTrackingData = await chrome.storage.local.get(urlTrackingKey)
+                bgLogger.info('🔍 查找 URL 追踪:', { urlTrackingKey, found: !!urlTrackingData[urlTrackingKey] })
+                
+                trackingInfo = urlTrackingData[urlTrackingKey]
+                if (trackingInfo) {
+                  trackingSource = 'url'
+                  bgLogger.debug('通过 URL 找到追踪信息', { url: visitData.url, trackingInfo })
+                  // 清理 URL 追踪信息
+                  await chrome.storage.local.remove(urlTrackingKey)
                 }
               }
+              
+              if (trackingInfo && trackingInfo.recommendationId) {
+                visitData.source = 'recommended'
+                visitData.recommendationId = trackingInfo.recommendationId
+                
+                // 记录详细来源信息
+                let sourceDesc: string
+                if (trackingInfo.source === 'popup') {
+                  sourceDesc = trackingInfo.action === 'translated' 
+                    ? '弹窗(翻译)' 
+                    : '弹窗(原文)'
+                } else {
+                  sourceDesc = '阅读列表'
+                }
+                
+                bgLogger.info(`✅ 检测到推荐文章打开: ${sourceDesc} (via ${trackingSource})`, {
+                  tabId: sender.tab?.id,
+                  url: visitData.url,
+                  recommendationId: trackingInfo.recommendationId,
+                  source: trackingInfo.source,
+                  action: trackingInfo.action
+                })
+              }
             } catch (storageError) {
+              bgLogger.warn('检查推荐追踪失败', storageError)
               // 继续保存，使用 visitData 中的默认 source
             }
             
             await db.confirmedVisits.add(visitData)
+            
+            // 策略B：如果是从推荐点击的，30秒后标记为已读
+            if (visitData.recommendationId) {
+              try {
+                // visitData.duration 是停留时间（秒）
+                // scrollDepth 暂时没有追踪，传 undefined
+                await markAsRead(
+                  visitData.recommendationId,
+                  visitData.duration, // readDuration
+                  undefined // scrollDepth (待实现)
+                )
+                bgLogger.info(`✅ 推荐已验证并标记为已读: ${visitData.recommendationId}, 阅读时长: ${visitData.duration}秒`)
+                
+                // 🆕 画像学习：更新用户阅读行为计数
+                // 先获取推荐记录，然后调用 semanticProfileBuilder.onRead
+                const recommendation = await db.recommendations.get(visitData.recommendationId)
+                if (recommendation && visitData.duration) {
+                  try {
+                    // scrollDepth 暂时传 0.5 作为默认值（表示大致阅读了一半）
+                    await semanticProfileBuilder.onRead(recommendation, visitData.duration, 0.5)
+                    bgLogger.debug('✅ 画像阅读学习完成')
+                  } catch (profileError) {
+                    bgLogger.warn('画像阅读学习失败（不影响主流程）:', profileError)
+                  }
+                }
+              } catch (markError) {
+                bgLogger.error('❌ 标记推荐为已读失败:', markError)
+              }
+            }
+            
             await updateBadge()
             // Phase 8: 传递访问数据给 ProfileUpdateScheduler 用于语义画像学习
             ProfileUpdateScheduler.checkAndScheduleUpdate(visitData).catch(error => {
@@ -675,43 +767,87 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           }
           break
         
-        // 阅读列表：页面从阅读列表打开
-        case 'READING_LIST_PAGE_OPENED':
+        // 获取画像更新进度（从 Background 实例读取）
+        case 'GET_PROFILE_UPDATE_PROGRESS':
           try {
-            const { url, title } = message.payload as {
-              url: string
-              title: string
-            }
-            bgLogger.info('检测到从阅读列表打开页面:', { url, title })
-            
-            // 查询数据库找到对应的推荐记录
-            const recommendations = await db.recommendations.toArray()
-            const matchedRec = recommendations.find(rec => rec.url === url)
-            
-            if (matchedRec) {
-              bgLogger.info('✓ 匹配到推荐记录:', { 
-                recommendationId: matchedRec.id, 
-                title: matchedRec.title 
-              })
-            }
-            
-            // 标记该 URL 为已打开（后续在 page-tracker 和 onEntryRemoved 时可以区分）
-            // 使用 chrome.storage.session 临时存储（会话级别）
-            await chrome.storage.session.set({
-              [`readingList_opened_${url}`]: {
-                recommendationId: matchedRec?.id,
-                title: title,
-                openedAt: Date.now()
-              }
-            })
-            
-            sendResponse({ success: true })
+            const progress = await semanticProfileBuilder.getUpdateProgress()
+            sendResponse({ success: true, data: progress })
           } catch (error) {
-            bgLogger.error('❌ 处理阅读列表打开失败:', error)
+            bgLogger.error('❌ 获取画像更新进度失败:', error)
             sendResponse({ success: false, error: String(error) })
           }
           break
         
+        // 画像学习：用户拒绝推荐
+        case 'PROFILE_ON_DISMISS':
+          try {
+            const { recommendation } = message.data
+            await semanticProfileBuilder.onDismiss(recommendation)
+            sendResponse({ success: true })
+          } catch (error) {
+            bgLogger.error('❌ 画像拒绝学习失败:', error)
+            sendResponse({ success: false, error: String(error) })
+          }
+          break
+        
+        // 画像学习：用户阅读推荐
+        case 'PROFILE_ON_READ':
+          try {
+            const { recommendation, readDuration, scrollDepth } = message.data
+            await semanticProfileBuilder.onRead(recommendation, readDuration, scrollDepth)
+            sendResponse({ success: true })
+          } catch (error) {
+            bgLogger.error('❌ 画像阅读学习失败:', error)
+            sendResponse({ success: false, error: String(error) })
+          }
+          break
+        
+        // 打开推荐文章（从弹窗或翻译按钮）
+        // 由 Background 处理，确保追踪信息在创建 Tab 后立即保存
+        case 'OPEN_RECOMMENDATION':
+          try {
+            const { url, recommendationId, title, action } = message.data
+            bgLogger.info('📬 收到 OPEN_RECOMMENDATION 消息:', { url, recommendationId, action })
+            
+            // 1. 创建新标签页
+            const tab = await chrome.tabs.create({ url })
+            bgLogger.info('📑 已创建新标签页:', { tabId: tab.id, url })
+            
+            // 2. 保存追踪信息（使用 Tab ID）
+            // ⚠️ 使用 local storage 而非 session，避免扩展重启后丢失
+            if (tab.id) {
+              const trackingKey = `recommendation_tab_${tab.id}`
+              const trackingData = {
+                recommendationId,
+                title,
+                source: 'popup',
+                action: action || 'clicked',
+                timestamp: Date.now(),
+              }
+              
+              await chrome.storage.local.set({
+                [trackingKey]: trackingData
+              })
+              
+              // 验证保存成功
+              const verifyData = await chrome.storage.local.get(trackingKey)
+              bgLogger.info(`✅ 已保存追踪信息（Tab ID: ${tab.id}）`, {
+                trackingKey,
+                saved: !!verifyData[trackingKey],
+                recommendationId,
+                action
+              })
+              
+              sendResponse({ success: true, tabId: tab.id })
+            } else {
+              bgLogger.warn('⚠️ 创建标签页成功但无 Tab ID')
+              sendResponse({ success: true, tabId: null })
+            }
+          } catch (error) {
+            bgLogger.error('❌ 打开推荐失败:', error)
+            sendResponse({ success: false, error: String(error) })
+          }
+          break
 
         default:
           sendResponse({ success: false, error: 'Unknown message type' })
@@ -746,6 +882,10 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       // Phase 12.7: 清理超限的推荐池
       bgLogger.info('开始清理推荐池...')
       await cleanupRecommendationPool()
+    } else if (alarm.name === 'daily-profile-update') {
+      // 每日画像更新：确保画像至少每天更新一次
+      bgLogger.info('开始每日画像更新...')
+      await dailyProfileUpdate()
     }
   } catch (error) {
     bgLogger.error('❌ 定时器处理失败:', error)
@@ -829,5 +969,67 @@ async function cleanupRecommendationPool(): Promise<void> {
     }
   } catch (error) {
     bgLogger.error('❌ 清理推荐池失败:', error)
+  }
+}
+
+/**
+ * 每日画像更新
+ * 
+ * 策略（保守更新，避免无意义的 AI 消耗）：
+ * 1. 检查是否配置了 AI（未配置则跳过）
+ * 2. 检查是否有足够的数据（至少 10 页浏览记录）
+ * 3. 检查是否有新的行为数据（没有新数据则跳过，画像应该是稳定的）
+ * 4. 检查距离上次更新是否超过 20 小时（避免与行为触发的更新重复）
+ * 5. 执行画像重建
+ */
+async function dailyProfileUpdate(): Promise<void> {
+  try {
+    // 1. 检查 AI 配置
+    const aiConfigured = await isAIConfigured()
+    if (!aiConfigured) {
+      bgLogger.debug('每日画像更新跳过：AI 未配置')
+      return
+    }
+    
+    // 2. 检查数据量
+    const pageCount = await getPageCount()
+    if (pageCount < 10) {
+      bgLogger.debug(`每日画像更新跳过：数据不足 (${pageCount}/10 页)`)
+      return
+    }
+    
+    // 3. 检查是否有新的行为数据
+    const { hasNewData, browseProgress, readProgress, dismissProgress } = 
+      await semanticProfileBuilder.getUpdateProgress()
+    
+    if (!hasNewData) {
+      bgLogger.debug('每日画像更新跳过：没有新的行为数据，画像应该是稳定的')
+      return
+    }
+    
+    // 4. 检查上次更新时间（避免与行为触发的更新重复）
+    const profile = await db.userProfile.get('singleton')
+    if (profile?.lastUpdated) {
+      const hoursSinceLastUpdate = (Date.now() - profile.lastUpdated) / (1000 * 60 * 60)
+      if (hoursSinceLastUpdate < 20) {
+        bgLogger.debug(`每日画像更新跳过：上次更新距今仅 ${hoursSinceLastUpdate.toFixed(1)} 小时`)
+        return
+      }
+    }
+    
+    // 5. 执行画像重建
+    bgLogger.info('📊 开始每日画像更新...', {
+      新浏览: browseProgress.current,
+      新阅读: readProgress.current,
+      新拒绝: dismissProgress.current
+    })
+    const startTime = Date.now()
+    
+    await ProfileUpdateScheduler.executeUpdate('每日定时更新')
+    
+    const duration = Date.now() - startTime
+    bgLogger.info(`✅ 每日画像更新完成，耗时 ${(duration / 1000).toFixed(1)} 秒`)
+  } catch (error) {
+    bgLogger.error('❌ 每日画像更新失败:', error)
   }
 }

@@ -26,11 +26,12 @@ import { RecommendationView } from "./RecommendationView"
 import type { Recommendation } from "@/types/database"
 
 // Mock chrome API (移到文件顶部，统一管理)
-const mockTabsCreate = vi.fn().mockResolvedValue({})
+const mockTabsCreate = vi.fn().mockResolvedValue({ id: 123 }) // 返回带 id 的 tab 对象
 const mockStorageLocalSet = vi.fn().mockResolvedValue(undefined)
 const mockStorageLocalGet = vi.fn().mockResolvedValue({})
 const mockStorageSessionSet = vi.fn().mockResolvedValue(undefined)
 const mockStorageSessionGet = vi.fn().mockResolvedValue({})
+const mockSendMessage = vi.fn().mockResolvedValue({ success: true, tabId: 123 }) // 模拟 Background 响应
 
 global.chrome = {
   tabs: {
@@ -45,6 +46,9 @@ global.chrome = {
       set: mockStorageSessionSet,
       get: mockStorageSessionGet,
     },
+  },
+  runtime: {
+    sendMessage: mockSendMessage,
   },
 } as any
 
@@ -105,6 +109,7 @@ vi.mock("@/storage/ui-config", () => ({
 const mockLoadRecommendations = vi.fn()
 const mockMarkAsRead = vi.fn()
 const mockDismissAll = vi.fn()
+const mockRemoveFromList = vi.fn()
 
 let mockRecommendations: Recommendation[] = []
 let mockIsLoading = false
@@ -118,6 +123,7 @@ vi.mock("@/stores/recommendationStore", () => ({
     loadRecommendations: mockLoadRecommendations,
     markAsRead: mockMarkAsRead,
     dismissAll: mockDismissAll,
+    removeFromList: mockRemoveFromList,
   }),
 }))
 
@@ -153,13 +159,15 @@ describe("RecommendationView 组件", () => {
     mockStorageLocalGet.mockClear()
     mockStorageSessionSet.mockClear()
     mockStorageSessionGet.mockClear()
+    mockSendMessage.mockClear()
     
     // 重置为默认行为
-    mockTabsCreate.mockResolvedValue({})
+    mockTabsCreate.mockResolvedValue({ id: 123 }) // 返回带 id 的 tab 对象
     mockStorageLocalSet.mockResolvedValue(undefined)
     mockStorageLocalGet.mockResolvedValue({})
     mockStorageSessionSet.mockResolvedValue(undefined)
     mockStorageSessionGet.mockResolvedValue({})
+    mockSendMessage.mockResolvedValue({ success: true, tabId: 123 }) // Background 响应
   })
 
   describe("加载状态", () => {
@@ -346,7 +354,7 @@ describe("RecommendationView 组件", () => {
       isRead: false,
     }
 
-    it("点击推荐应该打开新标签页", async () => {
+    it("点击推荐应该通过 Background 打开新标签页", async () => {
       const user = userEvent.setup()
       mockRecommendations = [mockRec]
       render(<RecommendationView />)
@@ -354,14 +362,20 @@ describe("RecommendationView 组件", () => {
       const item = screen.getByText("测试文章")
       await user.click(item)
 
+      // 新方案：通过 sendMessage 发送到 Background 打开
       await waitFor(() => {
-        expect(mockTabsCreate).toHaveBeenCalledWith({
-          url: "https://example.com/article",
-        })
+        expect(mockSendMessage).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: 'OPEN_RECOMMENDATION',
+            data: expect.objectContaining({
+              url: "https://example.com/article",
+            }),
+          })
+        )
       })
     })
 
-    it("点击推荐应该保存追踪信息到 chrome.storage", async () => {
+    it("点击推荐应该从列表中移除", async () => {
       const user = userEvent.setup()
       mockRecommendations = [mockRec]
       render(<RecommendationView />)
@@ -369,14 +383,30 @@ describe("RecommendationView 组件", () => {
       const item = screen.getByText("测试文章")
       await user.click(item)
 
-      // 策略B：保存推荐点击信息到 session storage
+      // 应该调用 removeFromList 从列表移除
       await waitFor(() => {
-        expect(mockStorageSessionSet).toHaveBeenCalledWith(
+        expect(mockRemoveFromList).toHaveBeenCalledWith(['rec-1'])
+      })
+    })
+
+    it("点击推荐应该通过 Background 打开并保存追踪信息", async () => {
+      const user = userEvent.setup()
+      mockRecommendations = [mockRec]
+      render(<RecommendationView />)
+
+      const item = screen.getByText("测试文章")
+      await user.click(item)
+
+      // 新方案：通过 sendMessage 发送到 Background 处理
+      await waitFor(() => {
+        expect(mockSendMessage).toHaveBeenCalledWith(
           expect.objectContaining({
-            'recommendation_clicked_https://example.com/article': expect.objectContaining({
+            type: 'OPEN_RECOMMENDATION',
+            data: expect.objectContaining({
+              url: 'https://example.com/article',
               recommendationId: 'rec-1',
               title: '测试文章',
-              clickedAt: expect.any(Number),
+              action: 'clicked',
             }),
           })
         )
@@ -391,23 +421,31 @@ describe("RecommendationView 组件", () => {
       const item = screen.getByText("测试文章")
       await user.click(item)
 
-      // 策略B：不立即标记为已读，等待 30 秒阅读验证
+      // 策略B：不立即标记为已读，通过 Background 打开并等待 30 秒阅读验证
       await waitFor(() => {
-        expect(mockTabsCreate).toHaveBeenCalled()
+        expect(mockSendMessage).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: 'OPEN_RECOMMENDATION',
+          })
+        )
       })
       
       // 不应该立即调用 markAsRead
       expect(mockMarkAsRead).not.toHaveBeenCalled()
+      
+      // 但应该从列表中移除
+      expect(mockRemoveFromList).toHaveBeenCalledWith(['rec-1'])
     })
 
-    it("当保存追踪信息失败时应该继续打开链接", async () => {
+    it("使用 fire-and-forget 模式发送消息（不等待响应）", async () => {
       const user = userEvent.setup()
       const consoleErrorSpy = vi
         .spyOn(console, "error")
         .mockImplementation(() => {})
       
-      // session storage 失败时应该继续打开链接
-      mockStorageSessionSet.mockRejectedValue(new Error("Storage error"))
+      // 即使 sendMessage 返回失败响应，也不会回退（因为使用 fire-and-forget）
+      // Background 负责处理所有操作，包括打开标签页和保存跟踪信息
+      mockSendMessage.mockResolvedValue({ success: false, error: 'Background error' })
 
       mockRecommendations = [mockRec]
       render(<RecommendationView />)
@@ -415,13 +453,24 @@ describe("RecommendationView 组件", () => {
       const item = screen.getByText("测试文章")
       await user.click(item)
 
-      // 即使保存失败，仍应该打开链接
+      // 应该发送消息到 Background
       await waitFor(() => {
-        expect(mockTabsCreate).toHaveBeenCalled()
+        expect(mockSendMessage).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: 'OPEN_RECOMMENDATION',
+          })
+        )
       })
+      
+      // fire-and-forget 模式：不等待响应，所以不会有回退逻辑
+      // 不应该直接调用 tabs.create（由 Background 负责）
+      expect(mockTabsCreate).not.toHaveBeenCalled()
       
       // 策略B：不立即标记为已读
       expect(mockMarkAsRead).not.toHaveBeenCalled()
+      
+      // 但应该从列表中移除
+      expect(mockRemoveFromList).toHaveBeenCalledWith(['rec-1'])
 
       consoleErrorSpy.mockRestore()
     })

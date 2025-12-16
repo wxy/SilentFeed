@@ -28,6 +28,113 @@ interface ChatMessage {
   timestamp: number
 }
 
+/** 画像更新进度类型 */
+interface UpdateProgress {
+  browseProgress: { current: number; threshold: number; percentage: number }
+  readProgress: { current: number; threshold: number; percentage: number }
+  dismissProgress: { current: number; threshold: number; percentage: number }
+  hasNewData: boolean
+}
+
+/** 进度条项组件 */
+/** 进度条项组件 - 美化版 */
+function ProgressItem({ 
+  icon, 
+  label, 
+  current, 
+  threshold, 
+  percentage, 
+  colorClass 
+}: { 
+  icon: string
+  label: string
+  current: number
+  threshold: number
+  percentage: number
+  colorClass: string
+}) {
+  return (
+    <div className="flex items-center gap-3 group">
+      <div className="flex items-center gap-2 w-20 flex-shrink-0">
+        <span className="text-base">{icon}</span>
+        <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+          {label}
+        </span>
+      </div>
+      <div className="flex-1 h-2.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden shadow-inner">
+        <div
+          className={`h-full ${colorClass} transition-all duration-500 ease-out rounded-full`}
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
+      <div className="w-14 text-right flex-shrink-0">
+        <span className={`text-xs font-semibold ${percentage >= 100 ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+          {current}/{threshold}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+/** 渲染画像更新进度气泡 */
+function UpdateProgressBubble({ 
+  updateProgress, 
+  _ 
+}: { 
+  updateProgress: UpdateProgress
+  _: (key: string) => string
+}) {
+  return (
+    <div className="flex items-start gap-4 mb-6">
+      <div className="flex-shrink-0">
+        <div className="w-12 h-12 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-full flex items-center justify-center text-2xl shadow-lg">
+          📊
+        </div>
+      </div>
+      <div className="flex-1 max-w-3xl">
+        <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800/60 dark:to-slate-800/60 rounded-2xl rounded-tl-sm p-5 border border-gray-200 dark:border-gray-700 shadow-sm">
+          <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
+            <span>📈</span>
+            {_("options.userProfile.updateProgress.title")}
+          </p>
+          
+          <div className="space-y-3">
+            <ProgressItem
+              icon="🌐"
+              label={_("options.userProfile.updateProgress.browse")}
+              current={updateProgress.browseProgress.current}
+              threshold={updateProgress.browseProgress.threshold}
+              percentage={updateProgress.browseProgress.percentage}
+              colorClass="bg-gradient-to-r from-blue-400 to-blue-600"
+            />
+            <ProgressItem
+              icon="📖"
+              label={_("options.userProfile.updateProgress.read")}
+              current={updateProgress.readProgress.current}
+              threshold={updateProgress.readProgress.threshold}
+              percentage={updateProgress.readProgress.percentage}
+              colorClass="bg-gradient-to-r from-green-400 to-emerald-500"
+            />
+            <ProgressItem
+              icon="🚫"
+              label={_("options.userProfile.updateProgress.dismiss")}
+              current={updateProgress.dismissProgress.current}
+              threshold={updateProgress.dismissProgress.threshold}
+              percentage={updateProgress.dismissProgress.percentage}
+              colorClass="bg-gradient-to-r from-orange-400 to-amber-500"
+            />
+          </div>
+          
+          {/* 进度提示 */}
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
+            💡 {_("options.userProfile.updateProgress.hint")}
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function ProfileSettings() {
   const { _ } = useI18n()
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -41,6 +148,7 @@ export function ProfileSettings() {
   const [aiProvider, setAiProvider] = useState("")
   const [totalPages, setTotalPages] = useState(0)
   const [lastRebuildTime, setLastRebuildTime] = useState(0) // Phase 11: 上次重建时间（防抖）
+  const [updateProgress, setUpdateProgress] = useState<UpdateProgress | null>(null) // 画像更新进度
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // 自动滚动到底部
@@ -123,6 +231,16 @@ export function ProfileSettings() {
             content: data,
             timestamp: data.aiSummary?.metadata?.timestamp || data.lastUpdated
           }])
+        }
+        
+        // 加载画像更新进度（从 Background 获取，因为计数器在 Background 实例中）
+        try {
+          const response = await chrome.runtime.sendMessage({ type: 'GET_PROFILE_UPDATE_PROGRESS' })
+          if (response?.success && response.data) {
+            setUpdateProgress(response.data)
+          }
+        } catch (progressError) {
+          profileViewLogger.warn("加载画像更新进度失败:", progressError)
         }
       } catch (error) {
         profileViewLogger.error("加载用户画像失败:", error)
@@ -573,28 +691,36 @@ export function ProfileSettings() {
       {/* 对话历史区域 */}
       <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg min-h-[400px] max-h-[600px] overflow-y-auto">
         {messages.length === 0 ? (
-          // 空状态 - 始终显示学习进度
-          <div className="flex flex-col items-center justify-center h-full text-center py-12">
-            <span className="text-6xl mb-4">🌱</span>
-            {/* Phase 9.1: 总是显示进度，即使是 0 页 */}
-            <p className="text-gray-600 dark:text-gray-300 text-base font-medium mb-2">
-              {totalPages > 0 
-                ? _("options.profile.learning")
-                : _("options.userProfile.noData.message")
-              }
-            </p>
-            <div className="w-64 bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-3">
-              <div 
-                className="bg-blue-500 h-2 rounded-full transition-all duration-500"
-                style={{ width: `${Math.min((totalPages / 100) * 100, 100)}%` }}
-              />
+          // 空状态 - 显示学习进度 + 更新进度
+          <div className="space-y-6">
+            {/* 学习进度（浏览历史数量）*/}
+            <div className="flex flex-col items-center justify-center text-center py-8">
+              <span className="text-6xl mb-4">🌱</span>
+              {/* Phase 9.1: 总是显示进度，即使是 0 页 */}
+              <p className="text-gray-600 dark:text-gray-300 text-base font-medium mb-2">
+                {totalPages > 0 
+                  ? _("options.profile.learning")
+                  : _("options.userProfile.noData.message")
+                }
+              </p>
+              <div className="w-64 bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-3">
+                <div 
+                  className="bg-blue-500 h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min((totalPages / 100) * 100, 100)}%` }}
+                />
+              </div>
+              <p className="text-gray-500 dark:text-gray-400 text-sm">
+                {_("options.profile.progress", { current: totalPages, total: 100 })}
+              </p>
+              <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">
+                {_("options.userProfile.noData.hint")}
+              </p>
             </div>
-            <p className="text-gray-500 dark:text-gray-400 text-sm">
-              {_("options.profile.progress", { current: totalPages, total: 100 })}
-            </p>
-            <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">
-              {_("options.userProfile.noData.hint")}
-            </p>
+            
+            {/* 画像更新进度 - AI 配置后显示 */}
+            {updateProgress && aiConfigured && (
+              <UpdateProgressBubble updateProgress={updateProgress} _={_} />
+            )}
           </div>
         ) : (
           // 对话消息列表
@@ -607,6 +733,12 @@ export function ProfileSettings() {
                 {message.type === 'user' && renderUserMessage()}
               </div>
             ))}
+            
+            {/* 画像更新进度 - AI 配置后显示 */}
+            {updateProgress && aiConfigured && (
+              <UpdateProgressBubble updateProgress={updateProgress} _={_} />
+            )}
+            
             <div ref={messagesEndRef} />
           </div>
         )}

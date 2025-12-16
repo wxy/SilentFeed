@@ -727,6 +727,13 @@
         "rebuild": "Rebuild Profile",
         "rebuilding": "Rebuilding...",
         "rebuildComplete": "Rebuild completed"
+      },
+      "updateProgress": {
+        "title": "Profile Update Progress",
+        "browse": "Browse",
+        "read": "Read",
+        "dismiss": "Dismiss",
+        "hint": "Your profile will be auto-updated when any threshold is reached"
       }
     },
     "aiConfig": {

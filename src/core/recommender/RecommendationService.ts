@@ -7,6 +7,7 @@ import { RecommendationPipelineImpl } from './pipeline'
 import { getUserProfile, updateAllFeedStats } from '../../storage/db'
 import { getRecommendationConfig } from '../../storage/recommendation-config'
 import { getAIConfig, AVAILABLE_MODELS, getProviderFromModel } from '../../storage/ai-config'
+import { resolveProvider } from '../../utils/ai-provider-resolver'
 import { FeedManager } from '../rss/managers/FeedManager'
 import { db } from '../../storage/db'
 import type { Recommendation } from '@/types/database'
@@ -96,6 +97,10 @@ export class RecommendationService {
       let useReasoning = false
       let reasoningDisabledReason: string | null = null
       
+      // 提升变量作用域，供后续日志使用
+      let selectedModel: string | undefined
+      let providerKey: ReturnType<typeof getProviderFromModel> | null = null
+      
       // 如果配置要求使用推理引擎
       if (effectiveAnalysisEngine === 'remoteAIWithReasoning') {
         // 新结构：从 engineAssignment.feedAnalysis 读取任务级配置
@@ -103,19 +108,20 @@ export class RecommendationService {
         const taskProvider = taskConfig?.provider
         // 仅远程推理：local 走下方 useLocalAI 分支，这里要求非 ollama
         const isRemoteProvider = taskProvider && taskProvider !== 'ollama'
-        let selectedModel: string | undefined
-        let providerKey: ReturnType<typeof getProviderFromModel> | null = null
         let enableReasoningFlag: boolean | undefined
 
         if (isRemoteProvider) {
+          // 解析抽象 provider 类型（"remote" → "deepseek"）
+          const resolvedProvider = resolveProvider(taskProvider, aiConfig) as 'deepseek' | 'openai'
+          
           // 任务级模型优先；否则回落到 providers 中的模型
-          selectedModel = taskConfig?.model || aiConfig.providers[taskProvider as 'deepseek' | 'openai']?.model
+          selectedModel = taskConfig?.model || aiConfig.providers[resolvedProvider]?.model
           
           // 推理开关：任务级配置优先（明确设置时），否则回退到全局配置
           // 注意：不能用 || 因为 false 会被忽略，应该用 ?? 或明确判断 undefined
           enableReasoningFlag = taskConfig?.useReasoning !== undefined 
             ? taskConfig.useReasoning 
-            : aiConfig.providers[taskProvider as 'deepseek' | 'openai']?.enableReasoning
+            : aiConfig.providers[resolvedProvider]?.enableReasoning
         }
 
         if (selectedModel) {
@@ -177,27 +183,31 @@ export class RecommendationService {
       
       // 🔍 调试：检查配置读取
       // 记录更准确的推荐配置详情（新结构）
+      const logTaskConfig = aiConfig.engineAssignment?.feedAnalysis
+      const logTaskProvider = logTaskConfig?.provider
+      // 解析抽象 provider 类型用于日志
+      const logResolvedProvider = logTaskProvider ? resolveProvider(logTaskProvider, aiConfig) as 'deepseek' | 'openai' | 'ollama' : undefined
+      const enableReasoningInAIConfig = logTaskConfig?.useReasoning !== undefined 
+        ? logTaskConfig.useReasoning 
+        : (logResolvedProvider && logResolvedProvider !== 'ollama' && aiConfig.providers[logResolvedProvider]?.enableReasoning) || false
+      
       recLogger.info('🔍 推荐配置详情:', {
         analysisEngine: effectiveAnalysisEngine,
-        selectedModel: aiConfig.engineAssignment?.feedAnalysis?.model || (aiConfig.engineAssignment?.feedAnalysis?.provider && aiConfig.providers[aiConfig.engineAssignment.feedAnalysis.provider as 'deepseek' | 'openai']?.model) || undefined,
-        modelSupportsReasoning: (() => {
-          const mdl = aiConfig.engineAssignment?.feedAnalysis?.model || (aiConfig.engineAssignment?.feedAnalysis?.provider && aiConfig.providers[aiConfig.engineAssignment.feedAnalysis.provider as 'deepseek' | 'openai']?.model) || undefined
-          if (!mdl) return false
-          const prov = getProviderFromModel(mdl) || 'deepseek'
-          return !!AVAILABLE_MODELS[prov]?.find(m => m.id === mdl)?.supportsReasoning
-        })(),
-        // Phase 9: 配置优先级 - 任务级 > 全局 > 默认值（与第114行逻辑一致）
-        enableReasoningInAIConfig: (() => {
-          const taskConfig = aiConfig.engineAssignment?.feedAnalysis
-          const taskProvider = taskConfig?.provider as 'deepseek' | 'openai' | undefined
-          return taskConfig?.useReasoning !== undefined 
-            ? taskConfig.useReasoning 
-            : (taskProvider && aiConfig.providers[taskProvider]?.enableReasoning) || false
-        })(),
+        selectedModel,
+        providerKey,
+        modelSupportsReasoning: selectedModel ? (
+          providerKey && !!AVAILABLE_MODELS[providerKey]?.find(m => m.id === selectedModel)?.supportsReasoning
+        ) : false,
+        enableReasoningInAIConfig,
         finalUseReasoning: useReasoning,
         reasoningDisabledReason,
         useLocalAI,
-        推理引擎: effectiveAnalysisEngine,
+        taskConfig: {
+          provider: logTaskProvider,
+          resolvedProvider: logResolvedProvider,
+          model: logTaskConfig?.model,
+          useReasoning: logTaskConfig?.useReasoning
+        },
         完整配置: recommendationConfig
       })
       
