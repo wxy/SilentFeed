@@ -19,6 +19,11 @@ const mockStorage = {
     get: vi.fn(),
     set: vi.fn(),
     remove: vi.fn()
+  },
+  sync: {
+    get: vi.fn(),
+    set: vi.fn(),
+    remove: vi.fn()
   }
 }
 
@@ -67,17 +72,23 @@ describe('NotificationManager - 推荐通知模块', () => {
     vi.setSystemTime(new Date('2025-01-01T14:00:00'))
     
     // 默认 mock 返回值（每个测试可以覆盖）
-    mockStorage.local.get.mockResolvedValue({
+    // notification-config 现在存储在 sync
+    mockStorage.sync.get.mockResolvedValue({
       'notification-config': { 
         enabled: true,
         quietHours: null,  // 关闭静默时段
         minInterval: 60 
-      },
+      }
+    })
+    // last-notification-time 保持在 local
+    mockStorage.local.get.mockResolvedValue({
       'last-notification-time': 0
     })
     
     mockStorage.local.set.mockResolvedValue(undefined)
     mockStorage.local.remove.mockResolvedValue(undefined)
+    mockStorage.sync.set.mockResolvedValue(undefined)
+    mockStorage.sync.remove.mockResolvedValue(undefined)
     mockNotifications.create.mockResolvedValue('test-id')
     mockNotifications.clear.mockResolvedValue(true)
     mockNotifications.getAll.mockResolvedValue([])
@@ -163,8 +174,8 @@ describe('NotificationManager - 推荐通知模块', () => {
     })
 
     it('应该处理通知配置', async () => {
-      // 设置通知已禁用
-      mockStorage.local.get.mockResolvedValue({
+      // 设置通知已禁用（notification-config 在 sync）
+      mockStorage.sync.get.mockResolvedValue({
         'notification-config': { enabled: false }
       })
       
@@ -185,7 +196,7 @@ describe('NotificationManager - 推荐通知模块', () => {
       // Mock 当前时间为凌晨2点（在静默时段内）
       vi.setSystemTime(new Date('2025-01-01T02:00:00'))
       
-      mockStorage.local.get.mockResolvedValue({
+      mockStorage.sync.get.mockResolvedValue({
         'notification-config': {
           enabled: true,
           quietHours: { start: 22, end: 8 }
@@ -208,11 +219,13 @@ describe('NotificationManager - 推荐通知模块', () => {
       // Mock 当前时间为下午2点（不在静默时段）
       vi.setSystemTime(new Date('2025-01-01T14:00:00'))
       
-      mockStorage.local.get.mockResolvedValue({
+      mockStorage.sync.get.mockResolvedValue({
         'notification-config': {
           enabled: true,
           quietHours: { start: 22, end: 8 }
-        },
+        }
+      })
+      mockStorage.local.get.mockResolvedValue({
         'last-notification-time': 0
       })
       
@@ -232,8 +245,10 @@ describe('NotificationManager - 推荐通知模块', () => {
       // 设置上次通知时间为30分钟前（小于默认60分钟间隔）
       const thirtyMinutesAgo = Date.now() - 30 * 60 * 1000
       
+      mockStorage.sync.get.mockResolvedValue({
+        'notification-config': { enabled: true, minInterval: 60 }
+      })
       mockStorage.local.get.mockResolvedValue({
-        'notification-config': { enabled: true, minInterval: 60 },
         'last-notification-time': thirtyMinutesAgo
       })
       
@@ -252,8 +267,10 @@ describe('NotificationManager - 推荐通知模块', () => {
       // 设置上次通知时间为2小时前（大于60分钟间隔）
       const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000
       
+      mockStorage.sync.get.mockResolvedValue({
+        'notification-config': { enabled: true, minInterval: 60 }
+      })
       mockStorage.local.get.mockResolvedValue({
-        'notification-config': { enabled: true, minInterval: 60 },
         'last-notification-time': twoHoursAgo
       })
       
@@ -268,8 +285,8 @@ describe('NotificationManager - 推荐通知模块', () => {
     })
 
     it('应该处理加载配置失败的情况', async () => {
-      // Mock storage.get 失败
-      mockStorage.local.get.mockRejectedValue(new Error('Storage error'))
+      // Mock storage.sync.get 失败
+      mockStorage.sync.get.mockRejectedValue(new Error('Storage error'))
       
       
       // 使用默认配置（enabled: true），应该尝试发送通知
@@ -284,8 +301,10 @@ describe('NotificationManager - 推荐通知模块', () => {
     })
 
     it('应该处理通知创建失败的情况', async () => {
+      mockStorage.sync.get.mockResolvedValue({
+        'notification-config': { enabled: true }
+      })
       mockStorage.local.get.mockResolvedValue({
-        'notification-config': { enabled: true },
         'last-notification-time': 0
       })
       
@@ -304,8 +323,10 @@ describe('NotificationManager - 推荐通知模块', () => {
     })
 
     it('应该存储推荐URL用于按钮点击', async () => {
+      mockStorage.sync.get.mockResolvedValue({
+        'notification-config': { enabled: true }
+      })
       mockStorage.local.get.mockResolvedValue({
-        'notification-config': { enabled: true },
         'last-notification-time': 0
       })
       
@@ -472,8 +493,10 @@ describe('NotificationManager - 推荐通知模块', () => {
 
   describe('图标处理', () => {
     it('应该使用128x128图标', async () => {
+      mockStorage.sync.get.mockResolvedValue({
+        'notification-config': { enabled: true }
+      })
       mockStorage.local.get.mockResolvedValue({
-        'notification-config': { enabled: true },
         'last-notification-time': 0
       })
       
@@ -500,8 +523,10 @@ describe('NotificationManager - 推荐通知模块', () => {
         }
       })
       
+      mockStorage.sync.get.mockResolvedValue({
+        'notification-config': { enabled: true }
+      })
       mockStorage.local.get.mockResolvedValue({
-        'notification-config': { enabled: true },
         'last-notification-time': 0
       })
       
@@ -525,8 +550,10 @@ describe('NotificationManager - 推荐通知模块', () => {
         icons: {}
       })
       
+      mockStorage.sync.get.mockResolvedValue({
+        'notification-config': { enabled: true }
+      })
       mockStorage.local.get.mockResolvedValue({
-        'notification-config': { enabled: true },
         'last-notification-time': 0
       })
       

@@ -157,7 +157,7 @@ async function initializeDefaultConfigs() {
     
     // 2. 检查并初始化推荐配置
     const recommendConfig = await getRecommendationConfig()
-    const hasRecommendConfig = await chrome.storage.local.get('recommendation-config')
+    const hasRecommendConfig = await chrome.storage.sync.get('recommendation-config')
     if (!hasRecommendConfig['recommendation-config']) {
       bgLogger.info('  首次安装，保存推荐默认配置到数据库')
       await saveRecommendationConfig(recommendConfig) // recommendConfig 已经是完整的默认配置

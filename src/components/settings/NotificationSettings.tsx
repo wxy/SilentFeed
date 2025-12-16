@@ -21,7 +21,7 @@ export function NotificationSettings() {
 
   const loadConfig = async () => {
     try {
-      const result = await chrome.storage.local.get("notification-config")
+      const result = await chrome.storage.sync.get("notification-config")
       const savedConfig = result["notification-config"] as NotificationConfig | undefined
       if (savedConfig) {
         setConfig(savedConfig)
@@ -34,7 +34,7 @@ export function NotificationSettings() {
   const handleToggleEnabled = async (enabled: boolean) => {
     const newConfig = { ...config, enabled }
     setConfig(newConfig)
-    await chrome.storage.local.set({ "notification-config": newConfig })
+    await chrome.storage.sync.set({ "notification-config": newConfig })
   }
 
   const handleQuietHoursChange = async (start: number, end: number) => {
@@ -43,7 +43,7 @@ export function NotificationSettings() {
       quietHours: { start, end }
     }
     setConfig(newConfig)
-    await chrome.storage.local.set({ "notification-config": newConfig })
+    await chrome.storage.sync.set({ "notification-config": newConfig })
   }
 
   return (

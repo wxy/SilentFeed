@@ -63,7 +63,7 @@ const DEFAULT_CONFIG: NotificationConfig = {
  */
 async function getNotificationConfig(): Promise<NotificationConfig> {
   try {
-    const result = await chrome.storage.local.get("notification-config")
+    const result = await chrome.storage.sync.get("notification-config")
     return {
       ...DEFAULT_CONFIG,
       ...(result["notification-config"] || {})

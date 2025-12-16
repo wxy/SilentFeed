@@ -23,20 +23,12 @@ vi.mock("react-i18next", () => ({
 global.chrome = {
   storage: {
     sync: {
-      get: vi.fn((keys, callback) => {
-        callback({ notificationsEnabled: true })
-      }),
-      set: vi.fn((items, callback) => {
-        if (callback) callback()
-      }),
+      get: vi.fn().mockImplementation(() => Promise.resolve({})),
+      set: vi.fn().mockImplementation(() => Promise.resolve()),
     },
     local: {
-      get: vi.fn((keys, callback) => {
-        callback({})
-      }),
-      set: vi.fn((items, callback) => {
-        if (callback) callback()
-      }),
+      get: vi.fn().mockImplementation(() => Promise.resolve({})),
+      set: vi.fn().mockImplementation(() => Promise.resolve()),
     },
   },
 } as any
@@ -73,8 +65,8 @@ describe("NotificationSettings 组件", () => {
       // 点击切换
       await user.click(checkbox)
       
-      // 验证 chrome.storage.local.set 被调用
-      expect(chrome.storage.local.set).toHaveBeenCalled()
+      // 验证 chrome.storage.sync.set 被调用（notification-config 现在在 sync）
+      expect(chrome.storage.sync.set).toHaveBeenCalled()
     })
   })
 })
