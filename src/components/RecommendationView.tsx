@@ -249,16 +249,29 @@ export function RecommendationView() {
       await trackRecommendationClick()
       
       // 策略B：不立即标记为已读，等待 page-tracker 检测到 30 秒阅读
-      // 在 session storage 中标记这是从推荐点击的，供 page-tracker 使用
+      // 统一追踪机制：标记来源为弹窗点击
       try {
+        const trackingKey = `recommendation_tracking_${rec.url}`
+        const trackingData = {
+          recommendationId: rec.id,
+          title: rec.title,
+          source: 'popup',
+          action: 'clicked',
+          timestamp: Date.now(),
+        }
+        
+        recViewLogger.debug('准备保存追踪信息', { trackingKey, trackingData })
+        
         await chrome.storage.session.set({
-          [`recommendation_clicked_${rec.url}`]: {
-            recommendationId: rec.id,
-            title: rec.title,
-            clickedAt: Date.now(),
-          },
+          [trackingKey]: trackingData
         })
-        recViewLogger.info(`✅ 已标记推荐点击，等待 30 秒阅读验证: ${rec.id}`)
+        
+        // 验证保存
+        const verified = await chrome.storage.session.get(trackingKey)
+        recViewLogger.info(`✅ 已标记推荐点击（弹窗→原文），等待 30 秒阅读验证: ${rec.id}`, {
+          saved: verified[trackingKey],
+          url: rec.url
+        })
       } catch (storageError) {
         // 即使 session storage 失败，也继续打开链接
         recViewLogger.error('⚠️ 保存推荐追踪信息失败，但继续打开链接:', storageError)
@@ -732,16 +745,28 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
                       const translateUrl = getGoogleTranslateUrl(currentRecommendation.url, i18n.language)
                       
                       // 策略B：保存追踪信息，等待30秒阅读验证
+                      // 统一追踪机制：标记来源为弹窗翻译
                       recViewLogger.debug(`点击翻译按钮: ${currentRecommendation.id}`)
+                      
+                      const trackingKey = `recommendation_tracking_${currentRecommendation.url}`
+                      const trackingData = {
+                        recommendationId: currentRecommendation.id,
+                        title: currentRecommendation.title,
+                        source: 'popup',
+                        action: 'translated',
+                        timestamp: Date.now(),
+                      }
+                      
+                      recViewLogger.debug('准备保存翻译追踪信息', { trackingKey, trackingData })
                       
                       // 保存到 session storage
                       await chrome.storage.session.set({
-                        [`recommendation_clicked_${currentRecommendation.url}`]: {
-                          recommendationId: currentRecommendation.id,
-                          title: currentRecommendation.title,
-                          clickedAt: Date.now(),
-                        },
+                        [trackingKey]: trackingData
                       })
+                      
+                      // 验证保存
+                      const verified = await chrome.storage.session.get(trackingKey)
+                      recViewLogger.debug('翻译追踪已保存', { saved: verified[trackingKey] })
                       
                       // 从推荐列表移除（不标记为不想读）
                       if (onRemoveFromList) {

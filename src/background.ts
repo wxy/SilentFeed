@@ -1,5 +1,5 @@
 import { ProfileUpdateScheduler } from './core/profile/ProfileUpdateScheduler'
-import { initializeDatabase, getPageCount, getUnreadRecommendations, db } from './storage/db'
+import { initializeDatabase, getPageCount, getUnreadRecommendations, db, markAsRead } from './storage/db'
 import type { ConfirmedVisit } from '@/types/database'
 import { FeedManager } from './core/rss/managers/FeedManager'
 import { RSSValidator } from './core/rss/RSSValidator'
@@ -295,35 +295,65 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             
             const visitData = message.data as Omit<ConfirmedVisit, 'id'> & { id: string }
             
-            // 检查是否是推荐文章（通过 session storage）
-            // 优先级：弹窗点击 > 阅读列表打开
+            // 统一追踪机制：检查推荐来源（弹窗或阅读列表）
             try {
-              // 1. 检查弹窗点击
-              const clickKey = `recommendation_clicked_${visitData.url}`
-              const clickData = await chrome.storage.session.get(clickKey)
-              const clickInfo = clickData[clickKey]
+              const trackingKey = `recommendation_tracking_${visitData.url}`
+              bgLogger.debug('检查推荐追踪', { trackingKey })
               
-              if (clickInfo) {
+              const trackingData = await chrome.storage.session.get(trackingKey)
+              bgLogger.debug('追踪数据', { trackingData })
+              
+              const trackingInfo = trackingData[trackingKey]
+              bgLogger.debug('追踪信息', { trackingInfo })
+              
+              if (trackingInfo && trackingInfo.recommendationId) {
                 visitData.source = 'recommended'
-                visitData.recommendationId = clickInfo.recommendationId
-                await chrome.storage.session.remove(clickKey)
-              } else {
-                // 2. 检查阅读列表打开
-                const readingListKey = `readingList_opened_${visitData.url}`
-                const readingListData = await chrome.storage.session.get(readingListKey)
-                const readingListInfo = readingListData[readingListKey]
+                visitData.recommendationId = trackingInfo.recommendationId
                 
-                if (readingListInfo && readingListInfo.recommendationId) {
-                  visitData.source = 'recommended'
-                  visitData.recommendationId = readingListInfo.recommendationId
-                  await chrome.storage.session.remove(readingListKey)
+                // 记录详细来源信息
+                let sourceDesc: string
+                if (trackingInfo.source === 'popup') {
+                  sourceDesc = trackingInfo.action === 'translated' 
+                    ? '弹窗(翻译)' 
+                    : '弹窗(原文)'
+                } else {
+                  sourceDesc = '阅读列表'
                 }
+                
+                bgLogger.info(`✅ 检测到推荐文章打开: ${sourceDesc}`, {
+                  url: visitData.url,
+                  recommendationId: trackingInfo.recommendationId,
+                  source: trackingInfo.source,
+                  action: trackingInfo.action
+                })
+                
+                // 统一处理：无论来源，验证后都移除追踪信息
+                // 避免重复追踪（多次打开同一篇文章）
+                await chrome.storage.session.remove(trackingKey)
               }
             } catch (storageError) {
+              bgLogger.warn('检查推荐追踪失败', storageError)
               // 继续保存，使用 visitData 中的默认 source
             }
             
             await db.confirmedVisits.add(visitData)
+            
+            // 策略B：如果是从推荐点击的，30秒后标记为已读
+            if (visitData.recommendationId) {
+              try {
+                // visitData.duration 是停留时间（秒）
+                // scrollDepth 暂时没有追踪，传 undefined
+                await markAsRead(
+                  visitData.recommendationId,
+                  visitData.duration, // readDuration
+                  undefined // scrollDepth (待实现)
+                )
+                bgLogger.info(`✅ 推荐已验证并标记为已读: ${visitData.recommendationId}, 阅读时长: ${visitData.duration}秒`)
+              } catch (markError) {
+                bgLogger.error('❌ 标记推荐为已读失败:', markError)
+              }
+            }
+            
             await updateBadge()
             // Phase 8: 传递访问数据给 ProfileUpdateScheduler 用于语义画像学习
             ProfileUpdateScheduler.checkAndScheduleUpdate(visitData).catch(error => {
@@ -674,44 +704,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             sendResponse({ success: false, error: String(error) })
           }
           break
-        
-        // 阅读列表：页面从阅读列表打开
-        case 'READING_LIST_PAGE_OPENED':
-          try {
-            const { url, title } = message.payload as {
-              url: string
-              title: string
-            }
-            bgLogger.info('检测到从阅读列表打开页面:', { url, title })
-            
-            // 查询数据库找到对应的推荐记录
-            const recommendations = await db.recommendations.toArray()
-            const matchedRec = recommendations.find(rec => rec.url === url)
-            
-            if (matchedRec) {
-              bgLogger.info('✓ 匹配到推荐记录:', { 
-                recommendationId: matchedRec.id, 
-                title: matchedRec.title 
-              })
-            }
-            
-            // 标记该 URL 为已打开（后续在 page-tracker 和 onEntryRemoved 时可以区分）
-            // 使用 chrome.storage.session 临时存储（会话级别）
-            await chrome.storage.session.set({
-              [`readingList_opened_${url}`]: {
-                recommendationId: matchedRec?.id,
-                title: title,
-                openedAt: Date.now()
-              }
-            })
-            
-            sendResponse({ success: true })
-          } catch (error) {
-            bgLogger.error('❌ 处理阅读列表打开失败:', error)
-            sendResponse({ success: false, error: String(error) })
-          }
-          break
-        
 
         default:
           sendResponse({ success: false, error: 'Unknown message type' })

@@ -385,14 +385,16 @@ describe("RecommendationView 组件", () => {
       const item = screen.getByText("测试文章")
       await user.click(item)
 
-      // 策略B：保存推荐点击信息到 session storage
+      // 策略B：保存推荐点击信息到 session storage（统一追踪机制）
       await waitFor(() => {
         expect(mockStorageSessionSet).toHaveBeenCalledWith(
           expect.objectContaining({
-            'recommendation_clicked_https://example.com/article': expect.objectContaining({
+            'recommendation_tracking_https://example.com/article': expect.objectContaining({
               recommendationId: 'rec-1',
               title: '测试文章',
-              clickedAt: expect.any(Number),
+              source: 'popup',
+              action: 'clicked',
+              timestamp: expect.any(Number),
             }),
           })
         )

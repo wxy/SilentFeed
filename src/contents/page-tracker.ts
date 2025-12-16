@@ -897,38 +897,6 @@ function resetPageTracking(): void {
 
 // ==================== 初始化 ====================
 
-/**
- * 检查当前页面是否在阅读列表中
- * 如果是，通知 background 标记为已打开
- */
-async function checkReadingListStatus(): Promise<void> {
-  try {
-    const currentUrl = window.location.href
-    
-    // 查询阅读列表中是否有此 URL
-    const entries = await chrome.readingList.query({ url: currentUrl })
-    
-    if (entries.length > 0 && !entries[0].hasBeenRead) {
-      logger.info('📖 [PageTracker] 检测到从阅读列表打开的页面', {
-        url: currentUrl,
-        title: document.title,
-      })
-      
-      // 通知 background 记录为阅读列表打开
-      chrome.runtime.sendMessage({
-        type: 'READING_LIST_PAGE_OPENED',
-        payload: {
-          url: currentUrl,
-          title: document.title,
-        },
-      })
-    }
-  } catch (error) {
-    // 阅读列表 API 可能不可用或权限不足，静默失败
-    logger.debug('[PageTracker] 检查阅读列表状态失败', error)
-  }
-}
-
 function init(): void {
   // 初始化 DwellTimeCalculator
   calculator = new DwellTimeCalculator()
@@ -938,9 +906,6 @@ function init(): void {
   
   // 添加学习开始标记
   titleManager.startLearning()
-  
-  // 检查是否从阅读列表打开
-  checkReadingListStatus()
   
   logger.info('🚀 [PageTracker] 页面访问追踪已启动', {
     页面: document.title,
