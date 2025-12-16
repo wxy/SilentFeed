@@ -245,6 +245,14 @@ chrome.runtime.onInstalled.addListener(async () => {
       periodInMinutes: 24 * 60 // 每 24 小时
     })
     
+    // 创建每日画像更新定时器（每天一次）
+    // 确保即使用户行为未达到触发阈值，画像也能每天至少更新一次
+    bgLogger.info('创建每日画像更新定时器（每天一次）...')
+    chrome.alarms.create('daily-profile-update', {
+      delayInMinutes: 60, // 启动 1 小时后首次执行（避免启动时资源竞争）
+      periodInMinutes: 24 * 60 // 每 24 小时
+    })
+    
     // Phase 12.7: 数据迁移 - 为旧推荐补充 status 字段
     try {
       const oldRecs = await db.recommendations
@@ -738,6 +746,10 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       // Phase 12.7: 清理超限的推荐池
       bgLogger.info('开始清理推荐池...')
       await cleanupRecommendationPool()
+    } else if (alarm.name === 'daily-profile-update') {
+      // 每日画像更新：确保画像至少每天更新一次
+      bgLogger.info('开始每日画像更新...')
+      await dailyProfileUpdate()
     }
   } catch (error) {
     bgLogger.error('❌ 定时器处理失败:', error)
@@ -821,5 +833,53 @@ async function cleanupRecommendationPool(): Promise<void> {
     }
   } catch (error) {
     bgLogger.error('❌ 清理推荐池失败:', error)
+  }
+}
+
+/**
+ * 每日画像更新
+ * 
+ * 策略：
+ * 1. 检查是否配置了 AI（未配置则跳过）
+ * 2. 检查是否有足够的数据（至少 10 页浏览记录）
+ * 3. 检查距离上次更新是否超过 20 小时（避免与行为触发的更新重复）
+ * 4. 执行画像重建
+ */
+async function dailyProfileUpdate(): Promise<void> {
+  try {
+    // 1. 检查 AI 配置
+    const aiConfigured = await isAIConfigured()
+    if (!aiConfigured) {
+      bgLogger.debug('每日画像更新跳过：AI 未配置')
+      return
+    }
+    
+    // 2. 检查数据量
+    const pageCount = await getPageCount()
+    if (pageCount < 10) {
+      bgLogger.debug(`每日画像更新跳过：数据不足 (${pageCount}/10 页)`)
+      return
+    }
+    
+    // 3. 检查上次更新时间（避免与行为触发的更新重复）
+    const profile = await db.userProfile.get('singleton')
+    if (profile?.lastUpdated) {
+      const hoursSinceLastUpdate = (Date.now() - profile.lastUpdated) / (1000 * 60 * 60)
+      if (hoursSinceLastUpdate < 20) {
+        bgLogger.debug(`每日画像更新跳过：上次更新距今仅 ${hoursSinceLastUpdate.toFixed(1)} 小时`)
+        return
+      }
+    }
+    
+    // 4. 执行画像重建
+    bgLogger.info('📊 开始每日画像更新...')
+    const startTime = Date.now()
+    
+    await ProfileUpdateScheduler.executeUpdate('每日定时更新')
+    
+    const duration = Date.now() - startTime
+    bgLogger.info(`✅ 每日画像更新完成，耗时 ${(duration / 1000).toFixed(1)} 秒`)
+  } catch (error) {
+    bgLogger.error('❌ 每日画像更新失败:', error)
   }
 }
