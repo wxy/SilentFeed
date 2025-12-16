@@ -1,4 +1,5 @@
 import { ProfileUpdateScheduler } from './core/profile/ProfileUpdateScheduler'
+import { semanticProfileBuilder } from './core/profile/SemanticProfileBuilder'
 import { initializeDatabase, getPageCount, getUnreadRecommendations, db, markAsRead } from './storage/db'
 import type { ConfirmedVisit } from '@/types/database'
 import { FeedManager } from './core/rss/managers/FeedManager'
@@ -839,11 +840,12 @@ async function cleanupRecommendationPool(): Promise<void> {
 /**
  * 每日画像更新
  * 
- * 策略：
+ * 策略（保守更新，避免无意义的 AI 消耗）：
  * 1. 检查是否配置了 AI（未配置则跳过）
  * 2. 检查是否有足够的数据（至少 10 页浏览记录）
- * 3. 检查距离上次更新是否超过 20 小时（避免与行为触发的更新重复）
- * 4. 执行画像重建
+ * 3. 检查是否有新的行为数据（没有新数据则跳过，画像应该是稳定的）
+ * 4. 检查距离上次更新是否超过 20 小时（避免与行为触发的更新重复）
+ * 5. 执行画像重建
  */
 async function dailyProfileUpdate(): Promise<void> {
   try {
@@ -861,7 +863,16 @@ async function dailyProfileUpdate(): Promise<void> {
       return
     }
     
-    // 3. 检查上次更新时间（避免与行为触发的更新重复）
+    // 3. 检查是否有新的行为数据
+    const { hasNewData, browseProgress, readProgress, dismissProgress } = 
+      await semanticProfileBuilder.getUpdateProgress()
+    
+    if (!hasNewData) {
+      bgLogger.debug('每日画像更新跳过：没有新的行为数据，画像应该是稳定的')
+      return
+    }
+    
+    // 4. 检查上次更新时间（避免与行为触发的更新重复）
     const profile = await db.userProfile.get('singleton')
     if (profile?.lastUpdated) {
       const hoursSinceLastUpdate = (Date.now() - profile.lastUpdated) / (1000 * 60 * 60)
@@ -871,8 +882,12 @@ async function dailyProfileUpdate(): Promise<void> {
       }
     }
     
-    // 4. 执行画像重建
-    bgLogger.info('📊 开始每日画像更新...')
+    // 5. 执行画像重建
+    bgLogger.info('📊 开始每日画像更新...', {
+      新浏览: browseProgress.current,
+      新阅读: readProgress.current,
+      新拒绝: dismissProgress.current
+    })
     const startTime = Date.now()
     
     await ProfileUpdateScheduler.executeUpdate('每日定时更新')

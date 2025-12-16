@@ -923,6 +923,62 @@ export class SemanticProfileBuilder {
     await db.userProfile.update('singleton', { behaviors })
     profileLogger.debug(`✅ 拒绝行为已保存: ${article.title.substring(0, 30)}, 总拒绝数: ${behaviors.totalDismisses}`)
   }
+
+  /**
+   * 获取画像更新进度状态
+   * 用于 UI 显示距离下次更新的进度
+   */
+  async getUpdateProgress(): Promise<{
+    browseProgress: { current: number; threshold: number; percentage: number }
+    readProgress: { current: number; threshold: number; percentage: number }
+    dismissProgress: { current: number; threshold: number; percentage: number }
+    timeProgress: { 
+      hoursSinceLastUpdate: number
+      minIntervalHours: number
+      canUpdateNow: boolean
+    }
+    hasNewData: boolean  // 是否有新数据需要处理
+  }> {
+    // 获取动态阈值
+    const config = await getRecommendationConfig()
+    const readThreshold = config.maxRecommendations || 3
+    const dismissThreshold = config.maxRecommendations || 3
+    
+    // 计算时间进度
+    const minIntervalHours = GLOBAL_UPDATE_INTERVAL_MS / (1000 * 60 * 60)
+    const hoursSinceLastUpdate = this.lastAutoUpdateTime > 0
+      ? (Date.now() - this.lastAutoUpdateTime) / (1000 * 60 * 60)
+      : minIntervalHours // 如果从未更新，视为已满足时间条件
+    
+    const canUpdateNow = hoursSinceLastUpdate >= minIntervalHours
+    
+    // 检查是否有新数据
+    const hasNewData = this.browseCount > 0 || this.readCount > 0 || this.dismissCount > 0
+    
+    return {
+      browseProgress: {
+        current: this.browseCount,
+        threshold: BROWSE_THRESHOLD,
+        percentage: Math.min(100, Math.round((this.browseCount / BROWSE_THRESHOLD) * 100))
+      },
+      readProgress: {
+        current: this.readCount,
+        threshold: readThreshold,
+        percentage: Math.min(100, Math.round((this.readCount / readThreshold) * 100))
+      },
+      dismissProgress: {
+        current: this.dismissCount,
+        threshold: dismissThreshold,
+        percentage: Math.min(100, Math.round((this.dismissCount / dismissThreshold) * 100))
+      },
+      timeProgress: {
+        hoursSinceLastUpdate: Math.round(hoursSinceLastUpdate * 10) / 10,
+        minIntervalHours,
+        canUpdateNow
+      },
+      hasNewData
+    }
+  }
 }
 
 /**

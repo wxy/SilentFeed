@@ -12,6 +12,7 @@ import { useState, useEffect, useRef } from "react"
 import { useI18n } from "@/i18n/helpers"
 import { getUserProfile } from "@/storage/db"
 import { profileManager } from "@/core/profile/ProfileManager"
+import { semanticProfileBuilder } from "@/core/profile/SemanticProfileBuilder"
 import { getAIConfig, getProviderDisplayName, type AIProviderType } from "@/storage/ai-config"
 import { resolveProvider } from "@/utils/ai-provider-resolver"
 import type { UserProfile } from "@/types/profile"
@@ -28,6 +29,19 @@ interface ChatMessage {
   timestamp: number
 }
 
+/** 画像更新进度类型 */
+interface UpdateProgress {
+  browseProgress: { current: number; threshold: number; percentage: number }
+  readProgress: { current: number; threshold: number; percentage: number }
+  dismissProgress: { current: number; threshold: number; percentage: number }
+  timeProgress: { 
+    hoursSinceLastUpdate: number
+    minIntervalHours: number
+    canUpdateNow: boolean
+  }
+  hasNewData: boolean
+}
+
 export function ProfileSettings() {
   const { _ } = useI18n()
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -41,6 +55,7 @@ export function ProfileSettings() {
   const [aiProvider, setAiProvider] = useState("")
   const [totalPages, setTotalPages] = useState(0)
   const [lastRebuildTime, setLastRebuildTime] = useState(0) // Phase 11: 上次重建时间（防抖）
+  const [updateProgress, setUpdateProgress] = useState<UpdateProgress | null>(null) // 画像更新进度
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // 自动滚动到底部
@@ -123,6 +138,14 @@ export function ProfileSettings() {
             content: data,
             timestamp: data.aiSummary?.metadata?.timestamp || data.lastUpdated
           }])
+        }
+        
+        // 加载画像更新进度
+        try {
+          const progress = await semanticProfileBuilder.getUpdateProgress()
+          setUpdateProgress(progress)
+        } catch (progressError) {
+          profileViewLogger.warn("加载画像更新进度失败:", progressError)
         }
       } catch (error) {
         profileViewLogger.error("加载用户画像失败:", error)
@@ -611,6 +634,76 @@ export function ProfileSettings() {
           </div>
         )}
       </div>
+
+      {/* 画像更新进度 - 只有在有数据时显示 */}
+      {updateProgress && updateProgress.hasNewData && aiConfigured && (
+        <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+            <span>📊</span>
+            <span>{_("options.userProfile.updateProgress.title")}</span>
+          </h4>
+          
+          <div className="space-y-3">
+            {/* 浏览进度 */}
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-gray-500 dark:text-gray-400 w-16">
+                {_("options.userProfile.updateProgress.browse")}
+              </span>
+              <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-blue-500 transition-all duration-300"
+                  style={{ width: `${updateProgress.browseProgress.percentage}%` }}
+                />
+              </div>
+              <span className="text-xs text-gray-500 dark:text-gray-400 w-12 text-right">
+                {updateProgress.browseProgress.current}/{updateProgress.browseProgress.threshold}
+              </span>
+            </div>
+            
+            {/* 阅读进度 */}
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-gray-500 dark:text-gray-400 w-16">
+                {_("options.userProfile.updateProgress.read")}
+              </span>
+              <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-green-500 transition-all duration-300"
+                  style={{ width: `${updateProgress.readProgress.percentage}%` }}
+                />
+              </div>
+              <span className="text-xs text-gray-500 dark:text-gray-400 w-12 text-right">
+                {updateProgress.readProgress.current}/{updateProgress.readProgress.threshold}
+              </span>
+            </div>
+            
+            {/* 拒绝进度 */}
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-gray-500 dark:text-gray-400 w-16">
+                {_("options.userProfile.updateProgress.dismiss")}
+              </span>
+              <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-orange-500 transition-all duration-300"
+                  style={{ width: `${updateProgress.dismissProgress.percentage}%` }}
+                />
+              </div>
+              <span className="text-xs text-gray-500 dark:text-gray-400 w-12 text-right">
+                {updateProgress.dismissProgress.current}/{updateProgress.dismissProgress.threshold}
+              </span>
+            </div>
+          </div>
+          
+          {/* 时间间隔提示 */}
+          <div className="mt-3 text-xs text-gray-400 dark:text-gray-500">
+            {updateProgress.timeProgress.canUpdateNow 
+              ? _("options.userProfile.updateProgress.canUpdate")
+              : _("options.userProfile.updateProgress.waitTime", {
+                  hours: (updateProgress.timeProgress.minIntervalHours - updateProgress.timeProgress.hoursSinceLastUpdate).toFixed(1)
+                })
+            }
+          </div>
+        </div>
+      )}
 
       {/* 操作区域 */}
       <div className="flex justify-between items-center">

@@ -727,6 +727,14 @@
         "rebuild": "Rebuild Profile",
         "rebuilding": "Rebuilding...",
         "rebuildComplete": "Rebuild completed"
+      },
+      "updateProgress": {
+        "title": "Next Auto-Update Progress",
+        "browse": "Browse",
+        "read": "Read",
+        "dismiss": "Dismiss",
+        "canUpdate": "Update conditions met, will auto-update on next action",
+        "waitTime": "{{hours}} hours until next update"
       }
     },
     "aiConfig": {
