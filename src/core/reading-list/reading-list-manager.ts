@@ -50,8 +50,9 @@ export class ReadingListManager {
       // 用途：30秒验证时识别"来自阅读列表"
       // 注：Chrome Reading List API 无 onEntryOpened 事件
       //     保存时预设标记，打开时无法直接监听
+      // 使用 local storage 而非 session，避免扩展重启后丢失
       try {
-        await chrome.storage.session.set({
+        await chrome.storage.local.set({
           [`recommendation_tracking_${recommendation.url}`]: {
             recommendationId: recommendation.id,
             title: recommendation.title,

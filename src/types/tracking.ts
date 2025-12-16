@@ -9,6 +9,8 @@
  * 3. 后台通过 tabId 查找追踪信息 → 识别来源 → 标记已读 → 删除追踪信息
  * 
  * 注意：使用 Tab ID 而非 URL，因为 URL 可能因跳转、翻译、短链接等变化
+ * 
+ * 存储：使用 chrome.storage.local 而非 session，避免扩展重启后丢失追踪
  */
 
 /** Tab ID 追踪 key 前缀 */
@@ -17,7 +19,7 @@ const TAB_TRACKING_PREFIX = 'recommendation_tab_'
 /**
  * 推荐追踪信息
  * 
- * 存储在 chrome.storage.session 中，用于追踪推荐文章的打开来源
+ * 存储在 chrome.storage.local 中，用于追踪推荐文章的打开来源
  * Key格式: `recommendation_tab_${tabId}`（主要）
  *          `recommendation_tracking_${url}`（备用，兼容旧逻辑）
  */
@@ -70,7 +72,7 @@ export async function saveTrackingByTabId(
   tracking: RecommendationTracking
 ): Promise<void> {
   const key = getTabTrackingKey(tabId)
-  await chrome.storage.session.set({ [key]: tracking })
+  await chrome.storage.local.set({ [key]: tracking })
 }
 
 /**
@@ -78,7 +80,7 @@ export async function saveTrackingByTabId(
  */
 export async function getTrackingByTabId(tabId: number): Promise<RecommendationTracking | null> {
   const key = getTabTrackingKey(tabId)
-  const data = await chrome.storage.session.get(key)
+  const data = await chrome.storage.local.get(key)
   return data[key] || null
 }
 
@@ -87,7 +89,7 @@ export async function getTrackingByTabId(tabId: number): Promise<RecommendationT
  */
 export async function removeTrackingByTabId(tabId: number): Promise<void> {
   const key = getTabTrackingKey(tabId)
-  await chrome.storage.session.remove(key)
+  await chrome.storage.local.remove(key)
 }
 
 /**
@@ -98,7 +100,7 @@ export async function saveTracking(
   tracking: RecommendationTracking
 ): Promise<void> {
   const key = getTrackingKey(url)
-  await chrome.storage.session.set({ [key]: tracking })
+  await chrome.storage.local.set({ [key]: tracking })
 }
 
 /**
@@ -106,7 +108,7 @@ export async function saveTracking(
  */
 export async function getTracking(url: string): Promise<RecommendationTracking | null> {
   const key = getTrackingKey(url)
-  const data = await chrome.storage.session.get(key)
+  const data = await chrome.storage.local.get(key)
   return data[key] || null
 }
 
@@ -115,5 +117,5 @@ export async function getTracking(url: string): Promise<RecommendationTracking |
  */
 export async function removeTracking(url: string): Promise<void> {
   const key = getTrackingKey(url)
-  await chrome.storage.session.remove(key)
+  await chrome.storage.local.remove(key)
 }

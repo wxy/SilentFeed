@@ -9,6 +9,7 @@
  */
 
 import { getAIConfig, isAIConfigured, validateApiKey, type AIProviderType } from './ai-config'
+import { resolveProvider } from '@/utils/ai-provider-resolver'
 import { aiManager } from '../core/ai/AICapabilityManager'
 import { logger } from '@/utils/logger'
 import type { RecommendationAnalysisEngine, FeedAnalysisEngine } from '@/types/analysis-engine'
@@ -260,7 +261,9 @@ export async function checkAIConfigStatus(): Promise<AIConfigStatus> {
     // 根据配置的提供商选择对应的成本（从 engineAssignment.feedAnalysis 读取）
     let usedAmount = 0
     const feedProvider = aiConfig.engineAssignment?.feedAnalysis?.provider
-    const actualProvider = feedProvider && feedProvider !== 'ollama' ? feedProvider : null
+    // 解析抽象 provider 类型（"remote" → "deepseek"）
+    const resolvedProvider = feedProvider ? resolveProvider(feedProvider, aiConfig) : null
+    const actualProvider = resolvedProvider && resolvedProvider !== 'ollama' ? resolvedProvider as AIProviderType : null
     if (actualProvider) {
       // DeepSeek 使用 CNY，其他使用 USD
       usedAmount = actualProvider === 'deepseek' ? aiStats.totalCostCNY : aiStats.totalCostUSD

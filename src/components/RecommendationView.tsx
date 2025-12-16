@@ -252,33 +252,29 @@ export function RecommendationView() {
       await removeFromList([rec.id])
       recViewLogger.info(`✅ 已从推荐列表移除，等待阅读验证: ${rec.id}`)
       
-      // 等待一帧，确保 React 完成重新渲染
-      await new Promise(resolve => requestAnimationFrame(resolve))
-      
-      // 先打开链接，获取 Tab ID
-      const tab = await chrome.tabs.create({ url: rec.url })
-      
-      // 策略B：使用 Tab ID 追踪，而非 URL（URL 可能跳转/变化）
-      if (tab.id) {
-        try {
-          const trackingKey = `recommendation_tab_${tab.id}`
-          const trackingData = {
-            recommendationId: rec.id,
-            title: rec.title,
-            source: 'popup',
-            action: 'clicked',
-            timestamp: Date.now(),
-          }
-          
-          await chrome.storage.session.set({
-            [trackingKey]: trackingData
-          })
-          
-          recViewLogger.info(`✅ 已标记推荐点击（Tab ID: ${tab.id}），等待 30 秒阅读验证: ${rec.id}`)
-        } catch (storageError) {
-          recViewLogger.error('⚠️ 保存 Tab ID 追踪信息失败:', storageError)
+      // ⚠️ 重要：先通过 Background 创建 Tab 并保存追踪信息
+      // 原因：弹窗在创建新标签页后会立即关闭，后续代码可能无法执行
+      // 解决方案：使用 fire-and-forget 模式发送消息，不等待响应
+      // 因为 await sendMessage 会等待响应，但弹窗可能在响应前就关闭了
+      chrome.runtime.sendMessage({
+        type: 'OPEN_RECOMMENDATION',
+        data: {
+          url: rec.url,
+          recommendationId: rec.id,
+          title: rec.title,
+          action: 'clicked'
         }
-      }
+      }).then(response => {
+        // 这个回调可能不会执行（弹窗已关闭）
+        if (response?.success) {
+          recViewLogger.info(`✅ Background 响应成功（Tab ID: ${response.tabId}）`)
+        }
+      }).catch(err => {
+        // 忽略错误（弹窗关闭导致的错误是正常的）
+        recViewLogger.debug('sendMessage 错误（可能是弹窗关闭）:', err)
+      })
+      
+      // 不等待响应，弹窗会在消息发送后关闭
       
     } catch (error) {
       recViewLogger.error('❌ 处理点击失败:', error)
@@ -744,33 +740,19 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
                         await onRemoveFromList()
                       }
                       
-                      // 等待一帧，确保 React 完成重新渲染
-                      await new Promise(resolve => requestAnimationFrame(resolve))
-                      
-                      // 先打开翻译链接，获取 Tab ID
-                      const tab = await chrome.tabs.create({ url: translateUrl })
-                      
-                      // 策略B：使用 Tab ID 追踪，而非 URL（URL 可能跳转/变化）
-                      if (tab.id) {
-                        try {
-                          const trackingKey = `recommendation_tab_${tab.id}`
-                          const trackingData = {
-                            recommendationId: currentRecommendation.id,
-                            title: currentRecommendation.title,
-                            source: 'popup' as const,
-                            action: 'translated' as const,
-                            timestamp: Date.now(),
-                          }
-                          
-                          await chrome.storage.session.set({
-                            [trackingKey]: trackingData
-                          })
-                          
-                          recViewLogger.info(`✅ 已标记翻译点击（Tab ID: ${tab.id}），等待阅读验证: ${currentRecommendation.id}`)
-                        } catch (storageError) {
-                          recViewLogger.error('⚠️ 保存 Tab ID 追踪信息失败:', storageError)
+                      // ⚠️ 重要：使用 fire-and-forget 模式发送消息
+                      // 不等待响应，因为弹窗可能在响应前就关闭了
+                      chrome.runtime.sendMessage({
+                        type: 'OPEN_RECOMMENDATION',
+                        data: {
+                          url: translateUrl,
+                          recommendationId: currentRecommendation.id,
+                          title: currentRecommendation.title,
+                          action: 'translated'
                         }
-                      }
+                      }).catch(() => {
+                        // 忽略错误（弹窗关闭导致的错误是正常的）
+                      })
                     } catch (error) {
                       recViewLogger.error('❌ 打开翻译失败:', error)
                     }
@@ -906,14 +888,21 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
                   try {
                     const translateUrl = getGoogleTranslateUrl(currentRecommendation.url, i18n.language)
                     
-                    // ⚠️ 关键：先标记为已读，再打开链接
-                    // 因为 chrome.tabs.create() 会关闭弹窗，导致后续操作被中断
-                    recViewLogger.debug(`点击语言标签，标记为已读: ${currentRecommendation.id}`)
-                    await markAsRead(currentRecommendation.id)
-                    recViewLogger.info(`✅ 标记已读完成，打开翻译: ${currentRecommendation.id}`)
+                    recViewLogger.debug(`点击语言标签，打开翻译: ${currentRecommendation.id}`)
                     
-                    // 最后打开翻译链接（这会关闭弹窗）
-                    await chrome.tabs.create({ url: translateUrl })
+                    // ⚠️ 重要：使用 fire-and-forget 模式发送消息
+                    // 不等待响应，因为弹窗可能在响应前就关闭了
+                    chrome.runtime.sendMessage({
+                      type: 'OPEN_RECOMMENDATION',
+                      data: {
+                        url: translateUrl,
+                        recommendationId: currentRecommendation.id,
+                        title: currentRecommendation.title,
+                        action: 'translated'
+                      }
+                    }).catch(() => {
+                      // 忽略错误（弹窗关闭导致的错误是正常的）
+                    })
                   } catch (error) {
                     recViewLogger.error('❌ 打开翻译失败:', error)
                   }
