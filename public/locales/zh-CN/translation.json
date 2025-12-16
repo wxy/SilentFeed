@@ -759,12 +759,10 @@
         "rebuildComplete": "重建完成"
       },
       "updateProgress": {
-        "title": "下次自动更新进度",
+        "title": "画像更新进度",
         "browse": "浏览",
         "read": "阅读",
-        "dismiss": "拒绝",
-        "canUpdate": "已满足更新条件，将在下次行为时自动更新",
-        "waitTime": "距下次可更新还需 {{hours}} 小时"
+        "dismiss": "拒绝"
       }
     },
     "aiConfig": {

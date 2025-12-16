@@ -729,12 +729,10 @@
         "rebuildComplete": "Rebuild completed"
       },
       "updateProgress": {
-        "title": "Next Auto-Update Progress",
+        "title": "Profile Update Progress",
         "browse": "Browse",
         "read": "Read",
-        "dismiss": "Dismiss",
-        "canUpdate": "Update conditions met, will auto-update on next action",
-        "waitTime": "{{hours}} hours until next update"
+        "dismiss": "Dismiss"
       }
     },
     "aiConfig": {
