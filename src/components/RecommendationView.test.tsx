@@ -105,6 +105,7 @@ vi.mock("@/storage/ui-config", () => ({
 const mockLoadRecommendations = vi.fn()
 const mockMarkAsRead = vi.fn()
 const mockDismissAll = vi.fn()
+const mockRemoveFromList = vi.fn()
 
 let mockRecommendations: Recommendation[] = []
 let mockIsLoading = false
@@ -118,6 +119,7 @@ vi.mock("@/stores/recommendationStore", () => ({
     loadRecommendations: mockLoadRecommendations,
     markAsRead: mockMarkAsRead,
     dismissAll: mockDismissAll,
+    removeFromList: mockRemoveFromList,
   }),
 }))
 
@@ -361,6 +363,20 @@ describe("RecommendationView 组件", () => {
       })
     })
 
+    it("点击推荐应该从列表中移除", async () => {
+      const user = userEvent.setup()
+      mockRecommendations = [mockRec]
+      render(<RecommendationView />)
+
+      const item = screen.getByText("测试文章")
+      await user.click(item)
+
+      // 应该调用 removeFromList 从列表移除
+      await waitFor(() => {
+        expect(mockRemoveFromList).toHaveBeenCalledWith(['rec-1'])
+      })
+    })
+
     it("点击推荐应该保存追踪信息到 chrome.storage", async () => {
       const user = userEvent.setup()
       mockRecommendations = [mockRec]
@@ -398,6 +414,9 @@ describe("RecommendationView 组件", () => {
       
       // 不应该立即调用 markAsRead
       expect(mockMarkAsRead).not.toHaveBeenCalled()
+      
+      // 但应该从列表中移除
+      expect(mockRemoveFromList).toHaveBeenCalledWith(['rec-1'])
     })
 
     it("当保存追踪信息失败时应该继续打开链接", async () => {
@@ -422,6 +441,9 @@ describe("RecommendationView 组件", () => {
       
       // 策略B：不立即标记为已读
       expect(mockMarkAsRead).not.toHaveBeenCalled()
+      
+      // 但应该从列表中移除
+      expect(mockRemoveFromList).toHaveBeenCalledWith(['rec-1'])
 
       consoleErrorSpy.mockRestore()
     })

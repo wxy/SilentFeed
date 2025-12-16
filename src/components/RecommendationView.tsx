@@ -264,6 +264,10 @@ export function RecommendationView() {
         recViewLogger.error('⚠️ 保存推荐追踪信息失败，但继续打开链接:', storageError)
       }
       
+      // 从推荐列表移除（不标记为不想读，等待阅读验证）
+      await removeFromList([rec.id])
+      recViewLogger.info(`✅ 已从推荐列表移除，等待阅读验证: ${rec.id}`)
+      
       // 最后打开链接（这会关闭弹窗）
       await chrome.tabs.create({ url: rec.url })
       
