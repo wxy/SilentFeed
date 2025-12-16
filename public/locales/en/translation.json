@@ -732,7 +732,8 @@
         "title": "Profile Update Progress",
         "browse": "Browse",
         "read": "Read",
-        "dismiss": "Dismiss"
+        "dismiss": "Dismiss",
+        "hint": "Your profile will be auto-updated when any threshold is reached"
       }
     },
     "aiConfig": {

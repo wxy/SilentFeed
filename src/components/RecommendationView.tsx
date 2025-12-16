@@ -248,35 +248,6 @@ export function RecommendationView() {
       // Phase 6: 跟踪推荐点击
       await trackRecommendationClick()
       
-      // 策略B：不立即标记为已读，等待 page-tracker 检测到 30 秒阅读
-      // 统一追踪机制：标记来源为弹窗点击
-      try {
-        const trackingKey = `recommendation_tracking_${rec.url}`
-        const trackingData = {
-          recommendationId: rec.id,
-          title: rec.title,
-          source: 'popup',
-          action: 'clicked',
-          timestamp: Date.now(),
-        }
-        
-        recViewLogger.debug('准备保存追踪信息', { trackingKey, trackingData })
-        
-        await chrome.storage.session.set({
-          [trackingKey]: trackingData
-        })
-        
-        // 验证保存
-        const verified = await chrome.storage.session.get(trackingKey)
-        recViewLogger.info(`✅ 已标记推荐点击（弹窗→原文），等待 30 秒阅读验证: ${rec.id}`, {
-          saved: verified[trackingKey],
-          url: rec.url
-        })
-      } catch (storageError) {
-        // 即使 session storage 失败，也继续打开链接
-        recViewLogger.error('⚠️ 保存推荐追踪信息失败，但继续打开链接:', storageError)
-      }
-      
       // 从推荐列表移除（不标记为不想读，等待阅读验证）
       await removeFromList([rec.id])
       recViewLogger.info(`✅ 已从推荐列表移除，等待阅读验证: ${rec.id}`)
@@ -284,8 +255,30 @@ export function RecommendationView() {
       // 等待一帧，确保 React 完成重新渲染
       await new Promise(resolve => requestAnimationFrame(resolve))
       
-      // 最后打开链接（这会关闭弹窗）
-      await chrome.tabs.create({ url: rec.url })
+      // 先打开链接，获取 Tab ID
+      const tab = await chrome.tabs.create({ url: rec.url })
+      
+      // 策略B：使用 Tab ID 追踪，而非 URL（URL 可能跳转/变化）
+      if (tab.id) {
+        try {
+          const trackingKey = `recommendation_tab_${tab.id}`
+          const trackingData = {
+            recommendationId: rec.id,
+            title: rec.title,
+            source: 'popup',
+            action: 'clicked',
+            timestamp: Date.now(),
+          }
+          
+          await chrome.storage.session.set({
+            [trackingKey]: trackingData
+          })
+          
+          recViewLogger.info(`✅ 已标记推荐点击（Tab ID: ${tab.id}），等待 30 秒阅读验证: ${rec.id}`)
+        } catch (storageError) {
+          recViewLogger.error('⚠️ 保存 Tab ID 追踪信息失败:', storageError)
+        }
+      }
       
     } catch (error) {
       recViewLogger.error('❌ 处理点击失败:', error)
@@ -744,42 +737,40 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
                     try {
                       const translateUrl = getGoogleTranslateUrl(currentRecommendation.url, i18n.language)
                       
-                      // 策略B：保存追踪信息，等待30秒阅读验证
-                      // 统一追踪机制：标记来源为弹窗翻译
                       recViewLogger.debug(`点击翻译按钮: ${currentRecommendation.id}`)
-                      
-                      const trackingKey = `recommendation_tracking_${currentRecommendation.url}`
-                      const trackingData = {
-                        recommendationId: currentRecommendation.id,
-                        title: currentRecommendation.title,
-                        source: 'popup',
-                        action: 'translated',
-                        timestamp: Date.now(),
-                      }
-                      
-                      recViewLogger.debug('准备保存翻译追踪信息', { trackingKey, trackingData })
-                      
-                      // 保存到 session storage
-                      await chrome.storage.session.set({
-                        [trackingKey]: trackingData
-                      })
-                      
-                      // 验证保存
-                      const verified = await chrome.storage.session.get(trackingKey)
-                      recViewLogger.debug('翻译追踪已保存', { saved: verified[trackingKey] })
                       
                       // 从推荐列表移除（不标记为不想读）
                       if (onRemoveFromList) {
                         await onRemoveFromList()
                       }
                       
-                      recViewLogger.info(`✅ 已标记翻译点击，等待阅读验证: ${currentRecommendation.id}`)
-                      
                       // 等待一帧，确保 React 完成重新渲染
                       await new Promise(resolve => requestAnimationFrame(resolve))
                       
-                      // 最后打开翻译链接（这会关闭弹窗）
-                      await chrome.tabs.create({ url: translateUrl })
+                      // 先打开翻译链接，获取 Tab ID
+                      const tab = await chrome.tabs.create({ url: translateUrl })
+                      
+                      // 策略B：使用 Tab ID 追踪，而非 URL（URL 可能跳转/变化）
+                      if (tab.id) {
+                        try {
+                          const trackingKey = `recommendation_tab_${tab.id}`
+                          const trackingData = {
+                            recommendationId: currentRecommendation.id,
+                            title: currentRecommendation.title,
+                            source: 'popup' as const,
+                            action: 'translated' as const,
+                            timestamp: Date.now(),
+                          }
+                          
+                          await chrome.storage.session.set({
+                            [trackingKey]: trackingData
+                          })
+                          
+                          recViewLogger.info(`✅ 已标记翻译点击（Tab ID: ${tab.id}），等待阅读验证: ${currentRecommendation.id}`)
+                        } catch (storageError) {
+                          recViewLogger.error('⚠️ 保存 Tab ID 追踪信息失败:', storageError)
+                        }
+                      }
                     } catch (error) {
                       recViewLogger.error('❌ 打开翻译失败:', error)
                     }

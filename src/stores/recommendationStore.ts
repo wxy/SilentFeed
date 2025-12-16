@@ -13,7 +13,6 @@ import {
   getRecommendationStats,
   db
 } from '@/storage/db'
-import { semanticProfileBuilder } from '@/core/profile/SemanticProfileBuilder'
 import { recommendationService } from '@/core/recommender/RecommendationService'
 
 /**
@@ -175,9 +174,13 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
       await markAsRead(id, duration, depth)
       
       // 🆕 Phase 8: 更新用户画像（阅读行为）
+      // 通过消息发送到 Background，确保使用 Background 的计数器实例
       if (recommendation && duration && depth !== undefined) {
         try {
-          await semanticProfileBuilder.onRead(recommendation, duration, depth)
+          await chrome.runtime.sendMessage({
+            type: 'PROFILE_ON_READ',
+            data: { recommendation, readDuration: duration, scrollDepth: depth }
+          })
         } catch (profileError) {
           console.warn('[RecommendationStore] 画像更新失败（不影响主流程）:', profileError)
         }
@@ -286,11 +289,14 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
       await dismissRecommendations(ids)
       
       // 🆕 Phase 8: 异步更新用户画像（拒绝行为）
-      // 不阻塞UI，在后台执行
+      // 通过消息发送到 Background，确保使用 Background 的计数器实例
       const profileUpdatePromises = dismissedRecs.map(async (recommendation) => {
         if (recommendation) {
           try {
-            await semanticProfileBuilder.onDismiss(recommendation)
+            await chrome.runtime.sendMessage({
+              type: 'PROFILE_ON_DISMISS',
+              data: { recommendation }
+            })
           } catch (profileError) {
             console.warn('[RecommendationStore] 画像更新失败（不影响主流程）:', profileError)
           }

@@ -304,16 +304,38 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             
             const visitData = message.data as Omit<ConfirmedVisit, 'id'> & { id: string }
             
-            // 统一追踪机制：检查推荐来源（弹窗或阅读列表）
+            // 统一追踪机制：优先使用 Tab ID，备用 URL
+            // Tab ID 更可靠，因为 URL 可能因跳转/翻译/短链接等变化
             try {
-              const trackingKey = `recommendation_tracking_${visitData.url}`
-              bgLogger.debug('检查推荐追踪', { trackingKey })
+              let trackingInfo = null
+              let trackingSource = ''
               
-              const trackingData = await chrome.storage.session.get(trackingKey)
-              bgLogger.debug('追踪数据', { trackingData })
+              // 1. 优先尝试通过 Tab ID 查找追踪信息
+              const tabId = sender.tab?.id
+              if (tabId) {
+                const tabTrackingKey = `recommendation_tab_${tabId}`
+                const tabTrackingData = await chrome.storage.session.get(tabTrackingKey)
+                trackingInfo = tabTrackingData[tabTrackingKey]
+                if (trackingInfo) {
+                  trackingSource = 'tabId'
+                  bgLogger.debug('通过 Tab ID 找到追踪信息', { tabId, trackingInfo })
+                  // 立即清理 Tab ID 追踪信息
+                  await chrome.storage.session.remove(tabTrackingKey)
+                }
+              }
               
-              const trackingInfo = trackingData[trackingKey]
-              bgLogger.debug('追踪信息', { trackingInfo })
+              // 2. 备用：通过 URL 查找（兼容旧逻辑和阅读列表）
+              if (!trackingInfo) {
+                const urlTrackingKey = `recommendation_tracking_${visitData.url}`
+                const urlTrackingData = await chrome.storage.session.get(urlTrackingKey)
+                trackingInfo = urlTrackingData[urlTrackingKey]
+                if (trackingInfo) {
+                  trackingSource = 'url'
+                  bgLogger.debug('通过 URL 找到追踪信息', { url: visitData.url, trackingInfo })
+                  // 清理 URL 追踪信息
+                  await chrome.storage.session.remove(urlTrackingKey)
+                }
+              }
               
               if (trackingInfo && trackingInfo.recommendationId) {
                 visitData.source = 'recommended'
@@ -329,16 +351,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                   sourceDesc = '阅读列表'
                 }
                 
-                bgLogger.info(`✅ 检测到推荐文章打开: ${sourceDesc}`, {
+                bgLogger.info(`✅ 检测到推荐文章打开: ${sourceDesc} (via ${trackingSource})`, {
+                  tabId: sender.tab?.id,
                   url: visitData.url,
                   recommendationId: trackingInfo.recommendationId,
                   source: trackingInfo.source,
                   action: trackingInfo.action
                 })
-                
-                // 统一处理：无论来源，验证后都移除追踪信息
-                // 避免重复追踪（多次打开同一篇文章）
-                await chrome.storage.session.remove(trackingKey)
               }
             } catch (storageError) {
               bgLogger.warn('检查推荐追踪失败', storageError)
@@ -721,6 +740,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             sendResponse({ success: true, data: progress })
           } catch (error) {
             bgLogger.error('❌ 获取画像更新进度失败:', error)
+            sendResponse({ success: false, error: String(error) })
+          }
+          break
+        
+        // 画像学习：用户拒绝推荐
+        case 'PROFILE_ON_DISMISS':
+          try {
+            const { recommendation } = message.data
+            await semanticProfileBuilder.onDismiss(recommendation)
+            sendResponse({ success: true })
+          } catch (error) {
+            bgLogger.error('❌ 画像拒绝学习失败:', error)
+            sendResponse({ success: false, error: String(error) })
+          }
+          break
+        
+        // 画像学习：用户阅读推荐
+        case 'PROFILE_ON_READ':
+          try {
+            const { recommendation, readDuration, scrollDepth } = message.data
+            await semanticProfileBuilder.onRead(recommendation, readDuration, scrollDepth)
+            sendResponse({ success: true })
+          } catch (error) {
+            bgLogger.error('❌ 画像阅读学习失败:', error)
             sendResponse({ success: false, error: String(error) })
           }
           break

@@ -26,7 +26,7 @@ import { RecommendationView } from "./RecommendationView"
 import type { Recommendation } from "@/types/database"
 
 // Mock chrome API (移到文件顶部，统一管理)
-const mockTabsCreate = vi.fn().mockResolvedValue({})
+const mockTabsCreate = vi.fn().mockResolvedValue({ id: 123 }) // 返回带 id 的 tab 对象
 const mockStorageLocalSet = vi.fn().mockResolvedValue(undefined)
 const mockStorageLocalGet = vi.fn().mockResolvedValue({})
 const mockStorageSessionSet = vi.fn().mockResolvedValue(undefined)
@@ -157,7 +157,7 @@ describe("RecommendationView 组件", () => {
     mockStorageSessionGet.mockClear()
     
     // 重置为默认行为
-    mockTabsCreate.mockResolvedValue({})
+    mockTabsCreate.mockResolvedValue({ id: 123 }) // 返回带 id 的 tab 对象
     mockStorageLocalSet.mockResolvedValue(undefined)
     mockStorageLocalGet.mockResolvedValue({})
     mockStorageSessionSet.mockResolvedValue(undefined)
@@ -377,7 +377,7 @@ describe("RecommendationView 组件", () => {
       })
     })
 
-    it("点击推荐应该保存追踪信息到 chrome.storage", async () => {
+    it("点击推荐应该保存追踪信息到 chrome.storage（Tab ID 方式）", async () => {
       const user = userEvent.setup()
       mockRecommendations = [mockRec]
       render(<RecommendationView />)
@@ -385,11 +385,11 @@ describe("RecommendationView 组件", () => {
       const item = screen.getByText("测试文章")
       await user.click(item)
 
-      // 策略B：保存推荐点击信息到 session storage（统一追踪机制）
+      // 策略B：使用 Tab ID 追踪（tab.id = 123 来自 mock）
       await waitFor(() => {
         expect(mockStorageSessionSet).toHaveBeenCalledWith(
           expect.objectContaining({
-            'recommendation_tracking_https://example.com/article': expect.objectContaining({
+            'recommendation_tab_123': expect.objectContaining({
               recommendationId: 'rec-1',
               title: '测试文章',
               source: 'popup',
