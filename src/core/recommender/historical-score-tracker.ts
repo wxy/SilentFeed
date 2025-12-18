@@ -28,13 +28,17 @@ export interface HistoricalScoreConfig {
   
   /** 最低基准分数（兜底，避免基准过低） */
   minimumBaseline?: number
+  
+  /** 最大基准分数（上限，防止门槛过高） */
+  maximumBaseline?: number
 }
 
 const DEFAULT_CONFIG: HistoricalScoreConfig = {
   strategy: 'recent',
-  recentCount: 20,
+  recentCount: 20, // 默认 20 条，实际使用时会根据推荐池大小动态调整
   enabled: true,
-  minimumBaseline: 0.55 // 略低于 qualityThreshold (0.6)，给新推荐一点机会
+  minimumBaseline: 0.55, // 略低于 qualityThreshold (0.6)，给新推荐一点机会
+  maximumBaseline: 0.75  // 新增：最大基准上限，防止门槛过高导致无推荐可进
 }
 
 /**
@@ -92,10 +96,12 @@ export async function getHistoricalScoreBaseline(
     const totalScore = historicalRecommendations.reduce((sum, rec) => sum + rec.score, 0)
     const averageScore = totalScore / historicalRecommendations.length
     
-    // 应用最低基准
-    const baseline = Math.max(averageScore, finalConfig.minimumBaseline || 0)
+    // 应用最低和最高基准限制
+    let baseline = averageScore
+    baseline = Math.max(baseline, finalConfig.minimumBaseline || 0)  // 应用最低基准
+    baseline = Math.min(baseline, finalConfig.maximumBaseline || 1)  // 应用最高基准
     
-    scoreLogger.info(`📊 历史评分基准: ${baseline.toFixed(3)} (平均分: ${averageScore.toFixed(3)}, 样本: ${historicalRecommendations.length} 条)`)
+    scoreLogger.info(`📊 历史评分基准: ${baseline.toFixed(3)} (平均分: ${averageScore.toFixed(3)}, 样本: ${historicalRecommendations.length} 条, 范围: ${(finalConfig.minimumBaseline || 0).toFixed(2)}-${(finalConfig.maximumBaseline || 1).toFixed(2)})`)
     
     return baseline
     

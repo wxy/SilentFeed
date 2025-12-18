@@ -104,8 +104,8 @@ describe('HistoricalScoreTracker', () => {
         strategy: 'daily'
       })
       
-      // 应该只计算今天的 0.8
-      expect(baseline).toBeCloseTo(0.8, 2)
+      // 应该只计算今天的 0.8，但会被最大基准限制到 0.75
+      expect(baseline).toBeCloseTo(0.75, 2)
     })
 
     it('应应用最低基准（minimumBaseline）', async () => {

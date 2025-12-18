@@ -497,10 +497,15 @@ export class RecommendationService {
       const minPoolSizeForBaseline = baseSize // 当池中已有弹窗容量的推荐时启用基准检查
       
       if (poolSize >= minPoolSizeForBaseline) {
+        // 使用推荐池大小×2作为历史样本数，避免样本过少导致基准不稳定
+        const historicalSampleSize = maxSize * 2 // 推荐池容量×2（例如：6×2=12 或 10×2=20）
+        
         const passesBaseline = await passesHistoricalBaseline(article.score, {
           strategy: 'recent',
-          recentCount: 20,
-          enabled: true
+          recentCount: historicalSampleSize,
+          enabled: true,
+          minimumBaseline: 0.55,
+          maximumBaseline: 0.75 // 防止门槛过高
         })
         
         if (!passesBaseline) {
