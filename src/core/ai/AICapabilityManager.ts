@@ -106,14 +106,18 @@ export class AICapabilityManager {
             true, // 不再检查 enabled
             'deepseek',
             config.providers.deepseek.apiKey,
-            config.providers.deepseek.model || 'deepseek-chat'
+            config.providers.deepseek.model || 'deepseek-chat',
+            config.providers.deepseek.timeoutMs,
+            config.providers.deepseek.reasoningTimeoutMs
           )
         } else if (usedProviders.has('openai') && config.providers?.openai?.apiKey) {
           await this.initializeRemoteProvider(
             true,
             'openai',
             config.providers.openai.apiKey,
-            config.providers.openai.model || 'gpt-4o-mini'
+            config.providers.openai.model || 'gpt-4o-mini',
+            config.providers.openai.timeoutMs,
+            config.providers.openai.reasoningTimeoutMs
           )
         } else {
           // 没有有效的远程 Provider 配置
@@ -515,20 +519,30 @@ export class AICapabilityManager {
   /**
    * 创建 Provider 实例
    */
-  private createRemoteProvider(type: AIProviderType, apiKey: string, model?: string): AIProvider {
+  private createRemoteProvider(
+    type: AIProviderType, 
+    apiKey: string, 
+    model?: string,
+    timeoutMs?: number,
+    reasoningTimeoutMs?: number
+  ): AIProvider {
     switch (type) {
       case "deepseek":
         // Phase 6: 使用统一的 DeepSeekProvider
         // 它会根据 useReasoning 参数动态选择 deepseek-chat 或 deepseek-reasoner
         return new DeepSeekProvider({ 
           apiKey,
-          model: model || "deepseek-chat" // 默认使用 chat 模型
+          model: model || "deepseek-chat", // 默认使用 chat 模型
+          timeoutMs,
+          reasoningTimeoutMs
         })
       
       case "openai":
         return new OpenAIProvider({ 
           apiKey,
-          model: model || "gpt-5-mini" // 默认使用 gpt-5-mini
+          model: model || "gpt-5-mini", // 默认使用 gpt-5-mini
+          timeoutMs,
+          reasoningTimeoutMs
         })
       
       default:
