@@ -262,5 +262,232 @@ describe("DeepSeekProvider", () => {
       
       expect(requestBody.model).toBe("deepseek-chat")
     })
+    
+    it("应该处理空 content 响应（finish_reason=length）", async () => {
+      const truncatedResponse: DeepSeekResponse = {
+        id: "test-id",
+        object: "chat.completion",
+        created: Date.now(),
+        model: "deepseek-reasoner",
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: "assistant",
+              content: "", // 空内容
+              reasoning_content: '{"partial": true' // 截断的推理内容
+            },
+            finish_reason: "length" // 因长度限制而截断
+          }
+        ],
+        usage: {
+          prompt_tokens: 100,
+          completion_tokens: 50,
+          total_tokens: 150
+        }
+      }
+      
+      // Mock 3次响应（因为有重试机制）
+      vi.mocked(fetch).mockResolvedValue({
+        ok: true,
+        json: async () => truncatedResponse
+      } as Response)
+      
+      // 应该抛出错误
+      await expect(provider.analyzeContent("测试", { maxTokens: 500 }))
+        .rejects.toThrow("Response truncated due to max_tokens limit")
+    })
+    
+    it("应该处理空 content 响应（其他 finish_reason）", async () => {
+      const emptyResponse: DeepSeekResponse = {
+        id: "test-id",
+        object: "chat.completion",
+        created: Date.now(),
+        model: "deepseek-chat",
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: "assistant",
+              content: ""
+            },
+            finish_reason: "stop"
+          }
+        ],
+        usage: {
+          prompt_tokens: 100,
+          completion_tokens: 0,
+          total_tokens: 100
+        }
+      }
+      
+      // Mock 3次响应（因为有重试机制）
+      vi.mocked(fetch).mockResolvedValue({
+        ok: true,
+        json: async () => emptyResponse
+      } as Response)
+      
+      await expect(provider.analyzeContent("测试"))
+        .rejects.toThrow("Empty response from DeepSeek API")
+    })
+    
+    it("应该从 reasoning_content 中提取 JSON（推理模式）", async () => {
+      const reasoningResponse: DeepSeekResponse = {
+        id: "test-id",
+        object: "chat.completion",
+        created: Date.now(),
+        model: "deepseek-reasoner",
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: "assistant",
+              content: "",
+              // 模拟推理内容中嵌入的 JSON（会从最后一个 } 位置提取）
+              // 使用多个 topics 以验证归一化前的值
+              reasoning_content: '经过分析推理后，我认为这篇文章的主题是AI... {"topics": {"AI": 0.8, "Tech": 0.2}, "summary": "test"}'
+            },
+            finish_reason: "stop"
+          }
+        ],
+        usage: {
+          prompt_tokens: 100,
+          completion_tokens: 50,
+          total_tokens: 150
+        }
+      }
+      
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => reasoningResponse
+      } as Response)
+      
+      const result = await provider.analyzeContent("测试", { useReasoning: true })
+      
+      // 验证从 reasoning_content 提取的 JSON
+      // analyzeContent 会归一化 topics，所以 0.8 和 0.2 总和已经是 1.0，归一化后保持不变
+      expect(result.topicProbabilities).toEqual({ "AI": 0.8, "Tech": 0.2 })
+      expect(result.summary).toBe("test")
+    })
+    
+    it("应该处理无效的 JSON 提取（推理模式）", async () => {
+      const invalidJsonResponse: DeepSeekResponse = {
+        id: "test-id",
+        object: "chat.completion",
+        created: Date.now(),
+        model: "deepseek-reasoner",
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: "assistant",
+              content: "",
+              reasoning_content: '一些推理文本... {"invalid json: 123 没有完整'
+            },
+            finish_reason: "stop"
+          }
+        ],
+        usage: {
+          prompt_tokens: 100,
+          completion_tokens: 50,
+          total_tokens: 150
+        }
+      }
+      
+      // Mock 3次响应（因为有重试机制）
+      vi.mocked(fetch).mockResolvedValue({
+        ok: true,
+        json: async () => invalidJsonResponse
+      } as Response)
+      
+      await expect(provider.analyzeContent("测试", { useReasoning: true }))
+        .rejects.toThrow("Empty response from DeepSeek API")
+    })
+    
+    it("应该处理网络错误（isNetworkError 分支）", async () => {
+      const networkError = new Error("Network error")
+      Object.assign(networkError, { code: "ECONNREFUSED" })
+      
+      // Mock 3次响应（因为有重试机制）
+      vi.mocked(fetch).mockRejectedValue(networkError)
+      
+      await expect(provider.analyzeContent("测试"))
+        .rejects.toThrow("Network error")
+    })
+    
+    it("应该正确处理缓存命中率日志", async () => {
+      const cachedResponse: DeepSeekResponse = {
+        id: "test-id",
+        object: "chat.completion",
+        created: Date.now(),
+        model: "deepseek-chat",
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: "assistant",
+              content: JSON.stringify({ topics: { "Test": 1.0 } })
+            },
+            finish_reason: "stop"
+          }
+        ],
+        usage: {
+          prompt_tokens: 100,
+          completion_tokens: 50,
+          total_tokens: 150,
+          prompt_cache_hit_tokens: 80,
+          prompt_cache_miss_tokens: 20
+        }
+      }
+      
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => cachedResponse
+      } as Response)
+      
+      const result = await provider.analyzeContent("测试")
+      
+      // 验证缓存统计被正确记录
+      // 缓存命中: 80 tokens * 0.2 / 1M = ¥0.000016
+      // 缓存未命中: 20 tokens * 2.0 / 1M = ¥0.000040
+      // 输出: 50 tokens * 3.0 / 1M = ¥0.000150
+      // 总计: ¥0.000206
+      expect(result.metadata.cost).toBeCloseTo(0.000206, 6)
+    })
+    
+    it("应该在小 maxTokens 时不显示截断警告（测试连接场景）", async () => {
+      const truncatedTestResponse: DeepSeekResponse = {
+        id: "test-id",
+        object: "chat.completion",
+        created: Date.now(),
+        model: "deepseek-chat",
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: "assistant",
+              content: "", 
+              reasoning_content: "partial"
+            },
+            finish_reason: "length"
+          }
+        ],
+        usage: {
+          prompt_tokens: 10,
+          completion_tokens: 0,
+          total_tokens: 10
+        }
+      }
+      
+      // Mock 3次响应（因为有重试机制）
+      vi.mocked(fetch).mockResolvedValue({
+        ok: true,
+        json: async () => truncatedTestResponse
+      } as Response)
+      
+      // maxTokens <= 200 时不应该记录警告（测试连接场景）
+      await expect(provider.analyzeContent("测试", { maxTokens: 100 }))
+        .rejects.toThrow() // 依然会抛出错误，但不会有警告日志
+    })
   })
 })

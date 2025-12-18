@@ -29,14 +29,39 @@ export class ReadingListManager {
   /**
    * 将推荐文章保存到 Chrome 阅读列表
    * @param recommendation 推荐条目
+   * @param autoTranslateEnabled 是否启用自动翻译
+   * @param interfaceLanguage 界面语言（用于生成翻译链接）
    * @returns 是否成功保存
    */
-  static async saveRecommendation(recommendation: Recommendation): Promise<boolean> {
+  static async saveRecommendation(
+    recommendation: Recommendation,
+    autoTranslateEnabled: boolean = false,
+    interfaceLanguage: string = 'zh-CN'
+  ): Promise<boolean> {
     try {
-      // 1. 添加到 Chrome 阅读列表（使用原文链接）
+      // 决定使用原文链接还是翻译链接
+      let urlToSave = recommendation.url
+      let titleToSave = recommendation.title
+      
+      // 如果启用自动翻译且存在翻译数据（说明文章语言和界面语言不同）
+      if (autoTranslateEnabled && recommendation.translation) {
+        // 生成谷歌翻译链接
+        const encodedUrl = encodeURIComponent(recommendation.url)
+        urlToSave = `https://translate.google.com/translate?sl=auto&tl=${interfaceLanguage}&u=${encodedUrl}`
+        // 使用翻译后的标题
+        titleToSave = recommendation.translation.translatedTitle
+        
+        rlLogger.info('使用翻译链接保存到阅读列表', {
+          original: recommendation.url,
+          translated: urlToSave,
+          language: `${recommendation.translation.sourceLanguage}→${interfaceLanguage}`
+        })
+      }
+      
+      // 1. 添加到 Chrome 阅读列表
       await chrome.readingList.addEntry({
-        title: recommendation.title,
-        url: recommendation.url,
+        title: titleToSave,
+        url: urlToSave,
         hasBeenRead: false,
       })
 
@@ -51,25 +76,27 @@ export class ReadingListManager {
       // 注：Chrome Reading List API 无 onEntryOpened 事件
       //     保存时预设标记，打开时无法直接监听
       // 使用 local storage 而非 session，避免扩展重启后丢失
+      // ⚠️ 重要：使用实际保存的URL（可能是翻译链接）作为追踪键
       try {
         await chrome.storage.local.set({
-          [`recommendation_tracking_${recommendation.url}`]: {
+          [`recommendation_tracking_${urlToSave}`]: {
             recommendationId: recommendation.id,
             title: recommendation.title,
             source: 'readingList',
             action: 'opened',  // 表示"通过阅读列表打开"
             timestamp: Date.now(),
+            isTranslated: urlToSave !== recommendation.url, // 标记是否使用翻译链接
           },
         })
-        rlLogger.debug('已预设阅读列表追踪标记', { url: recommendation.url })
+        rlLogger.debug('已预设阅读列表追踪标记', { url: urlToSave })
       } catch (storageError) {
         rlLogger.warn('保存追踪标记失败（不影响主功能）', storageError)
       }
 
       rlLogger.info('已保存到阅读列表', {
         id: recommendation.id,
-        title: recommendation.title,
-        url: recommendation.url,
+        title: titleToSave,
+        url: urlToSave,
       })
 
       // 3. 检查是否需要显示提示

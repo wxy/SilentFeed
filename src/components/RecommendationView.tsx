@@ -165,7 +165,7 @@ function getEngineLabel(recommendation: Recommendation, t: (key: string) => stri
 }
 
 export function RecommendationView() {
-  const { _, t } = useI18n()
+  const { _, t, i18n } = useI18n()
   const {
     recommendations,
     isLoading,
@@ -331,8 +331,12 @@ export function RecommendationView() {
         element.style.pointerEvents = 'none'
       }
       
-      // 保存到 Chrome 阅读列表
-      await ReadingListManager.saveRecommendation(rec)
+      // 获取自动翻译配置和界面语言
+      const config = await getUIConfig()
+      const currentLanguage = i18n.language
+      
+      // 保存到 Chrome 阅读列表（传递配置用于决定使用原文还是翻译链接）
+      await ReadingListManager.saveRecommendation(rec, config.autoTranslate, currentLanguage)
       recViewLogger.info(`✅ 已保存到稍后读: ${rec.id}`)
       
       // 从推荐列表移除（但不标记为不想读）
