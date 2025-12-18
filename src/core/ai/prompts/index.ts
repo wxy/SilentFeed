@@ -71,6 +71,16 @@ export class PromptManager {
       prompt = prompt.replace(/\{\{avoidTopics\}\}/g, profile.avoidTopics.join('、'))
     }
     
+    // 处理条件渲染：{{#originalTitle}}...{{/originalTitle}}
+    if (variables.originalTitle) {
+      // 有原标题：显示条件块内容，并替换 {{originalTitle}} 变量
+      prompt = prompt.replace(/\{\{#originalTitle\}\}([\s\S]*?)\{\{\/originalTitle\}\}/g, '$1')
+      prompt = prompt.replace(/\{\{originalTitle\}\}/g, variables.originalTitle)
+    } else {
+      // 无原标题：移除条件块
+      prompt = prompt.replace(/\{\{#originalTitle\}\}[\s\S]*?\{\{\/originalTitle\}\}/g, '')
+    }
+    
     return prompt
   }
   
@@ -81,13 +91,15 @@ export class PromptManager {
    * @param content - 文章内容
    * @param userProfile - 用户画像（可选）
    * @param useReasoning - 是否使用推理模式
+   * @param originalTitle - 原文标题（可选，用于翻译）
    * @returns 渲染后的提示词
    */
   getAnalyzeContentPrompt(
     language: SupportedLanguage,
     content: string,
     userProfile?: PromptVariables['userProfile'],
-    useReasoning = false
+    useReasoning = false,
+    originalTitle?: string
   ): string {
     const templates = this.getTemplates(language)
     const analyzeTemplates = useReasoning 
@@ -98,7 +110,7 @@ export class PromptManager {
       ? analyzeTemplates.withProfile 
       : analyzeTemplates.withoutProfile
     
-    return this.render(template, { content, userProfile })
+    return this.render(template, { content, userProfile, originalTitle })
   }
   
   /**

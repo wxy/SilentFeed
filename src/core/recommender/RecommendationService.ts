@@ -590,7 +590,17 @@ export class RecommendationService {
         score: article.score,
         reason: article.reason,
         isRead: false,
-        status: 'active'  // Phase 7: 新推荐默认为活跃状态
+        status: 'active',  // Phase 7: 新推荐默认为活跃状态
+        // Phase 9: 如果 AI 返回了翻译标题，直接填充 translation 字段
+        ...(article.aiAnalysis?.translatedTitle ? {
+          translation: {
+            sourceLanguage: this.detectLanguage(article.title),
+            targetLanguage: this.getCurrentLanguage(),
+            translatedTitle: article.aiAnalysis.translatedTitle,
+            translatedSummary: article.aiAnalysis.summary || '',  // 摘要已是目标语言
+            translatedAt: now
+          }
+        } : {})
       }
 
       // 临时诊断日志：检查摘要数据
@@ -708,6 +718,30 @@ export class RecommendationService {
       default:
         return '未知算法'
     }
+  }
+
+  /**
+   * 简单的语言检测
+   * Phase 9: 用于确定源语言
+   */
+  private detectLanguage(text: string): string {
+    if (/[\u3040-\u309f\u30a0-\u30ff]/.test(text)) return 'ja'
+    if (/[\uac00-\ud7af]/.test(text)) return 'ko'
+    if (/[\u4e00-\u9fa5]/.test(text)) return 'zh-CN'
+    return 'en'
+  }
+
+  /**
+   * 获取当前界面语言
+   * Phase 9: 用于确定目标语言
+   */
+  private getCurrentLanguage(): string {
+    // 从 i18n 获取用户选择的界面语言
+    const lang = (typeof window !== 'undefined' && (window as any).i18n?.language) || 'en'
+    if (lang.startsWith('zh')) return 'zh-CN'
+    if (lang.startsWith('ja')) return 'ja'
+    if (lang.startsWith('ko')) return 'ko'
+    return 'en'
   }
 }
 

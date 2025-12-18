@@ -185,6 +185,18 @@ export interface UnifiedAnalysisResult {
   embedding?: number[]
 
   /**
+   * 可选：AI 生成的摘要（替代 RSS 摘要）
+   * Phase 8: 用于推荐弹窗显示
+   */
+  summary?: string
+
+  /**
+   * 可选：AI 翻译的标题
+   * Phase 9: 当原文标题与界面语言不同时，AI 同时生成翻译后的标题
+   */
+  translatedTitle?: string
+
+  /**
    * 分析元数据
    */
   metadata: {
@@ -313,6 +325,12 @@ export interface AnalyzeOptions {
     /** 避免的主题列表 */
     avoidTopics: string[]
   }
+
+  /**
+   * Phase 9: 原文标题（可选，用于 AI 翻译）
+   * 如果提供，AI 将在生成摘要的同时翻译标题
+   */
+  originalTitle?: string
 }
 
 /**

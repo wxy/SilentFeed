@@ -72,6 +72,8 @@ export interface RecommendedArticle {
     provider?: string
     /** 可选：AI 生成的文章摘要（用于替换 RSS 摘要） */
     summary?: string
+    /** Phase 9: AI 翻译的标题（当原文与界面语言不同时） */
+    translatedTitle?: string
   }
 }
 
