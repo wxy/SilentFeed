@@ -238,6 +238,13 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
       
       // 刷新统计
       await get().refreshStats()
+      
+      // 通知背景脚本更新图标（更新推荐数字徽章）
+      try {
+        await chrome.runtime.sendMessage({ type: 'RECOMMENDATIONS_DISMISSED' })
+      } catch (messageError) {
+        console.warn('[RecommendationStore] 无法通知背景脚本:', messageError)
+      }
     } catch (error) {
       console.error('标记"不想读"失败:', error)
       set({
@@ -372,6 +379,13 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
       
       // 第四步：刷新统计
       await get().refreshStats()
+      
+      // 第五步：通知背景脚本更新图标（更新推荐数字徽章）
+      try {
+        await chrome.runtime.sendMessage({ type: 'RECOMMENDATIONS_DISMISSED' })
+      } catch (messageError) {
+        console.warn('[RecommendationStore] 无法通知背景脚本:', messageError)
+      }
       
     } catch (error) {
       console.error('[RecommendationStore] 移除推荐失败:', error)
