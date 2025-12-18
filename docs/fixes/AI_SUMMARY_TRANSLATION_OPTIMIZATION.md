@@ -2,15 +2,28 @@
 
 ## 问题描述
 
-当前推荐系统的翻译流程存在效率问题：
+### 当前实现（✅ 已实现 Phase 1）
 
-1. **AI 分析阶段**：AI 用中文生成摘要（prompt 是中文）
-2. **推荐生成阶段**：创建推荐条目（标题仍是英文）
-3. **翻译阶段**：单独调用翻译服务翻译标题和摘要
+推荐系统的翻译流程：
 
-**问题**：
-- 摘要已经是中文了，为什么不在生成摘要时就翻译标题？
-- 多次调用 API（AI 分析 + 翻译），增加成本和延迟
+1. **AI 分析阶段**：
+   - ✅ 已根据界面语言选择 prompt（`BaseAIService.initializeLanguage()`）
+   - ✅ 界面中文 → 中文 prompt → AI 生成**中文摘要**
+   - ✅ 界面英文 → 英文 prompt → AI 生成**英文摘要**
+
+2. **推荐生成阶段**：
+   - 创建推荐条目（**标题仍是原文**，如英文）
+   - 摘要已是界面语言（中文）
+
+3. **翻译阶段**（`translateRecommendation()`）：
+   - ❌ **问题**：同时翻译标题和摘要
+   - ❌ **浪费**：摘要已是目标语言，被重复翻译
+
+### 核心问题
+
+- **摘要**：已经是界面语言（AI 生成时已解决）✅
+- **标题**：仍是原文，需要单独翻译 ❌
+- **优化空间**：让 AI 在生成摘要时同时翻译标题，**完全避免调用翻译服务**
 
 ## 优化方案
 
@@ -194,13 +207,17 @@ async process(input: RecommendationInput): Promise<RecommendationResult> {
 
 ## 实施计划
 
-### Phase 1: 基础优化（立即实施）
-- [ ] 根据界面语言动态选择 prompt 语言
-- [ ] 测试中文/英文 prompt 生成的摘要质量
-
-### Phase 2: 标题翻译集成（后续优化）
+### Phase 1: 基础优化（✅ 已完成）
+- [x] 根据界面语言动态选择 prompt 语言
+- [x] `BaseAIService.initializeLanguage()` 从 chrome.storage 读取语言偏好
+- [x] 摘要已自动生成为界面语言
+待实施，高优先级）
 - [ ] 增强 prompt 模板，添加标题翻译提示
-- [ ] 修改 `BaseAIService.analyzeContent` 接口
+- [ ] 修改 `BaseAIService.analyzeContent` 接口（传递原标题）
+- [ ] 修改推荐管道，传递原标题给 AI
+- [ ] 优化 `translateRecommendation()`：
+  - 如果 AI 已返回 `translatedTitle`，跳过翻译服务
+  - 摘要无需翻译（已是界面语言）vice.analyzeContent` 接口
 - [ ] 修改推荐管道，传递翻译参数
 - [ ] 添加回退机制（AI 未返回翻译时使用翻译服务）
 
