@@ -24,6 +24,7 @@ import { sendRecommendationNotification } from './notification'
 import { translateRecommendations } from '../translator/recommendation-translator'
 import { getUIConfig } from '../../storage/ui-config'
 import { logger } from '../../utils/logger'
+import { passesHistoricalBaseline } from './historical-score-tracker'
 
 // 创建带标签的 logger
 const recLogger = logger.withTag('RecommendationService')
@@ -490,6 +491,23 @@ export class RecommendationService {
       const poolSize = currentPool.length
       const baseSize = config.maxRecommendations || 3
       const maxSize = baseSize * POOL_SIZE_MULTIPLIER
+      
+      // ⚠️ 新增：历史评分基准检查（防止低分推荐持续进入）
+      // 如果推荐池已经有一定数量，新推荐需要达到历史基准才能进入
+      const minPoolSizeForBaseline = baseSize // 当池中已有弹窗容量的推荐时启用基准检查
+      
+      if (poolSize >= minPoolSizeForBaseline) {
+        const passesBaseline = await passesHistoricalBaseline(article.score, {
+          strategy: 'recent',
+          recentCount: 20,
+          enabled: true
+        })
+        
+        if (!passesBaseline) {
+          recLogger.info(` ❌ 未通过历史基准检查: ${article.title} (${article.score.toFixed(2)})`)
+          continue // 不符合历史基准，跳过
+        }
+      }
       
       // 规则 1: 如果池未满，直接加入（已经通过质量阈值筛选）
       if (poolSize < maxSize) {
