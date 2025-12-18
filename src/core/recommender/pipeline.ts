@@ -165,7 +165,7 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
       cutoffDate.setDate(cutoffDate.getDate() - DAYS_LIMIT)
       
       const filteredArticles = articles.filter(article => {
-        const publishDate = article.pubDate ? new Date(article.pubDate) : new Date()
+        const publishDate = article.published ? new Date(article.published) : new Date()
         if (publishDate < cutoffDate) {
           return false
         }
@@ -200,8 +200,8 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
           const content = enhancedArticle.fullContent || article.content || article.description || article.title
           tfidfScore = this.calculateSimpleRelevance(content, userInterests)
           
-          // 3. 保存 TF-IDF 分数到数据库（缓存以避免重复计算）
-          await this.saveTFIDFScore(article.id, article.feedId, tfidfScore)
+          // 3. 保存 TF-IDF 分数和全文到数据库（缓存以避免重复计算和抓取）
+          await this.saveArticleEnhancement(article.id, article.feedId, tfidfScore, enhancedArticle.fullContent)
         }
         
         // 更新进度
@@ -225,6 +225,10 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
         // 如果使用了缓存的 TF-IDF 分数，现在才抓取全文
         if (article.tfidfScore !== undefined && !enhancedArticle.fullContent) {
           enhancedArticle = await this.fetchSingleArticle(article, context)
+          // 保存抓取的全文到数据库
+          if (enhancedArticle.fullContent) {
+            await this.saveArticleFullContent(article.id, enhancedArticle.fullContent)
+          }
         }
         
         // 确保 enhancedArticle 包含 tfidfScore（用于最终评分计算）
@@ -961,23 +965,45 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
    * @param articleId - 文章 ID
    * @param feedId - RSS 源 ID
    * @param tfidfScore - TF-IDF 评分
+   * @param fullContent - 全文内容（可选）
    */
-  private async saveTFIDFScore(
+  private async saveArticleEnhancement(
     articleId: string,
     feedId: string,
-    tfidfScore: number
+    tfidfScore: number,
+    fullContent?: string
   ): Promise<void> {
     try {
       // Phase 7: 直接更新 feedArticles 表
-      await db.feedArticles.update(articleId, {
-        tfidfScore
-      })
+      // Phase 11: 同时保存全文内容（用于避免重复抓取）
+      const updates: any = { tfidfScore }
       
-      // 已保存TF-IDF分数
+      // 如果抓取了全文，保存到 content 字段（仅当原 content 为空或太短时）
+      if (fullContent && fullContent.length > 500) {
+        updates.content = fullContent
+      }
+      
+      await db.feedArticles.update(articleId, updates)
       
     } catch (error) {
-      console.warn(`[Pipeline] ⚠️ 保存 TF-IDF 分数失败: ${articleId}`, error)
+      console.warn(`[Pipeline] ⚠️ 保存文章增强数据失败: ${articleId}`, error)
       // 不抛出错误，保存失败不影响推荐流程
+    }
+  }
+
+  /**
+   * 单独保存全文内容
+   */
+  private async saveArticleFullContent(
+    articleId: string,
+    fullContent: string
+  ): Promise<void> {
+    try {
+      if (fullContent && fullContent.length > 500) {
+        await db.feedArticles.update(articleId, { content: fullContent })
+      }
+    } catch (error) {
+      console.warn(`[Pipeline] ⚠️ 保存全文内容失败: ${articleId}`, error)
     }
   }
 }
