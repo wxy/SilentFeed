@@ -503,7 +503,8 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
         // Phase 9: 明确从配置中读取推理模式，避免 false 被 || 忽略
         useReasoning: context.config.useReasoning ?? false,
         userProfile: aiUserProfile,
-        purpose: 'recommend-content' as const  // 指定为RSS推荐任务
+        purpose: 'recommend-content' as const,  // 指定为RSS推荐任务
+        originalTitle: article.title  // Phase 9: 传递原标题用于 AI 翻译
       }
       
       // Phase 8: 使用 feedAnalysis 任务类型（会从引擎分配配置中自动读取引擎和推理设置）
@@ -536,7 +537,8 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
           keyPoints: this.extractKeyPoints(analysis, article as any),
           topics: analysis.topicProbabilities,
           provider: analysis.metadata?.provider || 'unknown',
-          summary: (analysis as any).summary || undefined
+          summary: (analysis as any).summary || undefined,
+          translatedTitle: (analysis as any).translatedTitle || undefined  // Phase 9: AI 翻译的标题
         }
       }
       

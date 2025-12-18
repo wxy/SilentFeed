@@ -248,7 +248,8 @@ export abstract class BaseAIService implements AIProvider {
           this.language,
           processedContent,
           options?.userProfile,
-          options?.useReasoning
+          options?.useReasoning,
+          options?.originalTitle  // Phase 9: 传递原标题用于翻译
         )
         
         // 3. 调用 API
@@ -333,6 +334,8 @@ export abstract class BaseAIService implements AIProvider {
         topicProbabilities: normalizedTopics,
         // 可选：AI 生成摘要（用于替换 RSS 摘要）
         ...(analysis.summary ? { summary: analysis.summary } as any : {}),
+        // Phase 9: 可选：AI 翻译的标题
+        ...(analysis.translatedTitle ? { translatedTitle: analysis.translatedTitle } as any : {}),
         metadata: {
           provider: this.name.toLowerCase() as any,
           model: this.resolveModelName(response.model),

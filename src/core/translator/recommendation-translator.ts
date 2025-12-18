@@ -62,8 +62,23 @@ export async function translateRecommendation(
 
     // 2. 获取目标语言（界面语言）
     const targetLanguage = getCurrentLanguage()
+    
+    // Phase 9: 如果已有翻译数据（AI 已翻译），只需验证目标语言是否匹配
+    if (recommendation.translation) {
+      // 如果翻译目标语言匹配当前界面语言，直接返回
+      if (recommendation.translation.targetLanguage === targetLanguage) {
+        translationLogger.debug(`推荐 ${recommendation.id} 已有匹配的翻译，跳过`)
+        return recommendation
+      }
+      
+      // 如果目标语言不匹配，需要重新翻译（但这种情况应该很少见）
+      translationLogger.debug(`推荐 ${recommendation.id} 翻译目标语言不匹配，需要重新翻译`, {
+        current: recommendation.translation.targetLanguage,
+        target: targetLanguage
+      })
+    }
 
-    // 3. 翻译标题和摘要
+    // 3. 翻译标题和摘要（如果还没有翻译）
     const translator = new TranslationService()
     
     const [titleResult, summaryResult] = await Promise.all([

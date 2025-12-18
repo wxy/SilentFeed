@@ -95,7 +95,10 @@
     "showOriginal": "原文",
     "translating": "翻译中...",
     "openInGoogleTranslate": "通过谷歌翻译打开",
-    "clickToTranslate": "点击访问翻译为{{language}}的版本"
+    "clickToTranslate": "点击访问翻译为{{language}}的版本",
+    "viewOriginal": "原文：{{language}}",
+    "clickToViewOriginal": "点击查看原文",
+    "translate": "翻译"
   },
   "languages": {
     "en": "英文",

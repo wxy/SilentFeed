@@ -149,6 +149,9 @@
     "translating": "Translating...",
     "openInGoogleTranslate": "Open via Google Translate",
     "clickToTranslate": "Click to visit the version translated into {{language}}",
+    "viewOriginal": "Original: {{language}}",
+    "clickToViewOriginal": "Click to view the original article",
+    "translate": "Translate",
     "noRSSFeeds": {
       "title": "Not subscribed to any feeds yet",
       "description": "After adding a subscription source, we can recommend exciting content for you.",

@@ -24,6 +24,7 @@ import { sendRecommendationNotification } from './notification'
 import { translateRecommendations } from '../translator/recommendation-translator'
 import { getUIConfig } from '../../storage/ui-config'
 import { logger } from '../../utils/logger'
+import { passesHistoricalBaseline } from './historical-score-tracker'
 
 // 创建带标签的 logger
 const recLogger = logger.withTag('RecommendationService')
@@ -491,6 +492,28 @@ export class RecommendationService {
       const baseSize = config.maxRecommendations || 3
       const maxSize = baseSize * POOL_SIZE_MULTIPLIER
       
+      // ⚠️ 新增：历史评分基准检查（防止低分推荐持续进入）
+      // 如果推荐池已经有一定数量，新推荐需要达到历史基准才能进入
+      const minPoolSizeForBaseline = baseSize // 当池中已有弹窗容量的推荐时启用基准检查
+      
+      if (poolSize >= minPoolSizeForBaseline) {
+        // 使用推荐池大小×2作为历史样本数，避免样本过少导致基准不稳定
+        const historicalSampleSize = maxSize * 2 // 推荐池容量×2（例如：6×2=12 或 10×2=20）
+        
+        const passesBaseline = await passesHistoricalBaseline(article.score, {
+          strategy: 'recent',
+          recentCount: historicalSampleSize,
+          enabled: true,
+          minimumBaseline: 0.55,
+          maximumBaseline: 0.75 // 防止门槛过高
+        })
+        
+        if (!passesBaseline) {
+          recLogger.info(` ❌ 未通过历史基准检查: ${article.title} (${article.score.toFixed(2)})`)
+          continue // 不符合历史基准，跳过
+        }
+      }
+      
       // 规则 1: 如果池未满，直接加入（已经通过质量阈值筛选）
       if (poolSize < maxSize) {
         recLogger.info(` ✅ 池未满 (${poolSize}/${maxSize})，直接加入: ${article.title} (${article.score.toFixed(2)})`)
@@ -567,7 +590,17 @@ export class RecommendationService {
         score: article.score,
         reason: article.reason,
         isRead: false,
-        status: 'active'  // Phase 7: 新推荐默认为活跃状态
+        status: 'active',  // Phase 7: 新推荐默认为活跃状态
+        // Phase 9: 如果 AI 返回了翻译标题，直接填充 translation 字段
+        ...(article.aiAnalysis?.translatedTitle ? {
+          translation: {
+            sourceLanguage: this.detectLanguage(article.title),
+            targetLanguage: this.getCurrentLanguage(),
+            translatedTitle: article.aiAnalysis.translatedTitle,
+            translatedSummary: article.aiAnalysis.summary || '',  // 摘要已是目标语言
+            translatedAt: now
+          }
+        } : {})
       }
 
       // 临时诊断日志：检查摘要数据
@@ -685,6 +718,30 @@ export class RecommendationService {
       default:
         return '未知算法'
     }
+  }
+
+  /**
+   * 简单的语言检测
+   * Phase 9: 用于确定源语言
+   */
+  private detectLanguage(text: string): string {
+    if (/[\u3040-\u309f\u30a0-\u30ff]/.test(text)) return 'ja'
+    if (/[\uac00-\ud7af]/.test(text)) return 'ko'
+    if (/[\u4e00-\u9fa5]/.test(text)) return 'zh-CN'
+    return 'en'
+  }
+
+  /**
+   * 获取当前界面语言
+   * Phase 9: 用于确定目标语言
+   */
+  private getCurrentLanguage(): string {
+    // 从 i18n 获取用户选择的界面语言
+    const lang = (typeof window !== 'undefined' && (window as any).i18n?.language) || 'en'
+    if (lang.startsWith('zh')) return 'zh-CN'
+    if (lang.startsWith('ja')) return 'ja'
+    if (lang.startsWith('ko')) return 'ko'
+    return 'en'
   }
 }
 

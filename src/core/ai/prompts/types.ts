@@ -65,4 +65,6 @@ export interface PromptVariables {
   currentProfile?: UserProfile
   /** 行为摘要 */
   behaviorSummary?: string
+  /** 原文标题（用于翻译）*/
+  originalTitle?: string
 }

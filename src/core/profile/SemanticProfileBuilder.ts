@@ -31,19 +31,24 @@ const MAX_DISMISSES = 30
  * 
  * 核心设计：
  * - BROWSE_THRESHOLD: 浏览 50 页触发画像更新
- * - READ_THRESHOLD: 动态获取，等于弹窗容量 (maxRecommendations)
- * - DISMISS_THRESHOLD: 动态获取，等于弹窗容量 (maxRecommendations)
+ * - READ_THRESHOLD: 动态获取，等于推荐池容量 (maxRecommendations × 2)
+ * - DISMISS_THRESHOLD: 动态获取，等于推荐池容量 (maxRecommendations × 2)
  * - GLOBAL_UPDATE_INTERVAL_MS: 3 小时全局间隔（所有行为共享）
  * 
  * 触发逻辑：
- *   (距上次更新 ≥ 3小时) AND (浏览≥50 OR 阅读≥弹窗容量 OR 拒绝≥弹窗容量)
+ *   (距上次更新 ≥ 3小时) AND (浏览≥50 OR 阅读≥推荐池容量 OR 拒绝≥推荐池容量)
  * 
  * 频率控制：
  *   工作日 8 小时 ÷ 3 小时间隔 = 最多 3 次自动更新
+ * 
+ * ⚠️ 重要：使用推荐池容量（弹窗容量×2）而不是弹窗容量
+ *   - 避免用户清空一次弹窗就触发画像更新
+ *   - 确保用户真正清空了整个推荐池才触发
  */
 const BROWSE_THRESHOLD = 50     // 浏览 50 页触发全量更新
-// READ_THRESHOLD 动态获取，等于弹窗容量（3-5 条）
-// DISMISS_THRESHOLD 动态获取，等于弹窗容量（3-5 条）
+// READ_THRESHOLD 动态获取，等于推荐池容量（弹窗容量 × 2，例如 6-10 条）
+// DISMISS_THRESHOLD 动态获取，等于推荐池容量（弹窗容量 × 2，例如 6-10 条）
+const POOL_SIZE_MULTIPLIER = 2  // 推荐池倍数（与 RecommendationService 保持一致）
 
 /**
  * Phase 12.7: 全局时间间隔（所有行为共享）
@@ -248,9 +253,10 @@ export class SemanticProfileBuilder {
     this.readCount++
     await this.saveCounters()  // 持久化计数器
     
-    // Phase 12.7: 阅读阈值动态获取，等于弹窗容量（与拒绝对称）
+    // Phase 12.7: 阅读阈值动态获取，等于推荐池容量（弹窗容量 × 2）
+    // ⚠️ 修复：使用推荐池容量而不是弹窗容量，避免清空一次弹窗就触发
     const config = await getRecommendationConfig()
-    const readThreshold = config.maxRecommendations
+    const readThreshold = (config.maxRecommendations || 3) * POOL_SIZE_MULTIPLIER
     
     if (this.readCount >= readThreshold) {
       // 达到阈值 → 检查全局时间间隔
@@ -294,12 +300,13 @@ export class SemanticProfileBuilder {
       profileLogger.debug('清除旧的防抖定时器')
     }
     
-    // 4. 动态获取触发阈值（等于弹窗容量）
-    // 原理：用户拒绝一屏弹窗的所有推荐后，应该重新学习用户兴趣
+    // 4. 动态获取触发阈值（等于推荐池容量，弹窗容量 × 2）
+    // ⚠️ 修复：使用推荐池容量而不是弹窗容量
+    // 原理：用户拒绝整个推荐池的推荐后，应该重新学习用户兴趣
     const config = await getRecommendationConfig()
-    const dismissThreshold = config.maxRecommendations // 3-5 条，自适应调整
+    const dismissThreshold = (config.maxRecommendations || 3) * POOL_SIZE_MULTIPLIER // 6-10 条
     
-    // 5. 检查是否达到批量阈值（一个弹窗容量的拒绝）
+    // 5. 检查是否达到批量阈值（一个推荐池容量的拒绝）
     if (this.dismissQueue.length >= dismissThreshold) {
       const timeSinceLastUpdate = Date.now() - this.lastAutoUpdateTime
       if (timeSinceLastUpdate >= GLOBAL_UPDATE_INTERVAL_MS) {

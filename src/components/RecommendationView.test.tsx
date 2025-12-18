@@ -103,6 +103,7 @@ vi.mock("@/storage/ui-config", () => ({
     style: "sketchy",
     autoTranslate: false,
   }),
+  watchAutoTranslate: vi.fn().mockReturnValue(() => {}), // 返回 unwatch 函数
 }))
 
 // Mock recommendation store

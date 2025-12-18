@@ -192,33 +192,57 @@ export async function adjustRecommendationCount(
   const clickRate = calculateClickRate(metrics)
   const popupFrequency = calculatePopupFrequency(metrics)
   
-  let adjustment = 0
+  console.log('📊 [弹窗容量评估] 当前指标:', {
+    当前容量: currentCount,
+    总推荐数: metrics.totalRecommendations,
+    点击数: metrics.clickCount,
+    不想读数: metrics.dismissCount,
+    全部不想读次数: metrics.dismissAllCount,
+    弹窗打开次数24h: popupFrequency,
+    点击率: (clickRate * 100).toFixed(1) + '%',
+    不想读率: (dismissRate * 100).toFixed(1) + '%'
+  })
   
-  // 1. 全部不想读（强信号）- 最近频繁点击
-  if (metrics.dismissAllCount >= 3) {
-    adjustment -= 2 // 强烈减少
+  let adjustment = 0
+  const reasons: string[] = []
+  
+  // 1. 全部不想读（强信号）- 降低门槛使其更容易触发
+  if (metrics.dismissAllCount >= 2) {
+    adjustment -= 2 // 强烈减少（降低：3→2）
+    reasons.push('全部不想读≥2次 (-2)')
   } else if (metrics.dismissAllCount >= 1) {
     adjustment -= 1 // 减少
+    reasons.push('全部不想读≥1次 (-1)')
   }
   
-  // 2. 单个不想读率
-  if (dismissRate > 0.7) {
-    adjustment -= 1 // 不想读率高，减少
+  // 2. 单个不想读率（降低门槛）
+  if (dismissRate > 0.5) {
+    adjustment -= 1 // 不想读率高，减少（降低：0.7→0.5）
+    reasons.push(`不想读率>${(0.5*100).toFixed(0)}% (-1)`)
   }
   
-  // 3. 点击率（正向）
-  if (clickRate > 0.5) {
-    adjustment += 1 // 点击率高，增加
+  // 3. 点击率（正向，降低门槛）
+  if (clickRate > 0.3) {
+    adjustment += 1 // 点击率高，增加（降低：0.5→0.3）
+    reasons.push(`点击率>${(0.3*100).toFixed(0)}% (+1)`)
   }
   
-  // 4. 弹窗打开频率（正向）
-  if (popupFrequency >= 5) {
-    adjustment += 1 // 高频打开，增加
+  // 4. 弹窗打开频率（正向，降低门槛）
+  if (popupFrequency >= 3) {
+    adjustment += 1 // 高频打开，增加（降低：5→3）
+    reasons.push('打开频率≥3次/天 (+1)')
   }
   
   // 计算新数量（限制在1-5范围内）
   const newCount = Math.max(1, Math.min(5, currentCount + adjustment))
   
+  console.log('📊 [弹窗容量评估] 调整结果:', {
+    原容量: currentCount,
+    调整值: adjustment,
+    新容量: newCount,
+    是否变化: newCount !== currentCount,
+    触发原因: reasons.length > 0 ? reasons.join(', ') : '无触发条件'
+  })
   
   return newCount
 }

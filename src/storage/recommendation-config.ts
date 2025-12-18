@@ -159,7 +159,7 @@ const DEFAULT_CONFIG: RecommendationConfig = {
   useLocalAI: false,   // @deprecated 向后兼容
   maxRecommendations: 3, // 初始值3条，后续自动调整
   batchSize: 1, // Phase 6: 默认每次处理 1 篇文章（避免超时）
-  qualityThreshold: 0.7, // Phase 8: 提高质量阈值到 0.7，减少低质量推荐
+  qualityThreshold: 0.8, // Phase 9: 提高质量阈值到 0.8，实施激进质量控制（过滤 50-60% 低质量）
   tfidfThreshold: 0.01 // 保持原值，避免过度过滤
 }
 
