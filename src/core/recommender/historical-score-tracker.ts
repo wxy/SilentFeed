@@ -37,8 +37,8 @@ const DEFAULT_CONFIG: HistoricalScoreConfig = {
   strategy: 'recent',
   recentCount: 20, // 默认 20 条，实际使用时会根据推荐池大小动态调整
   enabled: true,
-  minimumBaseline: 0.55, // 略低于 qualityThreshold (0.6)，给新推荐一点机会
-  maximumBaseline: 0.75  // 新增：最大基准上限，防止门槛过高导致无推荐可进
+  minimumBaseline: 0.55, // 略低于 qualityThreshold (0.8)，给新推荐一点机会
+  maximumBaseline: 0.85  // Phase 9: 匹配 qualityThreshold 0.8 的严格标准，允许基准上升到更高水平
 }
 
 /**
