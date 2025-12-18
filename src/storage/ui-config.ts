@@ -93,6 +93,25 @@ export function watchUIStyle(callback: (style: UIStyle) => void): () => void {
 }
 
 /**
+ * 监听自动翻译配置变化
+ * @param callback - 配置变化时的回调函数
+ * @returns 取消监听的函数
+ */
+export function watchAutoTranslate(callback: (enabled: boolean) => void): () => void {
+  const listener = (changes: { [key: string]: chrome.storage.StorageChange }) => {
+    if (changes[AUTO_TRANSLATE_KEY]) {
+      callback(changes[AUTO_TRANSLATE_KEY].newValue as boolean)
+    }
+  }
+  
+  chrome.storage.onChanged.addListener(listener)
+  
+  return () => {
+    chrome.storage.onChanged.removeListener(listener)
+  }
+}
+
+/**
  * 检测当前系统主题
  * @returns 系统是否为暗色主题
  */

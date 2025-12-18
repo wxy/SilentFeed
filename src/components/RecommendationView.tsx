@@ -24,7 +24,7 @@ import { formatRecommendationReason } from "@/utils/formatReason"
 import type { Recommendation } from "@/types/database"
 import { logger } from "@/utils/logger"
 import { getDisplayText, formatLanguageLabel, translateOnDemand } from "@/core/translator/recommendation-translator"
-import { getUIConfig } from "@/storage/ui-config"
+import { getUIConfig, watchAutoTranslate } from "@/storage/ui-config"
 import { getOnboardingState } from "@/storage/onboarding-state"
 import { getPageCount } from "@/storage/db"
 
@@ -74,20 +74,25 @@ function getGoogleTranslateUrl(url: string, targetLanguage: string): string {
 
 /**
  * 生成语言标签显示文本和样式
+ * 新逻辑（Phase 9）：
+ * - 符合界面语言：不显示标签
+ * - 不符合界面语言 + 自动翻译开启：显示「原文：语言」按钮，点击访问原文
+ * - 不符合界面语言 + 自动翻译关闭：显示「翻译」按钮，点击访问翻译
  * @param sourceLanguage 源语言
  * @param targetLanguage 目标语言（如果需要翻译）
- * @param isTranslated 是否已翻译
+ * @param autoTranslateEnabled 是否开启自动翻译
  * @param t i18n 翻译函数
  */
 function getLanguageLabel(
   sourceLanguage: string,
   targetLanguage: string | undefined,
-  isTranslated: boolean,
+  autoTranslateEnabled: boolean,
   t: (key: string, options?: any) => string
 ): {
   text: string
   tooltip: string
-  needsTranslation: boolean
+  showLabel: boolean      // 是否显示标签
+  actionType: 'original' | 'translate' | 'none'  // 点击行为
   className: string
 } {
   // 使用 i18n 获取语言名称
@@ -103,26 +108,38 @@ function getLanguageLabel(
   
   const sourceLang = getLanguageName(sourceLanguage)
   
-  // 如果已经是目标语言，只显示语言标签
-  if (!targetLanguage || sourceLanguage === targetLanguage) {
+  // 符合界面语言：不显示标签
+  if (!targetLanguage || sourceLanguage.toLowerCase().startsWith(targetLanguage.toLowerCase().split('-')[0]) || 
+      targetLanguage.toLowerCase().startsWith(sourceLanguage.toLowerCase().split('-')[0])) {
     return {
-      text: sourceLang,
-      tooltip: sourceLang,
-      needsTranslation: false,
-      className: 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+      text: '',
+      tooltip: '',
+      showLabel: false,
+      actionType: 'none',
+      className: ''
     }
   }
   
-  const targetLang = getLanguageName(targetLanguage)
-  
-  // 需要翻译：显示 英文→简体中文
-  return {
-    text: `${sourceLang}→${targetLang}`,
-    tooltip: t('popup.clickToTranslate', { language: targetLang }),
-    needsTranslation: true,
-    className: isTranslated 
-      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-      : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-800/40 cursor-pointer'
+  // 不符合界面语言
+  if (autoTranslateEnabled) {
+    // 自动翻译开启：默认打开翻译，显示「原文：语言」按钮
+    return {
+      text: t('popup.viewOriginal', { language: sourceLang }),
+      tooltip: t('popup.clickToViewOriginal'),
+      showLabel: true,
+      actionType: 'original',
+      className: 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 cursor-pointer'
+    }
+  } else {
+    // 自动翻译关闭：默认打开原文，显示「翻译」按钮
+    const targetLang = getLanguageName(targetLanguage)
+    return {
+      text: t('popup.translate'),
+      tooltip: t('popup.clickToTranslate', { language: targetLang }),
+      showLabel: true,
+      actionType: 'translate',
+      className: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-800/40 cursor-pointer'
+    }
   }
 }
 
@@ -602,13 +619,21 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
   const [currentRecommendation, setCurrentRecommendation] = useState(recommendation)
   const [isTranslating, setIsTranslating] = useState(false)
   
-  // 加载自动翻译配置
+  // 加载自动翻译配置，并监听变化
   useEffect(() => {
     const loadConfig = async () => {
       const config = await getUIConfig()
       setAutoTranslateEnabled(config.autoTranslate)
     }
     loadConfig()
+    
+    // 监听自动翻译配置变化
+    const unwatch = watchAutoTranslate((enabled) => {
+      recViewLogger.debug(`自动翻译配置已变化: ${enabled}`)
+      setAutoTranslateEnabled(enabled)
+    })
+    
+    return () => unwatch()
   }, [])
   
   // 当推荐或配置变化时，检查是否需要即时翻译
@@ -637,6 +662,88 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
   // 获取显示文本（自动选择原文或译文）
   const displayText = getDisplayText(currentRecommendation, showOriginal, autoTranslateEnabled)
   
+  // 判断是否需要翻译（源语言与目标语言不同）
+  const needsTranslation = displayText.targetLanguage && 
+    !displayText.sourceLanguage.toLowerCase().startsWith(displayText.targetLanguage.toLowerCase().split('-')[0]) &&
+    !displayText.targetLanguage.toLowerCase().startsWith(displayText.sourceLanguage.toLowerCase().split('-')[0])
+  
+  // 计算默认打开的 URL
+  // 逻辑：自动翻译开启 + 需要翻译 → 默认打开翻译版；否则打开原文
+  const getDefaultUrl = (): string => {
+    if (autoTranslateEnabled && needsTranslation) {
+      return getGoogleTranslateUrl(currentRecommendation.url, i18n.language)
+    }
+    return currentRecommendation.url
+  }
+  
+  // 处理默认点击（标题/摘要）
+  const handleDefaultClick = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    
+    const url = getDefaultUrl()
+    const isTranslated = autoTranslateEnabled && needsTranslation
+    
+    recViewLogger.debug(`点击条目（默认）: ${currentRecommendation.id}, 翻译版: ${isTranslated}`)
+    
+    // 从推荐列表移除
+    if (onRemoveFromList) {
+      await onRemoveFromList()
+    }
+    
+    // 发送消息打开页面
+    chrome.runtime.sendMessage({
+      type: 'OPEN_RECOMMENDATION',
+      data: {
+        url,
+        recommendationId: currentRecommendation.id,
+        title: currentRecommendation.title,
+        action: isTranslated ? 'translated' : 'clicked'
+      }
+    }).catch(() => {
+      // 忽略错误（弹窗关闭导致的错误是正常的）
+    })
+  }
+  
+  // 处理「原文/翻译」按钮点击（与默认相反的行为）
+  const handleAlternateClick = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    
+    // 如果自动翻译开启，按钮是「查看原文」，所以打开原文
+    // 如果自动翻译关闭，按钮是「翻译」，所以打开翻译版
+    const url = autoTranslateEnabled 
+      ? currentRecommendation.url 
+      : getGoogleTranslateUrl(currentRecommendation.url, i18n.language)
+    const isTranslated = !autoTranslateEnabled
+    
+    recViewLogger.debug(`点击条目（备选）: ${currentRecommendation.id}, 翻译版: ${isTranslated}`)
+    
+    // 从推荐列表移除
+    if (onRemoveFromList) {
+      await onRemoveFromList()
+    }
+    
+    // 发送消息打开页面
+    chrome.runtime.sendMessage({
+      type: 'OPEN_RECOMMENDATION',
+      data: {
+        url,
+        recommendationId: currentRecommendation.id,
+        title: currentRecommendation.title,
+        action: isTranslated ? 'translated' : 'clicked'
+      }
+    }).catch(() => {
+      // 忽略错误（弹窗关闭导致的错误是正常的）
+    })
+  }
+  
+  // 获取语言标签配置
+  const langLabel = getLanguageLabel(
+    displayText.sourceLanguage,
+    displayText.targetLanguage,
+    autoTranslateEnabled,
+    _
+  )
+  
   // 第一条显示详细信息（标题3行 + 摘要4行）
   if (isTopItem) {
     return (
@@ -646,7 +753,7 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
       >
         {/* 标题行 - 3行，带 favicon */}
         <div 
-          onClick={(e) => onClick(e)}
+          onClick={handleDefaultClick}
           className="cursor-pointer"
         >
           <h3 className="text-sm font-medium line-clamp-3 leading-snug flex items-start gap-1.5">
@@ -665,7 +772,7 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
         {/* 摘要 - 4行 */}
         {displayText.summary && (
           <div 
-            onClick={(e) => onClick(e)}
+            onClick={handleDefaultClick}
             className="cursor-pointer"
           >
             <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-4 leading-relaxed">
@@ -711,63 +818,16 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
               </div>
             )}
             
-            {/* 语言标签 - 显示源语言或翻译标识，点击打开翻译页面 */}
-            {(() => {
-              const langLabel = getLanguageLabel(
-                displayText.sourceLanguage,
-                displayText.targetLanguage,
-                displayText.hasTranslation && !displayText.isShowingOriginal,
-                _  // 传入 i18n 翻译函数
-              )
-              
-              if (!langLabel.needsTranslation) {
-                // 本地语言，只显示标签
-                return (
-                  <span className={`flex-shrink-0 text-xs px-1.5 py-0.5 rounded font-medium ${langLabel.className}`} title={langLabel.tooltip}>
-                    {langLabel.text}
-                  </span>
-                )
-              }
-              
-              // 需要翻译，点击打开谷歌翻译
-              return (
-                <button
-                  onClick={async (e) => {
-                    e.stopPropagation()
-                    try {
-                      const translateUrl = getGoogleTranslateUrl(currentRecommendation.url, i18n.language)
-                      
-                      recViewLogger.debug(`点击翻译按钮: ${currentRecommendation.id}`)
-                      
-                      // 从推荐列表移除（不标记为不想读）
-                      if (onRemoveFromList) {
-                        await onRemoveFromList()
-                      }
-                      
-                      // ⚠️ 重要：使用 fire-and-forget 模式发送消息
-                      // 不等待响应，因为弹窗可能在响应前就关闭了
-                      chrome.runtime.sendMessage({
-                        type: 'OPEN_RECOMMENDATION',
-                        data: {
-                          url: translateUrl,
-                          recommendationId: currentRecommendation.id,
-                          title: currentRecommendation.title,
-                          action: 'translated'
-                        }
-                      }).catch(() => {
-                        // 忽略错误（弹窗关闭导致的错误是正常的）
-                      })
-                    } catch (error) {
-                      recViewLogger.error('❌ 打开翻译失败:', error)
-                    }
-                  }}
-                  className={`flex-shrink-0 text-xs px-1.5 py-0.5 rounded font-medium transition-all ${langLabel.className}`}
-                  title={langLabel.tooltip}
-                >
-                  {langLabel.text}
-                </button>
-              )
-            })()}
+            {/* 语言标签 - 新逻辑：符合界面语言时不显示；不符合时显示「原文」或「翻译」按钮 */}
+            {langLabel.showLabel && (
+              <button
+                onClick={handleAlternateClick}
+                className={`flex-shrink-0 text-xs px-1.5 py-0.5 rounded font-medium transition-all ${langLabel.className}`}
+                title={langLabel.tooltip}
+              >
+                {langLabel.text}
+              </button>
+            )}
           </div>
           
           {/* 稍后读按钮 */}
@@ -801,7 +861,7 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
     >
       {/* 标题行 - 2行，带 favicon */}
       <div 
-        onClick={(e) => onClick(e)}
+        onClick={handleDefaultClick}
         className="cursor-pointer"
       >
         <h3 className="text-sm font-medium line-clamp-2 leading-snug flex items-start gap-1.5">
@@ -820,7 +880,7 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
       {/* 摘要 - 智能显示，2行，点击后移除（等待阅读验证） */}
       {showExcerpt && displayText.summary && (
         <div 
-          onClick={(e) => onClick(e)}  // 打开链接并移除（策略B：等待30秒验证）
+          onClick={handleDefaultClick}
           className="cursor-pointer"
         >
           <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
@@ -866,58 +926,16 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
             </div>
           )}
           
-          {/* 语言标签 - 显示源语言或翻译标识，点击打开翻译页面 */}
-          {(() => {
-            const langLabel = getLanguageLabel(
-              displayText.sourceLanguage,
-              displayText.targetLanguage,
-              displayText.hasTranslation && !displayText.isShowingOriginal,
-              _  // 传入 i18n 翻译函数
-            )
-            
-            if (!langLabel.needsTranslation) {
-              // 本地语言，只显示标签
-              return (
-                <span className={`flex-shrink-0 text-xs px-1.5 py-0.5 rounded font-medium ${langLabel.className}`} title={langLabel.tooltip}>
-                  {langLabel.text}
-                </span>
-              )
-            }
-            
-            // 需要翻译，点击打开谷歌翻译
-            return (
-              <button
-                onClick={async (e) => {
-                  e.stopPropagation()
-                  try {
-                    const translateUrl = getGoogleTranslateUrl(currentRecommendation.url, i18n.language)
-                    
-                    recViewLogger.debug(`点击语言标签，打开翻译: ${currentRecommendation.id}`)
-                    
-                    // ⚠️ 重要：使用 fire-and-forget 模式发送消息
-                    // 不等待响应，因为弹窗可能在响应前就关闭了
-                    chrome.runtime.sendMessage({
-                      type: 'OPEN_RECOMMENDATION',
-                      data: {
-                        url: translateUrl,
-                        recommendationId: currentRecommendation.id,
-                        title: currentRecommendation.title,
-                        action: 'translated'
-                      }
-                    }).catch(() => {
-                      // 忽略错误（弹窗关闭导致的错误是正常的）
-                    })
-                  } catch (error) {
-                    recViewLogger.error('❌ 打开翻译失败:', error)
-                  }
-                }}
-                className={`flex-shrink-0 text-xs px-1.5 py-0.5 rounded font-medium transition-all ${langLabel.className}`}
-                title={langLabel.tooltip}
-              >
-                {langLabel.text}
-              </button>
-            )
-          })()}
+          {/* 语言标签 - 新逻辑：符合界面语言时不显示；不符合时显示「原文」或「翻译」按钮 */}
+          {langLabel.showLabel && (
+            <button
+              onClick={handleAlternateClick}
+              className={`flex-shrink-0 text-xs px-1.5 py-0.5 rounded font-medium transition-all ${langLabel.className}`}
+              title={langLabel.tooltip}
+            >
+              {langLabel.text}
+            </button>
+          )}
         </div>
         
         {/* 稍后读按钮 */}
