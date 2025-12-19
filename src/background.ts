@@ -310,27 +310,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               let trackingInfo = null
               let trackingSource = ''
               
-              // 🔍 调试：打印 sender 信息
-              bgLogger.info('🔍 SAVE_PAGE_VISIT sender 信息:', {
-                tabId: sender.tab?.id,
-                tabUrl: sender.tab?.url,
-                frameId: sender.frameId,
-                url: sender.url,
-                visitUrl: visitData.url
-              })
-              
               // 1. 优先尝试通过 Tab ID 查找追踪信息
               const tabId = sender.tab?.id
               if (tabId) {
                 const tabTrackingKey = `recommendation_tab_${tabId}`
-                
-                // 🔍 调试：查看所有 local storage 中的追踪信息
-                const allLocalData = await chrome.storage.local.get(null)
-                const trackingKeys = Object.keys(allLocalData).filter(k => k.startsWith('recommendation_tab_'))
-                bgLogger.info('🔍 当前 local storage 中的追踪 keys:', trackingKeys)
-                
                 const tabTrackingData = await chrome.storage.local.get(tabTrackingKey)
-                bgLogger.info('🔍 查找 Tab ID 追踪:', { tabTrackingKey, found: !!tabTrackingData[tabTrackingKey] })
                 
                 trackingInfo = tabTrackingData[tabTrackingKey]
                 if (trackingInfo) {
@@ -339,15 +323,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                   // 立即清理 Tab ID 追踪信息
                   await chrome.storage.local.remove(tabTrackingKey)
                 }
-              } else {
-                bgLogger.warn('⚠️ sender.tab.id 为空，无法通过 Tab ID 查找追踪')
               }
               
               // 2. 备用：通过 URL 查找（兼容旧逻辑和阅读列表）
               if (!trackingInfo) {
                 const urlTrackingKey = `recommendation_tracking_${visitData.url}`
                 const urlTrackingData = await chrome.storage.local.get(urlTrackingKey)
-                bgLogger.info('🔍 查找 URL 追踪:', { urlTrackingKey, found: !!urlTrackingData[urlTrackingKey] })
                 
                 trackingInfo = urlTrackingData[urlTrackingKey]
                 if (trackingInfo) {

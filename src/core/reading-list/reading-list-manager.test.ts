@@ -67,11 +67,13 @@ describe('ReadingListManager', () => {
       title: 'Test Article',
       url: 'https://example.com/article',
       summary: 'Test summary',
+      source: 'RSS',
+      sourceUrl: 'https://example.com/feed',
+      recommendedAt: Date.now(),
       score: 0.8,
-      reason: { provider: 'ai', topics: ['tech'] },
-      createdAt: Date.now(),
-      sourceType: 'rss',
-      sourceId: 'feed-1',
+      reason: { type: 'topic-match', provider: 'deepseek', score: 0.8, topics: ['tech'] },
+      isRead: false,
+      status: 'active',
     }
 
     it('应该保存原文链接（未启用自动翻译）', async () => {
@@ -418,11 +420,13 @@ describe('ReadingListManager', () => {
       title: 'Onboarding Test',
       url: 'https://example.com/onboarding',
       summary: 'Test',
+      source: 'RSS',
+      sourceUrl: 'https://example.com/feed',
+      recommendedAt: Date.now(),
       score: 0.9,
-      reason: { provider: 'ai', topics: ['test'] },
-      createdAt: Date.now(),
-      sourceType: 'rss',
-      sourceId: 'feed-1',
+      reason: { type: 'topic-match', provider: 'deepseek', score: 0.9, topics: ['test'] },
+      isRead: false,
+      status: 'active',
     }
 
     it('应该在首次保存时显示提示（tipCount=1）', async () => {
