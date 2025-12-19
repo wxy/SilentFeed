@@ -788,11 +788,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         case 'OPEN_RECOMMENDATION':
           try {
             const { url, recommendationId, title, action } = message.data
-            bgLogger.info('📬 收到 OPEN_RECOMMENDATION 消息:', { url, recommendationId, action })
+            bgLogger.debug('📬 收到 OPEN_RECOMMENDATION 消息:', { url, recommendationId, action })
             
             // 1. 创建新标签页
             const tab = await chrome.tabs.create({ url })
-            bgLogger.info('📑 已创建新标签页:', { tabId: tab.id, url })
+            bgLogger.debug('📑 已创建新标签页:', { tabId: tab.id, url })
             
             // 2. 保存追踪信息（使用 Tab ID）
             // ⚠️ 使用 local storage 而非 session，避免扩展重启后丢失
@@ -812,7 +812,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               
               // 验证保存成功
               const verifyData = await chrome.storage.local.get(trackingKey)
-              bgLogger.info(`✅ 已保存追踪信息（Tab ID: ${tab.id}）`, {
+              bgLogger.debug(`✅ 已保存追踪信息（Tab ID: ${tab.id}）`, {
                 trackingKey,
                 saved: !!verifyData[trackingKey],
                 recommendationId,

@@ -73,12 +73,6 @@ export function AIEngineAssignmentComponent({
       const previousStatus = aiStatus
       setAiStatus(actualStatus)
       
-      console.log('[AIEngineAssignment] AI 可用性状态:', {
-        配置状态: configStatus,
-        测试状态: providerStatuses,
-        实际可用: actualStatus
-      })
-      
       // 如果有 AI 且当前未选择预设，自动选择推荐预设
       if (actualStatus.hasAny && selectedPreset === "custom") {
         const recommended = await getRecommendedPreset()
@@ -118,11 +112,9 @@ export function AIEngineAssignmentComponent({
           }
           
           if (newPreset) {
-            console.log(`[AIEngineAssignment] 当前预设 ${selectedPreset} 不可用，自动切换到 ${newPreset}`)
             await handlePresetSelect(newPreset)
           } else {
             // 没有可用的预设，切换到自定义
-            console.log('[AIEngineAssignment] 没有可用的预设，切换到自定义模式')
             setSelectedPreset('custom')
           }
         }
@@ -151,12 +143,10 @@ export function AIEngineAssignmentComponent({
     const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }, areaName: string) => {
       // 监听 AI 配置变化（sync 区域）
       if (areaName === 'sync' && changes.aiConfig) {
-        console.log('[AIEngineAssignment] 检测到 AI 配置变化，刷新状态')
         checkAIStatusAndAdjustPreset()
       }
       // 监听 provider 状态变化（local 区域，key 是 aiProvidersStatus）
       if (areaName === 'local' && changes.aiProvidersStatus) {
-        console.log('[AIEngineAssignment] 检测到 Provider 状态变化，刷新状态')
         checkAIStatusAndAdjustPreset()
       }
     }
