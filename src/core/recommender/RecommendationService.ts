@@ -483,7 +483,7 @@ export class RecommendationService {
     for (const [index, article] of recommendedArticles.entries()) {
       // 检查是否重复
       if (existingUrls.has(article.url)) {
-        recLogger.info(`跳过重复推荐: ${article.title} - ${article.url}`)
+        recLogger.debug(`跳过重复推荐: ${article.title} - ${article.url}`)
         continue
       }
 
@@ -509,20 +509,20 @@ export class RecommendationService {
         })
         
         if (!passesBaseline) {
-          recLogger.info(` ❌ 未通过历史基准检查: ${article.title} (${article.score.toFixed(2)})`)
+          recLogger.debug(` ❌ 未通过历史基准检查: ${article.title} (${article.score.toFixed(2)})`)
           continue // 不符合历史基准，跳过
         }
       }
       
       // 规则 1: 如果池未满，直接加入（已经通过质量阈值筛选）
       if (poolSize < maxSize) {
-        recLogger.info(` ✅ 池未满 (${poolSize}/${maxSize})，直接加入: ${article.title} (${article.score.toFixed(2)})`)
+        recLogger.debug(` ✅ 池未满 (${poolSize}/${maxSize})，直接加入: ${article.title} (${article.score.toFixed(2)})`)
       } 
       // 规则 2: 如果池已满，检查是否能替换最低分
       else {
         const lowestInPool = currentPool.sort((a, b) => a.score - b.score)[0]
         if (article.score > lowestInPool.score) {
-          recLogger.info(` 🔄 替换低分推荐: ${article.score.toFixed(2)} > ${lowestInPool.score.toFixed(2)}`)
+          recLogger.debug(` 🔄 替换低分推荐: ${article.score.toFixed(2)} > ${lowestInPool.score.toFixed(2)}`)
           
           // Phase 10: 同步更新被替换文章的 inPool 状态
           try {
@@ -554,7 +554,7 @@ export class RecommendationService {
           
           currentPool.shift() // 从内存数组中移除
         } else {
-          recLogger.info(` ❌ 池已满且分数不够高: ${article.score.toFixed(2)} <= ${lowestInPool.score.toFixed(2)}，跳过: ${article.title}`)
+          recLogger.debug(` ❌ 池已满且分数不够高: ${article.score.toFixed(2)} <= ${lowestInPool.score.toFixed(2)}，跳过: ${article.title}`)
           continue // 不够格，跳过
         }
       }

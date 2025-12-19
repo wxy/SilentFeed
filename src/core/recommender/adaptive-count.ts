@@ -192,16 +192,17 @@ export async function adjustRecommendationCount(
   const clickRate = calculateClickRate(metrics)
   const popupFrequency = calculatePopupFrequency(metrics)
   
-  console.log('📊 [弹窗容量评估] 当前指标:', {
-    当前容量: currentCount,
-    总推荐数: metrics.totalRecommendations,
-    点击数: metrics.clickCount,
-    不想读数: metrics.dismissCount,
-    全部不想读次数: metrics.dismissAllCount,
-    弹窗打开次数24h: popupFrequency,
-    点击率: (clickRate * 100).toFixed(1) + '%',
-    不想读率: (dismissRate * 100).toFixed(1) + '%'
-  })
+  // 调试时可取消注释查看弹窗容量评估指标
+  // console.log('📊 [弹窗容量评估] 当前指标:', {
+  //   当前容量: currentCount,
+  //   总推荐数: metrics.totalRecommendations,
+  //   点击数: metrics.clickCount,
+  //   不想读数: metrics.dismissCount,
+  //   全部不想读次数: metrics.dismissAllCount,
+  //   弹窗打开次数24h: popupFrequency,
+  //   点击率: (clickRate * 100).toFixed(1) + '%',
+  //   不想读率: (dismissRate * 100).toFixed(1) + '%'
+  // })
   
   let adjustment = 0
   const reasons: string[] = []
@@ -236,13 +237,13 @@ export async function adjustRecommendationCount(
   // 计算新数量（限制在1-5范围内）
   const newCount = Math.max(1, Math.min(5, currentCount + adjustment))
   
-  console.log('📊 [弹窗容量评估] 调整结果:', {
-    原容量: currentCount,
-    调整值: adjustment,
-    新容量: newCount,
-    是否变化: newCount !== currentCount,
-    触发原因: reasons.length > 0 ? reasons.join(', ') : '无触发条件'
-  })
+  // console.log('📊 [弹窗容量评估] 调整结果:', {
+  //   原容量: currentCount,
+  //   调整值: adjustment,
+  //   新容量: newCount,
+  //   是否变化: newCount !== currentCount,
+  //   触发原因: reasons.length > 0 ? reasons.join(', ') : '无触发条件'
+  // })
   
   return newCount
 }

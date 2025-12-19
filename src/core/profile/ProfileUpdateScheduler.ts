@@ -182,9 +182,8 @@ export class ProfileUpdateScheduler {
    * @deprecated Phase 12.7: 此方法已弃用，阅读/拒绝行为由 SemanticProfileBuilder 直接处理
    */
   static async forceUpdateProfile(trigger: string): Promise<void> {
-    console.log(`[ProfileScheduler] forceUpdateProfile 已弃用，触发来源: ${trigger}`)
+    // 弃用方法，保留空实现以保持向后兼容
     // Phase 12.7: 不再直接执行更新，由 SemanticProfileBuilder 的 onRead/onDismiss 处理
-    // 保留方法以保持向后兼容
   }
 
   /**
