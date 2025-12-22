@@ -110,21 +110,9 @@ export function AIConfigPanel() {
         }
       }
       
-      // 降级处理：如果没有 engineAssignment，从旧字段推导
-      if (!activeProvider) {
-        // 从当前选择的模型推导 Provider（仅当实际配置了时）
-        if (config.model) {
-          const provider = getProviderFromModel(config.model)
-          // 检查 provider 是否实际配置
-          if ((provider === 'deepseek' && hasDeepSeek) ||
-              (provider === 'openai' && hasOpenAI) ||
-              (provider === 'ollama' && hasOllama)) {
-            activeProvider = provider
-          }
-        } else if (config.local?.enabled && hasOllama) {
-          // 如果启用了本地 AI 且实际可用，标记为 ollama
-          activeProvider = 'ollama'
-        }
+      // 降级处理：如果没有 engineAssignment 且启用了本地 AI
+      if (!activeProvider && config.local?.enabled && hasOllama) {
+        activeProvider = 'ollama'
       }
       
       setCurrentProvider(activeProvider)
