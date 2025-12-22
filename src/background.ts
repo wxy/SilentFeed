@@ -38,7 +38,7 @@ async function setupOllamaDNRRules(): Promise<void> {
     // 检查 manifest 中的 DNR 配置
     const manifest = chrome.runtime.getManifest()
     const hasDNRConfig = manifest.declarative_net_request?.rule_resources?.some(
-      (resource) => resource.id === 'ollama-cors-fix'
+      (resource: { id: string }) => resource.id === 'ollama-cors-fix'
     )
     
     if (hasDNRConfig) {
@@ -932,7 +932,7 @@ async function cleanupRecommendationPool(): Promise<void> {
               await db.feedArticles.update(article.id, {
                 inPool: false,
                 poolRemovedAt: Date.now(),
-                poolRemovedReason: 'pool-cleanup'
+                poolRemovedReason: 'expired' // 使用 'expired' 替代 'pool-cleanup'
               })
               updatedArticles++
             }

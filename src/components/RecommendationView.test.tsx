@@ -1,19 +1,3 @@
-import { describe, it, expect } from "vitest"
-import { render, screen } from "@testing-library/react"
-import RecommendationView from "./RecommendationView"
-
-const items = [
-  { id: "1", title: "AI 技术趋势", url: "https://example.com/a1" },
-  { id: "2", title: "前端性能优化", url: "https://example.com/a2" }
-] as any
-
-describe("RecommendationView", () => {
-  it("空列表应显示学习阶段提示", () => {
-    render(<RecommendationView items={[]} loading={false} error={null} />)
-    // 学习阶段会随机显示一条消息，只需检查存在学习阶段的图标
-    expect(screen.getByText("🌱")).toBeDefined()
-  })
-})
 /**
  * RecommendationView 组件测试
  * 测试推荐列表的展示和交互
@@ -139,7 +123,7 @@ function makeRec(id: string, title: string): Recommendation {
     score: 0.8,
     wordCount: 1200,
     readingTime: 6,
-    reason: { provider: "keyword" },
+    reason: { type: "topic-match", provider: "keyword", score: 0.8 },
     source: "Test Blog",
     recommendedAt: Date.now(),
     isRead: false,

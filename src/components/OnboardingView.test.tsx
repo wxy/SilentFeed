@@ -117,11 +117,6 @@ vi.mock("@/i18n/helpers", () => ({
         "onboarding.buttons.finish": "完成",
         "onboarding.progress.step": "第 {{current}}/{{total}} 步",
         "onboarding.aiConfig.title": "配置 AI 推荐引擎",
-        "onboarding.rssSetup.title": "添加 RSS 订阅源",
-        "onboarding.completion.title": "准备完成！",
-        "onboarding.completion.buttons.start": "开始使用",
-        // 连接测试与错误
-        "onboarding.aiConfig.title": "配置 AI 推荐引擎",
         "onboarding.aiConfig.description": "为推荐引擎选择模型并配置 API Key",
         "onboarding.aiConfig.labels.model": "选择模型",
         "onboarding.aiConfig.placeholders.selectModel": "请选择模型",
@@ -138,7 +133,6 @@ vi.mock("@/i18n/helpers", () => ({
         "onboarding.errors.connectionFailed": "连接失败: {{message}}",
         "onboarding.errors.testFailed": "测试失败: {{error}}",
         "onboarding.success.connectionTested": "连接成功，已完成测试",
-        // RSS 步骤简要文案
         "onboarding.rssSetup.title": "添加 RSS 订阅源",
         "onboarding.rssSetup.description": "输入 RSS 地址或导入 OPML",
         "onboarding.rssSetup.labels.feedUrl": "RSS 地址",
@@ -147,6 +141,8 @@ vi.mock("@/i18n/helpers", () => ({
         "onboarding.rssSetup.buttons.adding": "添加中...",
         "onboarding.rssSetup.labels.importOpml": "导入 OPML",
         "onboarding.rssSetup.buttons.selectFile": "选择文件",
+        "onboarding.completion.title": "准备完成！",
+        "onboarding.completion.buttons.start": "开始使用",
       }
       let text = translations[key] || key
       if (vars) {

@@ -18,6 +18,7 @@ import {
   trackDismissAll
 } from "@/core/recommender/adaptive-count"
 import { ReadingListManager } from "@/core/reading-list/reading-list-manager"
+import { isReadingListAvailable } from "@/utils/browser-compat"
 import { sanitizeHtml } from "@/utils/html"
 import { getFaviconUrl, handleFaviconError } from "@/utils/favicon"
 import { formatRecommendationReason } from "@/utils/formatReason"
@@ -198,6 +199,12 @@ export function RecommendationView() {
   const [hasRSSFeeds, setHasRSSFeeds] = useState(false)
   const [isReady, setIsReady] = useState(false)
   const [currentPageCount, setCurrentPageCount] = useState(0)
+  const [readingListAvailable, setReadingListAvailable] = useState(false)
+  
+  // 检查阅读列表功能可用性
+  useEffect(() => {
+    setReadingListAvailable(isReadingListAvailable())
+  }, [])
   
   // 加载推荐配置
   useEffect(() => {
@@ -585,7 +592,7 @@ export function RecommendationView() {
             showExcerpt={shouldShowExcerpt(index)} // 智能决定是否显示摘要
             onClick={(e) => handleItemClick(rec, e)}
             onDismiss={(e) => handleDismiss(rec.id, e)}
-            onSaveToReadingList={(e) => handleSaveToReadingList(rec, e)}
+            onSaveToReadingList={readingListAvailable ? (e) => handleSaveToReadingList(rec, e) : undefined}
             onRemoveFromList={() => removeFromList([rec.id])}
           />
         ))}
