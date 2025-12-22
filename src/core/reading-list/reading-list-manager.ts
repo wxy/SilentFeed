@@ -6,11 +6,16 @@
  * - 追踪从推荐系统保存的文章
  * - 监听阅读列表变化，检测"稍后读"文章被真实阅读
  * - 管理首次使用提示
+ * 
+ * 浏览器兼容性：
+ * - Chrome 89+: 完全支持
+ * - Edge: 不支持（API 未实现）
  */
 
 import { logger } from '@/utils/logger'
 import type { Recommendation, ConfirmedVisit } from '@/types/database'
 import { db, dismissRecommendations } from '@/storage/db'
+import { isReadingListAvailable, getBrowserCompatInfo } from '@/utils/browser-compat'
 
 const rlLogger = logger.withTag('ReadingListManager')
 
@@ -27,6 +32,14 @@ const MAX_TIP_COUNT = 3
 
 export class ReadingListManager {
   /**
+   * 检查阅读列表功能是否可用
+   * @returns 是否支持阅读列表
+   */
+  static isAvailable(): boolean {
+    return isReadingListAvailable()
+  }
+
+  /**
    * 将推荐文章保存到 Chrome 阅读列表
    * @param recommendation 推荐条目
    * @param autoTranslateEnabled 是否启用自动翻译
@@ -38,6 +51,16 @@ export class ReadingListManager {
     autoTranslateEnabled: boolean = false,
     interfaceLanguage: string = 'zh-CN'
   ): Promise<boolean> {
+    // 检查浏览器是否支持阅读列表
+    if (!this.isAvailable()) {
+      const compatInfo = getBrowserCompatInfo()
+      rlLogger.warn('当前浏览器不支持阅读列表功能', {
+        browser: compatInfo.browser,
+        version: compatInfo.version,
+      })
+      return false
+    }
+
     try {
       // 决定使用原文链接还是翻译链接
       let urlToSave = recommendation.url
@@ -179,6 +202,9 @@ export class ReadingListManager {
     url?: string
     hasBeenRead?: boolean
   }): Promise<chrome.readingList.ReadingListEntry[]> {
+    if (!this.isAvailable()) {
+      return []
+    }
     try {
       return await chrome.readingList.query(filter || {})
     } catch (error) {
@@ -191,6 +217,9 @@ export class ReadingListManager {
    * 获取未读条目数量
    */
   static async getUnreadCount(): Promise<number> {
+    if (!this.isAvailable()) {
+      return 0
+    }
     try {
       const entries = await chrome.readingList.query({ hasBeenRead: false })
       return entries.length
@@ -204,6 +233,9 @@ export class ReadingListManager {
    * 检查 URL 是否在阅读列表中
    */
   static async isInReadingList(url: string): Promise<boolean> {
+    if (!this.isAvailable()) {
+      return false
+    }
     try {
       const entries = await chrome.readingList.query({ url })
       return entries.length > 0
@@ -218,6 +250,12 @@ export class ReadingListManager {
    * 监听文章被标记为已读，并将其记录为真实阅读
    */
   static setupListeners(): void {
+    // 检查浏览器是否支持阅读列表
+    if (!this.isAvailable()) {
+      rlLogger.info('当前浏览器不支持阅读列表，跳过监听器设置')
+      return
+    }
+
     // 监听条目更新（仅记录日志，不作为阅读信号）
     chrome.readingList.onEntryUpdated.addListener(async (entry) => {
       // 策略B：忽略"已读"按钮，依赖实际访问监控

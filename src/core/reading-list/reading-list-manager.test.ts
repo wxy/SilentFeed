@@ -7,6 +7,22 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { ReadingListManager } from './reading-list-manager'
 import type { Recommendation } from '@/types/database'
 
+// Mock browser-compat 模块 - 默认返回可用
+vi.mock('@/utils/browser-compat', () => ({
+  isReadingListAvailable: vi.fn(() => true),
+  getBrowserCompatInfo: vi.fn(() => ({
+    browser: 'chrome',
+    version: 120,
+    features: {
+      readingList: true,
+      alarms: true,
+      declarativeNetRequest: true,
+      notifications: true,
+      sidePanel: true,
+    },
+  })),
+}))
+
 // Mock chrome API
 const mockChrome = {
   readingList: {
@@ -56,9 +72,24 @@ vi.mock('@/storage/db', () => ({
   dismissRecommendations: vi.fn(),
 }))
 
+// 导入 mock 模块以便在测试中修改
+import * as browserCompat from '@/utils/browser-compat'
+
 describe('ReadingListManager', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // 默认设置为支持阅读列表
+    vi.mocked(browserCompat.isReadingListAvailable).mockReturnValue(true)
+  })
+
+  describe('isAvailable', () => {
+    it('应该返回浏览器兼容性状态', () => {
+      vi.mocked(browserCompat.isReadingListAvailable).mockReturnValue(true)
+      expect(ReadingListManager.isAvailable()).toBe(true)
+
+      vi.mocked(browserCompat.isReadingListAvailable).mockReturnValue(false)
+      expect(ReadingListManager.isAvailable()).toBe(false)
+    })
   })
 
   describe('saveRecommendation', () => {
@@ -75,6 +106,15 @@ describe('ReadingListManager', () => {
       isRead: false,
       status: 'active',
     }
+
+    it('应该在浏览器不支持时返回 false', async () => {
+      vi.mocked(browserCompat.isReadingListAvailable).mockReturnValue(false)
+
+      const result = await ReadingListManager.saveRecommendation(mockRecommendation)
+
+      expect(result).toBe(false)
+      expect(mockChrome.readingList.addEntry).not.toHaveBeenCalled()
+    })
 
     it('应该保存原文链接（未启用自动翻译）', async () => {
       mockChrome.readingList.addEntry.mockResolvedValue(undefined)
