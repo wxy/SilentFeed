@@ -4,7 +4,7 @@
 
 # 🤫 Silent Feed
 
-> 当前版本：`0.3.5`
+> 当前版本：`0.3.6`
 
 **AI-powered RSS reader that learns what you love**
 
@@ -14,7 +14,7 @@
 [![GitHub Release](https://img.shields.io/github/v/release/wxy/SilentFeed?style=for-the-badge)](https://github.com/wxy/SilentFeed/releases)
 [![License](https://img.shields.io/badge/License-Apache_2.0-green.svg?style=for-the-badge)](LICENSE)
 
-![Test Coverage](https://img.shields.io/badge/coverage-74.9%25-brightgreen?style=for-the-badge)
+![Test Coverage](https://img.shields.io/badge/coverage-72.9%25-brightgreen?style=for-the-badge)
 ![Stars](https://img.shields.io/github/stars/wxy/SilentFeed?style=for-the-badge&color=yellow)
 ![Last Commit](https://img.shields.io/github/last-commit/wxy/SilentFeed?style=for-the-badge)
 ![TypeScript](https://img.shields.io/badge/TypeScript-90%25-blue?style=for-the-badge&logo=typescript&logoColor=white)
@@ -38,6 +38,7 @@ Silent Feed is a **browser extension** that uses AI to understand what you're in
 
 - **🤖 AI-Powered Recommendations** - Understands your interests from browsing behavior, powered by AI-generated interest summaries
 - **🔍 Auto RSS Discovery** - Finds RSS feeds from websites you visit
+- **📚 Read Later** - Save recommendations to Chrome's native reading list with one click
 - **🎨 Clean Interface** - Minimal design for distraction-free reading
 - **🔒 Privacy First** - All data stays local, you control your API keys
 - **⚡ Smart Engine Assignment** - Optimize cost by assigning different AI engines for different tasks (reduce costs by up to 95%)
@@ -98,9 +99,9 @@ See [Technical Documentation](docs/TDD.md) for architecture details.
 
 ### 📊 Project Status
 
-- **Version**: 0.3.1 (Test Stability & Typing Fixes)
+- **Version**: 0.3.6 (Reading List & Profile Updates)
 - **Status**: ✅ Released
-- **Test Coverage**: 71%+
+- **Test Coverage**: 72%+
 - **Supported**: Chrome/Edge (Manifest V3)
 
 ### 💬 Community & Support
@@ -123,6 +124,7 @@ Silent Feed 是一个**浏览器扩展**，通过分析你的浏览历史，用 
 
 - **🤖 AI 智能推荐** - 从浏览行为理解你的兴趣，基于 AI 生成的兴趣总结
 - **🔍 自动发现订阅源** - 从你访问的网站发现 RSS
+- **📚 稍后阅读** - 一键保存推荐到 Chrome 原生阅读列表
 - **🎨 简洁界面** - 极简设计，专注阅读
 - **🔒 隐私优先** - 数据本地存储，你掌控 API 密钥
 - **⚡ 智能引擎分配** - 为不同任务分配不同 AI 引擎，优化成本（最高节省 95% 费用）
@@ -183,17 +185,17 @@ npm test
 
 ### 📊 项目状态
 
-- **版本**: 0.3.4（AI 配置修复与安全增强）
+- **版本**: 0.3.6（阅读列表集成与画像更新）
 - **状态**: ✅ 已发布
-- **测试覆盖率**: 74%+
+- **测试覆盖率**: 72%+
 - **支持浏览器**: Chrome/Edge (Manifest V3)
 
 **v0.3.x 主要更新**:
-- 🔐 API 密钥 AES-GCM-256 加密存储
-- 💰 Provider 级别预算控制（支持多币种）
+- 📚 Chrome 阅读列表集成（稍后读功能）
+- 🔄 每日画像自动更新系统
+- 💰 多币种 AI 计费架构
 - 🛡️ 统一容错机制（指数退避 + 熔断器）
 - 📊 AI 用量可视化仪表盘
-- 🔧 RSS 标题 HTML 实体解码和智能截断
 
 ### 💬 社区与支持
 

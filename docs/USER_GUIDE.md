@@ -29,7 +29,7 @@
 
 1. **Download Extension Package**
    - Visit [GitHub Releases](https://github.com/wxy/SilentFeed/releases)
-   - Download latest `chrome-mv3-prod-v0.3.4.zip`
+   - Download latest `chrome-mv3-prod-v0.3.6.zip`
    - Extract to any directory
 
 2. **Load to Chrome**
@@ -119,7 +119,7 @@ Silent Feed needs **100 valid page visits** before full recommendations:
 **Article Actions**
 - **Read**: Click title to open article
 - **Not Interested**: Mark as "disliked", skip
-- **Read Later**: (Planned)
+- **Read Later**: Save to Chrome Reading List (click bookmark icon)
 
 <div align="center">
    <img src="assets/screenshots/screenshot-1-recommendations-en.png" width="720" alt="AI Recommendations" />

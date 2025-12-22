@@ -1,5 +1,72 @@
 # Changelog
 
+## [0.3.6] - 2025-12-22
+
+### Added
+
+- **Chrome Reading List Integration**
+  - Integrated Chrome Reading List API for "Read Later" functionality
+  - One-click save recommendations to Chrome's native reading list
+
+- **Daily Profile Update System**
+  - Scheduled daily profile update task for continuous learning
+  - Progress display moved to dialog area with visual progress bar
+  - Persistent progress counter in `chrome.storage.local`
+
+- **Recommendation Click-Through Tracking**
+  - Use Tab ID to track recommendation reads (solves Google Translate URL issues)
+  - Immediate removal from list after clicking recommendation item
+  - Persisted removal state across sessions
+
+- **Google Translate URL Handling**
+  - RSS detector converts Google Translate URLs to original URLs
+  - Proper tracking of translated page visits
+
+### Changed
+
+- **Recommendation Quality Control**
+  - Raised quality threshold to 0.8 with aggressive quality filtering
+  - Optimized profile trigger and pool admission mechanism
+  - Improved historical score baseline calculation
+
+- **AI Summary Translation Optimization**
+  - Titles translated synchronously during AI analysis (avoids separate translation API calls)
+  - Optimized translation interaction logic with expected default behavior
+
+- **User Preferences Storage Migration**
+  - Migrated user preference configuration from `local` to `sync` storage for cross-device sync
+
+- **Popup Window Sizing**
+  - Improved popup size adjustment mechanism
+
+### Fixed
+
+- **Badge Update Issue**
+  - Fixed badge number not updating after clearing recommendations
+
+- **RSS CDATA Parsing**
+  - Complete fix for RSS CDATA category parsing issues
+
+- **Content Script Storage Access**
+  - Fixed Content Script unable to access storage
+
+- **Recommendation Pipeline Issues**
+  - Fixed 3 critical issues in recommendation flow
+  - Fixed recommendation tracking and profile learning bugs
+  - Fixed model configuration log display in recommendation service
+
+- **Profile Progress Display**
+  - Fixed profile update progress bar not showing
+  - Fixed profile update progress counter always showing 0
+
+### Technical
+
+- Test suite: 1780+ tests passing (105 test files)
+- Coverage: Lines 72.88%, Functions 73.58%, Branches 60.51%
+- Cleaned up debug logs accumulated since v0.3.2
+- Unified recommendation tracking mechanism with simplified content scripts
+- Migrated user preferences from `local` to `sync` storage
+
 ## [0.3.5] - 2025-12-13
 
 ### Added

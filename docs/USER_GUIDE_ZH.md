@@ -29,7 +29,7 @@
 
 1. **下载扩展包**
    - 访问 [GitHub Releases](https://github.com/wxy/SilentFeed/releases)
-   - 下载最新版本的 `chrome-mv3-prod-v0.3.4.zip`
+   - 下载最新版本的 `chrome-mv3-prod-v0.3.6.zip`
    - 解压到任意目录
 
 2. **加载到 Chrome**
@@ -119,7 +119,7 @@ Silent Feed 需要收集 **100 个有效页面访问** 才能建立完整的兴�
 **文章操作**
 - **阅读**：点击标题打开原文
 - **不想读**：标记为"不感兴趣"，跳过这篇
-- **稍后读**：（规划中）
+- **稍后读**：保存到 Chrome 阅读列表（点击书签图标）
 
 <div align="center">
    <img src="assets/screenshots/screenshot-1-recommendations-cn.png" width="720" alt="AI 推荐" />

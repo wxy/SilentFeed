@@ -36,23 +36,25 @@
 
 ---
 
-#### 2. 冷启动界面 (screenshot-2-cold-start.png)
+#### 2. 系统数据界面 (screenshot-2-system-data.png)
 
 **内容**:
-- 展示冷启动倒计数界面
-- 显示当前收集进度
+- 展示设置页面的"系统数据"选项卡
+- 显示统计数据和存储信息
 - 包含：
-  - 100 页面倒计数（例如：已收集 45/100 页面）
-  - 进度条可视化
-  - 鼓励文案："继续浏览，我们正在了解你的兴趣..."
-  - 已收集页面的简要统计
+  - 数据统计卡片（页面数、RSS 文章数、推荐数等）
+  - AI 使用统计（Token 用量、费用、调用次数）
+  - 存储使用情况
+  - 推荐漏斗图表（从文章池到最终推荐的转化率）
+  - 订阅源质量蜘蛛图
+  - 数据导出/导入按钮
 
-**强调功能**: 渐进成长，无需配置
+**强调功能**: 数据透明，使用统计可视化
 
 **截图方式**:
-1. 清空数据库（或使用新的浏览器配置文件）
-2. 浏览一些页面（例如 45 个）
-3. 打开 Popup 查看冷启动界面
+1. 确保有足够的使用数据
+2. 打开设置页面（右键扩展图标 → 选项）
+3. 切换到"系统数据"选项卡
 4. 截取完整界面
 
 ---
@@ -240,7 +242,7 @@
 ## 📁 文件命名规范
 
 - `screenshot-1-recommendations.png` - Chrome Web Store 截图 1（推荐界面）
-- `screenshot-2-cold-start.png` - Chrome Web Store 截图 2（冷启动）
+- `screenshot-2-system-data.png` - Chrome Web Store 截图 2（系统数据）
 - `screenshot-3-profile.png` - Chrome Web Store 截图 3（兴趣画像）
 - `screenshot-4-rss-settings.png` - Chrome Web Store 截图 4（RSS 管理）
 - `screenshot-5-ai-config.png` - Chrome Web Store 截图 5（AI 配置）
@@ -259,7 +261,7 @@
 ```
 Chrome Web Store 截图:
 □ screenshot-1-recommendations.png (1280x800, 推荐界面)
-□ screenshot-2-cold-start.png (1280x800, 冷启动)
+□ screenshot-2-system-data.png (1280x800, 系统数据)
 □ screenshot-3-profile.png (1280x800, 兴趣画像)
 □ screenshot-4-rss-settings.png (1280x800, RSS 管理)
 □ screenshot-5-ai-config.png (1280x800, AI 配置)
