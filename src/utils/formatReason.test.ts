@@ -14,6 +14,7 @@ const mockTranslations: Record<string, string> = {
   'recommendation.reason.highQuality': 'High-quality content',
   'recommendation.reason.browsingHistory': 'Based on browsing history',
   'recommendation.reason.trending': 'Trending',
+  'recommendation.reason.coldStart': 'Recommended based on subscription preferences',
   'recommendation.reason.topicSeparator': ', ',
   'recommendation.reason.template': '{{baseReason}}, {{sourceLabel}} {{matchPercent}}% match',
   'recommendation.source.algorithm': 'Algorithm',
@@ -166,6 +167,32 @@ describe('formatRecommendationReason', () => {
       const result = formatRecommendationReason(reasonData, t)
       expect(result).toContain('Trending')
       expect(result).toContain('Algorithm')
+    })
+
+    it('应该处理冷启动推荐类型', () => {
+      const reasonData: ReasonData = {
+        type: 'cold-start',
+        provider: 'keyword',
+        score: 0.65
+      }
+
+      const result = formatRecommendationReason(reasonData, t)
+      expect(result).toContain('Recommended based on subscription preferences')
+      expect(result).toContain('Algorithm')
+    })
+
+    it('应该处理冷启动推荐带自定义 mainReason', () => {
+      const reasonData: ReasonData = {
+        type: 'cold-start',
+        provider: 'keyword',
+        score: 0.72,
+        params: {
+          mainReason: 'Matches your tech subscriptions'
+        }
+      }
+
+      const result = formatRecommendationReason(reasonData, t)
+      expect(result).toContain('Matches your tech subscriptions')
     })
   })
 

@@ -79,6 +79,15 @@ function formatStructuredReason(data: ReasonData, t: TFunction): string {
       baseReason = t('recommendation.reason.trending')
       break
     
+    case 'cold-start':
+      // 冷启动推荐：使用 params 中的 mainReason 或默认文本
+      if (data.params?.mainReason) {
+        baseReason = data.params.mainReason
+      } else {
+        baseReason = t('recommendation.reason.coldStart')
+      }
+      break
+    
     default:
       baseReason = t('recommendation.reason.highQuality')
   }
