@@ -13,6 +13,7 @@ export type ReasonType =
   | 'high-quality'     // 高质量内容
   | 'browsing-history' // 浏览历史相关
   | 'trending'         // 热门内容
+  | 'cold-start'       // 冷启动推荐（基于订阅源聚类）
 
 /**
  * AI 提供商类型

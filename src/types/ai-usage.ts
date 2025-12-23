@@ -11,6 +11,7 @@ export type AIUsagePurpose =
   | 'analyze-content'      // 内容分析（浏览页面）
   | 'recommend-content'    // 内容推荐（RSS文章）
   | 'generate-profile'     // 用户画像生成
+  | 'analyze-source'       // 订阅源质量分析（添加订阅源时）
   | 'translate'            // 翻译
   | 'test-connection'      // 连接测试
   | 'other'                // 其他

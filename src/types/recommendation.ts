@@ -29,6 +29,10 @@ export interface RecommendationConfig {
   tfidfThreshold?: number // TF-IDF 最低分数阈值（低于此分数的文章不送 AI 分析）
   qualityThreshold?: number // AI 分析质量阈值（进入推荐池的最低分数）
   batchSize?: number // 批次大小（每次处理的文章数量）
+  /** 冷启动模式：用户画像不完善时使用跨源聚类推荐 */
+  useColdStart?: boolean
+  /** 冷启动置信度 (0-1) */
+  coldStartConfidence?: number
 }
 
 /**
@@ -44,7 +48,7 @@ export interface RecommendationOptions {
  */
 export interface RecommendationResult {
   articles: RecommendedArticle[]
-  algorithm: "tfidf" | "ai" | "hybrid" | "reasoning-ai"
+  algorithm: "tfidf" | "ai" | "hybrid" | "reasoning-ai" | "cold-start"
   stats: RecommendationStats
   timestamp: number
 }
@@ -203,8 +207,10 @@ export interface PipelineConfig {
 /**
  * 推荐管道接口
  */
+import type { DiscoveredFeed } from './rss'
+
 export interface RecommendationPipeline {
-  process(input: RecommendationInput): Promise<RecommendationResult>
+  process(input: RecommendationInput, feeds?: DiscoveredFeed[]): Promise<RecommendationResult>
   getProgress(): PipelineProgress
   cancel(): void
   cleanup(): void

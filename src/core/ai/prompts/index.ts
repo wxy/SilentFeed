@@ -147,6 +147,78 @@ export class PromptManager {
       currentProfile 
     })
   }
+  
+  /**
+   * 获取订阅源质量分析提示词（添加订阅源时使用）
+   * 
+   * @param language - 语言
+   * @param feedTitle - 订阅源名称
+   * @param feedDescription - 订阅源描述
+   * @param feedLink - 订阅源链接
+   * @param sampleArticles - 样本文章列表（JSON格式字符串）
+   * @returns 渲染后的提示词
+   */
+  getSourceAnalysisPrompt(
+    language: SupportedLanguage,
+    feedTitle: string,
+    feedDescription: string,
+    feedLink: string,
+    sampleArticles: string
+  ): string {
+    const templates = this.getTemplates(language)
+    
+    // 如果模板不存在，返回默认提示词
+    if (!templates.sourceAnalysis) {
+      return this.getDefaultSourceAnalysisPrompt(feedTitle, feedDescription, feedLink, sampleArticles)
+    }
+    
+    return this.renderSourceAnalysisTemplate(templates.sourceAnalysis, {
+      feedTitle,
+      feedDescription,
+      feedLink,
+      sampleArticles
+    })
+  }
+  
+  /**
+   * 渲染订阅源分析模板
+   */
+  private renderSourceAnalysisTemplate(
+    template: PromptTemplate,
+    variables: {
+      feedTitle: string
+      feedDescription: string
+      feedLink: string
+      sampleArticles: string
+    }
+  ): string {
+    let prompt = template.user
+    prompt = prompt.replace(/\{\{feedTitle\}\}/g, variables.feedTitle)
+    prompt = prompt.replace(/\{\{feedDescription\}\}/g, variables.feedDescription || '无描述')
+    prompt = prompt.replace(/\{\{feedLink\}\}/g, variables.feedLink)
+    prompt = prompt.replace(/\{\{sampleArticles\}\}/g, variables.sampleArticles)
+    return prompt
+  }
+  
+  /**
+   * 默认订阅源分析提示词（降级用）
+   */
+  private getDefaultSourceAnalysisPrompt(
+    feedTitle: string,
+    feedDescription: string,
+    feedLink: string,
+    sampleArticles: string
+  ): string {
+    return `Analyze the quality of this RSS feed for subscription:
+Name: ${feedTitle}
+Description: ${feedDescription || 'No description'}
+Link: ${feedLink}
+
+Sample Articles:
+${sampleArticles}
+
+Return JSON with qualityScore (0-1), contentCategory, topicTags, and subscriptionAdvice.`
+  }
 }
 
 /**

@@ -120,6 +120,7 @@
       "highQuality": "内容质量较高",
       "browsingHistory": "基于您的浏览历史",
       "trending": "热门推荐",
+      "coldStart": "基于订阅偏好推荐",
       "topicSeparator": "、",
       "template": "{{baseReason}}，{{sourceLabel}}匹配度{{matchPercent}}%"
     },

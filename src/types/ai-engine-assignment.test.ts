@@ -80,6 +80,8 @@ describe("ai-engine-assignment", () => {
       expect(defaultAssignment.pageAnalysis).toBeDefined()
       expect(defaultAssignment.feedAnalysis).toBeDefined()
       expect(defaultAssignment.profileGeneration).toBeDefined()
+      // sourceAnalysis 是可选的，但智能优先方案应该包含
+      expect(defaultAssignment.sourceAnalysis).toBeDefined()
     })
   })
 

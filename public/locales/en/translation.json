@@ -178,6 +178,7 @@
       "highQuality": "Content quality is relatively high.",
       "browsingHistory": "Based on your browsing history",
       "trending": "Hot Recommendations",
+      "coldStart": "Recommended based on subscription preferences",
       "topicSeparator": ",",
       "template": "{{baseReason}}, {{sourceLabel}} match rate {{matchPercent}}%"
     },
