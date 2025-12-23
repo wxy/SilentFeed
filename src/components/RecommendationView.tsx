@@ -182,6 +182,24 @@ function getEngineLabel(recommendation: Recommendation, t: (key: string) => stri
   }
 }
 
+/**
+ * 获取推荐理由图标
+ * - 冷启动推荐（基于订阅偏好）：🌱 新芽
+ * - 常规推荐（基于用户画像）：💡 灵感
+ */
+function getReasonIcon(recommendation: Recommendation): string {
+  const reason = recommendation.reason
+  
+  // 如果是结构化数据
+  if (typeof reason === 'object' && reason !== null) {
+    if (reason.type === 'cold-start') {
+      return '🌱'  // 新芽：代表基于订阅偏好的冷启动推荐
+    }
+  }
+  
+  return '💡'  // 灵感：代表基于用户画像的常规推荐
+}
+
 export function RecommendationView() {
   const { _, t, i18n } = useI18n()
   const {
@@ -791,10 +809,10 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
         {/* 底部信息栏 - 紧凑布局 */}
         <div className="flex items-center justify-between text-xs">
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            {/* 推荐理由主题（仅图标+tooltip） */}
+            {/* 推荐理由主题（仅图标+tooltip）- 冷启动🌱 vs 常规💡 */}
             {currentRecommendation.reason && (
               <span className="text-blue-600 dark:text-blue-400 flex-shrink-0 cursor-help" title={formatRecommendationReason(currentRecommendation.reason, t)}>
-                💡
+                {getReasonIcon(currentRecommendation)}
               </span>
             )}
             
@@ -899,10 +917,10 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
       {/* 底部信息栏 */}
       <div className="flex items-center justify-between text-xs">
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          {/* 推荐理由主题（仅图标+tooltip） */}
+          {/* 推荐理由主题（仅图标+tooltip）- 冷启动🌱 vs 常规💡 */}
           {currentRecommendation.reason && (
             <span className="text-blue-600 dark:text-blue-400 flex-shrink-0 cursor-help" title={formatRecommendationReason(currentRecommendation.reason, t)}>
-              💡
+              {getReasonIcon(currentRecommendation)}
             </span>
           )}
           
