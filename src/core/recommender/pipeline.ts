@@ -7,6 +7,7 @@
  * 2. TF-IDF预筛选（200条→30条）  
  * 3. AI评分（30条→5条）
  * 4. Chrome AI增强（可选）
+ * 5. 冷启动策略（用户画像不完善时）
  */
 
 // 使用本地类型定义
@@ -24,12 +25,16 @@ import type {
   RecommendationPipeline
 } from '@/types/recommendation'
 
-import type { FeedArticle } from '@/types/rss'
+import type { FeedArticle, DiscoveredFeed } from '@/types/rss'
 import type { ReasonData, AIProvider, ReasonType } from '@/types/recommendation-reason'
 import { convertFeedArticlesToArticleData, convertUserProfileToUserInterests } from './data-adapters'
 import { RuleBasedRecommender } from './RuleBasedRecommender'
 import { aiManager } from '../ai/AICapabilityManager'
 import { db } from '@/storage/db'  // Phase 7: 静态导入，避免 Service Worker 动态导入错误
+import { ColdStartScorer, TopicClusterAnalyzer } from './cold-start'
+import { logger } from '@/utils/logger'
+
+const pipelineLogger = logger.withTag('Pipeline')
 
 /**
  * 默认管道配置
@@ -86,7 +91,7 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
     this.stats = {}
   }
 
-  async process(input: RecommendationInput): Promise<RecommendationResult> {
+  async process(input: RecommendationInput, feeds?: DiscoveredFeed[]): Promise<RecommendationResult> {
     this.startTime = Date.now() // 记录真正的起始时间
     this.resetState()
     
@@ -149,6 +154,12 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
         abortSignal: this.abortController.signal,
         onProgress: this.updateProgress.bind(this),
         onError: this.recordError.bind(this)
+      }
+
+      // 🧊 冷启动分支：使用跨源聚类策略
+      if (config.useColdStart && feeds && feeds.length > 0) {
+        pipelineLogger.info('🧊 使用冷启动策略进行推荐')
+        return await this.processColdStart(articles, feeds, config, context)
       }
 
       // Phase 6: 新流程 - TF-IDF 初筛 → 逐篇处理（低分跳过，高分 AI 分析）
@@ -1006,6 +1017,112 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
       }
     } catch (error) {
       console.warn(`[Pipeline] ⚠️ 保存全文内容失败: ${articleId}`, error)
+    }
+  }
+
+  /**
+   * 🧊 冷启动处理流程
+   * 
+   * 当用户画像不完善时，使用跨源主题聚类策略进行推荐
+   */
+  private async processColdStart(
+    articles: FeedArticle[],
+    feeds: DiscoveredFeed[],
+    config: RecommendationInput['config'],
+    context: ProcessingContext
+  ): Promise<RecommendationResult> {
+    this.updateProgress('tfidf', 0.1, '🧊 冷启动：分析订阅源主题...')
+
+    const maxRecommendations = config.maxRecommendations ?? 5
+    const qualityThreshold = config.qualityThreshold ?? 0.3 // 冷启动时降低阈值
+
+    // 1. 主题聚类分析
+    const clusterAnalyzer = new TopicClusterAnalyzer()
+    const clusterResult = clusterAnalyzer.analyze(feeds, articles)
+
+    pipelineLogger.info('🧊 主题聚类结果:', {
+      feedCount: clusterResult.feedCount,
+      articleCount: clusterResult.articleCount,
+      hasEnoughData: clusterResult.hasEnoughData,
+      topClusters: clusterResult.clusters.slice(0, 3).map(c => ({
+        topic: c.topic,
+        sourceCount: c.sourceCount,
+        heatScore: c.heatScore.toFixed(2)
+      }))
+    })
+
+    this.updateProgress('tfidf', 0.3, '🧊 冷启动：评估文章质量...')
+
+    // 2. 冷启动评分
+    const scorer = new ColdStartScorer({
+      minScoreThreshold: qualityThreshold
+    })
+    const scores = scorer.score(articles, feeds, clusterResult)
+
+    pipelineLogger.info(`🧊 冷启动评分完成: ${scores.length} 篇文章达标`)
+
+    this.updateProgress('tfidf', 0.6, '🧊 冷启动：筛选推荐...')
+
+    // 3. 转换为推荐结果
+    const recommendedArticles: RecommendedArticle[] = []
+    
+    for (const score of scores.slice(0, maxRecommendations)) {
+      const article = articles.find(a => a.id === score.articleId)
+      if (!article) continue
+
+      // 构建推荐理由
+      const reasonParts: string[] = []
+      if (score.clusterScore > 0.5) {
+        reasonParts.push('跨源热门主题')
+      }
+      if (score.feedTrustScore > 0.7) {
+        reasonParts.push('高质量源')
+      }
+      if (score.freshnessScore > 0.8) {
+        reasonParts.push('最新发布')
+      }
+      
+      const mainReason = score.explanation || reasonParts.join('、') || '基于订阅偏好推荐'
+
+      // 构建结构化推荐理由
+      const reasonData: ReasonData = {
+        type: 'cold-start',
+        score: score.finalScore,
+        params: {
+          mainReason,
+          clusterScore: score.clusterScore,
+          feedTrustScore: score.feedTrustScore,
+          freshnessScore: score.freshnessScore
+        }
+      }
+
+      recommendedArticles.push({
+        id: article.id,
+        title: article.title,
+        url: article.link,
+        feedId: article.feedId,
+        score: score.finalScore,
+        reason: reasonData,
+        confidence: config.coldStartConfidence ?? 0.6,
+        matchedInterests: [] // 冷启动时没有画像匹配
+      })
+    }
+
+    this.updateProgress('complete', 1.0, '🧊 冷启动推荐完成')
+
+    // 更新统计
+    if (this.stats.processed) {
+      this.stats.processed.finalRecommended = recommendedArticles.length
+    }
+    if (this.stats.timing) {
+      this.stats.timing.total = Date.now() - this.startTime
+    }
+
+    return {
+      articles: recommendedArticles,
+      algorithm: 'cold-start',
+      stats: this.stats as RecommendationStats,
+      timestamp: Date.now()
     }
   }
 }

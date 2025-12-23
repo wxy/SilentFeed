@@ -8,4 +8,9 @@
 
 export { TopicClusterAnalyzer, type ClusterResult, type TopicCluster } from './topic-cluster'
 export { ColdStartScorer, type ColdStartScore, type ColdStartConfig } from './cold-start-scorer'
-export { shouldUseColdStartStrategy, getDynamicThreshold } from './threshold-calculator'
+export { 
+  shouldUseColdStartStrategy, 
+  getDynamicThreshold,
+  type ColdStartDecision,
+  type ThresholdConfig
+} from './threshold-calculator'

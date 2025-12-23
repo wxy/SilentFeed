@@ -4,7 +4,7 @@
  */
 
 import { RecommendationPipelineImpl } from './pipeline'
-import { getUserProfile, updateAllFeedStats } from '../../storage/db'
+import { getUserProfile, updateAllFeedStats, getPageCount } from '../../storage/db'
 import { getRecommendationConfig } from '../../storage/recommendation-config'
 import { getAIConfig, AVAILABLE_MODELS, getProviderFromModel } from '../../storage/ai-config'
 import { resolveProvider } from '../../utils/ai-provider-resolver'
@@ -25,6 +25,7 @@ import { translateRecommendations } from '../translator/recommendation-translato
 import { getUIConfig } from '../../storage/ui-config'
 import { logger } from '../../utils/logger'
 import { passesHistoricalBaseline } from './historical-score-tracker'
+import { shouldUseColdStartStrategy, type ColdStartDecision } from './cold-start'
 
 // 创建带标签的 logger
 const recLogger = logger.withTag('RecommendationService')
@@ -220,9 +221,39 @@ export class RecommendationService {
         useLocalAI
       })
 
-      // 1. 获取用户画像
+      // 0. 获取订阅源和文章，用于冷启动决策
+      const feedManager = new FeedManager()
+      const feeds = sources === 'all' 
+        ? await feedManager.getFeeds() 
+        : await feedManager.getFeeds('subscribed')
+      
+      // 统计已分析的文章数量
+      const analyzedArticleCount = await db.feedArticles
+        .filter(a => !!a.analysis && a.inFeed !== false)
+        .count()
+
+      // 0.1 冷启动决策
+      const pageVisitCount = await getPageCount()
+      const coldStartDecision = shouldUseColdStartStrategy(
+        pageVisitCount,
+        feeds,
+        analyzedArticleCount
+      )
+      
+      recLogger.info('🧊 冷启动决策:', {
+        useColdStart: coldStartDecision.useColdStart,
+        effectiveThreshold: coldStartDecision.effectiveThreshold,
+        baseThreshold: coldStartDecision.baseThreshold,
+        confidence: coldStartDecision.confidence,
+        reason: coldStartDecision.reason,
+        pageVisitCount,
+        feedCount: feeds.filter(f => f.status === 'subscribed' && f.isActive).length,
+        analyzedArticleCount
+      })
+
+      // 1. 获取用户画像（冷启动模式下允许画像为空或不完整）
       const userProfile = await getUserProfile()
-      if (!userProfile) {
+      if (!userProfile && !coldStartDecision.useColdStart) {
         throw new Error('用户画像未准备好，请先浏览更多页面建立兴趣模型')
       }
 
@@ -245,7 +276,7 @@ export class RecommendationService {
 
       recLogger.info(`收集到文章: ${articles.length} 篇（批次大小：${batchSize}）`)
 
-      // 3. 构建推荐输入
+      // 3. 构建推荐输入（包含冷启动配置）
       const config: RecommendationConfig = {
         analysisEngine: effectiveAnalysisEngine,
         maxRecommendations,
@@ -253,7 +284,10 @@ export class RecommendationService {
         useLocalAI,
         batchSize: recommendationConfig.batchSize,
         qualityThreshold: recommendationConfig.qualityThreshold,
-        tfidfThreshold: recommendationConfig.tfidfThreshold
+        tfidfThreshold: recommendationConfig.tfidfThreshold,
+        // 冷启动配置
+        useColdStart: coldStartDecision.useColdStart,
+        coldStartConfidence: coldStartDecision.confidence
       }
       
       recLogger.info(' 推荐配置:', {
@@ -263,20 +297,33 @@ export class RecommendationService {
         qualityThreshold: config.qualityThreshold,
         tfidfThreshold: config.tfidfThreshold,
         batchSize: config.batchSize,
-        maxRecommendations: config.maxRecommendations
+        maxRecommendations: config.maxRecommendations,
+        useColdStart: config.useColdStart,
+        coldStartConfidence: config.coldStartConfidence
       })
+
+      // 冷启动模式下使用空画像占位
+      const effectiveProfile: UserProfile = userProfile || {
+        id: 'singleton',
+        topics: {},
+        keywords: [],
+        domains: [],
+        totalPages: 0,
+        lastUpdated: Date.now(),
+        version: 2
+      }
 
       const input: RecommendationInput = {
         articles,
-        userProfile,
+        userProfile: effectiveProfile,
         config,
         options: {
           maxArticles: articles.length
         }
       }
 
-      // 4. 运行推荐管道
-      const result = await this.pipeline.process(input)
+      // 4. 运行推荐管道（会根据 useColdStart 选择策略）
+      const result = await this.pipeline.process(input, coldStartDecision.useColdStart ? feeds : undefined)
       
       // 5. Phase 6: 应用推荐池质量阈值，只保存高质量推荐
       const qualityThreshold = recommendationConfig.qualityThreshold
