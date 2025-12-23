@@ -30,6 +30,9 @@ export interface AIEngineAssignment {
   
   /** 用户画像生成 - 低频任务 */
   profileGeneration: AIEngineConfig
+  
+  /** 内容质量评估（冷启动/融合推荐） - 中频任务，可选配置 */
+  qualityEvaluation?: AIEngineConfig
 }
 
 /** 预设方案名称 */
@@ -80,6 +83,10 @@ export const AI_ENGINE_PRESETS: Record<PresetName, PresetDefinition> = {
       profileGeneration: {
         provider: "local",  // 抽象：使用本地 AI（默认 Ollama）
         useReasoning: false
+      },
+      qualityEvaluation: {
+        provider: "local",  // 冷启动质量评估也使用本地
+        useReasoning: false
       }
     },
     benefits: [
@@ -114,6 +121,10 @@ export const AI_ENGINE_PRESETS: Record<PresetName, PresetDefinition> = {
       profileGeneration: {
         provider: "remote",  // 抽象：使用远程 AI（默认 DeepSeek）
         useReasoning: true  // 画像生成使用推理模式提高准确性
+      },
+      qualityEvaluation: {
+        provider: "remote",  // 质量评估使用远程 AI
+        useReasoning: false  // 标准模式，无需推理
       }
     },
     benefits: [
@@ -147,6 +158,10 @@ export const AI_ENGINE_PRESETS: Record<PresetName, PresetDefinition> = {
       profileGeneration: {
         provider: "remote",  // 抽象：使用远程 AI（默认 DeepSeek）
         useReasoning: false  // 不用推理，省钱
+      },
+      qualityEvaluation: {
+        provider: "remote",  // 质量评估使用远程 AI
+        useReasoning: false
       }
     },
     benefits: [

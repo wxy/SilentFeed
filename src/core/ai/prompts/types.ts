@@ -51,6 +51,32 @@ export interface PromptTemplates {
   
   /** 用户画像生成（增量更新） */
   generateProfileIncremental: PromptTemplate
+  
+  /** 内容质量评估（冷启动/融合推荐） */
+  evaluateQuality?: PromptTemplate
+}
+
+/**
+ * 内容质量评估结果
+ */
+export interface QualityEvaluationResult {
+  /** 综合质量分数 (0-1) */
+  qualityScore: number
+  /** 推荐理由（简短） */
+  recommendationReason: string
+  /** 主题标签 */
+  topicTags: string[]
+  /** 详细评分（可选） */
+  details?: {
+    /** 标题吸引力 */
+    titleAppeal: number
+    /** 内容深度 */
+    contentDepth: number
+    /** 信息价值 */
+    informationValue: number
+    /** 时效性 */
+    timeliness: number
+  }
 }
 
 /**
@@ -67,4 +93,12 @@ export interface PromptVariables {
   behaviorSummary?: string
   /** 原文标题（用于翻译）*/
   originalTitle?: string
+  /** 文章标题（用于质量评估）*/
+  articleTitle?: string
+  /** 文章摘要（用于质量评估）*/
+  articleSummary?: string
+  /** 订阅源名称（用于质量评估）*/
+  feedTitle?: string
+  /** 发布时间（用于质量评估）*/
+  publishedAt?: string
 }

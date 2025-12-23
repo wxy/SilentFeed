@@ -147,6 +147,76 @@ export class PromptManager {
       currentProfile 
     })
   }
+  
+  /**
+   * 获取内容质量评估提示词（冷启动/融合推荐）
+   * 
+   * @param language - 语言
+   * @param articleTitle - 文章标题
+   * @param articleSummary - 文章摘要
+   * @param feedTitle - 订阅源名称
+   * @param publishedAt - 发布时间
+   * @returns 渲染后的提示词
+   */
+  getEvaluateQualityPrompt(
+    language: SupportedLanguage,
+    articleTitle: string,
+    articleSummary: string,
+    feedTitle: string,
+    publishedAt: string
+  ): string {
+    const templates = this.getTemplates(language)
+    
+    // 如果模板不存在，返回默认提示词
+    if (!templates.evaluateQuality) {
+      return this.getDefaultQualityPrompt(articleTitle, articleSummary, feedTitle, publishedAt)
+    }
+    
+    return this.renderQualityTemplate(templates.evaluateQuality, {
+      articleTitle,
+      articleSummary,
+      feedTitle,
+      publishedAt
+    })
+  }
+  
+  /**
+   * 渲染质量评估模板
+   */
+  private renderQualityTemplate(
+    template: PromptTemplate,
+    variables: {
+      articleTitle: string
+      articleSummary: string
+      feedTitle: string
+      publishedAt: string
+    }
+  ): string {
+    let prompt = template.user
+    prompt = prompt.replace(/\{\{articleTitle\}\}/g, variables.articleTitle)
+    prompt = prompt.replace(/\{\{articleSummary\}\}/g, variables.articleSummary)
+    prompt = prompt.replace(/\{\{feedTitle\}\}/g, variables.feedTitle)
+    prompt = prompt.replace(/\{\{publishedAt\}\}/g, variables.publishedAt)
+    return prompt
+  }
+  
+  /**
+   * 默认质量评估提示词（降级用）
+   */
+  private getDefaultQualityPrompt(
+    articleTitle: string,
+    articleSummary: string,
+    feedTitle: string,
+    publishedAt: string
+  ): string {
+    return `Evaluate the content quality of this article:
+Title: ${articleTitle}
+Source: ${feedTitle}
+Published: ${publishedAt}
+Summary: ${articleSummary}
+
+Return JSON with qualityScore (0-1), recommendationReason, and topicTags.`
+  }
 }
 
 /**
