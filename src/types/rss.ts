@@ -91,6 +91,38 @@ export interface DiscoveredFeed {
   
   /** Phase 9: 分析引擎选择（默认 remoteAI） */
   analysisEngine?: FeedAnalysisEngine
+  
+  /** AI 订阅源质量分析结果 */
+  aiAnalysis?: AISourceAnalysis
+}
+
+/**
+ * AI 订阅源质量分析结果
+ */
+export interface AISourceAnalysis {
+  /** 订阅源 ID */
+  feedId: string
+  /** 分析时间戳 */
+  analyzedAt: number
+  /** 是否使用了 AI 分析 */
+  isAIAnalyzed: boolean
+  /** 综合质量分数 (0-1) */
+  qualityScore: number
+  /** 主要内容分类 */
+  contentCategory: string
+  /** 细分领域标签 */
+  topicTags: string[]
+  /** 订阅建议 */
+  subscriptionAdvice: string
+  /** 详细评分 */
+  details?: {
+    contentQuality: number
+    updateFrequency: number
+    informationDensity: number
+    promotionalRatio: number
+  }
+  /** 分析错误（如果有） */
+  error?: string
 }
 
 /**
