@@ -149,73 +149,75 @@ export class PromptManager {
   }
   
   /**
-   * 获取内容质量评估提示词（冷启动/融合推荐）
+   * 获取订阅源质量分析提示词（添加订阅源时使用）
    * 
    * @param language - 语言
-   * @param articleTitle - 文章标题
-   * @param articleSummary - 文章摘要
    * @param feedTitle - 订阅源名称
-   * @param publishedAt - 发布时间
+   * @param feedDescription - 订阅源描述
+   * @param feedLink - 订阅源链接
+   * @param sampleArticles - 样本文章列表（JSON格式字符串）
    * @returns 渲染后的提示词
    */
-  getEvaluateQualityPrompt(
+  getSourceAnalysisPrompt(
     language: SupportedLanguage,
-    articleTitle: string,
-    articleSummary: string,
     feedTitle: string,
-    publishedAt: string
+    feedDescription: string,
+    feedLink: string,
+    sampleArticles: string
   ): string {
     const templates = this.getTemplates(language)
     
     // 如果模板不存在，返回默认提示词
-    if (!templates.evaluateQuality) {
-      return this.getDefaultQualityPrompt(articleTitle, articleSummary, feedTitle, publishedAt)
+    if (!templates.sourceAnalysis) {
+      return this.getDefaultSourceAnalysisPrompt(feedTitle, feedDescription, feedLink, sampleArticles)
     }
     
-    return this.renderQualityTemplate(templates.evaluateQuality, {
-      articleTitle,
-      articleSummary,
+    return this.renderSourceAnalysisTemplate(templates.sourceAnalysis, {
       feedTitle,
-      publishedAt
+      feedDescription,
+      feedLink,
+      sampleArticles
     })
   }
   
   /**
-   * 渲染质量评估模板
+   * 渲染订阅源分析模板
    */
-  private renderQualityTemplate(
+  private renderSourceAnalysisTemplate(
     template: PromptTemplate,
     variables: {
-      articleTitle: string
-      articleSummary: string
       feedTitle: string
-      publishedAt: string
+      feedDescription: string
+      feedLink: string
+      sampleArticles: string
     }
   ): string {
     let prompt = template.user
-    prompt = prompt.replace(/\{\{articleTitle\}\}/g, variables.articleTitle)
-    prompt = prompt.replace(/\{\{articleSummary\}\}/g, variables.articleSummary)
     prompt = prompt.replace(/\{\{feedTitle\}\}/g, variables.feedTitle)
-    prompt = prompt.replace(/\{\{publishedAt\}\}/g, variables.publishedAt)
+    prompt = prompt.replace(/\{\{feedDescription\}\}/g, variables.feedDescription || '无描述')
+    prompt = prompt.replace(/\{\{feedLink\}\}/g, variables.feedLink)
+    prompt = prompt.replace(/\{\{sampleArticles\}\}/g, variables.sampleArticles)
     return prompt
   }
   
   /**
-   * 默认质量评估提示词（降级用）
+   * 默认订阅源分析提示词（降级用）
    */
-  private getDefaultQualityPrompt(
-    articleTitle: string,
-    articleSummary: string,
+  private getDefaultSourceAnalysisPrompt(
     feedTitle: string,
-    publishedAt: string
+    feedDescription: string,
+    feedLink: string,
+    sampleArticles: string
   ): string {
-    return `Evaluate the content quality of this article:
-Title: ${articleTitle}
-Source: ${feedTitle}
-Published: ${publishedAt}
-Summary: ${articleSummary}
+    return `Analyze the quality of this RSS feed for subscription:
+Name: ${feedTitle}
+Description: ${feedDescription || 'No description'}
+Link: ${feedLink}
 
-Return JSON with qualityScore (0-1), recommendationReason, and topicTags.`
+Sample Articles:
+${sampleArticles}
+
+Return JSON with qualityScore (0-1), contentCategory, topicTags, and subscriptionAdvice.`
   }
 }
 

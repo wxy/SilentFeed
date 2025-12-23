@@ -31,8 +31,11 @@ export interface AIEngineAssignment {
   /** 用户画像生成 - 低频任务 */
   profileGeneration: AIEngineConfig
   
-  /** 内容质量评估（冷启动/融合推荐） - 中频任务，可选配置 */
-  qualityEvaluation?: AIEngineConfig
+  /** 
+   * 订阅源质量分析 - 低频任务，可选配置
+   * 用于添加订阅源时评估其质量和分类（不信任订阅源自我声称的分类）
+   */
+  sourceAnalysis?: AIEngineConfig
 }
 
 /** 预设方案名称 */
@@ -84,8 +87,8 @@ export const AI_ENGINE_PRESETS: Record<PresetName, PresetDefinition> = {
         provider: "local",  // 抽象：使用本地 AI（默认 Ollama）
         useReasoning: false
       },
-      qualityEvaluation: {
-        provider: "local",  // 冷启动质量评估也使用本地
+      sourceAnalysis: {
+        provider: "local",  // 订阅源质量分析也使用本地
         useReasoning: false
       }
     },
@@ -122,9 +125,9 @@ export const AI_ENGINE_PRESETS: Record<PresetName, PresetDefinition> = {
         provider: "remote",  // 抽象：使用远程 AI（默认 DeepSeek）
         useReasoning: true  // 画像生成使用推理模式提高准确性
       },
-      qualityEvaluation: {
-        provider: "remote",  // 质量评估使用远程 AI
-        useReasoning: false  // 标准模式，无需推理
+      sourceAnalysis: {
+        provider: "remote",  // 订阅源质量分析使用远程 AI
+        useReasoning: false  // 标准模式即可
       }
     },
     benefits: [
@@ -159,8 +162,8 @@ export const AI_ENGINE_PRESETS: Record<PresetName, PresetDefinition> = {
         provider: "remote",  // 抽象：使用远程 AI（默认 DeepSeek）
         useReasoning: false  // 不用推理，省钱
       },
-      qualityEvaluation: {
-        provider: "remote",  // 质量评估使用远程 AI
+      sourceAnalysis: {
+        provider: "remote",  // 订阅源质量分析使用远程 AI
         useReasoning: false
       }
     },
