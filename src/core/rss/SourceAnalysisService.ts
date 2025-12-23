@@ -195,8 +195,10 @@ export class SourceAnalysisService {
   private formatSampleArticles(articles: FeedArticle[]): string {
     return articles.map((article, index) => {
       const title = article.title || '(无标题)'
-      const summary = article.summary 
-        ? article.summary.slice(0, 200) + (article.summary.length > 200 ? '...' : '')
+      // 优先使用 content，其次 description
+      const desc = article.content || article.description
+      const summary = desc 
+        ? desc.slice(0, 200) + (desc.length > 200 ? '...' : '')
         : '(无摘要)'
       return `${index + 1}. 「${title}」\n   ${summary}`
     }).join('\n\n')
