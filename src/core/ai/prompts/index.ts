@@ -217,12 +217,16 @@ Link: ${feedLink}
 Sample Articles:
 ${sampleArticles}
 
-Return JSON with this exact format (summary must be a JSON string):
+Return JSON with this exact format:
 {
-  "topics": {
-    "main category": 1.0
-  },
-  "summary": "{\\"category\\":\\"tech\\",\\"language\\":\\"en\\",\\"originality\\":70,\\"informationDensity\\":70,\\"clickbaitScore\\":30,\\"spamScore\\":20,\\"reasoning\\":\\"Brief analysis\\"}"
+  "topics": {"main category": 1.0},
+  "category": "tech",
+  "language": "en",
+  "originality": 70,
+  "informationDensity": 70,
+  "clickbaitScore": 30,
+  "spamScore": 20,
+  "reasoning": "Brief analysis"
 }
 
 Categories: tech, news, finance, lifestyle, entertainment, education, science, sports, gaming, design, business, health, travel, food, photography, music, art, politics, culture, other

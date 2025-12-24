@@ -18,7 +18,9 @@ import type {
   RecommendationReasonRequest,
   RecommendationReasonResult,
   UserProfileGenerationRequest,
-  UserProfileGenerationResult
+  UserProfileGenerationResult,
+  SourceAnalysisRequest,
+  SourceAnalysisResponse
 } from "@/types/ai"
 import type { SourceAnalysisResult } from "@/core/ai/prompts/types"
 import { normalizeCategoryToKey, normalizeLanguageCode } from "@/types/feed-category"
@@ -361,10 +363,10 @@ export class AICapabilityManager {
    * 
    * 分析 RSS 订阅源的质量和分类，使用 sourceAnalysis 任务配置
    * 
-   * @param prompt - 完整的分析提示词（由 PromptManager 生成）
+   * @param request - 订阅源分析请求
    * @returns 解析后的分析结果
    */
-  async analyzeSource(prompt: string): Promise<SourceAnalysisResult> {
+  async analyzeSource(request: SourceAnalysisRequest): Promise<SourceAnalysisResult> {
     // 预算检查
     const shouldDowngrade = await BudgetChecker.shouldDowngrade()
     if (shouldDowngrade) {
@@ -380,6 +382,12 @@ export class AICapabilityManager {
       return this.getDefaultSourceAnalysisResult()
     }
 
+    // 检查 provider 是否支持 analyzeSource 方法
+    if (!provider.analyzeSource) {
+      aiLogger.warn(`⚠️ Provider ${provider.name} 不支持 analyzeSource，返回默认结果`)
+      return this.getDefaultSourceAnalysisResult()
+    }
+
     // 检查预算
     const budgetAllowed = await this.checkProviderBudget(provider.name)
     if (!budgetAllowed) {
@@ -388,18 +396,21 @@ export class AICapabilityManager {
     }
 
     try {
-      // 调用 AI，使用 analyzeContent 但我们需要解析原始响应
-      const result = await provider.analyzeContent(prompt, {
-        purpose: 'analyze-source',
+      // 调用 provider.analyzeSource 方法
+      const result = await provider.analyzeSource({
+        ...request,
         useReasoning
       })
       
-      // 记录用量
-      this.recordUsage(result)
+      aiLogger.info('订阅源分析完成:', {
+        feedTitle: request.feedTitle,
+        category: result.category,
+        language: result.language,
+        topicsCount: Object.keys(result.topics).length
+      })
       
-      // 尝试从 AI 响应中解析订阅源分析结果
-      // AI 应该返回包含我们需要字段的 JSON
-      return this.parseSourceAnalysisFromAIResult(result)
+      // 转换为 SourceAnalysisResult 格式
+      return this.convertToSourceAnalysisResult(result)
     } catch (error) {
       if (isNetworkError(error)) {
         aiLogger.warn("⚠️ AI 服务暂时不可用，返回默认订阅源分析结果", error)
@@ -411,112 +422,42 @@ export class AICapabilityManager {
   }
 
   /**
-   * 从 AI 分析结果中解析订阅源分析数据
-   * 
-   * 使用标准化函数将 AI 返回的分类和语言转换为标准 key
+   * 将 SourceAnalysisResponse 转换为 SourceAnalysisResult
    */
-  private parseSourceAnalysisFromAIResult(result: UnifiedAnalysisResult): SourceAnalysisResult {
-    // 尝试从 summary 中解析详细的分析结果（新格式）
-    let parsedSummary: {
-      category?: string
-      secondaryCategory?: string
-      language?: string
-      originality?: number
-      informationDensity?: number
-      clickbaitScore?: number
-      spamScore?: number
-      reasoning?: string
-    } | null = null
-    
-    aiLogger.debug('解析订阅源分析结果:', { 
-      hasSummary: !!result.summary, 
-      summaryPreview: result.summary?.substring(0, 200) 
-    })
-    
-    if (result.summary) {
-      try {
-        parsedSummary = JSON.parse(result.summary)
-        aiLogger.debug('解析 summary JSON 成功:', { 
-          category: parsedSummary?.category,
-          language: parsedSummary?.language,
-          hasOriginality: typeof parsedSummary?.originality === 'number'
-        })
-      } catch (e) {
-        // summary 不是 JSON，使用旧逻辑
-        aiLogger.debug('summary 不是有效 JSON，使用旧逻辑:', { error: String(e) })
-      }
-    }
-    
-    // 从 topicProbabilities 提取主题标签（取概率最高的几个）
-    const topics = Object.entries(result.topicProbabilities || {})
+  private convertToSourceAnalysisResult(response: SourceAnalysisResponse): SourceAnalysisResult {
+    // 从 topics 提取标签
+    const topicTags = Object.entries(response.topics)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
       .map(([topic]) => topic)
     
-    // 主分类：优先使用 parsedSummary 中的 category，否则使用 topicProbabilities 中概率最高的
-    const rawCategory = parsedSummary?.category || topics[0] || 'other'
-    const mainCategory = normalizeCategoryToKey(rawCategory)
-    
-    // 次要分类
-    const secondaryCategory = parsedSummary?.secondaryCategory 
-      ? normalizeCategoryToKey(parsedSummary.secondaryCategory)
-      : undefined
-    
-    // 语言检测：只使用 AI 从文章内容分析得出的语言
-    // 注意：不能从 summary 文本推断，因为 summary 是用界面语言生成的
-    const detectedLanguage = parsedSummary?.language
-    
-    const language = normalizeLanguageCode(detectedLanguage)
-    aiLogger.debug('语言检测结果:', { 
-      rawLanguage: detectedLanguage, 
-      normalizedLanguage: language,
-      willInclude: language !== 'unknown'
-    })
-    
-    // 从关键词提取更多标签
-    const keywordTags = (result.keywords || [])
-      .slice(0, 5)
-      .map(k => k.word)
-    
-    // 合并标签，去重
-    const allTags = [...new Set([...topics.slice(1), ...keywordTags])].slice(0, 8)
-    
     // 计算质量分数
     let qualityScore: number
-    if (parsedSummary && typeof parsedSummary.originality === 'number') {
-      // 新格式：基于详细评分计算
-      const originality = parsedSummary.originality / 100
-      const density = (parsedSummary.informationDensity || 50) / 100
-      const clickbait = (parsedSummary.clickbaitScore || 50) / 100
-      const spam = (parsedSummary.spamScore || 50) / 100
-      
-      // 综合评分：原创性和信息密度为正向，标题党和垃圾内容为负向
-      qualityScore = Math.min(0.95, Math.max(0.1, 
+    if (typeof response.originality === 'number') {
+      const originality = response.originality / 100
+      const density = (response.informationDensity || 50) / 100
+      const clickbait = (response.clickbaitScore || 50) / 100
+      const spam = (response.spamScore || 50) / 100
+      qualityScore = Math.min(0.95, Math.max(0.1,
         originality * 0.3 + density * 0.3 + (1 - clickbait) * 0.2 + (1 - spam) * 0.2
       ))
     } else {
-      // 旧格式：基于主题概率计算
-      const maxProb = Math.max(...Object.values(result.topicProbabilities || { default: 0.5 }))
+      const maxProb = Math.max(...Object.values(response.topics || { default: 0.5 }))
       qualityScore = Math.min(0.95, Math.max(0.3, maxProb * 0.7 + 0.3))
     }
     
-    // 构建订阅建议
-    const advice = parsedSummary?.reasoning || 
-      result.summary || 
-      `该订阅源主要内容为${mainCategory}，共识别${allTags.length}个相关标签`
+    // 标准化语言代码
+    const language = normalizeLanguageCode(response.language)
     
     return {
       qualityScore,
-      contentCategory: mainCategory,
-      secondaryCategory,
-      topicTags: allTags,
-      subscriptionAdvice: advice,
+      contentCategory: normalizeCategoryToKey(response.category),
+      topicTags,
+      subscriptionAdvice: response.reasoning || `该订阅源主要内容为${response.category}`,
       language: language !== 'unknown' ? language : undefined
     }
   }
 
-  /**
-   * 从文本内容推断语言
   /**
    * 默认订阅源分析结果（降级方案）
    */

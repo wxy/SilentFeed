@@ -968,7 +968,7 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
               {feed.status === 'subscribed' && (
                 <button
                   onClick={() => handleToggleGoogleTranslate(feed.id)}
-                  className={`px-1.5 py-0.5 rounded-r text-xs transition-colors ${
+                  className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-r text-xs transition-colors ${
                     feed.useGoogleTranslate !== false
                       ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-800/40'
                       : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
@@ -978,30 +978,12 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                     : _('options.rssManager.googleTranslate.disabled')
                   }
                 >
-                  {feed.useGoogleTranslate !== false ? '🌐' : '🚫'}
+                  <span>{feed.useGoogleTranslate !== false ? '🌐' : '🚫'}</span>
+                  <span>{_('options.rssManager.googleTranslate.label')}</span>
                 </button>
               )}
             </div>
-          ) : (
-            /* 无语言信息时，只显示翻译开关（如有必要）*/
-            feed.status === 'subscribed' && (
-              <button
-                onClick={() => handleToggleGoogleTranslate(feed.id)}
-                className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs transition-colors flex-shrink-0 ${
-                  feed.useGoogleTranslate !== false
-                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-800/40'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
-                title={feed.useGoogleTranslate !== false 
-                  ? _('options.rssManager.googleTranslate.enabled')
-                  : _('options.rssManager.googleTranslate.disabled')
-                }
-              >
-                <span>{feed.useGoogleTranslate !== false ? '🌐' : '🚫'}</span>
-                <span>{_('options.rssManager.googleTranslate.label')}</span>
-              </button>
-            )
-          )}
+          ) : null}
           
           {/* RSS/ATOM 徽章 - 右侧对齐，固定宽度 */}
           <a 

@@ -17,7 +17,9 @@ import type {
   UnifiedAnalysisResult,
   AnalyzeOptions,
   UserProfileGenerationRequest,
-  UserProfileGenerationResult
+  UserProfileGenerationResult,
+  SourceAnalysisRequest,
+  SourceAnalysisResponse
 } from "@/types/ai"
 import { AIUsageTracker } from "./AIUsageTracker"
 import type { AIUsagePurpose } from "@/types/ai-usage"
@@ -302,7 +304,12 @@ export abstract class BaseAIService implements AIProvider {
         jsonContent = jsonContent.replace(/\n```\s*$/, '')
       }
       
-      const analysis = JSON.parse(jsonContent) as { topics: Record<string, number>; summary?: string | object; translatedTitle?: string }
+      const analysis = JSON.parse(jsonContent) as { 
+        topics: Record<string, number>
+        summary?: string | object
+        translatedTitle?: string
+      }
+      
       const normalizedTopics = this.normalizeTopicProbabilities(analysis.topics)
       
       // ⚠️ 修复：AI 可能把 summary 返回为对象而不是 JSON 字符串，需要规范化
@@ -589,6 +596,139 @@ export abstract class BaseAIService implements AIProvider {
       })
       
       throw new Error(`${this.name} generateUserProfile failed: ${error}`)
+    }
+  }
+  
+  /**
+   * 订阅源质量分析
+   * 
+   * 分析 RSS 订阅源的质量、分类和语言
+   */
+  async analyzeSource(
+    request: SourceAnalysisRequest
+  ): Promise<SourceAnalysisResponse> {
+    const startTime = Date.now()
+    let tokensUsed = { input: 0, output: 0, total: 0 }
+    let cost = { input: 0, output: 0, total: 0 }
+    
+    try {
+      const response = await this.callWithResilience(async () => {
+        // 使用 promptManager 构建订阅源分析提示词
+        const prompt = promptManager.getSourceAnalysisPrompt(
+          this.language,
+          request.feedTitle,
+          request.feedDescription || '',
+          request.feedLink || '',
+          request.sampleArticles
+        )
+        
+        // 调用 API
+        const timeout = this.getConfiguredTimeout(request.useReasoning)
+        const apiResponse = await this.callChatAPI(prompt, {
+          maxTokens: 1000,
+          timeout,
+          jsonMode: true,
+          temperature: 0.3,
+          useReasoning: request.useReasoning
+        })
+        
+        if (!apiResponse.content || apiResponse.content.trim().length === 0) {
+          throw new Error("Empty response")
+        }
+        
+        return apiResponse
+      }, "analyzeSource")
+      
+      // 记录 token 用量
+      tokensUsed = {
+        input: response.tokensUsed.input,
+        output: response.tokensUsed.output,
+        total: response.tokensUsed.input + response.tokensUsed.output
+      }
+      
+      // 解析响应
+      let jsonContent = response.content.trim()
+      if (jsonContent.startsWith('```')) {
+        jsonContent = jsonContent.replace(/^```(?:json)?\s*\n/, '')
+      }
+      if (jsonContent.endsWith('```')) {
+        jsonContent = jsonContent.replace(/\n```\s*$/, '')
+      }
+      
+      const analysis = JSON.parse(jsonContent) as {
+        topics: Record<string, number>
+        category?: string
+        language?: string
+        originality?: number
+        informationDensity?: number
+        clickbaitScore?: number
+        spamScore?: number
+        reasoning?: string
+      }
+      
+      // 计算成本
+      const costBreakdown = this.calculateCostBreakdown(
+        response.tokensUsed.input,
+        response.tokensUsed.output
+      )
+      cost = {
+        input: costBreakdown.input,
+        output: costBreakdown.output,
+        total: costBreakdown.input + costBreakdown.output
+      }
+      
+      // 记录用量
+      await AIUsageTracker.recordUsage({
+        provider: this.name.toLowerCase() as any,
+        model: this.resolveModelName(response.model),
+        purpose: 'analyze-source',
+        tokens: { ...tokensUsed, estimated: false },
+        cost: { currency: this.getCurrency(), ...cost, estimated: false },
+        reasoning: request.useReasoning ?? false,
+        latency: Date.now() - startTime,
+        success: true,
+        metadata: { feedTitle: request.feedTitle }
+      })
+      
+      // 返回结果
+      return {
+        topics: analysis.topics || {},
+        category: analysis.category || 'other',
+        language: analysis.language,
+        originality: analysis.originality,
+        informationDensity: analysis.informationDensity,
+        clickbaitScore: analysis.clickbaitScore,
+        spamScore: analysis.spamScore,
+        reasoning: analysis.reasoning,
+        metadata: {
+          provider: this.name.toLowerCase() as any,
+          model: this.resolveModelName(response.model),
+          timestamp: Date.now(),
+          tokensUsed: {
+            input: response.tokensUsed.input,
+            output: response.tokensUsed.output
+          },
+          cost: cost.total
+        }
+      }
+    } catch (err) {
+      const error = err instanceof Error ? err.message : String(err)
+      
+      // 记录失败
+      await AIUsageTracker.recordUsage({
+        provider: this.name.toLowerCase() as any,
+        model: this.config.model || 'unknown',
+        purpose: 'analyze-source',
+        tokens: { ...tokensUsed, estimated: true },
+        cost: { currency: this.getCurrency(), ...cost, estimated: true },
+        reasoning: request.useReasoning ?? false,
+        latency: Date.now() - startTime,
+        success: false,
+        error,
+        metadata: { feedTitle: request.feedTitle }
+      })
+      
+      throw new Error(`${this.name} analyzeSource failed: ${error}`)
     }
   }
   

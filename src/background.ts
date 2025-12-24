@@ -17,7 +17,6 @@ import { aiManager } from './core/ai/AICapabilityManager'
 import { getAIConfig, saveAIConfig, isAIConfigured } from '@/storage/ai-config'
 import { getRecommendationConfig, saveRecommendationConfig } from '@/storage/recommendation-config'
 import { ReadingListManager } from './core/reading-list/reading-list-manager'
-import { PromptManager } from './core/ai/prompts'
 
 const bgLogger = logger.withTag('Background')
 
@@ -899,23 +898,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             const { feedId, feedTitle, feedDescription, feedLink, sampleArticles, existingLanguage } = message.payload
             bgLogger.info('收到 AI 订阅源分析请求:', { feedId, feedTitle, existingLanguage })
             
-            // 获取用户语言偏好
-            const userLanguage = await chrome.storage.sync.get('languagePreference')
-            const language = (userLanguage.languagePreference || 'zh-CN') as 'zh-CN' | 'en'
-            
-            // 构建分析提示词（使用静态导入的 PromptManager）
-            const promptManager = new PromptManager()
-            const prompt = promptManager.getSourceAnalysisPrompt(
-              language,
-              feedTitle || '未知标题',
-              feedDescription || '',
-              feedLink || '',
-              sampleArticles || ''
-            )
-            
             // 使用 AICapabilityManager 的订阅源分析方法
+            // 现在直接传递请求参数，不再手动构建提示词
             await aiManager.initialize()
-            const result = await aiManager.analyzeSource(prompt)
+            const result = await aiManager.analyzeSource({
+              feedTitle: feedTitle || '未知标题',
+              feedDescription: feedDescription || '',
+              feedLink: feedLink || '',
+              sampleArticles: sampleArticles || ''
+            })
             
             // 如果 RSS 源已声明语言且 AI 没有检测到语言，使用 RSS 声明的语言
             if (existingLanguage && !result.language) {
