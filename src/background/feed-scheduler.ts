@@ -16,6 +16,54 @@ import { getSourceAnalysisService } from '../core/rss/SourceAnalysisService'
 import type { DiscoveredFeed, FeedArticle } from '@/types/rss'
 
 /**
+ * 根据文章列表计算更新频率（篇/周）
+ * 
+ * 场景修复：
+ * - 扩展暂停使用后重新启动
+ * - 刚从学习阶段进入推荐阶段
+ * - 这些情况下，时间跨度可能较长而文章数较少，导致频率被低估
+ * 
+ * 算法：
+ * 1. 使用最早和最新文章的发布时间计算时间跨度
+ * 2. 基于文章数量和时间跨度计算篇/周
+ * 
+ * 注意：不设置硬编码范围，返回真实计算值
+ * 边界情况由 calculateNextFetchInterval 处理
+ * 
+ * @param articles - 文章列表（需要有 published 字段）
+ * @returns 更新频率（篇/周），保留 1 位小数
+ */
+export function calculateUpdateFrequencyFromArticles(articles: FeedArticle[]): number {
+  // 过滤出有发布时间的文章
+  const datedArticles = articles
+    .filter(a => a.published && a.published > 0)
+    .sort((a, b) => b.published - a.published) // 最新在前
+  
+  if (datedArticles.length < 2) {
+    // 文章太少无法计算，返回 0 表示未知
+    // calculateNextFetchInterval 会将 0 或 < 0.25 处理为每周抓取一次
+    return 0
+  }
+  
+  // 计算时间跨度（天）
+  const newest = datedArticles[0].published
+  const oldest = datedArticles[datedArticles.length - 1].published
+  const daySpan = (newest - oldest) / (1000 * 60 * 60 * 24)
+  
+  if (daySpan < 1) {
+    // 时间跨度不足 1 天，可能是高频源
+    // 假设这些文章代表 1 天的更新量
+    const articlesPerWeek = datedArticles.length * 7
+    return Math.round(articlesPerWeek * 10) / 10
+  }
+  
+  // 计算篇/周
+  const articlesPerWeek = (datedArticles.length / daySpan) * 7
+  
+  return Math.round(articlesPerWeek * 10) / 10 // 保留 1 位小数
+}
+
+/**
  * 计算下次抓取间隔（毫秒）
  * 
  * 根据源的更新频率（篇/周）决定抓取间隔：
@@ -196,20 +244,35 @@ export async function fetchFeed(feed: DiscoveredFeed): Promise<boolean> {
     // 这里只统计文章的 recommended 标记（表示进入过推荐池）
     const articlesInPool = latest.filter(a => a.recommended).length
     
-    // 6. 计算下次抓取时间
-    const now = Date.now()
-    const fetchInterval = calculateNextFetchInterval(feed)
-    const nextScheduledFetch = now + fetchInterval
+    // 6. 重新计算更新频率（基于合并后的文章列表）
+    // 修复：每次抓取都根据实际文章的时间分布重新计算，避免低估
+    const recalculatedFrequency = calculateUpdateFrequencyFromArticles(latest)
     
-    // 7. 更新源的更新频率（基于实际抓取的文章数）
-    // 如果有 quality 数据，使用 quality.updateFrequency
-    // 否则根据新文章数量估算
-    let updateFrequency = feed.quality?.updateFrequency || 0
-    if (!updateFrequency && newArticles.length > 0) {
-      // 粗略估算：假设本次抓取到的新文章代表一天的更新量
-      // 转换为篇/周
-      updateFrequency = (newArticles.length / latest.length) * 7
+    // 使用重新计算的频率，但如果已有 quality.updateFrequency 且差距不大则保留（避免频繁波动）
+    let updateFrequency = recalculatedFrequency
+    const existingFrequency = feed.quality?.updateFrequency || 0
+    if (existingFrequency > 0) {
+      // 如果新计算的频率与旧频率差距小于 50%，使用加权平均（平滑过渡）
+      const ratio = recalculatedFrequency / existingFrequency
+      if (ratio >= 0.5 && ratio <= 2) {
+        // 平滑更新：70% 新值 + 30% 旧值
+        updateFrequency = Math.round((recalculatedFrequency * 0.7 + existingFrequency * 0.3) * 10) / 10
+      }
+      // 如果差距超过 50%，直接使用新值（可能是源的更新模式发生了变化）
     }
+    
+    // 7. 基于更新后的频率计算下次抓取时间
+    const now = Date.now()
+    // 临时更新 feed.quality.updateFrequency 以便 calculateNextFetchInterval 使用
+    const feedWithUpdatedFrequency = {
+      ...feed,
+      quality: {
+        ...(feed.quality || { qualityScore: 50, updateFrequency: 0, updateFrequencyScore: 50 }),
+        updateFrequency
+      }
+    }
+    const fetchInterval = calculateNextFetchInterval(feedWithUpdatedFrequency)
+    const nextScheduledFetch = now + fetchInterval
     
     // 8. 更新数据库（使用事务保证数据一致性）
     // Phase 10: 实现增量追加策略，不删除旧文章
@@ -300,10 +363,16 @@ export async function fetchFeed(feed: DiscoveredFeed): Promise<boolean> {
       const realUnreadCount = ownedArticles.filter(a => !a.read).length
       
       // 8.1 更新 Feed 基本信息（使用真实的统计数据）
+      // 同时更新 quality.updateFrequency，确保 calculateNextFetchInterval 使用最新频率
+      const updatedQuality = feed.quality 
+        ? { ...feed.quality, updateFrequency }
+        : { qualityScore: 50, updateFrequency, updateFrequencyScore: 50 }
+      
       await db.discoveredFeeds.update(feed.id, {
         lastFetchedAt: now,
         nextScheduledFetch,
         updateFrequency,
+        quality: updatedQuality,
         lastError: undefined,
         latestArticles: ownedArticles,  // 只包含真正属于当前 Feed 的文章
         articleCount: realTotalCount,   // 真实的文章数量
