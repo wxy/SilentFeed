@@ -1,15 +1,17 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useTranslation } from "react-i18next"
 import i18n from "@/i18n"
 import { FeedManager } from "@/core/rss/managers/FeedManager"
 import { RSSValidator } from "@/core/rss/RSSValidator"
 import { RSSFetcher, type FeedItem } from "@/core/rss/RSSFetcher"
 import { OPMLImporter } from "@/core/rss/OPMLImporter"
+import { getSourceAnalysisService } from "@/core/rss/SourceAnalysisService"
 import { getFaviconUrl, handleFaviconError } from "@/utils/favicon"
 import { formatFeedTitle, decodeHtmlEntities } from "@/utils/html"
 import type { DiscoveredFeed } from "@/types/rss"
 import { logger } from "@/utils/logger"
 import { formatDateTime as formatDateTimeI18n } from "@/utils/date-formatter"
+import { isValidCategoryKey, type FeedCategoryKey } from "@/types/feed-category"
 
 const rssManagerLogger = logger.withTag("RSSManager")
 
@@ -60,6 +62,9 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
     all: boolean
     single: string | null
   }>({ all: false, single: null })
+  
+  // 订阅源 AI 分析状态
+  const [analyzingFeedIds, setAnalyzingFeedIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     loadFeeds()
@@ -676,22 +681,17 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
     }
   }
   
-  // 格式化语言显示
-  const formatLanguage = (lang?: string) => {
-    if (!lang) return _('options.rssManager.languages.unknown')
-    const langMap: Record<string, string> = {
-      'zh-CN': _('options.rssManager.languages.zh'),
-      'zh': _('options.rssManager.languages.zh'),
-      'en': _('options.rssManager.languages.en'),
-      'en-US': _('options.rssManager.languages.en'),
-      'ja': _('options.rssManager.languages.ja'),
-      'ko': _('options.rssManager.languages.ko'),
-      'fr': _('options.rssManager.languages.fr'),
-      'de': _('options.rssManager.languages.de'),
-      'es': _('options.rssManager.languages.es'),
-      'ru': _('options.rssManager.languages.ru'),
+  // 格式化语言显示（使用 i18n 翻译标准语言代码）
+  const formatLanguage = (lang?: string): string => {
+    if (!lang) return _('feedLanguage.unknown')
+    // 尝试使用 feedLanguage 翻译
+    const translationKey = `feedLanguage.${lang}`
+    const translated = _(translationKey)
+    // 如果翻译返回了 key 本身，说明没有这个翻译，直接显示原始值
+    if (translated === translationKey) {
+      return lang
     }
-    return langMap[lang] || lang
+    return translated
   }
   
   // 获取质量评分颜色
@@ -707,10 +707,61 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
     if (score >= 50) return _('options.rssManager.quality.medium')
     return _('options.rssManager.quality.low')
   }
+  
+  // 获取分类显示文本（使用 i18n 翻译标准 key）
+  const getCategoryText = (category: string | undefined): string => {
+    if (!category) return ''
+    // 如果是标准 key，使用翻译
+    if (isValidCategoryKey(category)) {
+      return _(`feedCategory.${category}`)
+    }
+    // 否则直接显示原始值（兼容旧数据）
+    return category
+  }
+
+  // 手动触发订阅源 AI 分析
+  const handleTriggerAnalysis = useCallback(async (feedId: string, feedTitle: string) => {
+    // 如果已在分析中，跳过
+    if (analyzingFeedIds.has(feedId)) return
+    
+    setAnalyzingFeedIds(prev => new Set(prev).add(feedId))
+    rssManagerLogger.info(`手动触发订阅源分析: ${feedTitle} (${feedId})`)
+    
+    try {
+      const service = getSourceAnalysisService()
+      const result = await service.analyze(feedId, true) // force = true 强制重新分析
+      
+      if (result) {
+        rssManagerLogger.info(`订阅源分析完成: ${feedTitle}`, result)
+        // 重新加载数据以更新 UI
+        await loadFeeds()
+      } else {
+        rssManagerLogger.warn(`订阅源分析返回空结果: ${feedTitle}`)
+      }
+    } catch (error) {
+      rssManagerLogger.error(`订阅源分析失败: ${feedTitle}`, error)
+    } finally {
+      setAnalyzingFeedIds(prev => {
+        const next = new Set(prev)
+        next.delete(feedId)
+        return next
+      })
+    }
+  }, [analyzingFeedIds])
 
   // 渲染源列表项（三行紧凑布局）
   // 子组件：订阅源行（允许使用 hooks）
-  function FeedRow({ feed, actions }: { feed: DiscoveredFeed; actions: { label: string; onClick: () => void; className: string; row?: 2 | 3; disabled?: boolean }[] }) {
+  function FeedRow({ 
+    feed, 
+    actions,
+    isAnalyzing,
+    onTriggerAnalysis 
+  }: { 
+    feed: DiscoveredFeed
+    actions: { label: string; onClick: () => void; className: string; row?: 2 | 3; disabled?: boolean }[]
+    isAnalyzing?: boolean
+    onTriggerAnalysis?: () => void
+  }) {
     const nextFetchTime = feed.status === 'subscribed' ? calculateNextFetchTime(feed) : null
     const [isEditingTitle, setIsEditingTitle] = useState(false)
     const [editedTitle, setEditedTitle] = useState(feed.title)
@@ -816,30 +867,65 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
             </button>
           </div>
           
-          {/* 质量文本图标 */}
-          {feed.quality && (
+          {/* 分析中状态 */}
+          {isAnalyzing && (
             <span 
-              className={`px-1.5 py-0.5 rounded text-[10px] font-bold flex-shrink-0 ${
-                feed.quality.score >= 70 
-                  ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
-                  : feed.quality.score >= 50 
-                  ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' 
-                  : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
-              }`}
-              title={`${_('options.rssManager.quality.score')}: ${feed.quality.score}/100`}
+              className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded text-[10px] font-medium flex-shrink-0 animate-pulse"
+              title={_('options.rssManager.analysis.analyzing')}
             >
-              {getQualityText(feed.quality.score)}
+              ⟳ {_('options.rssManager.analysis.analyzing')}
             </span>
           )}
           
-          {/* 类别文本图标 */}
-          {feed.category && (
-            <span 
-              className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded text-[10px] font-medium flex-shrink-0"
-              title={_('options.rssManager.category')}
+          {/* 质量文本图标 - 可点击触发重新分析 */}
+          {!isAnalyzing && feed.quality && (
+            <button 
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                onTriggerAnalysis?.()
+              }}
+              className={`px-1.5 py-0.5 rounded text-[10px] font-bold flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-offset-1 transition-all ${
+                feed.quality.score >= 70 
+                  ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:ring-green-400' 
+                  : feed.quality.score >= 50 
+                  ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 hover:ring-yellow-400' 
+                  : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:ring-red-400'
+              }`}
+              title={`${_('options.rssManager.quality.score')}: ${feed.quality.score}/100\n${_('options.rssManager.analysis.clickToReanalyze')}`}
             >
-              {feed.category}
-            </span>
+              {getQualityText(feed.quality.score)}
+            </button>
+          )}
+          
+          {/* 无质量数据时显示分析按钮 */}
+          {!isAnalyzing && !feed.quality && onTriggerAnalysis && (
+            <button 
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                onTriggerAnalysis()
+              }}
+              className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded text-[10px] font-medium flex-shrink-0 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              title={_('options.rssManager.analysis.clickToAnalyze')}
+            >
+              🔍 {_('options.rssManager.analysis.analyze')}
+            </button>
+          )}
+          
+          {/* 类别文本图标 - 可点击触发重新分析 */}
+          {!isAnalyzing && feed.category && (
+            <button 
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                onTriggerAnalysis?.()
+              }}
+              className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded text-[10px] font-medium flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-offset-1 hover:ring-purple-400 transition-all"
+              title={`${_('options.rssManager.category')}: ${getCategoryText(feed.category)}\n${_('options.rssManager.analysis.clickToReanalyze')}`}
+            >
+              {getCategoryText(feed.category)}
+            </button>
           )}
           
           {/* 语言标签 - 右侧对齐 */}
@@ -1394,7 +1480,12 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
 
           <div className="space-y-2">
             {candidateFeeds.map((feed) => (
-              <FeedRow key={feed.id} feed={feed} actions={[
+              <FeedRow 
+                key={feed.id} 
+                feed={feed} 
+                isAnalyzing={analyzingFeedIds.has(feed.id)}
+                onTriggerAnalysis={() => handleTriggerAnalysis(feed.id, feed.title)}
+                actions={[
               {
                 label: _('options.rssManager.actions.subscribe'),
                 onClick: () => handleSubscribe(feed.id),
@@ -1440,7 +1531,12 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
 
           <div className="space-y-2">
             {subscribedFeeds.map((feed) => (
-              <FeedRow key={feed.id} feed={feed} actions={[
+              <FeedRow 
+                key={feed.id} 
+                feed={feed} 
+                isAnalyzing={analyzingFeedIds.has(feed.id)}
+                onTriggerAnalysis={() => handleTriggerAnalysis(feed.id, feed.title)}
+                actions={[
               // 第二行：读取 + 暂停/恢复 + 取消订阅
               {
                 label: isFetchingSingle === feed.id 
@@ -1496,7 +1592,12 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
           {showIgnored && (
             <div className="mt-2 space-y-2">
               {ignoredFeeds.map((feed) => (
-                <FeedRow key={feed.id} feed={feed} actions={[
+                <FeedRow 
+                  key={feed.id} 
+                  feed={feed} 
+                  isAnalyzing={analyzingFeedIds.has(feed.id)}
+                  onTriggerAnalysis={() => handleTriggerAnalysis(feed.id, feed.title)}
+                  actions={[
                 {
                   label: _('options.rssManager.actions.subscribe'),
                   onClick: () => handleSubscribeIgnored(feed.id),

@@ -527,7 +527,7 @@ export function AIConfig() {
         const recConfig = await getRecommendationConfig()
         
         // 安全检查：确保所有必要的字段都存在
-        if (!engineAssignment.profileGeneration || !engineAssignment.feedAnalysis) {
+        if (!engineAssignment.profileGeneration || !engineAssignment.articleAnalysis) {
           return
         }
         
@@ -539,9 +539,9 @@ export function AIConfig() {
           analysisEngine = 'remoteAIWithReasoning'
         }
         
-        // 根据 feedAnalysis 的设置确定 feedAnalysisEngine
+        // 根据 articleAnalysis 的设置确定 feedAnalysisEngine
         let feedAnalysisEngine: FeedAnalysisEngine = 'remoteAI'
-        if (engineAssignment.feedAnalysis.provider === 'ollama') {
+        if (engineAssignment.articleAnalysis.provider === 'ollama') {
           feedAnalysisEngine = 'localAI'
         }
         

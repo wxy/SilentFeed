@@ -518,8 +518,8 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
         originalTitle: article.title  // Phase 9: 传递原标题用于 AI 翻译
       }
       
-      // Phase 8: 使用 feedAnalysis 任务类型（会从引擎分配配置中自动读取引擎和推理设置）
-      const analysis = await aiManager.analyzeContent(content, analysisOptions, "feedAnalysis")
+      // Phase 8: 使用 articleAnalysis 任务类型（会从引擎分配配置中自动读取引擎和推理设置）
+      const analysis = await aiManager.analyzeContent(content, analysisOptions, "articleAnalysis")
       
       // 保存 AI 分析结果到文章
       await this.saveArticleAnalysis(article.id, article.feedId, analysis)
@@ -644,8 +644,8 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
             purpose: 'recommend-content' as const  // 指定为RSS推荐任务
           }
           
-          // Phase 8: 使用 feedAnalysis 任务类型（会从引擎分配配置中自动读取引擎和推理设置）
-          const analysis = await aiManager.analyzeContent(item.content, analysisOptions, "feedAnalysis")
+          // Phase 8: 使用 articleAnalysis 任务类型（会从引擎分配配置中自动读取引擎和推理设置）
+          const analysis = await aiManager.analyzeContent(item.content, analysisOptions, "articleAnalysis")
           
           // Phase 6: 保存 AI 分析结果到文章（用于标记已分析，避免重复处理）
           await this.saveArticleAnalysis(item.article.id, item.article.feedId, analysis)

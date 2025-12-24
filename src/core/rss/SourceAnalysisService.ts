@@ -13,7 +13,7 @@
 import { db } from '@/storage/db'
 import { logger } from '@/utils/logger'
 import type { SourceAnalysisResult } from '@/core/ai/prompts/types'
-import type { DiscoveredFeed, FeedArticle } from '@/types/rss'
+import type { DiscoveredFeed, FeedArticle, FeedQuality } from '@/types/rss'
 
 const analysisLogger = logger.withTag('SourceAnalysis')
 
@@ -29,12 +29,16 @@ export interface AISourceAnalysis {
   isAIAnalyzed: boolean
   /** 综合质量分数 (0-1) */
   qualityScore: number
-  /** 主要内容分类 */
+  /** 主要内容分类（标准 key：tech, news, finance 等） */
   contentCategory: string
+  /** 次要分类（标准 key，可选） */
+  secondaryCategory?: string
   /** 细分领域标签 */
   topicTags: string[]
   /** 订阅建议 */
   subscriptionAdvice: string
+  /** 内容语言（标准代码：zh-CN, en, ja 等） */
+  language?: string
   /** 详细评分 */
   details?: {
     contentQuality: number
@@ -138,7 +142,7 @@ export class SourceAnalysisService {
           analyzedAt: Date.now(),
           isAIAnalyzed: false,
           qualityScore: 0.5, // 默认中等分数
-          contentCategory: '未知',
+          contentCategory: 'other',
           topicTags: [],
           subscriptionAdvice: '尚无足够内容进行分析',
           error: '没有可用的样本文章'
@@ -155,8 +159,10 @@ export class SourceAnalysisService {
         isAIAnalyzed: true,
         qualityScore: result.qualityScore,
         contentCategory: result.contentCategory,
+        secondaryCategory: result.secondaryCategory,
         topicTags: result.topicTags,
         subscriptionAdvice: result.subscriptionAdvice,
+        language: result.language,
         details: result.details
       }
 
@@ -170,7 +176,7 @@ export class SourceAnalysisService {
         analyzedAt: Date.now(),
         isAIAnalyzed: false,
         qualityScore: 0.5,
-        contentCategory: '未知',
+        contentCategory: 'other',
         topicTags: [],
         subscriptionAdvice: '分析失败，请稍后重试',
         error: error instanceof Error ? error.message : String(error)
@@ -191,17 +197,43 @@ export class SourceAnalysisService {
 
   /**
    * 格式化样本文章为提示词使用的文本
+   * 
+   * 优化策略：只使用标题和摘要（description），不使用完整内容
+   * 这样可以大幅减少 AI 输入，加快分析速度
    */
   private formatSampleArticles(articles: FeedArticle[]): string {
-    return articles.map((article, index) => {
+    const MAX_DESC_LENGTH = 150  // 每篇文章描述最大长度
+    const MAX_TOTAL_LENGTH = 2000  // 总文本最大长度
+    
+    let result = ''
+    
+    for (let i = 0; i < articles.length; i++) {
+      const article = articles[i]
       const title = article.title || '(无标题)'
-      // 优先使用 content，其次 description
-      const desc = article.content || article.description
+      
+      // 只使用 description（摘要），不使用完整 content
+      // description 通常是 RSS 源提供的文章摘要，更简洁
+      const desc = article.description || ''
       const summary = desc 
-        ? desc.slice(0, 200) + (desc.length > 200 ? '...' : '')
+        ? desc.slice(0, MAX_DESC_LENGTH) + (desc.length > MAX_DESC_LENGTH ? '...' : '')
         : '(无摘要)'
-      return `${index + 1}. 「${title}」\n   ${summary}`
-    }).join('\n\n')
+      
+      const entry = `${i + 1}. 「${title}」\n   ${summary}\n\n`
+      
+      // 检查是否超过总长度限制
+      if (result.length + entry.length > MAX_TOTAL_LENGTH) {
+        analysisLogger.debug('样本文章截断:', { 
+          usedCount: i, 
+          totalCount: articles.length,
+          totalLength: result.length 
+        })
+        break
+      }
+      
+      result += entry
+    }
+    
+    return result.trim()
   }
 
   /**
@@ -233,16 +265,51 @@ export class SourceAnalysisService {
 
   /**
    * 保存分析结果到数据库
+   * 
+   * 同时更新：
+   * - aiAnalysis: AI 分析完整结果
+   * - quality: 用于 UI 显示的质量信息（兼容旧字段）
+   * - category: 内容分类（标准 key）
+   * - language: 内容语言（标准代码）
+   * 
+   * 注意：不覆盖用户手动编辑的 title
    */
   private async saveAnalysis(feedId: string, analysis: AISourceAnalysis): Promise<AISourceAnalysis> {
-    await db.discoveredFeeds.update(feedId, {
-      aiAnalysis: analysis
-    } as any)
+    // 获取当前 feed 以合并 quality 数据
+    const feed = await db.discoveredFeeds.get(feedId)
+    
+    // 构建 quality 数据（兼容 UI 显示）
+    const qualityData: FeedQuality = {
+      // 保留原有的非 AI 分析数据
+      updateFrequency: feed?.quality?.updateFrequency || 0,
+      formatValid: feed?.quality?.formatValid ?? true,
+      reachable: feed?.quality?.reachable ?? true,
+      // 将 AI 质量分数（0-1）转换为 UI 显示的分数（0-100）
+      score: Math.round(analysis.qualityScore * 100),
+      lastChecked: analysis.analyzedAt,
+      details: feed?.quality?.details
+    }
+    
+    // 构建更新数据
+    const updateData: Record<string, unknown> = {
+      aiAnalysis: analysis,
+      quality: qualityData,
+      category: analysis.contentCategory
+    }
+    
+    // 如果 AI 检测到了语言，且 feed 当前没有语言信息，则更新
+    if (analysis.language && (!feed?.language || feed.language === 'unknown')) {
+      updateData.language = analysis.language
+    }
+    
+    await db.discoveredFeeds.update(feedId, updateData as any)
     
     analysisLogger.info('AI 分析结果已保存:', {
       feedId,
       qualityScore: analysis.qualityScore,
+      displayScore: qualityData.score,
       category: analysis.contentCategory,
+      language: analysis.language,
       tags: analysis.topicTags
     })
     
@@ -250,10 +317,34 @@ export class SourceAnalysisService {
   }
 
   /**
+   * 触发首次抓取分析
+   * 
+   * 当后台任务首次成功抓取订阅源时调用
+   * 异步执行，不阻塞抓取流程
+   */
+  async triggerOnFirstFetch(feedId: string): Promise<void> {
+    // 检查是否已分析过
+    const existing = await this.getAnalysis(feedId)
+    if (existing && existing.isAIAnalyzed) {
+      analysisLogger.debug('订阅源已有 AI 分析，跳过首次抓取分析:', feedId)
+      return
+    }
+
+    analysisLogger.info('首次抓取触发订阅源分析:', feedId)
+    
+    // 异步执行分析，不等待结果
+    this.analyze(feedId).catch(error => {
+      analysisLogger.error('首次抓取触发分析失败:', { feedId, error })
+    })
+  }
+
+  /**
    * 触发首次阅读分析
    * 
    * 当用户首次点击订阅源的文章时调用
    * 异步执行，不阻塞用户操作
+   * 
+   * @deprecated 改用 triggerOnFirstFetch，在后台首次抓取时触发
    */
   async triggerOnFirstRead(feedId: string): Promise<void> {
     // 检查是否已分析过

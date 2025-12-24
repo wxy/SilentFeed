@@ -193,16 +193,16 @@ export function ProfileSettings() {
           p => p && p.apiKey && p.model
         )
         setAiConfigured(hasAIProvider)
-        // Derive active provider from engineAssignment (priority: profileGeneration > feedAnalysis > pageAnalysis)
+        // Derive active provider from engineAssignment (priority: profileGeneration > articleAnalysis > pageAnalysis)
         // 使用 resolveProvider 处理抽象 provider
         const profileProvider = resolveProvider(aiConfig.engineAssignment?.profileGeneration?.provider, aiConfig)
-        const feedProvider = resolveProvider(aiConfig.engineAssignment?.feedAnalysis?.provider, aiConfig)
+        const articleProvider = resolveProvider(aiConfig.engineAssignment?.articleAnalysis?.provider, aiConfig)
         const pageProvider = resolveProvider(aiConfig.engineAssignment?.pageAnalysis?.provider, aiConfig)
         
         const activeProvider = profileProvider !== 'ollama'
           ? profileProvider
-          : feedProvider !== 'ollama'
-          ? feedProvider
+          : articleProvider !== 'ollama'
+          ? articleProvider
           : pageProvider !== 'ollama'
           ? pageProvider
           : (Object.keys(aiConfig.providers)[0] as AIProviderType | undefined) || null

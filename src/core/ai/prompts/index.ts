@@ -217,7 +217,12 @@ Link: ${feedLink}
 Sample Articles:
 ${sampleArticles}
 
-Return JSON with qualityScore (0-1), contentCategory, topicTags, and subscriptionAdvice.`
+Return JSON with:
+- qualityScore: 0-1 (overall quality)
+- contentCategory: standard key (tech/news/finance/lifestyle/entertainment/education/science/sports/gaming/design/business/health/travel/food/photography/music/art/politics/culture/other)
+- language: standard code (zh-CN/zh-TW/en/ja/ko/fr/de/es/ru/pt/it/ar/unknown)
+- topicTags: array of tags
+- subscriptionAdvice: brief advice`
   }
 }
 

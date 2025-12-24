@@ -9,7 +9,7 @@
 
 import { logger } from "@/utils/logger"
 import { withErrorHandling, withErrorHandlingSync } from "@/utils/error-handler"
-import type { AIEngineAssignment } from "@/types/ai-engine-assignment"
+import type { AIEngineAssignment, AIEngineConfig } from "@/types/ai-engine-assignment"
 import { getDefaultEngineAssignment } from "@/types/ai-engine-assignment"
 import { encryptApiKey as cryptoEncrypt, decryptApiKey as cryptoDecrypt } from "@/utils/crypto"
 
@@ -554,10 +554,35 @@ export function getProviderModel(provider: AIProviderType): string {
 
 /**
  * Phase 11: 获取 AI 引擎分配配置
+ * 
+ * 会自动迁移旧字段名（feedAnalysis -> articleAnalysis）并补充缺失的默认配置
  */
 export async function getEngineAssignment(): Promise<AIEngineAssignment> {
   const config = await getAIConfig()
-  return config.engineAssignment || getDefaultEngineAssignment()
+  const defaultAssignment = getDefaultEngineAssignment()
+  
+  if (!config.engineAssignment) {
+    return defaultAssignment
+  }
+  
+  const stored = config.engineAssignment as Record<string, unknown>
+  
+  // 迁移：feedAnalysis -> articleAnalysis
+  if (stored.feedAnalysis && !stored.articleAnalysis) {
+    stored.articleAnalysis = stored.feedAnalysis
+    delete stored.feedAnalysis
+    configLogger.info('已迁移 feedAnalysis -> articleAnalysis')
+  }
+  
+  // 补充缺失的字段（不覆盖已存在的）
+  return {
+    pageAnalysis: (stored.pageAnalysis as AIEngineConfig) || defaultAssignment.pageAnalysis,
+    articleAnalysis: (stored.articleAnalysis as AIEngineConfig) || defaultAssignment.articleAnalysis,
+    profileGeneration: (stored.profileGeneration as AIEngineConfig) || defaultAssignment.profileGeneration,
+    sourceAnalysis: (stored.sourceAnalysis as AIEngineConfig) || defaultAssignment.sourceAnalysis,
+    // 保留其他自定义字段（如 recommendation）
+    ...stored
+  } as AIEngineAssignment
 }
 
 /**

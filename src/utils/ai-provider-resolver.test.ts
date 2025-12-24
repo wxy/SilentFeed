@@ -23,7 +23,7 @@ describe("ai-provider-resolver", () => {
     },
     engineAssignment: {
       pageAnalysis: { provider: "local" },
-      feedAnalysis: { provider: "local" },
+      articleAnalysis: { provider: "local" },
       profileGeneration: { provider: "local" }
     },
     monthlyBudget: 10,

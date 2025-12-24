@@ -8,13 +8,15 @@
  * - 支持深色模式
  * - 支持手绘风格
  * - 支持图标点击
+ * - 支持百分比或自定义文本显示
  */
 
 interface CircularProgressProps {
   progress: number // 0-100
   icon: string
-  current: number
-  total: number
+  current?: number  // 可选，用于显示 current/total
+  total?: number    // 可选，用于显示 current/total
+  progressText?: string  // 可选，自定义进度文本（优先于 current/total）
   size?: number // 直径（像素）
   isSketchyStyle?: boolean // 是否使用手绘风格
   onIconClick?: () => void // 图标点击事件
@@ -26,6 +28,7 @@ export function CircularProgress({
   icon,
   current,
   total,
+  progressText,
   size = 128,
   isSketchyStyle = false,
   onIconClick,
@@ -34,6 +37,9 @@ export function CircularProgress({
   const radius = (size - 16) / 2 // 留出边距
   const circumference = 2 * Math.PI * radius
   const offset = circumference - (progress / 100) * circumference
+  
+  // 决定显示的文本
+  const displayText = progressText ?? (current !== undefined && total !== undefined ? `${current}/${total}` : `${Math.round(progress)}%`)
   
   return (
     <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
@@ -103,7 +109,7 @@ export function CircularProgress({
         <div className={`text-sm font-semibold ${
           isSketchyStyle ? 'sketchy-text' : 'text-gray-600 dark:text-gray-400'
         }`}>
-          {current}/{total}
+          {displayText}
         </div>
       </div>
     </div>

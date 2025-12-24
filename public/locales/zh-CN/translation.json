@@ -37,6 +37,8 @@
     "learningStage": {
       "title": "正在学习你的兴趣偏好",
       "progress": "已浏览 {{current}}/{{total}} 页",
+      "progressPercent": "学习进度 {{percent}}%",
+      "progressWithFeeds": "{{pages}} 页浏览 + {{feeds}} 个订阅源",
       "subtitle": "数据存储在本地，分析由你的 AI 完成"
     },
     "tips": {
@@ -320,6 +322,12 @@
         "articlesPerWeek": "篇/周",
         "formatInvalid": "格式异常",
         "analyzing": "分析中..."
+      },
+      "analysis": {
+        "analyzing": "分析中",
+        "analyze": "分析",
+        "clickToReanalyze": "点击重新分析",
+        "clickToAnalyze": "点击进行 AI 分析"
       },
       
       "fetch": {
@@ -1187,8 +1195,9 @@
         },
         "tasks": {
           "pageAnalysis": "内容分析",
-          "feedAnalysis": "内容推荐",
-          "profileGeneration": "画像生成"
+          "articleAnalysis": "文章推荐",
+          "profileGeneration": "画像生成",
+          "sourceAnalysis": "订阅源分析"
         },
         "notes": {
           "highFrequency": "高频任务（可选推理）",
@@ -1453,8 +1462,9 @@
         },
         "tasks": {
           "pageAnalysis": "内容分析",
-          "feedAnalysis": "内容推荐",
-          "profileGeneration": "画像生成"
+          "articleAnalysis": "文章推荐",
+          "profileGeneration": "画像生成",
+          "sourceAnalysis": "订阅源分析"
         },
         "notes": {
           "highFrequency": "高频任务（可选推理）",
@@ -1583,5 +1593,46 @@
         "costReasoning": "{{date}}\n{{label}}: ¥{{value}}\n{{totalLabel}}: ¥{{total}}"
       }
     }
+  },
+  "feedCategory": {
+    "tech": "技术",
+    "news": "新闻",
+    "finance": "财经",
+    "lifestyle": "生活",
+    "entertainment": "娱乐",
+    "education": "教育",
+    "science": "科学",
+    "sports": "体育",
+    "gaming": "游戏",
+    "design": "设计",
+    "business": "商业",
+    "health": "健康",
+    "travel": "旅行",
+    "food": "美食",
+    "photography": "摄影",
+    "music": "音乐",
+    "art": "艺术",
+    "politics": "政治",
+    "culture": "文化",
+    "other": "其他"
+  },
+  "feedLanguage": {
+    "zh-CN": "简体中文",
+    "zh-TW": "繁体中文",
+    "en": "英语",
+    "ja": "日语",
+    "ko": "韩语",
+    "fr": "法语",
+    "de": "德语",
+    "es": "西班牙语",
+    "ru": "俄语",
+    "pt": "葡萄牙语",
+    "it": "意大利语",
+    "ar": "阿拉伯语",
+    "hi": "印地语",
+    "vi": "越南语",
+    "th": "泰语",
+    "id": "印尼语",
+    "unknown": "未知"
   }
 }

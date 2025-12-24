@@ -25,8 +25,8 @@ export interface AIEngineAssignment {
   /** 页面浏览学习（浏览历史分析） - 高频任务 */
   pageAnalysis: AIEngineConfig
   
-  /** 推荐订阅文章（Feed分析） - 高频任务 */
-  feedAnalysis: AIEngineConfig
+  /** 文章内容分析（推荐文章打分） - 高频任务 */
+  articleAnalysis: AIEngineConfig
   
   /** 用户画像生成 - 低频任务 */
   profileGeneration: AIEngineConfig
@@ -79,7 +79,7 @@ export const AI_ENGINE_PRESETS: Record<PresetName, PresetDefinition> = {
         provider: "local",  // 抽象：使用本地 AI（默认 Ollama）
         useReasoning: false
       },
-      feedAnalysis: {
+      articleAnalysis: {
         provider: "local",  // 抽象：使用本地 AI（默认 Ollama）
         useReasoning: false
       },
@@ -117,7 +117,7 @@ export const AI_ENGINE_PRESETS: Record<PresetName, PresetDefinition> = {
         provider: "remote",  // 抽象：使用远程 AI（默认 DeepSeek）
         useReasoning: false
       },
-      feedAnalysis: {
+      articleAnalysis: {
         provider: "remote",  // 抽象：使用远程 AI（默认 DeepSeek）
         useReasoning: false
       },
@@ -154,7 +154,7 @@ export const AI_ENGINE_PRESETS: Record<PresetName, PresetDefinition> = {
         provider: "remote",  // 抽象：使用远程 AI（默认 DeepSeek）
         useReasoning: false
       },
-      feedAnalysis: {
+      articleAnalysis: {
         provider: "remote",  // 抽象：使用远程 AI（默认 DeepSeek）
         useReasoning: false
       },
@@ -207,7 +207,7 @@ export function validateEngineAssignment(assignment: AIEngineAssignment): boolea
   if (!validateEngineConfig({ ...assignment.pageAnalysis, useReasoning: false })) {
     return false
   }
-  if (!validateEngineConfig({ ...assignment.feedAnalysis, useReasoning: false })) {
+  if (!validateEngineConfig({ ...assignment.articleAnalysis, useReasoning: false })) {
     return false
   }
   if (!validateEngineConfig(assignment.profileGeneration)) {

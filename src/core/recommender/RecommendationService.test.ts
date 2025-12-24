@@ -797,7 +797,7 @@ describe('RecommendationService', () => {
         },
         // 新结构：任务级配置优先
         engineAssignment: {
-          feedAnalysis: {
+          articleAnalysis: {
             provider: 'deepseek',
             useReasoning: false  // ⚠️ 任务级明确禁用推理
           }
@@ -854,7 +854,7 @@ describe('RecommendationService', () => {
         },
         // 新结构：任务级配置优先
         engineAssignment: {
-          feedAnalysis: {
+          articleAnalysis: {
             provider: 'deepseek',
             useReasoning: true  // ✅ 任务级启用推理
           }
@@ -910,7 +910,7 @@ describe('RecommendationService', () => {
         },
         // 新结构：任务级配置未设置 useReasoning
         engineAssignment: {
-          feedAnalysis: {
+          articleAnalysis: {
             provider: 'deepseek'
             // useReasoning 未设置，应该回退到全局
           }

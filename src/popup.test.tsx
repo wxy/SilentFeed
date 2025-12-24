@@ -4,10 +4,10 @@ import userEvent from "@testing-library/user-event"
 import IndexPopup from "./popup"
 import { LEARNING_COMPLETE_PAGES } from "@/constants/progress"
 
-// Mock onboarding state
+// Mock onboarding state (legacy, kept for backward compatibility)
 vi.mock("@/storage/onboarding-state", () => ({
   getOnboardingState: vi.fn().mockResolvedValue({
-    state: 'learning',  // 默认已完成引导，进入学习阶段
+    state: 'learning',
     completedAt: Date.now()
   }),
   enterReadyState: vi.fn(),
@@ -31,7 +31,9 @@ vi.mock("@/i18n/helpers", () => ({
         "popup.stage.grower": () => "成长者阶段",
         "popup.stage.master": () => "大师阶段",
         "popup.hint": () => "开始浏览，自动学习你的兴趣",
-        "popup.settings": () => "设置"
+        "popup.settings": () => "设置",
+        "popup.learningStage.progressPercent": (opt) => `学习进度 ${opt?.percent || 0}%`,
+        "popup.learningStage.progressWithFeeds": (opt) => `${opt?.pages || 0} 页浏览 + ${opt?.feeds || 0} 个订阅源`
       }
       const fn = translations[key]
       return fn ? fn(options) : key
@@ -41,12 +43,29 @@ vi.mock("@/i18n/helpers", () => ({
 
 describe("IndexPopup 组件", () => {
   beforeEach(() => {
-    // Mock chrome.runtime.openOptionsPage
+    // Mock chrome.runtime.openOptionsPage and sendMessage
     global.chrome = {
       ...global.chrome,
       runtime: {
         ...global.chrome.runtime,
-        openOptionsPage: vi.fn()
+        openOptionsPage: vi.fn(),
+        sendMessage: vi.fn().mockImplementation((message) => {
+          // Mock GET_ONBOARDING_STATE_INFO response
+          if (message.type === 'GET_ONBOARDING_STATE_INFO') {
+            return Promise.resolve({
+              success: true,
+              data: {
+                state: 'learning',
+                pageCount: 0,
+                threshold: LEARNING_COMPLETE_PAGES,
+                subscribedFeedCount: 0,
+                progressPercent: 0,
+                isLearningComplete: false
+              }
+            })
+          }
+          return Promise.resolve({ success: true })
+        })
       }
     } as any
   })
@@ -75,15 +94,13 @@ describe("IndexPopup 组件", () => {
     expect(hintElement).toBeInTheDocument()
   })
 
-  it("应该显示初始化进度 0/100", async () => {
+  it("应该显示初始化进度 0%", async () => {
     render(<IndexPopup />)
 
     // 等待加载完成
-    // Phase 6: 临时改为 100 页阈值
-    // 现在使用 CircularProgress，格式为 "0/100" 不带"页"字
+    // 现在显示简单的百分比格式 "0%"
     await waitFor(() => {
-      const expected = `0/${LEARNING_COMPLETE_PAGES}`
-      expect(screen.getByText(expected)).toBeInTheDocument()
+      expect(screen.getByText("0%")).toBeInTheDocument()
     })
   })
 

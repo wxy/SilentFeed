@@ -12,6 +12,7 @@
 
 import { db, updateFeedStats } from '../storage/db'
 import { RSSFetcher } from '../core/rss/RSSFetcher'
+import { getSourceAnalysisService } from '../core/rss/SourceAnalysisService'
 import type { DiscoveredFeed, FeedArticle } from '@/types/rss'
 
 /**
@@ -318,6 +319,15 @@ export async function fetchFeed(feed: DiscoveredFeed): Promise<boolean> {
     
     // 计算跨 Feed 共享的文章数量
     const sharedArticlesCount = latest.length - (updatedFeed?.articleCount || 0)
+    
+    // 首次抓取触发 AI 分析：如果是第一次成功抓取，触发订阅源质量分析
+    // 异步执行，不阻塞抓取流程
+    const isFirstFetch = !feed.lastFetchedAt
+    if (isFirstFetch) {
+      getSourceAnalysisService().triggerOnFirstFetch(feed.id).catch(error => {
+        console.warn(`[FeedScheduler] 首次抓取分析触发失败: ${feed.title}`, error)
+      })
+    }
     
     // 简要日志：显示抓取结果
     if (process.env.NODE_ENV === 'development') {

@@ -62,12 +62,16 @@ export interface PromptTemplates {
 export interface SourceAnalysisResult {
   /** 订阅源综合质量分数 (0-1) */
   qualityScore: number
-  /** 主要内容分类（如：技术、新闻、生活等） */
+  /** 主要内容分类（标准key：tech, news, finance等） */
   contentCategory: string
+  /** 次要分类（可选，标准key） */
+  secondaryCategory?: string
   /** 细分领域标签 */
   topicTags: string[]
   /** 订阅建议（简短描述） */
   subscriptionAdvice: string
+  /** 内容语言（标准代码：zh-CN, en, ja等） */
+  language?: string
   /** 详细评分（可选） */
   details?: {
     /** 内容质量：原创性、深度、专业性 */

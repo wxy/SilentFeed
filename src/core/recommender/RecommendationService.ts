@@ -105,8 +105,8 @@ export class RecommendationService {
       
       // 如果配置要求使用推理引擎
       if (effectiveAnalysisEngine === 'remoteAIWithReasoning') {
-        // 新结构：从 engineAssignment.feedAnalysis 读取任务级配置
-        const taskConfig = aiConfig.engineAssignment?.feedAnalysis
+        // 新结构：从 engineAssignment.articleAnalysis 读取任务级配置
+        const taskConfig = aiConfig.engineAssignment?.articleAnalysis
         const taskProvider = taskConfig?.provider
         // 仅远程推理：local 走下方 useLocalAI 分支，这里要求非 ollama
         const isRemoteProvider = taskProvider && taskProvider !== 'ollama'
@@ -185,7 +185,7 @@ export class RecommendationService {
       
       // 🔍 调试：检查配置读取
       // 记录更准确的推荐配置详情（新结构）
-      const logTaskConfig = aiConfig.engineAssignment?.feedAnalysis
+      const logTaskConfig = aiConfig.engineAssignment?.articleAnalysis
       const logTaskProvider = logTaskConfig?.provider
       // 解析抽象 provider 类型用于日志
       const logResolvedProvider = logTaskProvider ? resolveProvider(logTaskProvider, aiConfig) as 'deepseek' | 'openai' | 'ollama' : undefined

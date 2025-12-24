@@ -50,7 +50,7 @@ vi.mock("@/storage/ai-config", () => ({
     local: { enabled: false, provider: 'ollama', endpoint: '', model: '', apiKey: 'ollama' },
     engineAssignment: {
       pageAnalysis: { provider: 'deepseek', useReasoning: false },
-      feedAnalysis: { provider: 'deepseek', useReasoning: false },
+      articleAnalysis: { provider: 'deepseek', useReasoning: false },
       profileGeneration: { provider: 'deepseek', useReasoning: false }
     }
   }),
@@ -805,7 +805,7 @@ describe("OnboardingView", () => {
         local: { enabled: false, provider: 'ollama', endpoint: '', model: '', apiKey: 'ollama' },
         engineAssignment: {
           pageAnalysis: { provider: 'deepseek', useReasoning: false },
-          feedAnalysis: { provider: 'deepseek', useReasoning: false },
+          articleAnalysis: { provider: 'deepseek', useReasoning: false },
           profileGeneration: { provider: 'deepseek', useReasoning: false }
         }
       })

@@ -333,10 +333,10 @@ export class DeepSeekProvider extends BaseAIService {
     try {
       const startTime = Date.now()
       
-      // 使用足够大的 maxTokens 避免触发截断警告
-      // "测试连接"这种简单提示通常只需要几十个 token，但设置 200 确保不会截断
-      await this.callChatAPI("测试连接", {
-        maxTokens: 200,
+      // 使用简短提示词并设置足够的 maxTokens 避免截断警告
+      // 中文"回复OK"通常只需要几个 token，但 API 可能返回较长的友好响应
+      await this.callChatAPI("回复OK即可", {
+        maxTokens: 50,
         timeout: 10000,
         jsonMode: false
       })

@@ -65,6 +65,7 @@ export abstract class BaseAIService implements AIProvider {
    * 初始化语言设置
    * 
    * 从 chrome.storage 读取用户的语言偏好（与 i18n 保持一致）
+   * 如果未设置（跟随浏览器），则检测浏览器语言
    * 
    * 默认语言：英文（国际化标准）
    */
@@ -72,12 +73,25 @@ export abstract class BaseAIService implements AIProvider {
     try {
       const lng = await ChromeStorageBackend.loadLanguage()
       
-      // 将 i18n 语言代码映射到支持的语言
-      if (lng === 'zh-CN' || lng === 'zh') {
-        this.language = 'zh-CN'
+      if (lng) {
+        // 用户明确设置了语言偏好
+        if (lng === 'zh-CN' || lng === 'zh') {
+          this.language = 'zh-CN'
+        } else {
+          this.language = 'en'
+        }
       } else {
-        // 默认使用英文（国际化标准）
-        this.language = 'en'
+        // 未设置语言偏好（跟随浏览器），检测浏览器语言
+        // 优先使用 Chrome Extension API（在 Service Worker 中更可靠）
+        // 回退到 navigator.language
+        const browserLang = chrome?.i18n?.getUILanguage?.() 
+          || navigator?.language 
+          || 'en'
+        if (browserLang.startsWith('zh')) {
+          this.language = 'zh-CN'
+        } else {
+          this.language = 'en'
+        }
       }
     } catch (error) {
       // 如果读取失败，使用默认语言（英文）

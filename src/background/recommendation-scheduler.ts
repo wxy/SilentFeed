@@ -10,7 +10,7 @@
  * - 待推荐 5-9 条 → 5 分钟
  * - 待推荐 1-4 条 → 10 分钟
  * - 待推荐 0 条 → 20 分钟（保持监控）
- * - 检查学习阶段（< 100 页不生成）
+ * - 检查学习阶段（使用动态阈值，而非固定 100 页）
  * - 检查 AI 配置（未配置时跳过生成）
  * - 更新徽章显示新推荐
  * - 详细的日志记录
@@ -19,7 +19,7 @@
 import { getPageCount, getUnrecommendedArticleCount } from '../storage/db'
 import { recommendationService } from '../core/recommender/RecommendationService'
 import { logger } from '@/utils/logger'
-import { LEARNING_COMPLETE_PAGES } from '@/constants/progress'
+import { OnboardingStateService } from '@/core/onboarding/OnboardingStateService'
 import { hasAnyAIAvailable } from '@/storage/ai-config'
 
 const schedLogger = logger.withTag('RecommendationScheduler')
@@ -365,10 +365,10 @@ export class RecommendationScheduler {
         }
       }
       
-      // 1. 检查是否达到学习阈值
-      const pageCount = await getPageCount()
-      if (pageCount < LEARNING_COMPLETE_PAGES) {
-        const message = `跳过推荐生成：当前 ${pageCount} 页，需要 ${LEARNING_COMPLETE_PAGES} 页`
+      // 1. 检查是否达到学习阈值（使用动态阈值）
+      const stateInfo = await OnboardingStateService.getState()
+      if (!stateInfo.isLearningComplete) {
+        const message = `跳过推荐生成：当前 ${stateInfo.pageCount} 页，需要 ${stateInfo.threshold} 页`
         schedLogger.debug(message)
         return {
           shouldGenerate: false,

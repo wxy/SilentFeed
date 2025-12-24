@@ -10,12 +10,14 @@ import { IconManager } from './utils/IconManager'
 import { evaluateAndAdjust } from './core/recommender/adaptive-count'
 import { setupNotificationListeners, testNotification } from './core/recommender/notification'
 import { getOnboardingState } from './storage/onboarding-state'
+import { OnboardingStateService, type OnboardingStateInfo } from './core/onboarding/OnboardingStateService'
 import { logger } from '@/utils/logger'
 import { LEARNING_COMPLETE_PAGES } from '@/constants/progress'
 import { aiManager } from './core/ai/AICapabilityManager'
 import { getAIConfig, saveAIConfig, isAIConfigured } from '@/storage/ai-config'
 import { getRecommendationConfig, saveRecommendationConfig } from '@/storage/recommendation-config'
 import { ReadingListManager } from './core/reading-list/reading-list-manager'
+import { PromptManager } from './core/ai/prompts'
 
 const bgLogger = logger.withTag('Background')
 
@@ -81,8 +83,8 @@ let rssDiscoveryViewed = false
  * 优先级：
  * 0. AI 未配置 - 图标暂停状态（优先级最高）
  * 1. RSS 发现（未查看） - 图标动画
- * 2. 学习阶段（< 100 页） - 图标进度遮罩
- * 3. 推荐阶段（≥ 100 页） - 图标波纹点亮
+ * 2. 学习阶段（< 动态阈值） - 图标进度遮罩
+ * 3. 推荐阶段（≥ 动态阈值） - 图标波纹点亮
  */
 async function updateBadge(): Promise<void> {
   try {
@@ -109,18 +111,20 @@ async function updateBadge(): Promise<void> {
     const feedManager = new FeedManager()
     const candidateFeeds = await feedManager.getFeeds('candidate')
     
-    // 2. 正常图标逻辑（先设置基础状态）
-    const pageCount = await getPageCount()
+    // 2. 使用 OnboardingStateService 获取统一的状态（包含动态阈值）
+    const stateInfo = await OnboardingStateService.getState()
+    const { pageCount, threshold, isLearningComplete } = stateInfo
     
-    if (pageCount < LEARNING_COMPLETE_PAGES) {
-      // 学习阶段：显示进度遮罩
-      iconManager.setBadgeState(pageCount, 0)  // 批量更新：学习进度 + 清除推荐
-      bgLogger.debug(`📚 学习进度：${pageCount}/${LEARNING_COMPLETE_PAGES} 页`)
+    if (!isLearningComplete) {
+      // 学习阶段：显示进度遮罩（传入动态阈值）
+      iconManager.setBadgeState(pageCount, 0, threshold)
+      bgLogger.debug(`📚 学习进度：${pageCount}/${threshold} 页`)
     } else {
       // 推荐阶段：显示推荐波纹
       const unreadRecs = await getUnreadRecommendations(50)
       const unreadCount = Math.min(unreadRecs.length, 3)  // 最多3条波纹
-      iconManager.setBadgeState(LEARNING_COMPLETE_PAGES, unreadCount)
+      iconManager.setBadgeState(threshold, unreadCount, threshold)
+      bgLogger.debug(`📬 推荐阶段：${unreadCount} 条未读推荐`)
     }
     
     // 3. RSS 发现动画（优先级最高，会覆盖上面的状态）
@@ -211,6 +215,10 @@ chrome.runtime.onInstalled.addListener(async () => {
     // Phase 8: 初始化 AI Manager
     await aiManager.initialize()
     bgLogger.info('✅ AI Manager 初始化完成')
+    
+    // 初始化 OnboardingStateService（全局阶段状态管理）
+    await OnboardingStateService.initialize()
+    bgLogger.info('✅ OnboardingStateService 初始化完成')
     
     // Phase 5.2: 初始化图标管理器
     try {
@@ -397,6 +405,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               }
             }
             
+            // 刷新阶段状态（页面数增加可能触发状态变化）
+            const newStateInfo = await OnboardingStateService.onPageVisited()
+            
+            // 如果状态从 learning 变为 ready，通知调度器
+            if (newStateInfo.state === 'ready' && newStateInfo.isLearningComplete) {
+              bgLogger.info(`🎉 检测到学习完成，页面 ${newStateInfo.pageCount}/${newStateInfo.threshold}`)
+              await reconfigureSchedulersForState('ready')
+            }
+            
             await updateBadge()
             // Phase 8: 传递访问数据给 ProfileUpdateScheduler 用于语义画像学习
             ProfileUpdateScheduler.checkAndScheduleUpdate(visitData).catch(error => {
@@ -423,8 +440,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             const { state } = message
             bgLogger.info(`Onboarding 状态变化: ${state}`)
             
+            // 刷新 OnboardingStateService 缓存
+            await OnboardingStateService.refreshState()
+            
             // 调用重新配置函数
             await reconfigureSchedulersForState(state)
+            
+            // 更新图标
+            await updateBadge()
             
             sendResponse({ success: true })
           } catch (error) {
@@ -748,6 +771,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           }
           break
         
+        // 获取完整的阶段状态信息（供 Popup 使用）
+        case 'GET_ONBOARDING_STATE_INFO':
+          try {
+            const stateInfo = await OnboardingStateService.getState()
+            sendResponse({ success: true, data: stateInfo })
+          } catch (error) {
+            bgLogger.error('❌ 获取阶段状态信息失败:', error)
+            sendResponse({ success: false, error: String(error) })
+          }
+          break
+        
         // 获取画像更新进度（从 Background 实例读取）
         case 'GET_PROFILE_UPDATE_PROGRESS':
           try {
@@ -836,42 +870,32 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             const { feedId, feedTitle, feedDescription, feedLink, sampleArticles } = message.payload
             bgLogger.info('收到 AI 订阅源分析请求:', { feedId, feedTitle })
             
-            // 构建分析提示词
-            const { PromptManager } = await import('@/core/ai/prompts')
+            // 获取用户语言偏好
+            const userLanguage = await chrome.storage.sync.get('languagePreference')
+            const language = (userLanguage.languagePreference || 'zh-CN') as 'zh-CN' | 'en'
+            
+            // 构建分析提示词（使用静态导入的 PromptManager）
             const promptManager = new PromptManager()
             const prompt = promptManager.getSourceAnalysisPrompt(
+              language,
               feedTitle || '未知标题',
               feedDescription || '',
               feedLink || '',
               sampleArticles || ''
             )
             
-            // 使用 AICapabilityManager 调用分析
+            // 使用 AICapabilityManager 的订阅源分析方法
             await aiManager.initialize()
-            
-            // 使用 analyzeContent 方法，将 prompt 作为内容，taskType 为 feedAnalysis（临时复用）
-            const result = await aiManager.analyzeContent(
-              prompt,
-              { purpose: 'analyze-source' },
-              'feedAnalysis'  // 复用 feedAnalysis 配置
-            )
-            
-            // 由于 analyzeContent 返回的是 UnifiedAnalysisResult，我们需要从原始响应解析
-            // 这里我们返回一个基于关键词的简化结果
-            const parsedResult = {
-              qualityScore: 0.7, // 默认分数
-              contentCategory: '待分析',
-              topicTags: result.keywords?.slice(0, 5).map(k => k.word) || [],
-              subscriptionAdvice: `基于 ${result.keywords?.length || 0} 个关键词分析`
-            }
+            const result = await aiManager.analyzeSource(prompt)
             
             bgLogger.info('AI 订阅源分析完成:', {
               feedId,
-              qualityScore: parsedResult.qualityScore,
-              tags: parsedResult.topicTags
+              qualityScore: result.qualityScore,
+              category: result.contentCategory,
+              tags: result.topicTags
             })
             
-            sendResponse({ success: true, result: parsedResult })
+            sendResponse({ success: true, result })
           } catch (error) {
             bgLogger.error('❌ AI 订阅源分析失败:', error)
             sendResponse({ 

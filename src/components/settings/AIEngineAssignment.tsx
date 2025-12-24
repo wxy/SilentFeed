@@ -236,7 +236,7 @@ export function AIEngineAssignmentComponent({
     // Phase 12: 同时检测 local 抽象和 ollama 具体类型
     const isLocalProvider = (provider: string) => provider === "local" || provider === "ollama"
     return isLocalProvider(value.pageAnalysis.provider) || 
-           isLocalProvider(value.feedAnalysis.provider)
+           isLocalProvider(value.articleAnalysis.provider)
   }
 
   // 渲染引擎选择下拉框
@@ -511,14 +511,14 @@ export function AIEngineAssignmentComponent({
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <span>📰</span>
-                      <span>{_("options.aiConfig.aiEngineAssignment.tasks.feedAnalysis")}</span>
+                      <span>{_("options.aiConfig.aiEngineAssignment.tasks.articleAnalysis")}</span>
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    {renderEngineSelect("feedAnalysis", value.feedAnalysis, true)}
+                    {renderEngineSelect("articleAnalysis", value.articleAnalysis, true)}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    {renderReasoningCheckbox("feedAnalysis", value.feedAnalysis, true)}
+                    {renderReasoningCheckbox("articleAnalysis", value.articleAnalysis, true)}
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-500">
                     {_("options.aiConfig.aiEngineAssignment.notes.highFrequency")}
@@ -536,6 +536,23 @@ export function AIEngineAssignmentComponent({
                   </td>
                   <td className="px-4 py-3 text-center">
                     {renderReasoningCheckbox("profileGeneration", value.profileGeneration, true)}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-gray-500">
+                    {_("options.aiConfig.aiEngineAssignment.notes.lowFrequency")}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <span>🔍</span>
+                      <span>{_("options.aiConfig.aiEngineAssignment.tasks.sourceAnalysis")}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    {renderEngineSelect("sourceAnalysis", value.sourceAnalysis || { provider: "remote", useReasoning: false }, true)}
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    {renderReasoningCheckbox("sourceAnalysis", value.sourceAnalysis || { provider: "remote", useReasoning: false }, true)}
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-500">
                     {_("options.aiConfig.aiEngineAssignment.notes.lowFrequency")}

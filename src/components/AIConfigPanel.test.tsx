@@ -45,7 +45,7 @@ vi.mock('@/storage/ai-config', () => ({
     },
     engineAssignment: {
       pageAnalysis: { provider: 'deepseek', useReasoning: false },
-      feedAnalysis: { provider: 'deepseek', useReasoning: false },
+      articleAnalysis: { provider: 'deepseek', useReasoning: false },
       profileGeneration: { provider: 'deepseek', useReasoning: false }
     }
   })),
@@ -77,7 +77,7 @@ describe('AIConfigPanel 条件渲染', () => {
       preferredRemoteProvider: 'deepseek',
       engineAssignment: {
         pageAnalysis: { provider: 'remote', useReasoning: false },
-        feedAnalysis: { provider: 'remote', useReasoning: false },
+        articleAnalysis: { provider: 'remote', useReasoning: false },
         profileGeneration: { provider: 'remote', useReasoning: true }
       }
     } as any)

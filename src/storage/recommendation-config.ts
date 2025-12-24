@@ -258,11 +258,11 @@ export async function checkAIConfigStatus(): Promise<AIConfigStatus> {
     // 获取使用统计
     const aiStats = await getAIAnalysisStats()
     
-    // 根据配置的提供商选择对应的成本（从 engineAssignment.feedAnalysis 读取）
+    // 根据配置的提供商选择对应的成本（从 engineAssignment.articleAnalysis 读取）
     let usedAmount = 0
-    const feedProvider = aiConfig.engineAssignment?.feedAnalysis?.provider
+    const articleProvider = aiConfig.engineAssignment?.articleAnalysis?.provider
     // 解析抽象 provider 类型（"remote" → "deepseek"）
-    const resolvedProvider = feedProvider ? resolveProvider(feedProvider, aiConfig) : null
+    const resolvedProvider = articleProvider ? resolveProvider(articleProvider, aiConfig) : null
     const actualProvider = resolvedProvider && resolvedProvider !== 'ollama' ? resolvedProvider as AIProviderType : null
     if (actualProvider) {
       // DeepSeek 使用 CNY，其他使用 USD
