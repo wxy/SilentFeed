@@ -300,6 +300,7 @@ export function RecommendationView() {
         type: 'OPEN_RECOMMENDATION',
         data: {
           url: rec.url,
+          sourceUrl: rec.sourceUrl, // 传递源URL以便查找翻译设置
           recommendationId: rec.id,
           title: rec.title,
           action: 'clicked'

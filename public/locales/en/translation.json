@@ -1447,6 +1447,11 @@
       "status": {
         "paused": "Paused"
       },
+      "googleTranslate": {
+        "label": "Translate",
+        "enabled": "Open links with Google Translate",
+        "disabled": "Open original links (without Google Translate)"
+      },
       "importExportOPML": "Batch Import/Export (OPML File)",
       "exportOPML": "Export OPML",
       "noSubscribedFeeds": "No subscribed sources yet",

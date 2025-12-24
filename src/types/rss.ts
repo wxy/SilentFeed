@@ -94,6 +94,9 @@ export interface DiscoveredFeed {
   
   /** AI 订阅源质量分析结果 */
   aiAnalysis?: AISourceAnalysis
+  
+  /** 是否使用谷歌翻译打开链接（默认 true） */
+  useGoogleTranslate?: boolean
 }
 
 /**

@@ -206,6 +206,20 @@ export class FeedManager {
   }
   
   /**
+   * 通用更新源信息
+   * 
+   * @param id - 源 ID
+   * @param updates - 要更新的字段
+   */
+  async updateFeed(
+    id: string,
+    updates: Partial<DiscoveredFeed>
+  ): Promise<void> {
+    await db.discoveredFeeds.update(id, updates)
+    feedLogger.debug('已更新源信息:', { id, updates })
+  }
+  
+  /**
    * 分析源质量
    * 
    * Phase 5.2: 质量分析集成

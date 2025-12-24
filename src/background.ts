@@ -821,12 +821,41 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         // 由 Background 处理，确保追踪信息在创建 Tab 后立即保存
         case 'OPEN_RECOMMENDATION':
           try {
-            const { url, recommendationId, title, action } = message.data
-            bgLogger.debug('📬 收到 OPEN_RECOMMENDATION 消息:', { url, recommendationId, action })
+            const { url, sourceUrl, recommendationId, title, action } = message.data
+            bgLogger.debug('📬 收到 OPEN_RECOMMENDATION 消息:', { url, sourceUrl, recommendationId, action })
+            
+            // 检查订阅源的谷歌翻译设置
+            let finalUrl = url
+            let useGoogleTranslate = true // 默认使用谷歌翻译
+            
+            if (sourceUrl) {
+              try {
+                const feedManager = new FeedManager()
+                const feed = await feedManager.getFeedByUrl(sourceUrl)
+                if (feed) {
+                  // 如果订阅源明确设置不使用谷歌翻译
+                  useGoogleTranslate = feed.useGoogleTranslate !== false
+                  bgLogger.debug(`订阅源翻译设置: ${feed.title}, useGoogleTranslate=${useGoogleTranslate}`)
+                }
+              } catch (err) {
+                bgLogger.warn('获取订阅源设置失败，使用默认（谷歌翻译）:', err)
+              }
+            }
+            
+            // 根据设置决定是否使用谷歌翻译
+            if (useGoogleTranslate) {
+              // 获取用户语言偏好
+              const langResult = await chrome.storage.sync.get('languagePreference')
+              const targetLanguage = langResult.languagePreference || 'zh-CN'
+              finalUrl = `https://translate.google.com/translate?sl=auto&tl=${targetLanguage}&u=${encodeURIComponent(url)}`
+              bgLogger.debug('使用谷歌翻译打开:', { originalUrl: url, translatedUrl: finalUrl })
+            } else {
+              bgLogger.debug('直接打开原文链接:', { url })
+            }
             
             // 1. 创建新标签页
-            const tab = await chrome.tabs.create({ url })
-            bgLogger.debug('📑 已创建新标签页:', { tabId: tab.id, url })
+            const tab = await chrome.tabs.create({ url: finalUrl })
+            bgLogger.debug('📑 已创建新标签页:', { tabId: tab.id, url: finalUrl })
             
             // 2. 保存追踪信息（使用 Tab ID）
             // ⚠️ 使用 local storage 而非 session，避免扩展重启后丢失

@@ -385,6 +385,30 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
     }
   }
 
+  // 切换是否使用谷歌翻译打开链接
+  const handleToggleGoogleTranslate = async (feedId: string) => {
+    try {
+      const feedManager = new FeedManager()
+      const feed = subscribedFeeds.find(f => f.id === feedId)
+      if (!feed) return
+      
+      // 当前值（默认为 true）
+      const currentValue = feed.useGoogleTranslate !== false
+      const newValue = !currentValue
+      
+      await feedManager.updateFeed(feedId, { useGoogleTranslate: newValue })
+      
+      // 更新本地状态
+      setSubscribedFeeds(prev => prev.map(f => 
+        f.id === feedId ? { ...f, useGoogleTranslate: newValue } : f
+      ))
+      
+      rssManagerLogger.info('已切换谷歌翻译设置:', { feedId, useGoogleTranslate: newValue })
+    } catch (error) {
+      rssManagerLogger.error('切换谷歌翻译设置失败:', error)
+    }
+  }
+
   // 获取格式徽章文本
   const getFormatBadge = (url: string) => {
     if (url.includes('atom')) return 'ATOM'
@@ -1084,6 +1108,28 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
               </>
             )}
           </div>
+          
+          {/* 谷歌翻译开关（仅已订阅的源）*/}
+          {feed.status === 'subscribed' && (
+            <button
+              onClick={() => handleToggleGoogleTranslate(feed.id)}
+              className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors flex-shrink-0 ${
+                feed.useGoogleTranslate !== false
+                  ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-800/40'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+              title={feed.useGoogleTranslate !== false 
+                ? _('options.rssManager.googleTranslate.enabled')
+                : _('options.rssManager.googleTranslate.disabled')
+              }
+            >
+              <span>🌐</span>
+              <span>{_('options.rssManager.googleTranslate.label')}</span>
+              <span className={`ml-1 ${feed.useGoogleTranslate !== false ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}`}>
+                {feed.useGoogleTranslate !== false ? '✓' : '✗'}
+              </span>
+            </button>
+          )}
           
           {/* 第二行操作按钮 */}
           {row2Actions.length > 0 && (

@@ -352,6 +352,11 @@
       "status": {
         "paused": "已暂停"
       },
+      "googleTranslate": {
+        "label": "翻译",
+        "enabled": "点击链接时使用谷歌翻译打开",
+        "disabled": "点击链接时打开原文（不使用谷歌翻译）"
+      },
       "stats": {
         "progress": "进度",
         "cycle": "周期",
