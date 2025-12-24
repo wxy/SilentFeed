@@ -144,6 +144,47 @@ describe('BaseAIService', () => {
       expect(result.topicProbabilities).toEqual({ "Tech": 1.0 })
     })
 
+    it('应该将对象类型的 summary 转换为 JSON 字符串', async () => {
+      // AI 可能返回 summary 为对象（而不是字符串），需要转换
+      vi.spyOn(provider as any, 'callChatAPI').mockResolvedValueOnce({
+        content: JSON.stringify({ 
+          topics: { "Tech": 1.0 }, 
+          summary: { 
+            category: "tech", 
+            language: "zh-CN", 
+            originality: 80 
+          } 
+        }),
+        tokensUsed: { input: 100, output: 50 }
+      })
+
+      const result = await provider.analyzeContent('测试')
+      
+      // summary 应该被转换为 JSON 字符串
+      expect(typeof result.summary).toBe('string')
+      expect(result.summary).toBe('{"category":"tech","language":"zh-CN","originality":80}')
+      
+      // 验证可以重新解析
+      const parsed = JSON.parse(result.summary!)
+      expect(parsed.category).toBe('tech')
+      expect(parsed.language).toBe('zh-CN')
+    })
+
+    it('应该保留已经是字符串的 summary', async () => {
+      const summaryString = '{"category":"news","language":"en"}'
+      vi.spyOn(provider as any, 'callChatAPI').mockResolvedValueOnce({
+        content: JSON.stringify({ 
+          topics: { "News": 1.0 }, 
+          summary: summaryString 
+        }),
+        tokensUsed: { input: 100, output: 50 }
+      })
+
+      const result = await provider.analyzeContent('测试')
+      
+      expect(result.summary).toBe(summaryString)
+    })
+
     it('应该处理空响应错误', async () => {
       vi.spyOn(provider as any, 'callChatAPI').mockResolvedValue({
         content: '',

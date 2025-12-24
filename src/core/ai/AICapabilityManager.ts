@@ -428,11 +428,22 @@ export class AICapabilityManager {
       reasoning?: string
     } | null = null
     
+    aiLogger.debug('解析订阅源分析结果:', { 
+      hasSummary: !!result.summary, 
+      summaryPreview: result.summary?.substring(0, 200) 
+    })
+    
     if (result.summary) {
       try {
         parsedSummary = JSON.parse(result.summary)
-      } catch {
+        aiLogger.debug('解析 summary JSON 成功:', { 
+          category: parsedSummary?.category,
+          language: parsedSummary?.language,
+          hasOriginality: typeof parsedSummary?.originality === 'number'
+        })
+      } catch (e) {
         // summary 不是 JSON，使用旧逻辑
+        aiLogger.debug('summary 不是有效 JSON，使用旧逻辑:', { error: String(e) })
       }
     }
     
@@ -452,7 +463,13 @@ export class AICapabilityManager {
       : undefined
     
     // 语言检测
-    const language = normalizeLanguageCode(parsedSummary?.language)
+    const rawLanguage = parsedSummary?.language
+    const language = normalizeLanguageCode(rawLanguage)
+    aiLogger.debug('语言检测结果:', { 
+      rawLanguage, 
+      normalizedLanguage: language,
+      willInclude: language !== 'unknown'
+    })
     
     // 从关键词提取更多标签
     const keywordTags = (result.keywords || [])

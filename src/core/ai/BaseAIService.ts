@@ -302,8 +302,19 @@ export abstract class BaseAIService implements AIProvider {
         jsonContent = jsonContent.replace(/\n```\s*$/, '')
       }
       
-      const analysis = JSON.parse(jsonContent) as { topics: Record<string, number>; summary?: string }
+      const analysis = JSON.parse(jsonContent) as { topics: Record<string, number>; summary?: string | object; translatedTitle?: string }
       const normalizedTopics = this.normalizeTopicProbabilities(analysis.topics)
+      
+      // ⚠️ 修复：AI 可能把 summary 返回为对象而不是 JSON 字符串，需要规范化
+      let normalizedSummary: string | undefined
+      if (analysis.summary !== undefined) {
+        if (typeof analysis.summary === 'string') {
+          normalizedSummary = analysis.summary
+        } else if (typeof analysis.summary === 'object') {
+          // AI 返回了对象，转换为 JSON 字符串
+          normalizedSummary = JSON.stringify(analysis.summary)
+        }
+      }
       
       // 5. 计算成本（分别计算输入和输出）
       const costBreakdown = this.calculateCostBreakdown(
@@ -347,9 +358,10 @@ export abstract class BaseAIService implements AIProvider {
       return {
         topicProbabilities: normalizedTopics,
         // 可选：AI 生成摘要（用于替换 RSS 摘要）
-        ...(analysis.summary ? { summary: analysis.summary } as any : {}),
+        // ⚠️ 使用规范化后的 summary（确保是字符串）
+        ...(normalizedSummary ? { summary: normalizedSummary } : {}),
         // Phase 9: 可选：AI 翻译的标题
-        ...(analysis.translatedTitle ? { translatedTitle: analysis.translatedTitle } as any : {}),
+        ...(analysis.translatedTitle ? { translatedTitle: analysis.translatedTitle } : {}),
         metadata: {
           provider: this.name.toLowerCase() as any,
           model: this.resolveModelName(response.model),
