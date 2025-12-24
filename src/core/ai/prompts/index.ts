@@ -217,12 +217,18 @@ Link: ${feedLink}
 Sample Articles:
 ${sampleArticles}
 
-Return JSON with:
-- qualityScore: 0-1 (overall quality)
-- contentCategory: standard key (tech/news/finance/lifestyle/entertainment/education/science/sports/gaming/design/business/health/travel/food/photography/music/art/politics/culture/other)
-- language: standard code (zh-CN/zh-TW/en/ja/ko/fr/de/es/ru/pt/it/ar/unknown)
-- topicTags: array of tags
-- subscriptionAdvice: brief advice`
+Return JSON with this exact format (summary must be a JSON string):
+{
+  "topics": {
+    "main category": 1.0
+  },
+  "summary": "{\\"category\\":\\"tech\\",\\"language\\":\\"en\\",\\"originality\\":70,\\"informationDensity\\":70,\\"clickbaitScore\\":30,\\"spamScore\\":20,\\"reasoning\\":\\"Brief analysis\\"}"
+}
+
+Categories: tech, news, finance, lifestyle, entertainment, education, science, sports, gaming, design, business, health, travel, food, photography, music, art, politics, culture, other
+Languages: zh-CN, zh-TW, en, ja, ko, fr, de, es, ru, pt, it, ar, unknown
+
+Output JSON only.`
   }
 }
 
