@@ -245,6 +245,7 @@ export class SourceAnalysisService {
     analysisLogger.info('准备调用 AI 分析:', { feedId: feed.id, sampleCount: sampleArticles.length })
     
     // 发送消息给 background 进行 AI 调用
+    // 传递 RSS 源已有的 language，如果 RSS 已声明语言则 AI 无需检测
     const response = await chrome.runtime.sendMessage({
       type: 'AI_SOURCE_ANALYSIS',
       payload: {
@@ -252,7 +253,8 @@ export class SourceAnalysisService {
         feedTitle: feed.title,
         feedDescription: feed.description || '',
         feedLink: feed.link || feed.url,
-        sampleArticles: this.formatSampleArticles(sampleArticles)
+        sampleArticles: this.formatSampleArticles(sampleArticles),
+        existingLanguage: feed.language  // RSS 源已声明的语言
       }
     })
 

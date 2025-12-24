@@ -896,8 +896,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         // AI 订阅源质量分析
         case 'AI_SOURCE_ANALYSIS':
           try {
-            const { feedId, feedTitle, feedDescription, feedLink, sampleArticles } = message.payload
-            bgLogger.info('收到 AI 订阅源分析请求:', { feedId, feedTitle })
+            const { feedId, feedTitle, feedDescription, feedLink, sampleArticles, existingLanguage } = message.payload
+            bgLogger.info('收到 AI 订阅源分析请求:', { feedId, feedTitle, existingLanguage })
             
             // 获取用户语言偏好
             const userLanguage = await chrome.storage.sync.get('languagePreference')
@@ -917,10 +917,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             await aiManager.initialize()
             const result = await aiManager.analyzeSource(prompt)
             
+            // 如果 RSS 源已声明语言且 AI 没有检测到语言，使用 RSS 声明的语言
+            if (existingLanguage && !result.language) {
+              result.language = existingLanguage
+              bgLogger.info('使用 RSS 源声明的语言:', existingLanguage)
+            }
+            
             bgLogger.info('AI 订阅源分析完成:', {
               feedId,
               qualityScore: result.qualityScore,
               category: result.contentCategory,
+              language: result.language,
               tags: result.topicTags
             })
             
