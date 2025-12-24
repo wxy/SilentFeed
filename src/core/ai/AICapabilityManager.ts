@@ -462,11 +462,21 @@ export class AICapabilityManager {
       ? normalizeCategoryToKey(parsedSummary.secondaryCategory)
       : undefined
     
-    // 语言检测
-    const rawLanguage = parsedSummary?.language
-    const language = normalizeLanguageCode(rawLanguage)
+    // 语言检测：优先使用 parsedSummary，否则从文本内容推断
+    let detectedLanguage: string | undefined = parsedSummary?.language
+    
+    // 如果 AI 没有返回 language，尝试从 summary 或 topics 中推断
+    if (!detectedLanguage) {
+      const textToAnalyze = (result.summary || '') + ' ' + topics.join(' ')
+      detectedLanguage = this.detectLanguageFromText(textToAnalyze)
+      if (detectedLanguage) {
+        aiLogger.debug('从文本内容推断语言:', { detectedLanguage, textSample: textToAnalyze.substring(0, 50) })
+      }
+    }
+    
+    const language = normalizeLanguageCode(detectedLanguage)
     aiLogger.debug('语言检测结果:', { 
-      rawLanguage, 
+      rawLanguage: detectedLanguage, 
       normalizedLanguage: language,
       willInclude: language !== 'unknown'
     })
@@ -511,6 +521,69 @@ export class AICapabilityManager {
       subscriptionAdvice: advice,
       language: language !== 'unknown' ? language : undefined
     }
+  }
+
+  /**
+   * 从文本内容推断语言
+   * 
+   * 当 AI 没有返回语言信息时，通过检测文本中的字符来推断语言
+   * 优先检测中文、日文、韩文等亚洲语言（通过 Unicode 范围）
+   */
+  private detectLanguageFromText(text: string): string | undefined {
+    if (!text || text.length < 5) return undefined
+    
+    // 统计各类字符数量
+    let chineseCount = 0
+    let japaneseCount = 0
+    let koreanCount = 0
+    let latinCount = 0
+    let totalCount = 0
+    
+    for (const char of text) {
+      const code = char.charCodeAt(0)
+      
+      // 跳过空白和标点
+      if (code <= 0x7F && !/[a-zA-Z]/.test(char)) continue
+      
+      totalCount++
+      
+      // CJK 统一汉字（中文）
+      if (code >= 0x4E00 && code <= 0x9FFF) {
+        chineseCount++
+      }
+      // 日文平假名
+      else if (code >= 0x3040 && code <= 0x309F) {
+        japaneseCount++
+      }
+      // 日文片假名
+      else if (code >= 0x30A0 && code <= 0x30FF) {
+        japaneseCount++
+      }
+      // 韩文
+      else if (code >= 0xAC00 && code <= 0xD7AF) {
+        koreanCount++
+      }
+      // 拉丁字母
+      else if ((code >= 0x41 && code <= 0x5A) || (code >= 0x61 && code <= 0x7A)) {
+        latinCount++
+      }
+    }
+    
+    if (totalCount < 5) return undefined
+    
+    // 计算各语言占比
+    const chineseRatio = chineseCount / totalCount
+    const japaneseRatio = japaneseCount / totalCount
+    const koreanRatio = koreanCount / totalCount
+    const latinRatio = latinCount / totalCount
+    
+    // 判断主要语言（阈值 30%）
+    if (chineseRatio > 0.3) return 'zh-CN'
+    if (japaneseRatio > 0.1) return 'ja'  // 日文混合汉字，阈值降低
+    if (koreanRatio > 0.3) return 'ko'
+    if (latinRatio > 0.5) return 'en'
+    
+    return undefined
   }
 
   /**
