@@ -952,16 +952,55 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
             </button>
           )}
           
-          {/* 语言标签 - 右侧对齐 */}
-          {feed.language && (
-            <span 
-              className={`px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded text-xs uppercase flex-shrink-0 ${
-                isSketchyStyle ? 'sketchy-text font-semibold' : 'font-mono font-bold'
-              }`}
-              title={formatLanguage(feed.language)}
-            >
-              {feed.language}
-            </span>
+          {/* 语言标签 + 翻译开关组合 */}
+          {feed.language ? (
+            <div className="flex items-center gap-0.5 flex-shrink-0">
+              {/* 语言代码 */}
+              <span 
+                className={`px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-l text-xs uppercase ${
+                  isSketchyStyle ? 'sketchy-text font-semibold' : 'font-mono font-bold'
+                }`}
+                title={formatLanguage(feed.language)}
+              >
+                {feed.language}
+              </span>
+              {/* 翻译开关（仅已订阅的源）*/}
+              {feed.status === 'subscribed' && (
+                <button
+                  onClick={() => handleToggleGoogleTranslate(feed.id)}
+                  className={`px-1.5 py-0.5 rounded-r text-xs transition-colors ${
+                    feed.useGoogleTranslate !== false
+                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-800/40'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                  title={feed.useGoogleTranslate !== false 
+                    ? _('options.rssManager.googleTranslate.enabled')
+                    : _('options.rssManager.googleTranslate.disabled')
+                  }
+                >
+                  {feed.useGoogleTranslate !== false ? '🌐' : '🚫'}
+                </button>
+              )}
+            </div>
+          ) : (
+            /* 无语言信息时，只显示翻译开关（如有必要）*/
+            feed.status === 'subscribed' && (
+              <button
+                onClick={() => handleToggleGoogleTranslate(feed.id)}
+                className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs transition-colors flex-shrink-0 ${
+                  feed.useGoogleTranslate !== false
+                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-800/40'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+                title={feed.useGoogleTranslate !== false 
+                  ? _('options.rssManager.googleTranslate.enabled')
+                  : _('options.rssManager.googleTranslate.disabled')
+                }
+              >
+                <span>{feed.useGoogleTranslate !== false ? '🌐' : '🚫'}</span>
+                <span>{_('options.rssManager.googleTranslate.label')}</span>
+              </button>
+            )
           )}
           
           {/* RSS/ATOM 徽章 - 右侧对齐，固定宽度 */}
@@ -1108,28 +1147,6 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
               </>
             )}
           </div>
-          
-          {/* 谷歌翻译开关（仅已订阅的源）*/}
-          {feed.status === 'subscribed' && (
-            <button
-              onClick={() => handleToggleGoogleTranslate(feed.id)}
-              className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors flex-shrink-0 ${
-                feed.useGoogleTranslate !== false
-                  ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-800/40'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
-              }`}
-              title={feed.useGoogleTranslate !== false 
-                ? _('options.rssManager.googleTranslate.enabled')
-                : _('options.rssManager.googleTranslate.disabled')
-              }
-            >
-              <span>🌐</span>
-              <span>{_('options.rssManager.googleTranslate.label')}</span>
-              <span className={`ml-1 ${feed.useGoogleTranslate !== false ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}`}>
-                {feed.useGoogleTranslate !== false ? '✓' : '✗'}
-              </span>
-            </button>
-          )}
           
           {/* 第二行操作按钮 */}
           {row2Actions.length > 0 && (
