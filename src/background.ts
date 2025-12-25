@@ -4,6 +4,7 @@ import { initializeDatabase, getPageCount, getUnreadRecommendations, db, markAsR
 import type { ConfirmedVisit } from '@/types/database'
 import { FeedManager } from './core/rss/managers/FeedManager'
 import { RSSValidator } from './core/rss/RSSValidator'
+import { getSourceAnalysisService } from './core/rss/SourceAnalysisService'
 import { fetchFeed } from './background/feed-scheduler'
 import { startAllSchedulers, feedScheduler, recommendationScheduler, reconfigureSchedulersForState } from './background/index'
 import { IconManager } from './utils/IconManager'
@@ -636,6 +637,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             
             // 强制抓取单个源
             const success = await fetchFeed(feed)
+            
+            // 检查源是否缺少基本信息（分类、语言、质量），如果缺少则触发 AI 分析
+            const needsAnalysis = !feed.category || !feed.language || !feed.quality
+            if (needsAnalysis) {
+              const aiConfigured = await isAIConfigured()
+              if (aiConfigured) {
+                bgLogger.info('源缺少基本信息，触发 AI 分析:', feed.title)
+                // 异步触发，不阻塞读取响应
+                getSourceAnalysisService().analyze(feedId, true).catch(error => {
+                  bgLogger.error('手动读取触发 AI 分析失败:', error)
+                })
+              }
+            }
             
             // Phase 5.2: 停止后台抓取动画
             if (iconManager) {

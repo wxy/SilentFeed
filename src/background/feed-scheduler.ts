@@ -389,12 +389,17 @@ export async function fetchFeed(feed: DiscoveredFeed): Promise<boolean> {
     // 计算跨 Feed 共享的文章数量
     const sharedArticlesCount = latest.length - (updatedFeed?.articleCount || 0)
     
-    // 首次抓取触发 AI 分析：如果是第一次成功抓取，触发订阅源质量分析
-    // 异步执行，不阻塞抓取流程
+    // AI 分析触发逻辑：
+    // 1. 首次抓取必触发
+    // 2. 非首次抓取但缺少基本信息（分类、语言、质量）也触发
     const isFirstFetch = !feed.lastFetchedAt
-    if (isFirstFetch) {
+    const needsAnalysis = !feed.category || !feed.language || !feed.quality
+    
+    if (isFirstFetch || needsAnalysis) {
+      const reason = isFirstFetch ? '首次抓取' : '缺少基本信息'
+      console.log(`[FeedScheduler] 触发 AI 分析 (${reason}): ${feed.title}`)
       getSourceAnalysisService().triggerOnFirstFetch(feed.id).catch(error => {
-        console.warn(`[FeedScheduler] 首次抓取分析触发失败: ${feed.title}`, error)
+        console.warn(`[FeedScheduler] AI 分析触发失败: ${feed.title}`, error)
       })
     }
     

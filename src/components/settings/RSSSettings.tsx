@@ -872,18 +872,24 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                 
                 {/* 展开/折叠图标 */}
                 <button
-                  onClick={() => loadPreviewArticles(feed.id, feed.url)}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    loadPreviewArticles(feed.id, feed.url)
+                  }}
                   className="ml-1 px-1 py-0.5 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
                   title={expandedFeedId === feed.id ? _('options.rssManager.preview.collapse') : _('options.rssManager.preview.expand')}
                 >
-                  {expandedFeedId === feed.id ? '▼' : '▶'}
+                  {expandedFeedId === feed.id ? '▼' : '▶'}                
                 </button>
               </>
             )}
 
             {/* 内联重命名按钮 */}
             <button
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
                 setEditedTitle(feed.title)
                 setIsEditingTitle(true)
               }}
@@ -970,7 +976,11 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
               {/* 翻译开关（仅已订阅的源）*/}
               {feed.status === 'subscribed' && (
                 <button
-                  onClick={() => handleToggleGoogleTranslate(feed.id)}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleToggleGoogleTranslate(feed.id)
+                  }}
                   className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-r text-xs transition-colors ${
                     feed.useGoogleTranslate !== false
                       ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-800/40'
@@ -1139,7 +1149,11 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
               {row2Actions.map((action, index) => (
                 <button
                   key={index}
-                  onClick={action.onClick}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    action.onClick()
+                  }}
                   disabled={action.disabled}
                   className={`${action.className} text-white text-xs px-2 py-1 rounded hover:opacity-90 transition-opacity whitespace-nowrap disabled:bg-gray-400 disabled:cursor-not-allowed`}
                 >
