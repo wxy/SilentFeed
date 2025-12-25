@@ -168,16 +168,18 @@ describe('IconComposer', () => {
       expect(spy).not.toHaveBeenCalled()
     })
     
-    it('推荐状态应该叠加波纹', () => {
+    it('推荐状态应该显示推荐数字（不含波纹）', () => {
       const state: IconState = { 
         type: 'recommend', 
         recommendCount: 2 
       }
+      // 推荐状态不再显示波纹（波纹专门用于后台活动）
       const spy = vi.spyOn(composer as any, 'drawRecommendWaves')
       
       composer.compose(state)
       
-      expect(spy).toHaveBeenCalledWith(2)
+      // 确认不绘制波纹
+      expect(spy).not.toHaveBeenCalled()
     })
     
     it('学习状态应该绘制垂直遮罩', () => {

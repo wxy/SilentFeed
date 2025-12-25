@@ -88,9 +88,22 @@ export function DiscoveredFeedsCard() {
               {feed.title}
             </div>
             
-            {/* 来源页面 */}
+            {/* 来源页面 - 转换翻译域名 */}
             <div className="sketchy-text-muted text-xs mb-2 truncate">
-              来自: {new URL(feed.discoveredFrom).hostname}
+              来自: {(() => {
+                const hostname = new URL(feed.discoveredFrom).hostname
+                // 如果是翻译域名，转换为原始域名
+                if (hostname.endsWith('.translate.goog')) {
+                  const translatedDomain = hostname.replace('.translate.goog', '')
+                  const placeholder = '\x00'
+                  const originalDomain = translatedDomain
+                    .replace(/--/g, placeholder)
+                    .replace(/-/g, '.')
+                    .replace(new RegExp(placeholder, 'g'), '-')
+                  return originalDomain
+                }
+                return hostname
+              })()}
             </div>
             
             {/* 操作按钮 */}
