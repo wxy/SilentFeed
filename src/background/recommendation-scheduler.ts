@@ -10,7 +10,7 @@
  * - 待推荐 5-9 条 → 5 分钟
  * - 待推荐 1-4 条 → 10 分钟
  * - 待推荐 0 条 → 20 分钟（保持监控）
- * - 检查学习阶段（< 100 页不生成）
+ * - 检查学习阶段（使用动态阈值，而非固定 100 页）
  * - 检查 AI 配置（未配置时跳过生成）
  * - 更新徽章显示新推荐
  * - 详细的日志记录
@@ -19,7 +19,7 @@
 import { getPageCount, getUnrecommendedArticleCount } from '../storage/db'
 import { recommendationService } from '../core/recommender/RecommendationService'
 import { logger } from '@/utils/logger'
-import { LEARNING_COMPLETE_PAGES } from '@/constants/progress'
+import { OnboardingStateService } from '@/core/onboarding/OnboardingStateService'
 import { hasAnyAIAvailable } from '@/storage/ai-config'
 
 const schedLogger = logger.withTag('RecommendationScheduler')
@@ -80,6 +80,7 @@ export class RecommendationScheduler {
   private isGenerating = false  // Phase 7: 防止并发执行
   private consecutiveSkips = 0  // Phase 7: 连续跳过次数
   private adjustedInterval: number | null = null  // Phase 7: 调整后的间隔（分钟）
+  public nextRunTime: number | null = null  // 下次执行时间（timestamp）
   
   constructor(config: Partial<RecommendationSchedulerConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config }
@@ -105,6 +106,9 @@ export class RecommendationScheduler {
     await chrome.alarms.create(this.alarmName, {
       periodInMinutes: intervalMinutes
     })
+    
+    // 设置下次执行时间
+    this.nextRunTime = Date.now() + intervalMinutes * 60 * 1000
     
     this.isRunning = true
     schedLogger.info('✅ 推荐生成调度器已启动')
@@ -288,6 +292,9 @@ export class RecommendationScheduler {
         periodInMinutes: intervalMinutes
       })
       
+      // 更新下次执行时间
+      this.nextRunTime = Date.now() + intervalMinutes * 60 * 1000
+      
       schedLogger.info(`⏰ 已重新安排：下次将在 ${intervalMinutes} 分钟后生成推荐`)
     } catch (error) {
       schedLogger.error('重新安排失败:', error)
@@ -365,10 +372,10 @@ export class RecommendationScheduler {
         }
       }
       
-      // 1. 检查是否达到学习阈值
-      const pageCount = await getPageCount()
-      if (pageCount < LEARNING_COMPLETE_PAGES) {
-        const message = `跳过推荐生成：当前 ${pageCount} 页，需要 ${LEARNING_COMPLETE_PAGES} 页`
+      // 1. 检查是否达到学习阈值（使用动态阈值）
+      const stateInfo = await OnboardingStateService.getState()
+      if (!stateInfo.isLearningComplete) {
+        const message = `跳过推荐生成：当前 ${stateInfo.pageCount} 页，需要 ${stateInfo.threshold} 页`
         schedLogger.debug(message)
         return {
           shouldGenerate: false,
@@ -398,9 +405,9 @@ export class RecommendationScheduler {
       总文章数: result.stats.totalArticles,
       耗时: `${result.stats.processingTimeMs}ms`,
       推荐详情: result.recommendations.map(r => ({
-        标题: r.title,
-        评分: r.score,
-        来源: r.source
+        标题: r.title || 'untitled',
+        评分: r.score || 0,
+        来源: r.source || 'unknown'
       }))
     })
     

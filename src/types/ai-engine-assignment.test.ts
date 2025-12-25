@@ -26,7 +26,7 @@ describe("ai-engine-assignment", () => {
       const preset = AI_ENGINE_PRESETS.privacy
       // Phase 12: 使用 local 抽象而非硬编码 ollama
       expect(preset.config.pageAnalysis.provider).toBe("local")
-      expect(preset.config.feedAnalysis.provider).toBe("local")
+      expect(preset.config.articleAnalysis.provider).toBe("local")
       expect(preset.config.profileGeneration.provider).toBe("local")
     })
 
@@ -34,7 +34,7 @@ describe("ai-engine-assignment", () => {
       const preset = AI_ENGINE_PRESETS.intelligence
       // Phase 12: 使用 remote 抽象而非硬编码 deepseek
       expect(preset.config.pageAnalysis.provider).toBe("remote")
-      expect(preset.config.feedAnalysis.provider).toBe("remote")
+      expect(preset.config.articleAnalysis.provider).toBe("remote")
       expect(preset.config.profileGeneration.provider).toBe("remote")
       expect(preset.config.profileGeneration.useReasoning).toBe(true)
     })
@@ -43,7 +43,7 @@ describe("ai-engine-assignment", () => {
       const preset = AI_ENGINE_PRESETS.economic
       // Phase 12: 使用 remote 抽象而非硬编码 deepseek
       expect(preset.config.pageAnalysis.provider).toBe("remote")
-      expect(preset.config.feedAnalysis.provider).toBe("remote")
+      expect(preset.config.articleAnalysis.provider).toBe("remote")
       expect(preset.config.profileGeneration.provider).toBe("remote")
       expect(preset.config.profileGeneration.useReasoning).toBe(false)
     })
@@ -78,7 +78,7 @@ describe("ai-engine-assignment", () => {
     it("默认方案应该包含所有必需的任务配置", () => {
       const defaultAssignment = getDefaultEngineAssignment()
       expect(defaultAssignment.pageAnalysis).toBeDefined()
-      expect(defaultAssignment.feedAnalysis).toBeDefined()
+      expect(defaultAssignment.articleAnalysis).toBeDefined()
       expect(defaultAssignment.profileGeneration).toBeDefined()
       // sourceAnalysis 是可选的，但智能优先方案应该包含
       expect(defaultAssignment.sourceAnalysis).toBeDefined()
@@ -129,7 +129,7 @@ describe("ai-engine-assignment", () => {
     it("应该接受自定义的有效配置", () => {
       const customAssignment: AIEngineAssignment = {
         pageAnalysis: { provider: "deepseek" },
-        feedAnalysis: { provider: "ollama", model: "llama3.2:3b" },
+        articleAnalysis: { provider: "ollama", model: "llama3.2:3b" },
         profileGeneration: { provider: "deepseek", useReasoning: true }
       }
       expect(validateEngineAssignment(customAssignment)).toBe(true)
@@ -138,7 +138,7 @@ describe("ai-engine-assignment", () => {
     it("应该拒绝包含无效 provider 的配置", () => {
       const invalidAssignment: AIEngineAssignment = {
         pageAnalysis: { provider: "invalid" as any },
-        feedAnalysis: { provider: "deepseek" },
+        articleAnalysis: { provider: "deepseek" },
         profileGeneration: { provider: "deepseek" }
       }
       expect(validateEngineAssignment(invalidAssignment)).toBe(false)
@@ -237,7 +237,7 @@ describe("ai-engine-assignment", () => {
       Object.values(AI_ENGINE_PRESETS).forEach(preset => {
         const providers = [
           preset.config.pageAnalysis.provider,
-          preset.config.feedAnalysis.provider,
+          preset.config.articleAnalysis.provider,
           preset.config.profileGeneration.provider
         ]
         providers.forEach(provider => {

@@ -11,7 +11,8 @@
 
 import { db } from '../../../storage/db'
 import type { DiscoveredFeed, FeedStatus } from '@/types/rss'
-import { FeedQualityAnalyzer } from '../FeedQualityAnalyzer'
+import { getSourceAnalysisService } from '../SourceAnalysisService'
+import { isAIConfigured } from '@/storage/ai-config'
 import { logger } from '@/utils/logger'
 
 const feedLogger = logger.withTag('FeedManager')
@@ -206,16 +207,30 @@ export class FeedManager {
   }
   
   /**
-   * 分析源质量
+   * 通用更新源信息
    * 
-   * Phase 5.2: 质量分析集成
-   * - 使用 FeedQualityAnalyzer 分析 RSS 源
-   * - 自动保存质量数据到数据库
-   * - 支持重新分析（强制刷新）
+   * @param id - 源 ID
+   * @param updates - 要更新的字段
+   */
+  async updateFeed(
+    id: string,
+    updates: Partial<DiscoveredFeed>
+  ): Promise<void> {
+    await db.discoveredFeeds.update(id, updates)
+    feedLogger.debug('已更新源信息:', { id, updates })
+  }
+  
+  /**
+   * 分析源质量（使用 AI 源分析服务）
+   * 
+   * Phase 9+: 使用 SourceAnalysisService 进行 AI 分析
+   * - 分析源的内容分类、语言、质量评分
+   * - 如果 AI 未配置，跳过分析（后续推荐流程也无法进行）
+   * - 自动保存分析结果到数据库
    * 
    * @param id - 源 ID
    * @param forceRefresh - 是否强制重新分析（忽略缓存）
-   * @returns 质量分析结果
+   * @returns 分析结果（包含 AI 分析数据），null 表示无需分析或分析失败
    */
   async analyzeFeed(
     id: string,
@@ -229,62 +244,46 @@ export class FeedManager {
         return null
       }
       
-      // 2. 如果已有质量数据且未过期（24小时内），直接返回
-      if (!forceRefresh && feed.quality) {
-        const age = Date.now() - feed.quality.lastChecked
-        const maxAge = 24 * 60 * 60 * 1000 // 24 小时
-        
-        if (age < maxAge) {
-          feedLogger.debug('使用缓存的质量数据:', { id, score: feed.quality.score })
-          return feed.quality
-        }
+      // 2. 检查 AI 是否已配置
+      const aiConfigured = await isAIConfigured()
+      if (!aiConfigured) {
+        feedLogger.info('AI 未配置，跳过源分析:', feed.title)
+        return feed.quality || null
       }
       
-      // 3. 执行质量分析
-      feedLogger.info('开始分析源质量:', feed.title)
-      const analyzer = new FeedQualityAnalyzer()
-      const quality = await analyzer.analyze(feed.url)
+      // 3. 使用 SourceAnalysisService 进行 AI 分析
+      feedLogger.info('开始 AI 分析源:', feed.title)
+      const analysisService = getSourceAnalysisService()
+      const analysis = await analysisService.analyze(id, forceRefresh)
       
-      // 4. 保存质量数据
-      await this.updateQuality(id, quality)
+      if (!analysis) {
+        feedLogger.warn('AI 分析返回空结果:', feed.title)
+        return feed.quality || null
+      }
       
-      feedLogger.info('质量分析完成:', {
+      feedLogger.info('AI 分析完成:', {
         title: feed.title,
-        score: quality.score,
-        frequency: quality.updateFrequency
+        category: analysis.contentCategory,
+        language: analysis.language,
+        qualityScore: analysis.qualityScore
       })
       
-      return quality
+      // 4. 返回更新后的 feed.quality（已由 SourceAnalysisService.saveAnalysis 更新）
+      const updatedFeed = await this.getFeed(id)
+      return updatedFeed?.quality || null
     } catch (error) {
-      feedLogger.error('分析源质量失败:', { id, error })
-      
-      // 保存错误信息
-      await this.updateQuality(id, {
-        score: 0,
-        updateFrequency: 0,
-        formatValid: false,
-        reachable: false,
-        lastChecked: Date.now(),
-        details: {
-          updateFrequencyScore: 0,
-          completenessScore: 0,
-          formatScore: 0,
-          reachabilityScore: 0
-        },
-        error: error instanceof Error ? error.message : String(error)
-      })
-      
+      feedLogger.error('AI 分析失败:', { id, error })
       return null
     }
   }
   
   /**
-   * 批量分析候选源质量
+   * 批量分析候选源质量（使用 AI 分析）
    * 
-   * Phase 5.2: 后台任务调度支持
+   * Phase 9+: 使用 SourceAnalysisService 进行 AI 分析
    * - 分析所有未分析过的候选源
+   * - 如果 AI 未配置，直接返回（不进行任何分析）
    * - 支持限制数量（避免一次分析太多）
-   * - 返回分析结果统计
    * 
    * @param limit - 最大分析数量（默认 10）
    * @returns 分析结果统计
@@ -295,21 +294,37 @@ export class FeedManager {
     success: number
     failed: number
   }> {
+    // 0. 检查 AI 是否已配置
+    const aiConfigured = await isAIConfigured()
+    if (!aiConfigured) {
+      feedLogger.info('AI 未配置，跳过批量分析')
+      const candidates = await this.getFeeds('candidate')
+      return {
+        total: candidates.length,
+        analyzed: 0,
+        success: 0,
+        failed: 0
+      }
+    }
+    
     // 1. 获取所有候选源
     const candidates = await this.getFeeds('candidate')
     
-    // 2. 筛选出未分析过的源（或质量数据过期的源）
-    const maxAge = 24 * 60 * 60 * 1000 // 24 小时
-    const needsAnalysis = candidates.filter(feed => {
-      if (!feed.quality) return true
-      const age = Date.now() - feed.quality.lastChecked
-      return age >= maxAge
-    })
+    // 2. 筛选出未进行 AI 分析的源
+    const analysisService = getSourceAnalysisService()
+    const needsAnalysis: DiscoveredFeed[] = []
+    
+    for (const feed of candidates) {
+      const needs = await analysisService.needsAnalysis(feed.id)
+      if (needs) {
+        needsAnalysis.push(feed)
+      }
+    }
     
     // 3. 限制分析数量
     const toAnalyze = needsAnalysis.slice(0, limit)
     
-    feedLogger.info('批量分析候选源:', {
+    feedLogger.info('批量 AI 分析候选源:', {
       total: candidates.length,
       needsAnalysis: needsAnalysis.length,
       willAnalyze: toAnalyze.length
@@ -320,8 +335,8 @@ export class FeedManager {
     let failed = 0
     
     for (const feed of toAnalyze) {
-      const quality = await this.analyzeFeed(feed.id)
-      if (quality && !quality.error) {
+      const result = await this.analyzeFeed(feed.id, true)
+      if (result) {
         success++
       } else {
         failed++
@@ -331,7 +346,7 @@ export class FeedManager {
       await new Promise(resolve => setTimeout(resolve, 500))
     }
     
-    feedLogger.info('批量分析完成:', {
+    feedLogger.info('批量 AI 分析完成:', {
       analyzed: toAnalyze.length,
       success,
       failed
@@ -401,16 +416,13 @@ export class FeedManager {
     await db.discoveredFeeds.update(id, updates)
     feedLogger.info('已订阅:', { id, source: source || '(保持现有来源)' })
     
-    // 如果从忽略状态恢复，重新进行质量分析
+    // 如果从忽略状态恢复，重新进行 AI 分析
     if (wasIgnored) {
-      feedLogger.info('从忽略列表恢复，重新进行质量分析...')
+      feedLogger.info('从忽略列表恢复，重新进行 AI 分析...')
       // 异步执行，不阻塞订阅操作
       this.analyzeFeed(id, true).catch((error: Error) => {
-        feedLogger.error('质量分析失败:', error)
-        // 质量分析失败，也删除该源
-        this.delete(id).catch((err: Error) => {
-          feedLogger.error('删除失败的源失败:', err)
-        })
+        feedLogger.error('AI 分析失败:', error)
+        // AI 分析失败不删除源（与之前不同），因为 AI 可能只是暂时不可用
       })
     }
   }
@@ -452,10 +464,24 @@ export class FeedManager {
    * 删除源
    * 
    * @param id - 源 ID
+   * @param deleteArticles - 是否同时删除该源的文章（默认 true）
    */
-  async delete(id: string): Promise<void> {
-    // TODO: 同时删除相关文章
-    await db.discoveredFeeds.delete(id)
+  async delete(id: string, deleteArticles: boolean = true): Promise<void> {
+    await db.transaction('rw', db.discoveredFeeds, db.feedArticles, async () => {
+      if (deleteArticles) {
+        // 删除该源的所有文章
+        const articles = await db.feedArticles.where('feedId').equals(id).toArray()
+        const articleIds = articles.map(a => a.id)
+        
+        if (articleIds.length > 0) {
+          await db.feedArticles.where('id').anyOf(articleIds).delete()
+          feedLogger.info(`已删除源 ${id} 的 ${articleIds.length} 篇文章`)
+        }
+      }
+      
+      // 删除源本身
+      await db.discoveredFeeds.delete(id)
+    })
     feedLogger.info('已删除源:', id)
   }
   
@@ -463,11 +489,12 @@ export class FeedManager {
    * 批量删除源
    * 
    * @param ids - 源 ID 数组
+   * @param deleteArticles - 是否同时删除这些源的文章（默认 true）
    */
-  async deleteMany(ids: string[]): Promise<void> {
-    await db.transaction('rw', db.discoveredFeeds, async () => {
+  async deleteMany(ids: string[], deleteArticles: boolean = true): Promise<void> {
+    await db.transaction('rw', db.discoveredFeeds, db.feedArticles, async () => {
       for (const id of ids) {
-        await db.discoveredFeeds.delete(id)
+        await this.delete(id, deleteArticles)
       }
     })
     feedLogger.info(`已批量删除源: ${ids.length} 个`)

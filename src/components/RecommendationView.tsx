@@ -26,8 +26,7 @@ import type { Recommendation } from "@/types/database"
 import { logger } from "@/utils/logger"
 import { getDisplayText, formatLanguageLabel, translateOnDemand } from "@/core/translator/recommendation-translator"
 import { getUIConfig, watchAutoTranslate } from "@/storage/ui-config"
-import { getOnboardingState } from "@/storage/onboarding-state"
-import { getPageCount } from "@/storage/db"
+import { OnboardingStateService } from "@/core/onboarding/OnboardingStateService"
 
 const recViewLogger = logger.withTag("RecommendationView")
 
@@ -217,6 +216,7 @@ export function RecommendationView() {
   const [hasRSSFeeds, setHasRSSFeeds] = useState(false)
   const [isReady, setIsReady] = useState(false)
   const [currentPageCount, setCurrentPageCount] = useState(0)
+  const [dynamicThreshold, setDynamicThreshold] = useState(100)
   const [readingListAvailable, setReadingListAvailable] = useState(false)
   
   // 检查阅读列表功能可用性
@@ -233,15 +233,13 @@ export function RecommendationView() {
     loadConfig()
   }, [])
 
-  // 检查 onboarding 状态和页面计数
+  // 检查 onboarding 状态和页面计数（使用 OnboardingStateService 获取动态阈值）
   useEffect(() => {
     const checkOnboardingState = async () => {
-      const status = await getOnboardingState()
-      setIsReady(status.state === 'ready')
-      
-      // 获取当前页面计数
-      const count = await getPageCount()
-      setCurrentPageCount(count)
+      const stateInfo = await OnboardingStateService.getState()
+      setIsReady(stateInfo.isLearningComplete)
+      setCurrentPageCount(stateInfo.pageCount)
+      setDynamicThreshold(stateInfo.threshold)
     }
     checkOnboardingState()
   }, [])
@@ -302,6 +300,7 @@ export function RecommendationView() {
         type: 'OPEN_RECOMMENDATION',
         data: {
           url: rec.url,
+          sourceUrl: rec.sourceUrl, // 传递源URL以便查找翻译设置
           recommendationId: rec.id,
           title: rec.title,
           action: 'clicked'
@@ -554,7 +553,7 @@ export function RecommendationView() {
     }
     
     // 其他情况：学习阶段，显示进度 + 说明 + Tip
-    const totalPages = 100
+    const totalPages = dynamicThreshold
     const progress = Math.min(currentPageCount, totalPages)
     
     return (

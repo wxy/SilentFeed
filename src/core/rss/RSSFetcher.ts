@@ -84,7 +84,38 @@ export class RSSFetcher {
         }
       }
 
-      const xmlText = await response.text()
+      // 先获取原始字节
+      const buffer = await response.arrayBuffer()
+      
+      // 尝试从 response headers 获取编码
+      const contentType = response.headers.get('content-type') || ''
+      let encoding = 'utf-8' // 默认 UTF-8
+      
+      // 从 Content-Type 中提取 charset
+      const charsetMatch = contentType.match(/charset=([^;]+)/i)
+      if (charsetMatch) {
+        encoding = charsetMatch[1].trim().toLowerCase()
+      } else {
+        // 如果没有明确指定，检查 XML 声明
+        const decoder = new TextDecoder('utf-8')
+        const preview = decoder.decode(buffer.slice(0, 200))
+        const xmlEncodingMatch = preview.match(/<\?xml[^>]+encoding=["']([^"']+)["']/i)
+        if (xmlEncodingMatch) {
+          encoding = xmlEncodingMatch[1].toLowerCase()
+        }
+      }
+      
+      // 使用检测到的编码解码文本
+      let xmlText: string
+      try {
+        const decoder = new TextDecoder(encoding)
+        xmlText = decoder.decode(buffer)
+      } catch (e) {
+        // 如果编码不支持，回退到 UTF-8
+        fetchLogger.warn(`不支持的编码 ${encoding}，回退到 UTF-8`)
+        const decoder = new TextDecoder('utf-8')
+        xmlText = decoder.decode(buffer)
+      }
       
       // 使用 fast-xml-parser 解析 XML
       let parsed: any

@@ -13652,7 +13652,7 @@
         "status": "ai-translated"
       }
     },
-    "options.aiConfig.aiEngineAssignment.tasks.feedAnalysis": {
+    "options.aiConfig.aiEngineAssignment.tasks.articleAnalysis": {
       "zh-CN": {
         "value": "内容推荐",
         "hash": "45964a68",
@@ -13932,7 +13932,7 @@
         "status": "ai-translated"
       }
     },
-    "onboarding.aiConfig.aiEngineAssignment.tasks.feedAnalysis": {
+    "onboarding.aiConfig.aiEngineAssignment.tasks.articleAnalysis": {
       "zh-CN": {
         "value": "内容推荐",
         "hash": "45964a68",

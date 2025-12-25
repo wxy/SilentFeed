@@ -4,12 +4,14 @@ import { initializeDatabase, getPageCount, getUnreadRecommendations, db, markAsR
 import type { ConfirmedVisit } from '@/types/database'
 import { FeedManager } from './core/rss/managers/FeedManager'
 import { RSSValidator } from './core/rss/RSSValidator'
+import { getSourceAnalysisService } from './core/rss/SourceAnalysisService'
 import { fetchFeed } from './background/feed-scheduler'
 import { startAllSchedulers, feedScheduler, recommendationScheduler, reconfigureSchedulersForState } from './background/index'
 import { IconManager } from './utils/IconManager'
 import { evaluateAndAdjust } from './core/recommender/adaptive-count'
 import { setupNotificationListeners, testNotification } from './core/recommender/notification'
 import { getOnboardingState } from './storage/onboarding-state'
+import { OnboardingStateService, type OnboardingStateInfo } from './core/onboarding/OnboardingStateService'
 import { logger } from '@/utils/logger'
 import { LEARNING_COMPLETE_PAGES } from '@/constants/progress'
 import { aiManager } from './core/ai/AICapabilityManager'
@@ -81,8 +83,8 @@ let rssDiscoveryViewed = false
  * 优先级：
  * 0. AI 未配置 - 图标暂停状态（优先级最高）
  * 1. RSS 发现（未查看） - 图标动画
- * 2. 学习阶段（< 100 页） - 图标进度遮罩
- * 3. 推荐阶段（≥ 100 页） - 图标波纹点亮
+ * 2. 学习阶段（< 动态阈值） - 图标进度遮罩
+ * 3. 推荐阶段（≥ 动态阈值） - 图标波纹点亮
  */
 async function updateBadge(): Promise<void> {
   try {
@@ -109,18 +111,20 @@ async function updateBadge(): Promise<void> {
     const feedManager = new FeedManager()
     const candidateFeeds = await feedManager.getFeeds('candidate')
     
-    // 2. 正常图标逻辑（先设置基础状态）
-    const pageCount = await getPageCount()
+    // 2. 使用 OnboardingStateService 获取统一的状态（包含动态阈值）
+    const stateInfo = await OnboardingStateService.getState()
+    const { pageCount, threshold, isLearningComplete } = stateInfo
     
-    if (pageCount < LEARNING_COMPLETE_PAGES) {
-      // 学习阶段：显示进度遮罩
-      iconManager.setBadgeState(pageCount, 0)  // 批量更新：学习进度 + 清除推荐
-      bgLogger.debug(`📚 学习进度：${pageCount}/${LEARNING_COMPLETE_PAGES} 页`)
+    if (!isLearningComplete) {
+      // 学习阶段：显示进度遮罩（传入动态阈值）
+      iconManager.setBadgeState(pageCount, 0, threshold)
+      bgLogger.debug(`📚 学习进度：${pageCount}/${threshold} 页`)
     } else {
       // 推荐阶段：显示推荐波纹
       const unreadRecs = await getUnreadRecommendations(50)
       const unreadCount = Math.min(unreadRecs.length, 3)  // 最多3条波纹
-      iconManager.setBadgeState(LEARNING_COMPLETE_PAGES, unreadCount)
+      iconManager.setBadgeState(threshold, unreadCount, threshold)
+      bgLogger.debug(`📬 推荐阶段：${unreadCount} 条未读推荐`)
     }
     
     // 3. RSS 发现动画（优先级最高，会覆盖上面的状态）
@@ -211,6 +215,10 @@ chrome.runtime.onInstalled.addListener(async () => {
     // Phase 8: 初始化 AI Manager
     await aiManager.initialize()
     bgLogger.info('✅ AI Manager 初始化完成')
+    
+    // 初始化 OnboardingStateService（全局阶段状态管理）
+    await OnboardingStateService.initialize()
+    bgLogger.info('✅ OnboardingStateService 初始化完成')
     
     // Phase 5.2: 初始化图标管理器
     try {
@@ -397,6 +405,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               }
             }
             
+            // 刷新阶段状态（页面数增加可能触发状态变化）
+            const newStateInfo = await OnboardingStateService.onPageVisited()
+            
+            // 如果状态从 learning 变为 ready，通知调度器
+            if (newStateInfo.state === 'ready' && newStateInfo.isLearningComplete) {
+              bgLogger.info(`🎉 检测到学习完成，页面 ${newStateInfo.pageCount}/${newStateInfo.threshold}`)
+              await reconfigureSchedulersForState('ready')
+            }
+            
             await updateBadge()
             // Phase 8: 传递访问数据给 ProfileUpdateScheduler 用于语义画像学习
             ProfileUpdateScheduler.checkAndScheduleUpdate(visitData).catch(error => {
@@ -423,8 +440,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             const { state } = message
             bgLogger.info(`Onboarding 状态变化: ${state}`)
             
+            // 刷新 OnboardingStateService 缓存
+            await OnboardingStateService.refreshState()
+            
             // 调用重新配置函数
             await reconfigureSchedulersForState(state)
+            
+            // 更新图标
+            await updateBadge()
             
             sendResponse({ success: true })
           } catch (error) {
@@ -501,44 +524,39 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               newFeedIds.push(feedId)
             }
             
-            // 只有真正添加了新源才重置查看状态并触发质量分析
+            // 只有真正添加了新源才重置查看状态并触发 AI 分析
             if (addedCount > 0) {
               bgLogger.info(`成功添加 ${addedCount} 个有效 RSS 源`)
               rssDiscoveryViewed = false
               await updateBadge()
               
-              // 4. 后台异步触发质量分析（不阻塞响应）
+              // 4. 后台异步触发 AI 分析（不阻塞响应）
+              // 注意：feedManager.analyzeFeed 内部会检查 AI 是否配置
               if (newFeedIds.length > 0) {
-                bgLogger.info('开始后台质量分析...')
-                Promise.all(
-                  newFeedIds.map(feedId => 
-                    feedManager.analyzeFeed(feedId)
-                      .then(quality => {
-                        if (quality) {
-                          bgLogger.info(`✅ 质量分析完成: ${feedId}, 评分: ${quality.score}`)
-                          
-                          // 如果质量分析失败（评分为0且有错误），自动删除
-                          if (quality.score === 0 && quality.error) {
-                            bgLogger.warn(`⚠️ 质量分析发现错误，自动删除: ${feedId}`)
-                            feedManager.delete(feedId).catch((err: Error) => {
-                              bgLogger.error(`自动删除失败: ${feedId}`, err)
-                            })
+                const aiConfigured = await isAIConfigured()
+                if (aiConfigured) {
+                  bgLogger.info('开始后台 AI 分析...')
+                  Promise.all(
+                    newFeedIds.map(feedId => 
+                      feedManager.analyzeFeed(feedId)
+                        .then(quality => {
+                          if (quality) {
+                            bgLogger.info(`✅ AI 分析完成: ${feedId}, 评分: ${quality.score}`)
                           }
-                        }
-                      })
-                      .catch((error: Error) => {
-                        bgLogger.error(`❌ 质量分析失败: ${feedId}`, error)
-                        // 分析失败也自动删除
-                        feedManager.delete(feedId).catch((err: Error) => {
-                          bgLogger.error(`自动删除失败: ${feedId}`, err)
                         })
-                      })
-                  )
-                ).then(() => {
-                  bgLogger.info('所有质量分析完成')
-                }).catch(error => {
-                  bgLogger.error('批量质量分析失败:', error)
-                })
+                        .catch((error: Error) => {
+                          bgLogger.error(`❌ AI 分析失败: ${feedId}`, error)
+                          // AI 分析失败不删除源（AI 可能只是暂时不可用）
+                        })
+                    )
+                  ).then(() => {
+                    bgLogger.info('所有 AI 分析完成')
+                  }).catch(error => {
+                    bgLogger.error('批量 AI 分析失败:', error)
+                  })
+                } else {
+                  bgLogger.info('AI 未配置，跳过源分析')
+                }
               }
             }
             
@@ -619,6 +637,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             
             // 强制抓取单个源
             const success = await fetchFeed(feed)
+            
+            // 重新获取更新后的 feed 数据，检查是否需要 AI 分析
+            // 注意：fetchFeed 内部可能已经触发了 AI 分析，这里使用最新数据避免重复
+            const updatedFeed = await db.discoveredFeeds.get(feedId)
+            if (updatedFeed) {
+              const needsAnalysis = !updatedFeed.category || !updatedFeed.language || !updatedFeed.quality
+              if (needsAnalysis) {
+                const aiConfigured = await isAIConfigured()
+                if (aiConfigured) {
+                  bgLogger.info('源缺少基本信息，触发 AI 分析:', updatedFeed.title)
+                  // 异步触发，不阻塞读取响应
+                  getSourceAnalysisService().analyze(feedId, true).catch(error => {
+                    bgLogger.error('手动读取触发 AI 分析失败:', error)
+                  })
+                }
+              }
+            }
             
             // Phase 5.2: 停止后台抓取动画
             if (iconManager) {
@@ -748,6 +783,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           }
           break
         
+        // 获取完整的阶段状态信息（供 Popup 使用）
+        case 'GET_ONBOARDING_STATE_INFO':
+          try {
+            const stateInfo = await OnboardingStateService.getState()
+            sendResponse({ success: true, data: stateInfo })
+          } catch (error) {
+            bgLogger.error('❌ 获取阶段状态信息失败:', error)
+            sendResponse({ success: false, error: String(error) })
+          }
+          break
+        
         // 获取画像更新进度（从 Background 实例读取）
         case 'GET_PROFILE_UPDATE_PROGRESS':
           try {
@@ -755,6 +801,46 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             sendResponse({ success: true, data: progress })
           } catch (error) {
             bgLogger.error('❌ 获取画像更新进度失败:', error)
+            sendResponse({ success: false, error: String(error) })
+          }
+          break
+        
+        // 获取后台任务状态
+        case 'GET_SCHEDULER_STATUS':
+          try {
+            const alarms = await chrome.alarms.getAll()
+            const status = {
+              feedScheduler: {
+                name: 'RSS抓取',
+                isRunning: feedScheduler.isRunning,
+                alarms: alarms.filter(a => a.name === 'fetch-feeds').map(a => ({
+                  name: a.name,
+                  scheduledTime: a.scheduledTime,
+                  periodInMinutes: a.periodInMinutes
+                }))
+              },
+              recommendationScheduler: {
+                name: '推荐生成',
+                isRunning: recommendationScheduler.isRunning,
+                nextRunTime: recommendationScheduler.nextRunTime,
+                alarms: alarms.filter(a => a.name === 'generate-recommendation').map(a => ({
+                  name: a.name,
+                  scheduledTime: a.scheduledTime,
+                  periodInMinutes: a.periodInMinutes
+                }))
+              },
+              otherTasks: alarms.filter(a => 
+                !['fetch-feeds', 'generate-recommendation'].includes(a.name)
+              ).map(a => ({
+                name: a.name,
+                scheduledTime: a.scheduledTime,
+                periodInMinutes: a.periodInMinutes,
+                delayInMinutes: a.delayInMinutes
+              }))
+            }
+            sendResponse({ success: true, data: status })
+          } catch (error) {
+            bgLogger.error('❌ 获取调度器状态失败:', error)
             sendResponse({ success: false, error: String(error) })
           }
           break
@@ -787,12 +873,41 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         // 由 Background 处理，确保追踪信息在创建 Tab 后立即保存
         case 'OPEN_RECOMMENDATION':
           try {
-            const { url, recommendationId, title, action } = message.data
-            bgLogger.debug('📬 收到 OPEN_RECOMMENDATION 消息:', { url, recommendationId, action })
+            const { url, sourceUrl, recommendationId, title, action } = message.data
+            bgLogger.debug('📬 收到 OPEN_RECOMMENDATION 消息:', { url, sourceUrl, recommendationId, action })
+            
+            // 检查订阅源的谷歌翻译设置
+            let finalUrl = url
+            let useGoogleTranslate = true // 默认使用谷歌翻译
+            
+            if (sourceUrl) {
+              try {
+                const feedManager = new FeedManager()
+                const feed = await feedManager.getFeedByUrl(sourceUrl)
+                if (feed) {
+                  // 如果订阅源明确设置不使用谷歌翻译
+                  useGoogleTranslate = feed.useGoogleTranslate !== false
+                  bgLogger.debug(`订阅源翻译设置: ${feed.title}, useGoogleTranslate=${useGoogleTranslate}`)
+                }
+              } catch (err) {
+                bgLogger.warn('获取订阅源设置失败，使用默认（谷歌翻译）:', err)
+              }
+            }
+            
+            // 根据设置决定是否使用谷歌翻译
+            if (useGoogleTranslate) {
+              // 获取用户语言偏好
+              const langResult = await chrome.storage.sync.get('languagePreference')
+              const targetLanguage = langResult.languagePreference || 'zh-CN'
+              finalUrl = `https://translate.google.com/translate?sl=auto&tl=${targetLanguage}&u=${encodeURIComponent(url)}`
+              bgLogger.debug('使用谷歌翻译打开:', { originalUrl: url, translatedUrl: finalUrl })
+            } else {
+              bgLogger.debug('直接打开原文链接:', { url })
+            }
             
             // 1. 创建新标签页
-            const tab = await chrome.tabs.create({ url })
-            bgLogger.debug('📑 已创建新标签页:', { tabId: tab.id, url })
+            const tab = await chrome.tabs.create({ url: finalUrl })
+            bgLogger.debug('📑 已创建新标签页:', { tabId: tab.id, url: finalUrl })
             
             // 2. 保存追踪信息（使用 Tab ID）
             // ⚠️ 使用 local storage 而非 session，避免扩展重启后丢失
@@ -827,6 +942,46 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           } catch (error) {
             bgLogger.error('❌ 打开推荐失败:', error)
             sendResponse({ success: false, error: String(error) })
+          }
+          break
+
+        // AI 订阅源质量分析
+        case 'AI_SOURCE_ANALYSIS':
+          try {
+            const { feedId, feedTitle, feedDescription, feedLink, sampleArticles, existingLanguage } = message.payload
+            bgLogger.info('收到 AI 订阅源分析请求:', { feedId, feedTitle, existingLanguage })
+            
+            // 使用 AICapabilityManager 的订阅源分析方法
+            // 现在直接传递请求参数，不再手动构建提示词
+            await aiManager.initialize()
+            const result = await aiManager.analyzeSource({
+              feedTitle: feedTitle || '未知标题',
+              feedDescription: feedDescription || '',
+              feedLink: feedLink || '',
+              sampleArticles: sampleArticles || ''
+            })
+            
+            // 如果 RSS 源已声明语言且 AI 没有检测到语言，使用 RSS 声明的语言
+            if (existingLanguage && !result.language) {
+              result.language = existingLanguage
+              bgLogger.info('使用 RSS 源声明的语言:', existingLanguage)
+            }
+            
+            bgLogger.info('AI 订阅源分析完成:', {
+              feedId,
+              qualityScore: result.qualityScore,
+              category: result.contentCategory,
+              language: result.language,
+              tags: result.topicTags
+            })
+            
+            sendResponse({ success: true, result })
+          } catch (error) {
+            bgLogger.error('❌ AI 订阅源分析失败:', error)
+            sendResponse({ 
+              success: false, 
+              error: error instanceof Error ? error.message : String(error)
+            })
           }
           break
 

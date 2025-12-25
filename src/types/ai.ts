@@ -159,6 +159,55 @@ export interface UserProfileGenerationResult {
 }
 
 /**
+ * 订阅源分析请求
+ */
+export interface SourceAnalysisRequest {
+  /** 订阅源标题 */
+  feedTitle: string
+  /** 订阅源描述 */
+  feedDescription?: string
+  /** 订阅源链接 */
+  feedLink?: string
+  /** 样本文章（格式化的字符串） */
+  sampleArticles: string
+  /** 是否使用推理模式 */
+  useReasoning?: boolean
+}
+
+/**
+ * 订阅源分析响应
+ */
+export interface SourceAnalysisResponse {
+  /** 主题分布 */
+  topics: Record<string, number>
+  /** 内容分类 */
+  category: string
+  /** 内容语言 */
+  language?: string
+  /** 原创性评分 (0-100) */
+  originality?: number
+  /** 信息密度评分 (0-100) */
+  informationDensity?: number
+  /** 标题党程度 (0-100) */
+  clickbaitScore?: number
+  /** 垃圾内容程度 (0-100) */
+  spamScore?: number
+  /** 分析依据 */
+  reasoning?: string
+  /** 元数据 */
+  metadata: {
+    provider: "openai" | "anthropic" | "deepseek" | "keyword" | "ollama"
+    model: string
+    timestamp: number
+    tokensUsed?: {
+      input: number
+      output: number
+    }
+    cost?: number
+  }
+}
+
+/**
  * 统一分析结果
  *
  * 所有 AI Provider 必须返回此格式，确保数据一致性
@@ -266,6 +315,19 @@ export interface AIProvider {
   generateUserProfile?(
     request: UserProfileGenerationRequest
   ): Promise<UserProfileGenerationResult>
+
+  /**
+   * 订阅源质量分析（可选功能）
+   * 
+   * 分析 RSS 订阅源的质量、分类和语言
+   * 
+   * @param request - 订阅源分析请求
+   * @returns 订阅源分析结果
+   * @throws Error 如果分析失败
+   */
+  analyzeSource?(
+    request: SourceAnalysisRequest
+  ): Promise<SourceAnalysisResponse>
 
   /**
    * 生成推荐理由（可选功能）

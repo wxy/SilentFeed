@@ -89,9 +89,10 @@ export class TopicClusterAnalyzer {
         .map(f => f.id)
     )
 
-    // 只分析已分析过的文章
+    // 只分析真正完成 AI 分析的文章（排除 tfidf-skipped）
     const analyzedArticles = articles.filter(a => 
       a.analysis && 
+      a.analysis.metadata?.provider !== 'tfidf-skipped' &&
       activeFeedIds.has(a.feedId)
     )
 

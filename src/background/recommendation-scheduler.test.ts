@@ -10,6 +10,7 @@ import { getPageCount, getUnrecommendedArticleCount } from '../storage/db'
 import { recommendationService } from '../core/recommender/RecommendationService'
 import { LEARNING_COMPLETE_PAGES } from '@/constants/progress'
 import { hasAnyAIAvailable } from '@/storage/ai-config'
+import { OnboardingStateService } from '@/core/onboarding/OnboardingStateService'
 
 // Mock dependencies
 vi.mock('../storage/db', () => ({
@@ -28,6 +29,13 @@ vi.mock('@/storage/ai-config', () => ({
   hasAnyAIAvailable: vi.fn()
 }))
 
+// Mock OnboardingStateService
+vi.mock('@/core/onboarding/OnboardingStateService', () => ({
+  OnboardingStateService: {
+    getState: vi.fn()
+  }
+}))
+
 // Mock chrome.alarms API
 global.chrome = {
   alarms: {
@@ -39,6 +47,32 @@ global.chrome = {
 describe('RecommendationScheduler', () => {
   let scheduler: RecommendationScheduler
 
+  // 辅助函数：模拟学习完成状态
+  const mockLearningComplete = () => {
+    vi.mocked(getPageCount).mockResolvedValue(LEARNING_COMPLETE_PAGES)
+    vi.mocked(OnboardingStateService.getState).mockResolvedValue({
+      state: 'ready',
+      pageCount: LEARNING_COMPLETE_PAGES,
+      threshold: LEARNING_COMPLETE_PAGES,
+      subscribedFeedCount: 0,
+      progressPercent: 100,
+      isLearningComplete: true
+    })
+  }
+
+  // 辅助函数：模拟学习未完成状态
+  const mockLearningIncomplete = (pageCount = 0) => {
+    vi.mocked(getPageCount).mockResolvedValue(pageCount)
+    vi.mocked(OnboardingStateService.getState).mockResolvedValue({
+      state: 'learning',
+      pageCount,
+      threshold: LEARNING_COMPLETE_PAGES,
+      subscribedFeedCount: 0,
+      progressPercent: (pageCount / LEARNING_COMPLETE_PAGES) * 100,
+      isLearningComplete: false
+    })
+  }
+
   beforeEach(() => {
     vi.clearAllMocks()
     scheduler = new RecommendationScheduler()
@@ -49,6 +83,8 @@ describe('RecommendationScheduler', () => {
       hasLocal: false,
       remoteProviders: ['deepseek']
     })
+    // 默认模拟学习未完成
+    mockLearningIncomplete()
   })
 
   afterEach(async () => {
@@ -159,7 +195,7 @@ describe('RecommendationScheduler', () => {
     })
 
     it('应该在 AI 未配置时返回失败', async () => {
-      vi.mocked(getPageCount).mockResolvedValue(LEARNING_COMPLETE_PAGES)
+      mockLearningComplete()
       vi.mocked(hasAnyAIAvailable).mockResolvedValue({
         hasAny: false,
         hasRemote: false,
@@ -175,7 +211,7 @@ describe('RecommendationScheduler', () => {
     })
 
     it('应该在学习完成后成功生成推荐', async () => {
-      vi.mocked(getPageCount).mockResolvedValue(LEARNING_COMPLETE_PAGES)
+      mockLearningComplete()
       vi.mocked(recommendationService.generateRecommendations).mockResolvedValue({
         recommendations: [
           { title: 'Test Article', score: 0.9 } as any
@@ -200,7 +236,7 @@ describe('RecommendationScheduler', () => {
     })
 
     it('应该处理生成失败的情况', async () => {
-      vi.mocked(getPageCount).mockResolvedValue(LEARNING_COMPLETE_PAGES)
+      mockLearningComplete()
       vi.mocked(recommendationService.generateRecommendations).mockRejectedValue(
         new Error('Generation failed')
       )
@@ -213,7 +249,7 @@ describe('RecommendationScheduler', () => {
     })
 
     it('应该在没有新推荐时返回成功但数量为0', async () => {
-      vi.mocked(getPageCount).mockResolvedValue(LEARNING_COMPLETE_PAGES)
+      mockLearningComplete()
       vi.mocked(recommendationService.generateRecommendations).mockResolvedValue({
         recommendations: [],
         stats: {
@@ -242,7 +278,7 @@ describe('RecommendationScheduler', () => {
     })
 
     it('应该在学习完成后调用生成服务并重新安排', async () => {
-      vi.mocked(getPageCount).mockResolvedValue(LEARNING_COMPLETE_PAGES)
+      mockLearningComplete()
       vi.mocked(getUnrecommendedArticleCount).mockResolvedValue(5)  // 应该是 5 分钟
       vi.mocked(recommendationService.generateRecommendations).mockResolvedValue({
         recommendations: [],
@@ -271,7 +307,7 @@ describe('RecommendationScheduler', () => {
     })
     
     it('应该在待推荐数量变化后调整间隔', async () => {
-      vi.mocked(getPageCount).mockResolvedValue(LEARNING_COMPLETE_PAGES)
+      mockLearningComplete()
       
       // 第一次：20 条待推荐 → 1 分钟
       vi.mocked(getUnrecommendedArticleCount).mockResolvedValue(20)
@@ -301,7 +337,8 @@ describe('RecommendationScheduler', () => {
 
     it('应该捕获并记录错误', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-      vi.mocked(getPageCount).mockRejectedValue(new Error('Database error'))
+      // 现在使用 OnboardingStateService.getState 检查学习状态
+      vi.mocked(OnboardingStateService.getState).mockRejectedValue(new Error('Database error'))
 
       await scheduler.handleAlarm()
 
@@ -399,7 +436,7 @@ describe('RecommendationScheduler', () => {
   
   describe('Phase 7: 并发控制', () => {
     it('应该在任务执行时拒绝 triggerNow()', async () => {
-      vi.mocked(getPageCount).mockResolvedValue(LEARNING_COMPLETE_PAGES)
+      mockLearningComplete()
       
       // 模拟一个慢速的生成过程
       let resolveGeneration: () => void
@@ -438,7 +475,7 @@ describe('RecommendationScheduler', () => {
     })
     
     it('应该在任务执行时跳过 handleAlarm()', async () => {
-      vi.mocked(getPageCount).mockResolvedValue(LEARNING_COMPLETE_PAGES)
+      mockLearningComplete()
       vi.mocked(getUnrecommendedArticleCount).mockResolvedValue(10)
       
       // 模拟一个慢速的生成过程
@@ -478,7 +515,7 @@ describe('RecommendationScheduler', () => {
     })
     
     it('应该在错误后正确重置执行标志', async () => {
-      vi.mocked(getPageCount).mockResolvedValue(LEARNING_COMPLETE_PAGES)
+      mockLearningComplete()
       vi.mocked(recommendationService.generateRecommendations)
         .mockRejectedValue(new Error('Generation failed'))
       
@@ -503,7 +540,7 @@ describe('RecommendationScheduler', () => {
     })
     
     it('应该在连续跳过 3 次后自动增加间隔', async () => {
-      vi.mocked(getPageCount).mockResolvedValue(LEARNING_COMPLETE_PAGES)
+      mockLearningComplete()
       vi.mocked(getUnrecommendedArticleCount).mockResolvedValue(15)  // 应该是 3 分钟基础间隔
       
       // 模拟一个很慢的任务（永不完成）
@@ -537,7 +574,7 @@ describe('RecommendationScheduler', () => {
     })
     
     it('应该在任务成功执行后重置跳过计数', async () => {
-      vi.mocked(getPageCount).mockResolvedValue(LEARNING_COMPLETE_PAGES)
+      mockLearningComplete()
       vi.mocked(getUnrecommendedArticleCount).mockResolvedValue(10)
       
       await scheduler.start()
@@ -598,7 +635,7 @@ describe('RecommendationScheduler', () => {
     })
     
     it('应该逐步恢复间隔到正常值', async () => {
-      vi.mocked(getPageCount).mockResolvedValue(LEARNING_COMPLETE_PAGES)
+      mockLearningComplete()
       vi.mocked(getUnrecommendedArticleCount).mockResolvedValue(10)  // 基础间隔 3 分钟
       
       // 直接测试 adjustedInterval 的恢复逻辑

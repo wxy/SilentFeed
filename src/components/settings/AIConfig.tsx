@@ -18,7 +18,7 @@ import type { RecommendationAnalysisEngine, FeedAnalysisEngine } from "@/types/a
 import { listLocalModels, type LocalAIEndpointMode, type LocalModelSummary } from "@/utils/local-ai-endpoint"
 import { AIEngineAssignmentComponent } from "@/components/settings/AIEngineAssignment"
 import type { AIEngineAssignment as AIEngineAssignmentType } from "@/types/ai-engine-assignment"
-import { getPageCount } from "@/storage/db"
+import { OnboardingStateService } from "@/core/onboarding/OnboardingStateService"
 import { LEARNING_COMPLETE_PAGES } from "@/constants/progress"
 import { AIConfigPanel } from "@/components/AIConfigPanel"
 import { BudgetOverview } from "@/components/BudgetOverview"
@@ -94,6 +94,11 @@ export function AIConfig() {
   const [maxRecommendations, setMaxRecommendations] = useState(3)
   const [isLearningStage, setIsLearningStage] = useState(false)
   const [pageCount, setPageCount] = useState(0)
+  const [totalPages, setTotalPages] = useState(LEARNING_COMPLETE_PAGES)
+  const [recommendationScheduler, setRecommendationScheduler] = useState<{
+    lastRunTime?: number
+    nextRunTime?: number
+  } | null>(null)
   
   const [localModels, setLocalModels] = useState<LocalModelSummary[]>([])
   const [localModelsMode, setLocalModelsMode] = useState<LocalAIEndpointMode | null>(null)
@@ -126,6 +131,27 @@ export function AIConfig() {
     provider: "ollama"
     }
   }
+  
+  /**
+   * 格式化时间距离
+   */
+  const formatTimeUntil = (timestamp: number): string => {
+    const now = Date.now()
+    const diff = timestamp - now
+    
+    if (diff < 0) return '即将执行'
+    
+    const minutes = Math.floor(diff / 60000)
+    const hours = Math.floor(minutes / 60)
+    const days = Math.floor(hours / 24)
+    
+    if (days > 0) return `${days} 天`
+    if (hours > 0) return `${hours} 小时`
+    if (minutes > 0) return `${minutes} 分钟`
+    return '即将执行'
+  }
+  
+
   
   // 获取当前模型的货币符号
   const getCurrencySymbol = () => {
@@ -199,13 +225,33 @@ export function AIConfig() {
       setMaxRecommendations(recConfig.maxRecommendations || 3)
     })
     
-    // 检查学习阶段
-    getPageCount().then(count => {
-      setPageCount(count)
-      setIsLearningStage(count < LEARNING_COMPLETE_PAGES)
+    // 检查学习阶段 - 使用 OnboardingStateService
+    OnboardingStateService.getState().then(state => {
+      setPageCount(state.pageCount)
+      setTotalPages(state.threshold)
+      setIsLearningStage(state.state === 'learning' || state.state === 'setup')
       // 标记初始化完成
       isInitializedRef.current = true
     })
+    
+    // 加载推荐调度器状态
+    const loadRecommendationScheduler = async () => {
+      try {
+        const response: any = await new Promise((resolve) => {
+          chrome.runtime.sendMessage({ type: 'GET_SCHEDULER_STATUS' }, resolve)
+        })
+        
+        if (response?.success) {
+          setRecommendationScheduler({
+            nextRunTime: response.data.recommendationScheduler.nextRunTime
+          })
+        }
+      } catch (error) {
+        console.error('加载推荐调度器状态失败:', error)
+      }
+    }
+    
+    loadRecommendationScheduler()
     })
   }, [])
 
@@ -527,7 +573,7 @@ export function AIConfig() {
         const recConfig = await getRecommendationConfig()
         
         // 安全检查：确保所有必要的字段都存在
-        if (!engineAssignment.profileGeneration || !engineAssignment.feedAnalysis) {
+        if (!engineAssignment.profileGeneration || !engineAssignment.articleAnalysis) {
           return
         }
         
@@ -539,9 +585,9 @@ export function AIConfig() {
           analysisEngine = 'remoteAIWithReasoning'
         }
         
-        // 根据 feedAnalysis 的设置确定 feedAnalysisEngine
+        // 根据 articleAnalysis 的设置确定 feedAnalysisEngine
         let feedAnalysisEngine: FeedAnalysisEngine = 'remoteAI'
-        if (engineAssignment.feedAnalysis.provider === 'ollama') {
+        if (engineAssignment.articleAnalysis.provider === 'ollama') {
           feedAnalysisEngine = 'localAI'
         }
         
@@ -734,7 +780,7 @@ export function AIConfig() {
               <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">0</span>
             </div>
             <p className="text-xs text-blue-700 dark:text-blue-300 mb-2">
-              {_("options.recommendation.learningStageHint", { current: pageCount, total: LEARNING_COMPLETE_PAGES })}
+              {_("options.recommendation.learningStageHint", { current: pageCount, total: totalPages })}
             </p>
             <p className="text-xs text-blue-600 dark:text-blue-400">
               {_("options.recommendation.learningStageNote")}
@@ -744,17 +790,32 @@ export function AIConfig() {
       </div>
     ) : (
       <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-3">
           <span className="text-sm text-gray-600 dark:text-gray-400">{_("options.recommendation.currentCount")}</span>
           <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
             {_("options.recommendation.countItems", { count: maxRecommendations })}
           </span>
         </div>
+        
+        {/* 推荐任务执行时间 */}
+        {recommendationScheduler?.nextRunTime && (
+          <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-gray-500 dark:text-gray-400">⏱️ 下次推荐生成</span>
+              <span className="font-medium text-blue-600 dark:text-blue-400">
+                {formatTimeUntil(recommendationScheduler.nextRunTime)}
+              </span>
+            </div>
+          </div>
+        )}
+        
         <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
           {_("options.recommendation.countHint")}
         </p>
       </div>
     )}
+    
+
   </div>
 
   {/* 自动保存状态提示 */}

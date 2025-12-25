@@ -7,6 +7,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import {
   calculateNextFetchInterval,
+  calculateUpdateFrequencyFromArticles,
   shouldFetch,
   getArticleId,
   mergeArticles,
@@ -242,6 +243,86 @@ describe('feed-scheduler', () => {
       const interval = calculateNextFetchInterval(feed)
       
       expect(interval).toBe(7 * 24 * 60 * 60 * 1000)
+    })
+  })
+  
+  describe('calculateUpdateFrequencyFromArticles()', () => {
+    it('应该返回 0 当文章数不足 2 篇', () => {
+      const articles: FeedArticle[] = []
+      expect(calculateUpdateFrequencyFromArticles(articles)).toBe(0)
+      
+      const oneArticle: FeedArticle[] = [{
+        id: '1',
+        feedId: 'test',
+        title: 'Test',
+        link: 'https://example.com/1',
+        published: Date.now(),
+        fetched: Date.now(),
+        read: false,
+        starred: false
+      }]
+      expect(calculateUpdateFrequencyFromArticles(oneArticle)).toBe(0)
+    })
+    
+    it('应该正确计算每天更新的源', () => {
+      const now = Date.now()
+      const oneDay = 24 * 60 * 60 * 1000
+      
+      // 7 天内 7 篇文章 = 每周 7 篇
+      const articles: FeedArticle[] = Array.from({ length: 7 }, (_, i) => ({
+        id: `article-${i}`,
+        feedId: 'test',
+        title: `Article ${i}`,
+        link: `https://example.com/${i}`,
+        published: now - i * oneDay, // 每天一篇
+        fetched: now,
+        read: false,
+        starred: false
+      }))
+      
+      const frequency = calculateUpdateFrequencyFromArticles(articles)
+      // 7 篇 / 6 天跨度 * 7 = 约 8.2 篇/周
+      expect(frequency).toBeGreaterThanOrEqual(7)
+      expect(frequency).toBeLessThanOrEqual(10)
+    })
+    
+    it('应该返回真实的低频值（不设下限）', () => {
+      const now = Date.now()
+      const oneDay = 24 * 60 * 60 * 1000
+      
+      // 30 天内 4 篇文章 = 约 0.93 篇/周
+      const articles: FeedArticle[] = [
+        { id: '1', feedId: 'test', title: 'A', link: 'https://a.com/1', published: now, fetched: now, read: false, starred: false },
+        { id: '2', feedId: 'test', title: 'B', link: 'https://a.com/2', published: now - 10 * oneDay, fetched: now, read: false, starred: false },
+        { id: '3', feedId: 'test', title: 'C', link: 'https://a.com/3', published: now - 20 * oneDay, fetched: now, read: false, starred: false },
+        { id: '4', feedId: 'test', title: 'D', link: 'https://a.com/4', published: now - 30 * oneDay, fetched: now, read: false, starred: false },
+      ]
+      
+      const frequency = calculateUpdateFrequencyFromArticles(articles)
+      // 4 篇 / 30 天 * 7 = 0.93，应该返回真实值（不再设 0.5 下限）
+      expect(frequency).toBeGreaterThanOrEqual(0.9)
+      expect(frequency).toBeLessThanOrEqual(1)
+    })
+    
+    it('应该返回真实的高频值（不设上限）', () => {
+      const now = Date.now()
+      const oneHour = 60 * 60 * 1000
+      
+      // 同一天内 20 篇文章
+      const articles: FeedArticle[] = Array.from({ length: 20 }, (_, i) => ({
+        id: `article-${i}`,
+        feedId: 'test',
+        title: `Article ${i}`,
+        link: `https://example.com/${i}`,
+        published: now - i * oneHour, // 每小时一篇
+        fetched: now,
+        read: false,
+        starred: false
+      }))
+      
+      const frequency = calculateUpdateFrequencyFromArticles(articles)
+      // 时间跨度 < 1 天，按 1 天算：20 * 7 = 140 篇/周
+      expect(frequency).toBe(140)
     })
   })
   

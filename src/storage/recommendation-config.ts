@@ -160,7 +160,7 @@ const DEFAULT_CONFIG: RecommendationConfig = {
   maxRecommendations: 3, // 初始值3条，后续自动调整
   batchSize: 1, // Phase 6: 默认每次处理 1 篇文章（避免超时）
   qualityThreshold: 0.8, // Phase 9: 提高质量阈值到 0.8，实施激进质量控制（过滤 50-60% 低质量）
-  tfidfThreshold: 0.01 // 保持原值，避免过度过滤
+  tfidfThreshold: 0.001 // 降低阈值，允许更多文章进入 AI 分析（TF-IDF 用于初筛，不应过于严格）
 }
 
 /**
@@ -201,12 +201,8 @@ export async function getRecommendationConfig(): Promise<RecommendationConfig> {
       needsUpdate = true
     }
     
-    // 如果缺少或过低的 tfidfThreshold，更新为新的默认值
-    if (merged.tfidfThreshold === undefined || merged.tfidfThreshold < 0.05) {
-      configLogger.info(`更新 tfidfThreshold=${merged.tfidfThreshold || 'undefined'} 为 0.05`)
-      merged.tfidfThreshold = 0.05
-      needsUpdate = true
-    }
+    // 移除旧的 tfidfThreshold 自动升级逻辑（允许低阈值以便 AI 做最终筛选）
+    // 如果用户明确设置了低阈值，应该尊重用户选择
     
     // 自动保存更新后的配置
     if (needsUpdate) {
@@ -258,11 +254,11 @@ export async function checkAIConfigStatus(): Promise<AIConfigStatus> {
     // 获取使用统计
     const aiStats = await getAIAnalysisStats()
     
-    // 根据配置的提供商选择对应的成本（从 engineAssignment.feedAnalysis 读取）
+    // 根据配置的提供商选择对应的成本（从 engineAssignment.articleAnalysis 读取）
     let usedAmount = 0
-    const feedProvider = aiConfig.engineAssignment?.feedAnalysis?.provider
+    const articleProvider = aiConfig.engineAssignment?.articleAnalysis?.provider
     // 解析抽象 provider 类型（"remote" → "deepseek"）
-    const resolvedProvider = feedProvider ? resolveProvider(feedProvider, aiConfig) : null
+    const resolvedProvider = articleProvider ? resolveProvider(articleProvider, aiConfig) : null
     const actualProvider = resolvedProvider && resolvedProvider !== 'ollama' ? resolvedProvider as AIProviderType : null
     if (actualProvider) {
       // DeepSeek 使用 CNY，其他使用 USD

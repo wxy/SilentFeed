@@ -3,18 +3,29 @@ import { useState, useEffect } from "react"
 import "@/i18n" // 初始化 i18n
 import { useI18n } from "@/i18n/helpers"
 import i18n from "@/i18n"
-import { getPageCount } from "@/storage/db"
 import { getUIStyle, watchUIStyle, type UIStyle } from "@/storage/ui-config"
 import { useTheme } from "@/hooks/useTheme"
 import { ColdStartView } from "@/components/ColdStartView"
 import { RecommendationView } from "@/components/RecommendationView"
 import { OnboardingView } from "@/components/OnboardingView"
-import { getOnboardingState, enterReadyState, type OnboardingState } from "@/storage/onboarding-state"
+import { type OnboardingState } from "@/storage/onboarding-state"
 import { trackPopupOpen } from "@/core/recommender/adaptive-count"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
 import { LEARNING_COMPLETE_PAGES } from "@/constants/progress"
 import "@/styles/global.css"
 import "@/styles/sketchy.css" // 手绘风格样式
+
+/**
+ * 阶段状态信息（从 Background 获取）
+ */
+interface OnboardingStateInfo {
+  state: OnboardingState
+  pageCount: number
+  threshold: number
+  subscribedFeedCount: number
+  progressPercent: number
+  isLearningComplete: boolean
+}
 
 /**
  * Silent Feed - Popup 主界面
@@ -25,8 +36,7 @@ function IndexPopup() {
   const { _ } = useI18n()
   useTheme() // 应用主题到 DOM
   
-  const [pageCount, setPageCount] = useState<number | null>(null)
-  const [onboardingState, setOnboardingState] = useState<OnboardingState | null>(null)
+  const [stateInfo, setStateInfo] = useState<OnboardingStateInfo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [uiStyle, setUiStyle] = useState<UIStyle>("normal")
   const [toolbarState, setToolbarState] = useState<{
@@ -36,8 +46,6 @@ function IndexPopup() {
     onDismissAll?: () => Promise<void>
     onOpenRSSManagement?: () => void
   }>({ hasRSSFeeds: false, hasCandidateFeeds: false, hasRecommendations: false })
-
-  const COLD_START_THRESHOLD = LEARNING_COMPLETE_PAGES
 
   // Phase 6: 跟踪弹窗打开
   useEffect(() => {
@@ -78,32 +86,37 @@ function IndexPopup() {
   }, [])
 
   useEffect(() => {
-    // 加载页面计数和 Onboarding 状态
+    // 从 Background 获取完整的阶段状态信息
     const loadData = async () => {
       try {
-        // 1. 加载 Onboarding 状态
-        const status = await getOnboardingState()
-        setOnboardingState(status.state)
+        // 使用消息从 Background 获取统一的状态信息
+        const response = await chrome.runtime.sendMessage({ type: 'GET_ONBOARDING_STATE_INFO' })
         
-        // 2. 如果已完成引导，加载页面计数
-        if (status.state !== 'setup') {
-          const count = await getPageCount()
-          setPageCount(count)
-          
-          // 3. 检查是否需要从 learning 进入 ready
-          if (status.state === 'learning' && count >= COLD_START_THRESHOLD) {
-            await enterReadyState()
-            setOnboardingState('ready')
-            
-            // 通知 background 重新配置调度器（启动推荐生成）
-            chrome.runtime.sendMessage({ type: 'ONBOARDING_STATE_CHANGED', state: 'ready' })
-          }
+        if (response?.success && response.data) {
+          setStateInfo(response.data)
+        } else {
+          // 回退到默认状态
+          console.error('Failed to get state info:', response?.error)
+          setStateInfo({
+            state: 'setup',
+            pageCount: 0,
+            threshold: LEARNING_COMPLETE_PAGES,
+            subscribedFeedCount: 0,
+            progressPercent: 0,
+            isLearningComplete: false
+          })
         }
       } catch (error) {
         console.error('Failed to load data:', error)
-        // 首次加载时数据库可能未初始化，使用默认值
-        setOnboardingState('setup')
-        setPageCount(0)
+        // 首次加载时可能 background 还未就绪，使用默认值
+        setStateInfo({
+          state: 'setup',
+          pageCount: 0,
+          threshold: LEARNING_COMPLETE_PAGES,
+          subscribedFeedCount: 0,
+          progressPercent: 0,
+          isLearningComplete: false
+        })
       } finally {
         setIsLoading(false)
       }
@@ -149,12 +162,23 @@ function IndexPopup() {
     )
   }
 
-  const isColdStart = pageCount !== null && pageCount < COLD_START_THRESHOLD
+  // 从 stateInfo 提取状态
+  const { state: onboardingState, pageCount, threshold, isLearningComplete } = stateInfo
+  const isColdStart = !isLearningComplete
 
   // Onboarding 完成回调
   const handleOnboardingComplete = () => {
-    setOnboardingState('learning')
-    setPageCount(0)  // 重新开始计数
+    // 更新本地状态
+    setStateInfo(prev => prev ? {
+      ...prev,
+      state: 'learning',
+      pageCount: 0,
+      progressPercent: 0,
+      isLearningComplete: false
+    } : null)
+    
+    // 通知 background 重新配置调度器
+    chrome.runtime.sendMessage({ type: 'ONBOARDING_STATE_CHANGED', state: 'learning' })
   }
 
   // Phase 9.1: 如果处于 setup 状态，显示引导界面
@@ -249,7 +273,12 @@ function IndexPopup() {
 
         {/* 主体内容 - 两阶段切换 */}
         {isColdStart ? (
-          <ColdStartView pageCount={pageCount || 0} totalPages={COLD_START_THRESHOLD} uiStyle={uiStyle} />
+          <ColdStartView 
+            pageCount={pageCount} 
+            totalPages={threshold} 
+            subscribedFeedCount={stateInfo.subscribedFeedCount}
+            uiStyle={uiStyle} 
+          />
         ) : (
           <RecommendationView />
         )}

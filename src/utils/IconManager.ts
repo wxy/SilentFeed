@@ -39,6 +39,9 @@ export class IconManager {
   // 学习进度
   private learningProgress = 0
   
+  // 学习阈值（动态，默认 100）
+  private learningThreshold = LEARNING_COMPLETE_PAGES
+  
   // 推荐条目数
   private recommendCount = 0
   
@@ -70,9 +73,14 @@ export class IconManager {
   
   /**
    * 更新学习进度
+   * @param pages 当前页面数
+   * @param threshold 可选的动态阈值，默认使用 LEARNING_COMPLETE_PAGES
    */
-  setLearningProgress(pages: number): void {
-    this.learningProgress = Math.max(0, Math.min(pages, LEARNING_COMPLETE_PAGES))
+  setLearningProgress(pages: number, threshold?: number): void {
+    if (threshold !== undefined) {
+      this.learningThreshold = Math.max(threshold, 10) // 最小阈值 10
+    }
+    this.learningProgress = Math.max(0, Math.min(pages, this.learningThreshold))
     this.updateIcon()
   }
   
@@ -86,9 +94,15 @@ export class IconManager {
   
   /**
    * 批量更新学习进度和推荐数（避免多次触发 updateIcon）
+   * @param learningProgress 当前页面数
+   * @param recommendCount 推荐条目数
+   * @param threshold 可选的动态阈值
    */
-  setBadgeState(learningProgress: number, recommendCount: number): void {
-    this.learningProgress = Math.max(0, Math.min(learningProgress, LEARNING_COMPLETE_PAGES))
+  setBadgeState(learningProgress: number, recommendCount: number, threshold?: number): void {
+    if (threshold !== undefined) {
+      this.learningThreshold = Math.max(threshold, 10) // 最小阈值 10
+    }
+    this.learningProgress = Math.max(0, Math.min(learningProgress, this.learningThreshold))
     this.recommendCount = Math.min(Math.max(recommendCount, 0), 3)
     this.updateIcon()
   }
@@ -302,8 +316,8 @@ export class IconManager {
         hasError: errorOverlay
       }
     }
-    // 优先级 5: 学习进度（必须在学习阶段）
-    else if (this.learningProgress < LEARNING_COMPLETE_PAGES) {
+    // 优先级 5: 学习进度（必须在学习阶段，使用动态阈值）
+    else if (this.learningProgress < this.learningThreshold) {
       state = {
         type: 'learning',
         learningProgress: this.learningProgress,

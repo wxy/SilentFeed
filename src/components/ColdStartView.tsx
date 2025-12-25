@@ -1,7 +1,8 @@
 /**
  * 冷启动阶段组件
- * 0-100 页：显示学习进度和鼓励信息
+ * 显示学习进度和鼓励信息
  * 
+ * 进度计算：综合页面数和订阅源数量
  * Phase 5.1: 当有 RSS 发现时，临时用雷达图标替换小树
  */
 
@@ -26,6 +27,7 @@ const coldStartLogger = logger.withTag("ColdStartView")
 interface ColdStartViewProps {
   pageCount: number
   totalPages?: number
+  subscribedFeedCount?: number  // 订阅源数量（用于显示）
   uiStyle?: UIStyle
 }
 
@@ -40,7 +42,12 @@ const getGrowthStage = (pageCount: number, totalPages: number) => {
   return { icon: "🌲", name: "master" }
 }
 
-export function ColdStartView({ pageCount, totalPages = LEARNING_COMPLETE_PAGES, uiStyle = "sketchy" }: ColdStartViewProps) {
+export function ColdStartView({ 
+  pageCount, 
+  totalPages = LEARNING_COMPLETE_PAGES, 
+  subscribedFeedCount = 0,
+  uiStyle = "sketchy" 
+}: ColdStartViewProps) {
   const { _, t } = useI18n()
   const [hasRSSDiscovery, setHasRSSDiscovery] = useState(false)
   
@@ -95,12 +102,16 @@ export function ColdStartView({ pageCount, totalPages = LEARNING_COMPLETE_PAGES,
   }, [])
   
   const denominator = totalPages > 0 ? totalPages : LEARNING_COMPLETE_PAGES
-  const progress = Math.min((pageCount / denominator) * 100, 100)
+  // 进度百分比，限制在 0-100 之间
+  const progressPercent = Math.min(Math.max((pageCount / denominator) * 100, 0), 100)
   const stage = getGrowthStage(pageCount, denominator)
   const isSketchyStyle = uiStyle === "sketchy"
   
   // 如果有 RSS 发现，用雷达替换成长树
   const displayIcon = hasRSSDiscovery ? '📡' : stage.icon
+  
+  // 进度文本：显示百分比（整数）
+  const progressText = `${Math.round(progressPercent)}%`
   
   // 点击雷达图标
   const handleIconClick = () => {
@@ -124,16 +135,22 @@ export function ColdStartView({ pageCount, totalPages = LEARNING_COMPLETE_PAGES,
       {/* 环形进度条容器 */}
       <div className="mb-2">
         <CircularProgress
-          progress={progress}
+          progress={progressPercent}
           icon={displayIcon}
-          current={pageCount}
-          total={totalPages}
+          progressText={progressText}
           size={140}
           isSketchyStyle={isSketchyStyle}
           onIconClick={handleIconClick}
           iconClickable={hasRSSDiscovery}
         />
       </div>
+      
+      {/* 进度详情：显示页面数和订阅源数 */}
+      {(pageCount > 0 || subscribedFeedCount > 0) && (
+        <div className={`text-xs ${isSketchyStyle ? 'sketchy-text' : 'text-gray-500 dark:text-gray-400'}`}>
+          {_("popup.learningStage.progressWithFeeds", { pages: pageCount, feeds: subscribedFeedCount })}
+        </div>
+      )}
 
       {/* 阶段徽章 */}
       {isSketchyStyle ? (

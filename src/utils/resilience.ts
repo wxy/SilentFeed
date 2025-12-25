@@ -66,6 +66,7 @@ export function classifyError(error: unknown): ErrorType {
     message.includes("network") ||
     message.includes("econnrefused") ||
     message.includes("fetch failed") ||
+    message.includes("failed to fetch") ||
     message.includes("socket hang up") ||
     message.includes("etimedout") ||
     message.includes("enotfound") ||

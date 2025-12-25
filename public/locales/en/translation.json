@@ -37,6 +37,8 @@
     "learningStage": {
       "title": "Learning your interests and preferences",
       "progress": "Viewed {{current}}/{{total}} pages",
+      "progressPercent": "Learning {{percent}}%",
+      "progressWithFeeds": "{{pages}} pages + {{feeds}} feeds",
       "subtitle": "Data is stored locally, and analysis is performed by your AI."
     },
     "tips": {
@@ -1139,8 +1141,9 @@
         },
         "tasks": {
           "pageAnalysis": "Content Analysis",
-          "feedAnalysis": "Content Recommendation",
-          "profileGeneration": "Profile Generation"
+          "articleAnalysis": "Article Recommendation",
+          "profileGeneration": "Profile Generation",
+          "sourceAnalysis": "Feed Source Analysis"
         },
         "notes": {
           "highFrequency": "High-Frequency Tasks (Optional Reasoning)",
@@ -1404,6 +1407,12 @@
         "formatInvalid": "Format exception",
         "analyzing": "Analyzing..."
       },
+      "analysis": {
+        "analyzing": "Analyzing",
+        "analyze": "Analyze",
+        "clickToReanalyze": "Click to re-analyze",
+        "clickToAnalyze": "Click for AI analysis"
+      },
       "preview": {
         "openOrToggle": "Open or switch preview",
         "loading": "Loading preview...",
@@ -1437,6 +1446,11 @@
       },
       "status": {
         "paused": "Paused"
+      },
+      "googleTranslate": {
+        "label": "Translate",
+        "enabled": "Open links with Google Translate",
+        "disabled": "Open original links (without Google Translate)"
       },
       "importExportOPML": "Batch Import/Export (OPML File)",
       "exportOPML": "Export OPML",
@@ -1626,8 +1640,9 @@
         },
         "tasks": {
           "pageAnalysis": "Content Analysis",
-          "feedAnalysis": "Content Recommendation",
-          "profileGeneration": "Profile Generation"
+          "articleAnalysis": "Article Recommendation",
+          "profileGeneration": "Profile Generation",
+          "sourceAnalysis": "Feed Source Analysis"
         },
         "notes": {
           "highFrequency": "High-Frequency Tasks (Optional Reasoning)",
@@ -1807,5 +1822,46 @@
         "costReasoning": "{{date}}\n{{label}}: ¥{{value}}\n{{totalLabel}}: ¥{{total}}"
       }
     }
+  },
+  "feedCategory": {
+    "tech": "Technology",
+    "news": "News",
+    "finance": "Finance",
+    "lifestyle": "Lifestyle",
+    "entertainment": "Entertainment",
+    "education": "Education",
+    "science": "Science",
+    "sports": "Sports",
+    "gaming": "Gaming",
+    "design": "Design",
+    "business": "Business",
+    "health": "Health",
+    "travel": "Travel",
+    "food": "Food",
+    "photography": "Photography",
+    "music": "Music",
+    "art": "Art",
+    "politics": "Politics",
+    "culture": "Culture",
+    "other": "Other"
+  },
+  "feedLanguage": {
+    "zh-CN": "Simplified Chinese",
+    "zh-TW": "Traditional Chinese",
+    "en": "English",
+    "ja": "Japanese",
+    "ko": "Korean",
+    "fr": "French",
+    "de": "German",
+    "es": "Spanish",
+    "ru": "Russian",
+    "pt": "Portuguese",
+    "it": "Italian",
+    "ar": "Arabic",
+    "hi": "Hindi",
+    "vi": "Vietnamese",
+    "th": "Thai",
+    "id": "Indonesian",
+    "unknown": "Unknown"
   }
 }

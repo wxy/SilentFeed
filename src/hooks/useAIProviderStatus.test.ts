@@ -75,7 +75,7 @@ describe("useAIProviderStatus", () => {
     },
     engineAssignment: {
       pageAnalysis: { provider: 'deepseek', useReasoning: false },
-      feedAnalysis: { provider: 'deepseek', useReasoning: false },
+      articleAnalysis: { provider: 'deepseek', useReasoning: false },
       profileGeneration: { provider: 'deepseek', useReasoning: false }
     }
   }

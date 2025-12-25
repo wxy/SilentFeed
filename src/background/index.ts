@@ -19,7 +19,7 @@ const bgLogger = logger.withTag('BackgroundSchedulers')
  * 
  * Phase 9.1: 根据 Onboarding 状态决定启动哪些调度器
  * - setup: 不启动任何调度器
- * - learning: 启动 RSS 抓取（采集数据 + 画像构建在 content script 中）
+ * - learning: 不启动任何调度器（学习阶段不需要抓取和推荐）
  * - ready: 启动 RSS 抓取 + 推荐生成
  */
 export async function startAllSchedulers(): Promise<void> {
@@ -35,16 +35,18 @@ export async function startAllSchedulers(): Promise<void> {
       return
     }
     
-    // learning 和 ready 状态都需要 RSS 抓取
-    bgLogger.info('启动 RSS 定时调度器...')
-    feedScheduler.start(30) // 每 30 分钟检查一次
+    if (status.state === 'learning') {
+      bgLogger.info('⏳ 学习阶段，不启动任何调度器（等待用户画像建立）')
+      return
+    }
     
-    // 只有 ready 状态才启动推荐生成
+    // 只有 ready 状态才启动 RSS 抓取和推荐生成
     if (status.state === 'ready') {
+      bgLogger.info('启动 RSS 定时调度器...')
+      feedScheduler.start(30) // 每 30 分钟检查一次
+      
       bgLogger.info('启动推荐生成调度器...')
       await recommendationScheduler.start() // 每 20 分钟生成一次
-    } else {
-      bgLogger.info('⏳ 学习阶段，暂不启动推荐生成')
     }
     
     bgLogger.info('✅ 后台调度器启动完成')

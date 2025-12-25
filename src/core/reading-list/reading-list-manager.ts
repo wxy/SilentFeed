@@ -16,6 +16,7 @@ import { logger } from '@/utils/logger'
 import type { Recommendation, ConfirmedVisit } from '@/types/database'
 import { db, dismissRecommendations } from '@/storage/db'
 import { isReadingListAvailable, getBrowserCompatInfo } from '@/utils/browser-compat'
+import { FeedManager } from '@/core/rss/managers/FeedManager'
 
 const rlLogger = logger.withTag('ReadingListManager')
 
@@ -62,12 +63,33 @@ export class ReadingListManager {
     }
 
     try {
+      // 检查订阅源的谷歌翻译设置
+      let feedUseGoogleTranslate = true // 默认使用谷歌翻译
+      if (recommendation.sourceUrl) {
+        try {
+          const feedManager = new FeedManager()
+          const feed = await feedManager.getFeedByUrl(recommendation.sourceUrl)
+          if (feed) {
+            feedUseGoogleTranslate = feed.useGoogleTranslate !== false
+            rlLogger.debug(`订阅源翻译设置: ${feed.title}, useGoogleTranslate=${feedUseGoogleTranslate}`)
+          }
+        } catch (err) {
+          rlLogger.warn('获取订阅源设置失败，使用默认（谷歌翻译）:', err)
+        }
+      }
+      
       // 决定使用原文链接还是翻译链接
       let urlToSave = recommendation.url
       let titleToSave = recommendation.title
       
-      // 如果启用自动翻译且存在翻译数据（说明文章语言和界面语言不同）
-      if (autoTranslateEnabled && recommendation.translation) {
+      // 如果订阅源禁用了谷歌翻译，直接使用原文
+      if (!feedUseGoogleTranslate) {
+        rlLogger.info('订阅源禁用谷歌翻译，使用原文链接', {
+          url: recommendation.url,
+          source: recommendation.source
+        })
+      } else if (autoTranslateEnabled && recommendation.translation) {
+        // 如果启用自动翻译且存在翻译数据（说明文章语言和界面语言不同）
         // 生成谷歌翻译链接
         const encodedUrl = encodeURIComponent(recommendation.url)
         urlToSave = `https://translate.google.com/translate?sl=auto&tl=${interfaceLanguage}&u=${encodedUrl}`

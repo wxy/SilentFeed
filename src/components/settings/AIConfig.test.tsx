@@ -115,7 +115,7 @@ describe("AIConfig", () => {
       },
       engineAssignment: {
         pageAnalysis: { provider: "local", useReasoning: false },
-        feedAnalysis: { provider: "local", useReasoning: false },
+        articleAnalysis: { provider: "local", useReasoning: false },
         profileGeneration: { provider: "local", useReasoning: false }
       },
       preferredRemoteProvider: "deepseek",
@@ -207,7 +207,7 @@ describe("AIConfig", () => {
     it("存在引擎分配时应渲染 AIEngineAssignment 组件", async () => {
       vi.mocked(aiConfigModule.getEngineAssignment).mockResolvedValueOnce({
         contentAnalysis: { engine: "remoteAI" },
-        feedAnalysis: { engine: "remoteAI" }
+        articleAnalysis: { engine: "remoteAI" }
       } as any)
 
       render(<AIConfig />)

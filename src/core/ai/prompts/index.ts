@@ -217,7 +217,22 @@ Link: ${feedLink}
 Sample Articles:
 ${sampleArticles}
 
-Return JSON with qualityScore (0-1), contentCategory, topicTags, and subscriptionAdvice.`
+Return JSON with this exact format:
+{
+  "topics": {"main category": 1.0},
+  "category": "tech",
+  "language": "en",
+  "originality": 70,
+  "informationDensity": 70,
+  "clickbaitScore": 30,
+  "spamScore": 20,
+  "reasoning": "Brief analysis"
+}
+
+Categories: tech, news, finance, lifestyle, entertainment, education, science, sports, gaming, design, business, health, travel, food, photography, music, art, politics, culture, other
+Languages: zh-CN, zh-TW, en, ja, ko, fr, de, es, ru, pt, it, ar, unknown
+
+Output JSON only.`
   }
 }
 

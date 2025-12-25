@@ -39,7 +39,7 @@ function createTestAIConfig(overrides: Partial<AIConfig> = {}): {
     },
     engineAssignment: {
       pageAnalysis: { provider: 'deepseek', useReasoning: false },
-      feedAnalysis: { provider: 'deepseek', useReasoning: false },
+      articleAnalysis: { provider: 'deepseek', useReasoning: false },
       profileGeneration: { provider: 'deepseek', useReasoning: false }
     },
     ...overrides
@@ -141,7 +141,7 @@ describe("AICapabilityManager", () => {
         },
         engineAssignment: {
           pageAnalysis: { provider: 'ollama', useReasoning: false },
-          feedAnalysis: { provider: 'ollama', useReasoning: false },
+          articleAnalysis: { provider: 'ollama', useReasoning: false },
           profileGeneration: { provider: 'ollama', useReasoning: false }
         }
       })
@@ -201,7 +201,7 @@ describe("AICapabilityManager", () => {
           },
           engineAssignment: {
             pageAnalysis: { provider: "deepseek" },
-            feedAnalysis: { provider: "deepseek" },
+            articleAnalysis: { provider: "deepseek" },
             profileGeneration: { provider: "deepseek" }
           }
         }
@@ -243,7 +243,7 @@ describe("AICapabilityManager", () => {
           },
           engineAssignment: {
             pageAnalysis: { provider: "deepseek", useReasoning: true },
-            feedAnalysis: { provider: "ollama", useReasoning: false },
+            articleAnalysis: { provider: "ollama", useReasoning: false },
             profileGeneration: { provider: "deepseek", useReasoning: false }
           }
         }
@@ -275,7 +275,7 @@ describe("AICapabilityManager", () => {
           engineAssignment: {
             profileGeneration: { provider: "deepseek" },
             pageAnalysis: { provider: "deepseek" },
-            feedAnalysis: { provider: "deepseek" }
+            articleAnalysis: { provider: "deepseek" }
           }
         }
       })
@@ -378,7 +378,7 @@ describe("AICapabilityManager", () => {
           engineAssignment: {
             profileGeneration: { provider: "deepseek", useReasoning: false },
             pageAnalysis: { provider: "deepseek" },
-            feedAnalysis: { provider: "deepseek" }
+            articleAnalysis: { provider: "deepseek" }
           }
         }
       })

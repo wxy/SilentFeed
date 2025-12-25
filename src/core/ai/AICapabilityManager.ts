@@ -18,8 +18,12 @@ import type {
   RecommendationReasonRequest,
   RecommendationReasonResult,
   UserProfileGenerationRequest,
-  UserProfileGenerationResult
+  UserProfileGenerationResult,
+  SourceAnalysisRequest,
+  SourceAnalysisResponse
 } from "@/types/ai"
+import type { SourceAnalysisResult } from "@/core/ai/prompts/types"
+import { normalizeCategoryToKey, normalizeLanguageCode } from "@/types/feed-category"
 import { DeepSeekProvider } from "./providers/DeepSeekProvider"
 import { OpenAIProvider } from "./providers/OpenAIProvider"
 import { FallbackKeywordProvider } from "./providers/FallbackKeywordProvider"
@@ -41,7 +45,7 @@ type ProviderSelectionMode = "auto" | "remote" | "local"
  * AI 任务类型
  * Phase 8: 根据任务类型选择不同的 AI 引擎
  */
-export type AITaskType = "pageAnalysis" | "feedAnalysis" | "profileGeneration"
+export type AITaskType = "pageAnalysis" | "articleAnalysis" | "profileGeneration" | "sourceAnalysis"
 
 export class AICapabilityManager {
   private remoteProvider: AIProvider | null = null
@@ -82,7 +86,7 @@ export class AICapabilityManager {
       let usesLocalProvider = false
       
       if (this.engineAssignment) {
-        const tasks: AITaskType[] = ['pageAnalysis', 'feedAnalysis', 'profileGeneration']
+        const tasks: AITaskType[] = ['pageAnalysis', 'articleAnalysis', 'profileGeneration']
         for (const task of tasks) {
           const providerType = this.engineAssignment[task]?.provider
           if (!providerType) continue
@@ -353,6 +357,118 @@ export class AICapabilityManager {
       }
     }
   }
+
+  /**
+   * 订阅源质量分析
+   * 
+   * 分析 RSS 订阅源的质量和分类，使用 sourceAnalysis 任务配置
+   * 
+   * @param request - 订阅源分析请求
+   * @returns 解析后的分析结果
+   */
+  async analyzeSource(request: SourceAnalysisRequest): Promise<SourceAnalysisResult> {
+    // 预算检查
+    const shouldDowngrade = await BudgetChecker.shouldDowngrade()
+    if (shouldDowngrade) {
+      aiLogger.warn("⚠️ 月度预算已超支，返回默认订阅源分析结果")
+      return this.getDefaultSourceAnalysisResult()
+    }
+
+    // 获取 sourceAnalysis 任务配置的 provider
+    const { provider, useReasoning } = await this.getProviderForTask('sourceAnalysis' as AITaskType)
+    
+    if (!provider) {
+      aiLogger.warn("⚠️ 无可用 AI Provider，返回默认订阅源分析结果")
+      return this.getDefaultSourceAnalysisResult()
+    }
+
+    // 检查 provider 是否支持 analyzeSource 方法
+    if (!provider.analyzeSource) {
+      aiLogger.warn(`⚠️ Provider ${provider.name} 不支持 analyzeSource，返回默认结果`)
+      return this.getDefaultSourceAnalysisResult()
+    }
+
+    // 检查预算
+    const budgetAllowed = await this.checkProviderBudget(provider.name)
+    if (!budgetAllowed) {
+      aiLogger.warn("⚠️ 预算超限，返回默认订阅源分析结果")
+      return this.getDefaultSourceAnalysisResult()
+    }
+
+    try {
+      // 调用 provider.analyzeSource 方法
+      const result = await provider.analyzeSource({
+        ...request,
+        useReasoning
+      })
+      
+      aiLogger.info('订阅源分析完成:', {
+        feedTitle: request.feedTitle,
+        category: result.category,
+        language: result.language,
+        topicsCount: Object.keys(result.topics).length
+      })
+      
+      // 转换为 SourceAnalysisResult 格式
+      return this.convertToSourceAnalysisResult(result)
+    } catch (error) {
+      if (isNetworkError(error)) {
+        aiLogger.warn("⚠️ AI 服务暂时不可用，返回默认订阅源分析结果", error)
+      } else {
+        aiLogger.error("❌ 订阅源分析失败:", error)
+      }
+      return this.getDefaultSourceAnalysisResult()
+    }
+  }
+
+  /**
+   * 将 SourceAnalysisResponse 转换为 SourceAnalysisResult
+   */
+  private convertToSourceAnalysisResult(response: SourceAnalysisResponse): SourceAnalysisResult {
+    // 从 topics 提取标签
+    const topicTags = Object.entries(response.topics)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([topic]) => topic)
+    
+    // 计算质量分数
+    let qualityScore: number
+    if (typeof response.originality === 'number') {
+      const originality = response.originality / 100
+      const density = (response.informationDensity || 50) / 100
+      const clickbait = (response.clickbaitScore || 50) / 100
+      const spam = (response.spamScore || 50) / 100
+      qualityScore = Math.min(0.95, Math.max(0.1,
+        originality * 0.3 + density * 0.3 + (1 - clickbait) * 0.2 + (1 - spam) * 0.2
+      ))
+    } else {
+      const maxProb = Math.max(...Object.values(response.topics || { default: 0.5 }))
+      qualityScore = Math.min(0.95, Math.max(0.3, maxProb * 0.7 + 0.3))
+    }
+    
+    // 标准化语言代码
+    const language = normalizeLanguageCode(response.language)
+    
+    return {
+      qualityScore,
+      contentCategory: normalizeCategoryToKey(response.category),
+      topicTags,
+      subscriptionAdvice: response.reasoning || `该订阅源主要内容为${response.category}`,
+      language: language !== 'unknown' ? language : undefined
+    }
+  }
+
+  /**
+   * 默认订阅源分析结果（降级方案）
+   */
+  private getDefaultSourceAnalysisResult(): SourceAnalysisResult {
+    return {
+      qualityScore: 0.5,
+      contentCategory: 'other',
+      topicTags: [],
+      subscriptionAdvice: 'AI 服务暂时不可用，稍后重试'
+    }
+  }
   
   /**
    * Phase 8: 根据任务类型获取对应的 AI Provider
@@ -360,7 +476,7 @@ export class AICapabilityManager {
    * 
    * 从引擎分配配置中读取指定任务应该使用的引擎，并返回对应的 provider 实例
    * 
-   * @param taskType - 任务类型（pageAnalysis/feedAnalysis/profileGeneration）
+   * @param taskType - 任务类型（pageAnalysis/articleAnalysis/profileGeneration）
    * @returns provider 实例和是否使用推理的配置
    */
   private async getProviderForTask(taskType: AITaskType): Promise<{
@@ -569,14 +685,14 @@ export class AICapabilityManager {
   
   /**
    * 生成推荐理由
-   * Phase 8: 使用 feedAnalysis 任务配置（推荐理由属于 Feed 分析任务）
+   * Phase 8: 使用 articleAnalysis 任务配置（推荐理由属于文章分析任务）
    */
   async generateRecommendationReason(
     request: RecommendationReasonRequest
   ): Promise<RecommendationReasonResult> {
     try {
-      // Phase 8: 使用 feedAnalysis 任务配置
-      const { provider: taskProvider, useReasoning } = await this.getProviderForTask("feedAnalysis")
+      // Phase 8: 使用 articleAnalysis 任务配置
+      const { provider: taskProvider, useReasoning } = await this.getProviderForTask("articleAnalysis")
       
       if (taskProvider && taskProvider.generateRecommendationReason) {
         try {

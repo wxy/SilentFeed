@@ -141,7 +141,6 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
         : rawArticles
 
       const maxRecommendations = config.maxRecommendations ?? 5
-      const tfidfThreshold = config.tfidfThreshold ?? this.config.tfidf.minScore
       const qualityThreshold = config.qualityThreshold ?? 0.65
       const batchSize = config.batchSize ?? this.config.ai.batchSize
 
@@ -156,20 +155,6 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
         onError: this.recordError.bind(this)
       }
 
-      // 🧊 冷启动分支：使用跨源聚类策略
-      if (config.useColdStart && feeds && feeds.length > 0) {
-        pipelineLogger.info('🧊 使用冷启动策略进行推荐')
-        return await this.processColdStart(articles, feeds, config, context)
-      }
-
-      // Phase 6: 新流程 - TF-IDF 初筛 → 逐篇处理（低分跳过，高分 AI 分析）
-      
-      // Phase 6: 新策略 - 逐篇抓取全文 + TF-IDF 评分 + 高分送 AI
-      // 优势：
-      // 1. 抓取成本低，可以边抓取边评分
-      // 2. 找到高分文章就立即 AI 分析，无需等待全部抓取
-      // 3. 达到 batchSize 后提前退出，节省时间
-      
       // 预过滤：移除超过 30 天的老文章
       const DAYS_LIMIT = 30
       const cutoffDate = new Date()
@@ -190,62 +175,49 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
       this.updateProgress('tfidf', 0.1, '开始逐篇抓取和评分...')
       
       const userInterests = convertUserProfileToUserInterests(context.userProfile)
+      
       const recommendedArticles: RecommendedArticle[] = []
       let aiAnalyzedCount = 0  // AI 实际分析的文章数
-      let skippedLowScore = 0  // 跳过的低分文章数
       let processedCount = 0   // 已处理（抓取+评分）的文章数
       
       for (let i = 0; i < filteredArticles.length && aiAnalyzedCount < batchSize; i++) {
         const article = filteredArticles[i]
         
-        // 1. 检查是否已有 TF-IDF 分数（避免重复计算）
+        // 1. 抓取全文并计算 TF-IDF 分数（用于后续评分，不再用于过滤）
         let tfidfScore = article.tfidfScore
         let enhancedArticle: any = article
         
         if (tfidfScore === undefined) {
-          // 抓取全文（如果尚未计算过 TF-IDF）
+          // 抓取全文
           enhancedArticle = await this.fetchSingleArticle(article, context)
           processedCount++
           
-          // 2. TF-IDF 评分（使用全文）
+          // 计算 TF-IDF 评分（使用全文）
           const content = enhancedArticle.fullContent || article.content || article.description || article.title
           tfidfScore = this.calculateSimpleRelevance(content, userInterests)
           
-          // 3. 保存 TF-IDF 分数和全文到数据库（缓存以避免重复计算和抓取）
+          // 保存 TF-IDF 分数和全文到数据库（缓存以避免重复计算和抓取）
           await this.saveArticleEnhancement(article.id, article.feedId, tfidfScore, enhancedArticle.fullContent)
+        } else {
+          // 使用缓存的 TF-IDF 分数，但仍需抓取全文（如果还没有）
+          if (!enhancedArticle.fullContent) {
+            enhancedArticle = await this.fetchSingleArticle(article, context)
+            processedCount++
+            // 保存抓取的全文到数据库
+            if (enhancedArticle.fullContent) {
+              await this.saveArticleFullContent(article.id, enhancedArticle.fullContent)
+            }
+          }
         }
         
         // 更新进度
         const progress = 0.1 + (processedCount / Math.min(filteredArticles.length, 20)) * 0.2
-        this.updateProgress('tfidf', progress, `已评分 ${processedCount} 篇文章...`)
-        
-        // 4. 检查 TF-IDF 分数
-        if (tfidfScore < tfidfThreshold) {
-          skippedLowScore++
-          
-          // 标记为已分析（低质量，不值得 AI 分析）
-          await this.saveArticleAnalysis(article.id, article.feedId, {
-            topicProbabilities: {},
-            metadata: { provider: 'tfidf-skipped', score: tfidfScore }
-          })
-          
-          continue  // 跳过，不计入 aiAnalyzedCount，继续下一篇
-        }
-        
-        // 5. AI 分析高分文章（需要全文）
-        // 如果使用了缓存的 TF-IDF 分数，现在才抓取全文
-        if (article.tfidfScore !== undefined && !enhancedArticle.fullContent) {
-          enhancedArticle = await this.fetchSingleArticle(article, context)
-          // 保存抓取的全文到数据库
-          if (enhancedArticle.fullContent) {
-            await this.saveArticleFullContent(article.id, enhancedArticle.fullContent)
-          }
-        }
+        this.updateProgress('fetch', progress, `已抓取 ${processedCount} 篇文章...`)
         
         // 确保 enhancedArticle 包含 tfidfScore（用于最终评分计算）
         enhancedArticle.tfidfScore = tfidfScore
         
-        this.updateProgress('ai', 0.3 + (aiAnalyzedCount / batchSize) * 0.6, `AI 分析高分文章...`)
+        this.updateProgress('ai', 0.3 + (aiAnalyzedCount / batchSize) * 0.6, `AI 分析文章...`)
         
         if (this.config.ai.enabled) {
           const aiResult = await this.analyzeSingleArticle(enhancedArticle, context)
@@ -262,22 +234,103 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
         }
       }
       
-      
       this.stats.processed!.tfidfFiltered = processedCount
       this.stats.processed!.aiScored = aiAnalyzedCount
       this.stats.processed!.finalRecommended = recommendedArticles.length
+      
+      // 🧊 冷启动模式：使用主题聚类评分替代用户画像评分
+      let finalRecommendations = recommendedArticles
+      if (config.useColdStart && feeds && feeds.length > 0) {
+        pipelineLogger.info('🧊 应用冷启动评分策略')
+        
+        // 1. 重新收集所有已分析的文章（包括刚才 AI 分析的）
+        const allAnalyzedArticles = await Promise.all(
+          filteredArticles.map(async (article) => {
+            const updated = await db.feedArticles.get(article.id)
+            return updated || article
+          })
+        )
+        
+        const analyzedArticles = allAnalyzedArticles.filter(a => a.analysis)
+        pipelineLogger.info(`🧊 已分析文章数: ${analyzedArticles.length}`)
+        
+        // 2. 主题聚类分析
+        const clusterAnalyzer = new TopicClusterAnalyzer()
+        const clusterResult = clusterAnalyzer.analyze(feeds, analyzedArticles)
+        
+        pipelineLogger.info('🧊 主题聚类结果:', {
+          feedCount: clusterResult.feedCount,
+          articleCount: clusterResult.articleCount,
+          hasEnoughData: clusterResult.hasEnoughData,
+          topClusters: clusterResult.clusters.slice(0, 3).map(c => ({
+            topic: c.topic,
+            sourceCount: c.sourceCount,
+            heatScore: c.heatScore.toFixed(2)
+          }))
+        })
+        
+        // 3. 冷启动评分（替换原评分）
+        const coldQualityThreshold = config.qualityThreshold ?? 0.3
+        const scorer = new ColdStartScorer({
+          minScoreThreshold: coldQualityThreshold
+        })
+        const coldScores = scorer.score(analyzedArticles, feeds, clusterResult)
+        
+        pipelineLogger.info(`🧊 冷启动评分完成: ${coldScores.length} 篇文章达标`)
+        
+        // 4. 转换为推荐结果，保留 AI 分析的详细信息
+        finalRecommendations = []
+        for (const score of coldScores.slice(0, maxRecommendations)) {
+          const article = analyzedArticles.find(a => a.id === score.articleId)
+          if (!article || !article.analysis) continue
+          
+          // 构建推荐理由
+          const reasonParts: string[] = []
+          if (score.clusterScore > 0.5) {
+            reasonParts.push(`热门主题 ${score.dominantTopic}`)
+          }
+          if (score.diversityBonus > 0) {
+            reasonParts.push('内容多样性')
+          }
+          const reason = reasonParts.length > 0 ? reasonParts.join(' · ') : '推荐内容'
+          
+          // 查找原始推荐结果以获取 AI 分析详情
+          const originalRec = recommendedArticles.find(r => r.id === article.id)
+          
+          finalRecommendations.push({
+            id: article.id,
+            title: article.title,
+            url: article.link,
+            feedId: article.feedId,
+            score: score.totalScore,
+            confidence: score.confidence,
+            reason,
+            matchedInterests: [],  // 冷启动不使用用户兴趣
+            keyPoints: originalRec?.keyPoints || [],
+            aiAnalysis: originalRec?.aiAnalysis || {
+              relevanceScore: score.totalScore,
+              keyPoints: [],
+              topics: article.analysis.topicProbabilities || {},
+              provider: article.analysis.metadata?.provider || 'unknown'
+            }
+          })
+        }
+        
+        pipelineLogger.info(`🧊 冷启动推荐: ${finalRecommendations.length} 篇`)
+        this.stats.processed!.finalRecommended = finalRecommendations.length
+      }
       
       // 计算总时间
       const totalTime = Math.max(1, Date.now() - this.startTime)
       this.stats.timing!.total = totalTime
 
       // 完成
-      this.updateProgress('complete', 1.0, `推荐生成完成，找到 ${recommendedArticles.length} 篇相关文章`)
+      this.updateProgress('complete', 1.0, `推荐生成完成，找到 ${finalRecommendations.length} 篇相关文章`)
 
       const result: RecommendationResult = {
-        articles: recommendedArticles,
+        articles: finalRecommendations,
         stats: this.stats as RecommendationStats,
-        algorithm: this.config.ai.enabled ? 'ai' : 'tfidf',
+        algorithm: config.useColdStart ? 'cold-start' : (this.config.ai.enabled ? 'ai' : 'tfidf'),
         timestamp: Date.now()
       }
 
@@ -453,9 +506,11 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
 
   /**
    * 简单的相关性计算
+   * 改进版：支持词组匹配和更合理的归一化
    */
   private calculateSimpleRelevance(content: string, userInterests: { keywords: Array<{word: string, weight: number}> }): number {
-    const words = content.toLowerCase().split(/\W+/).filter(word => word.length > 2)
+    const lowerContent = content.toLowerCase()
+    const words = lowerContent.split(/\W+/).filter(word => word.length > 2)
     let score = 0
     let matchCount = 0
     
@@ -463,26 +518,38 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
       const keyword = interest.word.toLowerCase()
       const weight = interest.weight
       
-      // 检查精确匹配和包含匹配
-      const exactMatches = words.filter(word => word === keyword).length
-      const partialMatches = words.filter(word => word.includes(keyword) && word !== keyword).length
+      // 1. 词组直接匹配（在原文中搜索完整词组）
+      const phraseMatches = (lowerContent.match(new RegExp(keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length
       
-      // 精确匹配权重更高
-      const matchScore = (exactMatches * 1.0 + partialMatches * 0.5) * weight
+      // 2. 单词精确匹配（分词后逐个匹配）
+      const keywordWords = keyword.split(/\W+/).filter(w => w.length > 2)
+      let wordMatches = 0
+      for (const kw of keywordWords) {
+        const exactMatches = words.filter(word => word === kw).length
+        const partialMatches = words.filter(word => word.includes(kw) && word !== kw).length
+        wordMatches += exactMatches * 1.0 + partialMatches * 0.3
+      }
+      
+      // 词组匹配优先级最高，单词匹配次之
+      const totalMatches = phraseMatches * 2.0 + wordMatches
+      const matchScore = totalMatches * weight
       score += matchScore
-      matchCount += exactMatches + partialMatches
+      matchCount += phraseMatches + (wordMatches > 0 ? 1 : 0)
     }
     
-    // 如果没有任何匹配，返回很低的分数
+    // 如果没有任何匹配，返回很低的分数（但不是 0，给冷启动留机会）
     if (matchCount === 0) {
-      return 0.01
+      return 0.001
     }
     
-    // 根据匹配密度和内容长度归一化
-    const matchDensity = matchCount / Math.max(words.length, 10)
-    const normalizedScore = Math.min(1.0, score * matchDensity)
+    // 改进的归一化：使用对数缩放避免长文章被过度惩罚
+    // 基础分数：原始匹配分数
+    // 长度惩罚：使用 log(words.length) 而不是 words.length
+    const lengthFactor = Math.log10(Math.max(words.length, 10)) / Math.log10(1000) // 最大 1000 词时 lengthFactor = 1
+    const normalizedScore = score / (1 + lengthFactor)
     
-    return normalizedScore
+    // 限制在合理范围内 [0, 1]
+    return Math.min(1.0, Math.max(0.001, normalizedScore))
   }
 
   /**
@@ -518,8 +585,8 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
         originalTitle: article.title  // Phase 9: 传递原标题用于 AI 翻译
       }
       
-      // Phase 8: 使用 feedAnalysis 任务类型（会从引擎分配配置中自动读取引擎和推理设置）
-      const analysis = await aiManager.analyzeContent(content, analysisOptions, "feedAnalysis")
+      // Phase 8: 使用 articleAnalysis 任务类型（会从引擎分配配置中自动读取引擎和推理设置）
+      const analysis = await aiManager.analyzeContent(content, analysisOptions, "articleAnalysis")
       
       // 保存 AI 分析结果到文章
       await this.saveArticleAnalysis(article.id, article.feedId, analysis)
@@ -528,6 +595,10 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
       const aiRelevanceScore = this.calculateAIRelevanceScore(analysis, userInterests)
       const tfidfScore = (article as ScoredArticle).tfidfScore || article.tfidfScore || 0
       const combinedScore = tfidfScore * 0.3 + aiRelevanceScore * 0.7
+      const qualityThreshold = context.config.qualityThreshold ?? 0.7
+      
+      // 调试日志：记录评分详情
+      console.log(`[Pipeline] 文章评分 "${article.title?.substring(0, 30)}...": TF-IDF=${tfidfScore.toFixed(2)}, AI相关性=${aiRelevanceScore.toFixed(2)}, 综合=${combinedScore.toFixed(2)}, 阈值=${qualityThreshold}`)
       
       // 生成推荐理由
       const reason = this.generateRecommendationReason(analysis, userInterests, combinedScore, context.config)
@@ -644,8 +715,8 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
             purpose: 'recommend-content' as const  // 指定为RSS推荐任务
           }
           
-          // Phase 8: 使用 feedAnalysis 任务类型（会从引擎分配配置中自动读取引擎和推理设置）
-          const analysis = await aiManager.analyzeContent(item.content, analysisOptions, "feedAnalysis")
+          // Phase 8: 使用 articleAnalysis 任务类型（会从引擎分配配置中自动读取引擎和推理设置）
+          const analysis = await aiManager.analyzeContent(item.content, analysisOptions, "articleAnalysis")
           
           // Phase 6: 保存 AI 分析结果到文章（用于标记已分析，避免重复处理）
           await this.saveArticleAnalysis(item.article.id, item.article.feedId, analysis)
@@ -713,6 +784,7 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
     userInterests: { keywords: Array<{word: string, weight: number}> }
   ): number {
     if (!analysis.topicProbabilities) {
+      console.log(`[Pipeline] AI 分析缺少 topicProbabilities，返回默认分 0.3`)
       return 0.3 // 默认分数
     }
     
@@ -742,6 +814,14 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
       }
     }
     
+    // 调试日志
+    const topicsStr = Object.keys(analysis.topicProbabilities).join(', ')
+    const interestsStr = userInterests.keywords.slice(0, 5).map(k => k.word).join(', ')
+    console.log(`[Pipeline] AI主题匹配: 主题=[${topicsStr}], 用户兴趣=[${interestsStr}], 匹配数=${matchDetails.length}, 总概率=${totalProbability.toFixed(2)}`)
+    if (matchDetails.length > 0) {
+      console.log(`[Pipeline] 匹配详情:`, matchDetails)
+    }
+    
     // 归一化：用匹配主题的概率总和作为分母
     // 这样，如果文章的主要主题都匹配用户兴趣，分数会接近用户兴趣权重
     if (totalProbability > 0) {
@@ -749,6 +829,7 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
       return Math.min(1.0, normalizedScore)
     }
     
+    console.log(`[Pipeline] 无主题匹配，返回默认分 0.3`)
     return 0.3 // 没有匹配时的默认分数
   }
 
@@ -1020,111 +1101,6 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
     }
   }
 
-  /**
-   * 🧊 冷启动处理流程
-   * 
-   * 当用户画像不完善时，使用跨源主题聚类策略进行推荐
-   */
-  private async processColdStart(
-    articles: FeedArticle[],
-    feeds: DiscoveredFeed[],
-    config: RecommendationInput['config'],
-    context: ProcessingContext
-  ): Promise<RecommendationResult> {
-    this.updateProgress('tfidf', 0.1, '🧊 冷启动：分析订阅源主题...')
-
-    const maxRecommendations = config.maxRecommendations ?? 5
-    const qualityThreshold = config.qualityThreshold ?? 0.3 // 冷启动时降低阈值
-
-    // 1. 主题聚类分析
-    const clusterAnalyzer = new TopicClusterAnalyzer()
-    const clusterResult = clusterAnalyzer.analyze(feeds, articles)
-
-    pipelineLogger.info('🧊 主题聚类结果:', {
-      feedCount: clusterResult.feedCount,
-      articleCount: clusterResult.articleCount,
-      hasEnoughData: clusterResult.hasEnoughData,
-      topClusters: clusterResult.clusters.slice(0, 3).map(c => ({
-        topic: c.topic,
-        sourceCount: c.sourceCount,
-        heatScore: c.heatScore.toFixed(2)
-      }))
-    })
-
-    this.updateProgress('tfidf', 0.3, '🧊 冷启动：评估文章质量...')
-
-    // 2. 冷启动评分
-    const scorer = new ColdStartScorer({
-      minScoreThreshold: qualityThreshold
-    })
-    const scores = scorer.score(articles, feeds, clusterResult)
-
-    pipelineLogger.info(`🧊 冷启动评分完成: ${scores.length} 篇文章达标`)
-
-    this.updateProgress('tfidf', 0.6, '🧊 冷启动：筛选推荐...')
-
-    // 3. 转换为推荐结果
-    const recommendedArticles: RecommendedArticle[] = []
-    
-    for (const score of scores.slice(0, maxRecommendations)) {
-      const article = articles.find(a => a.id === score.articleId)
-      if (!article) continue
-
-      // 构建推荐理由
-      const reasonParts: string[] = []
-      if (score.clusterScore > 0.5) {
-        reasonParts.push('跨源热门主题')
-      }
-      if (score.feedTrustScore > 0.7) {
-        reasonParts.push('高质量源')
-      }
-      if (score.freshnessScore > 0.8) {
-        reasonParts.push('最新发布')
-      }
-      
-      const mainReason = score.explanation || reasonParts.join('、') || '基于订阅偏好推荐'
-
-      // 构建结构化推荐理由
-      const reasonData: ReasonData = {
-        type: 'cold-start',
-        score: score.finalScore,
-        params: {
-          mainReason,
-          clusterScore: score.clusterScore,
-          feedTrustScore: score.feedTrustScore,
-          freshnessScore: score.freshnessScore
-        }
-      }
-
-      recommendedArticles.push({
-        id: article.id,
-        title: article.title,
-        url: article.link,
-        feedId: article.feedId,
-        score: score.finalScore,
-        reason: reasonData,
-        confidence: config.coldStartConfidence ?? 0.6,
-        matchedInterests: [] // 冷启动时没有画像匹配
-      })
-    }
-
-    this.updateProgress('complete', 1.0, '🧊 冷启动推荐完成')
-
-    // 更新统计
-    if (this.stats.processed) {
-      this.stats.processed.finalRecommended = recommendedArticles.length
-    }
-    if (this.stats.timing) {
-      this.stats.timing.total = Date.now() - this.startTime
-    }
-
-    return {
-      articles: recommendedArticles,
-      algorithm: 'cold-start',
-      stats: this.stats as RecommendationStats,
-      timestamp: Date.now()
-    }
-  }
 }
 
 /**
