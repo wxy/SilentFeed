@@ -16,6 +16,11 @@ import { getLearningProgressRatio } from '@/constants/progress'
  * - dot-pulse.png: 圆点高亮(灰色,用于呼吸动画)
  * - error-badge.png: 红色错误徽章(右上角)
  * 
+ * 波纹使用逻辑:
+ * - RSS 发现动画: 0→1→2→3 波纹循环（6秒临时）
+ * - 后台抓取动画: 1→2→3→2→1 双向流动（持续循环）
+ * - 推荐状态: 仅显示右上角数字徽章（不使用波纹）
+ * 
  * Phase 5.2: 图标系统重新设计
  */
 
@@ -146,10 +151,9 @@ export class IconComposer {
     }
     
     
-    // 2. 叠加推荐波纹(仅推荐状态)
+    // 2. 绘制推荐数字徽章（右上角）
+    // 注意：推荐状态不再使用波纹，波纹专门用于表示后台活动
     if (state.type === 'recommend' && state.recommendCount) {
-      this.drawRecommendWaves(state.recommendCount)
-      // 绘制推荐数字（右下角）
       this.drawRecommendBadge(state.recommendCount)
     }
     
@@ -272,26 +276,58 @@ export class IconComposer {
   }
   
   /**
-   * 绘制后台抓取呼吸效果
-   * 使用三个波纹蒙版,周期: 1.5秒正弦波,透明度 0.2-1.0
-   * 增强版: 更快周期,更大对比度
+   * 绘制后台抓取动画效果
+   * 方案：双向流动的波纹效果
+   * - 0.8秒周期：1→2→3→2→1（来回流动）
+   * - 高对比度：0.3-1.0 透明度
+   * - 视觉效果：类似雷达扫描或脉冲波扩散
+   * - 与 RSS 发现动画（单向 0→1→2→3）区分明显
    */
   private drawFetchingPulse(timestamp: number): void {
-    // 需要所有三个波纹图层
     if (!this.overlayImages.wave1 || !this.overlayImages.wave2 || !this.overlayImages.wave3) return
     
     const now = Date.now()
     const elapsed = now - timestamp
     
-    // 正弦波呼吸: 0.2 + 0.8 * sin(t)
-    // 使用1.5秒周期使呼吸更明显
-    const opacity = 0.2 + 0.8 * Math.abs(Math.sin((elapsed / 1500) * Math.PI))
+    // 0.8秒完成一个来回（比 RSS 发现的 0.5秒/帧 更快）
+    const cycle = (elapsed % 800) / 800  // 0.0 - 1.0
+    
+    // 双向流动：0 → 1 → 2 → 1 → 0
+    // 将周期分成 4 段：0-0.25(1亮), 0.25-0.5(2亮), 0.5-0.75(3亮), 0.75-1.0(2亮)
+    let stage: number
+    let stageProgress: number
+    
+    if (cycle < 0.25) {
+      stage = 0  // 第1条
+      stageProgress = cycle / 0.25
+    } else if (cycle < 0.5) {
+      stage = 1  // 第2条
+      stageProgress = (cycle - 0.25) / 0.25
+    } else if (cycle < 0.75) {
+      stage = 2  // 第3条
+      stageProgress = (cycle - 0.5) / 0.25
+    } else {
+      stage = 1  // 第2条（返回）
+      stageProgress = (cycle - 0.75) / 0.25
+    }
+    
+    // 高对比度的淡入淡出（0.3-1.0）
+    const opacity = 0.3 + 0.7 * Math.sin(stageProgress * Math.PI)
     
     this.ctx.globalAlpha = opacity
-    // 绘制三个波纹蒙版形成呼吸动画
-    this.ctx.drawImage(this.overlayImages.wave1, 0, 0)
-    this.ctx.drawImage(this.overlayImages.wave2, 0, 0)
-    this.ctx.drawImage(this.overlayImages.wave3, 0, 0)
+    
+    switch(stage) {
+      case 0:  // 第1条波纹（内圈）
+        this.ctx.drawImage(this.overlayImages.wave1, 0, 0)
+        break
+      case 1:  // 第2条波纹（中圈）
+        this.ctx.drawImage(this.overlayImages.wave2, 0, 0)
+        break
+      case 2:  // 第3条波纹（外圈）
+        this.ctx.drawImage(this.overlayImages.wave3, 0, 0)
+        break
+    }
+    
     this.ctx.globalAlpha = 1.0
   }
   
