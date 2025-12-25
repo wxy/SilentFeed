@@ -355,7 +355,8 @@
       "googleTranslate": {
         "label": "翻译",
         "enabled": "点击链接时使用谷歌翻译打开",
-        "disabled": "点击链接时打开原文（不使用谷歌翻译）"
+        "disabled": "点击链接时打开原文（不使用谷歌翻译）",
+        "sameLanguage": "订阅源语言与界面语言相同，无需翻译"
       },
       "stats": {
         "progress": "进度",

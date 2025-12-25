@@ -1016,27 +1016,42 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                 {feed.language}
               </span>
               {/* 翻译开关（仅已订阅的源）*/}
-              {feed.status === 'subscribed' && (
-                <button
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    handleToggleGoogleTranslate(feed.id)
-                  }}
-                  className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-r text-xs transition-colors ${
-                    feed.useGoogleTranslate !== false
-                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-800/40'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
-                  title={feed.useGoogleTranslate !== false 
-                    ? _('options.rssManager.googleTranslate.enabled')
-                    : _('options.rssManager.googleTranslate.disabled')
-                  }
-                >
-                  <span>{feed.useGoogleTranslate !== false ? '🌐' : '🚫'}</span>
-                  <span>{_('options.rssManager.googleTranslate.label')}</span>
-                </button>
-              )}
+              {feed.status === 'subscribed' && (() => {
+                // 检查订阅源语言是否与界面语言相同
+                const currentLang = i18n.language || 'zh-CN'
+                const isSameLanguage = feed.language.toLowerCase().startsWith(currentLang.toLowerCase().split('-')[0]) ||
+                  currentLang.toLowerCase().startsWith(feed.language.toLowerCase().split('-')[0])
+                
+                return (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      if (!isSameLanguage) {
+                        handleToggleGoogleTranslate(feed.id)
+                      }
+                    }}
+                    disabled={isSameLanguage}
+                    className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-r text-xs transition-colors ${
+                      isSameLanguage
+                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-60'
+                        : feed.useGoogleTranslate !== false
+                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-800/40'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
+                    title={
+                      isSameLanguage
+                        ? _('options.rssManager.googleTranslate.sameLanguage')
+                        : feed.useGoogleTranslate !== false 
+                          ? _('options.rssManager.googleTranslate.enabled')
+                          : _('options.rssManager.googleTranslate.disabled')
+                    }
+                  >
+                    <span>{isSameLanguage ? '=' : (feed.useGoogleTranslate !== false ? '🌐' : '🚫')}</span>
+                    <span>{_('options.rssManager.googleTranslate.label')}</span>
+                  </button>
+                )
+              })()}
             </div>
           ) : null}
           

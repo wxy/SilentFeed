@@ -640,8 +640,28 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
   const { markAsRead } = useRecommendationStore()
   const [showOriginal, setShowOriginal] = useState(false)
   const [autoTranslateEnabled, setAutoTranslateEnabled] = useState(false)
+  const [feedTranslateEnabled, setFeedTranslateEnabled] = useState(true) // 订阅源的翻译设置（默认启用）
   const [currentRecommendation, setCurrentRecommendation] = useState(recommendation)
   const [isTranslating, setIsTranslating] = useState(false)
+  
+  // 加载订阅源的翻译设置
+  useEffect(() => {
+    const loadFeedSettings = async () => {
+      if (recommendation.sourceUrl) {
+        try {
+          const feedManager = new FeedManager()
+          const feed = await feedManager.getFeedByUrl(recommendation.sourceUrl)
+          if (feed) {
+            // useGoogleTranslate 默认为 true，只有明确设置为 false 时才禁用
+            setFeedTranslateEnabled(feed.useGoogleTranslate !== false)
+          }
+        } catch (err) {
+          recViewLogger.warn('获取订阅源翻译设置失败，使用默认值:', err)
+        }
+      }
+    }
+    loadFeedSettings()
+  }, [recommendation.sourceUrl])
   
   // 加载自动翻译配置，并监听变化
   useEffect(() => {
@@ -692,9 +712,9 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
     !displayText.targetLanguage.toLowerCase().startsWith(displayText.sourceLanguage.toLowerCase().split('-')[0])
   
   // 计算默认打开的 URL
-  // 逻辑：自动翻译开启 + 需要翻译 → 默认打开翻译版；否则打开原文
+  // 逻辑：全局自动翻译开启 + 订阅源翻译开启 + 需要翻译 → 默认打开翻译版；否则打开原文
   const getDefaultUrl = (): string => {
-    if (autoTranslateEnabled && needsTranslation) {
+    if (autoTranslateEnabled && feedTranslateEnabled && needsTranslation) {
       return getGoogleTranslateUrl(currentRecommendation.url, i18n.language)
     }
     return currentRecommendation.url

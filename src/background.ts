@@ -876,34 +876,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             const { url, sourceUrl, recommendationId, title, action } = message.data
             bgLogger.debug('📬 收到 OPEN_RECOMMENDATION 消息:', { url, sourceUrl, recommendationId, action })
             
-            // 检查订阅源的谷歌翻译设置
-            let finalUrl = url
-            let useGoogleTranslate = true // 默认使用谷歌翻译
-            
-            if (sourceUrl) {
-              try {
-                const feedManager = new FeedManager()
-                const feed = await feedManager.getFeedByUrl(sourceUrl)
-                if (feed) {
-                  // 如果订阅源明确设置不使用谷歌翻译
-                  useGoogleTranslate = feed.useGoogleTranslate !== false
-                  bgLogger.debug(`订阅源翻译设置: ${feed.title}, useGoogleTranslate=${useGoogleTranslate}`)
-                }
-              } catch (err) {
-                bgLogger.warn('获取订阅源设置失败，使用默认（谷歌翻译）:', err)
-              }
-            }
-            
-            // 根据设置决定是否使用谷歌翻译
-            if (useGoogleTranslate) {
-              // 获取用户语言偏好
-              const langResult = await chrome.storage.sync.get('languagePreference')
-              const targetLanguage = langResult.languagePreference || 'zh-CN'
-              finalUrl = `https://translate.google.com/translate?sl=auto&tl=${targetLanguage}&u=${encodeURIComponent(url)}`
-              bgLogger.debug('使用谷歌翻译打开:', { originalUrl: url, translatedUrl: finalUrl })
-            } else {
-              bgLogger.debug('直接打开原文链接:', { url })
-            }
+            // 弹窗已经根据语言和设置决定了最终 URL，这里只需直接打开
+            // 不再重复决策翻译逻辑
+            const finalUrl = url
+            bgLogger.debug('打开推荐链接:', { url, recommendationId, action })
             
             // 1. 创建新标签页
             const tab = await chrome.tabs.create({ url: finalUrl })

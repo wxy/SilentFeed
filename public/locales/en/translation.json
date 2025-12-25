@@ -1450,7 +1450,8 @@
       "googleTranslate": {
         "label": "Translate",
         "enabled": "Open links with Google Translate",
-        "disabled": "Open original links (without Google Translate)"
+        "disabled": "Open original links (without Google Translate)",
+        "sameLanguage": "Feed language matches interface language, translation not needed"
       },
       "importExportOPML": "Batch Import/Export (OPML File)",
       "exportOPML": "Export OPML",
