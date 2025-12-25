@@ -987,7 +987,18 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       bgLogger.info(`✅ 弹窗容量已调整为: ${newCount} 条`)
     } else if (alarm.name === 'generate-recommendation') {
       // Phase 7: 委托给 recommendationScheduler 处理
+      // Phase 5.2: 启动推荐分析动画（呼吸效果）
+      if (iconManager) {
+        iconManager.startAnalyzingAnimation()
+      }
+      
       await recommendationScheduler.handleAlarm()
+      
+      // Phase 5.2: 停止推荐分析动画
+      if (iconManager) {
+        iconManager.stopAnalyzingAnimation()
+      }
+      
       // 更新徽章显示新推荐
       await updateBadge()
     } else if (alarm.name === 'cleanup-recommendation-pool') {

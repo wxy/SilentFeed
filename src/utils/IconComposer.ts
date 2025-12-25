@@ -19,6 +19,7 @@ import { getLearningProgressRatio } from '@/constants/progress'
  * 波纹使用逻辑:
  * - RSS 发现动画: 0→1→2→3 波纹循环（6秒临时）
  * - 后台抓取动画: 1→2→3→2→1 双向流动（持续循环）
+ * - 推荐分析动画: learning-mask 透明度呼吸（1.5秒周期，轻柔）
  * - 推荐状态: 仅显示右上角数字徽章（不使用波纹）
  * 
  * Phase 5.2: 图标系统重新设计
@@ -29,7 +30,7 @@ import { getLearningProgressRatio } from '@/constants/progress'
  */
 export interface IconState {
   /** 状态类型 */
-  type: 'static' | 'learning' | 'recommend' | 'fetching' | 'discover' | 'error' | 'paused'
+  type: 'static' | 'learning' | 'recommend' | 'fetching' | 'discover' | 'error' | 'paused' | 'analyzing'
   
   /** 学习进度(0-100页) */
   learningProgress?: number
@@ -42,6 +43,9 @@ export interface IconState {
   
   /** 后台抓取呼吸时间戳 */
   fetchingTimestamp?: number
+  
+  /** 推荐分析呼吸时间戳 */
+  analyzingTimestamp?: number
   
   /** 是否有错误 */
   hasError?: boolean
@@ -167,17 +171,22 @@ export class IconComposer {
       this.drawFetchingPulse(state.fetchingTimestamp)
     }
     
-    // 5. 应用暂停灰度滤镜(仅暂停状态)
+    // 5. 叠加推荐分析呼吸效果(仅分析状态)
+    if (state.type === 'analyzing' && state.analyzingTimestamp) {
+      this.drawAnalyzingBreath(state.analyzingTimestamp)
+    }
+    
+    // 6. 应用暂停灰度滤镜(仅暂停状态)
     if (state.type === 'paused') {
       this.applyGrayscaleFilter()
     }
     
-    // 6. 绘制学习进度垂直遮罩(学习状态)
+    // 7. 绘制学习进度垂直遮罩(学习状态)
     if (state.type === 'learning' && state.learningProgress !== undefined) {
       this.drawLearningMask(state.learningProgress)
     }
     
-    // 7. 叠加错误状态(红色背景闪动)
+    // 8. 叠加错误状态(红色背景闪动)
     if (state.hasError) {
       // 整个图标背景闪动红色
       const now = Date.now()
@@ -328,6 +337,29 @@ export class IconComposer {
         break
     }
     
+    this.ctx.globalAlpha = 1.0
+  }
+  
+  /**
+   * 绘制推荐分析呼吸效果
+   * 方案：使用 learning-mask 的透明度呼吸
+   * - 1.5秒周期的平滑呼吸（比波纹更慢更舒缓）
+   * - 0.15-0.45 透明度范围（轻柔的明暗变化）
+   * - 整体遮罩呼吸，给人一种"思考中"的感觉
+   * - 与波纹流动的"抓取"效果形成对比
+   */
+  private drawAnalyzingBreath(timestamp: number): void {
+    if (!this.overlayImages.learningMask) return
+    
+    const now = Date.now()
+    const elapsed = now - timestamp
+    
+    // 1.5秒周期的正弦波呼吸（更慢更舒缓）
+    // 透明度 0.15-0.45，产生轻柔的明暗变化
+    const opacity = 0.15 + 0.30 * Math.abs(Math.sin((elapsed / 1500) * Math.PI))
+    
+    this.ctx.globalAlpha = opacity
+    this.ctx.drawImage(this.overlayImages.learningMask, 0, 0)
     this.ctx.globalAlpha = 1.0
   }
   

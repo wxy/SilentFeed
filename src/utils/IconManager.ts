@@ -11,13 +11,15 @@
  * 1. 错误 (hasError: true, 最高优先级)
  * 2. RSS 发现动画 (discover, 6秒临时, 0→1→2→3波纹)
  * 3. 暂停 (paused, 灰度)
- * 4. 后台抓取 (fetching, 1→2→3→2→1双向流动)
- * 5. 学习进度 (learning, 垂直遮罩, 仅学习阶段<动态阈值)
- * 6. 推荐阅读 (recommend, 右上角数字, 学习完成后)
- * 7. 静态 (static, 默认, 学习完成且无推荐)
+ * 4. 推荐分析 (analyzing, learning-mask呼吸, 1.5秒周期)
+ * 5. 后台抓取 (fetching, 1→2→3→2→1双向流动)
+ * 6. 学习进度 (learning, 垂直遮罩, 仅学习阶段<动态阈值)
+ * 7. 推荐阅读 (recommend, 右上角数字, 学习完成后)
+ * 8. 静态 (static, 默认, 学习完成且无推荐)
  * 
- * 波纹使用逻辑:
+ * 动画效果区分:
  * - RSS发现: 临时动画, 0→1→2→3循环3次(6秒)
+ * - 推荐分析: 持续动画, 遮罩透明度呼吸(1.5秒/周期, 轻柔)
  * - 后台抓取: 持续动画, 1→2→3→2→1双向流动(0.8秒/周期)
  * - 推荐状态: 不使用波纹, 仅显示右上角数字徽章
  * 
@@ -39,6 +41,7 @@ export class IconManager {
   // 动画控制 (Service Worker 中 setTimeout 返回 number)
   private discoverAnimationTimer: ReturnType<typeof setTimeout> | null = null
   private fetchingAnimationTimer: ReturnType<typeof setTimeout> | null = null
+  private analyzingAnimationTimer: ReturnType<typeof setTimeout> | null = null
   private errorAnimationTimer: ReturnType<typeof setTimeout> | null = null
   
   // 学习进度
@@ -209,6 +212,45 @@ export class IconManager {
   }
   
   /**
+   * 开始推荐分析动画(learning-mask呼吸)
+   */
+  startAnalyzingAnimation(): void {
+    // 停止之前的动画
+    this.stopAnalyzingAnimation()
+    
+    const startTime = Date.now()
+    
+    const animate = () => {
+      // 更新图标
+      this.currentState = {
+        type: 'analyzing',
+        analyzingTimestamp: startTime,
+        hasError: this.hasError
+      }
+      this.updateIcon()
+      
+      // 每100ms更新一次(流畅呼吸效果)
+      // Service Worker 环境使用 self.setTimeout
+      const globalObj = typeof window !== 'undefined' ? window : self
+      this.analyzingAnimationTimer = globalObj.setTimeout(animate, 100) as any
+    }
+    
+    animate()
+  }
+  
+  /**
+   * 停止推荐分析动画
+   */
+  stopAnalyzingAnimation(): void {
+    if (this.analyzingAnimationTimer !== null) {
+      clearTimeout(this.analyzingAnimationTimer)
+      this.analyzingAnimationTimer = null
+      // 重置状态，以便恢复到正常显示逻辑（学习进度/推荐/静态）
+      this.currentState = { type: 'static' }
+    }
+  }
+  
+  /**
    * 设置错误状态
    */
   setError(hasError: boolean): void {
@@ -313,7 +355,15 @@ export class IconManager {
         hasError: errorOverlay
       }
     }
-    // 优先级 4: 后台抓取动画
+    // 优先级 4: 推荐分析动画
+    else if (this.currentState.type === 'analyzing') {
+      state = {
+        type: 'analyzing',
+        analyzingTimestamp: this.currentState.analyzingTimestamp,
+        hasError: errorOverlay
+      }
+    }
+    // 优先级 5: 后台抓取动画
     else if (this.currentState.type === 'fetching') {
       state = {
         type: 'fetching',
@@ -321,7 +371,7 @@ export class IconManager {
         hasError: errorOverlay
       }
     }
-    // 优先级 5: 学习进度（必须在学习阶段，使用动态阈值）
+    // 优先级 6: 学习进度（必须在学习阶段，使用动态阈值）
     else if (this.learningProgress < this.learningThreshold) {
       state = {
         type: 'learning',
@@ -329,7 +379,7 @@ export class IconManager {
         hasError: errorOverlay
       }
     }
-    // 优先级 6: 推荐阅读（学习完成后）
+    // 优先级 7: 推荐阅读（学习完成后）
     else if (this.recommendCount > 0) {
       state = {
         type: 'recommend',
@@ -365,6 +415,7 @@ export class IconManager {
   dispose(): void {
     this.stopDiscoverAnimation()
     this.stopFetchingAnimation()
+    this.stopAnalyzingAnimation()
     this.stopErrorAnimation()
     this.composer.dispose()
   }
