@@ -68,16 +68,19 @@ export function OnboardingView({ onComplete }: OnboardingViewProps) {
           setCurrentStep(status.currentStep)
         }
         
-        // 如果已经配置了 AI，跳到第 3 步
-        const aiConfig = await getAIConfig()
-        const hasAIProvider = Object.values(aiConfig.providers).some(
-          p => p && p.apiKey && p.model
-        )
-        if (hasAIProvider) {
-          setConnectionTested(true)
-          if (status.currentStep && status.currentStep < 3) {
-            setCurrentStep(3)
-            await updateOnboardingStep(3)
+        // 只在 setup 状态下才检查和更新步骤
+        if (status.state === 'setup') {
+          // 如果已经配置了 AI，跳到第 3 步
+          const aiConfig = await getAIConfig()
+          const hasAIProvider = Object.values(aiConfig.providers).some(
+            p => p && p.apiKey && p.model
+          )
+          if (hasAIProvider) {
+            setConnectionTested(true)
+            if (status.currentStep && status.currentStep < 3) {
+              setCurrentStep(3)
+              await updateOnboardingStep(3)
+            }
           }
         }
       } catch (error) {
