@@ -523,44 +523,39 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               newFeedIds.push(feedId)
             }
             
-            // 只有真正添加了新源才重置查看状态并触发质量分析
+            // 只有真正添加了新源才重置查看状态并触发 AI 分析
             if (addedCount > 0) {
               bgLogger.info(`成功添加 ${addedCount} 个有效 RSS 源`)
               rssDiscoveryViewed = false
               await updateBadge()
               
-              // 4. 后台异步触发质量分析（不阻塞响应）
+              // 4. 后台异步触发 AI 分析（不阻塞响应）
+              // 注意：feedManager.analyzeFeed 内部会检查 AI 是否配置
               if (newFeedIds.length > 0) {
-                bgLogger.info('开始后台质量分析...')
-                Promise.all(
-                  newFeedIds.map(feedId => 
-                    feedManager.analyzeFeed(feedId)
-                      .then(quality => {
-                        if (quality) {
-                          bgLogger.info(`✅ 质量分析完成: ${feedId}, 评分: ${quality.score}`)
-                          
-                          // 如果质量分析失败（评分为0且有错误），自动删除
-                          if (quality.score === 0 && quality.error) {
-                            bgLogger.warn(`⚠️ 质量分析发现错误，自动删除: ${feedId}`)
-                            feedManager.delete(feedId).catch((err: Error) => {
-                              bgLogger.error(`自动删除失败: ${feedId}`, err)
-                            })
+                const aiConfigured = await isAIConfigured()
+                if (aiConfigured) {
+                  bgLogger.info('开始后台 AI 分析...')
+                  Promise.all(
+                    newFeedIds.map(feedId => 
+                      feedManager.analyzeFeed(feedId)
+                        .then(quality => {
+                          if (quality) {
+                            bgLogger.info(`✅ AI 分析完成: ${feedId}, 评分: ${quality.score}`)
                           }
-                        }
-                      })
-                      .catch((error: Error) => {
-                        bgLogger.error(`❌ 质量分析失败: ${feedId}`, error)
-                        // 分析失败也自动删除
-                        feedManager.delete(feedId).catch((err: Error) => {
-                          bgLogger.error(`自动删除失败: ${feedId}`, err)
                         })
-                      })
-                  )
-                ).then(() => {
-                  bgLogger.info('所有质量分析完成')
-                }).catch(error => {
-                  bgLogger.error('批量质量分析失败:', error)
-                })
+                        .catch((error: Error) => {
+                          bgLogger.error(`❌ AI 分析失败: ${feedId}`, error)
+                          // AI 分析失败不删除源（AI 可能只是暂时不可用）
+                        })
+                    )
+                  ).then(() => {
+                    bgLogger.info('所有 AI 分析完成')
+                  }).catch(error => {
+                    bgLogger.error('批量 AI 分析失败:', error)
+                  })
+                } else {
+                  bgLogger.info('AI 未配置，跳过源分析')
+                }
               }
             }
             

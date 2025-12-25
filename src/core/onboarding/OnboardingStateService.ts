@@ -149,7 +149,13 @@ class OnboardingStateServiceImpl {
       this.cachedState = newState
       this.notifyListeners(newState, oldState)
       
-      stateLogger.debug(`状态刷新: ${finalState}, 进度: ${pageCount}/${threshold} (${progressPercent.toFixed(1)}%)`)
+      // 日志：显示动态阈值和基础阈值，便于理解
+      const baseThreshold = LEARNING_COMPLETE_PAGES
+      if (threshold !== baseThreshold) {
+        stateLogger.debug(`状态刷新: ${finalState}, 进度: ${pageCount}/${threshold} (基础${baseThreshold}, ${progressPercent.toFixed(1)}%)`)
+      } else {
+        stateLogger.debug(`状态刷新: ${finalState}, 进度: ${pageCount}/${threshold} (${progressPercent.toFixed(1)}%)`)
+      }
       
       return newState
     } catch (error) {

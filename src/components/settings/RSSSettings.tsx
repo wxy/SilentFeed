@@ -554,17 +554,19 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
       // 5. 刷新列表，先显示"分析中"状态
       await loadFeeds()
       
-      // 6. 触发质量分析（异步，不阻塞 UI）
+      // 6. 触发 AI 分析（异步，不阻塞 UI）
+      // 注意：feedManager.analyzeFeed 内部会检查 AI 是否配置
       feedManager.analyzeFeed(id, true).catch(error => {
-        rssManagerLogger.error('手动订阅源质量分析失败:', error)
+        rssManagerLogger.error('手动订阅源 AI 分析失败:', error)
       })
       
-      // 7. 轮询检查质量分析完成
-      const checkQuality = async () => {
+      // 7. 轮询检查分析完成（检查 category 或 quality）
+      const checkAnalysis = async () => {
         for (let i = 0; i < 60; i++) {  // 最多等待 60 秒
           await new Promise(resolve => setTimeout(resolve, 1000))
           const updatedFeed = await feedManager.getFeed(id)
-          if (updatedFeed?.quality) {
+          // 检查是否有分类（AI 分析结果）或质量数据
+          if (updatedFeed?.category || updatedFeed?.quality) {
             setSubscribedFeeds(prev => prev.map(f => 
               f.id === id ? updatedFeed : f
             ))
@@ -572,7 +574,7 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
           }
         }
       }
-      checkQuality()
+      checkAnalysis()
       
       // 8. 显示成功消息
       setManualSuccess(_('options.rssManager.success.subscribed'))
@@ -638,11 +640,12 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
         }
       }
       
-      // 3. 批量触发质量分析（异步，不阻塞 UI）
+      // 3. 批量触发 AI 分析（异步，不阻塞 UI）
+      // 注意：feedManager.analyzeCandidates 内部会检查 AI 是否配置
       if (importedIds.length > 0) {
-        rssManagerLogger.info(`开始分析 ${importedIds.length} 个导入的源...`)
+        rssManagerLogger.info(`开始 AI 分析 ${importedIds.length} 个导入的源...`)
         feedManager.analyzeCandidates(importedIds.length).catch(error => {
-          rssManagerLogger.error('OPML 导入源质量分析失败:', error)
+          rssManagerLogger.error('OPML 导入源 AI 分析失败:', error)
         })
       }
       
@@ -1352,14 +1355,8 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
             </div>
           )}
           
-          {/* 格式警告（所有源） */}
-          {feed.quality && !feed.quality.formatValid && (
-            <div className="flex items-center gap-2">
-              <span className="text-amber-600 dark:text-amber-400">
-                ⚠️ {_('options.rssManager.quality.formatInvalid')}
-              </span>
-            </div>
-          )}
+          {/* 格式警告已废弃：AI 分析不再评估技术格式，移除此警告 */}
+          {/* 如需要显示错误，应该使用 feed.lastError 字段 */}
         </div>
         
         {/* 文章预览区域 */}

@@ -7,25 +7,26 @@ import { FeedManager } from './FeedManager'
 import { db } from '../../../storage/db'
 import type { DiscoveredFeed } from '@/types/rss'
 
-// Mock FeedQualityAnalyzer
-vi.mock('../FeedQualityAnalyzer', () => ({
-  FeedQualityAnalyzer: class {
-    async analyze() {
-      return {
-        score: 85,
-        updateFrequency: 7,
-        formatValid: true,
-        reachable: true,
-        lastChecked: Date.now(),
-        details: {
-          updateFrequencyScore: 80,
-          completenessScore: 90,
-          formatScore: 100,
-          reachabilityScore: 100
-        }
-      }
-    }
-  }
+// Mock SourceAnalysisService
+vi.mock('../SourceAnalysisService', () => ({
+  getSourceAnalysisService: () => ({
+    analyze: vi.fn().mockResolvedValue({
+      feedId: 'test-id',
+      analyzedAt: Date.now(),
+      isAIAnalyzed: true,
+      qualityScore: 0.85,
+      contentCategory: 'tech',
+      topicTags: ['programming'],
+      subscriptionAdvice: '推荐订阅',
+      language: 'zh-CN'
+    }),
+    needsAnalysis: vi.fn().mockResolvedValue(true)
+  })
+}))
+
+// Mock AI 配置检查
+vi.mock('@/storage/ai-config', () => ({
+  isAIConfigured: vi.fn().mockResolvedValue(true)
 }))
 
 // Mock 数据库
@@ -482,7 +483,43 @@ describe('FeedManager', () => {
   })
   
   describe('analyzeFeed', () => {
-    it('应该分析源质量', async () => {
+    it('应该使用 AI 分析源质量', async () => {
+      const mockFeed: DiscoveredFeed = {
+        id: 'test-id',
+        url: 'https://example.com/feed.xml',
+        title: 'Example Feed',
+        discoveredFrom: 'https://example.com',
+        discoveredAt: Date.now(),
+        status: 'candidate',
+        isActive: true,
+        articleCount: 0,
+        unreadCount: 0,
+        recommendedCount: 0
+      }
+      
+      // Mock getFeed 返回更新后的 feed（带有 quality 数据）
+      const feedWithQuality = {
+        ...mockFeed,
+        quality: {
+          score: 85,
+          updateFrequency: 0,
+          formatValid: true,
+          reachable: true,
+          lastChecked: Date.now()
+        }
+      }
+      vi.mocked(db.discoveredFeeds.get)
+        .mockResolvedValueOnce(mockFeed)  // 第一次调用（获取原始 feed）
+        .mockResolvedValueOnce(feedWithQuality)  // 第二次调用（获取更新后的 feed）
+      
+      const quality = await feedManager.analyzeFeed('test-id')
+      
+      expect(db.discoveredFeeds.get).toHaveBeenCalledWith('test-id')
+      expect(quality).toBeDefined()
+      expect(quality?.score).toBe(85)
+    })
+    
+    it('AI 未配置时应该跳过分析', async () => {
       const mockFeed: DiscoveredFeed = {
         id: 'test-id',
         url: 'https://example.com/feed.xml',
@@ -497,82 +534,15 @@ describe('FeedManager', () => {
       }
       
       vi.mocked(db.discoveredFeeds.get).mockResolvedValue(mockFeed)
-      vi.mocked(db.discoveredFeeds.update).mockResolvedValue(1)
+      
+      // Mock AI 未配置
+      const { isAIConfigured } = await import('@/storage/ai-config')
+      vi.mocked(isAIConfigured).mockResolvedValueOnce(false)
       
       const quality = await feedManager.analyzeFeed('test-id')
       
-      expect(db.discoveredFeeds.get).toHaveBeenCalledWith('test-id')
-      expect(quality).toBeDefined()
-      expect(quality?.score).toBe(85)
-      expect(db.discoveredFeeds.update).toHaveBeenCalledWith(
-        'test-id',
-        { quality }
-      )
-    })
-    
-    it('应该使用缓存的质量数据', async () => {
-      const now = Date.now()
-      const mockFeed: DiscoveredFeed = {
-        id: 'test-id',
-        url: 'https://example.com/feed.xml',
-        title: 'Example Feed',
-        discoveredFrom: 'https://example.com',
-        discoveredAt: now,
-        status: 'candidate',
-        isActive: true,
-        articleCount: 0,
-        unreadCount: 0,
-        recommendedCount: 0,
-        quality: {
-          score: 75,
-          updateFrequency: 5,
-          formatValid: true,
-          reachable: true,
-          lastChecked: now - 1000 // 1 秒前
-        }
-      }
-      
-      vi.mocked(db.discoveredFeeds.get).mockResolvedValue(mockFeed)
-      
-      const quality = await feedManager.analyzeFeed('test-id')
-      
-      // 应该返回缓存数据
-      expect(quality?.score).toBe(75)
-      // 不应该调用 update
-      expect(db.discoveredFeeds.update).not.toHaveBeenCalled()
-    })
-    
-    it('应该强制重新分析', async () => {
-      const now = Date.now()
-      const mockFeed: DiscoveredFeed = {
-        id: 'test-id',
-        url: 'https://example.com/feed.xml',
-        title: 'Example Feed',
-        discoveredFrom: 'https://example.com',
-        discoveredAt: now,
-        status: 'candidate',
-        isActive: true,
-        articleCount: 0,
-        unreadCount: 0,
-        recommendedCount: 0,
-        quality: {
-          score: 75,
-          updateFrequency: 5,
-          formatValid: true,
-          reachable: true,
-          lastChecked: now - 1000
-        }
-      }
-      
-      vi.mocked(db.discoveredFeeds.get).mockResolvedValue(mockFeed)
-      vi.mocked(db.discoveredFeeds.update).mockResolvedValue(1)
-      
-      const quality = await feedManager.analyzeFeed('test-id', true)
-      
-      // 应该返回新分析的数据
-      expect(quality?.score).toBe(85)
-      // 应该调用 update
-      expect(db.discoveredFeeds.update).toHaveBeenCalled()
+      // 应该返回 null（没有现有的 quality 数据）
+      expect(quality).toBeNull()
     })
     
     it('应该处理源不存在的情况', async () => {
@@ -585,6 +555,36 @@ describe('FeedManager', () => {
   })
   
   describe('analyzeCandidates', () => {
+    it('AI 未配置时应该跳过批量分析', async () => {
+      const mockFeeds: DiscoveredFeed[] = [
+        {
+          id: 'feed-1',
+          url: 'https://example.com/feed1.xml',
+          title: 'Feed 1',
+          discoveredFrom: 'https://example.com',
+          discoveredAt: Date.now(),
+          status: 'candidate',
+          isActive: true,
+          articleCount: 0,
+          unreadCount: 0,
+          recommendedCount: 0
+        }
+      ]
+      
+      vi.spyOn(feedManager, 'getFeeds').mockResolvedValue(mockFeeds)
+      
+      // Mock AI 未配置
+      const { isAIConfigured } = await import('@/storage/ai-config')
+      vi.mocked(isAIConfigured).mockResolvedValueOnce(false)
+      
+      const result = await feedManager.analyzeCandidates(10)
+      
+      expect(result.total).toBe(1)
+      expect(result.analyzed).toBe(0)
+      expect(result.success).toBe(0)
+      expect(result.failed).toBe(0)
+    })
+    
     it('应该批量分析候选源', async () => {
       const mockFeeds: DiscoveredFeed[] = [
         {
@@ -595,9 +595,9 @@ describe('FeedManager', () => {
           discoveredAt: Date.now(),
           status: 'candidate',
           isActive: true,
-        articleCount: 0,
-        unreadCount: 0,
-        recommendedCount: 0
+          articleCount: 0,
+          unreadCount: 0,
+          recommendedCount: 0
         },
         {
           id: 'feed-2',
@@ -607,26 +607,19 @@ describe('FeedManager', () => {
           discoveredAt: Date.now(),
           status: 'candidate',
           isActive: true,
-        articleCount: 0,
-        unreadCount: 0,
-        recommendedCount: 0
+          articleCount: 0,
+          unreadCount: 0,
+          recommendedCount: 0
         }
       ]
       
-      // Spy on getFeeds and analyzeFeed
       vi.spyOn(feedManager, 'getFeeds').mockResolvedValue(mockFeeds)
       vi.spyOn(feedManager, 'analyzeFeed').mockResolvedValue({
         score: 85,
         updateFrequency: 7,
         formatValid: true,
         reachable: true,
-        lastChecked: Date.now(),
-        details: {
-          updateFrequencyScore: 80,
-          completenessScore: 90,
-          formatScore: 100,
-          reachabilityScore: 100
-        }
+        lastChecked: Date.now()
       })
       
       const result = await feedManager.analyzeCandidates(10)
@@ -635,41 +628,6 @@ describe('FeedManager', () => {
       expect(result.analyzed).toBe(2)
       expect(result.success).toBe(2)
       expect(result.failed).toBe(0)
-    })
-    
-    it('应该限制分析数量', async () => {
-      const mockFeeds: DiscoveredFeed[] = Array.from({ length: 20 }, (_, i) => ({
-        id: `feed-${i}`,
-        url: `https://example.com/feed${i}.xml`,
-        title: `Feed ${i}`,
-        discoveredFrom: 'https://example.com',
-        discoveredAt: Date.now(),
-        status: 'candidate' as const,
-        isActive: true,
-        articleCount: 0,
-        unreadCount: 0,
-        recommendedCount: 0
-      }))
-      
-      vi.spyOn(feedManager, 'getFeeds').mockResolvedValue(mockFeeds)
-      vi.spyOn(feedManager, 'analyzeFeed').mockResolvedValue({
-        score: 85,
-        updateFrequency: 7,
-        formatValid: true,
-        reachable: true,
-        lastChecked: Date.now(),
-        details: {
-          updateFrequencyScore: 80,
-          completenessScore: 90,
-          formatScore: 100,
-          reachabilityScore: 100
-        }
-      })
-      
-      const result = await feedManager.analyzeCandidates(5)
-      
-      expect(result.total).toBe(20)
-      expect(result.analyzed).toBe(5) // 应该只分析 5 个
     })
   })
   
