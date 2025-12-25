@@ -8,6 +8,18 @@ import { RSSFetcher } from './RSSFetcher'
 // Mock fetch API
 global.fetch = vi.fn()
 
+// 辅助函数：创建 Mock Response
+function createMockResponse(xmlText: string, contentType = 'application/xml; charset=utf-8') {
+  return {
+    ok: true,
+    headers: {
+      get: (name: string) => (name.toLowerCase() === 'content-type' ? contentType : null),
+    },
+    arrayBuffer: () => Promise.resolve(new TextEncoder().encode(xmlText)),
+    text: () => Promise.resolve(xmlText),
+  }
+}
+
 describe('RSSFetcher', () => {
   let fetcher: RSSFetcher
 
@@ -42,10 +54,7 @@ describe('RSSFetcher', () => {
   </channel>
 </rss>`
 
-      ;(global.fetch as any).mockResolvedValue({
-        ok: true,
-        text: () => Promise.resolve(mockRSS),
-      })
+      ;(global.fetch as any).mockResolvedValue(createMockResponse(mockRSS))
 
       const result = await fetcher.fetch('https://example.com/feed')
 
@@ -83,10 +92,7 @@ describe('RSSFetcher', () => {
   </entry>
 </feed>`
 
-      ;(global.fetch as any).mockResolvedValue({
-        ok: true,
-        text: () => Promise.resolve(mockAtom),
-      })
+      ;(global.fetch as any).mockResolvedValue(createMockResponse(mockAtom))
 
       const result = await fetcher.fetch('https://example.com/atom')
 
@@ -126,10 +132,7 @@ describe('RSSFetcher', () => {
     })
 
     it('应该处理 XML 解析错误', async () => {
-      ;(global.fetch as any).mockResolvedValue({
-        ok: true,
-        text: () => Promise.resolve('Not valid XML'),
-      })
+      ;(global.fetch as any).mockResolvedValue(createMockResponse('Not valid XML'))
 
       const result = await fetcher.fetch('https://example.com/invalid')
 
@@ -168,10 +171,7 @@ describe('RSSFetcher', () => {
   </channel>
 </rss>`
 
-      ;(global.fetch as any).mockResolvedValue({
-        ok: true,
-        text: () => Promise.resolve(mockRSS),
-      })
+      ;(global.fetch as any).mockResolvedValue(createMockResponse(mockRSS))
 
       const result = await fetcher.fetch('https://example.com/feed')
 
@@ -192,10 +192,7 @@ describe('RSSFetcher', () => {
   </channel>
 </rss>`
 
-      ;(global.fetch as any).mockResolvedValue({
-        ok: true,
-        text: () => Promise.resolve(mockRSS),
-      })
+      ;(global.fetch as any).mockResolvedValue(createMockResponse(mockRSS))
 
       const result = await fetcher.fetch('https://example.com/feed')
 
@@ -218,10 +215,7 @@ describe('RSSFetcher', () => {
   </channel>
 </rss>`
 
-      ;(global.fetch as any).mockResolvedValue({
-        ok: true,
-        text: () => Promise.resolve(mockRSS),
-      })
+      ;(global.fetch as any).mockResolvedValue(createMockResponse(mockRSS))
 
       const result = await fetcher.fetch('https://example.com/feed')
 
@@ -242,10 +236,7 @@ describe('RSSFetcher', () => {
   </entry>
 </feed>`
 
-      ;(global.fetch as any).mockResolvedValue({
-        ok: true,
-        text: () => Promise.resolve(mockAtom),
-      })
+      ;(global.fetch as any).mockResolvedValue(createMockResponse(mockAtom))
 
       const result = await fetcher.fetch('https://example.com/atom')
 
@@ -266,10 +257,7 @@ describe('RSSFetcher', () => {
   </entry>
 </feed>`
 
-      ;(global.fetch as any).mockResolvedValue({
-        ok: true,
-        text: () => Promise.resolve(mockAtom),
-      })
+      ;(global.fetch as any).mockResolvedValue(createMockResponse(mockAtom))
 
       const result = await fetcher.fetch('https://example.com/atom')
 
