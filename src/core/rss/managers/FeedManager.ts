@@ -464,10 +464,24 @@ export class FeedManager {
    * 删除源
    * 
    * @param id - 源 ID
+   * @param deleteArticles - 是否同时删除该源的文章（默认 true）
    */
-  async delete(id: string): Promise<void> {
-    // TODO: 同时删除相关文章
-    await db.discoveredFeeds.delete(id)
+  async delete(id: string, deleteArticles: boolean = true): Promise<void> {
+    await db.transaction('rw', db.discoveredFeeds, db.feedArticles, async () => {
+      if (deleteArticles) {
+        // 删除该源的所有文章
+        const articles = await db.feedArticles.where('feedId').equals(id).toArray()
+        const articleIds = articles.map(a => a.id)
+        
+        if (articleIds.length > 0) {
+          await db.feedArticles.where('id').anyOf(articleIds).delete()
+          feedLogger.info(`已删除源 ${id} 的 ${articleIds.length} 篇文章`)
+        }
+      }
+      
+      // 删除源本身
+      await db.discoveredFeeds.delete(id)
+    })
     feedLogger.info('已删除源:', id)
   }
   
@@ -475,11 +489,12 @@ export class FeedManager {
    * 批量删除源
    * 
    * @param ids - 源 ID 数组
+   * @param deleteArticles - 是否同时删除这些源的文章（默认 true）
    */
-  async deleteMany(ids: string[]): Promise<void> {
-    await db.transaction('rw', db.discoveredFeeds, async () => {
+  async deleteMany(ids: string[], deleteArticles: boolean = true): Promise<void> {
+    await db.transaction('rw', db.discoveredFeeds, db.feedArticles, async () => {
       for (const id of ids) {
-        await db.discoveredFeeds.delete(id)
+        await this.delete(id, deleteArticles)
       }
     })
     feedLogger.info(`已批量删除源: ${ids.length} 个`)

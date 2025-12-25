@@ -14,6 +14,7 @@ import { db } from '@/storage/db'
 import { logger } from '@/utils/logger'
 import type { SourceAnalysisResult } from '@/core/ai/prompts/types'
 import type { DiscoveredFeed, FeedArticle, FeedQuality } from '@/types/rss'
+import { aiManager } from '@/core/ai/AICapabilityManager'
 
 const analysisLogger = logger.withTag('SourceAnalysis')
 
@@ -239,30 +240,29 @@ export class SourceAnalysisService {
   /**
    * 调用 AI 进行分析
    * 
-   * 通过 background 服务调用 AI
+   * 直接调用 AICapabilityManager（在 background context 中运行）
    */
   private async callAI(feed: DiscoveredFeed, sampleArticles: FeedArticle[]): Promise<SourceAnalysisResult> {
     analysisLogger.info('准备调用 AI 分析:', { feedId: feed.id, sampleCount: sampleArticles.length })
     
-    // 发送消息给 background 进行 AI 调用
+    // 直接调用 AICapabilityManager 进行 AI 分析
     // 传递 RSS 源已有的 language，如果 RSS 已声明语言则 AI 无需检测
-    const response = await chrome.runtime.sendMessage({
-      type: 'AI_SOURCE_ANALYSIS',
-      payload: {
-        feedId: feed.id,
-        feedTitle: feed.title,
-        feedDescription: feed.description || '',
-        feedLink: feed.link || feed.url,
-        sampleArticles: this.formatSampleArticles(sampleArticles),
-        existingLanguage: feed.language  // RSS 源已声明的语言
-      }
+    await aiManager.initialize()
+    
+    const result = await aiManager.analyzeSource({
+      feedTitle: feed.title || '未知标题',
+      feedDescription: feed.description || '',
+      feedLink: feed.link || feed.url,
+      sampleArticles: this.formatSampleArticles(sampleArticles)
     })
-
-    if (response?.success && response.result) {
-      return response.result as SourceAnalysisResult
+    
+    // 如果 RSS 源已声明语言且 AI 没有检测到语言，使用 RSS 声明的语言
+    if (feed.language && !result.language) {
+      result.language = feed.language
+      analysisLogger.info('使用 RSS 源声明的语言:', feed.language)
     }
-
-    throw new Error(response?.error || 'AI 分析调用失败')
+    
+    return result
   }
 
   /**
@@ -314,6 +314,20 @@ export class SourceAnalysisService {
       language: analysis.language,
       tags: analysis.topicTags
     })
+    
+    // 通知 UI 刷新（如果在 background context 中）
+    try {
+      if (typeof chrome !== 'undefined' && chrome.runtime) {
+        chrome.runtime.sendMessage({
+          type: 'FEED_UPDATED',
+          payload: { feedId }
+        }).catch(() => {
+          // 忽略错误（可能没有监听器）
+        })
+      }
+    } catch (error) {
+      // 忽略错误（可能不在扩展环境中）
+    }
     
     return analysis
   }

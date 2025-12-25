@@ -292,6 +292,7 @@ export async function fetchFeed(feed: DiscoveredFeed): Promise<boolean> {
       const ownedArticles: FeedArticle[] = []     // 真正属于当前 Feed 的文章（用于 latestArticles）
       
       const now = Date.now()
+      const isFirstFetch = !feed.lastFetchedAt  // 判断是否首次抓取
       
       latest.forEach((article, index) => {
         const existing = existingArticles[index]
@@ -331,8 +332,27 @@ export async function fetchFeed(feed: DiscoveredFeed): Promise<boolean> {
             recommended: existing.recommended,
             starred: existing.starred
           })
+        } else if (isFirstFetch) {
+          // Phase 11: 首次抓取时，如果文章已存在但属于其他 Feed，
+          // 更新 feedId 为当前 Feed（接管文章所有权）
+          // 这样新订阅的源也能显示文章，避免 0 文章的问题
+          articlesToUpdate.push({
+            ...existing,
+            feedId: feed.id,  // 更新为当前 Feed ID
+            inFeed: true,
+            lastSeenInFeed: now,
+            metadataUpdatedAt: now,
+            updateCount: (existing.updateCount || 0) + 1
+          })
+          ownedArticles.push({
+            ...article,
+            read: existing.read,
+            disliked: existing.disliked,
+            recommended: existing.recommended,
+            starred: existing.starred
+          })
         }
-        // 如果文章存在但属于其他 Feed，跳过（不计入当前 Feed 的统计）
+        // 如果文章存在但属于其他 Feed 且不是首次抓取，跳过（不计入当前 Feed 的统计）
       })
       
       // 2. 标记不在最新列表中的文章为 inFeed=false（但不删除）

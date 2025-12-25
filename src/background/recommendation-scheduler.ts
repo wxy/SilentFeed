@@ -80,6 +80,7 @@ export class RecommendationScheduler {
   private isGenerating = false  // Phase 7: 防止并发执行
   private consecutiveSkips = 0  // Phase 7: 连续跳过次数
   private adjustedInterval: number | null = null  // Phase 7: 调整后的间隔（分钟）
+  public nextRunTime: number | null = null  // 下次执行时间（timestamp）
   
   constructor(config: Partial<RecommendationSchedulerConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config }
@@ -105,6 +106,9 @@ export class RecommendationScheduler {
     await chrome.alarms.create(this.alarmName, {
       periodInMinutes: intervalMinutes
     })
+    
+    // 设置下次执行时间
+    this.nextRunTime = Date.now() + intervalMinutes * 60 * 1000
     
     this.isRunning = true
     schedLogger.info('✅ 推荐生成调度器已启动')
@@ -288,6 +292,9 @@ export class RecommendationScheduler {
         periodInMinutes: intervalMinutes
       })
       
+      // 更新下次执行时间
+      this.nextRunTime = Date.now() + intervalMinutes * 60 * 1000
+      
       schedLogger.info(`⏰ 已重新安排：下次将在 ${intervalMinutes} 分钟后生成推荐`)
     } catch (error) {
       schedLogger.error('重新安排失败:', error)
@@ -398,9 +405,9 @@ export class RecommendationScheduler {
       总文章数: result.stats.totalArticles,
       耗时: `${result.stats.processingTimeMs}ms`,
       推荐详情: result.recommendations.map(r => ({
-        标题: r.title,
-        评分: r.score,
-        来源: r.source
+        标题: r.title || 'untitled',
+        评分: r.score || 0,
+        来源: r.source || 'unknown'
       }))
     })
     

@@ -325,18 +325,59 @@ export class RecommendationService {
       // 4. 运行推荐管道（会根据 useColdStart 选择策略）
       const result = await this.pipeline.process(input, coldStartDecision.useColdStart ? feeds : undefined)
       
-      // 5. Phase 6: 应用推荐池质量阈值，只保存高质量推荐
-      const qualityThreshold = recommendationConfig.qualityThreshold
-      const highQualityArticles = result.articles.filter(article => {
-        const isHighQuality = article.score >= qualityThreshold
+      // 5. Phase 6: 动态质量阈值 - 根据推荐池大小和评分分布选择文章
+      const configThreshold = recommendationConfig.qualityThreshold
+      const minAbsoluteThreshold = 0.5  // 最低绝对阈值，低于此分数的文章绝对不推荐
+      const targetMaxRecommendations = recommendationConfig.maxRecommendations
+      
+      // 按分数降序排序
+      const sortedArticles = [...result.articles].sort((a, b) => b.score - a.score)
+      
+      // 计算动态阈值
+      let dynamicThreshold = configThreshold
+      let selectionStrategy = 'fixed'
+      
+      if (sortedArticles.length > 0) {
+        // 策略1: 如果有足够多高分文章（>= targetMaxRecommendations），使用固定阈值
+        const highScoreCount = sortedArticles.filter(a => a.score >= configThreshold).length
+        
+        if (highScoreCount >= targetMaxRecommendations) {
+          // 有足够多高分文章，使用固定阈值
+          dynamicThreshold = configThreshold
+          selectionStrategy = 'fixed'
+        } else if (highScoreCount > 0) {
+          // 有一些高分文章但不够，降低阈值到第 targetMaxRecommendations 名的分数
+          const targetArticle = sortedArticles[Math.min(targetMaxRecommendations - 1, sortedArticles.length - 1)]
+          dynamicThreshold = Math.max(minAbsoluteThreshold, targetArticle.score)
+          selectionStrategy = 'adaptive-partial'
+        } else {
+          // 没有达到固定阈值的文章，选择最高分的 targetMaxRecommendations 篇（前提是 >= 最低阈值）
+          const topArticle = sortedArticles[0]
+          if (topArticle.score >= minAbsoluteThreshold) {
+            dynamicThreshold = Math.max(minAbsoluteThreshold, sortedArticles[Math.min(targetMaxRecommendations - 1, sortedArticles.length - 1)].score)
+            selectionStrategy = 'adaptive-all'
+          } else {
+            // 所有文章都低于最低阈值，不生成推荐
+            dynamicThreshold = minAbsoluteThreshold
+            selectionStrategy = 'none'
+          }
+        }
+      }
+      
+      recLogger.info(` 📊 质量阈值策略: ${selectionStrategy}, 配置阈值=${configThreshold}, 动态阈值=${dynamicThreshold.toFixed(2)}, 候选文章=${sortedArticles.length}`)
+      
+      const highQualityArticles = sortedArticles.filter(article => {
+        const isHighQuality = article.score >= dynamicThreshold
         if (!isHighQuality) {
-          recLogger.info(` ⚠️ 文章质量不达标 (${article.score.toFixed(2)} < ${qualityThreshold}):`, article.title)
+          recLogger.debug(` ⚠️ 文章质量不达标 (${article.score.toFixed(2)} < ${dynamicThreshold.toFixed(2)}):`, article.title)
         }
         return isHighQuality
-      })
+      }).slice(0, targetMaxRecommendations)  // 限制数量
       
       if (highQualityArticles.length === 0 && result.articles.length > 0) {
-        recLogger.warn(` ⚠️ 所有文章都未达到质量阈值 ${qualityThreshold}，本次不生成推荐`)
+        recLogger.warn(` ⚠️ 所有文章都未达到最低阈值 ${minAbsoluteThreshold}，本次不生成推荐`)
+      } else if (highQualityArticles.length > 0) {
+        recLogger.info(` ✅ 选择了 ${highQualityArticles.length} 篇文章，分数范围: ${highQualityArticles[highQualityArticles.length - 1].score.toFixed(2)} - ${highQualityArticles[0].score.toFixed(2)}`)
       }
       
       // 6. 转换为存储格式并保存（仅保存高质量文章）
@@ -450,16 +491,39 @@ export class RecommendationService {
         .reverse()  // 按发布时间倒序（最新的优先）
         .sortBy('published')
       
-      // Phase 10: 筛选条件：inFeed=true（仍在源中）&& !analysis（未分析）
-      const unanalyzedArticles = feedArticles.filter(article => 
-        (article.inFeed !== false) && !article.analysis
-      )
+      // Phase 10: 筛选条件：inFeed=true（仍在源中）&& (!analysis 或 tfidf-skipped)
+      // 注意：tfidf-skipped 的文章需要重新分析（可能是阈值调整导致的）
+      const unanalyzedArticles = feedArticles.filter(article => {
+        if (article.inFeed === false) return false
+        
+        // 没有分析结果的文章
+        if (!article.analysis) return true
+        
+        // 之前被 TF-IDF 跳过的文章，需要重新分析
+        if (article.analysis.metadata?.provider === 'tfidf-skipped') return true
+        
+        return false
+      })
       
-      // 统计信息（调试用）
-      if (process.env.NODE_ENV === 'development' && unanalyzedArticles.length > 0) {
+      // 统计信息（调试用）- 总是记录以帮助排查问题
+      if (feedArticles.length > 0) {
         const totalArticles = feedArticles.length
         const inFeedArticles = feedArticles.filter(a => a.inFeed !== false).length
-        recLogger.debug(`${feed.title}: 总 ${totalArticles} 篇，在源中 ${inFeedArticles} 篇，待分析 ${unanalyzedArticles.length} 篇`)
+        const analyzedArticles = feedArticles.filter(a => a.analysis && a.analysis.metadata?.provider !== 'tfidf-skipped').length
+        const tfidfSkipped = feedArticles.filter(a => a.analysis?.metadata?.provider === 'tfidf-skipped').length
+        recLogger.info(`${feed.title}: 总 ${totalArticles} 篇，在源中 ${inFeedArticles} 篇，已分析 ${analyzedArticles} 篇，TF-IDF跳过 ${tfidfSkipped} 篇，待分析 ${unanalyzedArticles.length} 篇`)
+        
+        // 如果有未分析的文章，额外记录文章详情
+        if (unanalyzedArticles.length > 0) {
+          recLogger.debug(`待分析文章示例: ${unanalyzedArticles.slice(0, 3).map(a => ({
+            id: a.id,
+            title: a.title.substring(0, 30),
+            inFeed: a.inFeed,
+            hasAnalysis: !!a.analysis,
+            provider: a.analysis?.metadata?.provider,
+            published: new Date(a.published).toISOString()
+          })).map(JSON.stringify).join('\n')}`)
+        }
       }
       
       allArticles.push(...unanalyzedArticles)

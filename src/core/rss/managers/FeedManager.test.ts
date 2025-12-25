@@ -43,6 +43,9 @@ vi.mock('../../../storage/db', () => ({
         })),
         reverse: vi.fn(() => ({
           sortBy: vi.fn()
+        })),
+        anyOf: vi.fn(() => ({
+          delete: vi.fn()
         }))
       })),
       orderBy: vi.fn(() => ({
@@ -53,7 +56,20 @@ vi.mock('../../../storage/db', () => ({
       update: vi.fn(),
       delete: vi.fn()
     },
-    transaction: vi.fn((mode, table, callback) => callback())
+    feedArticles: {
+      where: vi.fn(() => ({
+        equals: vi.fn(() => ({
+          toArray: vi.fn(() => Promise.resolve([]))
+        })),
+        anyOf: vi.fn(() => ({
+          delete: vi.fn()
+        }))
+      }))
+    },
+    transaction: vi.fn(async (mode, ...args) => {
+      const callback = args[args.length - 1]
+      return await callback()
+    })
   }
 }))
 

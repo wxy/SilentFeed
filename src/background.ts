@@ -638,16 +638,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             // 强制抓取单个源
             const success = await fetchFeed(feed)
             
-            // 检查源是否缺少基本信息（分类、语言、质量），如果缺少则触发 AI 分析
-            const needsAnalysis = !feed.category || !feed.language || !feed.quality
-            if (needsAnalysis) {
-              const aiConfigured = await isAIConfigured()
-              if (aiConfigured) {
-                bgLogger.info('源缺少基本信息，触发 AI 分析:', feed.title)
-                // 异步触发，不阻塞读取响应
-                getSourceAnalysisService().analyze(feedId, true).catch(error => {
-                  bgLogger.error('手动读取触发 AI 分析失败:', error)
-                })
+            // 重新获取更新后的 feed 数据，检查是否需要 AI 分析
+            // 注意：fetchFeed 内部可能已经触发了 AI 分析，这里使用最新数据避免重复
+            const updatedFeed = await db.discoveredFeeds.get(feedId)
+            if (updatedFeed) {
+              const needsAnalysis = !updatedFeed.category || !updatedFeed.language || !updatedFeed.quality
+              if (needsAnalysis) {
+                const aiConfigured = await isAIConfigured()
+                if (aiConfigured) {
+                  bgLogger.info('源缺少基本信息，触发 AI 分析:', updatedFeed.title)
+                  // 异步触发，不阻塞读取响应
+                  getSourceAnalysisService().analyze(feedId, true).catch(error => {
+                    bgLogger.error('手动读取触发 AI 分析失败:', error)
+                  })
+                }
               }
             }
             
@@ -797,6 +801,46 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             sendResponse({ success: true, data: progress })
           } catch (error) {
             bgLogger.error('❌ 获取画像更新进度失败:', error)
+            sendResponse({ success: false, error: String(error) })
+          }
+          break
+        
+        // 获取后台任务状态
+        case 'GET_SCHEDULER_STATUS':
+          try {
+            const alarms = await chrome.alarms.getAll()
+            const status = {
+              feedScheduler: {
+                name: 'RSS抓取',
+                isRunning: feedScheduler.isRunning,
+                alarms: alarms.filter(a => a.name === 'fetch-feeds').map(a => ({
+                  name: a.name,
+                  scheduledTime: a.scheduledTime,
+                  periodInMinutes: a.periodInMinutes
+                }))
+              },
+              recommendationScheduler: {
+                name: '推荐生成',
+                isRunning: recommendationScheduler.isRunning,
+                nextRunTime: recommendationScheduler.nextRunTime,
+                alarms: alarms.filter(a => a.name === 'generate-recommendation').map(a => ({
+                  name: a.name,
+                  scheduledTime: a.scheduledTime,
+                  periodInMinutes: a.periodInMinutes
+                }))
+              },
+              otherTasks: alarms.filter(a => 
+                !['fetch-feeds', 'generate-recommendation'].includes(a.name)
+              ).map(a => ({
+                name: a.name,
+                scheduledTime: a.scheduledTime,
+                periodInMinutes: a.periodInMinutes,
+                delayInMinutes: a.delayInMinutes
+              }))
+            }
+            sendResponse({ success: true, data: status })
+          } catch (error) {
+            bgLogger.error('❌ 获取调度器状态失败:', error)
             sendResponse({ success: false, error: String(error) })
           }
           break

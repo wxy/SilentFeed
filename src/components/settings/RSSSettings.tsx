@@ -66,8 +66,40 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
   // 订阅源 AI 分析状态
   const [analyzingFeedIds, setAnalyzingFeedIds] = useState<Set<string>>(new Set())
 
+  // 滚动位置保持辅助函数
+  const withScrollPreservation = async (action: () => Promise<void>) => {
+    const scrollY = window.scrollY
+    await action()
+    // 使用 requestAnimationFrame 确保在 DOM 更新后恢复滚动
+    requestAnimationFrame(() => {
+      window.scrollTo(0, scrollY)
+    })
+  }
+
   useEffect(() => {
     loadFeeds()
+    
+    // 监听源更新消息（如 AI 分析完成）
+    const messageListener = (message: any) => {
+      if (message.type === 'FEED_UPDATED' || message.type === 'FEED_FETCH_COMPLETE') {
+        // 保持滚动位置
+        const scrollY = window.scrollY
+        loadFeeds().then(() => {
+          requestAnimationFrame(() => {
+            window.scrollTo(0, scrollY)
+          })
+        })
+      }
+    }
+    
+    // 仅在扩展环境中添加监听器
+    if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
+      chrome.runtime.onMessage.addListener(messageListener)
+      
+      return () => {
+        chrome.runtime.onMessage.removeListener(messageListener)
+      }
+    }
   }, [])
 
   const loadFeeds = async () => {
@@ -136,7 +168,9 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
         setFetchCompleted(prev => ({ ...prev, all: true }))
         
         // 重新加载源列表以刷新统计数据
-        await loadFeeds()
+        await withScrollPreservation(async () => {
+          await loadFeeds()
+        })
         
         // 2秒后隐藏完成反馈
         setTimeout(() => {
@@ -176,7 +210,9 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
         // 显示完成反馈
         setFetchCompleted(prev => ({ ...prev, single: feedId }))
         
-        await loadFeeds()
+        await withScrollPreservation(async () => {
+          await loadFeeds()
+        })
         
         // 2秒后隐藏完成反馈
         setTimeout(() => {
@@ -346,7 +382,9 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
     } catch (error) {
       rssManagerLogger.error('从忽略列表订阅失败:', error)
       // 验证失败，源已被删除，刷新列表并提示用户
-      await loadFeeds()
+      await withScrollPreservation(async () => {
+        await loadFeeds()
+      })
       alert(_(error instanceof Error ? error.message : 'options.rssManager.errors.revalidationFailed'))
     }
   }
@@ -650,7 +688,9 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
       }
       
       // 4. 刷新列表
-      await loadFeeds()
+      await withScrollPreservation(async () => {
+        await loadFeeds()
+      })
       
       // 5. 显示结果
       rssManagerLogger.info(`OPML 导入完成: 成功 ${successCount}, 跳过 ${skipCount}, 失败 ${failCount}`)
@@ -761,7 +801,9 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
       if (result) {
         rssManagerLogger.info(`订阅源分析完成: ${feedTitle}`, result)
         // 重新加载数据以更新 UI
-        await loadFeeds()
+        await withScrollPreservation(async () => {
+          await loadFeeds()
+        })
       } else {
         rssManagerLogger.warn(`订阅源分析返回空结果: ${feedTitle}`)
       }
@@ -910,8 +952,8 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
             </span>
           )}
           
-          {/* 质量文本图标 - 可点击触发重新分析 */}
-          {!isAnalyzing && feed.quality && (
+          {/* 质量文本图标 - 只显示已订阅源的分析结果 */}
+          {feed.status === 'subscribed' && !isAnalyzing && feed.quality && (
             <button 
               onClick={(e) => {
                 e.preventDefault()
@@ -931,8 +973,8 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
             </button>
           )}
           
-          {/* 无质量数据时显示分析按钮 */}
-          {!isAnalyzing && !feed.quality && onTriggerAnalysis && (
+          {/* 无质量数据时显示分析按钮 - 只对已订阅源 */}
+          {feed.status === 'subscribed' && !isAnalyzing && !feed.quality && onTriggerAnalysis && (
             <button 
               onClick={(e) => {
                 e.preventDefault()
@@ -946,8 +988,8 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
             </button>
           )}
           
-          {/* 类别文本图标 - 可点击触发重新分析 */}
-          {!isAnalyzing && feed.category && (
+          {/* 类别文本图标 - 只显示已订阅源的分析结果 */}
+          {feed.status === 'subscribed' && !isAnalyzing && feed.category && (
             <button 
               onClick={(e) => {
                 e.preventDefault()
@@ -1146,10 +1188,17 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
           {/* 第二行操作按钮 */}
           {row2Actions.length > 0 && (
             <div className="flex items-center gap-1.5 flex-shrink-0">
-              {row2Actions.map((action, index) => (
+              {row2Actions.map((action) => (
                 <button
-                  key={index}
+                  key={`${feed.id}-${action.label}`}
+                  type="button"
                   onClick={(e) => {
+                    console.log(`[RSSSettings] 按钮点击:`, {
+                      feedId: feed.id,
+                      feedTitle: feed.title,
+                      subscriptionSource: feed.subscriptionSource,
+                      actionLabel: action.label
+                    })
                     e.preventDefault()
                     e.stopPropagation()
                     action.onClick()
@@ -1286,7 +1335,7 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                 <div className="flex items-center gap-0.5 flex-wrap flex-1">
                   {visibleBlocks.map((block, idx) => (
                     <div
-                      key={idx}
+                      key={`${feed.id}-block-${block.className}-${idx}`}
                       className={`w-2 h-2 rounded-sm cursor-help transition-transform hover:scale-150 ${block.className}`}
                       title={block.tooltip}
                     />
@@ -1335,29 +1384,21 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
             )
           })()}
           
-          {/* 候选源和忽略源：发现时的统计（保持原样）*/}
+          {/* 候选源和忽略源：显示发现时的统计或提示 */}
           {(feed.status === 'candidate' || feed.status === 'ignored') && (
             <div className="flex items-center gap-2 flex-1">
-            
-              {/* 分析中状态 */}
-              {!feed.quality ? (
-                <div className="text-blue-600 dark:text-blue-400 animate-pulse">
-                  🔍 {_('options.rssManager.quality.analyzing')}
-                </div>
-              ) : (
+              {/* 发现时的文章数 */}
+              {feed.itemCount && feed.itemCount > 0 ? (
                 <>
-                  {/* 发现时的文章数 */}
-                  {feed.itemCount && feed.itemCount > 0 && (
-                    <span className="flex items-center gap-1">
-                      <span>📰</span>
-                      <span>{feed.itemCount} {_('options.rssManager.fetch.articles')}</span>
-                    </span>
-                  )}
+                  <span className="flex items-center gap-1">
+                    <span>📰</span>
+                    <span>{feed.itemCount} {_('options.rssManager.fetch.articles')}</span>
+                  </span>
                   
                   {/* 预估每周文章数 */}
-                  {feed.quality.updateFrequency > 0 && (
+                  {feed.quality && feed.quality.updateFrequency > 0 && (
                     <>
-                      {feed.itemCount && feed.itemCount > 0 && <span>•</span>}
+                      <span>•</span>
                       <span className="flex items-center gap-1">
                         <span>📊</span>
                         <span>{feed.quality.updateFrequency.toFixed(1)} {_('options.rssManager.fetch.perWeek')}</span>
@@ -1365,6 +1406,10 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                     </>
                   )}
                 </>
+              ) : (
+                <span className="text-gray-400 dark:text-gray-500 text-xs">
+                  💡 订阅后才会抓取文章
+                </span>
               )}
             </div>
           )}
@@ -1382,7 +1427,7 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
             {previewArticles[feed.id].length > 0 ? (
               <div className="space-y-1.5 max-h-60 overflow-y-auto">
                 {previewArticles[feed.id].map((item, idx) => (
-                  <div key={idx} className="p-2 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
+                  <div key={item.link || `${feed.id}-article-${idx}`} className="p-2 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
                     <a
                       href={item.link}
                       target="_blank"
