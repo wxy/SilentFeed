@@ -327,7 +327,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 trackingInfo = tabTrackingData[tabTrackingKey]
                 if (trackingInfo) {
                   trackingSource = 'tabId'
-                  bgLogger.debug('通过 Tab ID 找到追踪信息', { tabId, trackingInfo })
                   // 立即清理 Tab ID 追踪信息
                   await chrome.storage.local.remove(tabTrackingKey)
                 }
@@ -341,7 +340,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 trackingInfo = urlTrackingData[urlTrackingKey]
                 if (trackingInfo) {
                   trackingSource = 'url'
-                  bgLogger.debug('通过 URL 找到追踪信息', { url: visitData.url, trackingInfo })
                   // 清理 URL 追踪信息
                   await chrome.storage.local.remove(urlTrackingKey)
                 }
@@ -874,16 +872,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         case 'OPEN_RECOMMENDATION':
           try {
             const { url, sourceUrl, recommendationId, title, action } = message.data
-            bgLogger.debug('📬 收到 OPEN_RECOMMENDATION 消息:', { url, sourceUrl, recommendationId, action })
             
             // 弹窗已经根据语言和设置决定了最终 URL，这里只需直接打开
             // 不再重复决策翻译逻辑
             const finalUrl = url
-            bgLogger.debug('打开推荐链接:', { url, recommendationId, action })
             
             // 1. 创建新标签页
             const tab = await chrome.tabs.create({ url: finalUrl })
-            bgLogger.debug('📑 已创建新标签页:', { tabId: tab.id, url: finalUrl })
             
             // 2. 保存追踪信息（使用 Tab ID）
             // ⚠️ 使用 local storage 而非 session，避免扩展重启后丢失
@@ -899,15 +894,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               
               await chrome.storage.local.set({
                 [trackingKey]: trackingData
-              })
-              
-              // 验证保存成功
-              const verifyData = await chrome.storage.local.get(trackingKey)
-              bgLogger.debug(`✅ 已保存追踪信息（Tab ID: ${tab.id}）`, {
-                trackingKey,
-                saved: !!verifyData[trackingKey],
-                recommendationId,
-                action
               })
               
               sendResponse({ success: true, tabId: tab.id })

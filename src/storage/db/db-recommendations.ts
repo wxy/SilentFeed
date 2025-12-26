@@ -27,20 +27,11 @@ export async function markAsRead(
   readDuration?: number,
   scrollDepth?: number
 ): Promise<void> {
-  dbLogger.debug('markAsRead 开始:', { id, readDuration, scrollDepth })
-  
   const recommendation = await db.recommendations.get(id)
   if (!recommendation) {
     dbLogger.error('❌ 推荐记录不存在:', id)
     throw new Error(`推荐记录不存在: ${id}`)
   }
-  
-  dbLogger.debug('找到推荐记录:', {
-    id: recommendation.id,
-    title: recommendation.title,
-    isRead: recommendation.isRead,
-    sourceUrl: recommendation.sourceUrl
-  })
   
   // 防重复：如果已经标记为已读，直接返回
   if (recommendation.isRead) {
@@ -85,16 +76,10 @@ export async function markAsRead(
           poolRemovedAt: now,
           poolRemovedReason: 'read'
         })
-        dbLogger.debug('✅ 已同步更新文章状态: read=true, inPool=false')
       }
     } catch (error) {
       dbLogger.warn('同步更新文章状态失败:', error)
     }
-  })
-  
-  dbLogger.debug('✅ markAsRead 完成:', {
-    id,
-    updates
   })
   
   // 清除统计缓存
@@ -153,7 +138,6 @@ export async function dismissRecommendations(ids: string[]): Promise<void> {
               poolRemovedAt: now,
               poolRemovedReason: 'disliked'
             })
-            dbLogger.debug('✅ 已同步标记文章为不想读: inPool=false, disliked=true', article.title)
           } else {
             dbLogger.warn('⚠️ 未找到匹配的文章:', recommendation.url)
           }
