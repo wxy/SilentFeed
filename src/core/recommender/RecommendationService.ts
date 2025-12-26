@@ -364,8 +364,6 @@ export class RecommendationService {
         }
       }
       
-      recLogger.info(` 📊 质量阈值策略: ${selectionStrategy}, 配置阈值=${configThreshold}, 动态阈值=${dynamicThreshold.toFixed(2)}, 候选文章=${sortedArticles.length}`)
-      
       const highQualityArticles = sortedArticles.filter(article => {
         const isHighQuality = article.score >= dynamicThreshold
         if (!isHighQuality) {
@@ -560,7 +558,6 @@ export class RecommendationService {
     // - maxSize: 数据库中存储的总条目数（6-10 条）
     const baseSize = config.maxRecommendations || 3  // 弹窗容量（默认 3 条）
     const maxSize = baseSize * POOL_SIZE_MULTIPLIER  // 推荐池容量（默认 6 条）
-    recLogger.info(`当前推荐池: ${currentPool.length} 条（弹窗容量: ${baseSize}，推荐池容量: ${maxSize}，排除已标记为不想读的推荐）`)
 
     // 获取最近7天的推荐URL，用于去重
     try {

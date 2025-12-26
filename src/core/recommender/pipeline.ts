@@ -814,14 +814,6 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
       }
     }
     
-    // 调试日志
-    const topicsStr = Object.keys(analysis.topicProbabilities).join(', ')
-    const interestsStr = userInterests.keywords.slice(0, 5).map(k => k.word).join(', ')
-    console.log(`[Pipeline] AI主题匹配: 主题=[${topicsStr}], 用户兴趣=[${interestsStr}], 匹配数=${matchDetails.length}, 总概率=${totalProbability.toFixed(2)}`)
-    if (matchDetails.length > 0) {
-      console.log(`[Pipeline] 匹配详情:`, matchDetails)
-    }
-    
     // 归一化：用匹配主题的概率总和作为分母
     // 这样，如果文章的主要主题都匹配用户兴趣，分数会接近用户兴趣权重
     if (totalProbability > 0) {
