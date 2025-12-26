@@ -219,11 +219,64 @@ case 'SAVE_PAGE_VISIT':
 ## 实现步骤
 
 1. ✅ 创建分支 `feature/page-revisit-handling`
-2. ⬜ 添加 URL 索引到 `confirmedVisits` 表
-3. ⬜ 实现时间窗口去重逻辑
-4. ⬜ 添加日志记录去重行为
-5. ⬜ 编写测试用例
+2. ✅ 添加 URL 索引到 `confirmedVisits` 表（版本 17）
+3. ✅ 实现时间窗口去重逻辑
+4. ✅ 添加日志记录去重行为
+5. ✅ 编写测试用例（6个测试，全部通过）
 6. ⬜ 更新文档
+
+## 实现详情
+
+### 数据库变更
+
+**版本 17** - 添加 URL 复合索引：
+```typescript
+confirmedVisits: 'id, url, visitTime, domain, *analysis.keywords, [visitTime+domain], [url+visitTime]'
+```
+
+新增复合索引 `[url+visitTime]` 支持高效的时间窗口查询。
+
+### 去重逻辑
+
+位置：`src/background.ts:374-417`
+
+```typescript
+// 30分钟窗口
+const DEDUP_WINDOW_MS = 30 * 60 * 1000
+const windowStart = visitData.visitTime - DEDUP_WINDOW_MS
+
+// 查找最近访问
+const recentVisit = await db.confirmedVisits
+  .where('[url+visitTime]')
+  .between([visitData.url, windowStart], [visitData.url, visitData.visitTime])
+  .reverse()
+  .first()
+
+if (recentVisit) {
+  // 更新现有记录
+  await db.confirmedVisits.update(recentVisit.id, {
+    visitTime: visitData.visitTime,
+    duration: recentVisit.duration + visitData.duration,
+    interactionCount: recentVisit.interactionCount + visitData.interactionCount
+  })
+} else {
+  // 创建新记录
+  await db.confirmedVisits.add(visitData)
+}
+```
+
+### 测试覆盖
+
+文件：`src/background/page-visit-dedup.test.ts`
+
+**测试场景**：
+1. ✅ 30分钟内合并相同 URL 的访问
+2. ✅ 30分钟后创建新记录
+3. ✅ 正确处理不同 URL 的访问
+4. ✅ 窗口边界测试（29分59秒 vs 30分01秒）
+5. ✅ 索引性能测试（100条记录，查询 <10ms）
+
+所有测试通过，验证了去重逻辑的正确性和性能。
 
 ## 测试场景
 

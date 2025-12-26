@@ -372,7 +372,48 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               // 继续保存，使用 visitData 中的默认 source
             }
             
-            await db.confirmedVisits.add(visitData)
+            // Phase 12.8: 时间窗口去重 - 30分钟内同一 URL 视为同一次访问
+            const DEDUP_WINDOW_MS = 30 * 60 * 1000 // 30 分钟
+            const windowStart = visitData.visitTime - DEDUP_WINDOW_MS
+            
+            // 查找最近30分钟内相同 URL 的访问记录
+            const recentVisit = await db.confirmedVisits
+              .where('[url+visitTime]')
+              .between(
+                [visitData.url, windowStart],
+                [visitData.url, visitData.visitTime]
+              )
+              .reverse()
+              .first()
+            
+            if (recentVisit) {
+              // 更新现有记录：累加停留时间和交互次数
+              await db.confirmedVisits.update(recentVisit.id, {
+                visitTime: visitData.visitTime, // 更新为最新访问时间
+                duration: recentVisit.duration + visitData.duration,
+                interactionCount: recentVisit.interactionCount + visitData.interactionCount
+              })
+              
+              bgLogger.info('🔄 页面访问去重（30分钟窗口）', {
+                url: visitData.url,
+                原记录ID: recentVisit.id,
+                原访问时间: new Date(recentVisit.visitTime).toLocaleString(),
+                新访问时间: new Date(visitData.visitTime).toLocaleString(),
+                累计停留: `${recentVisit.duration + visitData.duration}秒`
+              })
+              
+              // 使用已有记录的 ID 继续后续流程
+              visitData.id = recentVisit.id
+            } else {
+              // 创建新记录
+              await db.confirmedVisits.add(visitData)
+              
+              bgLogger.debug('📝 新页面访问记录', {
+                url: visitData.url,
+                title: visitData.title,
+                停留时间: `${visitData.duration}秒`
+              })
+            }
             
             // 策略B：如果是从推荐点击的，30秒后标记为已读
             if (visitData.recommendationId) {

@@ -417,6 +417,19 @@ export class SilentFeedDB extends Dexie {
       
       dbLogger.info(`[Phase 10] ✅ 已初始化 ${articles.length} 篇文章的新字段`)
     })
+
+    // 版本 17: 页面访问去重支持（Phase 12.8）
+    this.version(17).stores({
+      pendingVisits: 'id, url, startTime, expiresAt',
+      confirmedVisits: 'id, url, visitTime, domain, *analysis.keywords, [visitTime+domain], [url+visitTime]',
+      settings: 'id',
+      recommendations: 'id, recommendedAt, isRead, source, sourceUrl, status, replacedAt, [isRead+recommendedAt], [isRead+source], [status+recommendedAt]',
+      userProfile: 'id, lastUpdated, version',
+      interestSnapshots: 'id, timestamp, primaryTopic, trigger, [primaryTopic+timestamp]',
+      discoveredFeeds: 'id, url, status, discoveredAt, subscribedAt, discoveredFrom, isActive, lastFetchedAt, [status+discoveredAt], [isActive+lastFetchedAt]',
+      feedArticles: 'id, feedId, link, published, recommended, read, inPool, inFeed, deleted, [feedId+published], [recommended+published], [read+published], [inPool+poolAddedAt], [inFeed+published], [deleted+deletedAt]',
+      aiUsage: 'id, timestamp, provider, purpose, success, [provider+timestamp], [purpose+timestamp]'
+    })
   }
 }
 
