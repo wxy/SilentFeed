@@ -507,23 +507,7 @@ export class RecommendationService {
       
       // 统计信息（调试用）- 总是记录以帮助排查问题
       if (feedArticles.length > 0) {
-        const totalArticles = feedArticles.length
-        const inFeedArticles = feedArticles.filter(a => a.inFeed !== false).length
-        const analyzedArticles = feedArticles.filter(a => a.analysis && a.analysis.metadata?.provider !== 'tfidf-skipped').length
-        const tfidfSkipped = feedArticles.filter(a => a.analysis?.metadata?.provider === 'tfidf-skipped').length
-        recLogger.info(`${feed.title}: 总 ${totalArticles} 篇，在源中 ${inFeedArticles} 篇，已分析 ${analyzedArticles} 篇，TF-IDF跳过 ${tfidfSkipped} 篇，待分析 ${unanalyzedArticles.length} 篇`)
-        
-        // 如果有未分析的文章，额外记录文章详情
-        if (unanalyzedArticles.length > 0) {
-          recLogger.debug(`待分析文章示例: ${unanalyzedArticles.slice(0, 3).map(a => ({
-            id: a.id,
-            title: a.title.substring(0, 30),
-            inFeed: a.inFeed,
-            hasAnalysis: !!a.analysis,
-            provider: a.analysis?.metadata?.provider,
-            published: new Date(a.published).toISOString()
-          })).map(JSON.stringify).join('\n')}`)
-        }
+        // 收集未分析的文章进行处理
       }
       
       allArticles.push(...unanalyzedArticles)
