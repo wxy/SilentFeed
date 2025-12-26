@@ -53,7 +53,7 @@ export interface AnalysisResult {
   language: "zh" | "en" | "other"
   aiAnalysis?: {
     topics: Record<string, number>
-    provider: "deepseek" | "keyword" | "openai" | "anthropic"
+    provider: "deepseek" | "keyword" | "openai" | "anthropic" | "ollama"
     model: string
     timestamp: number
     cost?: number
@@ -65,6 +65,11 @@ export interface AnalysisResult {
     }
   }
 }
+
+/**
+ * AI 分析结果（用于 page-visit-handler）
+ */
+export type AIAnalysisResult = AnalysisResult
 
 /**
  * 正式访问记录（ConfirmedVisit）
@@ -85,6 +90,8 @@ export interface ConfirmedVisit {
   status: "qualified"
   contentRetainUntil: number
   analysisRetainUntil: number
+  /** Phase 12.8: 重复访问时指向已存在的记录ID（仅用于传递，不保存到数据库） */
+  existingVisitId?: string
 }
 
 /**

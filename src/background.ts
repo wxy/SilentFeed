@@ -18,6 +18,7 @@ import { aiManager } from './core/ai/AICapabilityManager'
 import { getAIConfig, saveAIConfig, isAIConfigured } from '@/storage/ai-config'
 import { getRecommendationConfig, saveRecommendationConfig } from '@/storage/recommendation-config'
 import { ReadingListManager } from './core/reading-list/reading-list-manager'
+import { processPageVisit, type PageVisitData } from './background/page-visit-handler'
 
 const bgLogger = logger.withTag('Background')
 
@@ -300,9 +301,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   ;(async () => {
     try {
       switch (message.type) {
-        case 'SAVE_PAGE_VISIT':
+        case 'PAGE_VISIT':
+          // Phase 12.8: 使用模块化的页面访问处理器
           try {
-            // Phase 9.1: 检查 Onboarding 状态，setup 阶段跳过数据采集
+            // 1. 检查 Onboarding 状态
             const onboardingStatus = await getOnboardingState()
             if (onboardingStatus.state === 'setup') {
               bgLogger.debug('⏸️ 准备阶段，跳过页面访问数据采集')
@@ -310,15 +312,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               break
             }
             
-            const visitData = message.data as Omit<ConfirmedVisit, 'id'> & { id: string }
+            const pageData = message.data as PageVisitData
             
-            // 统一追踪机制：优先使用 Tab ID，备用 URL
-            // Tab ID 更可靠，因为 URL 可能因跳转/翻译/短链接等变化
+            // 2. 检查推荐来源追踪
             try {
               let trackingInfo = null
               let trackingSource = ''
               
-              // 1. 优先尝试通过 Tab ID 查找追踪信息
+              // 优先通过 Tab ID 查找
               const tabId = sender.tab?.id
               if (tabId) {
                 const tabTrackingKey = `recommendation_tab_${tabId}`
@@ -327,141 +328,93 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 trackingInfo = tabTrackingData[tabTrackingKey]
                 if (trackingInfo) {
                   trackingSource = 'tabId'
-                  // 立即清理 Tab ID 追踪信息
                   await chrome.storage.local.remove(tabTrackingKey)
                 }
               }
               
-              // 2. 备用：通过 URL 查找（兼容旧逻辑和阅读列表）
+              // 备用：通过 URL 查找
               if (!trackingInfo) {
-                const urlTrackingKey = `recommendation_tracking_${visitData.url}`
+                const urlTrackingKey = `recommendation_tracking_${pageData.url}`
                 const urlTrackingData = await chrome.storage.local.get(urlTrackingKey)
                 
                 trackingInfo = urlTrackingData[urlTrackingKey]
                 if (trackingInfo) {
                   trackingSource = 'url'
-                  // 清理 URL 追踪信息
                   await chrome.storage.local.remove(urlTrackingKey)
                 }
               }
               
-              if (trackingInfo && trackingInfo.recommendationId) {
-                visitData.source = 'recommended'
-                visitData.recommendationId = trackingInfo.recommendationId
+              if (trackingInfo?.recommendationId) {
+                pageData.source = 'recommended'
+                pageData.recommendationId = trackingInfo.recommendationId
                 
-                // 记录详细来源信息
-                let sourceDesc: string
-                if (trackingInfo.source === 'popup') {
-                  sourceDesc = trackingInfo.action === 'translated' 
-                    ? '弹窗(翻译)' 
-                    : '弹窗(原文)'
-                } else {
-                  sourceDesc = '阅读列表'
-                }
+                const sourceDesc = trackingInfo.source === 'popup' 
+                  ? (trackingInfo.action === 'translated' ? '弹窗(翻译)' : '弹窗(原文)')
+                  : '阅读列表'
                 
                 bgLogger.info(`✅ 检测到推荐文章打开: ${sourceDesc} (via ${trackingSource})`, {
-                  tabId: sender.tab?.id,
-                  url: visitData.url,
-                  recommendationId: trackingInfo.recommendationId,
-                  source: trackingInfo.source,
-                  action: trackingInfo.action
+                  tabId,
+                  url: pageData.url,
+                  recommendationId: trackingInfo.recommendationId
                 })
               }
             } catch (storageError) {
               bgLogger.warn('检查推荐追踪失败', storageError)
-              // 继续保存，使用 visitData 中的默认 source
             }
             
-            // Phase 12.8: 时间窗口去重 - 30分钟内同一 URL 视为同一次访问
-            const DEDUP_WINDOW_MS = 30 * 60 * 1000 // 30 分钟
-            const windowStart = visitData.visitTime - DEDUP_WINDOW_MS
+            // 3. 处理页面访问（AI 分析、去重等）
+            const result = await processPageVisit(pageData)
             
-            // 查找最近30分钟内相同 URL 的访问记录
-            const recentVisit = await db.confirmedVisits
-              .where('[url+visitTime]')
-              .between(
-                [visitData.url, windowStart],
-                [visitData.url, visitData.visitTime]
-              )
-              .reverse()
-              .first()
-            
-            if (recentVisit) {
-              // 更新现有记录：累加停留时间和交互次数
-              await db.confirmedVisits.update(recentVisit.id, {
-                visitTime: visitData.visitTime, // 更新为最新访问时间
-                duration: recentVisit.duration + visitData.duration,
-                interactionCount: recentVisit.interactionCount + visitData.interactionCount
-              })
-              
-              bgLogger.info('🔄 页面访问去重（30分钟窗口）', {
-                url: visitData.url,
-                原记录ID: recentVisit.id,
-                原访问时间: new Date(recentVisit.visitTime).toLocaleString(),
-                新访问时间: new Date(visitData.visitTime).toLocaleString(),
-                累计停留: `${recentVisit.duration + visitData.duration}秒`
-              })
-              
-              // 使用已有记录的 ID 继续后续流程
-              visitData.id = recentVisit.id
-            } else {
-              // 创建新记录
-              await db.confirmedVisits.add(visitData)
-              
-              bgLogger.debug('📝 新页面访问记录', {
-                url: visitData.url,
-                title: visitData.title,
-                停留时间: `${visitData.duration}秒`
-              })
+            if (!result.success) {
+              sendResponse(result)
+              break
             }
             
-            // 策略B：如果是从推荐点击的，30秒后标记为已读
-            if (visitData.recommendationId) {
+            // 4. 后续处理（推荐标记、画像学习等）
+            if (pageData.recommendationId && !result.deduplicated) {
               try {
-                // visitData.duration 是停留时间（秒）
-                // scrollDepth 暂时没有追踪，传 undefined
-                await markAsRead(
-                  visitData.recommendationId,
-                  visitData.duration, // readDuration
-                  undefined // scrollDepth (待实现)
-                )
-                bgLogger.info(`✅ 推荐已验证并标记为已读: ${visitData.recommendationId}, 阅读时长: ${visitData.duration}秒`)
+                await markAsRead(pageData.recommendationId, pageData.duration, undefined)
+                bgLogger.info(`✅ 推荐已标记为已读: ${pageData.recommendationId}`)
                 
-                // 🆕 画像学习：更新用户阅读行为计数
-                // 先获取推荐记录，然后调用 semanticProfileBuilder.onRead
-                const recommendation = await db.recommendations.get(visitData.recommendationId)
-                if (recommendation && visitData.duration) {
-                  try {
-                    // scrollDepth 暂时传 0.5 作为默认值（表示大致阅读了一半）
-                    await semanticProfileBuilder.onRead(recommendation, visitData.duration, 0.5)
-                    bgLogger.debug('✅ 画像阅读学习完成')
-                  } catch (profileError) {
-                    bgLogger.warn('画像阅读学习失败（不影响主流程）:', profileError)
-                  }
+                const recommendation = await db.recommendations.get(pageData.recommendationId)
+                if (recommendation) {
+                  await semanticProfileBuilder.onRead(recommendation, pageData.duration, 0.5)
+                  bgLogger.debug('✅ 画像阅读学习完成')
                 }
-              } catch (markError) {
-                bgLogger.error('❌ 标记推荐为已读失败:', markError)
+              } catch (error) {
+                bgLogger.warn('推荐后续处理失败:', error)
               }
             }
             
-            // 刷新阶段状态（页面数增加可能触发状态变化）
-            const newStateInfo = await OnboardingStateService.onPageVisited()
-            
-            // 如果状态从 learning 变为 ready，通知调度器
-            if (newStateInfo.state === 'ready' && newStateInfo.isLearningComplete) {
-              bgLogger.info(`🎉 检测到学习完成，页面 ${newStateInfo.pageCount}/${newStateInfo.threshold}`)
-              await reconfigureSchedulersForState('ready')
+            // 5. 刷新状态
+            if (!result.deduplicated) {
+              const newStateInfo = await OnboardingStateService.onPageVisited()
+              if (newStateInfo.state === 'ready' && newStateInfo.isLearningComplete) {
+                bgLogger.info(`🎉 学习完成，页面 ${newStateInfo.pageCount}/${newStateInfo.threshold}`)
+                await reconfigureSchedulersForState('ready')
+              }
+              
+              // 传递给画像调度器
+              ProfileUpdateScheduler.checkAndScheduleUpdate({
+                url: pageData.url,
+                title: pageData.title,
+                domain: pageData.domain,
+                visitTime: pageData.visitTime,
+                duration: pageData.duration
+              } as any).catch(error => {
+                bgLogger.error('画像更新调度失败:', error)
+              })
             }
             
             await updateBadge()
-            // Phase 8: 传递访问数据给 ProfileUpdateScheduler 用于语义画像学习
-            ProfileUpdateScheduler.checkAndScheduleUpdate(visitData).catch(error => {
-              bgLogger.error('画像更新调度失败:', error)
+            sendResponse(result)
+          } catch (error) {
+            bgLogger.error('❌ 处理页面访问失败:', error)
+            sendResponse({ 
+              success: false, 
+              deduplicated: false,
+              error: error instanceof Error ? error.message : String(error)
             })
-            sendResponse({ success: true })
-          } catch (dbError) {
-            bgLogger.error('❌ 保存页面访问失败:', dbError)
-            sendResponse({ success: false, error: String(dbError) })
           }
           break
         
