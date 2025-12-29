@@ -99,4 +99,35 @@ export interface BaseInterface {
 
 ## 版本控制（简版）
 - 在 master 不直接开发；等待用户确认再提交/推送；PR 使用中文描述；推送前必须通过 `npm run pre-push`。
+
+## OpenSkills 技能系统
+
+项目已集成 OpenSkills，提供领域特定的 AI 辅助能力。技能文件位于 `.claude/skills/` 目录。
+
+### 可用技能清单
+
+- **设计类**: `canvas-design`, `frontend-design`, `algorithmic-art`, `slack-gif-creator`, `theme-factory`
+- **文档类**: `docx`, `pptx`, `pdf`, `xlsx`, `doc-coauthoring`, `internal-comms`
+- **开发类**: `mcp-builder`, `web-artifacts-builder`, `webapp-testing`, `skill-creator`
+- **品牌类**: `brand-guidelines`
+
+### 使用方式
+
+AI Agent 会根据任务自动加载对应技能。你也可以明确要求使用特定技能，例如：
+- "使用 frontend-design 技能创建一个落地页"
+- "用 docx 技能生成项目文档"
+- "按 brand-guidelines 技能应用品牌样式"
+
+### 技能管理
+
+```bash
+# 同步最新技能（推荐定期执行）
+openskills sync
+
+# 查看可用技能
+ls .claude/skills/
+```
+
+**注意**: `.claude/skills/` 目录已纳入版本控制，团队成员 clone 后即可使用。
+
 ## Project Overview
