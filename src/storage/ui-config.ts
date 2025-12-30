@@ -11,8 +11,7 @@ const uiLogger = logger.withTag('UIConfig')
 
 export type UIStyle = "sketchy" | "normal"
 
-const UI_STYLE_KEY = "ui_style"
-const AUTO_TRANSLATE_KEY = "auto_translate"
+const UI_CONFIG_KEY = "uiConfig"
 
 /**
  * UI 配置接口
@@ -29,10 +28,12 @@ export interface UIConfig {
  * @returns UI 配置对象
  */
 export async function getUIConfig(): Promise<UIConfig> {
-  const result = await chrome.storage.sync.get([UI_STYLE_KEY, AUTO_TRANSLATE_KEY])
+  const result = await chrome.storage.sync.get(UI_CONFIG_KEY)
+  const config = result[UI_CONFIG_KEY] as UIConfig | undefined
+  
   return {
-    style: (result[UI_STYLE_KEY] as UIStyle) || "normal", // 默认使用标准风格
-    autoTranslate: result[AUTO_TRANSLATE_KEY] ?? true // 默认开启自动翻译
+    style: config?.style || "normal", // 默认使用标准风格
+    autoTranslate: config?.autoTranslate ?? true // 默认开启自动翻译
   }
 }
 
@@ -41,27 +42,26 @@ export async function getUIConfig(): Promise<UIConfig> {
  * @param config - 要更新的配置项（部分更新）
  */
 export async function updateUIConfig(config: Partial<UIConfig>): Promise<void> {
-  const updates: Record<string, any> = {}
+  // 读取现有配置
+  const current = await getUIConfig()
   
-  if (config.style !== undefined) {
-    updates[UI_STYLE_KEY] = config.style
+  // 合并更新
+  const updated: UIConfig = {
+    ...current,
+    ...config
   }
   
-  if (config.autoTranslate !== undefined) {
-    updates[AUTO_TRANSLATE_KEY] = config.autoTranslate
-  }
-  
-  await chrome.storage.sync.set(updates)
+  await chrome.storage.sync.set({ [UI_CONFIG_KEY]: updated })
   uiLogger.debug('UI 配置已更新:', config)
 }
 
 /**
  * 获取当前 UI 风格
- * @returns UI 风格（默认: sketchy）
+ * @returns UI 风格（默认: normal）
  */
 export async function getUIStyle(): Promise<UIStyle> {
-  const result = await chrome.storage.sync.get(UI_STYLE_KEY)
-  return (result[UI_STYLE_KEY] as UIStyle) || "normal" // 默认使用标准风格
+  const config = await getUIConfig()
+  return config.style
 }
 
 /**
@@ -69,7 +69,7 @@ export async function getUIStyle(): Promise<UIStyle> {
  * @param style - 要设置的 UI 风格
  */
 export async function setUIStyle(style: UIStyle): Promise<void> {
-  await chrome.storage.sync.set({ [UI_STYLE_KEY]: style })
+  await updateUIConfig({ style })
   uiLogger.debug(`UI 风格已设置为: ${style}`)
 }
 
@@ -80,8 +80,11 @@ export async function setUIStyle(style: UIStyle): Promise<void> {
  */
 export function watchUIStyle(callback: (style: UIStyle) => void): () => void {
   const listener = (changes: { [key: string]: chrome.storage.StorageChange }) => {
-    if (changes[UI_STYLE_KEY]) {
-      callback(changes[UI_STYLE_KEY].newValue as UIStyle)
+    if (changes[UI_CONFIG_KEY]) {
+      const newConfig = changes[UI_CONFIG_KEY].newValue as UIConfig
+      if (newConfig?.style) {
+        callback(newConfig.style)
+      }
     }
   }
   
@@ -99,8 +102,11 @@ export function watchUIStyle(callback: (style: UIStyle) => void): () => void {
  */
 export function watchAutoTranslate(callback: (enabled: boolean) => void): () => void {
   const listener = (changes: { [key: string]: chrome.storage.StorageChange }) => {
-    if (changes[AUTO_TRANSLATE_KEY]) {
-      callback(changes[AUTO_TRANSLATE_KEY].newValue as boolean)
+    if (changes[UI_CONFIG_KEY]) {
+      const newConfig = changes[UI_CONFIG_KEY].newValue as UIConfig
+      if (newConfig?.autoTranslate !== undefined) {
+        callback(newConfig.autoTranslate)
+      }
     }
   }
   

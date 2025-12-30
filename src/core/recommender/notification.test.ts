@@ -4,6 +4,16 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
+// Mock Logger before importing notification module
+vi.mock('@/utils/logger', () => ({
+  Logger: class {
+    info = vi.fn()
+    warn = vi.fn()
+    error = vi.fn()
+    debug = vi.fn()
+  }
+}))
+
 // ⚠️ 关键：在导入模块之前先 mock Chrome APIs
 const mockNotifications = {
   create: vi.fn(),

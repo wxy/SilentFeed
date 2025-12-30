@@ -30,13 +30,13 @@ describe("ui-config", () => {
       const style = await getUIStyle()
 
       expect(style).toBe("normal")
-      expect(chrome.storage.sync.get).toHaveBeenCalledWith("ui_style")
+      expect(chrome.storage.sync.get).toHaveBeenCalledWith("uiConfig")
     })
 
     it("应该返回存储的 UI 风格", async () => {
       // Mock chrome.storage.sync.get 返回保存的风格
       vi.spyOn(chrome.storage.sync, "get").mockImplementation(() =>
-        Promise.resolve({ ui_style: "normal" })
+        Promise.resolve({ uiConfig: { style: "normal", autoTranslate: true } })
       )
 
       const style = await getUIStyle()
@@ -46,7 +46,7 @@ describe("ui-config", () => {
 
     it("应该正确处理 sketchy 风格", async () => {
       vi.spyOn(chrome.storage.sync, "get").mockImplementation(() =>
-        Promise.resolve({ ui_style: "sketchy" })
+        Promise.resolve({ uiConfig: { style: "sketchy", autoTranslate: true } })
       )
 
       const style = await getUIStyle()
@@ -56,7 +56,7 @@ describe("ui-config", () => {
 
     it("应该正确处理 normal 风格", async () => {
       vi.spyOn(chrome.storage.sync, "get").mockImplementation(() =>
-        Promise.resolve({ ui_style: "normal" })
+        Promise.resolve({ uiConfig: { style: "normal", autoTranslate: true } })
       )
 
       const style = await getUIStyle()
@@ -68,10 +68,16 @@ describe("ui-config", () => {
   describe("setUIStyle", () => {
     it("应该保存 UI 风格", async () => {
       const setSpy = vi.spyOn(chrome.storage.sync, "set").mockImplementation(() => Promise.resolve())
+      // Mock getUIConfig 返回当前配置
+      vi.spyOn(chrome.storage.sync, "get").mockImplementation(() => 
+        Promise.resolve({ uiConfig: { style: "sketchy", autoTranslate: true } })
+      )
 
       await setUIStyle("normal")
 
-      expect(setSpy).toHaveBeenCalledWith({ ui_style: "normal" })
+      expect(setSpy).toHaveBeenCalledWith({ 
+        uiConfig: { style: "normal", autoTranslate: true } 
+      })
     })
 
     it("应该支持所有有效的 UI 风格", async () => {
@@ -109,9 +115,9 @@ describe("ui-config", () => {
 
       // 模拟 storage 变化
       const changes = {
-        ui_style: {
-          newValue: "normal" as UIStyle,
-          oldValue: "sketchy" as UIStyle,
+        uiConfig: {
+          newValue: { style: "normal" as UIStyle, autoTranslate: true },
+          oldValue: { style: "sketchy" as UIStyle, autoTranslate: true },
         },
       }
 
@@ -172,9 +178,9 @@ describe("ui-config", () => {
       watchUIStyle(callback2)
 
       const changes = {
-        ui_style: {
-          newValue: "normal" as UIStyle,
-          oldValue: "sketchy" as UIStyle,
+        uiConfig: {
+          newValue: { style: "normal" as UIStyle, autoTranslate: true },
+          oldValue: { style: "sketchy" as UIStyle, autoTranslate: true },
         },
       }
 
@@ -229,9 +235,9 @@ describe("ui-config", () => {
 
       // 第一次变化
       registeredListener({
-        ui_style: {
-          newValue: "normal" as UIStyle,
-          oldValue: "sketchy" as UIStyle,
+        uiConfig: {
+          newValue: { style: "normal" as UIStyle, autoTranslate: true },
+          oldValue: { style: "sketchy" as UIStyle, autoTranslate: true },
         },
       })
 
@@ -239,9 +245,9 @@ describe("ui-config", () => {
 
       // 第二次变化
       registeredListener({
-        ui_style: {
-          newValue: "sketchy" as UIStyle,
-          oldValue: "normal" as UIStyle,
+        uiConfig: {
+          newValue: { style: "sketchy" as UIStyle, autoTranslate: true },
+          oldValue: { style: "normal" as UIStyle, autoTranslate: true },
         },
       })
 

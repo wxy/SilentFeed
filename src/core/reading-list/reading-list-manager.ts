@@ -13,6 +13,7 @@
  */
 
 import { logger } from '@/utils/logger'
+import { saveUrlTracking } from '@/storage/tracking-storage'
 import type { Recommendation, ConfirmedVisit } from '@/types/database'
 import { db, dismissRecommendations } from '@/storage/db'
 import { isReadingListAvailable, getBrowserCompatInfo } from '@/utils/browser-compat'
@@ -123,15 +124,11 @@ export class ReadingListManager {
       // 使用 local storage 而非 session，避免扩展重启后丢失
       // ⚠️ 重要：使用实际保存的URL（可能是翻译链接）作为追踪键
       try {
-        await chrome.storage.local.set({
-          [`recommendation_tracking_${urlToSave}`]: {
-            recommendationId: recommendation.id,
-            title: recommendation.title,
-            source: 'readingList',
-            action: 'opened',  // 表示"通过阅读列表打开"
-            timestamp: Date.now(),
-            isTranslated: urlToSave !== recommendation.url, // 标记是否使用翻译链接
-          },
+        await saveUrlTracking(urlToSave, {
+          recommendationId: recommendation.id!,
+          title: recommendation.title,
+          source: 'readingList',
+          action: 'opened'  // 表示"通过阅读列表打开"
         })
         rlLogger.debug('已预设阅读列表追踪标记', { url: urlToSave })
       } catch (storageError) {

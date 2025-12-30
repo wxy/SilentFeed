@@ -352,7 +352,7 @@ describe("RecommendationView 组件", () => {
         expect(mockSendMessage).toHaveBeenCalledWith(
           expect.objectContaining({
             type: 'OPEN_RECOMMENDATION',
-            data: expect.objectContaining({
+            payload: expect.objectContaining({
               url: "https://example.com/article",
             }),
           })
@@ -387,7 +387,7 @@ describe("RecommendationView 组件", () => {
         expect(mockSendMessage).toHaveBeenCalledWith(
           expect.objectContaining({
             type: 'OPEN_RECOMMENDATION',
-            data: expect.objectContaining({
+            payload: expect.objectContaining({
               url: 'https://example.com/article',
               recommendationId: 'rec-1',
               title: '测试文章',

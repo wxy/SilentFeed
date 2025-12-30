@@ -262,7 +262,7 @@ describe('AI配置检查机制', () => {
     it('应该在无需调整时返回false', async () => {
       // Mock当前配置与推荐配置一致
       mockChromeStorage.sync.get.mockResolvedValue({
-        'recommendation-config': {
+        'recommendationConfig': {
           useReasoning: false,
           useLocalAI: false,
           maxRecommendations: 3
@@ -278,7 +278,7 @@ describe('AI配置检查机制', () => {
     it('应该根据AI状态自动调整配置', async () => {
       // Mock当前配置需要调整
       mockChromeStorage.sync.get.mockResolvedValue({
-        'recommendation-config': {
+        'recommendationConfig': {
           useReasoning: false,
           useLocalAI: false,
           maxRecommendations: 3
@@ -319,7 +319,7 @@ describe('AI配置检查机制', () => {
       
       // Phase 6: 配置保存会合并默认值（batchSize, qualityThreshold, tfidfThreshold）
       expect(mockChromeStorage.sync.set).toHaveBeenCalledWith({
-        'recommendation-config': expect.objectContaining({
+        'recommendationConfig': expect.objectContaining({
           useReasoning: true,
           useLocalAI: false,
           maxRecommendations: 4,
@@ -334,7 +334,7 @@ describe('AI配置检查机制', () => {
       // 测试上限
       await saveRecommendationConfig({ maxRecommendations: 10 })
       expect(mockChromeStorage.sync.set).toHaveBeenCalledWith({
-        'recommendation-config': expect.objectContaining({
+        'recommendationConfig': expect.objectContaining({
           maxRecommendations: 5
         })
       })
@@ -342,7 +342,7 @@ describe('AI配置检查机制', () => {
       // 测试下限
       await saveRecommendationConfig({ maxRecommendations: 0 })
       expect(mockChromeStorage.sync.set).toHaveBeenCalledWith({
-        'recommendation-config': expect.objectContaining({
+        'recommendationConfig': expect.objectContaining({
           maxRecommendations: 1
         })
       })

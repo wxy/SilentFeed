@@ -19,7 +19,7 @@ import { listLocalModels } from '@/utils/local-ai-endpoint'
 const configLogger = logger.withTag('RecommendationConfig')
 const localAILogger = logger.withTag('LocalAI')
 
-const STORAGE_KEY = "recommendation-config"
+const STORAGE_KEY = "recommendationConfig"  // 统一使用 camelCase
 
 /**
  * 推荐配置接口

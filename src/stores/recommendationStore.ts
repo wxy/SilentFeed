@@ -179,7 +179,7 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
         try {
           await chrome.runtime.sendMessage({
             type: 'PROFILE_ON_READ',
-            data: { recommendation, readDuration: duration, scrollDepth: depth }
+            payload: { recommendation, readDuration: duration, scrollDepth: depth }
           })
         } catch (profileError) {
           console.warn('[RecommendationStore] 画像更新失败（不影响主流程）:', profileError)
@@ -302,7 +302,7 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
           try {
             await chrome.runtime.sendMessage({
               type: 'PROFILE_ON_DISMISS',
-              data: { recommendation }
+              payload: { recommendation }
             })
           } catch (profileError) {
             console.warn('[RecommendationStore] 画像更新失败（不影响主流程）:', profileError)

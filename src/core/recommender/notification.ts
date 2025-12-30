@@ -8,6 +8,17 @@
  * - 支持批量通知合并
  */
 
+import { translate as _ } from '@/i18n/helpers'
+import { logger } from '@/utils/logger'
+import { LOCAL_STORAGE_KEYS } from '@/storage/local-storage-keys'
+import {
+  saveNotificationTracking,
+  consumeNotificationTracking,
+  clearNotificationTracking
+} from '@/storage/tracking-storage'
+
+const notificationLogger = logger.withTag('Notification')
+
 const NOTIFICATION_ID_PREFIX = "recommendation-"
 
 /**
@@ -98,8 +109,8 @@ function isQuietHours(config: NotificationConfig): boolean {
  */
 async function canSendNotification(config: NotificationConfig): Promise<boolean> {
   try {
-    const result = await chrome.storage.local.get("last-notification-time")
-    const lastTime = result["last-notification-time"] as number | undefined
+    const result = await chrome.storage.local.get(LOCAL_STORAGE_KEYS.LAST_NOTIFICATION_TIME)
+    const lastTime = result[LOCAL_STORAGE_KEYS.LAST_NOTIFICATION_TIME] as number | undefined
     
     if (!lastTime) return true
     
@@ -119,7 +130,7 @@ async function canSendNotification(config: NotificationConfig): Promise<boolean>
 async function recordNotificationTime(): Promise<void> {
   try {
     await chrome.storage.local.set({
-      "last-notification-time": Date.now()
+      [LOCAL_STORAGE_KEYS.LAST_NOTIFICATION_TIME]: Date.now()
     })
   } catch (error) {
     console.error("[Notification] 记录时间失败:", error)
@@ -181,12 +192,14 @@ export async function sendRecommendationNotification(
       ]
     })
     
-    // 6. 存储推荐 URL，用于按钮点击
-    await chrome.storage.local.set({
-      [`notification-url-${notificationId}`]: topRecommendation.url
-    })
+    // 6. 使用新的追踪模块保存推荐 URL
+    await saveNotificationTracking(
+      notificationId,
+      topRecommendation.url,
+      topRecommendation.id
+    )
     
-    // 6. 记录发送时间
+    // 7. 记录发送时间
     await recordNotificationTime()
     
   } catch (error) {
@@ -215,10 +228,8 @@ export async function testNotification(): Promise<void> {
     ]
   })
   
-  // 存储测试 URL
-  await chrome.storage.local.set({
-    [`notification-url-${notificationId}`]: testUrl
-  })
+  // 使用新的追踪模块保存测试 URL
+  await saveNotificationTracking(notificationId, testUrl)
 }
 
 /**
@@ -243,14 +254,10 @@ export function setupNotificationListeners(): void {
     if (buttonIndex === 0) {
       // "查看"按钮 - 打开推荐文章
       try {
-        const result = await chrome.storage.local.get(`notification-url-${notificationId}`)
-        const url = result[`notification-url-${notificationId}`]
+        const trackingInfo = await consumeNotificationTracking(notificationId)
         
-        if (url) {
-          await chrome.tabs.create({ url })
-          
-          // 清理存储
-          await chrome.storage.local.remove(`notification-url-${notificationId}`)
+        if (trackingInfo && trackingInfo.url) {
+          await chrome.tabs.create({ url: trackingInfo.url })
         } else {
           console.warn("[Notification] 未找到推荐 URL")
         }
@@ -262,7 +269,7 @@ export function setupNotificationListeners(): void {
       // 未来优化: 可以记录用户不感兴趣，优化推荐算法
       
       // 清理存储
-      await chrome.storage.local.remove(`notification-url-${notificationId}`)
+      await clearNotificationTracking(notificationId)
     }
     
     // 清除通知
@@ -272,6 +279,6 @@ export function setupNotificationListeners(): void {
   // 通知关闭
   chrome.notifications.onClosed.addListener(async (notificationId, byUser) => {
     // 清理存储
-    await chrome.storage.local.remove(`notification-url-${notificationId}`)
+    await clearNotificationTracking(notificationId)
   })
 }
