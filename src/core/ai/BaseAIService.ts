@@ -369,6 +369,8 @@ export abstract class BaseAIService implements AIProvider {
         ...(normalizedSummary ? { summary: normalizedSummary } : {}),
         // Phase 9: 可选：AI 翻译的标题
         ...(analysis.translatedTitle ? { translatedTitle: analysis.translatedTitle } : {}),
+        // Phase 9: 记录提示词使用的语言（即翻译的目标语言）
+        ...(analysis.translatedTitle ? { targetLanguage: this.language } : {}),
         metadata: {
           provider: this.name.toLowerCase() as any,
           model: this.resolveModelName(response.model),

@@ -688,7 +688,8 @@ export class RecommendationService {
         ...(article.aiAnalysis?.translatedTitle ? {
           translation: {
             sourceLanguage: this.detectLanguage(article.title),
-            targetLanguage: this.getCurrentLanguage(),
+            // 使用 AI 分析时的提示词语言（与 translatedTitle 语言一致）
+            targetLanguage: article.aiAnalysis.targetLanguage || this.getCurrentLanguage(),
             translatedTitle: article.aiAnalysis.translatedTitle,
             translatedSummary: article.aiAnalysis.summary || '',  // 摘要已是目标语言
             translatedAt: now
@@ -825,11 +826,11 @@ export class RecommendationService {
   }
 
   /**
-   * 获取当前界面语言
-   * Phase 9: 用于确定目标语言
+   * 获取当前界面语言（仅用作 fallback）
+   * Phase 9: 理想情况下应使用 AI 分析返回的 targetLanguage
    * 
-   * ⚠️ 修复：在 Background Script 中，window.i18n 不可用
-   * 应该直接导入并使用 @/i18n 模块
+   * ⚠️ 注意：优先使用 aiAnalysis.targetLanguage（与提示词语言一致）
+   * 此方法仅在 AI 未返回 targetLanguage 时作为备选方案
    */
   private getCurrentLanguage(): string {
     // 从 i18n 实例获取用户选择的界面语言
