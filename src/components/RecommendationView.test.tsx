@@ -30,6 +30,10 @@ global.chrome = {
       set: mockStorageSessionSet,
       get: mockStorageSessionGet,
     },
+    sync: {
+      set: vi.fn().mockResolvedValue(undefined),
+      get: vi.fn().mockResolvedValue({}),
+    },
   },
   runtime: {
     sendMessage: mockSendMessage,

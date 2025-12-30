@@ -11,6 +11,10 @@ const mockStorage = {
   local: {
     get: vi.fn(),
     set: vi.fn()
+  },
+  sync: {
+    get: vi.fn(),
+    set: vi.fn()
   }
 } as any
 
@@ -25,6 +29,8 @@ describe('AdaptiveCount - 推荐数量自适应调整', () => {
     // Mock storage 默认返回空数据
     mockStorage.local.get.mockResolvedValue({})
     mockStorage.local.set.mockResolvedValue(undefined)
+    mockStorage.sync.get.mockResolvedValue({})
+    mockStorage.sync.set.mockResolvedValue(undefined)
   })
 
   describe('getAdaptiveMetrics', () => {
