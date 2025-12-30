@@ -211,13 +211,12 @@
             z-index: 3;
         }
 
-        /* 错误闪烁 - 1秒周期，前半秒 0.6，后半秒 0.2 
-         * source-atop 会让红色只在已有内容（图标）区域显示
-         * 使用遮罩图片模拟 Canvas 的 source-atop 效果
+        /* 错误闪烁 - 1秒周期，前半秒较亮，后半秒较暗
+         * 使用半透明红色直接覆盖，配合 border-radius 形成圆形遮罩
          */
         @keyframes error-flash {
-            0%, 100% { opacity: 0.2; }
-            50% { opacity: 0.6; }
+            0%, 100% { opacity: 0.25; }
+            50% { opacity: 0.65; }
         }
 
         .error-flash {
@@ -226,17 +225,11 @@
             left: 0;
             width: 128px;
             height: 128px;
-            background: #ff0000;
+            background: rgba(255, 0, 0, 0.6);
             pointer-events: none;
             animation: error-flash 1s ease-in-out infinite;
             z-index: 10;
-            /* 使用遮罩来限制红色只在图标形状内 */
-            -webkit-mask-image: url('../assets/icons/128/base-static.png');
-            mask-image: url('../assets/icons/128/base-static.png');
-            -webkit-mask-size: 128px 128px;
-            mask-size: 128px 128px;
-            -webkit-mask-repeat: no-repeat;
-            mask-repeat: no-repeat;
+            border-radius: 25%;
         }
 
         /* 推荐徽章 - Canvas drawRecommendBadge 的 CSS 模拟
