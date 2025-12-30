@@ -26,6 +26,7 @@ import { getUIConfig } from '../../storage/ui-config'
 import { logger } from '../../utils/logger'
 import { passesHistoricalBaseline } from './historical-score-tracker'
 import { shouldUseColdStartStrategy, type ColdStartDecision } from './cold-start'
+import i18n from '@/i18n'
 
 // 创建带标签的 logger
 const recLogger = logger.withTag('RecommendationService')
@@ -826,10 +827,14 @@ export class RecommendationService {
   /**
    * 获取当前界面语言
    * Phase 9: 用于确定目标语言
+   * 
+   * ⚠️ 修复：在 Background Script 中，window.i18n 不可用
+   * 应该直接导入并使用 @/i18n 模块
    */
   private getCurrentLanguage(): string {
-    // 从 i18n 获取用户选择的界面语言
-    const lang = (typeof window !== 'undefined' && (window as any).i18n?.language) || 'en'
+    // 从 i18n 实例获取用户选择的界面语言
+    // 注意：在 Background Script 中也能正常工作
+    const lang = i18n.language?.toLowerCase() || 'en'
     if (lang.startsWith('zh')) return 'zh-CN'
     if (lang.startsWith('ja')) return 'ja'
     if (lang.startsWith('ko')) return 'ko'
