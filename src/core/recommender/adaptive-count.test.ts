@@ -11,6 +11,10 @@ const mockStorage = {
   local: {
     get: vi.fn(),
     set: vi.fn()
+  },
+  sync: {
+    get: vi.fn(),
+    set: vi.fn()
   }
 } as any
 
@@ -25,6 +29,8 @@ describe('AdaptiveCount - 推荐数量自适应调整', () => {
     // Mock storage 默认返回空数据
     mockStorage.local.get.mockResolvedValue({})
     mockStorage.local.set.mockResolvedValue(undefined)
+    mockStorage.sync.get.mockResolvedValue({})
+    mockStorage.sync.set.mockResolvedValue(undefined)
   })
 
   describe('getAdaptiveMetrics', () => {
@@ -54,7 +60,7 @@ describe('AdaptiveCount - 推荐数量自适应调整', () => {
       }
       
       mockStorage.local.get.mockResolvedValue({
-        'adaptive-metrics': storedMetrics
+        'adaptiveMetrics': storedMetrics
       })
       
       const { getAdaptiveMetrics } = await import('./adaptive-count')
@@ -71,7 +77,7 @@ describe('AdaptiveCount - 推荐数量自适应调整', () => {
       await trackPopupOpen()
       
       expect(mockStorage.local.set).toHaveBeenCalledWith({
-        'adaptive-metrics': expect.objectContaining({
+        'adaptiveMetrics': expect.objectContaining({
           popupOpenTimestamps: expect.arrayContaining([expect.any(Number)])
         })
       })
@@ -85,7 +91,7 @@ describe('AdaptiveCount - 推荐数量自适应调整', () => {
       await trackRecommendationClick()
       
       expect(mockStorage.local.set).toHaveBeenCalledWith({
-        'adaptive-metrics': expect.objectContaining({
+        'adaptiveMetrics': expect.objectContaining({
           clickCount: 1
         })
       })
@@ -96,7 +102,7 @@ describe('AdaptiveCount - 推荐数量自适应调整', () => {
     it('应该根据点击率调整推荐数量', async () => {
       // 设置较高的点击率
       mockStorage.local.get.mockResolvedValue({
-        'adaptive-metrics': {
+        'adaptiveMetrics': {
           totalRecommendations: 10,
           clickCount: 8, // 80% 点击率
           dismissCount: 1,
@@ -118,7 +124,7 @@ describe('AdaptiveCount - 推荐数量自适应调整', () => {
     it('应该根据低点击率减少推荐数量', async () => {
       // 设置较低的点击率
       mockStorage.local.get.mockResolvedValue({
-        'adaptive-metrics': {
+        'adaptiveMetrics': {
           totalRecommendations: 10,
           clickCount: 1, // 10% 点击率
           dismissCount: 8,

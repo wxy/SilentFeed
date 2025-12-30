@@ -246,6 +246,12 @@ export interface UnifiedAnalysisResult {
   translatedTitle?: string
 
   /**
+   * 可选：翻译的目标语言
+   * Phase 9: 记录 AI 使用的提示词语言，即翻译的目标语言
+   */
+  targetLanguage?: string
+
+  /**
    * 分析元数据
    */
   metadata: {

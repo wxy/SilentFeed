@@ -85,7 +85,7 @@ interface AISummary {
  */
 export class SemanticProfileBuilder {
   // 行为计数器存储键
-  private static readonly STORAGE_KEY = 'profile_update_counters'
+  private static readonly STORAGE_KEY = 'profileUpdateCounters'
   
   // 行为计数器（持久化到 chrome.storage.local）
   private browseCount = 0

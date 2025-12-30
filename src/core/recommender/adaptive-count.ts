@@ -4,8 +4,9 @@
  */
 
 import { getRecommendationConfig, saveRecommendationConfig } from '@/storage/recommendation-config'
+import { LOCAL_STORAGE_KEYS } from '@/storage/local-storage-keys'
 
-const STORAGE_KEY = "adaptive-metrics"
+const STORAGE_KEY = LOCAL_STORAGE_KEYS.ADAPTIVE_METRICS
 
 /**
  * 自适应指标

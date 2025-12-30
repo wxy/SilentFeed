@@ -38,8 +38,6 @@ export default defineConfig({
         statements: 70,
       },
     },
-    // 并行测试以提高速度
-    pool: 'threads',
   },
   resolve: {
     alias: {

@@ -4,6 +4,38 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
+// Mock tracking-storage before importing notification module
+vi.mock('@/storage/tracking-storage', () => ({
+  saveNotificationTracking: vi.fn().mockResolvedValue(undefined),
+  getNotificationTracking: vi.fn().mockResolvedValue(null),
+  consumeNotificationTracking: vi.fn().mockResolvedValue(null),
+  clearNotificationTracking: vi.fn().mockResolvedValue(undefined),
+  cleanupExpiredTracking: vi.fn().mockResolvedValue(undefined)
+}))
+
+// Mock Logger before importing notification module
+vi.mock('@/utils/logger', () => ({
+  Logger: class {
+    info = vi.fn()
+    warn = vi.fn()
+    error = vi.fn()
+    debug = vi.fn()
+  },
+  logger: {
+    info: vi.fn(),
+    debug: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    withTag: vi.fn().mockReturnValue({
+      info: vi.fn(),
+      debug: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn()
+    })
+  },
+  isNetworkError: vi.fn().mockReturnValue(false)
+}))
+
 // ⚠️ 关键：在导入模块之前先 mock Chrome APIs
 const mockNotifications = {
   create: vi.fn(),
@@ -63,6 +95,11 @@ import {
   canSendNotification,
   testNotification
 } from './notification'
+import { 
+  saveNotificationTracking,
+  consumeNotificationTracking,
+  clearNotificationTracking
+} from '@/storage/tracking-storage'
 
 describe('NotificationManager - 推荐通知模块', () => {
   beforeEach(async () => {
@@ -82,7 +119,7 @@ describe('NotificationManager - 推荐通知模块', () => {
     })
     // last-notification-time 保持在 local
     mockStorage.local.get.mockResolvedValue({
-      'last-notification-time': 0
+      'lastNotificationTime': 0
     })
     
     mockStorage.local.set.mockResolvedValue(undefined)
@@ -131,12 +168,15 @@ describe('NotificationManager - 推荐通知模块', () => {
         })
       )
       
-      // 应该记录通知时间
+      // 应该记录通知时间到 local storage
       expect(mockStorage.local.set).toHaveBeenCalledWith(
         expect.objectContaining({
-          'last-notification-time': expect.any(Number)
+          'lastNotificationTime': expect.any(Number)
         })
       )
+      
+      // 应该使用 tracking storage 保存 URL
+      expect(vi.mocked(saveNotificationTracking)).toHaveBeenCalled()
     })
 
     it('应该在单条推荐时显示完整标题', async () => {
@@ -226,7 +266,7 @@ describe('NotificationManager - 推荐通知模块', () => {
         }
       })
       mockStorage.local.get.mockResolvedValue({
-        'last-notification-time': 0
+        'lastNotificationTime': 0
       })
       
       
@@ -249,7 +289,7 @@ describe('NotificationManager - 推荐通知模块', () => {
         'notification-config': { enabled: true, minInterval: 60 }
       })
       mockStorage.local.get.mockResolvedValue({
-        'last-notification-time': thirtyMinutesAgo
+        'lastNotificationTime': thirtyMinutesAgo
       })
       
       
@@ -271,7 +311,7 @@ describe('NotificationManager - 推荐通知模块', () => {
         'notification-config': { enabled: true, minInterval: 60 }
       })
       mockStorage.local.get.mockResolvedValue({
-        'last-notification-time': twoHoursAgo
+        'lastNotificationTime': twoHoursAgo
       })
       
       
@@ -305,7 +345,7 @@ describe('NotificationManager - 推荐通知模块', () => {
         'notification-config': { enabled: true }
       })
       mockStorage.local.get.mockResolvedValue({
-        'last-notification-time': 0
+        'lastNotificationTime': 0
       })
       
       // Mock notifications.create 失败
@@ -327,7 +367,7 @@ describe('NotificationManager - 推荐通知模块', () => {
         'notification-config': { enabled: true }
       })
       mockStorage.local.get.mockResolvedValue({
-        'last-notification-time': 0
+        'lastNotificationTime': 0
       })
       
       
@@ -338,13 +378,12 @@ describe('NotificationManager - 推荐通知模块', () => {
         url: testUrl
       })
       
-      // 应该保存URL（第二次调用set）
-      const setCalls = mockStorage.local.set.mock.calls
-      const urlCall = setCalls.find(call => 
-        Object.keys(call[0])[0]?.startsWith('notification-url-')
+      // 应该调用 saveNotificationTracking 保存 URL
+      expect(vi.mocked(saveNotificationTracking)).toHaveBeenCalledWith(
+        expect.stringMatching(/recommendation-/),
+        testUrl,
+        undefined // recommendationId
       )
-      expect(urlCall).toBeDefined()
-      expect(Object.values(urlCall![0])[0]).toBe(testUrl)
     })
   })
 
@@ -365,13 +404,12 @@ describe('NotificationManager - 推荐通知模块', () => {
     })
 
     it('应该保存测试URL', async () => {
-      
       await testNotification()
       
-      expect(mockStorage.local.set).toHaveBeenCalledWith(
-        expect.objectContaining({
-          'notification-url-test-notification': 'https://example.com'
-        })
+      // 应该调用 saveNotificationTracking，只传 2 个参数
+      expect(vi.mocked(saveNotificationTracking)).toHaveBeenCalledWith(
+        'test-notification',
+        'https://example.com'
       )
     })
   })
@@ -414,80 +452,106 @@ describe('NotificationManager - 推荐通知模块', () => {
       expect(mockRuntime.openOptionsPage).toHaveBeenCalled()
     })
 
-    it('应该处理"查看"按钮点击', async () => {
+    it('应该处理“查看”按钮点击', async () => {
       const testUrl = 'https://example.com/article'
-      mockStorage.local.get.mockResolvedValue({
-        'notification-url-test-id': testUrl
+      const notificationId = 'recommendation-test'
+      
+      // Mock consumeNotificationTracking 返回 NotificationTrackingInfo
+      vi.mocked(consumeNotificationTracking).mockResolvedValue({
+        url: testUrl,
+        createdAt: Date.now()
       })
       
+      await setupNotificationListeners()
       
-      setupNotificationListeners()
+      // 模拟按钮点击
+      const buttonClickedCallback = mockNotifications.onButtonClicked.addListener.mock.calls[0][0]
+      await buttonClickedCallback(notificationId, 0) // 第一个按钮 = 查看
       
-      const buttonCallback = mockNotifications.onButtonClicked.addListener.mock.calls[0][0]
-      await buttonCallback('test-id', 0) // 0 = "查看"按钮
-      
-      // 应该打开推荐文章
+      // 应该打开标签页
       expect(mockTabs.create).toHaveBeenCalledWith({ url: testUrl })
-      // 应该清理存储
-      expect(mockStorage.local.remove).toHaveBeenCalledWith('notification-url-test-id')
+      
       // 应该清除通知
-      expect(mockNotifications.clear).toHaveBeenCalledWith('test-id')
+      expect(mockNotifications.clear).toHaveBeenCalledWith(notificationId)
     })
 
+
     it('应该处理"不想看"按钮点击', async () => {
+      const notificationId = 'recommendation-test'
       
-      setupNotificationListeners()
+      await setupNotificationListeners()
       
-      const buttonCallback = mockNotifications.onButtonClicked.addListener.mock.calls[0][0]
-      await buttonCallback('test-id', 1) // 1 = "不想看"按钮
+      // 模拟按钮点击
+      const buttonClickedCallback = mockNotifications.onButtonClicked.addListener.mock.calls[0][0]
+      await buttonClickedCallback(notificationId, 1) // 第二个按钮 = 不想看
       
-      // 应该清理存储
-      expect(mockStorage.local.remove).toHaveBeenCalledWith('notification-url-test-id')
+      // 应该清理跟踪数据
+      expect(clearNotificationTracking).toHaveBeenCalledWith(notificationId)
+      
       // 应该清除通知
-      expect(mockNotifications.clear).toHaveBeenCalledWith('test-id')
+      expect(mockNotifications.clear).toHaveBeenCalledWith(notificationId)
+      
       // 不应该打开标签页
       expect(mockTabs.create).not.toHaveBeenCalled()
     })
 
     it('应该处理URL不存在的情况', async () => {
-      mockStorage.local.get.mockResolvedValue({})
+      const notificationId = 'recommendation-test'
       
+      // Mock consumeNotificationTracking 返回 null
+      vi.mocked(consumeNotificationTracking).mockResolvedValue(null)
       
-      setupNotificationListeners()
+      await setupNotificationListeners()
       
       const buttonCallback = mockNotifications.onButtonClicked.addListener.mock.calls[0][0]
       
       // 不应该抛出错误
-      await expect(buttonCallback('test-id', 0)).resolves.toBeUndefined()
+      await expect(buttonCallback(notificationId, 0)).resolves.toBeUndefined()
       
       // 不应该打开标签页
       expect(mockTabs.create).not.toHaveBeenCalled()
+      
+      // 仍然应该清除通知
+      expect(mockNotifications.clear).toHaveBeenCalledWith(notificationId)
     })
 
     it('应该处理打开标签页失败的情况', async () => {
-      mockStorage.local.get.mockResolvedValue({
-        'notification-url-test-id': 'https://example.com'
+      const testUrl = 'https://example.com/article'
+      const notificationId = 'recommendation-test'
+      
+      // Mock consumeNotificationTracking 返回 NotificationTrackingInfo
+      vi.mocked(consumeNotificationTracking).mockResolvedValue({
+        url: testUrl,
+        createdAt: Date.now()
       })
+      
+      // Mock tabs.create 失败
       mockTabs.create.mockRejectedValue(new Error('Cannot create tab'))
       
-      
-      setupNotificationListeners()
+      await setupNotificationListeners()
       
       const buttonCallback = mockNotifications.onButtonClicked.addListener.mock.calls[0][0]
       
       // 不应该抛出错误
-      await expect(buttonCallback('test-id', 0)).resolves.toBeUndefined()
+      await expect(buttonCallback(notificationId, 0)).resolves.toBeUndefined()
+      
+      // 应该尝试打开标签页
+      expect(mockTabs.create).toHaveBeenCalledWith({ url: testUrl })
     })
 
     it('应该处理通知关闭事件', async () => {
+      const notificationId = 'recommendation-test'
       
-      setupNotificationListeners()
+      // Mock clearNotificationTracking
+      vi.mocked(clearNotificationTracking).mockResolvedValue(undefined)
+      
+      await setupNotificationListeners()
       
       const closedCallback = mockNotifications.onClosed.addListener.mock.calls[0][0]
-      await closedCallback('test-id', true)
+      await closedCallback(notificationId, true) // 用户关闭
       
-      // 应该清理存储
-      expect(mockStorage.local.remove).toHaveBeenCalledWith('notification-url-test-id')
+      // 应该清理跟踪数据
+      expect(clearNotificationTracking).toHaveBeenCalledWith(notificationId)
     })
   })
 
@@ -497,7 +561,7 @@ describe('NotificationManager - 推荐通知模块', () => {
         'notification-config': { enabled: true }
       })
       mockStorage.local.get.mockResolvedValue({
-        'last-notification-time': 0
+        'lastNotificationTime': 0
       })
       
       
@@ -527,7 +591,7 @@ describe('NotificationManager - 推荐通知模块', () => {
         'notification-config': { enabled: true }
       })
       mockStorage.local.get.mockResolvedValue({
-        'last-notification-time': 0
+        'lastNotificationTime': 0
       })
       
       
@@ -554,7 +618,7 @@ describe('NotificationManager - 推荐通知模块', () => {
         'notification-config': { enabled: true }
       })
       mockStorage.local.get.mockResolvedValue({
-        'last-notification-time': 0
+        'lastNotificationTime': 0
       })
       
       

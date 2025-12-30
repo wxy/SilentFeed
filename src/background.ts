@@ -19,6 +19,19 @@ import { getAIConfig, saveAIConfig, isAIConfigured } from '@/storage/ai-config'
 import { getRecommendationConfig, saveRecommendationConfig } from '@/storage/recommendation-config'
 import { ReadingListManager } from './core/reading-list/reading-list-manager'
 import { processPageVisit, type PageVisitData } from './background/page-visit-handler'
+import { migrateStorageKeys, needsStorageKeyMigration } from '@/storage/migrations/storage-key-migration'
+import {
+  migrateLocalStorageKeys,
+  needsLocalStorageMigration,
+  cleanupLegacyNotificationKeys
+} from '@/storage/migrations/local-storage-migration'
+import {
+  consumeTabTracking,
+  consumeUrlTracking,
+  saveTabTracking,
+  saveUrlTracking
+} from '@/storage/tracking-storage'
+import { syncSystemStats } from '@/storage/system-stats'
 
 const bgLogger = logger.withTag('Background')
 
@@ -162,8 +175,8 @@ async function initializeDefaultConfigs() {
     
     // 2. 检查并初始化推荐配置
     const recommendConfig = await getRecommendationConfig()
-    const hasRecommendConfig = await chrome.storage.sync.get('recommendation-config')
-    if (!hasRecommendConfig['recommendation-config']) {
+    const hasRecommendConfig = await chrome.storage.sync.get('recommendationConfig')
+    if (!hasRecommendConfig.recommendationConfig) {
       bgLogger.info('  首次安装，保存推荐默认配置到数据库')
       await saveRecommendationConfig(recommendConfig) // recommendConfig 已经是完整的默认配置
     } else {
@@ -184,6 +197,37 @@ chrome.runtime.onInstalled.addListener(async () => {
   bgLogger.info('扩展已安装/更新，开始初始化...')
   
   try {
+    // 0a. 执行 Sync Storage Key 迁移（优先级最高）
+    const needsSyncMigration = await needsStorageKeyMigration()
+    if (needsSyncMigration) {
+      bgLogger.info('🔄 检测到需要迁移 Sync Storage Key...')
+      const migrationResult = await migrateStorageKeys()
+      
+      if (migrationResult.success) {
+        bgLogger.info('✅ Sync Storage Key 迁移成功', {
+          migratedKeys: migrationResult.migratedKeys
+        })
+      } else {
+        bgLogger.warn('⚠️ Sync Storage Key 迁移部分失败', {
+          errors: migrationResult.errors
+        })
+      }
+    }
+    
+    // 0b. 执行 Local Storage Key 迁移
+    const needsLocalMigration = await needsLocalStorageMigration()
+    if (needsLocalMigration) {
+      bgLogger.info('🔄 检测到需要迁移 Local Storage Key...')
+      const localStats = await migrateLocalStorageKeys()
+      bgLogger.info('✅ Local Storage Key 迁移完成', localStats)
+    }
+    
+    // 0c. 清理遗留的旧格式键
+    const legacyCount = await cleanupLegacyNotificationKeys()
+    if (legacyCount > 0) {
+      bgLogger.info(`✅ 清理遗留旧格式键: ${legacyCount} 项`)
+    }
+    
     // 1. 初始化数据库
     await initializeDatabase()
     
@@ -220,6 +264,11 @@ chrome.runtime.onInstalled.addListener(async () => {
     // 初始化 OnboardingStateService（全局阶段状态管理）
     await OnboardingStateService.initialize()
     bgLogger.info('✅ OnboardingStateService 初始化完成')
+    
+    // 同步系统统计到缓存
+    syncSystemStats().catch(err => 
+      bgLogger.warn('初始统计同步失败:', err)
+    )
     
     // Phase 5.2: 初始化图标管理器
     try {
@@ -261,6 +310,13 @@ chrome.runtime.onInstalled.addListener(async () => {
     chrome.alarms.create('daily-profile-update', {
       delayInMinutes: 60, // 启动 1 小时后首次执行（避免启动时资源竞争）
       periodInMinutes: 24 * 60 // 每 24 小时
+    })
+    
+    // 创建追踪数据清理定时器（每小时一次）
+    bgLogger.info('创建追踪数据清理定时器（每小时一次）...')
+    chrome.alarms.create('cleanup-tracking-data', {
+      delayInMinutes: 30, // 启动 30 分钟后首次执行
+      periodInMinutes: 60 // 每小时
     })
     
     // Phase 12.7: 数据迁移 - 为旧推荐补充 status 字段
@@ -312,7 +368,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               break
             }
             
-            const pageData = message.data as PageVisitData
+            const pageData = message.payload as PageVisitData
             
             // 2. 检查推荐来源追踪
             try {
@@ -322,25 +378,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               // 优先通过 Tab ID 查找
               const tabId = sender.tab?.id
               if (tabId) {
-                const tabTrackingKey = `recommendation_tab_${tabId}`
-                const tabTrackingData = await chrome.storage.local.get(tabTrackingKey)
-                
-                trackingInfo = tabTrackingData[tabTrackingKey]
+                trackingInfo = await consumeTabTracking(tabId)
                 if (trackingInfo) {
                   trackingSource = 'tabId'
-                  await chrome.storage.local.remove(tabTrackingKey)
                 }
               }
               
               // 备用：通过 URL 查找
               if (!trackingInfo) {
-                const urlTrackingKey = `recommendation_tracking_${pageData.url}`
-                const urlTrackingData = await chrome.storage.local.get(urlTrackingKey)
-                
-                trackingInfo = urlTrackingData[urlTrackingKey]
+                trackingInfo = await consumeUrlTracking(pageData.url)
                 if (trackingInfo) {
                   trackingSource = 'url'
-                  await chrome.storage.local.remove(urlTrackingKey)
                 }
               }
               
@@ -450,6 +498,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         
         case 'RSS_DETECTED':
           try {
+            // 验证 payload 存在
+            if (!message.payload) {
+              bgLogger.error('❌ RSS_DETECTED 消息缺少 payload')
+              sendResponse({ success: false, error: 'Missing payload' })
+              break
+            }
+            
             const { feeds, sourceURL, sourceTitle } = message.payload as {
               feeds: Array<{
                 url: string
@@ -460,6 +515,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               }>
               sourceURL: string
               sourceTitle: string
+            }
+            
+            // 验证必需字段
+            if (!feeds || !Array.isArray(feeds)) {
+              bgLogger.error('❌ RSS_DETECTED 消息缺少 feeds 数组')
+              sendResponse({ success: false, error: 'Invalid feeds data' })
+              break
+            }
+            
+            if (!sourceURL) {
+              bgLogger.error('❌ RSS_DETECTED 消息缺少 sourceURL')
+              sendResponse({ success: false, error: 'Missing sourceURL' })
+              break
             }
             
             const feedManager = new FeedManager()
@@ -840,7 +908,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         // 画像学习：用户拒绝推荐
         case 'PROFILE_ON_DISMISS':
           try {
-            const { recommendation } = message.data
+            const { recommendation } = message.payload
             await semanticProfileBuilder.onDismiss(recommendation)
             sendResponse({ success: true })
           } catch (error) {
@@ -852,7 +920,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         // 画像学习：用户阅读推荐
         case 'PROFILE_ON_READ':
           try {
-            const { recommendation, readDuration, scrollDepth } = message.data
+            const { recommendation, readDuration, scrollDepth } = message.payload
             await semanticProfileBuilder.onRead(recommendation, readDuration, scrollDepth)
             sendResponse({ success: true })
           } catch (error) {
@@ -865,7 +933,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         // 由 Background 处理，确保追踪信息在创建 Tab 后立即保存
         case 'OPEN_RECOMMENDATION':
           try {
-            const { url, sourceUrl, recommendationId, title, action } = message.data
+            const { url, sourceUrl, recommendationId, title, action } = message.payload
             
             // 弹窗已经根据语言和设置决定了最终 URL，这里只需直接打开
             // 不再重复决策翻译逻辑
@@ -877,17 +945,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             // 2. 保存追踪信息（使用 Tab ID）
             // ⚠️ 使用 local storage 而非 session，避免扩展重启后丢失
             if (tab.id) {
-              const trackingKey = `recommendation_tab_${tab.id}`
-              const trackingData = {
+              await saveTabTracking(tab.id, {
                 recommendationId,
                 title,
                 source: 'popup',
-                action: action || 'clicked',
-                timestamp: Date.now(),
-              }
-              
-              await chrome.storage.local.set({
-                [trackingKey]: trackingData
+                action: action || 'clicked'
               })
               
               sendResponse({ success: true, tabId: tab.id })
@@ -989,6 +1051,12 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       // 每日画像更新：确保画像至少每天更新一次
       bgLogger.info('开始每日画像更新...')
       await dailyProfileUpdate()
+    } else if (alarm.name === 'cleanup-tracking-data') {
+      // 清理过期的追踪数据（新格式聚合存储）
+      bgLogger.info('开始清理过期追踪数据...')
+      const { cleanupAggregatedTrackingData } = await import('@/storage/migrations/local-storage-migration')
+      const cleaned = await cleanupAggregatedTrackingData()
+      bgLogger.info(`✅ 清理了 ${cleaned} 条过期追踪数据`)
     }
   } catch (error) {
     bgLogger.error('❌ 定时器处理失败:', error)

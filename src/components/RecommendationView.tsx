@@ -298,7 +298,7 @@ export function RecommendationView() {
       // 因为 await sendMessage 会等待响应，但弹窗可能在响应前就关闭了
       chrome.runtime.sendMessage({
         type: 'OPEN_RECOMMENDATION',
-        data: {
+        payload: {
           url: rec.url,
           sourceUrl: rec.sourceUrl, // 传递源URL以便查找翻译设置
           recommendationId: rec.id,
@@ -737,7 +737,7 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
     // 发送消息打开页面
     chrome.runtime.sendMessage({
       type: 'OPEN_RECOMMENDATION',
-      data: {
+      payload: {
         url,
         recommendationId: currentRecommendation.id,
         title: currentRecommendation.title,
@@ -769,7 +769,7 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
     // 发送消息打开页面
     chrome.runtime.sendMessage({
       type: 'OPEN_RECOMMENDATION',
-      data: {
+      payload: {
         url,
         recommendationId: currentRecommendation.id,
         title: currentRecommendation.title,

@@ -121,7 +121,12 @@ async function notifyRSSFeeds() {
   try {
     await chrome.runtime.sendMessage({
       type: 'RSS_DETECTED',
-      data: { feeds }
+      payload: {
+        feeds,
+        sourceURL: window.location.href,
+        sourceTitle: document.title,
+        detectedAt: Date.now()
+      }
     })
     
     sfLogger.info('📡 RSS feeds detected', { count: feeds.length })
@@ -241,7 +246,7 @@ async function notifyPageVisit() {
   try {
     const response = await chrome.runtime.sendMessage({
       type: 'PAGE_VISIT',
-      data: {
+      payload: {
         url: window.location.href,
         title: document.title,
         domain: window.location.hostname,
