@@ -23,6 +23,13 @@ vi.mock('@/utils/browser-compat', () => ({
   })),
 }))
 
+// Mock tracking-storage
+vi.mock('@/storage/tracking-storage', () => ({
+  saveUrlTracking: vi.fn().mockResolvedValue(undefined),
+  getUrlTracking: vi.fn().mockResolvedValue(null),
+  removeUrlTracking: vi.fn().mockResolvedValue(undefined),
+}))
+
 // Mock chrome API
 const mockChrome = {
   readingList: {
@@ -207,24 +214,21 @@ describe('ReadingListManager', () => {
     })
 
     it('应该设置追踪标记（原文链接）', async () => {
+      const { saveUrlTracking } = await import('@/storage/tracking-storage')
       mockChrome.readingList.addEntry.mockResolvedValue(undefined)
-      mockChrome.storage.local.set.mockResolvedValue(undefined)
 
       await ReadingListManager.saveRecommendation(mockRecommendation)
 
-      expect(mockChrome.storage.local.set).toHaveBeenCalledWith({
-        [`recommendation_tracking_${mockRecommendation.url}`]: {
-          recommendationId: mockRecommendation.id,
-          title: mockRecommendation.title,
-          source: 'readingList',
-          action: 'opened',
-          timestamp: expect.any(Number),
-          isTranslated: false,
-        },
+      expect(saveUrlTracking).toHaveBeenCalledWith(mockRecommendation.url, {
+        recommendationId: mockRecommendation.id,
+        title: mockRecommendation.title,
+        source: 'readingList',
+        action: 'opened',
       })
     })
 
     it('应该设置追踪标记（翻译链接）', async () => {
+      const { saveUrlTracking } = await import('@/storage/tracking-storage')
       const recWithTranslation: Recommendation = {
         ...mockRecommendation,
         translation: {
@@ -237,20 +241,15 @@ describe('ReadingListManager', () => {
       }
 
       mockChrome.readingList.addEntry.mockResolvedValue(undefined)
-      mockChrome.storage.local.set.mockResolvedValue(undefined)
 
       await ReadingListManager.saveRecommendation(recWithTranslation, true, 'zh-CN')
 
       const translateUrl = `https://translate.google.com/translate?sl=auto&tl=zh-CN&u=${encodeURIComponent(mockRecommendation.url)}`
-      expect(mockChrome.storage.local.set).toHaveBeenCalledWith({
-        [`recommendation_tracking_${translateUrl}`]: {
-          recommendationId: mockRecommendation.id,
-          title: mockRecommendation.title,
-          source: 'readingList',
-          action: 'opened',
-          timestamp: expect.any(Number),
-          isTranslated: true,
-        },
+      expect(saveUrlTracking).toHaveBeenCalledWith(translateUrl, {
+        recommendationId: mockRecommendation.id,
+        title: mockRecommendation.title,
+        source: 'readingList',
+        action: 'opened',
       })
     })
 

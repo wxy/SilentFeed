@@ -108,9 +108,9 @@ describe('system-thresholds', () => {
       })
       const setSpy = vi.spyOn(chrome.storage.local, 'set').mockResolvedValue()
       
+      // 只更新 mediumFrequency，期望保留 highFrequency 的自定义值
       const updates = {
         feedFetchIntervals: {
-          ...DEFAULT_SYSTEM_THRESHOLDS.feedFetchIntervals,
           mediumFrequency: 8
         }
       }

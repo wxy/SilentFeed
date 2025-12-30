@@ -117,3 +117,19 @@ vi.mock('../core/ai/AIUsageTracker', () => ({
     exportToCSV: vi.fn().mockResolvedValue('')
   }
 }));
+
+// Mock logger for new modules
+vi.mock('../utils/logger', () => ({
+  logger: {
+    info: vi.fn(),
+    debug: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    withTag: vi.fn().mockReturnValue({
+      info: vi.fn(),
+      debug: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn()
+    })
+  }
+}));
