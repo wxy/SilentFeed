@@ -13,6 +13,8 @@
 5. [FAQ](#faq)
 6. [Privacy](#privacy)
 
+> 💡 **Icon Guide**: Want to understand what the different icon states mean? See the [Icon States Demo](icon-states-demo.html) - Interactive demonstration using real icon components
+
 ---
 
 ## Installation
