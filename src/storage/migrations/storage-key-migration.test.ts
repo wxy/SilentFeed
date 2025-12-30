@@ -118,21 +118,29 @@ describe('storage-key-migration', () => {
     
     it('应该在迁移失败时使用默认值', async () => {
       let callCount = 0
-      // Mock storage.get 失败
+      // Mock storage.get 第一次检查新key时失败，然后允许set成功
       vi.spyOn(chrome.storage.sync, 'get').mockImplementation(() => {
         callCount++
-        if (callCount <= 2) {
+        if (callCount === 1) {
+          // 第一次检查新key - 返回不存在
+          return Promise.resolve({})
+        } else if (callCount === 2) {
+          // 第二次读取旧key - 失败
           return Promise.reject(new Error('Storage error'))
         }
-        return Promise.resolve({}) // 兜底检查
+        // 后续的检查都返回空
+        return Promise.resolve({})
       })
       
       const setSpy = vi.spyOn(chrome.storage.sync, 'set').mockResolvedValue()
       
       const result = await migrateStorageKeys()
       
-      // 即使失败也应该确保配置存在
+      // 即使失败也应该确保配置存在（使用默认值）
       expect(setSpy).toHaveBeenCalled()
+      // 应该有部分失败
+      expect(result.success).toBe(false)
+      expect(result.errors.length).toBeGreaterThan(0)
     })
   })
 })
