@@ -27,6 +27,7 @@ import { logger } from '../../utils/logger'
 import { passesHistoricalBaseline } from './historical-score-tracker'
 import { shouldUseColdStartStrategy, type ColdStartDecision } from './cold-start'
 import i18n from '@/i18n'
+import { getRefillManager } from './pool-refill-policy'
 
 // 创建带标签的 logger
 const recLogger = logger.withTag('RecommendationService')
@@ -559,6 +560,23 @@ export class RecommendationService {
     // - maxSize: 数据库中存储的总条目数（6-10 条）
     const baseSize = config.maxRecommendations || 3  // 弹窗容量（默认 3 条）
     const maxSize = baseSize * POOL_SIZE_MULTIPLIER  // 推荐池容量（默认 6 条）
+
+    // 🆕 检查是否需要补充推荐池
+    const refillManager = getRefillManager()
+    const shouldRefill = await refillManager.shouldRefill(currentPool.length, maxSize)
+    
+    if (!shouldRefill) {
+      recLogger.info(
+        `⏸️  推荐池补充被限流：当前容量 ${currentPool.length}/${maxSize}，` +
+        `请稍后再试或等待下次自动触发`
+      )
+      // 返回空结果，不进行补充
+      return recommendedArticles
+    }
+    
+    // 补充检查通过，记录本次补充操作
+    await refillManager.recordRefill()
+    recLogger.info(`🔄 开始补充推荐池...`)
 
     // 获取最近7天的推荐URL，用于去重
     try {

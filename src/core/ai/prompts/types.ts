@@ -54,6 +54,9 @@ export interface PromptTemplates {
   
   /** 订阅源质量分析（添加订阅源时评估订阅源整体质量） */
   sourceAnalysis?: PromptTemplate
+  
+  /** 推荐池策略决策（每日决策最优推荐池策略） */
+  poolStrategyDecision?: PromptTemplate
 }
 
 /**

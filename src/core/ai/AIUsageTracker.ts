@@ -40,7 +40,7 @@ export class AIUsageTracker {
         provider: record.provider,
         purpose: record.purpose,
         tokens: record.tokens.total,
-        cost: record.cost.total.toFixed(4),
+        cost: (record.cost?.total ?? 0).toFixed(6), // 提高精度到6位小数
         reasoning: record.reasoning || false
       })
     } catch (error) {

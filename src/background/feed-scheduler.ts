@@ -463,9 +463,12 @@ export class FeedScheduler {
       return
     }
     
-    
-    // 立即执行一次
-    this.runOnce()
+    // 延迟 5 秒后再执行第一次（避免热加载时资源竞争）
+    setTimeout(() => {
+      if (this.isRunning) {
+        this.runOnce()
+      }
+    }, 5000)
     
     // 定时执行
     this.intervalId = setInterval(() => {

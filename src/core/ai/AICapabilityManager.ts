@@ -235,6 +235,54 @@ export class AICapabilityManager {
   }
 
   /**
+   * AI 推荐池策略决策
+   * 
+   * 根据用户的 RSS 阅读数据和行为，使用 AI 决策最优的推荐池策略参数。
+   * 返回 JSON 格式的策略决策（包含 poolSize、refillInterval 等参数）。
+   * 
+   * @param prompt - 已构建好的决策提示词（由 PromptManager 生成）
+   * @param options - 请求选项
+   * @returns AI 的原始响应文本（JSON 格式）
+   */
+  async decidePoolStrategy(
+    prompt: string,
+    options?: {
+      maxTokens?: number
+    }
+  ): Promise<string> {
+    // 预算检查
+    const shouldDowngrade = await BudgetChecker.shouldDowngrade()
+    if (shouldDowngrade) {
+      aiLogger.warn("⚠️ 月度预算已超支，无法进行 AI 决策")
+      throw new Error('预算已超支，无法进行 AI 决策')
+    }
+    
+    // 使用画像生成配置（低频任务）
+    const { provider } = await this.getProviderForTask('profileGeneration')
+    
+    if (!provider) {
+      aiLogger.error('没有可用的 AI Provider 进行池策略决策')
+      throw new Error('没有可用的 AI Provider')
+    }
+    
+    // 检查预算
+    const budgetAllowed = await this.checkProviderBudget(provider.name)
+    if (!budgetAllowed) {
+      aiLogger.warn(`⚠️ ${provider.name} 预算超限，无法进行池策略决策`)
+      throw new Error(`${provider.name} 预算超限`)
+    }
+    
+    // 检查 provider 是否实现了此方法
+    if (!provider.decidePoolStrategy) {
+      aiLogger.error(`${provider.name} 未实现 decidePoolStrategy 方法`)
+      throw new Error(`${provider.name} 不支持池策略决策`)
+    }
+    
+    // 调用 provider 的实现
+    return await provider.decidePoolStrategy(prompt, options)
+  }
+
+  /**
    * Phase 8: 生成用户画像
    * 
    * 基于用户行为数据生成语义化的用户兴趣画像

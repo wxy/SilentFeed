@@ -64,6 +64,38 @@ export interface SystemStats {
   }
   
   /**
+   * 用户行为统计（过去24小时）
+   */
+  userBehavior: {
+    /** 推荐展示数 */
+    recommendationsShown: number
+    /** 点击数 */
+    clicked: number
+    /** 忽略数 */
+    dismissed: number
+    /** 稍后阅读数 */
+    saved: number
+    /** 平均阅读时长（秒）*/
+    avgReadTime: number
+    /** 访问次数 */
+    visitCount: number
+    /** 活跃时段（小时 0-23）*/
+    peakUsageHour: number
+  }
+  
+  /**
+   * 文章统计
+   */
+  articles: {
+    /** 未读文章数 */
+    unreadCount: number
+    /** 日均新文章数（过去7天）*/
+    dailyAverage: number
+    /** 昨日新文章数 */
+    yesterdayCount: number
+  }
+  
+  /**
    * 学习进度
    */
   learning: {
@@ -96,6 +128,20 @@ function createEmptyStats(): SystemStats {
       requestsToday: 0,
       tokensToday: 0,
       costToday: 0
+    },
+    userBehavior: {
+      recommendationsShown: 0,
+      clicked: 0,
+      dismissed: 0,
+      saved: 0,
+      avgReadTime: 60,
+      visitCount: 0,
+      peakUsageHour: 9
+    },
+    articles: {
+      unreadCount: 0,
+      dailyAverage: 0,
+      yesterdayCount: 0
     },
     learning: {
       pageCount: 0,
@@ -182,41 +228,108 @@ export async function updateSystemStats(
  */
 export async function syncSystemStats(): Promise<void> {
   try {
-    // 获取系统阈值（用于判断学习是否完成）
-    const thresholds = await getSystemThresholds()
+    const now = Date.now()
+    const oneDayAgo = now - 24 * 60 * 60 * 1000
+    const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000
     
-    // 并行查询数据库
-    const [recStats, feedCount, pageCount] = await Promise.all([
-      getRecommendationStats(),
-      db.discoveredFeeds.where('status').equals('subscribed').count(),
-      getPageCount()
+    // 添加超时保护，防止查询过慢导致崩溃
+    const timeout = 5000 // 5秒超时
+    const statsPromise = collectStats(now, oneDayAgo, sevenDaysAgo)
+    
+    await Promise.race([
+      statsPromise,
+      new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('统计收集超时')), timeout)
+      )
     ])
-    
-    // 更新缓存
-    await updateSystemStats({
-      recommendations: {
-        unreadCount: recStats.unreadCount,
-        lastGeneratedAt: Date.now(), // TODO: 从数据库获取最新推荐时间
-        lastViewedAt: Date.now(),     // TODO: 从数据库获取最后查看时间
-        generatedToday: 0,  // TODO: 计算今日生成数量
-        readToday: 0        // TODO: 计算今日阅读数量
-      },
-      feeds: {
-        subscribedCount: feedCount,
-        lastFetchedAt: Date.now(),
-        unreadArticleCount: 0  // TODO: 计算未读文章数
-      },
-      learning: {
-        pageCount,
-        isComplete: pageCount >= thresholds.learningCompletePages
-      }
-    })
     
     statsLogger.debug('✅ 系统统计已同步')
   } catch (error) {
     statsLogger.warn('同步系统统计失败:', error)
     // 同步失败不影响主流程，静默处理
   }
+}
+
+/**
+ * 内部实现：收集统计数据
+ */
+async function collectStats(now: number, oneDayAgo: number, sevenDaysAgo: number): Promise<void> {
+    // 获取系统阈值（用于判断学习是否完成）
+    const thresholds = await getSystemThresholds()
+    
+    // 并行查询基础统计（只统计数量，不加载数据）
+    const [recStats, feedCount, pageCount, unreadArticleCount, recentArticlesCount, yesterdayArticlesCount] = await Promise.all([
+      getRecommendationStats(),
+      db.discoveredFeeds.where('status').equals('subscribed').count(),
+      getPageCount(),
+      db.feedArticles.where('read').equals(0).count(),
+      db.feedArticles.where('published').above(sevenDaysAgo).count(),
+      db.feedArticles.where('published').above(oneDayAgo).count()
+    ])
+    
+    // 用户行为统计（限制查询数量，避免内存爆炸）
+    const recommendationStats = await db.recommendations
+      .where('recommendedAt')
+      .above(oneDayAgo)
+      .limit(200)  // 限制最多200条
+      .toArray()
+    
+    const clicked = recommendationStats.filter(r => r.isRead).length
+    const dismissed = recommendationStats.filter(r => r.feedback === 'dismissed').length
+    const saved = recommendationStats.filter(r => r.feedback === 'later').length
+    
+    // 访问记录统计（限制100条，用于计算平均值）
+    const visits = await db.confirmedVisits
+      .where('visitTime')
+      .above(oneDayAgo)
+      .limit(100)
+      .toArray()
+    
+    const avgReadTime = visits.length > 0
+      ? visits.reduce((sum, v) => sum + (v.duration || 0), 0) / visits.length / 1000
+      : 60
+    
+    // 计算活跃时段
+    const hourCounts: Record<number, number> = {}
+    visits.forEach(v => {
+      const hour = new Date(v.visitTime).getHours()
+      hourCounts[hour] = (hourCounts[hour] || 0) + 1
+    })
+    const peakUsageHour = Object.entries(hourCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 9
+    
+    // 更新缓存
+    await updateSystemStats({
+      recommendations: {
+        unreadCount: recStats.unreadCount,
+        lastGeneratedAt: Date.now(),
+        lastViewedAt: Date.now(),
+        generatedToday: recommendationStats.length,
+        readToday: clicked
+      },
+      feeds: {
+        subscribedCount: feedCount,
+        lastFetchedAt: Date.now(),
+        unreadArticleCount: unreadArticleCount
+      },
+      userBehavior: {
+        recommendationsShown: recommendationStats.length,
+        clicked,
+        dismissed,
+        saved,
+        avgReadTime,
+        visitCount: visits.length,
+        peakUsageHour: parseInt(String(peakUsageHour))
+      },
+      articles: {
+        unreadCount: unreadArticleCount,
+        dailyAverage: Math.round(recentArticlesCount / 7),
+        yesterdayCount: yesterdayArticlesCount
+      },
+      learning: {
+        pageCount,
+        isComplete: pageCount >= thresholds.learningCompletePages
+      }
+    })
 }
 
 /**

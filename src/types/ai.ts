@@ -346,6 +346,24 @@ export interface AIProvider {
   ): Promise<RecommendationReasonResult>
 
   /**
+   * AI 推荐池策略决策（可选功能）
+   * 
+   * 根据用户的 RSS 阅读数据和行为，使用 AI 决策最优的推荐池策略参数。
+   * 返回 JSON 格式的策略决策（包含 poolSize、refillInterval 等参数）。
+   * 
+   * @param prompt - 已构建好的决策提示词
+   * @param options - 请求选项
+   * @returns AI 的原始响应文本（JSON 格式）
+   * @throws Error 如果决策失败
+   */
+  decidePoolStrategy?(
+    prompt: string,
+    options?: {
+      maxTokens?: number
+    }
+  ): Promise<string>
+
+  /**
    * 测试连接
    *
    * 发送最小请求测试 API 是否可用

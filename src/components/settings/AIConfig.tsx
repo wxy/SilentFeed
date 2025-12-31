@@ -100,6 +100,25 @@ export function AIConfig() {
     nextRunTime?: number
   } | null>(null)
   
+  // 🆕 推荐池策略状态
+  const [poolStrategy, setPoolStrategy] = useState<{
+    decision: {
+      poolSize: number
+      minInterval: number
+      maxDailyRefills: number
+      triggerThreshold: number
+      reasoning: string
+      confidence: number
+    }
+    context: {
+      feeds: { totalCount: number; activeFeeds: number; avgUpdateFrequency: number; avgBatchSize: number }
+      articles: { unreadCount: number; dailyAverage: number; yesterdayCount: number }
+      userBehavior: { recommendationsShown: number; clicked: number; dismissed: number; saved: number; avgReadTime: number; peakUsageHour: number }
+      currentPolicy: { poolSize: number; refillInterval: number; maxDailyRefills: number }
+    }
+    date: string
+  } | null>(null)
+  
   const [localModels, setLocalModels] = useState<LocalModelSummary[]>([])
   const [localModelsMode, setLocalModelsMode] = useState<LocalAIEndpointMode | null>(null)
   const [isFetchingLocalModels, setIsFetchingLocalModels] = useState(false)
@@ -223,6 +242,13 @@ export function AIConfig() {
     // 加载推荐配置
     getRecommendationConfig().then(recConfig => {
       setMaxRecommendations(recConfig.maxRecommendations || 3)
+    })
+    
+    // 🆕 加载推荐池策略
+    chrome.storage.local.get('pool_strategy_decision').then(result => {
+      if (result.pool_strategy_decision) {
+        setPoolStrategy(result.pool_strategy_decision)
+      }
     })
     
     // 检查学习阶段 - 使用 OnboardingStateService
@@ -763,10 +789,10 @@ export function AIConfig() {
     </div>
   )}
 
-  {/* 智能推荐数量 */}
+  {/* 智能推荐策略 */}
   <div className="p-6 bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 rounded-lg">
     <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">
-      🎯 {_("options.recommendation.smartCount")}
+      🎯 智能推荐策略
     </h3>
     {isLearningStage ? (
       <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
@@ -787,6 +813,123 @@ export function AIConfig() {
             </p>
           </div>
         </div>
+      </div>
+    ) : poolStrategy ? (
+      <div className="space-y-4">
+        {/* AI 决策理由 */}
+        <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border border-purple-200 dark:border-purple-700 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">🤖</span>
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-purple-900 dark:text-purple-100">
+                  AI 决策建议
+                </span>
+                <span className="text-xs px-2 py-1 rounded-full bg-purple-100 dark:bg-purple-800 text-purple-700 dark:text-purple-200">
+                  置信度 {(poolStrategy.decision.confidence * 100).toFixed(0)}%
+                </span>
+              </div>
+              <p className="text-sm text-purple-800 dark:text-purple-200 mb-2">
+                {poolStrategy.decision.reasoning}
+              </p>
+              <p className="text-xs text-purple-600 dark:text-purple-400">
+                更新时间：{poolStrategy.date}
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        {/* 当前策略参数 */}
+        <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-gray-500 dark:text-gray-400">推荐池容量</span>
+                <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                  {poolStrategy.decision.poolSize} 条
+                </span>
+              </div>
+              <div className="text-xs text-gray-400">
+                （弹窗 {maxRecommendations} 条）
+              </div>
+            </div>
+            
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-gray-500 dark:text-gray-400">补充间隔</span>
+                <span className="text-lg font-bold text-green-600 dark:text-green-400">
+                  {Math.round(poolStrategy.decision.minInterval / 1000 / 60)} 分钟
+                </span>
+              </div>
+              <div className="text-xs text-gray-400">
+                避免频繁分析
+              </div>
+            </div>
+            
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-gray-500 dark:text-gray-400">每日补充上限</span>
+                <span className="text-lg font-bold text-orange-600 dark:text-orange-400">
+                  {poolStrategy.decision.maxDailyRefills} 次
+                </span>
+              </div>
+              <div className="text-xs text-gray-400">
+                控制 AI 成本
+              </div>
+            </div>
+            
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-gray-500 dark:text-gray-400">触发阈值</span>
+                <span className="text-lg font-bold text-purple-600 dark:text-purple-400">
+                  {(poolStrategy.decision.triggerThreshold * 100).toFixed(0)}%
+                </span>
+              </div>
+              <div className="text-xs text-gray-400">
+                低于此值时补充
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* 数据源分析 */}
+        <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+          <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">📊 决策依据</div>
+          <div className="grid grid-cols-3 gap-3 text-xs">
+            <div>
+              <div className="text-gray-500 dark:text-gray-400">订阅源</div>
+              <div className="font-medium text-gray-900 dark:text-gray-100">
+                {poolStrategy.context.feeds.totalCount} 个 ({poolStrategy.context.feeds.activeFeeds} 活跃)
+              </div>
+            </div>
+            <div>
+              <div className="text-gray-500 dark:text-gray-400">日均文章</div>
+              <div className="font-medium text-gray-900 dark:text-gray-100">
+                {poolStrategy.context.articles.dailyAverage.toFixed(0)} 篇
+              </div>
+            </div>
+            <div>
+              <div className="text-gray-500 dark:text-gray-400">昨日点击率</div>
+              <div className="font-medium text-gray-900 dark:text-gray-100">
+                {poolStrategy.context.userBehavior.recommendationsShown > 0
+                  ? ((poolStrategy.context.userBehavior.clicked / poolStrategy.context.userBehavior.recommendationsShown) * 100).toFixed(0)
+                  : 0}%
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* 推荐任务执行时间 */}
+        {recommendationScheduler?.nextRunTime && (
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-3">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-blue-700 dark:text-blue-300">⏱️ 下次推荐生成</span>
+              <span className="font-medium text-blue-600 dark:text-blue-400">
+                {formatTimeUntil(recommendationScheduler.nextRunTime)}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
     ) : (
       <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
@@ -811,6 +954,9 @@ export function AIConfig() {
         
         <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
           {_("options.recommendation.countHint")}
+        </p>
+        <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-2">
+          💡 首次打开扩展弹窗后，AI 将自动生成推荐策略
         </p>
       </div>
     )}
