@@ -591,6 +591,15 @@ function resetTracking() {
   // 清理旧状态
   if (dwellCalculator) {
     dwellCalculator.stop()
+  }
+  
+  if (titleManager) {
+    titleManager.clearLearning()
+  }
+  
+  // 重置状态变量
+  isRecorded = false
+  interactionCount = 0
   hasDetectedRSS = false
   
   // 重新初始化
@@ -600,16 +609,7 @@ function resetTracking() {
   dwellCalculator = new DwellTimeCalculator()
   
   // 重新检测 RSS
-  notifyRSSFeeds
-  // 重置状态变量
-  isRecorded = false
-  interactionCount = 0
-  
-  // 重新初始化
-  titleManager = new TitleStateManager()
-  titleManager.startLearning()
-  
-  dwellCalculator = new DwellTimeCalculator()
+  notifyRSSFeeds()
 }
 
 // ==================== 清理 ====================

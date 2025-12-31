@@ -14,6 +14,41 @@ vi.mock('./db', () => ({
           count: vi.fn().mockResolvedValue(5)
         })
       })
+    },
+    feedArticles: {
+      where: vi.fn(() => ({
+        equals: vi.fn(() => ({
+          count: vi.fn().mockResolvedValue(10)
+        })),
+        above: vi.fn(() => ({
+          count: vi.fn().mockResolvedValue(15)
+        }))
+      }))
+    },
+    recommendations: {
+      where: vi.fn(() => ({
+        above: vi.fn(() => ({
+          limit: vi.fn(() => ({
+            toArray: vi.fn().mockResolvedValue([
+              { isRead: true, feedback: null },
+              { isRead: false, feedback: 'dismissed' },
+              { isRead: false, feedback: 'later' }
+            ])
+          }))
+        }))
+      }))
+    },
+    confirmedVisits: {
+      where: vi.fn(() => ({
+        above: vi.fn(() => ({
+          limit: vi.fn(() => ({
+            toArray: vi.fn().mockResolvedValue([
+              { visitTime: Date.now(), duration: 60000 },
+              { visitTime: Date.now() - 3600000, duration: 90000 }
+            ])
+          }))
+        }))
+      }))
     }
   },
   getRecommendationStats: vi.fn().mockResolvedValue({
