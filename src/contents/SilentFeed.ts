@@ -54,6 +54,7 @@ let dwellCalculator: DwellTimeCalculator | null = null
 let titleManager: TitleStateManager | null = null
 let isRecorded = false
 let interactionCount = 0 // 追踪用户交互次数
+let hasDetectedRSS = false // RSS 检测标记
 let currentUrl = window.location.href // 用于检测 SPA 导航
 let checkTimer: number | null = null // 定时检查计时器
 
@@ -69,7 +70,149 @@ function checkExtensionContext(): boolean {
 }
 
 // ==================== RSS 检测 ====================
-// 注意：RSS 检测功能已移至专门的 rss-detector.ts content script
+
+interface RSSFeedLink {
+  url: string
+  type: "rss" | "atom"
+  title?: string
+}
+
+/**
+ * 检测页面中的 RSS 链接
+ * 
+ * 检测策略：
+ * 1. 查找 <link rel="alternate"> 标签
+ * 2. 尝试常见 RSS URL 路径
+ */
+function detectRSSFeeds(): RSSFeedLink[] {
+  const feeds: RSSFeedLink[] = []
+  
+  // 1. 检测 <link> 标签
+  const linkElements = document.querySelectorAll<HTMLLinkElement>(
+    'link[rel="alternate"][type="application/rss+xml"], ' +
+    'link[rel="alternate"][type="application/atom+xml"]'
+  )
+  
+  linkElements.forEach((link) => {
+    const url = normalizeRSSURL(link.href)
+    if (!url) return
+    
+    const type = link.type.includes("atom") ? "atom" : "rss"
+    const title = link.title || document.title
+    
+    // 避免重复
+    if (!feeds.find(f => f.url === url)) {
+      feeds.push({ url, type, title })
+    }
+  })
+  
+  // 2. 如果没有找到，尝试常见路径
+  if (feeds.length === 0) {
+    const candidateURLs = generateCandidateRSSURLs()
+    for (const url of candidateURLs) {
+      feeds.push({ url, type: "rss" }) // 默认假设为 RSS
+    }
+  }
+  
+  return feeds
+}
+
+/**
+ * 生成候选 RSS URL
+ */
+function generateCandidateRSSURLs(): string[] {
+  const origin = window.location.origin
+  const paths = ["/feed", "/rss", "/atom.xml", "/index.xml", "/feed.xml", "/rss.xml"]
+  return paths.map(path => `${origin}${path}`)
+}
+
+/**
+ * 标准化 RSS URL
+ */
+function normalizeRSSURL(url: string): string | null {
+  try {
+    const absoluteURL = new URL(url, window.location.href)
+    
+    // 只接受 HTTP/HTTPS 协议
+    if (!absoluteURL.protocol.startsWith("http")) {
+      return null
+    }
+    
+    // 检测并转换谷歌翻译 URL
+    if (absoluteURL.hostname.endsWith('.translate.goog')) {
+      const originalUrl = convertGoogleTranslateUrl(absoluteURL)
+      if (originalUrl) {
+        return originalUrl
+      }
+      return null
+    }
+    
+    return absoluteURL.href
+  } catch {
+    return null
+  }
+}
+
+/**
+ * 转换谷歌翻译 URL 为原始 URL
+ */
+function convertGoogleTranslateUrl(translateUrl: URL): string | null {
+  try {
+    const hostname = translateUrl.hostname
+    const translatedDomain = hostname.replace('.translate.goog', '')
+    
+    // 策略：将 "--" 替换为临时占位符，"-" 替换为 "."，再将占位符替换回 "-"
+    const placeholder = '\x00'
+    const originalDomain = translatedDomain
+      .replace(/--/g, placeholder)
+      .replace(/-/g, '.')
+      .replace(new RegExp(placeholder, 'g'), '-')
+    
+    const originalUrl = new URL(translateUrl.pathname, `https://${originalDomain}`)
+    
+    // 保留非翻译相关的查询参数
+    const params = new URLSearchParams(translateUrl.search)
+    const translateParams = ['_x_tr_sl', '_x_tr_tl', '_x_tr_hl', '_x_tr_pto', '_x_tr_hist']
+    translateParams.forEach(param => params.delete(param))
+    
+    if (params.toString()) {
+      originalUrl.search = params.toString()
+    }
+    
+    return originalUrl.href
+  } catch {
+    return null
+  }
+}
+
+/**
+ * 发送 RSS 检测结果到 background
+ */
+async function notifyRSSFeeds() {
+  if (hasDetectedRSS) return
+  if (!checkExtensionContext()) return
+  
+  const feeds = detectRSSFeeds()
+  if (feeds.length === 0) return
+  
+  hasDetectedRSS = true
+  
+  try {
+    await chrome.runtime.sendMessage({
+      type: 'RSS_DETECTED',
+      payload: {
+        feeds,
+        sourceURL: window.location.href,
+        sourceTitle: document.title,
+        detectedAt: Date.now()
+      }
+    })
+    
+    sfLogger.info('📡 RSS feeds detected', { count: feeds.length })
+  } catch (error) {
+    sfLogger.error('Failed to notify RSS feeds', error)
+  }
+}
 
 // ==================== 内容提取 ====================
 
@@ -289,6 +432,15 @@ function initialize() {
   
   // 监听 SPA 导航
   setupSPANavigation()
+  
+  // RSS 检测（页面加载后）
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      notifyRSSFeeds()
+    })
+  } else {
+    notifyRSSFeeds()
+  }
 }
 
 // ==================== SPA 导航监听 ====================
@@ -344,12 +496,16 @@ function resetTracking() {
   // 清理旧状态
   if (dwellCalculator) {
     dwellCalculator.stop()
-  }
+  hasDetectedRSS = false
   
-  if (titleManager) {
-    titleManager.reset()
-  }
+  // 重新初始化
+  titleManager = new TitleStateManager()
+  titleManager.startLearning()
   
+  dwellCalculator = new DwellTimeCalculator()
+  
+  // 重新检测 RSS
+  notifyRSSFeeds
   // 重置状态变量
   isRecorded = false
   interactionCount = 0
