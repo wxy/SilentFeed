@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Silent Feed Icon States Guide</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 1.1em;
+        }
+
+        .legend {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 40px;
+            border-left: 4px solid #667eea;
+        }
+
+        .legend h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .legend-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9em;
+        }
+
+        .legend-color {
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            border: 2px solid #ddd;
+            flex-shrink: 0;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .icon-card {
+            background: #f8f9fa;
+            border-radius: 16px;
+            padding: 25px;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 2px solid #e9ecef;
+        }
+
+        .icon-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            border-color: #667eea;
+        }
+
+        /* Icon container - 128×128, no extra padding */
+        .icon-container {
+            position: relative;
+            width: 128px;
+            height: 128px;
+            margin: 0 auto 20px;
+        }
+
+        /* Icon layer - absolute positioning, 128×128 */
+        .icon-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 128px;
+            height: 128px;
+        }
+
+        .base-icon {
+            z-index: 1;
+        }
+
+        .overlay {
+            z-index: 2;
+        }
+
+        /* Grayscale filter - paused state */
+        .grayscale {
+            filter: grayscale(100%);
+        }
+
+        /* RSS Discovery Animation - waves cumulative display: frame 0(none)→1(1 wave)→2(2 waves)→3(3 waves) */
+        @keyframes discover-wave-1 {
+            0%, 24% { opacity: 0; }
+            25%, 100% { opacity: 1; }
+        }
+        @keyframes discover-wave-2 {
+            0%, 49% { opacity: 0; }
+            50%, 100% { opacity: 1; }
+        }
+        @keyframes discover-wave-3 {
+            0%, 74% { opacity: 0; }
+            75%, 100% { opacity: 1; }
+        }
+
+        .discover-wave-1 { animation: discover-wave-1 2s steps(1, end) infinite; }
+        .discover-wave-2 { animation: discover-wave-2 2s steps(1, end) infinite; }
+        .discover-wave-3 { animation: discover-wave-3 2s steps(1, end) infinite; }
+
+        /* Background fetching animation - only one wave at a time, bidirectional flow
+         * 0.8s cycle: stage 0(wave1) → stage 1(wave2) → stage 2(wave3) → stage 1(wave2)
+         * Opacity: 0.3 + 0.7 * sin(stageProgress * PI)
+         */
+        @keyframes fetching-1 {
+            0% { opacity: 0; }
+            5% { opacity: 0.3; }
+            12.5% { opacity: 1; }
+            20% { opacity: 0.3; }
+            25%, 100% { opacity: 0; }
+        }
+        @keyframes fetching-2-first {
+            0%, 25% { opacity: 0; }
+            30% { opacity: 0.3; }
+            37.5% { opacity: 1; }
+            45% { opacity: 0.3; }
+            50% { opacity: 0; }
+        }
+        @keyframes fetching-2-second {
+            0%, 75% { opacity: 0; }
+            80% { opacity: 0.3; }
+            87.5% { opacity: 1; }
+            95% { opacity: 0.3; }
+            100% { opacity: 0; }
+        }
+        @keyframes fetching-3 {
+            0%, 50% { opacity: 0; }
+            55% { opacity: 0.3; }
+            62.5% { opacity: 1; }
+            70% { opacity: 0.3; }
+            75%, 100% { opacity: 0; }
+        }
+
+        /* Merge wave2's two phases */
+        @keyframes fetching-2 {
+            0%, 25% { opacity: 0; }
+            30% { opacity: 0.3; }
+            37.5% { opacity: 1; }
+            45% { opacity: 0.3; }
+            50%, 75% { opacity: 0; }
+            80% { opacity: 0.3; }
+            87.5% { opacity: 1; }
+            95% { opacity: 0.3; }
+            100% { opacity: 0; }
+        }
+
+        .fetching-wave-1 { animation: fetching-1 3.2s ease-in-out infinite; }
+        .fetching-wave-2 { animation: fetching-2 3.2s ease-in-out infinite; }
+        .fetching-wave-3 { animation: fetching-3 3.2s ease-in-out infinite; }
+
+        /* Recommendation analysis animation - learning-mask opacity breathing
+         * opacity = 0.2 + 0.5 * abs(sin((elapsed / 1500) * PI))
+         * 1.5s cycle, noticeable brightness variation
+         */
+        @keyframes analyzing-breath {
+            0% { opacity: 0.2; }
+            50% { opacity: 0.7; }
+            100% { opacity: 0.2; }
+        }
+
+        .analyzing-breath {
+            animation: analyzing-breath 1.5s ease-in-out infinite;
+            z-index: 3;
+        }
+
+        /* Error flash - 1s cycle, brighter first half, darker second half
+         * Uses semi-transparent red overlay, combined with border-radius for circular mask
+         */
+        @keyframes error-flash {
+            0%, 100% { opacity: 0.25; }
+            50% { opacity: 0.65; }
+        }
+
+        .error-flash {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 128px;
+            height: 128px;
+            background: rgba(255, 0, 0, 0.6);
+            pointer-events: none;
+            animation: error-flash 1s ease-in-out infinite;
+            z-index: 10;
+            border-radius: 25%;
+        }
+
+        /* Recommendation badge - CSS simulation of Canvas drawRecommendBadge
+         * size = 128, badgeSize = 128 * 0.42 = 53.76, padding = 128 * 0.02 = 2.56
+         * centerX = 128 - 2.56 - 26.88 = 98.56, centerY = 2.56 + 26.88 = 29.44
+         */
+        .recommend-badge {
+            position: absolute;
+            top: 2.56px;
+            right: 2.56px;
+            width: 53.76px;
+            height: 53.76px;
+            background: #000;
+            color: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 34.944px; /* 53.76 * 0.65 */
+            font-weight: bold;
+            border: 2.56px solid rgba(255,255,255,0.6);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            z-index: 4;
+        }
+
+        /* Learning mask - drawLearningMask */
+        .learning-mask-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 128px;
+            overflow: hidden;
+            z-index: 3;
+        }
+
+        .learning-mask-image {
+            display: block;
+            width: 128px;
+        }
+
+        .icon-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .icon-description {
+            color: #666;
+            font-size: 0.9em;
+            line-height: 1.6;
+            min-height: 70px;
+        }
+
+
+
+        .section-title {
+            font-size: 2em;
+            color: #333;
+            margin: 40px 0 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .note {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            color: #856404;
+        }
+
+        .note strong {
+            color: #856404;
+        }
+
+        .code {
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.85em;
+            color: #d63384;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Silent Feed Icon States Guide</h1>
+        <p class="subtitle">Understanding what different icon styles mean</p>
+
+        <div class="legend">
+            <h3>📦 Icon Visual Elements</h3>
+            <div class="legend-items">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ff8c42;"></div>
+                    <span>Base Icon - Silent Feed's main logo</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: rgba(255,255,255,0.3); border-style: dashed;"></div>
+                    <span>Wave Animation - Indicates processing or discovering content</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: rgba(0,0,0,0.4);"></div>
+                    <span>Learning Mask - Indicates learning your reading preferences</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #000;"></div>
+                    <span>Number Badge - Shows unread recommendation count</span>
+                </div>
+            </div>
+        </div>
+
+        <h2 class="section-title">🔷 Basic States (Static & Paused)</h2>
+        <div class="grid">
+            <!-- Static State -->
+            <div class="icon-card">
+                <div class="icon-container">
+                    <img src="../assets/icons/128/base-static.png" class="icon-layer base-icon" alt="base">
+                </div>
+                <div class="icon-title">🟠 Static State</div>
+                <div class="icon-description">
+                    Extension is running normally, learning completed (learningProgress ≥ learningThreshold), no recommendations (recommendCount = 0)
+                </div>
+                </div>
+
+            <!-- Paused State -->
+            <div class="icon-card">
+                <div class="icon-container">
+                    <img src="../assets/icons/128/base-static.png" class="icon-layer base-icon grayscale" alt="base">
+                </div>
+                <div class="icon-title">⏸️ Paused State</div>
+                <div class="icon-description">
+                    User has paused the extension (isPaused = true), converted to grayscale by applyGrayscaleFilter()
+                </div>
+                </div>
+        </div>
+
+        <h2 class="section-title">📊 Status Indicators (Learning & Recommend & Error)</h2>
+        <div class="grid">
+            <!-- Learning Progress 25% -->
+            <div class="icon-card">
+                <div class="icon-container">
+                    <img src="../assets/icons/128/base-static.png" class="icon-layer base-icon" alt="base">
+                    <div class="learning-mask-container" style="height: 96px;">
+                        <img src="../assets/icons/128/overlays/learning-mask.png" class="learning-mask-image" alt="mask">
+                    </div>
+                </div>
+                <div class="icon-title">📚 Learning Progress 25%</div>
+                <div class="icon-description">
+                    Collected 25 pages, <span class="code">maskHeight = 128 * (1 - 0.25) = 96px</span>, learning-mask cropped from top
+                </div>
+                </div>
+
+            <!-- Learning Progress 50% -->
+            <div class="icon-card">
+                <div class="icon-container">
+                    <img src="../assets/icons/128/base-static.png" class="icon-layer base-icon" alt="base">
+                    <div class="learning-mask-container" style="height: 64px;">
+                        <img src="../assets/icons/128/overlays/learning-mask.png" class="learning-mask-image" alt="mask">
+                    </div>
+                </div>
+                <div class="icon-title">📚 Learning Progress 50%</div>
+                <div class="icon-description">
+                    Collected 50 pages, <span class="code">maskHeight = 128 * (1 - 0.5) = 64px</span>
+                </div>
+                </div>
+
+            <!-- Learning Progress 75% -->
+            <div class="icon-card">
+                <div class="icon-container">
+                    <img src="../assets/icons/128/base-static.png" class="icon-layer base-icon" alt="base">
+                    <div class="learning-mask-container" style="height: 32px;">
+                        <img src="../assets/icons/128/overlays/learning-mask.png" class="learning-mask-image" alt="mask">
+                    </div>
+                </div>
+                <div class="icon-title">📚 Learning Progress 75%</div>
+                <div class="icon-description">
+                    Collected 75 pages, <span class="code">maskHeight = 128 * (1 - 0.75) = 32px</span>
+                </div>
+                </div>
+
+            <!-- Recommended Reading 1 item -->
+            <div class="icon-card">
+                <div class="icon-container">
+                    <img src="../assets/icons/128/base-static.png" class="icon-layer base-icon" alt="base">
+                    <div class="recommend-badge">1</div>
+                </div>
+                <div class="icon-title">📮 Recommended Reading (1 item)</div>
+                <div class="icon-description">
+                    Learning completed with 1 recommendation (recommendCount = 1). Note: recommendation state does not use wave animations
+                </div>
+                </div>
+
+            <!-- Recommended Reading 3 items -->
+            <div class="icon-card">
+                <div class="icon-container">
+                    <img src="../assets/icons/128/base-static.png" class="icon-layer base-icon" alt="base">
+                    <div class="recommend-badge">3</div>
+                </div>
+                <div class="icon-title">📮 Recommended Reading (3 items)</div>
+                <div class="icon-description">
+                    Has 3 recommendations (recommendCount = 3, maximum display count)
+                </div>
+                </div>
+
+            <!-- Error State -->
+            <div class="icon-card">
+                <div class="icon-container">
+                    <img src="../assets/icons/128/base-static.png" class="icon-layer base-icon" alt="base">
+                    <div class="error-flash"></div>
+                </div>
+                <div class="icon-title">❌ Error State</div>
+                <div class="icon-description">
+                    Encountered an error (hasError = true), red overlay flashing (1-second cycle: 0.6 ↔ 0.2). <strong>source-atop ensures red only appears within icon shape area, perfectly fitting the icon outline</strong>
+                </div>
+                </div>
+        </div>
+
+        <h2 class="section-title">🎬 Animation Effects (Discover, Fetching, Analyzing)</h2>
+        <div class="grid">
+            <!-- RSS Discovery Animation -->
+            <div class="icon-card">
+                <div class="icon-container">
+                    <img src="../assets/icons/128/base-static.png" class="icon-layer base-icon" alt="base">
+                    <img src="../assets/icons/128/overlays/wave-1-lit.png" class="icon-layer overlay discover-wave-1" alt="wave1">
+                    <img src="../assets/icons/128/overlays/wave-2-lit.png" class="icon-layer overlay discover-wave-2" alt="wave2">
+                    <img src="../assets/icons/128/overlays/wave-3-lit.png" class="icon-layer overlay discover-wave-3" alt="wave3">
+                </div>
+                <div class="icon-title">📡 RSS Discovery Animation</div>
+                <div class="icon-description">
+                    RSS feed detected, <span class="code">drawDiscoverWaves(frame)</span> cumulative display: frame 0(none) → 1(wave1) → 2(wave1+wave2) → 3(all)
+                </div>
+                </div>
+
+            <!-- Background Fetching Animation -->
+            <div class="icon-card">
+                <div class="icon-container">
+                    <img src="../assets/icons/128/base-static.png" class="icon-layer base-icon" alt="base">
+                    <img src="../assets/icons/128/overlays/wave-1-lit.png" class="icon-layer overlay fetching-wave-1" alt="wave1">
+                    <img src="../assets/icons/128/overlays/wave-2-lit.png" class="icon-layer overlay fetching-wave-2" alt="wave2">
+                    <img src="../assets/icons/128/overlays/wave-3-lit.png" class="icon-layer overlay fetching-wave-3" alt="wave3">
+                </div>
+                <div class="icon-title">🔄 Background Fetching Animation</div>
+                <div class="icon-description">
+                    Fetching RSS, <span class="code">drawFetchingPulse(timestamp)</span> 0.8s cycle, only one wave at a time: stage 0(wave1) → 1(wave2) → 2(wave3) → 1(wave2)
+                </div>
+                </div>
+
+            <!-- Recommendation Analysis Animation -->
+            <div class="icon-card">
+                <div class="icon-container">
+                    <img src="../assets/icons/128/base-static.png" class="icon-layer base-icon" alt="base">
+                    <img src="../assets/icons/128/overlays/learning-mask.png" class="icon-layer overlay analyzing-breath" alt="mask">
+                </div>
+                <div class="icon-title">💭 Recommendation Analysis Animation</div>
+                <div class="icon-description">
+                    AI analyzing, <span class="code">drawAnalyzingBreath(timestamp)</span> learning-mask breathing (1.5s cycle, opacity 0.2~0.7, noticeable change)
+                </div>
+                </div>
+        </div>
+
+        <div class="note">
+            <strong>💡 Key Differences:</strong><br>
+            • <strong>RSS Discovery</strong>: Cumulative wave display (0→1→2→3 waves)<br>
+            • <strong>Background Fetching</strong>: Only one wave at a time, bidirectional flow (wave1→2→3→2)<br>
+            • <strong>Recommendation Analysis</strong>: Full mask breathing, no waves<br>
+            • <strong>Recommendation State</strong>: Badge only, no wave animations
+        </div>
+
+        <h2 class="section-title">🔀 State Combination Examples (Stacked by Priority)</h2>
+        <div class="grid">
+            <!-- Learning + Error -->
+            <div class="icon-card">
+                <div class="icon-container">
+                    <img src="../assets/icons/128/base-static.png" class="icon-layer base-icon" alt="base">
+                    <div class="learning-mask-container" style="height: 64px;">
+                        <img src="../assets/icons/128/overlays/learning-mask.png" class="learning-mask-image" alt="mask">
+                    </div>
+                    <div class="error-flash"></div>
+                </div>
+                <div class="icon-title">Learning + Error</div>
+                <div class="icon-description">
+                    Error during learning phase, draw learning-mask first, then overlay red flash (hasError = true)
+                </div>
+                </div>
+
+            <!-- Recommendation + Error -->
+            <div class="icon-card">
+                <div class="icon-container">
+                    <img src="../assets/icons/128/base-static.png" class="icon-layer base-icon" alt="base">
+                    <div class="recommend-badge">2</div>
+                    <div class="error-flash"></div>
+                </div>
+                <div class="icon-title">Recommendation + Error</div>
+                <div class="icon-description">
+                    Has recommendations but encountered error, badge + red flash
+                </div>
+                </div>
+
+            <!-- Paused Takes Priority -->
+            <div class="icon-card">
+                <div class="icon-container">
+                    <img src="../assets/icons/128/base-static.png" class="icon-layer base-icon grayscale" alt="base">
+                </div>
+                <div class="icon-title">Paused Takes Priority</div>
+                <div class="icon-description">
+                    Although has recommendations, <span class="code">updateIcon()</span> judges by priority: isPaused (priority 3) > recommendCount (priority 7)
+                </div>
+                </div>
+        </div>
+
+        <div class="note">
+            <strong>⚙️ IconManager Priority Rules:</strong><br>
+            1️⃣ Error (stackable) → 2️⃣ RSS Discovery → 3️⃣ Paused → 4️⃣ Recommendation Analysis → 5️⃣ Background Fetching → 6️⃣ Learning Progress → 7️⃣ Recommended Reading → 8️⃣ Static
+        </div>
+    </div>
+</body>
+</html>

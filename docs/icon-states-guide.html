@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Silent Feed 图标状态演示 - 真实图标组件</title>
+    <title>Silent Feed 图标状态说明</title>
     <style>
         * {
             margin: 0;
@@ -284,38 +284,6 @@
             min-height: 70px;
         }
 
-        .priority-badge {
-            display: inline-block;
-            background: #667eea;
-            color: white;
-            padding: 3px 10px;
-            border-radius: 12px;
-            font-size: 0.75em;
-            font-weight: bold;
-            margin-top: 10px;
-        }
-
-        .components {
-            background: #e9ecef;
-            padding: 10px;
-            border-radius: 8px;
-            margin-top: 15px;
-            font-size: 0.8em;
-            color: #495057;
-            text-align: left;
-        }
-
-        .component-title {
-            font-weight: bold;
-            margin-bottom: 5px;
-            color: #333;
-        }
-
-        .component-list {
-            padding-left: 15px;
-            line-height: 1.8;
-        }
-
         .section-title {
             font-size: 2em;
             color: #333;
@@ -349,27 +317,27 @@
 </head>
 <body>
     <div class="container">
-        <h1>🎨 Silent Feed 图标状态演示</h1>
-        <p class="subtitle">完全基于 IconComposer 和 IconManager 的真实图标组件展示</p>
+        <h1>🎨 Silent Feed 图标状态说明</h1>
+        <p class="subtitle">了解浏览器工具栏图标的不同样式代表什么含义</p>
 
         <div class="legend">
-            <h3>📦 图标组件说明（对应 preload 加载的资源）</h3>
+            <h3>📦 图标视觉元素说明</h3>
             <div class="legend-items">
                 <div class="legend-item">
                     <div class="legend-color" style="background: #ff8c42;"></div>
-                    <span><span class="code">base-static.png</span> - 基础图标 (128×128)</span>
+                    <span>基础图标 - Silent Feed 的主要标识</span>
                 </div>
                 <div class="legend-item">
                     <div class="legend-color" style="background: rgba(255,255,255,0.3); border-style: dashed;"></div>
-                    <span><span class="code">wave-1/2/3-lit.png</span> - 波纹叠加层（透明PNG）</span>
+                    <span>波纹动画 - 表示正在处理或发现内容</span>
                 </div>
                 <div class="legend-item">
                     <div class="legend-color" style="background: rgba(0,0,0,0.4);"></div>
-                    <span><span class="code">learning-mask.png</span> - 学习遮罩（半透明黑）</span>
+                    <span>学习遮罩 - 表示正在了解你的阅读偏好</span>
                 </div>
                 <div class="legend-item">
                     <div class="legend-color" style="background: #000;"></div>
-                    <span><span class="code">drawRecommendBadge()</span> - Canvas绘制徽章</span>
+                    <span>数字徽章 - 显示未读推荐文章数量</span>
                 </div>
             </div>
         </div>
@@ -381,17 +349,9 @@
                 <div class="icon-container">
                     <img src="../assets/icons/128/base-static.png" class="icon-layer base-icon" alt="base">
                 </div>
-                <div class="icon-title">🟠 静态状态 (Static)</div>
+                <div class="icon-title">🟠 静态状态</div>
                 <div class="icon-description">
-                    扩展正常运行，已完成学习（learningProgress ≥ learningThreshold），无推荐内容（recommendCount = 0）
-                </div>
-                <div class="priority-badge">优先级: 8 (默认)</div>
-                <div class="components">
-                    <div class="component-title">compose() 流程：</div>
-                    <div class="component-list">
-                        1. ctx.drawImage(baseImage, 0, 0)<br>
-                        2. 无其他叠加层
-                    </div>
+                    扩展正常运行，已完成学习，暂无新内容推荐
                 </div>
             </div>
 
@@ -400,18 +360,9 @@
                 <div class="icon-container">
                     <img src="../assets/icons/128/base-static.png" class="icon-layer base-icon grayscale" alt="base">
                 </div>
-                <div class="icon-title">⏸️ 暂停状态 (Paused)</div>
+                <div class="icon-title">⏸️ 暂停状态</div>
                 <div class="icon-description">
-                    用户已暂停扩展（isPaused = true），调用 applyGrayscaleFilter() 转换为灰度
-                </div>
-                <div class="priority-badge">优先级: 3</div>
-                <div class="components">
-                    <div class="component-title">compose() 流程：</div>
-                    <div class="component-list">
-                        1. ctx.drawImage(baseImage, 0, 0)<br>
-                        2. applyGrayscaleFilter()<br>
-                        &nbsp;&nbsp;&nbsp;- getImageData → 灰度转换 → putImageData
-                    </div>
+                    扩展已暂停，点击图标可重新启用
                 </div>
             </div>
         </div>
@@ -428,16 +379,7 @@
                 </div>
                 <div class="icon-title">📚 学习进度 25%</div>
                 <div class="icon-description">
-                    已收集 25 页，<span class="code">maskHeight = 128 * (1 - 0.25) = 96px</span>，从顶部裁剪 learning-mask
-                </div>
-                <div class="priority-badge">优先级: 6</div>
-                <div class="components">
-                    <div class="component-title">drawLearningMask(25)：</div>
-                    <div class="component-list">
-                        progress = 0.25<br>
-                        maskHeight = 128 * 0.75 = 96<br>
-                        ctx.drawImage(learningMask, 0, 0, 128, 96, 0, 0, 128, 96)
-                    </div>
+                    正在了解你的阅读偏好，蓝色遮罩从下往上填充表示学习进度
                 </div>
             </div>
 
@@ -451,16 +393,7 @@
                 </div>
                 <div class="icon-title">📚 学习进度 50%</div>
                 <div class="icon-description">
-                    已收集 50 页，<span class="code">maskHeight = 128 * (1 - 0.5) = 64px</span>
-                </div>
-                <div class="priority-badge">优先级: 6</div>
-                <div class="components">
-                    <div class="component-title">drawLearningMask(50)：</div>
-                    <div class="component-list">
-                        progress = 0.5<br>
-                        maskHeight = 128 * 0.5 = 64<br>
-                        ctx.drawImage(learningMask, 0, 0, 128, 64, 0, 0, 128, 64)
-                    </div>
+                    学习已进行到一半，继续浏览感兴趣的内容可加速完成
                 </div>
             </div>
 
@@ -474,16 +407,7 @@
                 </div>
                 <div class="icon-title">📚 学习进度 75%</div>
                 <div class="icon-description">
-                    已收集 75 页，<span class="code">maskHeight = 128 * (1 - 0.75) = 32px</span>
-                </div>
-                <div class="priority-badge">优先级: 6</div>
-                <div class="components">
-                    <div class="component-title">drawLearningMask(75)：</div>
-                    <div class="component-list">
-                        progress = 0.75<br>
-                        maskHeight = 128 * 0.25 = 32<br>
-                        ctx.drawImage(learningMask, 0, 0, 128, 32, 0, 0, 128, 32)
-                    </div>
+                    即将完成学习，之后会开始为你推荐内容
                 </div>
             </div>
 
@@ -495,16 +419,7 @@
                 </div>
                 <div class="icon-title">📮 推荐阅读 (1 条)</div>
                 <div class="icon-description">
-                    学习完成且有 1 条推荐（recommendCount = 1），注意：推荐状态不使用波纹
-                </div>
-                <div class="priority-badge">优先级: 7</div>
-                <div class="components">
-                    <div class="component-title">drawRecommendBadge(1)：</div>
-                    <div class="component-list">
-                        badgeSize = 128 * 0.42 = 53.76px<br>
-                        centerX = 98.56, centerY = 29.44<br>
-                        Canvas 绘制黑色圆 + 白色数字
-                    </div>
+                    有 1 篇文章推荐给你，点击图标查看
                 </div>
             </div>
 
@@ -516,15 +431,9 @@
                 </div>
                 <div class="icon-title">📮 推荐阅读 (3 条)</div>
                 <div class="icon-description">
-                    有 3 条推荐（recommendCount = 3，最大显示数）
+                    有 3 篇文章推荐给你，点击图标查看
                 </div>
-                <div class="priority-badge">优先级: 7</div>
-                <div class="components">
-                    <div class="component-title">drawRecommendBadge(3)：</div>
-                    <div class="component-list">
-                        同上，数字显示 "3"
-                    </div>
-                </div>
+
             </div>
 
             <!-- 错误状态 -->
@@ -533,20 +442,9 @@
                     <img src="../assets/icons/128/base-static.png" class="icon-layer base-icon" alt="base">
                     <div class="error-flash"></div>
                 </div>
-                <div class="icon-title">❌ 错误状态 (Error)</div>
+                <div class="icon-title">❌ 错误状态</div>
                 <div class="icon-description">
-                    遇到错误（hasError = true），红色叠加层闪烁（1秒周期：0.6 ↔ 0.2）。<strong>source-atop 确保红色只在图标形状区域显示，完美贴合图标轮廓</strong>
-                </div>
-                <div class="priority-badge">优先级: 1 (最高，可叠加)</div>
-                <div class="components">
-                    <div class="component-title">错误叠加逻辑：</div>
-                    <div class="component-list">
-                        elapsed % 1000 < 500 ? opacity=0.6 : opacity=0.2<br>
-                        ctx.globalCompositeOperation = 'source-atop'<br>
-                        ctx.fillStyle = '#ff0000'<br>
-                        ctx.fillRect(0, 0, 128, 128)<br>
-                        ⚠️ source-atop: 只在已绘制内容区域填充红色
-                    </div>
+                    遇到错误时，图标会闪烁红色提醒你
                 </div>
             </div>
         </div>
@@ -563,19 +461,9 @@
                 </div>
                 <div class="icon-title">📡 RSS 发现动画</div>
                 <div class="icon-description">
-                    检测到 RSS 源，<span class="code">drawDiscoverWaves(frame)</span> 逐个累积：frame 0(无) → 1(wave1) → 2(wave1+wave2) → 3(全部)
+                    发现当前页面有 RSS 订阅源，波纹逐个出现
                 </div>
-                <div class="priority-badge">优先级: 2 (临时6秒)</div>
-                <div class="components">
-                    <div class="component-title">drawDiscoverWaves(frame)：</div>
-                    <div class="component-list">
-                        frame 0: 无波纹<br>
-                        frame 1: drawImage(wave1)<br>
-                        frame 2: drawImage(wave1) + drawImage(wave2)<br>
-                        frame 3: drawImage(wave1/2/3)
-                    </div>
                 </div>
-            </div>
 
             <!-- 后台抓取动画 -->
             <div class="icon-card">
@@ -587,20 +475,9 @@
                 </div>
                 <div class="icon-title">🔄 后台抓取动画</div>
                 <div class="icon-description">
-                    抓取RSS，<span class="code">drawFetchingPulse(timestamp)</span> 0.8秒周期，每次只显示一条：stage 0(wave1) → 1(wave2) → 2(wave3) → 1(wave2)
+                    正在后台更新订阅内容，波纹流动显示进度
                 </div>
-                <div class="priority-badge">优先级: 5</div>
-                <div class="components">
-                    <div class="component-title">drawFetchingPulse()：</div>
-                    <div class="component-list">
-                        cycle = (elapsed % 800) / 800<br>
-                        0-0.25: stage=0 → wave1 (opacity: 0.3~1.0)<br>
-                        0.25-0.5: stage=1 → wave2<br>
-                        0.5-0.75: stage=2 → wave3<br>
-                        0.75-1.0: stage=1 → wave2
-                    </div>
                 </div>
-            </div>
 
             <!-- 推荐分析动画 -->
             <div class="icon-card">
@@ -610,18 +487,9 @@
                 </div>
                 <div class="icon-title">💭 推荐分析动画</div>
                 <div class="icon-description">
-                    AI 分析中，<span class="code">drawAnalyzingBreath(timestamp)</span> learning-mask 呼吸（1.5秒周期，透明度 0.2~0.7，明显变化）
+                    AI 正在分析推荐内容，图标有节奏地闪烁
                 </div>
-                <div class="priority-badge">优先级: 4</div>
-                <div class="components">
-                    <div class="component-title">drawAnalyzingBreath()：</div>
-                    <div class="component-list">
-                        opacity = 0.2 + 0.5 * abs(sin((elapsed/1500)*PI))<br>
-                        ctx.globalAlpha = opacity<br>
-                        ctx.drawImage(learningMask, 0, 0)
-                    </div>
                 </div>
-            </div>
         </div>
 
         <div class="note">
@@ -645,17 +513,9 @@
                 </div>
                 <div class="icon-title">学习中 + 错误</div>
                 <div class="icon-description">
-                    学习阶段遇到错误，先绘制 learning-mask，再叠加红色闪烁（hasError = true）
+                    学习阶段遇到错误，同时显示学习进度和红色闪烁
                 </div>
-                <div class="components">
-                    <div class="component-title">compose() 顺序：</div>
-                    <div class="component-list">
-                        1. drawImage(baseImage)<br>
-                        2. drawLearningMask(50)<br>
-                        3. 红色 fillRect (source-atop)
-                    </div>
                 </div>
-            </div>
 
             <!-- 推荐 + 错误 -->
             <div class="icon-card">
@@ -666,17 +526,9 @@
                 </div>
                 <div class="icon-title">推荐 + 错误</div>
                 <div class="icon-description">
-                    有推荐但遇到错误，徽章 + 红色闪烁
+                    有推荐内容但遇到错误，数字徽章加红色闪烁
                 </div>
-                <div class="components">
-                    <div class="component-title">compose() 顺序：</div>
-                    <div class="component-list">
-                        1. drawImage(baseImage)<br>
-                        2. drawRecommendBadge(2)<br>
-                        3. 红色 fillRect (source-atop)
-                    </div>
                 </div>
-            </div>
 
             <!-- 暂停优先显示 -->
             <div class="icon-card">
@@ -685,17 +537,9 @@
                 </div>
                 <div class="icon-title">暂停优先显示</div>
                 <div class="icon-description">
-                    虽有推荐，但 <span class="code">updateIcon()</span> 按优先级判断：isPaused (优先级3) > recommendCount (优先级7)
+                    即使有推荐内容，暂停状态也会优先显示
                 </div>
-                <div class="components">
-                    <div class="component-title">updateIcon() 逻辑：</div>
-                    <div class="component-list">
-                        if (isPaused) → state = {type: 'paused'}<br>
-                        else if (recommendCount > 0) → ...<br>
-                        暂停优先级更高，徽章不显示
-                    </div>
                 </div>
-            </div>
         </div>
 
         <div class="note">
