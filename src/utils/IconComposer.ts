@@ -344,7 +344,7 @@ export class IconComposer {
    * 绘制推荐分析呼吸效果
    * 方案：使用 learning-mask 的透明度呼吸
    * - 1.5秒周期的平滑呼吸（比波纹更慢更舒缓）
-   * - 0.15-0.45 透明度范围（轻柔的明暗变化）
+   * - 0.2-0.7 透明度范围（明显的明暗变化）
    * - 整体遮罩呼吸，给人一种"思考中"的感觉
    * - 与波纹流动的"抓取"效果形成对比
    */
@@ -355,8 +355,8 @@ export class IconComposer {
     const elapsed = now - timestamp
     
     // 1.5秒周期的正弦波呼吸（更慢更舒缓）
-    // 透明度 0.15-0.45，产生轻柔的明暗变化
-    const opacity = 0.15 + 0.30 * Math.abs(Math.sin((elapsed / 1500) * Math.PI))
+    // 透明度 0.2-0.7，产生明显的明暗变化
+    const opacity = 0.2 + 0.5 * Math.abs(Math.sin((elapsed / 1500) * Math.PI))
     
     this.ctx.globalAlpha = opacity
     this.ctx.drawImage(this.overlayImages.learningMask, 0, 0)

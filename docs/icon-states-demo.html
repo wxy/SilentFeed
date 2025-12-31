@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Silent Feed 图标状态演示 - 真实图标组件</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 1.1em;
+        }
+
+        .legend {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 40px;
+            border-left: 4px solid #667eea;
+        }
+
+        .legend h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .legend-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9em;
+        }
+
+        .legend-color {
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            border: 2px solid #ddd;
+            flex-shrink: 0;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .icon-card {
+            background: #f8f9fa;
+            border-radius: 16px;
+            padding: 25px;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 2px solid #e9ecef;
+        }
+
+        .icon-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            border-color: #667eea;
+        }
+
+        /* 图标容器 - 128×128，无额外 padding */
+        .icon-container {
+            position: relative;
+            width: 128px;
+            height: 128px;
+            margin: 0 auto 20px;
+        }
+
+        /* 图标层 - 绝对定位，128×128 */
+        .icon-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 128px;
+            height: 128px;
+        }
+
+        .base-icon {
+            z-index: 1;
+        }
+
+        .overlay {
+            z-index: 2;
+        }
+
+        /* 灰度滤镜 - 暂停状态 */
+        .grayscale {
+            filter: grayscale(100%);
+        }
+
+        /* RSS 发现动画 - 波纹逐个累积显示：0帧(无)→1帧(1条)→2帧(2条)→3帧(3条) */
+        @keyframes discover-wave-1 {
+            0%, 24% { opacity: 0; }
+            25%, 100% { opacity: 1; }
+        }
+        @keyframes discover-wave-2 {
+            0%, 49% { opacity: 0; }
+            50%, 100% { opacity: 1; }
+        }
+        @keyframes discover-wave-3 {
+            0%, 74% { opacity: 0; }
+            75%, 100% { opacity: 1; }
+        }
+
+        .discover-wave-1 { animation: discover-wave-1 2s steps(1, end) infinite; }
+        .discover-wave-2 { animation: discover-wave-2 2s steps(1, end) infinite; }
+        .discover-wave-3 { animation: discover-wave-3 2s steps(1, end) infinite; }
+
+        /* 后台抓取动画 - 每次只显示一条波纹，双向流动
+         * 0.8秒周期：stage 0(wave1) → stage 1(wave2) → stage 2(wave3) → stage 1(wave2)
+         * 透明度：0.3 + 0.7 * sin(stageProgress * PI)
+         */
+        @keyframes fetching-1 {
+            0% { opacity: 0; }
+            5% { opacity: 0.3; }
+            12.5% { opacity: 1; }
+            20% { opacity: 0.3; }
+            25%, 100% { opacity: 0; }
+        }
+        @keyframes fetching-2-first {
+            0%, 25% { opacity: 0; }
+            30% { opacity: 0.3; }
+            37.5% { opacity: 1; }
+            45% { opacity: 0.3; }
+            50% { opacity: 0; }
+        }
+        @keyframes fetching-2-second {
+            0%, 75% { opacity: 0; }
+            80% { opacity: 0.3; }
+            87.5% { opacity: 1; }
+            95% { opacity: 0.3; }
+            100% { opacity: 0; }
+        }
+        @keyframes fetching-3 {
+            0%, 50% { opacity: 0; }
+            55% { opacity: 0.3; }
+            62.5% { opacity: 1; }
+            70% { opacity: 0.3; }
+            75%, 100% { opacity: 0; }
+        }
+
+        /* 合并 wave2 的两个阶段 */
+        @keyframes fetching-2 {
+            0%, 25% { opacity: 0; }
+            30% { opacity: 0.3; }
+            37.5% { opacity: 1; }
+            45% { opacity: 0.3; }
+            50%, 75% { opacity: 0; }
+            80% { opacity: 0.3; }
+            87.5% { opacity: 1; }
+            95% { opacity: 0.3; }
+            100% { opacity: 0; }
+        }
+
+        .fetching-wave-1 { animation: fetching-1 3.2s ease-in-out infinite; }
+        .fetching-wave-2 { animation: fetching-2 3.2s ease-in-out infinite; }
+        .fetching-wave-3 { animation: fetching-3 3.2s ease-in-out infinite; }
+
+        /* 推荐分析动画 - learning-mask 透明度呼吸
+         * opacity = 0.2 + 0.5 * abs(sin((elapsed / 1500) * PI))
+         * 1.5秒周期，明显的明暗变化
+         */
+        @keyframes analyzing-breath {
+            0% { opacity: 0.2; }
+            50% { opacity: 0.7; }
+            100% { opacity: 0.2; }
+        }
+
+        .analyzing-breath {
+            animation: analyzing-breath 1.5s ease-in-out infinite;
+            z-index: 3;
+        }
+
+        /* 错误闪烁 - 1秒周期，前半秒较亮，后半秒较暗
+         * 使用半透明红色直接覆盖，配合 border-radius 形成圆形遮罩
+         */
+        @keyframes error-flash {
+            0%, 100% { opacity: 0.25; }
+            50% { opacity: 0.65; }
+        }
+
+        .error-flash {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 128px;
+            height: 128px;
+            background: rgba(255, 0, 0, 0.6);
+            pointer-events: none;
+            animation: error-flash 1s ease-in-out infinite;
+            z-index: 10;
+            border-radius: 25%;
+        }
+
+        /* 推荐徽章 - Canvas drawRecommendBadge 的 CSS 模拟
+         * size = 128, badgeSize = 128 * 0.42 = 53.76, padding = 128 * 0.02 = 2.56
+         * centerX = 128 - 2.56 - 26.88 = 98.56, centerY = 2.56 + 26.88 = 29.44
+         */
+        .recommend-badge {
+            position: absolute;
+            top: 2.56px;
+            right: 2.56px;
+            width: 53.76px;
+            height: 53.76px;
+            background: #000;
+            color: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 34.944px; /* 53.76 * 0.65 */
+            font-weight: bold;
+            border: 2.56px solid rgba(255,255,255,0.6);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            z-index: 4;
+        }
+
+        /* 学习遮罩 - drawLearningMask */
+        .learning-mask-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 128px;
+            overflow: hidden;
+            z-index: 3;
+        }
+
+        .learning-mask-image {
+            display: block;
+            width: 128px;
+        }
+
+        .icon-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .icon-description {
+            color: #666;
+            font-size: 0.9em;
+            line-height: 1.6;
+            min-height: 70px;
+        }
+
+        .priority-badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .components {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 0.8em;
+            color: #495057;
+            text-align: left;
+        }
+
+        .component-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .component-list {
+            padding-left: 15px;
+            line-height: 1.8;
+        }
+
+        .section-title {
+            font-size: 2em;
+            color: #333;
+            margin: 40px 0 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .note {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            color: #856404;
+        }
+
+        .note strong {
+            color: #856404;
+        }
+
+        .code {
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.85em;
+            color: #d63384;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Silent Feed 图标状态演示</h1>
+        <p class="subtitle">完全基于 IconComposer 和 IconManager 的真实图标组件展示</p>
+
+        <div class="legend">
+            <h3>📦 图标组件说明（对应 preload 加载的资源）</h3>
+            <div class="legend-items">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ff8c42;"></div>
+                    <span><span class="code">base-static.png</span> - 基础图标 (128×128)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: rgba(255,255,255,0.3); border-style: dashed;"></div>
+                    <span><span class="code">wave-1/2/3-lit.png</span> - 波纹叠加层（透明PNG）</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: rgba(0,0,0,0.4);"></div>
+                    <span><span class="code">learning-mask.png</span> - 学习遮罩（半透明黑）</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #000;"></div>
+                    <span><span class="code">drawRecommendBadge()</span> - Canvas绘制徽章</span>
+                </div>
+            </div>
+        </div>
+
+        <h2 class="section-title">🔷 基础状态（Static & Paused）</h2>
+        <div class="grid">
+            <!-- 静态状态 -->
+            <div class="icon-card">
+                <div class="icon-container">
+                    <img src="../assets/icons/128/base-static.png" class="icon-layer base-icon" alt="base">
+                </div>
+                <div class="icon-title">🟠 静态状态 (Static)</div>
+                <div class="icon-description">
+                    扩展正常运行，已完成学习（learningProgress ≥ learningThreshold），无推荐内容（recommendCount = 0）
+                </div>
+                <div class="priority-badge">优先级: 8 (默认)</div>
+                <div class="components">
+                    <div class="component-title">compose() 流程：</div>
+                    <div class="component-list">
+                        1. ctx.drawImage(baseImage, 0, 0)<br>
+                        2. 无其他叠加层
+                    </div>
+                </div>
+            </div>
+
+            <!-- 暂停状态 -->
+            <div class="icon-card">
+                <div class="icon-container">
+                    <img src="../assets/icons/128/base-static.png" class="icon-layer base-icon grayscale" alt="base">
+                </div>
+                <div class="icon-title">⏸️ 暂停状态 (Paused)</div>
+                <div class="icon-description">
+                    用户已暂停扩展（isPaused = true），调用 applyGrayscaleFilter() 转换为灰度
+                </div>
+                <div class="priority-badge">优先级: 3</div>
+                <div class="components">
+                    <div class="component-title">compose() 流程：</div>
+                    <div class="component-list">
+                        1. ctx.drawImage(baseImage, 0, 0)<br>
+                        2. applyGrayscaleFilter()<br>
+                        &nbsp;&nbsp;&nbsp;- getImageData → 灰度转换 → putImageData
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h2 class="section-title">📊 状态指示（Learning & Recommend & Error）</h2>
+        <div class="grid">
+            <!-- 学习进度 25% -->
+            <div class="icon-card">
+                <div class="icon-container">
+                    <img src="../assets/icons/128/base-static.png" class="icon-layer base-icon" alt="base">
+                    <div class="learning-mask-container" style="height: 96px;">
+                        <img src="../assets/icons/128/overlays/learning-mask.png" class="learning-mask-image" alt="mask">
+                    </div>
+                </div>
+                <div class="icon-title">📚 学习进度 25%</div>
+                <div class="icon-description">
+                    已收集 25 页，<span class="code">maskHeight = 128 * (1 - 0.25) = 96px</span>，从顶部裁剪 learning-mask
+                </div>
+                <div class="priority-badge">优先级: 6</div>
+                <div class="components">
+                    <div class="component-title">drawLearningMask(25)：</div>
+                    <div class="component-list">
+                        progress = 0.25<br>
+                        maskHeight = 128 * 0.75 = 96<br>
+                        ctx.drawImage(learningMask, 0, 0, 128, 96, 0, 0, 128, 96)
+                    </div>
+                </div>
+            </div>
+
+            <!-- 学习进度 50% -->
+            <div class="icon-card">
+                <div class="icon-container">
+                    <img src="../assets/icons/128/base-static.png" class="icon-layer base-icon" alt="base">
+                    <div class="learning-mask-container" style="height: 64px;">
+                        <img src="../assets/icons/128/overlays/learning-mask.png" class="learning-mask-image" alt="mask">
+                    </div>
+                </div>
+                <div class="icon-title">📚 学习进度 50%</div>
+                <div class="icon-description">
+                    已收集 50 页，<span class="code">maskHeight = 128 * (1 - 0.5) = 64px</span>
+                </div>
+                <div class="priority-badge">优先级: 6</div>
+                <div class="components">
+                    <div class="component-title">drawLearningMask(50)：</div>
+                    <div class="component-list">
+                        progress = 0.5<br>
+                        maskHeight = 128 * 0.5 = 64<br>
+                        ctx.drawImage(learningMask, 0, 0, 128, 64, 0, 0, 128, 64)
+                    </div>
+                </div>
+            </div>
+
+            <!-- 学习进度 75% -->
+            <div class="icon-card">
+                <div class="icon-container">
+                    <img src="../assets/icons/128/base-static.png" class="icon-layer base-icon" alt="base">
+                    <div class="learning-mask-container" style="height: 32px;">
+                        <img src="../assets/icons/128/overlays/learning-mask.png" class="learning-mask-image" alt="mask">
+                    </div>
+                </div>
+                <div class="icon-title">📚 学习进度 75%</div>
+                <div class="icon-description">
+                    已收集 75 页，<span class="code">maskHeight = 128 * (1 - 0.75) = 32px</span>
+                </div>
+                <div class="priority-badge">优先级: 6</div>
+                <div class="components">
+                    <div class="component-title">drawLearningMask(75)：</div>
+                    <div class="component-list">
+                        progress = 0.75<br>
+                        maskHeight = 128 * 0.25 = 32<br>
+                        ctx.drawImage(learningMask, 0, 0, 128, 32, 0, 0, 128, 32)
+                    </div>
+                </div>
+            </div>
+
+            <!-- 推荐阅读 1 条 -->
+            <div class="icon-card">
+                <div class="icon-container">
+                    <img src="../assets/icons/128/base-static.png" class="icon-layer base-icon" alt="base">
+                    <div class="recommend-badge">1</div>
+                </div>
+                <div class="icon-title">📮 推荐阅读 (1 条)</div>
+                <div class="icon-description">
+                    学习完成且有 1 条推荐（recommendCount = 1），注意：推荐状态不使用波纹
+                </div>
+                <div class="priority-badge">优先级: 7</div>
+                <div class="components">
+                    <div class="component-title">drawRecommendBadge(1)：</div>
+                    <div class="component-list">
+                        badgeSize = 128 * 0.42 = 53.76px<br>
+                        centerX = 98.56, centerY = 29.44<br>
+                        Canvas 绘制黑色圆 + 白色数字
+                    </div>
+                </div>
+            </div>
+
+            <!-- 推荐阅读 3 条 -->
+            <div class="icon-card">
+                <div class="icon-container">
+                    <img src="../assets/icons/128/base-static.png" class="icon-layer base-icon" alt="base">
+                    <div class="recommend-badge">3</div>
+                </div>
+                <div class="icon-title">📮 推荐阅读 (3 条)</div>
+                <div class="icon-description">
+                    有 3 条推荐（recommendCount = 3，最大显示数）
+                </div>
+                <div class="priority-badge">优先级: 7</div>
+                <div class="components">
+                    <div class="component-title">drawRecommendBadge(3)：</div>
+                    <div class="component-list">
+                        同上，数字显示 "3"
+                    </div>
+                </div>
+            </div>
+
+            <!-- 错误状态 -->
+            <div class="icon-card">
+                <div class="icon-container">
+                    <img src="../assets/icons/128/base-static.png" class="icon-layer base-icon" alt="base">
+                    <div class="error-flash"></div>
+                </div>
+                <div class="icon-title">❌ 错误状态 (Error)</div>
+                <div class="icon-description">
+                    遇到错误（hasError = true），红色叠加层闪烁（1秒周期：0.6 ↔ 0.2）。<strong>source-atop 确保红色只在图标形状区域显示，完美贴合图标轮廓</strong>
+                </div>
+                <div class="priority-badge">优先级: 1 (最高，可叠加)</div>
+                <div class="components">
+                    <div class="component-title">错误叠加逻辑：</div>
+                    <div class="component-list">
+                        elapsed % 1000 < 500 ? opacity=0.6 : opacity=0.2<br>
+                        ctx.globalCompositeOperation = 'source-atop'<br>
+                        ctx.fillStyle = '#ff0000'<br>
+                        ctx.fillRect(0, 0, 128, 128)<br>
+                        ⚠️ source-atop: 只在已绘制内容区域填充红色
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h2 class="section-title">🎬 动画效果（Discover, Fetching, Analyzing）</h2>
+        <div class="grid">
+            <!-- RSS 发现动画 -->
+            <div class="icon-card">
+                <div class="icon-container">
+                    <img src="../assets/icons/128/base-static.png" class="icon-layer base-icon" alt="base">
+                    <img src="../assets/icons/128/overlays/wave-1-lit.png" class="icon-layer overlay discover-wave-1" alt="wave1">
+                    <img src="../assets/icons/128/overlays/wave-2-lit.png" class="icon-layer overlay discover-wave-2" alt="wave2">
+                    <img src="../assets/icons/128/overlays/wave-3-lit.png" class="icon-layer overlay discover-wave-3" alt="wave3">
+                </div>
+                <div class="icon-title">📡 RSS 发现动画</div>
+                <div class="icon-description">
+                    检测到 RSS 源，<span class="code">drawDiscoverWaves(frame)</span> 逐个累积：frame 0(无) → 1(wave1) → 2(wave1+wave2) → 3(全部)
+                </div>
+                <div class="priority-badge">优先级: 2 (临时6秒)</div>
+                <div class="components">
+                    <div class="component-title">drawDiscoverWaves(frame)：</div>
+                    <div class="component-list">
+                        frame 0: 无波纹<br>
+                        frame 1: drawImage(wave1)<br>
+                        frame 2: drawImage(wave1) + drawImage(wave2)<br>
+                        frame 3: drawImage(wave1/2/3)
+                    </div>
+                </div>
+            </div>
+
+            <!-- 后台抓取动画 -->
+            <div class="icon-card">
+                <div class="icon-container">
+                    <img src="../assets/icons/128/base-static.png" class="icon-layer base-icon" alt="base">
+                    <img src="../assets/icons/128/overlays/wave-1-lit.png" class="icon-layer overlay fetching-wave-1" alt="wave1">
+                    <img src="../assets/icons/128/overlays/wave-2-lit.png" class="icon-layer overlay fetching-wave-2" alt="wave2">
+                    <img src="../assets/icons/128/overlays/wave-3-lit.png" class="icon-layer overlay fetching-wave-3" alt="wave3">
+                </div>
+                <div class="icon-title">🔄 后台抓取动画</div>
+                <div class="icon-description">
+                    抓取RSS，<span class="code">drawFetchingPulse(timestamp)</span> 0.8秒周期，每次只显示一条：stage 0(wave1) → 1(wave2) → 2(wave3) → 1(wave2)
+                </div>
+                <div class="priority-badge">优先级: 5</div>
+                <div class="components">
+                    <div class="component-title">drawFetchingPulse()：</div>
+                    <div class="component-list">
+                        cycle = (elapsed % 800) / 800<br>
+                        0-0.25: stage=0 → wave1 (opacity: 0.3~1.0)<br>
+                        0.25-0.5: stage=1 → wave2<br>
+                        0.5-0.75: stage=2 → wave3<br>
+                        0.75-1.0: stage=1 → wave2
+                    </div>
+                </div>
+            </div>
+
+            <!-- 推荐分析动画 -->
+            <div class="icon-card">
+                <div class="icon-container">
+                    <img src="../assets/icons/128/base-static.png" class="icon-layer base-icon" alt="base">
+                    <img src="../assets/icons/128/overlays/learning-mask.png" class="icon-layer overlay analyzing-breath" alt="mask">
+                </div>
+                <div class="icon-title">💭 推荐分析动画</div>
+                <div class="icon-description">
+                    AI 分析中，<span class="code">drawAnalyzingBreath(timestamp)</span> learning-mask 呼吸（1.5秒周期，透明度 0.2~0.7，明显变化）
+                </div>
+                <div class="priority-badge">优先级: 4</div>
+                <div class="components">
+                    <div class="component-title">drawAnalyzingBreath()：</div>
+                    <div class="component-list">
+                        opacity = 0.2 + 0.5 * abs(sin((elapsed/1500)*PI))<br>
+                        ctx.globalAlpha = opacity<br>
+                        ctx.drawImage(learningMask, 0, 0)
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="note">
+            <strong>💡 关键区别：</strong><br>
+            • <strong>RSS 发现</strong>：累积显示波纹（0→1→2→3条）<br>
+            • <strong>后台抓取</strong>：每次只显示一条波纹，双向流动（wave1→2→3→2）<br>
+            • <strong>推荐分析</strong>：整体遮罩呼吸，无波纹<br>
+            • <strong>推荐状态</strong>：仅徽章，不使用波纹
+        </div>
+
+        <h2 class="section-title">🔀 状态组合示例（按优先级叠加）</h2>
+        <div class="grid">
+            <!-- 学习中 + 错误 -->
+            <div class="icon-card">
+                <div class="icon-container">
+                    <img src="../assets/icons/128/base-static.png" class="icon-layer base-icon" alt="base">
+                    <div class="learning-mask-container" style="height: 64px;">
+                        <img src="../assets/icons/128/overlays/learning-mask.png" class="learning-mask-image" alt="mask">
+                    </div>
+                    <div class="error-flash"></div>
+                </div>
+                <div class="icon-title">学习中 + 错误</div>
+                <div class="icon-description">
+                    学习阶段遇到错误，先绘制 learning-mask，再叠加红色闪烁（hasError = true）
+                </div>
+                <div class="components">
+                    <div class="component-title">compose() 顺序：</div>
+                    <div class="component-list">
+                        1. drawImage(baseImage)<br>
+                        2. drawLearningMask(50)<br>
+                        3. 红色 fillRect (source-atop)
+                    </div>
+                </div>
+            </div>
+
+            <!-- 推荐 + 错误 -->
+            <div class="icon-card">
+                <div class="icon-container">
+                    <img src="../assets/icons/128/base-static.png" class="icon-layer base-icon" alt="base">
+                    <div class="recommend-badge">2</div>
+                    <div class="error-flash"></div>
+                </div>
+                <div class="icon-title">推荐 + 错误</div>
+                <div class="icon-description">
+                    有推荐但遇到错误，徽章 + 红色闪烁
+                </div>
+                <div class="components">
+                    <div class="component-title">compose() 顺序：</div>
+                    <div class="component-list">
+                        1. drawImage(baseImage)<br>
+                        2. drawRecommendBadge(2)<br>
+                        3. 红色 fillRect (source-atop)
+                    </div>
+                </div>
+            </div>
+
+            <!-- 暂停优先显示 -->
+            <div class="icon-card">
+                <div class="icon-container">
+                    <img src="../assets/icons/128/base-static.png" class="icon-layer base-icon grayscale" alt="base">
+                </div>
+                <div class="icon-title">暂停优先显示</div>
+                <div class="icon-description">
+                    虽有推荐，但 <span class="code">updateIcon()</span> 按优先级判断：isPaused (优先级3) > recommendCount (优先级7)
+                </div>
+                <div class="components">
+                    <div class="component-title">updateIcon() 逻辑：</div>
+                    <div class="component-list">
+                        if (isPaused) → state = {type: 'paused'}<br>
+                        else if (recommendCount > 0) → ...<br>
+                        暂停优先级更高，徽章不显示
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="note">
+            <strong>⚙️ IconManager 优先级规则：</strong><br>
+            1️⃣ 错误（可叠加） → 2️⃣ RSS发现 → 3️⃣ 暂停 → 4️⃣ 推荐分析 → 5️⃣ 后台抓取 → 6️⃣ 学习进度 → 7️⃣ 推荐阅读 → 8️⃣ 静态
+        </div>
+    </div>
+</body>
+</html>
