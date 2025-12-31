@@ -53,7 +53,6 @@ function isBlacklistedUrl(url: string): boolean {
 let dwellCalculator: DwellTimeCalculator | null = null
 let titleManager: TitleStateManager | null = null
 let isRecorded = false
-let hasDetectedRSS = false
 let interactionCount = 0 // 追踪用户交互次数
 let currentUrl = window.location.href // 用于检测 SPA 导航
 let checkTimer: number | null = null // 定时检查计时器
@@ -70,70 +69,7 @@ function checkExtensionContext(): boolean {
 }
 
 // ==================== RSS 检测 ====================
-
-interface RSSFeedLink {
-  type: 'rss' | 'atom'
-  url: string
-  title?: string
-}
-
-function detectRSSFeeds(): RSSFeedLink[] {
-  const feeds: RSSFeedLink[] = []
-  
-  // 查找所有 <link rel="alternate" type="application/*+xml">
-  const links = document.querySelectorAll<HTMLLinkElement>(
-    'link[rel="alternate"][type*="xml"]'
-  )
-  
-  links.forEach(link => {
-    const type = link.type.toLowerCase()
-    const href = link.href
-    
-    if (!href) return
-    
-    if (type.includes('rss')) {
-      feeds.push({
-        type: 'rss',
-        url: href,
-        title: link.title || undefined
-      })
-    } else if (type.includes('atom')) {
-      feeds.push({
-        type: 'atom',
-        url: href,
-        title: link.title || undefined
-      })
-    }
-  })
-  
-  return feeds
-}
-
-async function notifyRSSFeeds() {
-  if (hasDetectedRSS) return
-  if (!checkExtensionContext()) return
-  
-  const feeds = detectRSSFeeds()
-  if (feeds.length === 0) return
-  
-  hasDetectedRSS = true
-  
-  try {
-    await chrome.runtime.sendMessage({
-      type: 'RSS_DETECTED',
-      payload: {
-        feeds,
-        sourceURL: window.location.href,
-        sourceTitle: document.title,
-        detectedAt: Date.now()
-      }
-    })
-    
-    sfLogger.info('📡 RSS feeds detected', { count: feeds.length })
-  } catch (error) {
-    sfLogger.error('Failed to notify RSS feeds', error)
-  }
-}
+// 注意：RSS 检测功能已移至专门的 rss-detector.ts content script
 
 // ==================== 内容提取 ====================
 
@@ -353,15 +289,6 @@ function initialize() {
   
   // 监听 SPA 导航
   setupSPANavigation()
-  
-  // RSS 检测（页面加载后）
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      notifyRSSFeeds()
-    })
-  } else {
-    notifyRSSFeeds()
-  }
 }
 
 // ==================== SPA 导航监听 ====================
@@ -426,16 +353,12 @@ function resetTracking() {
   // 重置状态变量
   isRecorded = false
   interactionCount = 0
-  hasDetectedRSS = false
   
   // 重新初始化
   titleManager = new TitleStateManager()
   titleManager.startLearning()
   
   dwellCalculator = new DwellTimeCalculator()
-  
-  // 重新检测 RSS
-  notifyRSSFeeds()
 }
 
 // ==================== 清理 ====================
