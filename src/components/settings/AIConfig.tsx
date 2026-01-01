@@ -599,15 +599,17 @@ export function AIConfig() {
         const recConfig = await getRecommendationConfig()
         
         // 安全检查：确保所有必要的字段都存在
-        if (!engineAssignment.profileGeneration || !engineAssignment.articleAnalysis) {
+        // Phase 13: 使用 lowFrequencyTasks（兼容旧配置）
+        const lowFreqConfig = engineAssignment.lowFrequencyTasks || engineAssignment.profileGeneration
+        if (!lowFreqConfig || !engineAssignment.articleAnalysis) {
           return
         }
         
-        // 根据 profileGeneration 的设置确定 analysisEngine
+        // 根据 lowFrequencyTasks 的设置确定 analysisEngine
         let analysisEngine: RecommendationAnalysisEngine = 'remoteAI'
-        if (engineAssignment.profileGeneration.provider === 'ollama') {
+        if (lowFreqConfig.provider === 'ollama') {
           analysisEngine = 'localAI'
-        } else if (engineAssignment.profileGeneration.useReasoning) {
+        } else if (lowFreqConfig.useReasoning) {
           analysisEngine = 'remoteAIWithReasoning'
         }
         
@@ -622,8 +624,8 @@ export function AIConfig() {
           ...recConfig,
           analysisEngine,
           feedAnalysisEngine,
-          useReasoning: engineAssignment.profileGeneration.useReasoning || false,
-          useLocalAI: engineAssignment.profileGeneration.provider === 'ollama'
+          useReasoning: lowFreqConfig.useReasoning || false,
+          useLocalAI: lowFreqConfig.provider === 'ollama'
         })
       } catch (error) {
         console.error('[AIConfig] Failed to sync recommendation config:', error)

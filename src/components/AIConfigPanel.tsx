@@ -81,7 +81,9 @@ export function AIConfigPanel() {
       
       if (config.engineAssignment && (hasDeepSeek || hasOpenAI || hasOllama)) {
         // 使用 resolveProvider 解析抽象 provider
-        const profileProvider = resolveProvider(config.engineAssignment.profileGeneration?.provider, config)
+        // Phase 13: 使用 lowFrequencyTasks 替代 profileGeneration
+        const lowFreqConfig = config.engineAssignment.lowFrequencyTasks || config.engineAssignment.profileGeneration
+        const lowFreqProvider = resolveProvider(lowFreqConfig?.provider, config)
         const articleProvider = resolveProvider(config.engineAssignment.articleAnalysis?.provider, config)
         const pageProvider = resolveProvider(config.engineAssignment.pageAnalysis?.provider, config)
         
@@ -93,10 +95,10 @@ export function AIConfigPanel() {
           return false
         }
         
-        // 优先看 profileGeneration（用户画像生成最重要）
+        // 优先看 lowFrequencyTasks（低频任务包括画像生成等重要功能）
         // 修复：先检查远程 Provider 是否配置，优先显示已配置的远程 AI
-        if (profileProvider !== 'ollama' && isProviderConfigured(profileProvider)) {
-          activeProvider = profileProvider
+        if (lowFreqProvider !== 'ollama' && isProviderConfigured(lowFreqProvider)) {
+          activeProvider = lowFreqProvider
         } else if (articleProvider !== 'ollama' && isProviderConfigured(articleProvider)) {
           activeProvider = articleProvider
         } else if (pageProvider !== 'ollama' && isProviderConfigured(pageProvider)) {
@@ -105,7 +107,7 @@ export function AIConfigPanel() {
         
         // 如果没有任何远程 Provider 配置，但 Ollama 已配置且被任何任务使用，才标记 Ollama 为在用
         if (!activeProvider && hasOllama && 
-            (profileProvider === 'ollama' || articleProvider === 'ollama' || pageProvider === 'ollama')) {
+            (lowFreqProvider === 'ollama' || articleProvider === 'ollama' || pageProvider === 'ollama')) {
           activeProvider = 'ollama'
         }
       }

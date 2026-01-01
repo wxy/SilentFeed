@@ -193,14 +193,16 @@ export function ProfileSettings() {
           p => p && p.apiKey && p.model
         )
         setAiConfigured(hasAIProvider)
-        // Derive active provider from engineAssignment (priority: profileGeneration > articleAnalysis > pageAnalysis)
+        // Phase 13: 使用 lowFrequencyTasks 替代 profileGeneration（画像生成属于低频任务）
+        // Derive active provider from engineAssignment (priority: lowFrequencyTasks > articleAnalysis > pageAnalysis)
         // 使用 resolveProvider 处理抽象 provider
-        const profileProvider = resolveProvider(aiConfig.engineAssignment?.profileGeneration?.provider, aiConfig)
+        const lowFreqConfig = aiConfig.engineAssignment?.lowFrequencyTasks || aiConfig.engineAssignment?.profileGeneration
+        const lowFreqProvider = resolveProvider(lowFreqConfig?.provider, aiConfig)
         const articleProvider = resolveProvider(aiConfig.engineAssignment?.articleAnalysis?.provider, aiConfig)
         const pageProvider = resolveProvider(aiConfig.engineAssignment?.pageAnalysis?.provider, aiConfig)
         
-        const activeProvider = profileProvider !== 'ollama'
-          ? profileProvider
+        const activeProvider = lowFreqProvider !== 'ollama'
+          ? lowFreqProvider
           : articleProvider !== 'ollama'
           ? articleProvider
           : pageProvider !== 'ollama'
@@ -210,8 +212,8 @@ export function ProfileSettings() {
         setTotalPages(actualTotalPages)
         
         // 读取推理模式配置
-        const profileEngine = aiConfig.engineAssignment?.profileGeneration
-        if (profileEngine?.provider === 'ollama') {
+        const lowFreqEngine = lowFreqConfig
+        if (lowFreqEngine?.provider === 'ollama') {
           // 本地 AI：检查模型名称
           const modelName = aiConfig.local?.model || ''
           const isReasoningModel = ['r1', 'reasoning', 'think', 'cot'].some(
@@ -220,7 +222,7 @@ export function ProfileSettings() {
           setUseReasoning(isReasoningModel)
         } else {
           // 远程 AI：检查 useReasoning 配置
-          setUseReasoning(profileEngine?.useReasoning || false)
+          setUseReasoning(lowFreqEngine?.useReasoning || false)
         }
         
         // 如果有画像，添加为初始消息
@@ -296,10 +298,11 @@ export function ProfileSettings() {
     try {
       const { getEngineAssignment, getAIConfig, DEFAULT_TIMEOUTS } = await import("@/storage/ai-config")
       const assignment = await getEngineAssignment()
-      const profileEngine = assignment.profileGeneration
+      // Phase 13: 使用 lowFrequencyTasks（画像生成属于低频任务）
+      const lowFreqEngine = assignment.lowFrequencyTasks || assignment.profileGeneration
       const config = await getAIConfig()
       
-      if (profileEngine?.provider === 'ollama') {
+      if (lowFreqEngine?.provider === 'ollama') {
         // 本地 AI：检查是否是推理模型
         const modelName = config.local?.model || ''
         
@@ -314,14 +317,14 @@ export function ProfileSettings() {
           : (config.local?.timeoutMs || DEFAULT_TIMEOUTS.local.standard)
       } else {
         // 远程 AI（DeepSeek/OpenAI）
-        const useReasoning = profileEngine?.useReasoning || false
+        const useReasoning = lowFreqEngine?.useReasoning || false
         
         // 解析实际的 provider（处理 "remote" 抽象类型）
-        const actualProvider = resolveProvider(profileEngine?.provider, config)
+        const actualProvider = resolveProvider(lowFreqEngine?.provider, config)
         const providerConfig = config.providers?.[actualProvider]
         
         profileViewLogger.info("远程 AI 配置检查:", {
-          abstractProvider: profileEngine?.provider,
+          abstractProvider: lowFreqEngine?.provider,
           actualProvider,
           useReasoning,
           userConfiguredReasoningTimeout: providerConfig?.reasoningTimeoutMs,

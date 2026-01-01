@@ -40,7 +40,7 @@ function createTestAIConfig(overrides: Partial<AIConfig> = {}): {
     engineAssignment: {
       pageAnalysis: { provider: 'deepseek', useReasoning: false },
       articleAnalysis: { provider: 'deepseek', useReasoning: false },
-      profileGeneration: { provider: 'deepseek', useReasoning: false }
+      lowFrequencyTasks: { provider: 'deepseek', useReasoning: false }
     },
     ...overrides
   }
@@ -142,7 +142,7 @@ describe("AICapabilityManager", () => {
         engineAssignment: {
           pageAnalysis: { provider: 'ollama', useReasoning: false },
           articleAnalysis: { provider: 'ollama', useReasoning: false },
-          profileGeneration: { provider: 'ollama', useReasoning: false }
+          lowFrequencyTasks: { provider: 'ollama', useReasoning: false }
         }
       })
 
@@ -202,7 +202,7 @@ describe("AICapabilityManager", () => {
           engineAssignment: {
             pageAnalysis: { provider: "deepseek" },
             articleAnalysis: { provider: "deepseek" },
-            profileGeneration: { provider: "deepseek" }
+            lowFrequencyTasks: { provider: "deepseek" }
           }
         }
       })
@@ -231,7 +231,7 @@ describe("AICapabilityManager", () => {
       expect(result.metadata.provider).toBe("keyword")
     })
 
-    it("task 路由: profileGeneration 优先使用任务指定引擎", async () => {
+    it("task 路由: lowFrequencyTasks 优先使用任务指定引擎", async () => {
       // 加载引擎分配与远端 provider
       mockStorage.sync.get.mockResolvedValueOnce({
         aiConfig: {
@@ -244,7 +244,7 @@ describe("AICapabilityManager", () => {
           engineAssignment: {
             pageAnalysis: { provider: "deepseek", useReasoning: true },
             articleAnalysis: { provider: "ollama", useReasoning: false },
-            profileGeneration: { provider: "deepseek", useReasoning: false }
+            lowFrequencyTasks: { provider: "deepseek", useReasoning: false }
           }
         }
       })
@@ -273,7 +273,7 @@ describe("AICapabilityManager", () => {
             }
           },
           engineAssignment: {
-            profileGeneration: { provider: "deepseek" },
+            lowFrequencyTasks: { provider: "deepseek" },
             pageAnalysis: { provider: "deepseek" },
             articleAnalysis: { provider: "deepseek" }
           }
@@ -323,7 +323,7 @@ describe("AICapabilityManager", () => {
           providers: {},
           local: { enabled: true, provider: "ollama", endpoint: "http://localhost:11434/v1", model: "qwen2.5:7b" },
           engineAssignment: {
-            profileGeneration: { provider: 'ollama', model: 'qwen2.5:7b' }
+            lowFrequencyTasks: { provider: 'ollama', model: 'qwen2.5:7b' }
           }
         }
       }
@@ -376,7 +376,7 @@ describe("AICapabilityManager", () => {
             }
           },
           engineAssignment: {
-            profileGeneration: { provider: "deepseek", useReasoning: false },
+            lowFrequencyTasks: { provider: "deepseek", useReasoning: false },
             pageAnalysis: { provider: "deepseek" },
             articleAnalysis: { provider: "deepseek" }
           }
@@ -410,7 +410,7 @@ describe("AICapabilityManager", () => {
         aiConfig: { 
           providers: {},
           engineAssignment: {
-            profileGeneration: { provider: 'deepseek' }
+            lowFrequencyTasks: { provider: 'deepseek' }
           }
         } 
       })
@@ -429,7 +429,7 @@ describe("AICapabilityManager", () => {
             deepseek: { apiKey: "", model: "deepseek-chat" } 
           },
           engineAssignment: {
-            profileGeneration: { provider: 'deepseek' }
+            lowFrequencyTasks: { provider: 'deepseek' }
           }
         }
       })

@@ -1142,8 +1142,7 @@
         "tasks": {
           "pageAnalysis": "Content Analysis",
           "articleAnalysis": "Article Recommendation",
-          "profileGeneration": "Profile Generation",
-          "sourceAnalysis": "Feed Source Analysis"
+          "lowFrequencyTasks": "Low Frequency Tasks"
         },
         "notes": {
           "highFrequency": "High-Frequency Tasks (Optional Reasoning)",
@@ -1642,8 +1641,7 @@
         "tasks": {
           "pageAnalysis": "Content Analysis",
           "articleAnalysis": "Article Recommendation",
-          "profileGeneration": "Profile Generation",
-          "sourceAnalysis": "Feed Source Analysis"
+          "lowFrequencyTasks": "Low Frequency Tasks"
         },
         "notes": {
           "highFrequency": "High-Frequency Tasks (Optional Reasoning)",

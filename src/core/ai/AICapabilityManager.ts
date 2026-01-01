@@ -44,8 +44,14 @@ type ProviderSelectionMode = "auto" | "remote" | "local"
 /**
  * AI 任务类型
  * Phase 8: 根据任务类型选择不同的 AI 引擎
+ * 
+ * - pageAnalysis: 页面浏览学习（高频）
+ * - articleAnalysis: 文章内容分析（高频）  
+ * - lowFrequencyTasks: 所有低频任务的统一配置（画像生成、订阅源分析、策略决策等）
+ * 
+ * 注意：profileGeneration 和 sourceAnalysis 已废弃，请使用 lowFrequencyTasks
  */
-export type AITaskType = "pageAnalysis" | "articleAnalysis" | "profileGeneration" | "sourceAnalysis"
+export type AITaskType = "pageAnalysis" | "articleAnalysis" | "lowFrequencyTasks"
 
 export class AICapabilityManager {
   private remoteProvider: AIProvider | null = null
@@ -86,7 +92,7 @@ export class AICapabilityManager {
       let usesLocalProvider = false
       
       if (this.engineAssignment) {
-        const tasks: AITaskType[] = ['pageAnalysis', 'articleAnalysis', 'profileGeneration']
+        const tasks: AITaskType[] = ['pageAnalysis', 'articleAnalysis', 'lowFrequencyTasks']
         for (const task of tasks) {
           const providerType = this.engineAssignment[task]?.provider
           if (!providerType) continue
@@ -257,8 +263,8 @@ export class AICapabilityManager {
       throw new Error('预算已超支，无法进行 AI 决策')
     }
     
-    // 使用画像生成配置（低频任务）
-    const { provider } = await this.getProviderForTask('profileGeneration')
+    // 使用低频任务配置
+    const { provider } = await this.getProviderForTask('lowFrequencyTasks')
     
     if (!provider) {
       aiLogger.error('没有可用的 AI Provider 进行池策略决策')
@@ -286,7 +292,7 @@ export class AICapabilityManager {
    * Phase 8: 生成用户画像
    * 
    * 基于用户行为数据生成语义化的用户兴趣画像
-   * Phase 8: 使用 profileGeneration 任务配置
+   * Phase 8: 使用 lowFrequencyTasks 任务配置
    * 
    * @param request - 用户画像生成请求
    * @param mode - 旧的 provider 选择模式（向后兼容，优先使用任务配置）
@@ -316,8 +322,8 @@ export class AICapabilityManager {
       }
     }
     
-    // Phase 8: 优先使用 profileGeneration 任务配置
-    const { provider: taskProvider, useReasoning } = await this.getProviderForTask("profileGeneration")
+    // Phase 8: 优先使用低频任务配置
+    const { provider: taskProvider, useReasoning } = await this.getProviderForTask("lowFrequencyTasks")
     
     if (taskProvider && taskProvider.generateUserProfile) {
       // Phase 12.4: 检查预算状态
@@ -423,7 +429,7 @@ export class AICapabilityManager {
     }
 
     // 获取 sourceAnalysis 任务配置的 provider
-    const { provider, useReasoning } = await this.getProviderForTask('sourceAnalysis' as AITaskType)
+    const { provider, useReasoning } = await this.getProviderForTask('lowFrequencyTasks')
     
     if (!provider) {
       aiLogger.warn("⚠️ 无可用 AI Provider，返回默认订阅源分析结果")
@@ -521,10 +527,11 @@ export class AICapabilityManager {
   /**
    * Phase 8: 根据任务类型获取对应的 AI Provider
    * Phase 12: 支持 remote/local 抽象类型解析
+   * Phase 13: 支持自动配置迁移（profileGeneration/sourceAnalysis → lowFrequencyTasks）
    * 
    * 从引擎分配配置中读取指定任务应该使用的引擎，并返回对应的 provider 实例
    * 
-   * @param taskType - 任务类型（pageAnalysis/articleAnalysis/profileGeneration）
+   * @param taskType - 任务类型（pageAnalysis/articleAnalysis/lowFrequencyTasks）
    * @returns provider 实例和是否使用推理的配置
    */
   private async getProviderForTask(taskType: AITaskType): Promise<{
@@ -538,7 +545,16 @@ export class AICapabilityManager {
       }
     }
 
-    const engineConfig = this.engineAssignment[taskType]
+    let engineConfig = this.engineAssignment[taskType]
+    
+    // 兼容旧配置：如果请求 lowFrequencyTasks 但未找到，尝试降级到旧字段
+    if (!engineConfig && taskType === 'lowFrequencyTasks') {
+      engineConfig = this.engineAssignment.profileGeneration || this.engineAssignment.sourceAnalysis
+      if (engineConfig) {
+        aiLogger.info(`🔄 配置迁移：lowFrequencyTasks 使用旧配置 (profileGeneration/sourceAnalysis)`)
+      }
+    }
+    
     if (!engineConfig) {
       aiLogger.warn(`⚠️ No engine config for task: ${taskType}`)
       return {

@@ -184,12 +184,14 @@ export class AIPoolStrategyDecider {
       return this.getRuleBasedDecision(context)
     }
     
-    // 使用画像生成配置（池策略决策属于低频任务，与画像生成类似）
-    const profileGen = aiConfig.engineAssignment?.profileGeneration
+    // 使用低频任务配置（池策略决策属于低频任务）
+    // 兼容旧配置：如果没有 lowFrequencyTasks，尝试使用 profileGeneration
+    const lowFreqConfig = aiConfig.engineAssignment?.lowFrequencyTasks || 
+                          aiConfig.engineAssignment?.profileGeneration
     
-    if (!profileGen?.provider) {
-      // 如果画像生成未配置，但有 provider，则使用首选 provider
-      deciderLogger.info('画像生成未配置，使用基于规则的决策')
+    if (!lowFreqConfig?.provider) {
+      // 如果低频任务未配置，但有 provider，则使用首选 provider
+      deciderLogger.info('低频任务未配置，使用基于规则的决策')
       return this.getRuleBasedDecision(context)
     }
     

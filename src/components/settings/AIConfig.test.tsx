@@ -116,7 +116,7 @@ describe("AIConfig", () => {
       engineAssignment: {
         pageAnalysis: { provider: "local", useReasoning: false },
         articleAnalysis: { provider: "local", useReasoning: false },
-        profileGeneration: { provider: "local", useReasoning: false }
+        lowFrequencyTasks: { provider: "local", useReasoning: false }
       },
       preferredRemoteProvider: "deepseek",
       preferredLocalProvider: "ollama"

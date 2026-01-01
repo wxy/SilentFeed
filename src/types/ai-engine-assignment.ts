@@ -28,12 +28,29 @@ export interface AIEngineAssignment {
   /** 文章内容分析（推荐文章打分） - 高频任务 */
   articleAnalysis: AIEngineConfig
   
-  /** 用户画像生成 - 低频任务 */
-  profileGeneration: AIEngineConfig
+  /** 
+   * 低频任务统一配置
+   * 
+   * 包括：
+   * - 用户画像生成（每周1-2次）
+   * - 订阅源质量分析（添加订阅源时）
+   * - 推荐池策略决策（每天1次）
+   * - 未来的其他优化任务
+   * 
+   * 低频任务调用频率低，可以使用更强大的模型（如推理模式），
+   * 因为成本影响小，同时能提供更好的质量。
+   */
+  lowFrequencyTasks: AIEngineConfig
   
   /** 
-   * 订阅源质量分析 - 低频任务，可选配置
-   * 用于添加订阅源时评估其质量和分类（不信任订阅源自我声称的分类）
+   * @deprecated 兼容旧配置，保留用于配置迁移
+   * 请使用 lowFrequencyTasks 替代
+   */
+  profileGeneration?: AIEngineConfig
+  
+  /** 
+   * @deprecated 兼容旧配置，保留用于配置迁移
+   * 请使用 lowFrequencyTasks 替代
    */
   sourceAnalysis?: AIEngineConfig
 }
@@ -83,12 +100,8 @@ export const AI_ENGINE_PRESETS: Record<PresetName, PresetDefinition> = {
         provider: "local",  // 抽象：使用本地 AI（默认 Ollama）
         useReasoning: false
       },
-      profileGeneration: {
-        provider: "local",  // 抽象：使用本地 AI（默认 Ollama）
-        useReasoning: false
-      },
-      sourceAnalysis: {
-        provider: "local",  // 订阅源质量分析也使用本地
+      lowFrequencyTasks: {
+        provider: "local",  // 低频任务也使用本地 AI
         useReasoning: false
       }
     },
@@ -121,13 +134,9 @@ export const AI_ENGINE_PRESETS: Record<PresetName, PresetDefinition> = {
         provider: "remote",  // 抽象：使用远程 AI（默认 DeepSeek）
         useReasoning: false
       },
-      profileGeneration: {
-        provider: "remote",  // 抽象：使用远程 AI（默认 DeepSeek）
-        useReasoning: true  // 画像生成使用推理模式提高准确性
-      },
-      sourceAnalysis: {
-        provider: "remote",  // 订阅源质量分析使用远程 AI
-        useReasoning: false  // 标准模式即可
+      lowFrequencyTasks: {
+        provider: "remote",  // 低频任务使用远程 AI
+        useReasoning: true  // 低频任务使用推理模式提高准确性
       }
     },
     benefits: [
@@ -158,13 +167,9 @@ export const AI_ENGINE_PRESETS: Record<PresetName, PresetDefinition> = {
         provider: "remote",  // 抽象：使用远程 AI（默认 DeepSeek）
         useReasoning: false
       },
-      profileGeneration: {
-        provider: "remote",  // 抽象：使用远程 AI（默认 DeepSeek）
+      lowFrequencyTasks: {
+        provider: "remote",  // 低频任务使用远程 AI
         useReasoning: false  // 不用推理，省钱
-      },
-      sourceAnalysis: {
-        provider: "remote",  // 订阅源质量分析使用远程 AI
-        useReasoning: false
       }
     },
     benefits: [
@@ -184,6 +189,30 @@ export const AI_ENGINE_PRESETS: Record<PresetName, PresetDefinition> = {
  */
 export function getDefaultEngineAssignment(): AIEngineAssignment {
   return AI_ENGINE_PRESETS.intelligence.config
+}
+
+/**
+ * 迁移旧配置到新格式
+ * 
+ * 将 profileGeneration 和 sourceAnalysis 合并为 lowFrequencyTasks
+ */
+export function migrateEngineAssignment(oldConfig: Partial<AIEngineAssignment>): AIEngineAssignment {
+  // 如果已有 lowFrequencyTasks，直接返回（已迁移）
+  if (oldConfig.lowFrequencyTasks) {
+    return {
+      pageAnalysis: oldConfig.pageAnalysis || getDefaultEngineAssignment().pageAnalysis,
+      articleAnalysis: oldConfig.articleAnalysis || getDefaultEngineAssignment().articleAnalysis,
+      lowFrequencyTasks: oldConfig.lowFrequencyTasks
+    }
+  }
+  
+  // 迁移逻辑：使用 profileGeneration 作为 lowFrequencyTasks
+  const defaultAssignment = getDefaultEngineAssignment()
+  return {
+    pageAnalysis: oldConfig.pageAnalysis || defaultAssignment.pageAnalysis,
+    articleAnalysis: oldConfig.articleAnalysis || defaultAssignment.articleAnalysis,
+    lowFrequencyTasks: oldConfig.profileGeneration || oldConfig.sourceAnalysis || defaultAssignment.lowFrequencyTasks
+  }
 }
 
 /**
@@ -210,7 +239,7 @@ export function validateEngineAssignment(assignment: AIEngineAssignment): boolea
   if (!validateEngineConfig({ ...assignment.articleAnalysis, useReasoning: false })) {
     return false
   }
-  if (!validateEngineConfig(assignment.profileGeneration)) {
+  if (!validateEngineConfig(assignment.lowFrequencyTasks)) {
     return false
   }
 

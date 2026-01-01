@@ -527,32 +527,15 @@ export function AIEngineAssignmentComponent({
                 <tr>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <span>👤</span>
-                      <span>{_("options.aiConfig.aiEngineAssignment.tasks.profileGeneration")}</span>
+                      <span>🧩</span>
+                      <span>{_("options.aiConfig.aiEngineAssignment.tasks.lowFrequencyTasks")}</span>
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    {renderEngineSelect("profileGeneration", value.profileGeneration, true)}
+                    {renderEngineSelect("lowFrequencyTasks", value.lowFrequencyTasks, true)}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    {renderReasoningCheckbox("profileGeneration", value.profileGeneration, true)}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-gray-500">
-                    {_("options.aiConfig.aiEngineAssignment.notes.lowFrequency")}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <span>🔍</span>
-                      <span>{_("options.aiConfig.aiEngineAssignment.tasks.sourceAnalysis")}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    {renderEngineSelect("sourceAnalysis", value.sourceAnalysis || { provider: "remote", useReasoning: false }, true)}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    {renderReasoningCheckbox("sourceAnalysis", value.sourceAnalysis || { provider: "remote", useReasoning: false }, true)}
+                    {renderReasoningCheckbox("lowFrequencyTasks", value.lowFrequencyTasks, true)}
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-500">
                     {_("options.aiConfig.aiEngineAssignment.notes.lowFrequency")}

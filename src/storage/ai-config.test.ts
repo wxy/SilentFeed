@@ -375,7 +375,7 @@ describe("ai-config", () => {
         const customAssignment: AIEngineAssignment = {
           pageAnalysis: { provider: "ollama", model: "llama2" },
           articleAnalysis: { provider: "ollama", model: "llama2" },
-          profileGeneration: { provider: "deepseek", useReasoning: true },
+          lowFrequencyTasks: { provider: "deepseek", useReasoning: true },
           recommendation: { provider: "deepseek", useReasoning: false }
         }
 
@@ -404,11 +404,11 @@ describe("ai-config", () => {
         
         const assignment = await getEngineAssignment()
         
-        // 应该保留自定义配置，并补充缺失的 sourceAnalysis
+        // 应该保留自定义配置
         expect(assignment.pageAnalysis).toEqual(customAssignment.pageAnalysis)
         expect(assignment.articleAnalysis).toEqual(customAssignment.articleAnalysis)
-        expect(assignment.profileGeneration).toEqual(customAssignment.profileGeneration)
-        expect(assignment.sourceAnalysis).toBeDefined() // 补充默认值
+        expect(assignment.lowFrequencyTasks).toEqual(customAssignment.lowFrequencyTasks)
+        // Phase 13: sourceAnalysis 已废弃，不再需要
       })
 
       it("旧配置迁移时应该使用默认引擎分配", async () => {

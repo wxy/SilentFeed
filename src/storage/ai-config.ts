@@ -10,7 +10,7 @@
 import { logger } from "@/utils/logger"
 import { withErrorHandling, withErrorHandlingSync } from "@/utils/error-handler"
 import type { AIEngineAssignment, AIEngineConfig } from "@/types/ai-engine-assignment"
-import { getDefaultEngineAssignment } from "@/types/ai-engine-assignment"
+import { getDefaultEngineAssignment, migrateEngineAssignment } from "@/types/ai-engine-assignment"
 import { encryptApiKey as cryptoEncrypt, decryptApiKey as cryptoDecrypt } from "@/utils/crypto"
 
 const configLogger = logger.withTag('AIConfig')
@@ -554,6 +554,7 @@ export function getProviderModel(provider: AIProviderType): string {
 
 /**
  * Phase 11: 获取 AI 引擎分配配置
+ * Phase 13: 支持配置迁移（profileGeneration/sourceAnalysis → lowFrequencyTasks）
  * 
  * 会自动迁移旧字段名（feedAnalysis -> articleAnalysis）并补充缺失的默认配置
  */
@@ -571,16 +572,32 @@ export async function getEngineAssignment(): Promise<AIEngineAssignment> {
   if (stored.feedAnalysis && !stored.articleAnalysis) {
     stored.articleAnalysis = stored.feedAnalysis
     delete stored.feedAnalysis
-    configLogger.info('已迁移 feedAnalysis -> articleAnalysis')
+    configLogger.info('✅ 已迁移 feedAnalysis -> articleAnalysis')
+  }
+  
+  // Phase 13: 迁移 profileGeneration/sourceAnalysis -> lowFrequencyTasks
+  if ((stored.profileGeneration || stored.sourceAnalysis) && !stored.lowFrequencyTasks) {
+    const migrated = migrateEngineAssignment(stored as Partial<AIEngineAssignment>)
+    configLogger.info('✅ 已迁移 profileGeneration/sourceAnalysis -> lowFrequencyTasks')
+    
+    // 自动保存迁移后的配置
+    await saveAIConfig({
+      ...config,
+      engineAssignment: migrated
+    })
+    
+    return migrated
   }
   
   // 补充缺失的字段（不覆盖已存在的）
   return {
     pageAnalysis: (stored.pageAnalysis as AIEngineConfig) || defaultAssignment.pageAnalysis,
     articleAnalysis: (stored.articleAnalysis as AIEngineConfig) || defaultAssignment.articleAnalysis,
-    profileGeneration: (stored.profileGeneration as AIEngineConfig) || defaultAssignment.profileGeneration,
-    sourceAnalysis: (stored.sourceAnalysis as AIEngineConfig) || defaultAssignment.sourceAnalysis,
-    // 保留其他自定义字段（如 recommendation）
+    lowFrequencyTasks: (stored.lowFrequencyTasks as AIEngineConfig) || defaultAssignment.lowFrequencyTasks,
+    // 保留旧字段用于兼容（标记为 deprecated）
+    profileGeneration: stored.profileGeneration as AIEngineConfig | undefined,
+    sourceAnalysis: stored.sourceAnalysis as AIEngineConfig | undefined,
+    // 保留其他自定义字段
     ...stored
   } as AIEngineAssignment
 }
