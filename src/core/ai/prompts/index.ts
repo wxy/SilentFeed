@@ -234,6 +234,37 @@ Languages: zh-CN, zh-TW, en, ja, ko, fr, de, es, ru, pt, it, ar, unknown
 
 Output JSON only.`
   }
+
+  /**
+   * 获取策略决策提示词
+   * @param language - 语言
+   * @param variables - 系统状态变量
+   * @returns 包含 system 和 user 提示词的对象
+   */
+  getStrategyDecisionPrompt(
+    language: SupportedLanguage,
+    variables: Record<string, string | number>
+  ): { system: string; user: string } {
+    const templates = this.getTemplates(language)
+    
+    if (!templates.strategyDecision) {
+      throw new Error('策略决策提示词模板不存在')
+    }
+
+    const template = templates.strategyDecision
+    let userPrompt = template.user
+
+    // 替换所有变量
+    for (const [key, value] of Object.entries(variables)) {
+      const placeholder = `{{${key}}}`
+      userPrompt = userPrompt.replace(new RegExp(placeholder, 'g'), String(value))
+    }
+
+    return {
+      system: template.system || '',
+      user: userPrompt
+    }
+  }
 }
 
 /**

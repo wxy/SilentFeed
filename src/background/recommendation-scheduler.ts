@@ -21,6 +21,8 @@ import { recommendationService } from '../core/recommender/RecommendationService
 import { logger } from '@/utils/logger'
 import { OnboardingStateService } from '@/core/onboarding/OnboardingStateService'
 import { hasAnyAIAvailable } from '@/storage/ai-config'
+import { getCachedStrategy } from '@/storage/strategy-cache'
+import type { StrategyDecision } from '@/types/strategy'
 
 const schedLogger = logger.withTag('RecommendationScheduler')
 
@@ -36,18 +38,18 @@ export interface RecommendationSchedulerConfig {
   
   /**
    * 最大间隔（分钟）
-   * @default 20
+   * @default 10
    */
   maxIntervalMinutes: number
   
   /**
-   * 每次生成推荐数量
+   * 每次AI调用生成推荐数量
    * @default 1
    */
   recommendationsPerRun: number
   
   /**
-   * 批次大小（一次处理的文章数）
+   * 批次大小（一次处理的候选文章数）
    * @default 10
    */
   batchSize: number
@@ -57,16 +59,36 @@ export interface RecommendationSchedulerConfig {
    * @default 'subscribed'
    */
   source: 'subscribed' | 'all'
+  
+  /**
+   * 每次Alarm触发后的最大循环次数
+   * @default 5
+   */
+  maxLoopIterations?: number
+  
+  /**
+   * 循环内两次执行的间隔（毫秒）
+   * @default 5000
+   */
+  loopDelay?: number
 }
 
 /**
  * 默认配置
+ * 
+ * 优化说明：
+ * - minIntervalMinutes: 1（Chrome Alarm 最小间隔）
+ * - maxIntervalMinutes: 10（保持活跃监控）
+ * - recommendationsPerRun: 1（每次AI调用只分析1篇，避免超时和上下文过大）
+ * - batchSize: 10（从10篇候选中选出1篇最优）
+ * - maxLoopIterations: 5（每次Alarm触发后最多循环5次，避免阻塞）
+ * - loopDelay: 5000（循环内两次执行间隔5秒）
  */
 const DEFAULT_CONFIG: RecommendationSchedulerConfig = {
-  minIntervalMinutes: 1,
-  maxIntervalMinutes: 20,
-  recommendationsPerRun: 1,
-  batchSize: 10,
+  minIntervalMinutes: 1,    // 1分钟（Chrome Alarm 最小值）
+  maxIntervalMinutes: 10,   // 10分钟
+  recommendationsPerRun: 1, // 每次AI调用生成1条
+  batchSize: 10,            // 候选池10篇
   source: 'subscribed'
 }
 
@@ -81,9 +103,39 @@ export class RecommendationScheduler {
   private consecutiveSkips = 0  // Phase 7: 连续跳过次数
   private adjustedInterval: number | null = null  // Phase 7: 调整后的间隔（分钟）
   public nextRunTime: number | null = null  // 下次执行时间（timestamp）
+  private currentStrategy: StrategyDecision | null = null  // 当前策略
   
   constructor(config: Partial<RecommendationSchedulerConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config }
+  }
+  
+  /**
+   * 更新策略配置
+   * 当策略审查调度器生成新策略时调用
+   */
+  async updateStrategy(strategy: StrategyDecision): Promise<void> {
+    schedLogger.info('更新推荐调度器策略', {
+      targetPoolSize: strategy.strategy.recommendation.targetPoolSize,
+      cooldownMinutes: strategy.strategy.recommendation.cooldownMinutes,
+      intervalMinutes: strategy.strategy.scheduling.recommendIntervalMinutes
+    })
+    
+    this.currentStrategy = strategy
+    
+    // 使用策略参数更新配置
+    this.config.recommendationsPerRun = strategy.strategy.recommendation.targetPoolSize
+    this.config.minIntervalMinutes = Math.max(1, strategy.strategy.recommendation.cooldownMinutes)
+    this.config.maxIntervalMinutes = Math.max(
+      strategy.strategy.scheduling.recommendIntervalMinutes,
+      this.config.minIntervalMinutes + 5
+    )
+    
+    // 如果调度器正在运行，重新启动以应用新配置
+    if (this.isRunning) {
+      schedLogger.info('重新启动调度器以应用新策略...')
+      await this.stop()
+      await this.start()
+    }
   }
   
   /**
@@ -95,11 +147,20 @@ export class RecommendationScheduler {
       return
     }
     
+    // 尝试加载策略配置
+    if (!this.currentStrategy) {
+      const strategy = await getCachedStrategy()
+      if (strategy) {
+        schedLogger.info('从缓存加载策略配置')
+        await this.updateStrategy(strategy)
+      }
+    }
+    
     // 计算初始间隔
     const intervalMinutes = await this.calculateNextInterval()
     
     schedLogger.info(
-      `启动推荐生成调度器（动态间隔: ${intervalMinutes} 分钟，每次 ${this.config.recommendationsPerRun} 条）...`
+      `启动推荐生成调度器（间隔: ${intervalMinutes} 分钟，每次生成 ${this.config.recommendationsPerRun} 条）...`
     )
     
     // 创建定时器
@@ -118,11 +179,12 @@ export class RecommendationScheduler {
    * 计算下次推荐的间隔时间
    * 
    * 根据待推荐文章数量动态调整：
-   * - >= 20 条 → 1 分钟
+   * - >= 50 条 → 1 分钟（快速处理积压）
+   * - 20-49 条 → 2 分钟
    * - 10-19 条 → 3 分钟
    * - 5-9 条 → 5 分钟
-   * - 1-4 条 → 10 分钟
-   * - 0 条 → 20 分钟
+   * - 1-4 条 → 7 分钟
+   * - 0 条 → 10 分钟（保持监控）
    * 
    * @returns 间隔时间（分钟）
    */
@@ -131,16 +193,18 @@ export class RecommendationScheduler {
       const count = await getUnrecommendedArticleCount(this.config.source)
       
       let interval: number
-      if (count >= 20) {
+      if (count >= 50) {
         interval = this.config.minIntervalMinutes  // 1 分钟
+      } else if (count >= 20) {
+        interval = 2
       } else if (count >= 10) {
         interval = 3
       } else if (count >= 5) {
         interval = 5
       } else if (count >= 1) {
-        interval = 10
+        interval = 7
       } else {
-        interval = this.config.maxIntervalMinutes  // 20 分钟
+        interval = this.config.maxIntervalMinutes  // 10 分钟
       }
       
       schedLogger.debug(`待推荐文章: ${count} 条，下次间隔: ${interval} 分钟`)

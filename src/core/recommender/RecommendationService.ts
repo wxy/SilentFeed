@@ -87,8 +87,49 @@ export class RecommendationService {
     const errors: string[] = []
     
     try {
-      // 获取推荐配置
+      // 🆕 预检查：在执行任务前先检查推荐池限流
+      // 避免浪费 AI 资源和丢弃推荐内容
       const recommendationConfig = await getRecommendationConfig()
+      const baseSize = recommendationConfig.maxRecommendations || 3
+      const maxSize = baseSize * POOL_SIZE_MULTIPLIER
+      
+      // 获取当前推荐池容量
+      const currentPool = await db.recommendations
+        .orderBy('recommendedAt')
+        .reverse()
+        .filter(rec => {
+          const isActive = !rec.status || rec.status === 'active'
+          const isUnreadAndNotDismissed = !rec.isRead && rec.feedback !== 'dismissed'
+          return isActive && isUnreadAndNotDismissed
+        })
+        .toArray()
+      
+      // 检查是否需要补充推荐池
+      const refillManager = getRefillManager()
+      const shouldRefill = await refillManager.shouldRefill(currentPool.length, maxSize)
+      
+      if (!shouldRefill) {
+        recLogger.info(
+          `⏸️  推荐池补充被限流：当前容量 ${currentPool.length}/${maxSize}，` +
+          `跳过本次推荐生成任务（避免浪费 AI 资源）`
+        )
+        return {
+          recommendations: [],
+          stats: {
+            totalArticles: 0,
+            processedArticles: 0,
+            recommendedCount: 0,
+            processingTimeMs: 0
+          }
+        }
+      }
+      
+      // 限流检查通过，记录本次补充操作
+      await refillManager.recordRefill()
+      recLogger.info(`✅ 推荐池补充检查通过，开始生成推荐...`)
+      
+      // 获取推荐配置（上面已获取，这里注释掉避免重复）
+      // const recommendationConfig = await getRecommendationConfig()
       let effectiveAnalysisEngine = recommendationConfig.analysisEngine || 'remoteAI'
       
       // 获取 AI 配置，检查模型是否支持推理（兼容新结构：providers + engineAssignment）
@@ -544,6 +585,7 @@ export class RecommendationService {
     // Phase 6/12.7: 获取当前推荐池（数据库中活跃的、未读且未被标记为不想读的推荐）
     // ✅ 优化：使用复合索引 [isRead+recommendedAt]
     // Dexie 的 boolean 索引需要使用 filter，但我们可以减少扫描范围
+    // 注意：限流检查已在 generateRecommendations 开始时完成，这里只需获取池状态
     const currentPool = await db.recommendations
       .orderBy('recommendedAt')
       .reverse()
@@ -561,22 +603,7 @@ export class RecommendationService {
     const baseSize = config.maxRecommendations || 3  // 弹窗容量（默认 3 条）
     const maxSize = baseSize * POOL_SIZE_MULTIPLIER  // 推荐池容量（默认 6 条）
 
-    // 🆕 检查是否需要补充推荐池
-    const refillManager = getRefillManager()
-    const shouldRefill = await refillManager.shouldRefill(currentPool.length, maxSize)
-    
-    if (!shouldRefill) {
-      recLogger.info(
-        `⏸️  推荐池补充被限流：当前容量 ${currentPool.length}/${maxSize}，` +
-        `请稍后再试或等待下次自动触发`
-      )
-      // 返回空结果，不进行补充
-      return recommendedArticles
-    }
-    
-    // 补充检查通过，记录本次补充操作
-    await refillManager.recordRefill()
-    recLogger.info(`🔄 开始补充推荐池...`)
+    recLogger.info(`🔄 开始补充推荐池（当前容量：${currentPool.length}/${maxSize}）...`)
 
     // 获取最近7天的推荐URL，用于去重
     try {

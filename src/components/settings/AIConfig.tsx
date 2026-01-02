@@ -958,7 +958,7 @@ export function AIConfig() {
           {_("options.recommendation.countHint")}
         </p>
         <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-2">
-          💡 首次打开扩展弹窗后，AI 将自动生成推荐策略
+          💡 扩展启动后 5 分钟，AI 将自动生成个性化推荐池策略（此后每 24 小时更新一次）
         </p>
       </div>
     )}

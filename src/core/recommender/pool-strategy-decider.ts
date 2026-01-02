@@ -197,10 +197,10 @@ export class AIPoolStrategyDecider {
     
     // 获取提示词模板
     const templates = this.promptManager.getTemplates('zh-CN')
-    const promptTemplate = templates.poolStrategyDecision
+    const promptTemplate = templates.strategyDecision
     
     if (!promptTemplate) {
-      throw new Error('推荐池策略决策提示词模板不存在')
+      throw new Error('策略决策提示词模板不存在')
     }
     
     // 构建提示词变量
@@ -413,33 +413,21 @@ export async function collectDailyUsageContext(): Promise<DailyUsageContext> {
       return getDefaultContext()
     }
     
-    // 🔥 订阅源信息：只统计数量，不加载完整对象
-    const subscribedCount = await db.discoveredFeeds
-      .where('status')
-      .equals('subscribed')
-      .count()
-    
-    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
-    
-    // 🔥 活跃订阅源：只统计数量
-    const activeFeedsCount = await db.discoveredFeeds
-      .where('status')
-      .equals('subscribed')
-      .and(feed => feed.lastFetchedAt != null && feed.lastFetchedAt > sevenDaysAgo)
-      .count()
-    
-    // 🔥 使用固定估算值，避免加载所有订阅源数据
-    // 平均更新频率：24小时（保守估计）
-    // 批量大小：10篇/天（经验值）
-    const avgUpdateFrequency = 24
-    const avgBatchSize = 10
+    // ✅ 直接使用 SystemStats 中已计算好的统计数据，避免重复查询数据库
+    deciderLogger.debug('订阅源统计数据（来自 SystemStats）', {
+      subscribedCount: stats.feeds.subscribedCount,
+      activeCount: stats.feeds.activeCount,
+      overallUpdateFrequency: stats.feeds.overallUpdateFrequency,
+      avgBatchSize: stats.feeds.avgBatchSize,
+      dailyAverage: stats.articles.dailyAverage
+    })
     
     return {
       feeds: {
-        totalCount: subscribedCount,
-        avgUpdateFrequency,
-        avgBatchSize,
-        activeFeeds: activeFeedsCount
+        totalCount: stats.feeds.subscribedCount,
+        avgUpdateFrequency: stats.feeds.overallUpdateFrequency,
+        avgBatchSize: stats.feeds.avgBatchSize,
+        activeFeeds: stats.feeds.activeCount
       },
       articles: {
         unreadCount: stats.articles.unreadCount,
@@ -473,8 +461,8 @@ function getDefaultContext(): DailyUsageContext {
   return {
     feeds: {
       totalCount: 0,
-      avgUpdateFrequency: 24,
-      avgBatchSize: 10,
+      avgUpdateFrequency: 24, // 默认24小时/篇
+      avgBatchSize: 10, // 默认10篇/源
       activeFeeds: 0
     },
     articles: {

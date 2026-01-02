@@ -2,11 +2,14 @@
  * IndexedDB 数据库定义（使用 Dexie.js）
  * 
  * 数据库名称: SilentFeedDB
- * 当前版本: 15
+ * 当前版本: 18
  * 
  * ⚠️ 版本管理说明：
  * - 开发过程中如果遇到版本冲突，请删除旧数据库
  * - 生产环境版本号应该只增不减
+ * - 版本 18（推荐系统重构 - 多池架构 + 策略决策表）
+ * - 版本 17（Phase 12.8: 页面访问去重支持）
+ * - 版本 16（Phase 10: 文章持久化重构）
  * - 版本 15（Phase 9: AI 用量计费 - 添加 aiUsage 表）
  * - 版本 14（Phase 8: 语义化用户画像 - 添加 aiSummary、behaviors 字段）
  * - 版本 13（Phase 7: 推荐软删除机制 - 添加 status 字段，保留历史记录）
@@ -32,6 +35,7 @@ import type { UserSettings } from "@/types/config"
 import type { InterestSnapshot, UserProfile } from "@/types/profile"
 import type { DiscoveredFeed, FeedArticle } from "@/types/rss"
 import type { AIUsageRecord } from "@/types/ai-usage"
+import type { StrategyDecision } from "@/types/strategy"
 import { logger } from '@/utils/logger'
 import { statsCache } from '@/utils/cache'
 
@@ -71,6 +75,9 @@ export class SilentFeedDB extends Dexie {
 
   // 表 10: AI 用量记录（Phase 9 - AI 用量计费）
   aiUsage!: Table<AIUsageRecord, string>
+
+  // 表 11: 策略决策记录（推荐系统重构）
+  strategyDecisions!: Table<StrategyDecision, string>
 
   constructor() {
     super('SilentFeedDB')
@@ -430,6 +437,72 @@ export class SilentFeedDB extends Dexie {
       feedArticles: 'id, feedId, link, published, recommended, read, inPool, inFeed, deleted, [feedId+published], [recommended+published], [read+published], [inPool+poolAddedAt], [inFeed+published], [deleted+deletedAt]',
       aiUsage: 'id, timestamp, provider, purpose, success, [provider+timestamp], [purpose+timestamp]'
     })
+
+    // 版本 18: 多池架构和策略决策表（推荐系统重构）
+    this.version(18).stores({
+      pendingVisits: 'id, url, startTime, expiresAt',
+      confirmedVisits: 'id, url, visitTime, domain, *analysis.keywords, [visitTime+domain], [url+visitTime]',
+      settings: 'id',
+      recommendations: 'id, recommendedAt, isRead, source, sourceUrl, status, replacedAt, [isRead+recommendedAt], [isRead+source], [status+recommendedAt]',
+      userProfile: 'id, lastUpdated, version',
+      interestSnapshots: 'id, timestamp, primaryTopic, trigger, [primaryTopic+timestamp]',
+      discoveredFeeds: 'id, url, status, discoveredAt, subscribedAt, discoveredFrom, isActive, lastFetchedAt, [status+discoveredAt], [isActive+lastFetchedAt]',
+      // 多池架构：添加 poolStatus, analysisScore 索引
+      feedArticles: 'id, feedId, link, published, recommended, read, inPool, inFeed, deleted, poolStatus, analysisScore, [feedId+published], [recommended+published], [read+published], [inPool+poolAddedAt], [inFeed+published], [deleted+deletedAt], [poolStatus+analysisScore], [poolStatus+candidatePoolAddedAt]',
+      aiUsage: 'id, timestamp, provider, purpose, success, [provider+timestamp], [purpose+timestamp]',
+      // 新增：策略决策表
+      strategyDecisions: 'id, createdAt, validUntil, nextReview, status, [status+createdAt]'
+    }).upgrade(async tx => {
+      dbLogger.info('[推荐系统重构] 多池架构迁移 - 初始化池状态字段...')
+      
+      // 迁移所有现有文章的池状态
+      const articles = await tx.table('feedArticles').toArray()
+      let rawCount = 0
+      let analyzedNotQualifiedCount = 0
+      let candidateCount = 0
+      let recommendedCount = 0
+      
+      for (const article of articles) {
+        const updates: any = {}
+        
+        // 确定池状态
+        if (article.recommended) {
+          // 已推荐的文章
+          updates.poolStatus = 'recommended'
+          updates.recommendedPoolAddedAt = article.recommendedAt || article.published
+          recommendedCount++
+        } else if (article.analysisScore !== undefined && article.analysisScore !== null) {
+          // 已分析过的文章
+          if (article.analysisScore >= 7.0) {
+            // 高分文章进入候选池
+            updates.poolStatus = 'candidate'
+            updates.candidatePoolAddedAt = article.fetched || Date.now()
+            candidateCount++
+          } else {
+            // 低分文章标记为不合格
+            updates.poolStatus = 'analyzed-not-qualified'
+            analyzedNotQualifiedCount++
+          }
+        } else {
+          // 未分析的文章
+          updates.poolStatus = 'raw'
+          rawCount++
+        }
+        
+        // 应用更新
+        if (Object.keys(updates).length > 0) {
+          await tx.table('feedArticles').update(article.id, updates)
+        }
+      }
+      
+      dbLogger.info(`[推荐系统重构] ✅ 文章池状态初始化完成`, {
+        总文章数: articles.length,
+        raw池: rawCount,
+        'analyzed-not-qualified池': analyzedNotQualifiedCount,
+        candidate池: candidateCount,
+        recommended池: recommendedCount
+      })
+    })
   }
 }
 
@@ -508,3 +581,30 @@ export {
   normalizeLogarithmic
 } from './db-feeds-stats'
 export type { FeedStats } from './db-feeds-stats'
+
+// 策略决策模块（db-strategy.ts）- 推荐系统重构
+export {
+  saveStrategyDecision,
+  getCurrentStrategy,
+  updateStrategyExecution,
+  invalidateStrategy,
+  getStrategyHistory,
+  getStrategiesToReview,
+  cleanupOldStrategies,
+  getStrategyPerformanceStats
+} from './db-strategy'
+
+// 文章池管理模块（db-pool.ts）- 推荐系统重构
+export {
+  getRawPoolArticles,
+  getCandidatePoolArticles,
+  getRecommendedPoolArticles,
+  moveToCandidate,
+  moveToAnalyzedNotQualified,
+  moveToRecommended,
+  removeFromPool,
+  batchMoveToCandidate,
+  batchMoveToRecommended,
+  getPoolStats,
+  cleanupExpiredCandidates
+} from './db-pool'

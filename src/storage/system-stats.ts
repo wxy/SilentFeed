@@ -45,10 +45,16 @@ export interface SystemStats {
   feeds: {
     /** 订阅数量 */
     subscribedCount: number
+    /** 活跃订阅源数量（最近7天有更新）*/
+    activeCount: number
     /** 最后抓取时间 */
     lastFetchedAt: number
     /** 未读文章数量 */
     unreadArticleCount: number
+    /** 总体更新频率（小时/篇，所有源合计）*/
+    overallUpdateFrequency: number
+    /** 平均批量大小（每个源的平均文章数）*/
+    avgBatchSize: number
   }
   
   /**
@@ -121,8 +127,11 @@ function createEmptyStats(): SystemStats {
     },
     feeds: {
       subscribedCount: 0,
+      activeCount: 0,
       lastFetchedAt: 0,
-      unreadArticleCount: 0
+      unreadArticleCount: 0,
+      overallUpdateFrequency: 24,
+      avgBatchSize: 10
     },
     aiUsage: {
       requestsToday: 0,
@@ -258,14 +267,24 @@ async function collectStats(now: number, oneDayAgo: number, sevenDaysAgo: number
     const thresholds = await getSystemThresholds()
     
     // 并行查询基础统计（只统计数量，不加载数据）
-    const [recStats, feedCount, pageCount, unreadArticleCount, recentArticlesCount, yesterdayArticlesCount] = await Promise.all([
+    const [recStats, feedCount, pageCount, unreadArticleCount, recentArticlesCount, yesterdayArticlesCount, activeFeedCount] = await Promise.all([
       getRecommendationStats(),
       db.discoveredFeeds.where('status').equals('subscribed').count(),
       getPageCount(),
       db.feedArticles.where('read').equals(0).count(),
       db.feedArticles.where('published').above(sevenDaysAgo).count(),
-      db.feedArticles.where('published').above(oneDayAgo).count()
+      db.feedArticles.where('published').above(oneDayAgo).count(),
+      db.discoveredFeeds.where('status').equals('subscribed').and(f => f.lastFetchedAt != null && f.lastFetchedAt > sevenDaysAgo).count()
     ])
+    
+    // 计算订阅源详细统计（从已有的文章统计推算）
+    const dailyAverage = recentArticlesCount > 0 ? Math.round(recentArticlesCount / 7) : 0
+    const overallUpdateFrequency = dailyAverage > 0 
+      ? Math.round((24 / dailyAverage) * 100) / 100 // 小时/篇
+      : 24 // 默认24小时/篇
+    const avgBatchSize = feedCount > 0 && recentArticlesCount > 0
+      ? Math.round(recentArticlesCount / feedCount)
+      : 10 // 默认10篇/源
     
     // 用户行为统计（限制查询数量，避免内存爆炸）
     const recommendationStats = await db.recommendations
@@ -308,8 +327,11 @@ async function collectStats(now: number, oneDayAgo: number, sevenDaysAgo: number
       },
       feeds: {
         subscribedCount: feedCount,
+        activeCount: activeFeedCount,
         lastFetchedAt: Date.now(),
-        unreadArticleCount: unreadArticleCount
+        unreadArticleCount: unreadArticleCount,
+        overallUpdateFrequency,
+        avgBatchSize
       },
       userBehavior: {
         recommendationsShown: recommendationStats.length,

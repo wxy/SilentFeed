@@ -6,7 +6,13 @@ import { FeedManager } from './core/rss/managers/FeedManager'
 import { RSSValidator } from './core/rss/RSSValidator'
 import { getSourceAnalysisService } from './core/rss/SourceAnalysisService'
 import { fetchFeed } from './background/feed-scheduler'
-import { startAllSchedulers, feedScheduler, recommendationScheduler, reconfigureSchedulersForState } from './background/index'
+import { 
+  startAllSchedulers, 
+  feedScheduler, 
+  recommendationScheduler, 
+  strategyReviewScheduler,
+  reconfigureSchedulersForState 
+} from './background/index'
 import { IconManager } from './utils/IconManager'
 import { evaluateAndAdjust } from './core/recommender/adaptive-count'
 import { setupNotificationListeners, testNotification } from './core/recommender/notification'
@@ -350,7 +356,7 @@ chrome.runtime.onInstalled.addListener(async () => {
     // 🆕 创建每日推荐池策略生成定时器（每天一次）
     bgLogger.info('创建每日推荐池策略生成定时器（每天一次）...')
     chrome.alarms.create('daily-pool-strategy', {
-      delayInMinutes: 90, // 启动 90 分钟后首次执行（避免资源竞争）
+      delayInMinutes: 5, // 启动 5 分钟后首次执行（尽早生成个性化策略）
       periodInMinutes: 24 * 60 // 每 24 小时
     })
     
@@ -1145,6 +1151,7 @@ async function generateDailyPoolStrategy(): Promise<void> {
 /**
  * Phase 6/7: 定时器事件监听器
  * 处理推荐数量定期评估和推荐生成
+ * Phase: 推荐系统重构 - 策略审查
  */
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   bgLogger.debug('定时器触发:', alarm.name)
@@ -1170,6 +1177,10 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       
       // 更新徽章显示新推荐
       await updateBadge()
+    } else if (alarm.name === 'strategy-review') {
+      // 策略审查：检查并生成新策略
+      bgLogger.info('开始策略审查...')
+      await strategyReviewScheduler.handleAlarm()
     } else if (alarm.name === 'cleanup-recommendation-pool') {
       // Phase 12.7: 清理超限的推荐池
       bgLogger.info('开始清理推荐池...')

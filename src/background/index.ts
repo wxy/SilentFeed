@@ -3,12 +3,14 @@
  * 
  * Phase 7: 后台定时任务架构重构
  * Phase 9.1: 根据 Onboarding 状态控制任务执行
+ * Phase: 推荐系统重构 - 多池架构 + 动态策略
  * 
  * 提供统一的接口来启动、停止和管理所有后台调度器
  */
 
 import { feedScheduler } from './feed-scheduler'
 import { recommendationScheduler } from './recommendation-scheduler'
+import { strategyReviewScheduler } from './strategy-review-scheduler'
 import { getOnboardingState } from '@/storage/onboarding-state'
 import { logger } from '@/utils/logger'
 
@@ -42,11 +44,22 @@ export async function startAllSchedulers(): Promise<void> {
     
     // 只有 ready 状态才启动 RSS 抓取和推荐生成
     if (status.state === 'ready') {
+      // 启动策略审查调度器（优先，因为它会生成初始策略）
+      bgLogger.info('启动策略审查调度器...')
+      
+      // 注册策略更新回调：通知推荐调度器
+      strategyReviewScheduler.onStrategyUpdate(async (newStrategy) => {
+        bgLogger.info('策略已更新，通知推荐调度器...')
+        await recommendationScheduler.updateStrategy(newStrategy)
+      })
+      
+      await strategyReviewScheduler.start()
+      
       bgLogger.info('启动 RSS 定时调度器...')
       feedScheduler.start(30) // 每 30 分钟检查一次
       
       bgLogger.info('启动推荐生成调度器...')
-      await recommendationScheduler.start() // 每 20 分钟生成一次
+      await recommendationScheduler.start() // 使用策略参数
     }
     
     bgLogger.info('✅ 后台调度器启动完成')
@@ -65,6 +78,7 @@ export async function stopAllSchedulers(): Promise<void> {
   try {
     feedScheduler.stop()
     await recommendationScheduler.stop()
+    await strategyReviewScheduler.stop()
     
     bgLogger.info('✅ 所有后台调度器已停止')
   } catch (error) {
@@ -84,12 +98,18 @@ export function getAllSchedulersStatus(): {
     isRunning: boolean
     config: any
   }
+  strategy: {
+    isRunning: boolean
+    isReviewing: boolean
+    callbackCount: number
+  }
 } {
   return {
     rss: {
       isRunning: feedScheduler['isRunning'] || false
     },
-    recommendation: recommendationScheduler.getStatus()
+    recommendation: recommendationScheduler.getStatus(),
+    strategy: strategyReviewScheduler.getStatus()
   }
 }
 
@@ -116,4 +136,4 @@ export async function reconfigureSchedulersForState(newState: 'setup' | 'learnin
 /**
  * 导出调度器实例（用于手动控制）
  */
-export { feedScheduler, recommendationScheduler }
+export { feedScheduler, recommendationScheduler, strategyReviewScheduler }

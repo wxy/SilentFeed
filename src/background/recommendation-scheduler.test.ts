@@ -93,14 +93,14 @@ describe('RecommendationScheduler', () => {
 
   describe('start()', () => {
     it('应该根据待推荐数量动态启动调度器', async () => {
-      // 模拟有 25 条待推荐 → 应该是 1 分钟
+      // 模拟有 25 条待推荐 → 应该是 2 分钟（>=20）
       vi.mocked(getUnrecommendedArticleCount).mockResolvedValue(25)
       
       await scheduler.start()
 
       expect(chrome.alarms.create).toHaveBeenCalledWith(
         'generate-recommendation',
-        { periodInMinutes: 1 }  // 动态间隔
+        { periodInMinutes: 2 }
       )
 
       const status = scheduler.getStatus()
@@ -108,26 +108,26 @@ describe('RecommendationScheduler', () => {
     })
     
     it('应该在待推荐数量少时使用较长间隔', async () => {
-      // 模拟只有 3 条待推荐 → 应该是 10 分钟
+      // 模拟只有 3 条待推荐 → 应该是 7 分钟（1-4条）
       vi.mocked(getUnrecommendedArticleCount).mockResolvedValue(3)
       
       await scheduler.start()
 
       expect(chrome.alarms.create).toHaveBeenCalledWith(
         'generate-recommendation',
-        { periodInMinutes: 10 }
+        { periodInMinutes: 7 }
       )
     })
     
     it('应该在无待推荐时使用最长间隔', async () => {
-      // 模拟没有待推荐 → 应该是 20 分钟
+      // 模拟 0 条待推荐 → 应该是 10 分钟（maxIntervalMinutes）
       vi.mocked(getUnrecommendedArticleCount).mockResolvedValue(0)
       
       await scheduler.start()
 
       expect(chrome.alarms.create).toHaveBeenCalledWith(
         'generate-recommendation',
-        { periodInMinutes: 20 }
+        { periodInMinutes: 10 }
       )
     })
 
@@ -309,11 +309,11 @@ describe('RecommendationScheduler', () => {
     it('应该在待推荐数量变化后调整间隔', async () => {
       mockLearningComplete()
       
-      // 第一次：20 条待推荐 → 1 分钟
+      // 第一次：20 条待推荐 → 2 分钟
       vi.mocked(getUnrecommendedArticleCount).mockResolvedValue(20)
       await scheduler.start()
       
-      // 第二次：处理后只剩 2 条 → 10 分钟
+      // 第二次：处理后只剩 2 条 → 7 分钟
       vi.mocked(getUnrecommendedArticleCount).mockResolvedValue(2)
       vi.mocked(recommendationService.generateRecommendations).mockResolvedValue({
         recommendations: [],
@@ -328,10 +328,10 @@ describe('RecommendationScheduler', () => {
       vi.clearAllMocks()
       await scheduler.handleAlarm()
       
-      // 应该从 1 分钟调整到 10 分钟
+      // 应该从 2 分钟调整到 7 分钟
       expect(chrome.alarms.create).toHaveBeenCalledWith(
         'generate-recommendation',
-        { periodInMinutes: 10 }
+        { periodInMinutes: 7 }
       )
     })
 
@@ -356,7 +356,7 @@ describe('RecommendationScheduler', () => {
         isRunning: false,
         config: {
           minIntervalMinutes: 1,
-          maxIntervalMinutes: 20,
+          maxIntervalMinutes: 10,
           recommendationsPerRun: 1,
           batchSize: 10,
           source: 'subscribed'
@@ -377,14 +377,14 @@ describe('RecommendationScheduler', () => {
   })
   
   describe('动态间隔计算', () => {
-    it('应该为 >=20 条待推荐返回最小间隔（1分钟）', async () => {
+    it('应该为 >=20 条待推荐返回最小间隔（2分钟）', async () => {
       vi.mocked(getUnrecommendedArticleCount).mockResolvedValue(25)
       
       await scheduler.start()
       
       expect(chrome.alarms.create).toHaveBeenCalledWith(
         'generate-recommendation',
-        { periodInMinutes: 1 }
+        { periodInMinutes: 2 }
       )
     })
     
@@ -410,25 +410,25 @@ describe('RecommendationScheduler', () => {
       )
     })
     
-    it('应该为 1-4 条待推荐返回 10 分钟', async () => {
+    it('应该为 1-4 条待推荐返回 7 分钟', async () => {
       vi.mocked(getUnrecommendedArticleCount).mockResolvedValue(2)
       
       await scheduler.start()
       
       expect(chrome.alarms.create).toHaveBeenCalledWith(
         'generate-recommendation',
-        { periodInMinutes: 10 }
+        { periodInMinutes: 7 }
       )
     })
     
-    it('应该为 0 条待推荐返回最大间隔（20分钟）', async () => {
+    it('应该为 0 条待推荐返回最大间隔（10分钟）', async () => {
       vi.mocked(getUnrecommendedArticleCount).mockResolvedValue(0)
       
       await scheduler.start()
-      
+
       expect(chrome.alarms.create).toHaveBeenCalledWith(
         'generate-recommendation',
-        { periodInMinutes: 20 }
+        { periodInMinutes: 10 }
       )
     })
   })
