@@ -29,6 +29,7 @@ import { getOnboardingState } from '@/storage/onboarding-state'
 import { AICapabilityManager } from '@/core/ai/AICapabilityManager'
 import { promptManager } from '@/core/ai/prompts'
 import { getSettings } from '@/storage/db/db-settings'
+import { getAIConfig } from '@/storage/ai-config'
 import { getRecommendationConfig } from '@/storage/recommendation-config'
 import { getUserProfile } from '@/storage/db/db-profile'
 
@@ -85,16 +86,16 @@ export class StrategyDecisionService {
 
     try {
       // 0. 提前检查 AI 配置是否可用
-      const settings = await getSettings()
-      if (!settings.ai?.enabled) {
+      const aiConfig = await getAIConfig()
+      if (!aiConfig.enabled) {
         const error = new Error('AI 功能未启用，无法生成策略决策')
         strategyLogger.warn('⚠️ AI 功能未启用，跳过策略生成')
         throw error
       }
       
       // 检查是否有配置的 Provider
-      const hasRemoteProvider = settings.ai.providers?.deepseek?.apiKey || settings.ai.providers?.openai?.apiKey
-      const hasLocalProvider = settings.ai.providers?.ollama?.enabled
+      const hasRemoteProvider = aiConfig.providers?.deepseek?.apiKey || aiConfig.providers?.openai?.apiKey
+      const hasLocalProvider = aiConfig.providers?.ollama?.enabled
       if (!hasRemoteProvider && !hasLocalProvider) {
         const error = new Error('未配置任何 AI Provider，无法生成策略决策')
         strategyLogger.warn('⚠️ 未配置任何 AI Provider，跳过策略生成')

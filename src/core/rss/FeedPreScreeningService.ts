@@ -22,6 +22,7 @@ import type {
   FeedPreScreeningResult, 
   UserProfile 
 } from '@/core/ai/prompts/types'
+import { getAIConfig } from '@/storage/ai-config'
 import { getSettings } from '@/storage/db/db-settings'
 
 const preScreenLogger = logger.withTag('FeedPreScreen')
@@ -81,15 +82,15 @@ export class FeedPreScreeningService {
       const startTime = Date.now()
       
       // 0. 提前检查 AI 配置是否可用
-      const settings = await getSettings()
-      if (!settings.ai?.enabled) {
+      const aiConfig = await getAIConfig()
+      if (!aiConfig.enabled) {
         preScreenLogger.warn('AI 功能未启用，跳过初筛', { feedTitle })
         return null // 回退到全量分析
       }
       
       // 检查是否有配置的 Provider
-      const hasRemoteProvider = settings.ai.providers?.deepseek?.apiKey || settings.ai.providers?.openai?.apiKey
-      const hasLocalProvider = settings.ai.providers?.ollama?.enabled
+      const hasRemoteProvider = aiConfig.providers?.deepseek?.apiKey || aiConfig.providers?.openai?.apiKey
+      const hasLocalProvider = aiConfig.providers?.ollama?.enabled
       if (!hasRemoteProvider && !hasLocalProvider) {
         preScreenLogger.warn('未配置任何 AI Provider，跳过初筛', { feedTitle })
         return null // 回退到全量分析
@@ -214,8 +215,7 @@ export class FeedPreScreeningService {
     userProfile?: UserProfile
   ): Promise<FeedPreScreeningResult> {
     // 获取AI配置
-    const settings = await getSettings()
-    const aiConfig = settings.ai
+    const aiConfig = await getAIConfig()
     
     if (!aiConfig || !aiConfig.enabled) {
       throw new Error('AI功能未启用')
@@ -223,19 +223,20 @@ export class FeedPreScreeningService {
     
     preScreenLogger.debug('获取AI配置成功', {
       enabled: aiConfig.enabled,
-      defaultProvider: aiConfig.defaultProvider,
+      defaultProvider: aiConfig.preferredRemoteProvider,
     })
 
     // Feed初筛属于低频任务，使用lowFrequencyTasks配置
     const taskConfig = aiConfig.engineAssignment?.lowFrequencyTasks
-    const provider = taskConfig?.provider || aiConfig.defaultProvider
-    const model = taskConfig?.model || aiConfig.providers[provider]?.model
+    const provider = taskConfig?.provider || aiConfig.preferredRemoteProvider
+    const model = taskConfig?.model || aiConfig.providers?.[provider as keyof typeof aiConfig.providers]?.model
 
     if (!model) {
       throw new Error(`模型配置不存在: ${provider}`)
     }
 
     // 获取语言设置（默认中文）
+    const settings = await getSettings()
     const language = settings.language || 'zh-CN'
 
     // 构建提示词

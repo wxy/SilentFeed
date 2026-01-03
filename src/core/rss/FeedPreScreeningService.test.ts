@@ -19,30 +19,39 @@ vi.mock('@/core/ai/AICapabilityManager', () => {
   }
 })
 
-// Mock getSettings
+// Mock getAIConfig
+vi.mock('@/storage/ai-config', () => {
+  const mockFn = vi.fn().mockResolvedValue({
+    enabled: true,
+    preferredRemoteProvider: 'deepseek',
+    preferredLocalProvider: 'ollama',
+    providers: {
+      deepseek: {
+        model: 'deepseek-chat',
+        apiKey: 'test-key',
+        endpoint: 'https://api.deepseek.com/v1',
+        timeoutMs: 60000,
+        reasoningTimeoutMs: 120000
+      }
+    },
+    engineAssignment: {
+      lowFrequencyTasks: {
+        provider: 'deepseek',
+        model: 'deepseek-chat',
+        useReasoning: false
+      }
+    }
+  })
+  return {
+    getAIConfig: mockFn
+  }
+})
+
+// Mock getSettings for language
 vi.mock('@/storage/db/db-settings', () => {
   const mockFn = vi.fn().mockResolvedValue({
     language: 'zh-CN',
-    ai: {
-      enabled: true,
-      defaultProvider: 'deepseek',
-      providers: {
-        deepseek: {
-          model: 'deepseek-chat',
-          apiKey: 'test-key',
-          endpoint: 'https://api.deepseek.com/v1',
-          timeoutMs: 60000,
-          reasoningTimeoutMs: 120000
-        }
-      },
-      engineAssignment: {
-        lowFrequencyTasks: {
-          provider: 'deepseek',
-          model: 'deepseek-chat',
-          useReasoning: false
-        }
-      }
-    }
+    id: 'singleton'
   })
   return {
     getSettings: mockFn
@@ -68,35 +77,33 @@ function createMockFetchResult(itemCount: number): FetchResult {
 describe('FeedPreScreeningService', () => {
   let service: FeedPreScreeningService
   let mockAIManager: any
-  let mockGetSettings: any
+  let mockGetAIConfig: any
 
   beforeEach(async () => {
     vi.clearAllMocks()
     // 获取 mock 函数引用
-    const { getSettings } = await import('@/storage/db/db-settings')
-    mockGetSettings = getSettings
+    const { getAIConfig } = await import('@/storage/ai-config')
+    mockGetAIConfig = getAIConfig
     
     // 重置为默认有效配置
-    mockGetSettings.mockResolvedValue({
-      language: 'zh-CN',
-      ai: {
-        enabled: true,
-        defaultProvider: 'deepseek',
-        providers: {
-          deepseek: {
-            model: 'deepseek-chat',
-            apiKey: 'test-key',
-            endpoint: 'https://api.deepseek.com/v1',
-            timeoutMs: 60000,
-            reasoningTimeoutMs: 120000
-          }
-        },
-        engineAssignment: {
-          lowFrequencyTasks: {
-            provider: 'deepseek',
-            model: 'deepseek-chat',
-            useReasoning: false
-          }
+    mockGetAIConfig.mockResolvedValue({
+      enabled: true,
+      preferredRemoteProvider: 'deepseek',
+      preferredLocalProvider: 'ollama',
+      providers: {
+        deepseek: {
+          model: 'deepseek-chat',
+          apiKey: 'test-key',
+          endpoint: 'https://api.deepseek.com/v1',
+          timeoutMs: 60000,
+          reasoningTimeoutMs: 120000
+        }
+      },
+      engineAssignment: {
+        lowFrequencyTasks: {
+          provider: 'deepseek',
+          model: 'deepseek-chat',
+          useReasoning: false
         }
       }
     })
@@ -121,9 +128,8 @@ describe('FeedPreScreeningService', () => {
     })
 
     it('应该在 AI 未启用时跳过初筛', async () => {
-      mockGetSettings.mockResolvedValueOnce({
-        language: 'zh-CN',
-        ai: { enabled: false }
+      mockGetAIConfig.mockResolvedValueOnce({
+        enabled: false
       })
 
       const result = await service.screenArticles(
@@ -137,15 +143,12 @@ describe('FeedPreScreeningService', () => {
     })
 
     it('应该在未配置任何 Provider 时跳过初筛', async () => {
-      mockGetSettings.mockResolvedValueOnce({
-        language: 'zh-CN',
-        ai: {
-          enabled: true,
-          providers: {
-            deepseek: { apiKey: '' },
-            openai: { apiKey: '' },
-            ollama: { enabled: false }
-          }
+      mockGetAIConfig.mockResolvedValueOnce({
+        enabled: true,
+        providers: {
+          deepseek: { apiKey: '' },
+          openai: { apiKey: '' },
+          ollama: { enabled: false }
         }
       })
 
@@ -625,9 +628,8 @@ describe('FeedPreScreeningService', () => {
   })
 
   describe('screenArticles() - 错误场景', () => {
-    it('应该处理getSettings失败', async () => {
-      const { getSettings } = await import('@/storage/db/db-settings')
-      vi.mocked(getSettings).mockRejectedValueOnce(new Error('Settings error'))
+    it('应该处理getAIConfig失败', async () => {
+      mockGetAIConfig.mockRejectedValueOnce(new Error('Config error'))
 
       const result = await service.screenArticles(
         createMockFetchResult(10),

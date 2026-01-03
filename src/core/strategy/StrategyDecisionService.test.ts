@@ -47,13 +47,46 @@ vi.mock('@/core/ai/AICapabilityManager', () => {
   }
 })
 
-// Mock getSettings
-vi.mock('@/storage/db/db-settings', () => {
+// Mock getAIConfig
+vi.mock('@/storage/ai-config', () => {
   const mockFn = vi.fn().mockResolvedValue({
-    language: 'zh-CN',
-    ai: {
+    enabled: true,
+    preferredRemoteProvider: 'deepseek',
+    preferredLocalProvider: 'ollama',
+    providers: {
+      deepseek: {
+        model: 'deepseek-chat',
+        apiKey: 'test-key',
+        endpoint: 'https://api.deepseek.com/v1',
+        timeoutMs: 60000,
+        reasoningTimeoutMs: 120000
+      }
+    },
+    engineAssignment: {
+      lowFrequencyTasks: {
+        provider: 'deepseek',
+        model: 'deepseek-chat',
+        useReasoning: false
+      }
+    }
+  })
+  return {
+    getAIConfig: mockFn
+  }
+})
+
+describe('StrategyDecisionService', () => {
+  let mockGetAIConfig: any
+  let service: StrategyDecisionService
+
+  beforeEach(async () => {
+    // 获取 mock 函数引用并重置为有效配置
+    const { getAIConfig } = await import('@/storage/ai-config')
+    mockGetAIConfig = getAIConfig
+    mockGetAIConfig.mockResolvedValue({
       enabled: true,
-      defaultProvider: 'deepseek',
+      preferredRemoteProvider: 'deepseek',
+      preferredLocalProvider: 'ollama',
       providers: {
         deepseek: {
           model: 'deepseek-chat',
@@ -68,43 +101,6 @@ vi.mock('@/storage/db/db-settings', () => {
           provider: 'deepseek',
           model: 'deepseek-chat',
           useReasoning: false
-        }
-      }
-    }
-  })
-  return {
-    getSettings: mockFn
-  }
-})
-
-describe('StrategyDecisionService', () => {
-  let mockGetSettings: any
-  let service: StrategyDecisionService
-
-  beforeEach(async () => {
-    // 获取 mock 函数引用并重置为有效配置
-    const { getSettings } = await import('@/storage/db/db-settings')
-    mockGetSettings = getSettings
-    mockGetSettings.mockResolvedValue({
-      language: 'zh-CN',
-      ai: {
-        enabled: true,
-        defaultProvider: 'deepseek',
-        providers: {
-          deepseek: {
-            model: 'deepseek-chat',
-            apiKey: 'test-key',
-            endpoint: 'https://api.deepseek.com/v1',
-            timeoutMs: 60000,
-            reasoningTimeoutMs: 120000
-          }
-        },
-        engineAssignment: {
-          lowFrequencyTasks: {
-            provider: 'deepseek',
-            model: 'deepseek-chat',
-            useReasoning: false
-          }
         }
       }
     })
@@ -230,24 +226,20 @@ describe('StrategyDecisionService', () => {
 
   describe('generateNewStrategy', () => {
     it('应该在 AI 未启用时抛出错误', async () => {
-      mockGetSettings.mockResolvedValueOnce({
-        language: 'zh-CN',
-        ai: { enabled: false }
+      mockGetAIConfig.mockResolvedValueOnce({
+        enabled: false
       })
 
       await expect(service.generateNewStrategy()).rejects.toThrow('AI 功能未启用')
     })
 
     it('应该在未配置 Provider 时抛出错误', async () => {
-      mockGetSettings.mockResolvedValueOnce({
-        language: 'zh-CN',
-        ai: {
-          enabled: true,
-          providers: {
-            deepseek: { apiKey: '' },
-            openai: { apiKey: '' },
-            ollama: { enabled: false }
-          }
+      mockGetAIConfig.mockResolvedValueOnce({
+        enabled: true,
+        providers: {
+          deepseek: { apiKey: '' },
+          openai: { apiKey: '' },
+          ollama: { enabled: false }
         }
       })
 
