@@ -50,7 +50,6 @@ vi.mock('@/core/ai/AICapabilityManager', () => {
 // Mock getAIConfig
 vi.mock('@/storage/ai-config', () => {
   const mockFn = vi.fn().mockResolvedValue({
-    enabled: true,
     preferredRemoteProvider: 'deepseek',
     preferredLocalProvider: 'ollama',
     providers: {
@@ -61,6 +60,12 @@ vi.mock('@/storage/ai-config', () => {
         timeoutMs: 60000,
         reasoningTimeoutMs: 120000
       }
+    },
+    local: {
+      enabled: false,
+      provider: 'ollama',
+      endpoint: 'http://localhost:11434/v1',
+      model: ''
     },
     engineAssignment: {
       lowFrequencyTasks: {
@@ -84,7 +89,6 @@ describe('StrategyDecisionService', () => {
     const { getAIConfig } = await import('@/storage/ai-config')
     mockGetAIConfig = getAIConfig
     mockGetAIConfig.mockResolvedValue({
-      enabled: true,
       preferredRemoteProvider: 'deepseek',
       preferredLocalProvider: 'ollama',
       providers: {
@@ -95,6 +99,12 @@ describe('StrategyDecisionService', () => {
           timeoutMs: 60000,
           reasoningTimeoutMs: 120000
         }
+      },
+      local: {
+        enabled: false,
+        provider: 'ollama',
+        endpoint: 'http://localhost:11434/v1',
+        model: ''
       },
       engineAssignment: {
         lowFrequencyTasks: {
@@ -225,21 +235,16 @@ describe('StrategyDecisionService', () => {
   })
 
   describe('generateNewStrategy', () => {
-    it('应该在 AI 未启用时抛出错误', async () => {
-      mockGetAIConfig.mockResolvedValueOnce({
-        enabled: false
-      })
-
-      await expect(service.generateNewStrategy()).rejects.toThrow('AI 功能未启用')
-    })
-
     it('应该在未配置 Provider 时抛出错误', async () => {
       mockGetAIConfig.mockResolvedValueOnce({
-        enabled: true,
         providers: {
           deepseek: { apiKey: '' },
-          openai: { apiKey: '' },
-          ollama: { enabled: false }
+          openai: { apiKey: '' }
+        },
+        local: {
+          enabled: false,
+          provider: 'ollama',
+          model: ''
         }
       })
 

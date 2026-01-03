@@ -22,7 +22,6 @@ vi.mock('@/core/ai/AICapabilityManager', () => {
 // Mock getAIConfig
 vi.mock('@/storage/ai-config', () => {
   const mockFn = vi.fn().mockResolvedValue({
-    enabled: true,
     preferredRemoteProvider: 'deepseek',
     preferredLocalProvider: 'ollama',
     providers: {
@@ -33,6 +32,12 @@ vi.mock('@/storage/ai-config', () => {
         timeoutMs: 60000,
         reasoningTimeoutMs: 120000
       }
+    },
+    local: {
+      enabled: false,
+      provider: 'ollama',
+      endpoint: 'http://localhost:11434/v1',
+      model: ''
     },
     engineAssignment: {
       lowFrequencyTasks: {
@@ -127,28 +132,16 @@ describe('FeedPreScreeningService', () => {
       expect(mockAIManager.callWithConfig).not.toHaveBeenCalled()
     })
 
-    it('应该在 AI 未启用时跳过初筛', async () => {
-      mockGetAIConfig.mockResolvedValueOnce({
-        enabled: false
-      })
-
-      const result = await service.screenArticles(
-        createMockFetchResult(10),
-        'Test Feed',
-        'https://example.com/feed'
-      )
-
-      expect(result).toBeNull()
-      expect(mockAIManager.callWithConfig).not.toHaveBeenCalled()
-    })
-
     it('应该在未配置任何 Provider 时跳过初筛', async () => {
       mockGetAIConfig.mockResolvedValueOnce({
-        enabled: true,
         providers: {
           deepseek: { apiKey: '' },
-          openai: { apiKey: '' },
-          ollama: { enabled: false }
+          openai: { apiKey: '' }
+        },
+        local: {
+          enabled: false,
+          provider: 'ollama',
+          model: ''
         }
       })
 

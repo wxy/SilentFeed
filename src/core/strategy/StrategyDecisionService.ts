@@ -87,15 +87,10 @@ export class StrategyDecisionService {
     try {
       // 0. 提前检查 AI 配置是否可用
       const aiConfig = await getAIConfig()
-      if (!aiConfig.enabled) {
-        const error = new Error('AI 功能未启用，无法生成策略决策')
-        strategyLogger.warn('⚠️ AI 功能未启用，跳过策略生成')
-        throw error
-      }
       
       // 检查是否有配置的 Provider
       const hasRemoteProvider = aiConfig.providers?.deepseek?.apiKey || aiConfig.providers?.openai?.apiKey
-      const hasLocalProvider = aiConfig.providers?.ollama?.enabled
+      const hasLocalProvider = aiConfig.local?.enabled && aiConfig.local?.model
       if (!hasRemoteProvider && !hasLocalProvider) {
         const error = new Error('未配置任何 AI Provider，无法生成策略决策')
         strategyLogger.warn('⚠️ 未配置任何 AI Provider，跳过策略生成')

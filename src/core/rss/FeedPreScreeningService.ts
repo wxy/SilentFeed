@@ -83,14 +83,10 @@ export class FeedPreScreeningService {
       
       // 0. 提前检查 AI 配置是否可用
       const aiConfig = await getAIConfig()
-      if (!aiConfig.enabled) {
-        preScreenLogger.warn('AI 功能未启用，跳过初筛', { feedTitle })
-        return null // 回退到全量分析
-      }
       
       // 检查是否有配置的 Provider
       const hasRemoteProvider = aiConfig.providers?.deepseek?.apiKey || aiConfig.providers?.openai?.apiKey
-      const hasLocalProvider = aiConfig.providers?.ollama?.enabled
+      const hasLocalProvider = aiConfig.local?.enabled && aiConfig.local?.model
       if (!hasRemoteProvider && !hasLocalProvider) {
         preScreenLogger.warn('未配置任何 AI Provider，跳过初筛', { feedTitle })
         return null // 回退到全量分析
@@ -217,8 +213,8 @@ export class FeedPreScreeningService {
     // 获取AI配置
     const aiConfig = await getAIConfig()
     
-    if (!aiConfig || !aiConfig.enabled) {
-      throw new Error('AI功能未启用')
+    if (!aiConfig) {
+      throw new Error('AI配置不存在')
     }
     
     preScreenLogger.debug('获取AI配置成功', {
