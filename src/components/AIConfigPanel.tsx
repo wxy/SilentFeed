@@ -7,6 +7,10 @@ import { resolveProvider } from "@/utils/ai-provider-resolver"
 import type { AIConfig } from "@/storage/ai-config"
 import { useI18n } from "@/i18n/helpers"
 import { getCurrentMonthUsage } from "@/utils/budget-utils"
+import { DeepSeekProvider } from '@/core/ai/providers/DeepSeekProvider'
+import { OpenAIProvider } from '@/core/ai/providers/OpenAIProvider'
+import { AICapabilityManager } from '@/core/ai/AICapabilityManager'
+import { saveProviderStatus } from '@/storage/ai-provider-status'
 
 /**
  * AI Provider 配置面板
@@ -392,13 +396,11 @@ function ConfigModal({
       let provider: { testConnection: (enableReasoning: boolean) => Promise<{ success: boolean; message?: string; latency?: number }> }
       
       if (providerId === 'deepseek') {
-        const { DeepSeekProvider } = await import('@/core/ai/providers/DeepSeekProvider')
         provider = new DeepSeekProvider({ 
           apiKey: cleanApiKey,
           model: selectedModel
         })
       } else if (providerId === 'openai') {
-        const { OpenAIProvider } = await import('@/core/ai/providers/OpenAIProvider')
         provider = new OpenAIProvider({ 
           apiKey: cleanApiKey,
           model: selectedModel
@@ -453,7 +455,6 @@ function ConfigModal({
         setConfig(newConfig)
         
         // 3. 保存状态到缓存
-        const { saveProviderStatus } = await import('@/storage/ai-provider-status')
         await saveProviderStatus({
           providerId,
           type: 'remote',
@@ -508,7 +509,6 @@ function ConfigModal({
       await saveAIConfig(tempConfig)
 
       // 测试连接
-      const { AICapabilityManager } = await import('@/core/ai/AICapabilityManager')
       const manager = new AICapabilityManager()
       await manager.initialize()
       
@@ -623,7 +623,6 @@ function ConfigModal({
           setConfig(newConfig)
           
           // 3. 保存状态到缓存
-          const { saveProviderStatus } = await import('@/storage/ai-provider-status')
           await saveProviderStatus({
             providerId: 'ollama',
             type: 'local',
@@ -638,7 +637,6 @@ function ConfigModal({
           })
           
           // 即使加载模型失败，连接仍然成功，保存状态
-          const { saveProviderStatus } = await import('@/storage/ai-provider-status')
           await saveProviderStatus({
             providerId: 'ollama',
             type: 'local',

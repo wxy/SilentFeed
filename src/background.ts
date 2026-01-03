@@ -29,7 +29,8 @@ import { migrateStorageKeys, needsStorageKeyMigration } from '@/storage/migratio
 import {
   migrateLocalStorageKeys,
   needsLocalStorageMigration,
-  cleanupLegacyNotificationKeys
+  cleanupLegacyNotificationKeys,
+  cleanupAggregatedTrackingData
 } from '@/storage/migrations/local-storage-migration'
 import {
   consumeTabTracking,
@@ -941,7 +942,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             const status = {
               feedScheduler: {
                 name: 'RSS抓取',
-                isRunning: feedScheduler.isRunning,
                 alarms: alarms.filter(a => a.name === 'fetch-feeds').map(a => ({
                   name: a.name,
                   scheduledTime: a.scheduledTime,
@@ -950,7 +950,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               },
               recommendationScheduler: {
                 name: '推荐生成',
-                isRunning: recommendationScheduler.isRunning,
                 nextRunTime: recommendationScheduler.nextRunTime,
                 alarms: alarms.filter(a => a.name === 'generate-recommendation').map(a => ({
                   name: a.name,
@@ -963,8 +962,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               ).map(a => ({
                 name: a.name,
                 scheduledTime: a.scheduledTime,
-                periodInMinutes: a.periodInMinutes,
-                delayInMinutes: a.delayInMinutes
+                periodInMinutes: a.periodInMinutes
               }))
             }
             sendResponse({ success: true, data: status })
@@ -1134,8 +1132,7 @@ async function generateDailyPoolStrategy(): Promise<void> {
       bgLogger.info('✅ 推荐池策略已生成并应用', {
         poolSize: decision.poolSize,
         refillInterval: Math.round(decision.minInterval / 1000 / 60),
-        confidence: decision.confidence,
-        cost: decision.cost
+        confidence: decision.confidence
       })
     } finally {
       // 释放锁（5秒后）
@@ -1192,7 +1189,6 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     } else if (alarm.name === 'cleanup-tracking-data') {
       // 清理过期的追踪数据（新格式聚合存储）
       bgLogger.info('开始清理过期追踪数据...')
-      const { cleanupAggregatedTrackingData } = await import('@/storage/migrations/local-storage-migration')
       const cleaned = await cleanupAggregatedTrackingData()
       bgLogger.info(`✅ 清理了 ${cleaned} 条过期追踪数据`)
     } else if (alarm.name === 'daily-pool-strategy') {

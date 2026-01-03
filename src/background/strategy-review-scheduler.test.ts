@@ -38,8 +38,8 @@ describe('StrategyReviewScheduler', () => {
   let mockStrategyService: any
   
   beforeEach(async () => {
-    // 清空数据库
-    await db.strategyDecisions.clear()
+    // 清空 storage
+    await chrome.storage.local.remove(['current_strategy', 'strategy_system_context'])
     
     // 重置所有 mocks
     vi.clearAllMocks()
@@ -53,7 +53,9 @@ describe('StrategyReviewScheduler', () => {
   
   afterEach(async () => {
     // 停止调度器
-    await scheduler.stop()
+    if (scheduler && typeof scheduler.stop === 'function') {
+      await scheduler.stop()
+    }
   })
   
   describe('start', () => {

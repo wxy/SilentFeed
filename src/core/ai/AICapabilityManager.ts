@@ -83,7 +83,13 @@ export class AICapabilityManager {
       // Phase 11: 从 engineAssignment 确定需要初始化哪些 Provider
       try {
         this.engineAssignment = await getEngineAssignment()
+        aiLogger.debug('📋 Engine Assignment 加载成功', {
+          pageAnalysis: this.engineAssignment?.pageAnalysis,
+          articleAnalysis: this.engineAssignment?.articleAnalysis,
+          lowFrequencyTasks: this.engineAssignment?.lowFrequencyTasks
+        })
       } catch (error) {
+        aiLogger.error('❌ 加载 Engine Assignment 失败', error)
         this.engineAssignment = null
       }
       
@@ -95,10 +101,14 @@ export class AICapabilityManager {
         const tasks: AITaskType[] = ['pageAnalysis', 'articleAnalysis', 'lowFrequencyTasks']
         for (const task of tasks) {
           const providerType = this.engineAssignment[task]?.provider
-          if (!providerType) continue
+          if (!providerType) {
+            aiLogger.warn(`⚠️ 任务 ${task} 没有配置 provider`)
+            continue
+          }
           
           // 解析抽象类型
           const resolvedType = await this.resolveProviderType(providerType)
+          aiLogger.debug(`📍 任务 ${task}: ${providerType} → ${resolvedType}`)
           
           if (resolvedType === 'ollama') {
             usesLocalProvider = true
@@ -107,6 +117,11 @@ export class AICapabilityManager {
           }
         }
       }
+      
+      aiLogger.debug('📊 Provider 使用统计', {
+        usedProviders: Array.from(usedProviders),
+        usesLocalProvider
+      })
       
       // Phase 11: 初始化远程 Provider（如果有任务使用）
       if (usedProviders.size > 0) {
@@ -538,7 +553,16 @@ export class AICapabilityManager {
     provider: AIProvider | null
     useReasoning: boolean
   }> {
+    // 🔍 详细诊断日志
+    aiLogger.debug(`🔍 getProviderForTask 调用`, {
+      taskType,
+      hasEngineAssignment: !!this.engineAssignment,
+      remoteProvider: this.remoteProvider?.name || 'null',
+      localProvider: this.localProvider?.name || 'null'
+    })
+    
     if (!this.engineAssignment) {
+      aiLogger.warn(`⚠️ 没有引擎分配配置，使用默认 provider`)
       return {
         provider: this.remoteProvider || this.localProvider,
         useReasoning: false
@@ -564,9 +588,11 @@ export class AICapabilityManager {
     }
 
     const { provider: providerType, useReasoning = false } = engineConfig
+    aiLogger.debug(`🔍 任务 ${taskType} 配置`, { providerType, useReasoning })
 
     // Phase 12: 解析抽象 provider 类型到具体实现
     const resolvedProviderType = await this.resolveProviderType(providerType)
+    aiLogger.debug(`🔍 Provider 类型解析: ${providerType} → ${resolvedProviderType}`)
     
     let provider: AIProvider | null = null
 
@@ -574,25 +600,29 @@ export class AICapabilityManager {
       case "deepseek":
       case "openai":
         provider = this.remoteProvider
+        aiLogger.debug(`🔍 尝试使用 remote provider: ${provider?.name || 'null'}`)
         if (!provider) {
-          aiLogger.warn(`Remote provider not available for ${resolvedProviderType}, falling back to local`)
+          aiLogger.warn(`⚠️ Remote provider 不可用 (${resolvedProviderType}), falling back to local`)
           provider = this.localProvider
         }
         break
 
       case "ollama":
         provider = this.localProvider
+        aiLogger.debug(`🔍 尝试使用 local provider: ${provider?.name || 'null'}`)
         if (!provider) {
-          aiLogger.warn(`Local provider not available, falling back to remote`)
+          aiLogger.warn(`⚠️ Local provider 不可用, falling back to remote`)
           provider = this.remoteProvider
         }
         break
 
       default:
-        aiLogger.error(`Unknown engine type: ${resolvedProviderType}`)
+        aiLogger.error(`❌ 未知引擎类型: ${resolvedProviderType}`)
         provider = this.remoteProvider || this.localProvider
     }
 
+    aiLogger.debug(`🔍 最终选择的 provider: ${provider?.name || 'null'}`)
+    
     return {
       provider,
       useReasoning: useReasoning ?? false
@@ -912,7 +942,9 @@ export class AICapabilityManager {
     enabled: boolean,
     providerType: AIProviderType | null | undefined,
     apiKey: string,
-    model?: string
+    model?: string,
+    timeoutMs?: number,
+    reasoningTimeoutMs?: number
   ): Promise<void> {
     if (!providerType) {
       this.remoteProvider = null
@@ -921,13 +953,13 @@ export class AICapabilityManager {
     }
 
     if (!apiKey) {
-      aiLogger.warn(` No API key for provider ${providerType}`)
+      aiLogger.warn(`⚠️ No API key for provider ${providerType}`)
       this.remoteProvider = null
       return
     }
 
-    this.remoteProvider = this.createRemoteProvider(providerType, apiKey, model)
-    aiLogger.info(`Remote provider initialized: ${this.remoteProvider.name} (enabled: ${enabled})`)
+    this.remoteProvider = this.createRemoteProvider(providerType, apiKey, model, timeoutMs, reasoningTimeoutMs)
+    aiLogger.info(`✅ Remote provider initialized: ${this.remoteProvider.name} (enabled: ${enabled})`)
   }
 
   private async initializeLocalProvider(localConfig?: LocalAIConfig): Promise<void> {

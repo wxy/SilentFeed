@@ -8,8 +8,12 @@ import { PoolRefillManager, DEFAULT_REFILL_POLICY } from '../pool-refill-policy'
 describe('PoolRefillManager', () => {
   let manager: PoolRefillManager
   
-  beforeEach(() => {
+  beforeEach(async () => {
+    // 清除 chrome.storage.local 中的所有数据，确保测试隔离
+    await chrome.storage.local.clear()
     manager = new PoolRefillManager()
+    // 清理存储状态，确保每个测试独立
+    await manager.resetState()
     vi.clearAllMocks()
   })
   

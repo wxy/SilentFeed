@@ -8,13 +8,29 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { FeedPreScreeningService } from './FeedPreScreeningService'
 import type { FetchResult } from './RSSFetcher'
 import type { UserProfile } from '@/core/ai/prompts/types'
-import { AICapabilityManager } from '@/core/ai/AICapabilityManager'
 
 // Mock AICapabilityManager
 vi.mock('@/core/ai/AICapabilityManager', () => {
   return {
     AICapabilityManager: class MockAICapabilityManager {
-      callWithConfig = vi.fn()
+      getProviderForTask = vi.fn().mockResolvedValue({
+        provider: {
+          analyzeContent: vi.fn().mockResolvedValue({
+            relevanceScore: 8,
+            reasoning: 'Test reasoning'
+          })
+        }
+      })
+    },
+    aiManager: {
+      getProviderForTask: vi.fn().mockResolvedValue({
+        provider: {
+          analyzeContent: vi.fn().mockResolvedValue({
+            relevanceScore: 8,
+            reasoning: 'Test reasoning'
+          })
+        }
+      })
     }
   }
 })
@@ -66,16 +82,18 @@ vi.mock('@/storage/db/db-settings', () => {
 // 辅助函数：创建模拟的Feed抓取结果
 function createMockFetchResult(itemCount: number): FetchResult {
   return {
-    title: 'Test Feed',
-    link: 'https://example.com/feed',
+    success: true,
+    feedInfo: {
+      title: 'Test Feed',
+      link: 'https://example.com/feed'
+    },
     items: Array.from({ length: itemCount }, (_, i) => ({
       title: `Article ${i + 1}`,
       link: `https://example.com/article/${i + 1}`,
       description: `Description for article ${i + 1}`,
       // 使用有效的日期，限制在1-28号
       pubDate: new Date(`2026-01-${String((i % 28) + 1).padStart(2, '0')}`)
-    })),
-    meta: {}
+    }))
   }
 }
 
@@ -83,12 +101,41 @@ describe('FeedPreScreeningService', () => {
   let service: FeedPreScreeningService
   let mockAIManager: any
   let mockGetAIConfig: any
+  let mockAnalyzeContent: any
+
+  // 辅助函数：设置 AI provider mock 返回值
+  function mockAIResponse(responseObj: any) {
+    const rawText = typeof responseObj === 'string' 
+      ? responseObj 
+      : JSON.stringify(responseObj)
+    
+    mockAnalyzeContent.mockResolvedValue({
+      relevanceScore: 8,
+      reasoning: 'Test reasoning',
+      rawText
+    })
+  }
+
+  // 辅助函数：设置 AI provider mock 失败
+  function mockAIError(error: Error) {
+    mockAnalyzeContent.mockRejectedValue(error)
+  }
 
   beforeEach(async () => {
     vi.clearAllMocks()
     // 获取 mock 函数引用
     const { getAIConfig } = await import('@/storage/ai-config')
     mockGetAIConfig = getAIConfig
+    
+    // 创建 mock analyzeContent 函数
+    mockAnalyzeContent = vi.fn().mockResolvedValue({
+      relevanceScore: 8,
+      reasoning: 'Test reasoning',
+      rawText: JSON.stringify({
+        selectedArticleLinks: [],
+        stats: { totalArticles: 0, selectedCount: 0 }
+      })
+    })
     
     // 重置为默认有效配置
     mockGetAIConfig.mockResolvedValue({
@@ -115,6 +162,15 @@ describe('FeedPreScreeningService', () => {
     service = new FeedPreScreeningService()
     // @ts-ignore - 访问私有属性用于测试
     mockAIManager = service.aiManager
+    
+    // 重新 mock getProviderForTask 以返回我们的 mock provider
+    if (mockAIManager && mockAIManager.getProviderForTask) {
+      mockAIManager.getProviderForTask = vi.fn().mockResolvedValue({
+        provider: {
+          analyzeContent: mockAnalyzeContent
+        }
+      })
+    }
   })
 
   describe('screenArticles() - 主入口方法', () => {
@@ -129,7 +185,7 @@ describe('FeedPreScreeningService', () => {
 
         expect(result).toBeNull()
       }
-      expect(mockAIManager.callWithConfig).not.toHaveBeenCalled()
+      expect(mockAnalyzeContent).not.toHaveBeenCalled()
     })
 
     it('应该在未配置任何 Provider 时跳过初筛', async () => {
@@ -152,7 +208,7 @@ describe('FeedPreScreeningService', () => {
       )
 
       expect(result).toBeNull()
-      expect(mockAIManager.callWithConfig).not.toHaveBeenCalled()
+      expect(mockAnalyzeContent).not.toHaveBeenCalled()
     })
 
     it('应该对4篇文章进行初筛', async () => {
@@ -164,7 +220,7 @@ describe('FeedPreScreeningService', () => {
         stats: { totalArticles: 4, selectedCount: 2 }
       }
 
-      mockAIManager.callWithConfig.mockResolvedValue(JSON.stringify(aiResponse))
+      mockAIResponse(aiResponse)
 
       const result = await service.screenArticles(
         createMockFetchResult(4),
@@ -173,7 +229,7 @@ describe('FeedPreScreeningService', () => {
       )
 
       expect(result).not.toBeNull()
-      expect(mockAIManager.callWithConfig).toHaveBeenCalledOnce()
+      expect(mockAnalyzeContent).toHaveBeenCalledOnce()
     })
 
     it('应该成功初筛10篇文章并返回结果', async () => {
@@ -191,7 +247,7 @@ describe('FeedPreScreeningService', () => {
         }
       }
 
-      mockAIManager.callWithConfig.mockResolvedValue(JSON.stringify(aiResponse))
+      mockAIResponse(aiResponse)
 
       const result = await service.screenArticles(
         createMockFetchResult(10),
@@ -203,7 +259,7 @@ describe('FeedPreScreeningService', () => {
       expect(result?.selectedArticleLinks).toHaveLength(3)
       expect(result?.totalArticles).toBe(10)
       expect(result?.selectedCount).toBe(3)
-      expect(mockAIManager.callWithConfig).toHaveBeenCalledOnce()
+      expect(mockAnalyzeContent).toHaveBeenCalledOnce()
     })
 
     it('应该支持用户画像参数', async () => {
@@ -218,7 +274,7 @@ describe('FeedPreScreeningService', () => {
         stats: { totalArticles: 10, selectedCount: 1 }
       }
 
-      mockAIManager.callWithConfig.mockResolvedValue(JSON.stringify(aiResponse))
+      mockAIResponse(aiResponse)
 
       const result = await service.screenArticles(
         createMockFetchResult(10),
@@ -228,18 +284,18 @@ describe('FeedPreScreeningService', () => {
       )
 
       expect(result).not.toBeNull()
-      expect(mockAIManager.callWithConfig).toHaveBeenCalledOnce()
+      expect(mockAnalyzeContent).toHaveBeenCalledOnce()
       
       // 验证调用参数中包含用户画像
-      const callArgs = mockAIManager.callWithConfig.mock.calls[0][0]
-      expect(callArgs.prompt).toContain('JavaScript')
-      expect(callArgs.prompt).toContain('技术文章')
+      const callArgs = mockAnalyzeContent.mock.calls[0][0]
+      expect(callArgs).toContain('JavaScript')
+      expect(callArgs).toContain('技术文章')
     })
 
     it('应该处理AI响应中的markdown代码块', async () => {
       const aiResponse = '```json\n{"selectedArticleLinks": ["https://example.com/article/1"], "stats": {"totalArticles": 10, "selectedCount": 1}}\n```'
       
-      mockAIManager.callWithConfig.mockResolvedValue(aiResponse)
+      mockAIResponse(aiResponse)
 
       const result = await service.screenArticles(
         createMockFetchResult(10),
@@ -252,7 +308,7 @@ describe('FeedPreScreeningService', () => {
     })
 
     it('应该处理AI调用失败', async () => {
-      mockAIManager.callWithConfig.mockRejectedValue(new Error('AI service unavailable'))
+      mockAIError(new Error('AI service unavailable'))
 
       const result = await service.screenArticles(
         createMockFetchResult(10),
@@ -264,7 +320,7 @@ describe('FeedPreScreeningService', () => {
     })
 
     it('应该处理无效的JSON响应', async () => {
-      mockAIManager.callWithConfig.mockResolvedValue('This is not valid JSON')
+      mockAIResponse('This is not valid JSON')
 
       const result = await service.screenArticles(
         createMockFetchResult(10),
@@ -281,7 +337,7 @@ describe('FeedPreScreeningService', () => {
         stats: { totalArticles: 100, selectedCount: 1 } // 1% 筛选率
       }
 
-      mockAIManager.callWithConfig.mockResolvedValue(JSON.stringify(aiResponse))
+      mockAIResponse(aiResponse)
 
       const result = await service.screenArticles(
         createMockFetchResult(100),
@@ -302,7 +358,7 @@ describe('FeedPreScreeningService', () => {
         stats: { totalArticles: 10, selectedCount: 3 }
       }
 
-      mockAIManager.callWithConfig.mockResolvedValue(JSON.stringify(aiResponse))
+      mockAIResponse(aiResponse)
 
       const result = await service.screenArticles(
         createMockFetchResult(10),
@@ -639,7 +695,7 @@ describe('FeedPreScreeningService', () => {
         selectedArticleLinks: ['https://example.com/article/1'],
         stats: { totalArticles: 10, selectedCount: 1 }
       }
-      mockAIManager.callWithConfig.mockResolvedValue(JSON.stringify(aiResponse))
+      mockAIResponse(aiResponse)
 
       const result = await service.screenArticles(
         createMockFetchResult(10),

@@ -12,11 +12,12 @@ import { useState, useEffect, useRef } from "react"
 import { useI18n } from "@/i18n/helpers"
 import { getUserProfile } from "@/storage/db"
 import { profileManager } from "@/core/profile/ProfileManager"
-import { getAIConfig, getProviderDisplayName, type AIProviderType } from "@/storage/ai-config"
+import { getAIConfig, getProviderDisplayName, type AIProviderType, getEngineAssignment, DEFAULT_TIMEOUTS } from "@/storage/ai-config"
 import { resolveProvider } from "@/utils/ai-provider-resolver"
 import type { UserProfile } from "@/types/profile"
 import { logger } from "@/utils/logger"
 import { formatMonthDay, formatDateTime } from "@/utils/date-formatter"
+import { db } from "@/storage/db"
 
 const profileViewLogger = logger.withTag("ProfileView")
 
@@ -178,7 +179,6 @@ export function ProfileSettings() {
         
         // 如果画像不存在或 totalPages 为 0，从数据库直接查询
         if (actualTotalPages === 0) {
-          const { db } = await import("@/storage/db")
           actualTotalPages = await db.confirmedVisits.count()
         }
         
@@ -296,7 +296,6 @@ export function ProfileSettings() {
     let timeoutMs = 60000 // 默认 60s（远程 AI 标准模式）
     
     try {
-      const { getEngineAssignment, getAIConfig, DEFAULT_TIMEOUTS } = await import("@/storage/ai-config")
       const assignment = await getEngineAssignment()
       // Phase 13: 使用 lowFrequencyTasks（画像生成属于低频任务）
       const lowFreqEngine = assignment.lowFrequencyTasks || assignment.profileGeneration

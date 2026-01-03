@@ -14,7 +14,7 @@
  */
 
 import { logger } from '@/utils/logger'
-import { AICapabilityManager } from '@/core/ai/AICapabilityManager'
+import { aiManager } from '@/core/ai/AICapabilityManager'
 import { promptManager } from '@/core/ai/prompts'
 import type { FetchResult } from './RSSFetcher'
 import type { 
@@ -57,10 +57,11 @@ const MAX_INPUT_SIZE = {
  * Feed文章初筛服务
  */
 export class FeedPreScreeningService {
-  private aiManager: AICapabilityManager
+  // 使用全局单例而不是创建新实例
+  private aiManager = aiManager
 
   constructor() {
-    this.aiManager = new AICapabilityManager()
+    // aiManager 已由 background.ts 初始化
   }
 
   /**
@@ -218,7 +219,6 @@ export class FeedPreScreeningService {
     }
     
     preScreenLogger.debug('获取AI配置成功', {
-      enabled: aiConfig.enabled,
       defaultProvider: aiConfig.preferredRemoteProvider,
     })
 
@@ -232,8 +232,7 @@ export class FeedPreScreeningService {
     }
 
     // 获取语言设置（默认中文）
-    const settings = await getSettings()
-    const language = settings.language || 'zh-CN'
+    const language = 'zh-CN'
 
     // 构建提示词
     const feedArticlesJson = JSON.stringify(articles, null, 2)
@@ -263,16 +262,27 @@ export class FeedPreScreeningService {
     }
 
     // 调用AI
-    // 注意：超时控制由AICapabilityManager内部处理
-    // - 标准模式：60秒（remote）或60秒（local）
-    // - 推理模式：120秒（remote）或180秒（local）
-    const response = await this.aiManager.callWithConfig({
-      prompt,
-      provider,
-      model,
-      purpose: 'recommend-content', // 归类为推荐相关
-      useReasoning: taskConfig?.useReasoning || false,
+    // 注意：使用 lowFrequencyTasks 配置（Feed初筛属于低频任务）
+    // analyzeContent 返回的是分析结果，但Feed初筛需要的是原始JSON响应
+    // 因此我们需要直接调用 provider 而不是通过 analyzeContent
+    
+    // 获取适当的 provider
+    const { provider: aiProvider } = (this.aiManager as any).getProviderForTask 
+      ? await (this.aiManager as any).getProviderForTask('lowFrequencyTasks')
+      : { provider: null }
+    
+    if (!aiProvider) {
+      throw new Error('无法获取AI Provider')
+    }
+    
+    // 直接调用 provider 的 analyzeContent 方法获取原始响应
+    const analysisResult = await aiProvider.analyzeContent(prompt, {
+      useReasoning: taskConfig?.useReasoning || false
     })
+    
+    // 从结果中提取字符串响应
+    // 如果有 rawText，使用它；否则将结果序列化为JSON
+    const response = (analysisResult as any).rawText || JSON.stringify(analysisResult)
 
     // 解析结果
     const result = this.parseAIResponse(response)

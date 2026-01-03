@@ -7,43 +7,18 @@ import { StrategyDecisionService } from './StrategyDecisionService'
 import { db } from '@/storage/db'
 import type { StrategyDecisionContext, RecommendationStrategy } from '@/types/strategy'
 
-// Mock AI Manager
-const mockDecidePoolStrategy = vi.fn().mockResolvedValue(
-  JSON.stringify({
-    analysis: {
-      batchSize: 10,
-      scoreThreshold: 7.5
-    },
-    recommendation: {
-      targetPoolSize: 5,
-      refillThreshold: 2,
-      dailyLimit: 15,
-      cooldownMinutes: 60
-    },
-    scheduling: {
-      analysisIntervalMinutes: 30,
-      recommendIntervalMinutes: 30,
-      loopIterations: 3
-    },
-    candidatePool: {
-      targetSize: 35,
-      maxSize: 70,
-      expiryHours: 168
-    },
-    meta: {
-      validHours: 24,
-      generatedAt: Date.now(),
-      version: 'v1.0',
-      nextReviewHours: 12
-    }
-  })
-)
-
+// Mock AI Manager - 在工厂内部创建 mock 函数
 vi.mock('@/core/ai/AICapabilityManager', () => {
+  const mockFn = vi.fn()
   return {
     AICapabilityManager: class {
-      decidePoolStrategy = mockDecidePoolStrategy
-    }
+      decidePoolStrategy = mockFn
+    },
+    aiManager: {
+      decidePoolStrategy: mockFn
+    },
+    // 导出 mock 函数以便测试中使用
+    _mockDecidePoolStrategy: mockFn
   }
 })
 
@@ -83,8 +58,48 @@ vi.mock('@/storage/ai-config', () => {
 describe('StrategyDecisionService', () => {
   let mockGetAIConfig: any
   let service: StrategyDecisionService
+  let mockDecidePoolStrategy: any
 
   beforeEach(async () => {
+    // 重置 mock 函数
+    vi.clearAllMocks()
+    
+    // 获取导出的 mock 函数
+    const aiModule = await import('@/core/ai/AICapabilityManager')
+    mockDecidePoolStrategy = (aiModule as any)._mockDecidePoolStrategy
+    
+    // 设置 mockDecidePoolStrategy 的默认返回值
+    mockDecidePoolStrategy.mockResolvedValue(
+      JSON.stringify({
+        analysis: {
+          batchSize: 10,
+          scoreThreshold: 7.5
+        },
+        recommendation: {
+          targetPoolSize: 5,
+          refillThreshold: 2,
+          dailyLimit: 15,
+          cooldownMinutes: 60
+        },
+        scheduling: {
+          analysisIntervalMinutes: 30,
+          recommendIntervalMinutes: 30,
+          loopIterations: 3
+        },
+        candidatePool: {
+          targetSize: 35,
+          maxSize: 70,
+          expiryHours: 168
+        },
+        meta: {
+          validHours: 24,
+          generatedAt: Date.now(),
+          version: 'v1.0',
+          nextReviewHours: 12
+        }
+      })
+    )
+    
     // 获取 mock 函数引用并重置为有效配置
     const { getAIConfig } = await import('@/storage/ai-config')
     mockGetAIConfig = getAIConfig
@@ -120,9 +135,11 @@ describe('StrategyDecisionService', () => {
     await db.discoveredFeeds.clear()
     await db.recommendations.clear()
     await db.aiUsage.clear()
-    await db.strategyDecisions.clear()
     await db.settings.clear()
     await db.userProfile.clear()
+
+    // 清空 strategy storage
+    await chrome.storage.local.remove(['current_strategy', 'strategy_system_context'])
 
     // 初始化必要的数据
     await db.settings.add({
@@ -273,10 +290,10 @@ describe('StrategyDecisionService', () => {
       expect(decision.validUntil).toBeGreaterThan(Date.now())
       expect(decision.nextReview).toBeGreaterThan(Date.now())
 
-      // 验证保存到数据库
-      const saved = await db.strategyDecisions.get(decision.id)
-      expect(saved).toBeDefined()
-      expect(saved?.id).toBe(decision.id)
+      // 验证保存到 storage
+      const saved = await chrome.storage.local.get('current_strategy')
+      expect(saved.current_strategy).toBeDefined()
+      expect(saved.current_strategy.id).toBe(decision.id)
     })
   })
 
@@ -294,7 +311,7 @@ describe('StrategyDecisionService', () => {
         strategy: {} as any
       }
 
-      await db.strategyDecisions.add(validStrategy)
+      await chrome.storage.local.set({ current_strategy: validStrategy })
 
       const current = await service.getCurrentStrategy()
       expect(current).toBeDefined()
@@ -319,19 +336,19 @@ describe('StrategyDecisionService', () => {
         strategy: {} as any
       }
 
-      await db.strategyDecisions.add(expiredStrategy)
+      await chrome.storage.local.set({ current_strategy: expiredStrategy })
 
       // 验证添加成功
-      const before = await db.strategyDecisions.get('strategy-expired')
-      expect(before?.status).toBe('active')
+      const before = await chrome.storage.local.get('current_strategy')
+      expect(before.current_strategy.status).toBe('active')
 
       const current = await service.getCurrentStrategy()
       expect(current).toBeNull()
 
-      // 验证策略被失效 - 给一点时间让更新完成
+      // 验证策略被清空（过期策略会被删除而不是标记为 invalidated）
       await new Promise(resolve => setTimeout(resolve, 100))
-      const updated = await db.strategyDecisions.get('strategy-expired')
-      expect(updated?.status).toBe('invalidated')
+      const updated = await chrome.storage.local.get('current_strategy')
+      expect(updated.current_strategy).toBeUndefined()
     })
   })
 

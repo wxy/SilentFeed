@@ -21,7 +21,7 @@ import { recommendationService } from '../core/recommender/RecommendationService
 import { logger } from '@/utils/logger'
 import { OnboardingStateService } from '@/core/onboarding/OnboardingStateService'
 import { hasAnyAIAvailable } from '@/storage/ai-config'
-import { getCachedStrategy } from '@/storage/strategy-cache'
+import { getCurrentStrategy } from '@/storage/strategy-storage'
 import type { StrategyDecision } from '@/types/strategy'
 
 const schedLogger = logger.withTag('RecommendationScheduler')
@@ -149,9 +149,9 @@ export class RecommendationScheduler {
     
     // 尝试加载策略配置
     if (!this.currentStrategy) {
-      const strategy = await getCachedStrategy()
+      const strategy = await getCurrentStrategy()
       if (strategy) {
-        schedLogger.info('从缓存加载策略配置')
+        schedLogger.info('加载当前策略配置')
         await this.updateStrategy(strategy)
       }
     }

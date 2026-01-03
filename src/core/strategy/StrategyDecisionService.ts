@@ -18,15 +18,13 @@ import type {
 import { 
   saveStrategyDecision, 
   getCurrentStrategy as getStoredStrategy,
-  invalidateStrategy 
-} from '@/storage/db/db-strategy'
-import { 
+  invalidateStrategy,
   cacheStrategy,
   cacheSystemContext,
   getCachedSystemContext 
-} from '@/storage/strategy-cache'
+} from '@/storage/strategy-storage'
 import { getOnboardingState } from '@/storage/onboarding-state'
-import { AICapabilityManager } from '@/core/ai/AICapabilityManager'
+import { aiManager } from '@/core/ai/AICapabilityManager'
 import { promptManager } from '@/core/ai/prompts'
 import { getSettings } from '@/storage/db/db-settings'
 import { getAIConfig } from '@/storage/ai-config'
@@ -39,10 +37,11 @@ const strategyLogger = logger.withTag('StrategyService')
  * 策略决策服务类
  */
 export class StrategyDecisionService {
-  private aiManager: AICapabilityManager
+  // 使用全局单例而不是创建新实例
+  private aiManager = aiManager
 
   constructor() {
-    this.aiManager = new AICapabilityManager()
+    // aiManager 已由 background.ts 初始化
   }
 
   /**

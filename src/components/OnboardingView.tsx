@@ -28,6 +28,8 @@ import {
 } from "@/storage/ai-config"
 import { AI_ENGINE_PRESETS } from "@/types/ai-engine-assignment"
 import { aiManager } from "@/core/ai/AICapabilityManager"
+import { DeepSeekProvider } from '@/core/ai/providers/DeepSeekProvider'
+import { OpenAIProvider } from '@/core/ai/providers/OpenAIProvider'
 import { FeedManager } from "@/core/rss/managers/FeedManager"
 import { OPMLImporter } from "@/core/rss/OPMLImporter"
 import { RSSFetcher } from "@/core/rss/RSSFetcher"
@@ -474,13 +476,11 @@ function AIConfigStep({
       let provider: { testConnection: (enableReasoning: boolean) => Promise<{ success: boolean; message?: string; latency?: number }> }
       
       if (selectedProvider === 'deepseek') {
-        const { DeepSeekProvider } = await import('@/core/ai/providers/DeepSeekProvider')
         provider = new DeepSeekProvider({ 
           apiKey: cleanApiKey,
           model: model
         })
       } else if (selectedProvider === 'openai') {
-        const { OpenAIProvider } = await import('@/core/ai/providers/OpenAIProvider')
         provider = new OpenAIProvider({ 
           apiKey: cleanApiKey,
           model: model
