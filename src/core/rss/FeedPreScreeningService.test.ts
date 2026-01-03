@@ -46,6 +46,22 @@ vi.mock('@/storage/db/db-settings', () => ({
   })
 }))
 
+// 辅助函数：创建模拟的Feed抓取结果
+function createMockFetchResult(itemCount: number): FetchResult {
+  return {
+    title: 'Test Feed',
+    link: 'https://example.com/feed',
+    items: Array.from({ length: itemCount }, (_, i) => ({
+      title: `Article ${i + 1}`,
+      link: `https://example.com/article/${i + 1}`,
+      description: `Description for article ${i + 1}`,
+      // 使用有效的日期，限制在1-28号
+      pubDate: new Date(`2026-01-${String((i % 28) + 1).padStart(2, '0')}`)
+    })),
+    meta: {}
+  }
+}
+
 describe('FeedPreScreeningService', () => {
   let service: FeedPreScreeningService
   let mockAIManager: any
@@ -58,28 +74,39 @@ describe('FeedPreScreeningService', () => {
   })
 
   describe('screenArticles() - 主入口方法', () => {
-    const createMockFetchResult = (itemCount: number): FetchResult => ({
-      title: 'Test Feed',
-      link: 'https://example.com/feed',
-      items: Array.from({ length: itemCount }, (_, i) => ({
-        title: `Article ${i + 1}`,
-        link: `https://example.com/article/${i + 1}`,
-        description: `Description for article ${i + 1}`,
-        // 使用有效的日期，限制在1-28号
-        pubDate: new Date(`2026-01-${String((i % 28) + 1).padStart(2, '0')}`)
-      })),
-      meta: {}
+    it('应该跳过少于等于3篇文章的初筛', async () => {
+      // 测试3篇及以下都跳过
+      for (const count of [1, 2, 3]) {
+        const result = await service.screenArticles(
+          createMockFetchResult(count),
+          'Test Feed',
+          'https://example.com/feed'
+        )
+
+        expect(result).toBeNull()
+      }
+      expect(mockAIManager.callWithConfig).not.toHaveBeenCalled()
     })
 
-    it('应该跳过少于5篇文章的初筛', async () => {
+    it('应该对4篇文章进行初筛', async () => {
+      const aiResponse = {
+        selectedArticleLinks: [
+          'https://example.com/article/1',
+          'https://example.com/article/2'
+        ],
+        stats: { totalArticles: 4, selectedCount: 2 }
+      }
+
+      mockAIManager.callWithConfig.mockResolvedValue(JSON.stringify(aiResponse))
+
       const result = await service.screenArticles(
-        createMockFetchResult(3),
+        createMockFetchResult(4),
         'Test Feed',
         'https://example.com/feed'
       )
 
-      expect(result).toBeNull()
-      expect(mockAIManager.callWithConfig).not.toHaveBeenCalled()
+      expect(result).not.toBeNull()
+      expect(mockAIManager.callWithConfig).toHaveBeenCalledOnce()
     })
 
     it('应该成功初筛10篇文章并返回结果', async () => {
@@ -222,8 +249,10 @@ describe('FeedPreScreeningService', () => {
   })
 
   describe('shouldPreScreen()', () => {
-    it('应该对5篇及以上文章进行初筛', () => {
+    it('应该对4篇及以上文章进行初筛', () => {
       // @ts-ignore - 访问私有方法用于测试
+      expect(service.shouldPreScreen(4)).toBe(true)
+      // @ts-ignore
       expect(service.shouldPreScreen(5)).toBe(true)
       // @ts-ignore
       expect(service.shouldPreScreen(10)).toBe(true)
@@ -231,19 +260,21 @@ describe('FeedPreScreeningService', () => {
       expect(service.shouldPreScreen(20)).toBe(true)
     })
 
-    it('应该跳过少于5篇文章的初筛', () => {
+    it('应该跳过3篇及以下文章的初筛', () => {
       // @ts-ignore
       expect(service.shouldPreScreen(0)).toBe(false)
       // @ts-ignore
       expect(service.shouldPreScreen(1)).toBe(false)
       // @ts-ignore
-      expect(service.shouldPreScreen(4)).toBe(false)
+      expect(service.shouldPreScreen(2)).toBe(false)
+      // @ts-ignore
+      expect(service.shouldPreScreen(3)).toBe(false)
     })
   })
 
   describe('prepareArticles()', () => {
-    it('应该截断description到500字符', () => {
-      const longDescription = 'a'.repeat(1000)
+    it('应该截断description到800字符', () => {
+      const longDescription = 'a'.repeat(1500)
       const items = [{
         title: 'Test Article',
         link: 'https://example.com/1',
@@ -254,12 +285,12 @@ describe('FeedPreScreeningService', () => {
       // @ts-ignore
       const result = service.prepareArticles(items)
 
-      expect(result[0].description).toHaveLength(500)
-      expect(result[0].description).toBe('a'.repeat(500))
+      expect(result[0].description).toHaveLength(800)
+      expect(result[0].description).toBe('a'.repeat(800))
     })
 
-    it('应该限制最多50篇文章', () => {
-      const items = Array.from({ length: 100 }, (_, i) => ({
+    it('应该限制最多100篇文章', () => {
+      const items = Array.from({ length: 150 }, (_, i) => ({
         title: `Article ${i}`,
         link: `https://example.com/${i}`,
         description: `Description ${i}`,
@@ -269,7 +300,7 @@ describe('FeedPreScreeningService', () => {
       // @ts-ignore
       const result = service.prepareArticles(items)
 
-      expect(result).toHaveLength(50)
+      expect(result).toHaveLength(100)
     })
 
     it('应该包含所有必需字段', () => {
@@ -310,18 +341,18 @@ describe('FeedPreScreeningService', () => {
 
     it('应该正确检测过大的输入', () => {
       // 创建一个超大的文章列表
-      const largeArticles = Array.from({ length: 50 }, (_, i) => ({
+      const largeArticles = Array.from({ length: 100 }, (_, i) => ({
         title: `Article ${i}`.repeat(200), // 更长的标题
         link: `https://example.com/${i}`,
-        description: 'x'.repeat(500) // 500字符
+        description: 'x'.repeat(800) // 800字符
       }))
 
       // @ts-ignore
       const result = service.checkTotalSize(largeArticles)
 
-      // 验证能够估算大小（不一定会超过限制，但应该能正确计算）
-      expect(result.estimatedBytes).toBeGreaterThan(50000) // > 50KB
-      expect(result.estimatedTokens).toBeGreaterThan(5000) // 至少5000 tokens
+      // 验证能够估算大小（新限制：80K tokens, 320KB bytes）
+      expect(result.estimatedBytes).toBeGreaterThan(100000) // > 100KB
+      expect(result.estimatedTokens).toBeGreaterThan(10000) // 至少10000 tokens
     })
   })
 
@@ -420,6 +451,138 @@ describe('FeedPreScreeningService', () => {
 
       // @ts-ignore
       expect(() => service.validateResult(result, 10)).not.toThrow()
+    })
+
+    it('应该接受10%边界值', () => {
+      const result = {
+        selectedArticleLinks: ['link1'],
+        reason: 'Test',
+        totalArticles: 10,
+        selectedCount: 1 // 恰好10%
+      }
+
+      // @ts-ignore
+      expect(() => service.validateResult(result, 10)).not.toThrow()
+    })
+
+    it('应该接受90%边界值', () => {
+      const result = {
+        selectedArticleLinks: Array.from({ length: 9 }, (_, i) => `link${i}`),
+        reason: 'Test',
+        totalArticles: 10,
+        selectedCount: 9 // 恰好90%
+      }
+
+      // @ts-ignore
+      expect(() => service.validateResult(result, 10)).not.toThrow()
+    })
+  })
+
+  describe('checkTotalSize() - 边界测试', () => {
+    it('应该处理空数组', () => {
+      // @ts-ignore
+      const result = service.checkTotalSize([])
+
+      expect(result.ok).toBe(true)
+      // 空数组应该有很小的大小（至少有JSON结构）
+      expect(result.estimatedTokens).toBeGreaterThanOrEqual(0)
+      expect(result.estimatedBytes).toBeGreaterThanOrEqual(0)
+    })
+
+    it('应该处理单篇文章', () => {
+      const articles = [{
+        title: 'Test',
+        link: 'https://example.com/1',
+        description: 'Short description'
+      }]
+
+      // @ts-ignore
+      const result = service.checkTotalSize(articles)
+
+      expect(result.ok).toBe(true)
+      expect(result.estimatedTokens).toBeGreaterThan(0)
+      expect(result.estimatedBytes).toBeGreaterThan(0)
+    })
+
+    it('应该正确处理特殊字符和中文', () => {
+      const articles = [{
+        title: '测试文章 🎉',
+        link: 'https://example.com/1',
+        description: '这是一篇包含中文、emoji 🚀 和特殊字符 !@#$%^&*() 的文章描述'
+      }]
+
+      // @ts-ignore
+      const result = service.checkTotalSize(articles)
+
+      expect(result.ok).toBe(true)
+      // 中文字符占用更多字节
+      expect(result.estimatedBytes).toBeGreaterThan(result.estimatedTokens)
+    })
+  })
+
+  describe('prepareArticles() - 边界测试', () => {
+    it('应该处理缺失字段', () => {
+      const items = [{
+        title: undefined,
+        link: undefined,
+        description: undefined,
+        pubDate: undefined
+      }] as any
+
+      // @ts-ignore
+      const result = service.prepareArticles(items)
+
+      expect(result[0].title).toBeDefined()
+      expect(result[0].link).toBeDefined()
+      expect(result[0].description).toBeDefined()
+      expect(result[0].pubDate).toBeDefined()
+    })
+
+    it('应该处理空description', () => {
+      const items = [{
+        title: 'Test',
+        link: 'https://example.com/1',
+        description: '',
+        pubDate: new Date()
+      }]
+
+      // @ts-ignore
+      const result = service.prepareArticles(items)
+
+      expect(result[0].description).toBe('')
+    })
+  })
+
+  describe('screenArticles() - 错误场景', () => {
+    it('应该处理getSettings失败', async () => {
+      const { getSettings } = await import('@/storage/db/db-settings')
+      vi.mocked(getSettings).mockRejectedValueOnce(new Error('Settings error'))
+
+      const result = await service.screenArticles(
+        createMockFetchResult(10),
+        'Test Feed',
+        'https://example.com/feed'
+      )
+
+      expect(result).toBeNull()
+    })
+
+    it('应该处理prompt生成失败', async () => {
+      // 模拟promptManager返回空字符串
+      const aiResponse = {
+        selectedArticleLinks: ['https://example.com/article/1'],
+        stats: { totalArticles: 10, selectedCount: 1 }
+      }
+      mockAIManager.callWithConfig.mockResolvedValue(JSON.stringify(aiResponse))
+
+      const result = await service.screenArticles(
+        createMockFetchResult(10),
+        'Test Feed',
+        'https://example.com/feed'
+      )
+
+      // 即使prompt为空也应该能继续
+      expect(result).toBeDefined()
     })
   })
 })

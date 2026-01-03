@@ -28,14 +28,21 @@ const preScreenLogger = logger.withTag('FeedPreScreen')
 
 /**
  * 最大输入大小配置
+ * 
+ * 注意：这些限制基于主流模型的上下文窗口
+ * - DeepSeek/GPT-4: 128K tokens
+ * - Claude: 200K tokens
+ * - Gemini: 1M tokens
+ * 
+ * 我们取保守值128K，预留70%给输入，30%给提示词和输出
  */
 const MAX_INPUT_SIZE = {
-  /** API token限制（预留空间给提示词和输出） */
-  tokens: 32000,
-  /** 最大字节数（100KB） */
-  bytes: 100 * 1024,
-  /** 单次最多处理的文章数 */
-  articlesCount: 50,
+  /** API token限制（128K * 0.7 = ~90K，保守取80K） */
+  tokens: 80000,
+  /** 最大字节数（约320KB，按1字符≈4字节估算） */
+  bytes: 320 * 1024,
+  /** 单次最多处理的文章数（大多数Feed不会超过100篇） */
+  articlesCount: 100,
 }
 
 /**
@@ -119,29 +126,30 @@ export class FeedPreScreeningService {
   /**
    * 判断是否需要进行初筛
    * 
-   * 如果文章数量太少（<5篇），不值得初筛，直接全量分析更高效
+   * 如果文章数量太少（<=3篇），不值得初筛，直接全量分析更高效
+   * 4篇及以上才启用初筛，减少不必要的AI调用
    */
   private shouldPreScreen(articleCount: number): boolean {
-    return articleCount >= 5
+    return articleCount > 3
   }
 
   /**
    * 预处理文章列表
    * 
-   * - 截断description到500字符
-   * - 不包含content字段（太大）
+   * - 截断description到800字符（提供更多上下文）
+   * - 不包含content字段（太大且不必要）
    * - 保留title、link、pubDate等关键元数据
-   * - 限制最多50篇文章
+   * - 限制最多100篇文章
    */
   private prepareArticles(items: FetchResult['items']): PreScreeningArticle[] {
     // 限制文章数量
     const limitedItems = items.slice(0, MAX_INPUT_SIZE.articlesCount)
 
     return limitedItems.map(item => ({
-      title: item.title,
-      link: item.link,
-      description: item.description?.substring(0, 500), // 截断到500字符
-      pubDate: item.pubDate?.toISOString(),
+      title: item.title || '',
+      link: item.link || '',
+      description: item.description?.substring(0, 800) || '', // 截断到800字符，提供更多上下文
+      pubDate: item.pubDate?.toISOString() || '',
     }))
   }
 
