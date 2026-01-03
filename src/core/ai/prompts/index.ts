@@ -234,6 +234,123 @@ Languages: zh-CN, zh-TW, en, ja, ko, fr, de, es, ru, pt, it, ar, unknown
 
 Output JSON only.`
   }
+
+  /**
+   * 获取策略决策提示词
+   * @param language - 语言
+   * @param variables - 系统状态变量
+   * @returns 包含 system 和 user 提示词的对象
+   */
+  getStrategyDecisionPrompt(
+    language: SupportedLanguage,
+    variables: Record<string, string | number>
+  ): { system: string; user: string } {
+    const templates = this.getTemplates(language)
+    
+    if (!templates.strategyDecision) {
+      throw new Error('策略决策提示词模板不存在')
+    }
+
+    const template = templates.strategyDecision
+    let userPrompt = template.user
+
+    // 替换所有变量
+    for (const [key, value] of Object.entries(variables)) {
+      const placeholder = `{{${key}}}`
+      userPrompt = userPrompt.replace(new RegExp(placeholder, 'g'), String(value))
+    }
+
+    return {
+      system: template.system || '',
+      user: userPrompt
+    }
+  }
+  
+  /**
+   * 获取Feed文章初筛提示词
+   * @param language - 语言
+   * @param feedTitle - Feed标题
+   * @param feedLink - Feed链接
+   * @param feedArticles - 文章列表JSON字符串
+   * @param userProfile - 用户画像（可选）
+   * @returns 渲染后的提示词
+   */
+  getFeedPreScreeningPrompt(
+    language: SupportedLanguage,
+    feedTitle: string,
+    feedLink: string,
+    feedArticles: string,
+    userProfile?: PromptVariables['userProfile']
+  ): string {
+    const templates = this.getTemplates(language)
+    
+    // 如果模板不存在，返回默认提示词
+    if (!templates.feedPreScreening) {
+      return this.getDefaultFeedPreScreeningPrompt(feedTitle, feedLink, feedArticles, userProfile)
+    }
+    
+    let prompt = templates.feedPreScreening.user
+    
+    // 替换基本变量
+    prompt = prompt.replace(/\{\{feedTitle\}\}/g, feedTitle)
+    prompt = prompt.replace(/\{\{feedLink\}\}/g, feedLink)
+    prompt = prompt.replace(/\{\{feedArticles\}\}/g, feedArticles)
+    
+    // 处理用户画像条件渲染
+    if (userProfile) {
+      // 显示用户画像块
+      prompt = prompt.replace(/\{\{#userProfile\}\}([\s\S]*?)\{\{\/userProfile\}\}/g, '$1')
+      // 隐藏无画像块
+      prompt = prompt.replace(/\{\{\^userProfile\}\}[\s\S]*?\{\{\/userProfile\}\}/g, '')
+      // 替换画像变量
+      prompt = prompt.replace(/\{\{interests\}\}/g, userProfile.interests)
+      prompt = prompt.replace(/\{\{preferences\}\}/g, userProfile.preferences.join('、'))
+      prompt = prompt.replace(/\{\{avoidTopics\}\}/g, userProfile.avoidTopics.join('、'))
+    } else {
+      // 隐藏用户画像块
+      prompt = prompt.replace(/\{\{#userProfile\}\}[\s\S]*?\{\{\/userProfile\}\}/g, '')
+      // 显示无画像块
+      prompt = prompt.replace(/\{\{\^userProfile\}\}([\s\S]*?)\{\{\/userProfile\}\}/g, '$1')
+    }
+    
+    return prompt
+  }
+  
+  /**
+   * 默认Feed预筛提示词（降级用）
+   */
+  private getDefaultFeedPreScreeningPrompt(
+    feedTitle: string,
+    feedLink: string,
+    feedArticles: string,
+    userProfile?: PromptVariables['userProfile']
+  ): string {
+    const profileText = userProfile 
+      ? `User Interests: ${userProfile.interests}\nPreferences: ${userProfile.preferences.join(', ')}\nAvoid: ${userProfile.avoidTopics.join(', ')}\n\n`
+      : ''
+    
+    return `Screen articles from this feed and select those worth detailed analysis:
+Feed: ${feedTitle}
+Link: ${feedLink}
+
+${profileText}Articles:
+${feedArticles}
+
+Screening Principle: Better to over-select than miss. Keep possibly relevant articles, remove only clearly irrelevant ones.
+
+Return JSON:
+{
+  "selectedArticleLinks": ["link1", "link2"],
+  "reason": "Brief explanation (30-50 words)",
+  "stats": {
+    "totalArticles": 20,
+    "selectedCount": 12,
+    "selectionRate": 0.60
+  }
+}
+
+Output JSON only.`
+  }
 }
 
 /**

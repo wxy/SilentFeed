@@ -46,6 +46,9 @@ afterEach(() => {
 });
 
 // Mock Chrome API for extension testing
+// 使用 Map 模拟实际的存储行为
+const mockStorage = new Map<string, any>();
+
 global.chrome = {
   runtime: {
     id: 'test-extension-id',
@@ -59,10 +62,41 @@ global.chrome = {
   },
   storage: {
     local: {
-      get: () => Promise.resolve({}),
-      set: () => Promise.resolve(),
-      remove: () => Promise.resolve(),
-      clear: () => Promise.resolve(),
+      get: (keys?: string | string[] | null) => {
+        if (!keys) {
+          // 返回所有存储
+          return Promise.resolve(Object.fromEntries(mockStorage.entries()));
+        }
+        if (typeof keys === 'string') {
+          // 单个键
+          const value = mockStorage.get(keys);
+          return Promise.resolve(value !== undefined ? { [keys]: value } : {});
+        }
+        // 多个键
+        const result: Record<string, any> = {};
+        keys.forEach((key: string) => {
+          const value = mockStorage.get(key);
+          if (value !== undefined) {
+            result[key] = value;
+          }
+        });
+        return Promise.resolve(result);
+      },
+      set: (items: Record<string, any>) => {
+        Object.entries(items).forEach(([key, value]) => {
+          mockStorage.set(key, value);
+        });
+        return Promise.resolve();
+      },
+      remove: (keys: string | string[]) => {
+        const keysArray = typeof keys === 'string' ? [keys] : keys;
+        keysArray.forEach((key: string) => mockStorage.delete(key));
+        return Promise.resolve();
+      },
+      clear: () => {
+        mockStorage.clear();
+        return Promise.resolve();
+      },
     },
     sync: {
       get: () => Promise.resolve({}),

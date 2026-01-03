@@ -16,7 +16,6 @@
 import type { PlasmoCSConfig } from "plasmo"
 import { DwellTimeCalculator } from '@/core/tracker/DwellTimeCalculator'
 import { ContentExtractor } from '@/core/extractor/ContentExtractor'
-import { TitleStateManager } from './title-state-manager'
 import { logger } from '@/utils/logger'
 
 // Plasmo 配置：注入到所有 HTTP/HTTPS 页面
@@ -48,13 +47,109 @@ function isBlacklistedUrl(url: string): boolean {
   return URL_BLACKLIST.some(pattern => url.includes(pattern))
 }
 
+// ==================== 标题状态管理器 ====================
+
+/**
+ * 标题状态管理器
+ * 负责在页面标题中显示学习状态 emoji
+ */
+class TitleStateManager {
+  private originalTitle: string = document.title
+  private currentEmoji: string = ''
+  
+  // Emoji 定义
+  private readonly EMOJIS = {
+    LEARNING: '📖',   // 学习中（正在阅读）
+    PAUSED: '⏸️',     // 已暂停（标签页未激活）
+    LEARNED: '✅',    // 已学习完成
+  }
+  
+  /**
+   * 标记页面开始学习（添加阅读 emoji）
+   */
+  startLearning(): void {
+    this.originalTitle = this.getCleanTitle()
+    this.currentEmoji = this.EMOJIS.LEARNING
+    this.updateTitle()
+    sfLogger.info('📖 [TitleState] 开始学习', { title: document.title })
+  }
+  
+  /**
+   * 标记页面暂停学习（标签页失活）
+   */
+  pauseLearning(): void {
+    this.currentEmoji = this.EMOJIS.PAUSED
+    this.updateTitle()
+    sfLogger.debug('⏸️ [TitleState] 学习暂停', { title: document.title })
+  }
+  
+  /**
+   * 恢复学习状态（标签页激活）
+   */
+  resumeLearning(): void {
+    this.currentEmoji = this.EMOJIS.LEARNING
+    this.updateTitle()
+    sfLogger.debug('▶️ [TitleState] 恢复学习', { title: document.title })
+  }
+  
+  /**
+   * 标记页面学习完成（添加完成 emoji）
+   */
+  completeLearning(): void {
+    this.currentEmoji = this.EMOJIS.LEARNED
+    this.updateTitle()
+    sfLogger.info('✅ [TitleState] 学习完成', { title: document.title })
+    
+    // 3 秒后移除完成标记
+    setTimeout(() => {
+      this.clearLearning()
+    }, 3000)
+  }
+  
+  /**
+   * 清除学习状态（移除 emoji）
+   */
+  clearLearning(): void {
+    this.currentEmoji = ''
+    this.updateTitle()
+    sfLogger.debug('🧹 [TitleState] 清除状态', { title: document.title })
+  }
+  
+  /**
+   * 重置（用于 SPA 导航）
+   */
+  reset(): void {
+    this.clearLearning()
+    this.originalTitle = document.title
+  }
+  
+  /**
+   * 获取清理后的标题（移除所有学习相关 emoji）
+   */
+  private getCleanTitle(): string {
+    let title = document.title
+    Object.values(this.EMOJIS).forEach(emoji => {
+      title = title.replace(emoji + ' ', '')
+    })
+    return title
+  }
+  
+  /**
+   * 更新文档标题
+   */
+  private updateTitle(): void {
+    const cleanTitle = this.getCleanTitle()
+    document.title = this.currentEmoji ? `${this.currentEmoji} ${cleanTitle}` : cleanTitle
+  }
+}
+
 // ==================== 状态管理 ====================
 
 let dwellCalculator: DwellTimeCalculator | null = null
 let titleManager: TitleStateManager | null = null
 let isRecorded = false
-let hasDetectedRSS = false
 let interactionCount = 0 // 追踪用户交互次数
+let hasDetectedRSS = false // RSS 检测标记
 let currentUrl = window.location.href // 用于检测 SPA 导航
 let checkTimer: number | null = null // 定时检查计时器
 
@@ -72,43 +167,122 @@ function checkExtensionContext(): boolean {
 // ==================== RSS 检测 ====================
 
 interface RSSFeedLink {
-  type: 'rss' | 'atom'
   url: string
+  type: "rss" | "atom"
   title?: string
 }
 
+/**
+ * 检测页面中的 RSS 链接
+ * 
+ * 检测策略：
+ * 1. 查找 <link rel="alternate"> 标签
+ * 2. 尝试常见 RSS URL 路径
+ */
 function detectRSSFeeds(): RSSFeedLink[] {
   const feeds: RSSFeedLink[] = []
   
-  // 查找所有 <link rel="alternate" type="application/*+xml">
-  const links = document.querySelectorAll<HTMLLinkElement>(
-    'link[rel="alternate"][type*="xml"]'
+  // 1. 检测 <link> 标签
+  const linkElements = document.querySelectorAll<HTMLLinkElement>(
+    'link[rel="alternate"][type="application/rss+xml"], ' +
+    'link[rel="alternate"][type="application/atom+xml"]'
   )
   
-  links.forEach(link => {
-    const type = link.type.toLowerCase()
-    const href = link.href
+  linkElements.forEach((link) => {
+    const url = normalizeRSSURL(link.href)
+    if (!url) return
     
-    if (!href) return
+    const type = link.type.includes("atom") ? "atom" : "rss"
+    const title = link.title || document.title
     
-    if (type.includes('rss')) {
-      feeds.push({
-        type: 'rss',
-        url: href,
-        title: link.title || undefined
-      })
-    } else if (type.includes('atom')) {
-      feeds.push({
-        type: 'atom',
-        url: href,
-        title: link.title || undefined
-      })
+    // 避免重复
+    if (!feeds.find(f => f.url === url)) {
+      feeds.push({ url, type, title })
     }
   })
+  
+  // 2. 如果没有找到，尝试常见路径
+  if (feeds.length === 0) {
+    const candidateURLs = generateCandidateRSSURLs()
+    for (const url of candidateURLs) {
+      feeds.push({ url, type: "rss" }) // 默认假设为 RSS
+    }
+  }
   
   return feeds
 }
 
+/**
+ * 生成候选 RSS URL
+ */
+function generateCandidateRSSURLs(): string[] {
+  const origin = window.location.origin
+  const paths = ["/feed", "/rss", "/atom.xml", "/index.xml", "/feed.xml", "/rss.xml"]
+  return paths.map(path => `${origin}${path}`)
+}
+
+/**
+ * 标准化 RSS URL
+ */
+function normalizeRSSURL(url: string): string | null {
+  try {
+    const absoluteURL = new URL(url, window.location.href)
+    
+    // 只接受 HTTP/HTTPS 协议
+    if (!absoluteURL.protocol.startsWith("http")) {
+      return null
+    }
+    
+    // 检测并转换谷歌翻译 URL
+    if (absoluteURL.hostname.endsWith('.translate.goog')) {
+      const originalUrl = convertGoogleTranslateUrl(absoluteURL)
+      if (originalUrl) {
+        return originalUrl
+      }
+      return null
+    }
+    
+    return absoluteURL.href
+  } catch {
+    return null
+  }
+}
+
+/**
+ * 转换谷歌翻译 URL 为原始 URL
+ */
+function convertGoogleTranslateUrl(translateUrl: URL): string | null {
+  try {
+    const hostname = translateUrl.hostname
+    const translatedDomain = hostname.replace('.translate.goog', '')
+    
+    // 策略：将 "--" 替换为临时占位符，"-" 替换为 "."，再将占位符替换回 "-"
+    const placeholder = '\x00'
+    const originalDomain = translatedDomain
+      .replace(/--/g, placeholder)
+      .replace(/-/g, '.')
+      .replace(new RegExp(placeholder, 'g'), '-')
+    
+    const originalUrl = new URL(translateUrl.pathname, `https://${originalDomain}`)
+    
+    // 保留非翻译相关的查询参数
+    const params = new URLSearchParams(translateUrl.search)
+    const translateParams = ['_x_tr_sl', '_x_tr_tl', '_x_tr_hl', '_x_tr_pto', '_x_tr_hist']
+    translateParams.forEach(param => params.delete(param))
+    
+    if (params.toString()) {
+      originalUrl.search = params.toString()
+    }
+    
+    return originalUrl.href
+  } catch {
+    return null
+  }
+}
+
+/**
+ * 发送 RSS 检测结果到 background
+ */
 async function notifyRSSFeeds() {
   if (hasDetectedRSS) return
   if (!checkExtensionContext()) return
@@ -420,7 +594,7 @@ function resetTracking() {
   }
   
   if (titleManager) {
-    titleManager.reset()
+    titleManager.clearLearning()
   }
   
   // 重置状态变量

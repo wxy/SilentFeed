@@ -24,7 +24,7 @@ describe("ai-provider-resolver", () => {
     engineAssignment: {
       pageAnalysis: { provider: "local" },
       articleAnalysis: { provider: "local" },
-      profileGeneration: { provider: "local" }
+      lowFrequencyTasks: { provider: "local" }
     },
     monthlyBudget: 10,
     preferredRemoteProvider: "deepseek",

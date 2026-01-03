@@ -51,7 +51,7 @@ vi.mock("@/storage/ai-config", () => ({
     engineAssignment: {
       pageAnalysis: { provider: 'deepseek', useReasoning: false },
       articleAnalysis: { provider: 'deepseek', useReasoning: false },
-      profileGeneration: { provider: 'deepseek', useReasoning: false }
+      lowFrequencyTasks: { provider: 'deepseek', useReasoning: false }
     }
   }),
   saveAIConfig: vi.fn(),
@@ -806,7 +806,7 @@ describe("OnboardingView", () => {
         engineAssignment: {
           pageAnalysis: { provider: 'deepseek', useReasoning: false },
           articleAnalysis: { provider: 'deepseek', useReasoning: false },
-          profileGeneration: { provider: 'deepseek', useReasoning: false }
+          lowFrequencyTasks: { provider: 'deepseek', useReasoning: false }
         }
       })
       render(<OnboardingView onComplete={mockOnComplete} />)

@@ -27,7 +27,7 @@ describe("ai-engine-assignment", () => {
       // Phase 12: 使用 local 抽象而非硬编码 ollama
       expect(preset.config.pageAnalysis.provider).toBe("local")
       expect(preset.config.articleAnalysis.provider).toBe("local")
-      expect(preset.config.profileGeneration.provider).toBe("local")
+      expect(preset.config.lowFrequencyTasks.provider).toBe("local")
     })
 
     it("智能优先方案应该使用远程AI+推理", () => {
@@ -35,8 +35,8 @@ describe("ai-engine-assignment", () => {
       // Phase 12: 使用 remote 抽象而非硬编码 deepseek
       expect(preset.config.pageAnalysis.provider).toBe("remote")
       expect(preset.config.articleAnalysis.provider).toBe("remote")
-      expect(preset.config.profileGeneration.provider).toBe("remote")
-      expect(preset.config.profileGeneration.useReasoning).toBe(true)
+      expect(preset.config.lowFrequencyTasks.provider).toBe("remote")
+      expect(preset.config.lowFrequencyTasks.useReasoning).toBe(true)
     })
 
     it("经济优先方案应该使用远程AI标准模式", () => {
@@ -44,8 +44,8 @@ describe("ai-engine-assignment", () => {
       // Phase 12: 使用 remote 抽象而非硬编码 deepseek
       expect(preset.config.pageAnalysis.provider).toBe("remote")
       expect(preset.config.articleAnalysis.provider).toBe("remote")
-      expect(preset.config.profileGeneration.provider).toBe("remote")
-      expect(preset.config.profileGeneration.useReasoning).toBe(false)
+      expect(preset.config.lowFrequencyTasks.provider).toBe("remote")
+      expect(preset.config.lowFrequencyTasks.useReasoning).toBe(false)
     })
 
     it("智能优先方案应该标记为推荐", () => {
@@ -79,9 +79,8 @@ describe("ai-engine-assignment", () => {
       const defaultAssignment = getDefaultEngineAssignment()
       expect(defaultAssignment.pageAnalysis).toBeDefined()
       expect(defaultAssignment.articleAnalysis).toBeDefined()
-      expect(defaultAssignment.profileGeneration).toBeDefined()
-      // sourceAnalysis 是可选的，但智能优先方案应该包含
-      expect(defaultAssignment.sourceAnalysis).toBeDefined()
+      expect(defaultAssignment.lowFrequencyTasks).toBeDefined()
+      // Phase 13: sourceAnalysis 已废弃，不再需要
     })
   })
 
@@ -130,7 +129,7 @@ describe("ai-engine-assignment", () => {
       const customAssignment: AIEngineAssignment = {
         pageAnalysis: { provider: "deepseek" },
         articleAnalysis: { provider: "ollama", model: "llama3.2:3b" },
-        profileGeneration: { provider: "deepseek", useReasoning: true }
+        lowFrequencyTasks: { provider: "deepseek", useReasoning: true }
       }
       expect(validateEngineAssignment(customAssignment)).toBe(true)
     })
@@ -139,7 +138,7 @@ describe("ai-engine-assignment", () => {
       const invalidAssignment: AIEngineAssignment = {
         pageAnalysis: { provider: "invalid" as any },
         articleAnalysis: { provider: "deepseek" },
-        profileGeneration: { provider: "deepseek" }
+        lowFrequencyTasks: { provider: "deepseek" }
       }
       expect(validateEngineAssignment(invalidAssignment)).toBe(false)
     })
@@ -238,7 +237,7 @@ describe("ai-engine-assignment", () => {
         const providers = [
           preset.config.pageAnalysis.provider,
           preset.config.articleAnalysis.provider,
-          preset.config.profileGeneration.provider
+          preset.config.lowFrequencyTasks.provider
         ]
         providers.forEach(provider => {
           expect(abstractTypes).toContain(provider)

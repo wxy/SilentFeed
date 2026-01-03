@@ -886,6 +886,89 @@ export abstract class BaseAIService implements AIProvider {
   }
 
   /**
+   * AI 推荐池策略决策（默认实现）
+   * 
+   * 根据用户的 RSS 阅读数据和行为，使用 AI 决策最优的推荐池策略参数。
+   * 返回 JSON 格式的策略决策（包含 poolSize、refillInterval 等参数）。
+   * 
+   * @param prompt - 已构建好的决策提示词
+   * @param options - 请求选项
+   * @returns AI 的原始响应文本（JSON 格式）
+   */
+  async decidePoolStrategy(
+    prompt: string,
+    options?: {
+      maxTokens?: number
+    }
+  ): Promise<string> {
+    const startTime = Date.now()
+    
+    try {
+      // 直接调用底层 callChatAPI
+      const apiResponse = await this.callChatAPI(prompt, {
+        maxTokens: options?.maxTokens || 500,
+        jsonMode: true  // 要求返回 JSON 格式
+        // 不传 timeout，使用 provider 配置的超时
+      })
+      
+      const duration = Date.now() - startTime
+      const modelName = this.resolveModelName(apiResponse.model)
+      
+      // 计算成本
+      const cost = this.calculateCost(
+        apiResponse.tokensUsed.input,
+        apiResponse.tokensUsed.output,
+        modelName
+      )
+      
+      // 记录使用情况
+      await AIUsageTracker.recordUsage({
+        provider: this.name.toLowerCase() as any,
+        model: modelName,
+        purpose: 'pool-strategy-decision',
+        tokens: {
+          input: apiResponse.tokensUsed.input,
+          output: apiResponse.tokensUsed.output,
+          total: apiResponse.tokensUsed.input + apiResponse.tokensUsed.output,
+          estimated: false
+        },
+        cost: cost,
+        latency: duration,
+        success: true
+      })
+      
+      return apiResponse.content
+    } catch (error) {
+      const duration = Date.now() - startTime
+      
+      // 记录失败
+      await AIUsageTracker.recordUsage({
+        provider: this.name.toLowerCase() as any,
+        model: this.config.model || this.getDefaultModelName(),
+        purpose: 'pool-strategy-decision',
+        tokens: {
+          input: 0,
+          output: 0,
+          total: 0,
+          estimated: true
+        },
+        cost: {
+          currency: this.getCurrency(),
+          input: 0,
+          output: 0,
+          total: 0,
+          estimated: true
+        },
+        latency: duration,
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      })
+      
+      throw error
+    }
+  }
+
+  /**
    * 解析实际使用的模型
    */
   protected resolveModelName(modelFromResponse?: string): string {

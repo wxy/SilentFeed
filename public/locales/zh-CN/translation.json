@@ -1202,8 +1202,7 @@
         "tasks": {
           "pageAnalysis": "内容分析",
           "articleAnalysis": "文章推荐",
-          "profileGeneration": "画像生成",
-          "sourceAnalysis": "订阅源分析"
+          "lowFrequencyTasks": "低频任务（画像、订阅源等）"
         },
         "notes": {
           "highFrequency": "高频任务（可选推理）",
@@ -1469,8 +1468,7 @@
         "tasks": {
           "pageAnalysis": "内容分析",
           "articleAnalysis": "文章推荐",
-          "profileGeneration": "画像生成",
-          "sourceAnalysis": "订阅源分析"
+          "lowFrequencyTasks": "低频任务（画像、订阅源等）"
         },
         "notes": {
           "highFrequency": "高频任务（可选推理）",

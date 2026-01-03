@@ -1,7 +1,7 @@
 {
   "name": "silentfeed",
   "displayName": "__MSG_extName__",
-  "version": "0.3.7",
+  "version": "0.4.0",
   "description": "__MSG_extDescription__",
   "author": "xingyu.wang@gmail.com",
   "scripts": {

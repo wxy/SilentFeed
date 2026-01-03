@@ -6,7 +6,13 @@ import { FeedManager } from './core/rss/managers/FeedManager'
 import { RSSValidator } from './core/rss/RSSValidator'
 import { getSourceAnalysisService } from './core/rss/SourceAnalysisService'
 import { fetchFeed } from './background/feed-scheduler'
-import { startAllSchedulers, feedScheduler, recommendationScheduler, reconfigureSchedulersForState } from './background/index'
+import { 
+  startAllSchedulers, 
+  feedScheduler, 
+  recommendationScheduler, 
+  strategyReviewScheduler,
+  reconfigureSchedulersForState 
+} from './background/index'
 import { IconManager } from './utils/IconManager'
 import { evaluateAndAdjust } from './core/recommender/adaptive-count'
 import { setupNotificationListeners, testNotification } from './core/recommender/notification'
@@ -23,7 +29,8 @@ import { migrateStorageKeys, needsStorageKeyMigration } from '@/storage/migratio
 import {
   migrateLocalStorageKeys,
   needsLocalStorageMigration,
-  cleanupLegacyNotificationKeys
+  cleanupLegacyNotificationKeys,
+  cleanupAggregatedTrackingData
 } from '@/storage/migrations/local-storage-migration'
 import {
   consumeTabTracking,
@@ -32,8 +39,39 @@ import {
   saveUrlTracking
 } from '@/storage/tracking-storage'
 import { syncSystemStats } from '@/storage/system-stats'
+import { getStrategyDecider, collectDailyUsageContext } from './core/recommender/pool-strategy-decider'
+import { getRefillManager } from './core/recommender/pool-refill-policy'
 
 const bgLogger = logger.withTag('Background')
+
+bgLogger.info('Silent Feed Background Service Worker 已启动')
+
+/**
+ * 检查是否正在生成池策略（使用持久化存储，防止热加载丢失状态）
+ */
+async function isPoolStrategyGenerating(): Promise<boolean> {
+  try {
+    const result = await chrome.storage.local.get('pool_strategy_generating')
+    return result.pool_strategy_generating === true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * 设置池策略生成状态
+ */
+async function setPoolStrategyGenerating(isGenerating: boolean): Promise<void> {
+  try {
+    if (isGenerating) {
+      await chrome.storage.local.set({ 'pool_strategy_generating': true })
+    } else {
+      await chrome.storage.local.remove('pool_strategy_generating')
+    }
+  } catch (error) {
+    bgLogger.error('设置池策略生成状态失败', error)
+  }
+}
 
 bgLogger.info('Silent Feed Background Service Worker 已启动')
 
@@ -231,14 +269,18 @@ chrome.runtime.onInstalled.addListener(async () => {
     // 1. 初始化数据库
     await initializeDatabase()
     
-    // 2. 首次安装时初始化默认配置
+    // 2. 清理可能残留的策略生成锁（防止热加载后锁卡住）
+    await setPoolStrategyGenerating(false)
+    bgLogger.debug('🧹 已清理策略生成锁')
+    
+    // 3. 首次安装时初始化默认配置
     await initializeDefaultConfigs()
     
-    // 3. 初始化 AI Manager (Phase 8)
+    // 4. 初始化 AI Manager (Phase 8)
     await aiManager.initialize()
     bgLogger.info('✅ AI Manager 初始化完成')
     
-    // 4. 更新徽章
+    // 5. 更新徽章
     await updateBadge()
     
     bgLogger.info('✅ 初始化完成')
@@ -312,6 +354,13 @@ chrome.runtime.onInstalled.addListener(async () => {
       periodInMinutes: 24 * 60 // 每 24 小时
     })
     
+    // 🆕 创建每日推荐池策略生成定时器（每天一次）
+    bgLogger.info('创建每日推荐池策略生成定时器（每天一次）...')
+    chrome.alarms.create('daily-pool-strategy', {
+      delayInMinutes: 5, // 启动 5 分钟后首次执行（尽早生成个性化策略）
+      periodInMinutes: 24 * 60 // 每 24 小时
+    })
+    
     // 创建追踪数据清理定时器（每小时一次）
     bgLogger.info('创建追踪数据清理定时器（每小时一次）...')
     chrome.alarms.create('cleanup-tracking-data', {
@@ -320,19 +369,40 @@ chrome.runtime.onInstalled.addListener(async () => {
     })
     
     // Phase 12.7: 数据迁移 - 为旧推荐补充 status 字段
+    // 🔥 优化：限制批量处理数量，避免内存溢出
     try {
-      const oldRecs = await db.recommendations
+      // 先统计需要迁移的数量
+      const totalCount = await db.recommendations
         .filter(r => !r.status)
-        .toArray()
+        .count()
       
-      if (oldRecs.length > 0) {
-        await db.recommendations.bulkUpdate(
-          oldRecs.map(rec => ({
-            key: rec.id,
-            changes: { status: 'active' as const }
-          }))
-        )
-        bgLogger.info(`📝 已为 ${oldRecs.length} 条旧推荐补充 status 字段`)
+      if (totalCount > 0) {
+        bgLogger.info(`开始推荐数据迁移，共 ${totalCount} 条待迁移...`)
+        
+        // 分批处理，每次最多 100 条
+        const batchSize = 100
+        let migrated = 0
+        
+        while (migrated < totalCount) {
+          const batch = await db.recommendations
+            .filter(r => !r.status)
+            .limit(batchSize)
+            .toArray()
+          
+          if (batch.length === 0) break
+          
+          await db.recommendations.bulkUpdate(
+            batch.map(rec => ({
+              key: rec.id,
+              changes: { status: 'active' as const }
+            }))
+          )
+          
+          migrated += batch.length
+          bgLogger.debug(`已迁移 ${migrated}/${totalCount} 条推荐`)
+        }
+        
+        bgLogger.info(`✅ 推荐数据迁移完成，共 ${migrated} 条`)
       }
     } catch (error) {
       bgLogger.error('❌ 推荐数据迁移失败:', error)
@@ -872,7 +942,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             const status = {
               feedScheduler: {
                 name: 'RSS抓取',
-                isRunning: feedScheduler.isRunning,
                 alarms: alarms.filter(a => a.name === 'fetch-feeds').map(a => ({
                   name: a.name,
                   scheduledTime: a.scheduledTime,
@@ -881,7 +950,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               },
               recommendationScheduler: {
                 name: '推荐生成',
-                isRunning: recommendationScheduler.isRunning,
                 nextRunTime: recommendationScheduler.nextRunTime,
                 alarms: alarms.filter(a => a.name === 'generate-recommendation').map(a => ({
                   name: a.name,
@@ -894,8 +962,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               ).map(a => ({
                 name: a.name,
                 scheduledTime: a.scheduledTime,
-                periodInMinutes: a.periodInMinutes,
-                delayInMinutes: a.delayInMinutes
+                periodInMinutes: a.periodInMinutes
               }))
             }
             sendResponse({ success: true, data: status })
@@ -1016,8 +1083,72 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 })
 
 /**
+ * 🆕 生成每日推荐池策略（Alarm 触发）
+ */
+async function generateDailyPoolStrategy(): Promise<void> {
+  try {
+    // 检查阶段状态（仅 ready 状态才生成）
+    const state = await OnboardingStateService.getState()
+    if (state.state !== 'ready') {
+      bgLogger.debug('非 ready 状态，跳过推荐池策略生成')
+      return
+    }
+    
+    // 检查锁（防止并发）
+    const isGenerating = await isPoolStrategyGenerating()
+    if (isGenerating) {
+      bgLogger.debug('推荐池策略正在生成中，跳过')
+      return
+    }
+    
+    await setPoolStrategyGenerating(true)
+    
+    try {
+      const decider = getStrategyDecider()
+      
+      // 检查是否已有今日决策
+      const cached = await decider.getCachedDecision()
+      if (cached) {
+        bgLogger.debug('今日推荐池策略已存在，跳过')
+        return
+      }
+      
+      bgLogger.info('🤖 开始生成今日推荐池策略...')
+      
+      // 收集上下文数据
+      const context = await collectDailyUsageContext()
+      
+      // AI 决策
+      const decision = await decider.decideDailyStrategy(context)
+      
+      // 应用决策到补充管理器
+      const refillManager = getRefillManager()
+      refillManager.updatePolicy({
+        minInterval: decision.minInterval,
+        maxDailyRefills: decision.maxDailyRefills,
+        triggerThreshold: decision.triggerThreshold
+      })
+      
+      bgLogger.info('✅ 推荐池策略已生成并应用', {
+        poolSize: decision.poolSize,
+        refillInterval: Math.round(decision.minInterval / 1000 / 60),
+        confidence: decision.confidence
+      })
+    } finally {
+      // 释放锁（5秒后）
+      setTimeout(async () => {
+        await setPoolStrategyGenerating(false)
+      }, 5000)
+    }
+  } catch (error) {
+    bgLogger.error('❌ 每日推荐池策略生成失败:', error)
+  }
+}
+
+/**
  * Phase 6/7: 定时器事件监听器
  * 处理推荐数量定期评估和推荐生成
+ * Phase: 推荐系统重构 - 策略审查
  */
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   bgLogger.debug('定时器触发:', alarm.name)
@@ -1043,6 +1174,10 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       
       // 更新徽章显示新推荐
       await updateBadge()
+    } else if (alarm.name === 'strategy-review') {
+      // 策略审查：检查并生成新策略
+      bgLogger.info('开始策略审查...')
+      await strategyReviewScheduler.handleAlarm()
     } else if (alarm.name === 'cleanup-recommendation-pool') {
       // Phase 12.7: 清理超限的推荐池
       bgLogger.info('开始清理推荐池...')
@@ -1054,9 +1189,12 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     } else if (alarm.name === 'cleanup-tracking-data') {
       // 清理过期的追踪数据（新格式聚合存储）
       bgLogger.info('开始清理过期追踪数据...')
-      const { cleanupAggregatedTrackingData } = await import('@/storage/migrations/local-storage-migration')
       const cleaned = await cleanupAggregatedTrackingData()
       bgLogger.info(`✅ 清理了 ${cleaned} 条过期追踪数据`)
+    } else if (alarm.name === 'daily-pool-strategy') {
+      // 🆕 每日推荐池策略生成
+      bgLogger.info('开始每日推荐池策略生成...')
+      await generateDailyPoolStrategy()
     }
   } catch (error) {
     bgLogger.error('❌ 定时器处理失败:', error)

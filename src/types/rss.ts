@@ -175,6 +175,47 @@ export interface FeedArticle {
   
   // ===== 重要性评分 (Phase 8) =====
   importance?: number            // 重要性评分 0-100，用于清理决策
+  
+  // ===== 多池架构 (Phase 13: 推荐系统重构) =====
+  /**
+   * 池子状态：文章在推荐系统中的位置
+   * - raw: 原料池（未分析）
+   * - analyzed-not-qualified: 已分析但未达到推荐阈值
+   * - candidate: 候选池（高分文章，等待推荐）
+   * - recommended: 推荐池（已推荐给用户）
+   */
+  poolStatus?: 'raw' | 'analyzed-not-qualified' | 'candidate' | 'recommended'
+  
+  /**
+   * 分析得分：AI 分析后的推荐分数 (0-10)
+   * 只有 analysis 存在时才有值
+   */
+  analysisScore?: number
+  
+  /**
+   * 进入候选池时间
+   */
+  candidatePoolAddedAt?: number
+  
+  /**
+   * 进入推荐池时间（已推荐给用户）
+   */
+  recommendedPoolAddedAt?: number
+  
+  /**
+   * 从候选池/推荐池移除的原因
+   * - read: 用户已阅读
+   * - disliked: 用户不想读
+   * - replaced: 被更高分文章替换
+   * - expired: 过期（超过保鲜期）
+   * - quality_dropped: 质量下降（重新分析后）
+   */
+  poolExitReason?: 'read' | 'disliked' | 'replaced' | 'expired' | 'quality_dropped'
+  
+  /**
+   * 池子退出时间
+   */
+  poolExitedAt?: number
 }
 
 /**

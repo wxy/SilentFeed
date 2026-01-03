@@ -4,6 +4,9 @@ import { getAllProviderStatus, saveProviderStatus } from "@/storage/ai-provider-
 import { AICapabilityManager } from "@/core/ai/AICapabilityManager"
 import { getAIConfig } from "@/storage/ai-config"
 import { translate as _ } from "@/i18n/helpers"
+import { DeepSeekProvider } from '@/core/ai/providers/DeepSeekProvider'
+import { OpenAIProvider } from '@/core/ai/providers/OpenAIProvider'
+import { OllamaProvider } from '@/core/ai/providers/OllamaProvider'
 
 /**
  * AI Provider 状态管理 Hook
@@ -71,10 +74,8 @@ export function useAIProviderStatus() {
         const cleanApiKey = apiKey.replace(/[^\x20-\x7E]/g, '').trim()
         
         if (providerId === 'deepseek') {
-          const { DeepSeekProvider } = await import('@/core/ai/providers/DeepSeekProvider')
           provider = new DeepSeekProvider({ apiKey: cleanApiKey, model })
         } else if (providerId === 'openai') {
-          const { OpenAIProvider } = await import('@/core/ai/providers/OpenAIProvider')
           provider = new OpenAIProvider({ apiKey: cleanApiKey, model })
         } else {
           throw new Error(`不支持的提供商: ${providerId}`)
@@ -112,7 +113,6 @@ export function useAIProviderStatus() {
         }
         
         // 已启用，创建 Ollama provider 实例测试
-        const { OllamaProvider } = await import('@/core/ai/providers/OllamaProvider')
         const provider = new OllamaProvider({
           endpoint: config.local.endpoint || 'http://localhost:11434/v1',
           model: config.local.model || 'qwen2.5:7b',
@@ -203,10 +203,8 @@ export function useAIProviderStatus() {
               const cleanApiKey = apiKey.replace(/[^\x20-\x7E]/g, '').trim()
               
               if (provider.id === 'deepseek') {
-                const { DeepSeekProvider } = await import('@/core/ai/providers/DeepSeekProvider')
                 providerInstance = new DeepSeekProvider({ apiKey: cleanApiKey, model })
               } else if (provider.id === 'openai') {
-                const { OpenAIProvider } = await import('@/core/ai/providers/OpenAIProvider')
                 providerInstance = new OpenAIProvider({ apiKey: cleanApiKey, model })
               } else {
                 throw new Error(`不支持的提供商: ${provider.id}`)
@@ -235,7 +233,6 @@ export function useAIProviderStatus() {
               }
             } else {
               // 已启用，创建 Ollama provider 实例测试
-              const { OllamaProvider } = await import('@/core/ai/providers/OllamaProvider')
               const providerInstance = new OllamaProvider({
                 endpoint: config.local.endpoint || 'http://localhost:11434/v1',
                 model: config.local.model || 'qwen2.5:7b',

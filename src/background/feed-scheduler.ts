@@ -13,6 +13,8 @@
 import { db, updateFeedStats } from '../storage/db'
 import { RSSFetcher } from '../core/rss/RSSFetcher'
 import { getSourceAnalysisService } from '../core/rss/SourceAnalysisService'
+import { feedPreScreeningService } from '../core/rss/FeedPreScreeningService'
+import { getUserProfile } from '../storage/db/db-profile'
 import type { DiscoveredFeed, FeedArticle } from '@/types/rss'
 
 /**
@@ -202,20 +204,80 @@ export async function fetchFeed(feed: DiscoveredFeed): Promise<boolean> {
       throw new Error(result.error || 'Fetch failed')
     }
     
+    // 1.5. AI初筛：筛选值得详细分析的文章（新增）
+    let selectedArticleLinks: Set<string> | null = null
+    
+    try {
+      // 获取用户画像（用于个性化初筛）
+      const dbProfile = await getUserProfile()
+      
+      // 转换为提示词所需的格式
+      const userProfile = dbProfile?.aiSummary ? {
+        interests: dbProfile.aiSummary.interests,
+        preferences: dbProfile.aiSummary.preferences,
+        avoidTopics: dbProfile.aiSummary.avoidTopics
+      } : undefined
+      
+      // 调用初筛服务
+      const preScreeningResult = await feedPreScreeningService.screenArticles(
+        result,
+        feed.title || 'Unknown Feed',
+        feed.url,
+        userProfile
+      )
+      
+      if (preScreeningResult) {
+        selectedArticleLinks = new Set(preScreeningResult.selectedArticleLinks)
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[FeedScheduler] 初筛完成:`, {
+            feedTitle: feed.title,
+            totalArticles: preScreeningResult.totalArticles,
+            selectedCount: preScreeningResult.selectedCount,
+            selectionRate: `${(preScreeningResult.selectedCount / preScreeningResult.totalArticles * 100).toFixed(1)}%`,
+            reason: preScreeningResult.reason
+          })
+        }
+      }
+    } catch (error) {
+      // 初筛失败不影响主流程，回退到全量处理
+      console.warn('[FeedScheduler] 初筛失败，回退到全量处理:', error)
+      selectedArticleLinks = null
+    }
+    
     // 2. 转换为 FeedArticle 格式
-    const newArticles: FeedArticle[] = result.items.map(item => ({
-      id: getArticleId({ link: item.link }),
-      feedId: feed.id,
-      title: item.title,
-      link: item.link,
-      description: item.description,
-      content: item.content,
-      author: item.author,
-      published: item.pubDate ? item.pubDate.getTime() : Date.now(),
-      fetched: Date.now(),
-      read: false,
-      starred: false
-    }))
+    // 如果有初筛结果，只转换筛选通过的文章
+    const newArticles: FeedArticle[] = result.items
+      .filter(item => !selectedArticleLinks || selectedArticleLinks.has(item.link))
+      .map(item => ({
+        id: getArticleId({ link: item.link }),
+        feedId: feed.id,
+        title: item.title,
+        link: item.link,
+        description: item.description,
+        content: item.content,
+        author: item.author,
+        published: item.pubDate ? item.pubDate.getTime() : Date.now(),
+        fetched: Date.now(),
+        read: false,
+        starred: false
+      }))
+    
+    // 如果初筛后没有文章，直接返回成功（避免无意义的后续处理）
+    if (newArticles.length === 0) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[FeedScheduler] 初筛后无文章，跳过后续处理:`, feed.title)
+      }
+      
+      // 更新最后抓取时间
+      const now = Date.now()
+      await db.discoveredFeeds.update(feed.id, {
+        lastFetchedAt: now,
+        lastError: undefined
+      })
+      
+      return true
+    }
     
     // 3. 合并旧文章和新文章（去重 + 保留阅读状态）
     const existing = feed.latestArticles || []
@@ -463,9 +525,12 @@ export class FeedScheduler {
       return
     }
     
-    
-    // 立即执行一次
-    this.runOnce()
+    // 延迟 5 秒后再执行第一次（避免热加载时资源竞争）
+    setTimeout(() => {
+      if (this.isRunning) {
+        this.runOnce()
+      }
+    }, 5000)
     
     // 定时执行
     this.intervalId = setInterval(() => {

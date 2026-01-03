@@ -44,8 +44,14 @@ type ProviderSelectionMode = "auto" | "remote" | "local"
 /**
  * AI 任务类型
  * Phase 8: 根据任务类型选择不同的 AI 引擎
+ * 
+ * - pageAnalysis: 页面浏览学习（高频）
+ * - articleAnalysis: 文章内容分析（高频）  
+ * - lowFrequencyTasks: 所有低频任务的统一配置（画像生成、订阅源分析、策略决策等）
+ * 
+ * 注意：profileGeneration 和 sourceAnalysis 已废弃，请使用 lowFrequencyTasks
  */
-export type AITaskType = "pageAnalysis" | "articleAnalysis" | "profileGeneration" | "sourceAnalysis"
+export type AITaskType = "pageAnalysis" | "articleAnalysis" | "lowFrequencyTasks"
 
 export class AICapabilityManager {
   private remoteProvider: AIProvider | null = null
@@ -77,7 +83,13 @@ export class AICapabilityManager {
       // Phase 11: 从 engineAssignment 确定需要初始化哪些 Provider
       try {
         this.engineAssignment = await getEngineAssignment()
+        aiLogger.debug('📋 Engine Assignment 加载成功', {
+          pageAnalysis: this.engineAssignment?.pageAnalysis,
+          articleAnalysis: this.engineAssignment?.articleAnalysis,
+          lowFrequencyTasks: this.engineAssignment?.lowFrequencyTasks
+        })
       } catch (error) {
+        aiLogger.error('❌ 加载 Engine Assignment 失败', error)
         this.engineAssignment = null
       }
       
@@ -86,13 +98,17 @@ export class AICapabilityManager {
       let usesLocalProvider = false
       
       if (this.engineAssignment) {
-        const tasks: AITaskType[] = ['pageAnalysis', 'articleAnalysis', 'profileGeneration']
+        const tasks: AITaskType[] = ['pageAnalysis', 'articleAnalysis', 'lowFrequencyTasks']
         for (const task of tasks) {
           const providerType = this.engineAssignment[task]?.provider
-          if (!providerType) continue
+          if (!providerType) {
+            aiLogger.warn(`⚠️ 任务 ${task} 没有配置 provider`)
+            continue
+          }
           
           // 解析抽象类型
           const resolvedType = await this.resolveProviderType(providerType)
+          aiLogger.debug(`📍 任务 ${task}: ${providerType} → ${resolvedType}`)
           
           if (resolvedType === 'ollama') {
             usesLocalProvider = true
@@ -101,6 +117,11 @@ export class AICapabilityManager {
           }
         }
       }
+      
+      aiLogger.debug('📊 Provider 使用统计', {
+        usedProviders: Array.from(usedProviders),
+        usesLocalProvider
+      })
       
       // Phase 11: 初始化远程 Provider（如果有任务使用）
       if (usedProviders.size > 0) {
@@ -235,10 +256,58 @@ export class AICapabilityManager {
   }
 
   /**
+   * AI 推荐池策略决策
+   * 
+   * 根据用户的 RSS 阅读数据和行为，使用 AI 决策最优的推荐池策略参数。
+   * 返回 JSON 格式的策略决策（包含 poolSize、refillInterval 等参数）。
+   * 
+   * @param prompt - 已构建好的决策提示词（由 PromptManager 生成）
+   * @param options - 请求选项
+   * @returns AI 的原始响应文本（JSON 格式）
+   */
+  async decidePoolStrategy(
+    prompt: string,
+    options?: {
+      maxTokens?: number
+    }
+  ): Promise<string> {
+    // 预算检查
+    const shouldDowngrade = await BudgetChecker.shouldDowngrade()
+    if (shouldDowngrade) {
+      aiLogger.warn("⚠️ 月度预算已超支，无法进行 AI 决策")
+      throw new Error('预算已超支，无法进行 AI 决策')
+    }
+    
+    // 使用低频任务配置
+    const { provider } = await this.getProviderForTask('lowFrequencyTasks')
+    
+    if (!provider) {
+      aiLogger.error('没有可用的 AI Provider 进行池策略决策')
+      throw new Error('没有可用的 AI Provider')
+    }
+    
+    // 检查预算
+    const budgetAllowed = await this.checkProviderBudget(provider.name)
+    if (!budgetAllowed) {
+      aiLogger.warn(`⚠️ ${provider.name} 预算超限，无法进行池策略决策`)
+      throw new Error(`${provider.name} 预算超限`)
+    }
+    
+    // 检查 provider 是否实现了此方法
+    if (!provider.decidePoolStrategy) {
+      aiLogger.error(`${provider.name} 未实现 decidePoolStrategy 方法`)
+      throw new Error(`${provider.name} 不支持池策略决策`)
+    }
+    
+    // 调用 provider 的实现
+    return await provider.decidePoolStrategy(prompt, options)
+  }
+
+  /**
    * Phase 8: 生成用户画像
    * 
    * 基于用户行为数据生成语义化的用户兴趣画像
-   * Phase 8: 使用 profileGeneration 任务配置
+   * Phase 8: 使用 lowFrequencyTasks 任务配置
    * 
    * @param request - 用户画像生成请求
    * @param mode - 旧的 provider 选择模式（向后兼容，优先使用任务配置）
@@ -268,8 +337,8 @@ export class AICapabilityManager {
       }
     }
     
-    // Phase 8: 优先使用 profileGeneration 任务配置
-    const { provider: taskProvider, useReasoning } = await this.getProviderForTask("profileGeneration")
+    // Phase 8: 优先使用低频任务配置
+    const { provider: taskProvider, useReasoning } = await this.getProviderForTask("lowFrequencyTasks")
     
     if (taskProvider && taskProvider.generateUserProfile) {
       // Phase 12.4: 检查预算状态
@@ -375,7 +444,7 @@ export class AICapabilityManager {
     }
 
     // 获取 sourceAnalysis 任务配置的 provider
-    const { provider, useReasoning } = await this.getProviderForTask('sourceAnalysis' as AITaskType)
+    const { provider, useReasoning } = await this.getProviderForTask('lowFrequencyTasks')
     
     if (!provider) {
       aiLogger.warn("⚠️ 无可用 AI Provider，返回默认订阅源分析结果")
@@ -473,24 +542,43 @@ export class AICapabilityManager {
   /**
    * Phase 8: 根据任务类型获取对应的 AI Provider
    * Phase 12: 支持 remote/local 抽象类型解析
+   * Phase 13: 支持自动配置迁移（profileGeneration/sourceAnalysis → lowFrequencyTasks）
    * 
    * 从引擎分配配置中读取指定任务应该使用的引擎，并返回对应的 provider 实例
    * 
-   * @param taskType - 任务类型（pageAnalysis/articleAnalysis/profileGeneration）
+   * @param taskType - 任务类型（pageAnalysis/articleAnalysis/lowFrequencyTasks）
    * @returns provider 实例和是否使用推理的配置
    */
   private async getProviderForTask(taskType: AITaskType): Promise<{
     provider: AIProvider | null
     useReasoning: boolean
   }> {
+    // 🔍 详细诊断日志
+    aiLogger.debug(`🔍 getProviderForTask 调用`, {
+      taskType,
+      hasEngineAssignment: !!this.engineAssignment,
+      remoteProvider: this.remoteProvider?.name || 'null',
+      localProvider: this.localProvider?.name || 'null'
+    })
+    
     if (!this.engineAssignment) {
+      aiLogger.warn(`⚠️ 没有引擎分配配置，使用默认 provider`)
       return {
         provider: this.remoteProvider || this.localProvider,
         useReasoning: false
       }
     }
 
-    const engineConfig = this.engineAssignment[taskType]
+    let engineConfig = this.engineAssignment[taskType]
+    
+    // 兼容旧配置：如果请求 lowFrequencyTasks 但未找到，尝试降级到旧字段
+    if (!engineConfig && taskType === 'lowFrequencyTasks') {
+      engineConfig = this.engineAssignment.profileGeneration || this.engineAssignment.sourceAnalysis
+      if (engineConfig) {
+        aiLogger.info(`🔄 配置迁移：lowFrequencyTasks 使用旧配置 (profileGeneration/sourceAnalysis)`)
+      }
+    }
+    
     if (!engineConfig) {
       aiLogger.warn(`⚠️ No engine config for task: ${taskType}`)
       return {
@@ -500,9 +588,11 @@ export class AICapabilityManager {
     }
 
     const { provider: providerType, useReasoning = false } = engineConfig
+    aiLogger.debug(`🔍 任务 ${taskType} 配置`, { providerType, useReasoning })
 
     // Phase 12: 解析抽象 provider 类型到具体实现
     const resolvedProviderType = await this.resolveProviderType(providerType)
+    aiLogger.debug(`🔍 Provider 类型解析: ${providerType} → ${resolvedProviderType}`)
     
     let provider: AIProvider | null = null
 
@@ -510,25 +600,29 @@ export class AICapabilityManager {
       case "deepseek":
       case "openai":
         provider = this.remoteProvider
+        aiLogger.debug(`🔍 尝试使用 remote provider: ${provider?.name || 'null'}`)
         if (!provider) {
-          aiLogger.warn(`Remote provider not available for ${resolvedProviderType}, falling back to local`)
+          aiLogger.warn(`⚠️ Remote provider 不可用 (${resolvedProviderType}), falling back to local`)
           provider = this.localProvider
         }
         break
 
       case "ollama":
         provider = this.localProvider
+        aiLogger.debug(`🔍 尝试使用 local provider: ${provider?.name || 'null'}`)
         if (!provider) {
-          aiLogger.warn(`Local provider not available, falling back to remote`)
+          aiLogger.warn(`⚠️ Local provider 不可用, falling back to remote`)
           provider = this.remoteProvider
         }
         break
 
       default:
-        aiLogger.error(`Unknown engine type: ${resolvedProviderType}`)
+        aiLogger.error(`❌ 未知引擎类型: ${resolvedProviderType}`)
         provider = this.remoteProvider || this.localProvider
     }
 
+    aiLogger.debug(`🔍 最终选择的 provider: ${provider?.name || 'null'}`)
+    
     return {
       provider,
       useReasoning: useReasoning ?? false
@@ -848,7 +942,9 @@ export class AICapabilityManager {
     enabled: boolean,
     providerType: AIProviderType | null | undefined,
     apiKey: string,
-    model?: string
+    model?: string,
+    timeoutMs?: number,
+    reasoningTimeoutMs?: number
   ): Promise<void> {
     if (!providerType) {
       this.remoteProvider = null
@@ -857,13 +953,13 @@ export class AICapabilityManager {
     }
 
     if (!apiKey) {
-      aiLogger.warn(` No API key for provider ${providerType}`)
+      aiLogger.warn(`⚠️ No API key for provider ${providerType}`)
       this.remoteProvider = null
       return
     }
 
-    this.remoteProvider = this.createRemoteProvider(providerType, apiKey, model)
-    aiLogger.info(`Remote provider initialized: ${this.remoteProvider.name} (enabled: ${enabled})`)
+    this.remoteProvider = this.createRemoteProvider(providerType, apiKey, model, timeoutMs, reasoningTimeoutMs)
+    aiLogger.info(`✅ Remote provider initialized: ${this.remoteProvider.name} (enabled: ${enabled})`)
   }
 
   private async initializeLocalProvider(localConfig?: LocalAIConfig): Promise<void> {

@@ -7,6 +7,10 @@ import { resolveProvider } from "@/utils/ai-provider-resolver"
 import type { AIConfig } from "@/storage/ai-config"
 import { useI18n } from "@/i18n/helpers"
 import { getCurrentMonthUsage } from "@/utils/budget-utils"
+import { DeepSeekProvider } from '@/core/ai/providers/DeepSeekProvider'
+import { OpenAIProvider } from '@/core/ai/providers/OpenAIProvider'
+import { AICapabilityManager } from '@/core/ai/AICapabilityManager'
+import { saveProviderStatus } from '@/storage/ai-provider-status'
 
 /**
  * AI Provider 配置面板
@@ -81,7 +85,9 @@ export function AIConfigPanel() {
       
       if (config.engineAssignment && (hasDeepSeek || hasOpenAI || hasOllama)) {
         // 使用 resolveProvider 解析抽象 provider
-        const profileProvider = resolveProvider(config.engineAssignment.profileGeneration?.provider, config)
+        // Phase 13: 使用 lowFrequencyTasks 替代 profileGeneration
+        const lowFreqConfig = config.engineAssignment.lowFrequencyTasks || config.engineAssignment.profileGeneration
+        const lowFreqProvider = resolveProvider(lowFreqConfig?.provider, config)
         const articleProvider = resolveProvider(config.engineAssignment.articleAnalysis?.provider, config)
         const pageProvider = resolveProvider(config.engineAssignment.pageAnalysis?.provider, config)
         
@@ -93,10 +99,10 @@ export function AIConfigPanel() {
           return false
         }
         
-        // 优先看 profileGeneration（用户画像生成最重要）
+        // 优先看 lowFrequencyTasks（低频任务包括画像生成等重要功能）
         // 修复：先检查远程 Provider 是否配置，优先显示已配置的远程 AI
-        if (profileProvider !== 'ollama' && isProviderConfigured(profileProvider)) {
-          activeProvider = profileProvider
+        if (lowFreqProvider !== 'ollama' && isProviderConfigured(lowFreqProvider)) {
+          activeProvider = lowFreqProvider
         } else if (articleProvider !== 'ollama' && isProviderConfigured(articleProvider)) {
           activeProvider = articleProvider
         } else if (pageProvider !== 'ollama' && isProviderConfigured(pageProvider)) {
@@ -105,7 +111,7 @@ export function AIConfigPanel() {
         
         // 如果没有任何远程 Provider 配置，但 Ollama 已配置且被任何任务使用，才标记 Ollama 为在用
         if (!activeProvider && hasOllama && 
-            (profileProvider === 'ollama' || articleProvider === 'ollama' || pageProvider === 'ollama')) {
+            (lowFreqProvider === 'ollama' || articleProvider === 'ollama' || pageProvider === 'ollama')) {
           activeProvider = 'ollama'
         }
       }
@@ -390,13 +396,11 @@ function ConfigModal({
       let provider: { testConnection: (enableReasoning: boolean) => Promise<{ success: boolean; message?: string; latency?: number }> }
       
       if (providerId === 'deepseek') {
-        const { DeepSeekProvider } = await import('@/core/ai/providers/DeepSeekProvider')
         provider = new DeepSeekProvider({ 
           apiKey: cleanApiKey,
           model: selectedModel
         })
       } else if (providerId === 'openai') {
-        const { OpenAIProvider } = await import('@/core/ai/providers/OpenAIProvider')
         provider = new OpenAIProvider({ 
           apiKey: cleanApiKey,
           model: selectedModel
@@ -451,7 +455,6 @@ function ConfigModal({
         setConfig(newConfig)
         
         // 3. 保存状态到缓存
-        const { saveProviderStatus } = await import('@/storage/ai-provider-status')
         await saveProviderStatus({
           providerId,
           type: 'remote',
@@ -506,7 +509,6 @@ function ConfigModal({
       await saveAIConfig(tempConfig)
 
       // 测试连接
-      const { AICapabilityManager } = await import('@/core/ai/AICapabilityManager')
       const manager = new AICapabilityManager()
       await manager.initialize()
       
@@ -621,7 +623,6 @@ function ConfigModal({
           setConfig(newConfig)
           
           // 3. 保存状态到缓存
-          const { saveProviderStatus } = await import('@/storage/ai-provider-status')
           await saveProviderStatus({
             providerId: 'ollama',
             type: 'local',
@@ -636,7 +637,6 @@ function ConfigModal({
           })
           
           // 即使加载模型失败，连接仍然成功，保存状态
-          const { saveProviderStatus } = await import('@/storage/ai-provider-status')
           await saveProviderStatus({
             providerId: 'ollama',
             type: 'local',
