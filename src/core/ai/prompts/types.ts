@@ -57,6 +57,9 @@ export interface PromptTemplates {
   
   /** 推荐系统策略决策（AI 动态生成推荐策略参数） */
   strategyDecision?: PromptTemplate
+  
+  /** Feed文章初筛（批量评估Feed中的文章，筛选值得详细分析的文章） */
+  feedPreScreening?: PromptTemplate
 }
 
 /**
@@ -110,4 +113,34 @@ export interface PromptVariables {
   feedLink?: string
   /** 样本文章列表（用于订阅源分析，JSON格式）*/
   sampleArticles?: string
+  /** Feed文章列表（用于Feed初筛，JSON格式）*/
+  feedArticles?: string
+}
+
+/**
+ * Feed文章初筛项（简化的文章信息）
+ */
+export interface PreScreeningArticle {
+  /** 文章标题 */
+  title: string
+  /** 文章链接 */
+  link: string
+  /** 文章摘要（截断到500字符） */
+  description?: string
+  /** 发布时间 */
+  pubDate?: string
+}
+
+/**
+ * Feed初筛结果
+ */
+export interface FeedPreScreeningResult {
+  /** 筛选通过的文章链接列表 */
+  selectedArticleLinks: string[]
+  /** 筛选理由（简短说明） */
+  reason: string
+  /** 总文章数 */
+  totalArticles: number
+  /** 筛选通过数 */
+  selectedCount: number
 }
