@@ -28,6 +28,7 @@ import type {
 import type { FeedArticle, DiscoveredFeed } from '@/types/rss'
 import type { ReasonData, AIProvider, ReasonType } from '@/types/recommendation-reason'
 import { convertFeedArticlesToArticleData, convertUserProfileToUserInterests } from './data-adapters'
+import { moveToCandidate, moveToAnalyzedNotQualified } from '@/storage/db/db-pool'
 import { RuleBasedRecommender } from './RuleBasedRecommender'
 import { aiManager } from '../ai/AICapabilityManager'
 import { db } from '@/storage/db'  // Phase 7: 静态导入，避免 Service Worker 动态导入错误
@@ -588,17 +589,18 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
       // Phase 8: 使用 articleAnalysis 任务类型（会从引擎分配配置中自动读取引擎和推理设置）
       const analysis = await aiManager.analyzeContent(content, analysisOptions, "articleAnalysis")
       
-      // 保存 AI 分析结果到文章
-      await this.saveArticleAnalysis(article.id, article.feedId, analysis)
-      
       // 计算最终评分
       const aiRelevanceScore = this.calculateAIRelevanceScore(analysis, userInterests)
       const tfidfScore = (article as ScoredArticle).tfidfScore || article.tfidfScore || 0
       const combinedScore = tfidfScore * 0.3 + aiRelevanceScore * 0.7
       const qualityThreshold = context.config.qualityThreshold ?? 0.7
       
+      // Phase 13: 保存 AI 分析结果并更新池状态
+      // 传递评分，让 saveArticleAnalysis 决定文章进入候选池还是不合格池
+      await this.saveArticleAnalysis(article.id, article.feedId, analysis, combinedScore, qualityThreshold)
+      
       // 调试日志：记录评分详情
-      console.log(`[Pipeline] 文章评分 "${article.title?.substring(0, 30)}...": TF-IDF=${tfidfScore.toFixed(2)}, AI相关性=${aiRelevanceScore.toFixed(2)}, 综合=${combinedScore.toFixed(2)}, 阈值=${qualityThreshold}`)
+      pipelineLogger.debug(`文章评分 "${article.title?.substring(0, 30)}...": TF-IDF=${tfidfScore.toFixed(2)}, AI相关性=${aiRelevanceScore.toFixed(2)}, 综合=${combinedScore.toFixed(2)}, 阈值=${qualityThreshold}`)
       
       // 生成推荐理由
       const reason = this.generateRecommendationReason(analysis, userInterests, combinedScore, context.config)
@@ -627,9 +629,10 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
       return result
       
     } catch (error) {
-      console.warn(`[Pipeline] AI 分析失败 (${article.title}):`, error)
+      pipelineLogger.warn(`AI 分析失败 (${article.title}):`, error)
       
       // 失败时返回 null，不使用降级方案（低分文章不值得推荐）
+      // Phase 13: 分析失败时不更新池状态（保持 raw），下次仍有机会重试
       await this.saveArticleAnalysis(article.id, article.feedId, {
         topicProbabilities: {},
         metadata: { provider: 'ai-failed', error: error instanceof Error ? error.message : 'Unknown error' }
@@ -1018,17 +1021,22 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
   /**
    * Phase 6: 保存文章的 AI 分析结果到数据库
    * Phase 7: 使用 feedArticles 表（性能优化）
+   * Phase 13: 多池架构 - 更新池状态（raw → candidate/analyzed-not-qualified）
    * 
    * @param articleId - 文章 ID
    * @param analysis - AI 分析结果
+   * @param score - AI 评分（可选，用于判断进入哪个池）
+   * @param scoreThreshold - 候选池评分阈值（默认 0.5）
    */
   private async saveArticleAnalysis(
     articleId: string,
     feedId: string,
-    analysis: { topicProbabilities: any; metadata?: any }
+    analysis: { topicProbabilities: any; metadata?: any },
+    score?: number,
+    scoreThreshold: number = 0.5
   ): Promise<void> {
     try {
-      // Phase 7: 直接更新 feedArticles 表
+      // Phase 7: 直接更新 feedArticles 表（基本分析结果）
       await db.feedArticles.update(articleId, {
         analysis: {
           topicProbabilities: analysis.topicProbabilities,
@@ -1037,9 +1045,23 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
         }
       })
       
+      // Phase 13: 多池架构 - 根据评分更新池状态
+      // 只有当提供了有效评分时才更新池状态
+      if (score !== undefined && score >= 0) {
+        if (score >= scoreThreshold) {
+          // 高分文章 → 候选池
+          await moveToCandidate(articleId, score)
+          pipelineLogger.debug(`📦 文章进入候选池: ${articleId} (评分: ${score.toFixed(2)})`)
+        } else {
+          // 低分文章 → 已分析但不合格池
+          await moveToAnalyzedNotQualified(articleId, score)
+          pipelineLogger.debug(`📦 文章标记为不合格: ${articleId} (评分: ${score.toFixed(2)})`)
+        }
+      }
+      
       // 已保存分析结果
     } catch (error) {
-      console.warn(`[Pipeline] ⚠️ 保存文章分析失败: ${articleId}`, error)
+      pipelineLogger.warn(`⚠️ 保存文章分析失败: ${articleId}`, error)
       // 不抛出错误，保存失败不影响推荐流程
     }
   }
