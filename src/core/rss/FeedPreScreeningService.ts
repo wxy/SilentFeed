@@ -88,6 +88,10 @@ export class FeedPreScreeningService {
 
       // 2. 预处理文章列表
       const preScreeningArticles = this.prepareArticles(feedResult.items)
+      preScreenLogger.debug('文章预处理完成', {
+        originalCount: feedResult.items.length,
+        processedCount: preScreeningArticles.length,
+      })
       
       // 3. 检查总大小
       const sizeCheck = this.checkTotalSize(preScreeningArticles)
@@ -118,7 +122,18 @@ export class FeedPreScreeningService {
 
       return result
     } catch (error) {
-      preScreenLogger.error('初筛失败，回退到全量分析', { error })
+      // 详细记录错误信息
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      const errorStack = error instanceof Error ? error.stack : undefined
+      
+      preScreenLogger.error('初筛失败，回退到全量分析', {
+        feedTitle,
+        feedLink,
+        articleCount: feedResult.items.length,
+        errorMessage,
+        errorStack,
+        errorType: error?.constructor?.name,
+      })
       return null // 回退到全量分析
     }
   }
@@ -190,6 +205,11 @@ export class FeedPreScreeningService {
     if (!aiConfig || !aiConfig.enabled) {
       throw new Error('AI功能未启用')
     }
+    
+    preScreenLogger.debug('获取AI配置成功', {
+      enabled: aiConfig.enabled,
+      defaultProvider: aiConfig.defaultProvider,
+    })
 
     // Feed初筛属于低频任务，使用lowFrequencyTasks配置
     const taskConfig = aiConfig.engineAssignment?.lowFrequencyTasks
@@ -205,6 +225,14 @@ export class FeedPreScreeningService {
 
     // 构建提示词
     const feedArticlesJson = JSON.stringify(articles, null, 2)
+    preScreenLogger.debug('准备调用AI初筛', {
+      provider,
+      model,
+      articleCount: articles.length,
+      jsonSize: feedArticlesJson.length,
+      useReasoning: taskConfig?.useReasoning || false,
+    })
+    
     const prompt = promptManager.getFeedPreScreeningPrompt(
       language as 'zh-CN' | 'en',
       feedTitle,
@@ -212,6 +240,15 @@ export class FeedPreScreeningService {
       feedArticlesJson,
       userProfile
     )
+    
+    preScreenLogger.debug('提示词生成结果', {
+      promptLength: prompt?.length || 0,
+      promptPreview: prompt?.substring(0, 100) || 'empty',
+    })
+    
+    if (!prompt || prompt.trim().length === 0) {
+      throw new Error('生成提示词失败：返回空字符串')
+    }
 
     // 调用AI
     // 注意：超时控制由AICapabilityManager内部处理
