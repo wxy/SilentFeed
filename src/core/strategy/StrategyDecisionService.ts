@@ -84,6 +84,23 @@ export class StrategyDecisionService {
     strategyLogger.info('开始生成新策略决策...')
 
     try {
+      // 0. 提前检查 AI 配置是否可用
+      const settings = await getSettings()
+      if (!settings.ai?.enabled) {
+        const error = new Error('AI 功能未启用，无法生成策略决策')
+        strategyLogger.warn('⚠️ AI 功能未启用，跳过策略生成')
+        throw error
+      }
+      
+      // 检查是否有配置的 Provider
+      const hasRemoteProvider = settings.ai.providers?.deepseek?.apiKey || settings.ai.providers?.openai?.apiKey
+      const hasLocalProvider = settings.ai.providers?.ollama?.enabled
+      if (!hasRemoteProvider && !hasLocalProvider) {
+        const error = new Error('未配置任何 AI Provider，无法生成策略决策')
+        strategyLogger.warn('⚠️ 未配置任何 AI Provider，跳过策略生成')
+        throw error
+      }
+
       // 1. 收集系统状态
       const context = await this.collectContext()
       strategyLogger.debug('系统状态收集完成', {

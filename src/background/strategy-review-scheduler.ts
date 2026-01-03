@@ -192,7 +192,14 @@ export class StrategyReviewScheduler {
       
       return true
     } catch (error) {
-      schedLogger.error('生成新策略失败:', error)
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      
+      // 检查是否是配置问题
+      if (errorMessage.includes('AI 功能未启用') || errorMessage.includes('未配置任何 AI Provider')) {
+        schedLogger.warn('⚠️ 策略生成跳过:', errorMessage)
+      } else {
+        schedLogger.error('生成新策略失败:', error)
+      }
       return false
     }
   }
