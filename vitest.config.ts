@@ -32,10 +32,10 @@ export default defineConfig({
       ],
       // 覆盖率阈值
       thresholds: {
-        lines: 69,    // 临时降低（当前 69.4%）
+        lines: 70,
         functions: 70,
-        branches: 57, // 临时降低（当前 58.0%）- 新增模块待补充测试
-        statements: 69, // 临时降低（当前 69.4%）
+        branches: 59,
+        statements: 70,
       },
     },
   },
