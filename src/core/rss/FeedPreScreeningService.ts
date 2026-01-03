@@ -80,6 +80,21 @@ export class FeedPreScreeningService {
     try {
       const startTime = Date.now()
       
+      // 0. 提前检查 AI 配置是否可用
+      const settings = await getSettings()
+      if (!settings.ai?.enabled) {
+        preScreenLogger.warn('AI 功能未启用，跳过初筛', { feedTitle })
+        return null // 回退到全量分析
+      }
+      
+      // 检查是否有配置的 Provider
+      const hasRemoteProvider = settings.ai.providers?.deepseek?.apiKey || settings.ai.providers?.openai?.apiKey
+      const hasLocalProvider = settings.ai.providers?.ollama?.enabled
+      if (!hasRemoteProvider && !hasLocalProvider) {
+        preScreenLogger.warn('未配置任何 AI Provider，跳过初筛', { feedTitle })
+        return null // 回退到全量分析
+      }
+
       // 1. 检查是否需要初筛
       if (!this.shouldPreScreen(feedResult.items.length)) {
         preScreenLogger.info('文章数量少，跳过初筛', { count: feedResult.items.length })

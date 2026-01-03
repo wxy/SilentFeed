@@ -128,7 +128,13 @@ export class StrategyDecisionService {
 
       return decision
     } catch (error) {
-      strategyLogger.error('生成策略决策失败', { error })
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      const errorStack = error instanceof Error ? error.stack : undefined
+      strategyLogger.error('生成策略决策失败', { 
+        errorMessage,
+        errorStack,
+        errorType: error?.constructor?.name 
+      })
       throw error
     }
   }
@@ -452,7 +458,13 @@ export class StrategyDecisionService {
 
       return strategy
     } catch (error) {
-      strategyLogger.error('调用 AI 生成策略失败', { error })
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      const errorStack = error instanceof Error ? error.stack : undefined
+      strategyLogger.error('调用 AI 生成策略失败', { 
+        errorMessage,
+        errorStack,
+        errorType: error?.constructor?.name 
+      })
       throw error
     }
   }

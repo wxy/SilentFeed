@@ -20,8 +20,8 @@ vi.mock('@/core/ai/AICapabilityManager', () => {
 })
 
 // Mock getSettings
-vi.mock('@/storage/db/db-settings', () => ({
-  getSettings: vi.fn().mockResolvedValue({
+vi.mock('@/storage/db/db-settings', () => {
+  const mockFn = vi.fn().mockResolvedValue({
     language: 'zh-CN',
     ai: {
       enabled: true,
@@ -44,7 +44,10 @@ vi.mock('@/storage/db/db-settings', () => ({
       }
     }
   })
-}))
+  return {
+    getSettings: mockFn
+  }
+})
 
 // 辅助函数：创建模拟的Feed抓取结果
 function createMockFetchResult(itemCount: number): FetchResult {
@@ -65,9 +68,38 @@ function createMockFetchResult(itemCount: number): FetchResult {
 describe('FeedPreScreeningService', () => {
   let service: FeedPreScreeningService
   let mockAIManager: any
+  let mockGetSettings: any
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
+    // 获取 mock 函数引用
+    const { getSettings } = await import('@/storage/db/db-settings')
+    mockGetSettings = getSettings
+    
+    // 重置为默认有效配置
+    mockGetSettings.mockResolvedValue({
+      language: 'zh-CN',
+      ai: {
+        enabled: true,
+        defaultProvider: 'deepseek',
+        providers: {
+          deepseek: {
+            model: 'deepseek-chat',
+            apiKey: 'test-key',
+            endpoint: 'https://api.deepseek.com/v1',
+            timeoutMs: 60000,
+            reasoningTimeoutMs: 120000
+          }
+        },
+        engineAssignment: {
+          lowFrequencyTasks: {
+            provider: 'deepseek',
+            model: 'deepseek-chat',
+            useReasoning: false
+          }
+        }
+      }
+    })
     service = new FeedPreScreeningService()
     // @ts-ignore - 访问私有属性用于测试
     mockAIManager = service.aiManager
@@ -85,6 +117,45 @@ describe('FeedPreScreeningService', () => {
 
         expect(result).toBeNull()
       }
+      expect(mockAIManager.callWithConfig).not.toHaveBeenCalled()
+    })
+
+    it('应该在 AI 未启用时跳过初筛', async () => {
+      mockGetSettings.mockResolvedValueOnce({
+        language: 'zh-CN',
+        ai: { enabled: false }
+      })
+
+      const result = await service.screenArticles(
+        createMockFetchResult(10),
+        'Test Feed',
+        'https://example.com/feed'
+      )
+
+      expect(result).toBeNull()
+      expect(mockAIManager.callWithConfig).not.toHaveBeenCalled()
+    })
+
+    it('应该在未配置任何 Provider 时跳过初筛', async () => {
+      mockGetSettings.mockResolvedValueOnce({
+        language: 'zh-CN',
+        ai: {
+          enabled: true,
+          providers: {
+            deepseek: { apiKey: '' },
+            openai: { apiKey: '' },
+            ollama: { enabled: false }
+          }
+        }
+      })
+
+      const result = await service.screenArticles(
+        createMockFetchResult(10),
+        'Test Feed',
+        'https://example.com/feed'
+      )
+
+      expect(result).toBeNull()
       expect(mockAIManager.callWithConfig).not.toHaveBeenCalled()
     })
 
