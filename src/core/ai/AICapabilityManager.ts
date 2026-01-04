@@ -9,6 +9,38 @@
  * 3. 记录成本和使用情况
  * 
  * Phase 6: 使用统一的 DeepSeekProvider，根据 useReasoning 参数动态切换模型
+ * 
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * 🚨 架构约束 - 方法调用规范
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * 
+ * 本类是 AI 能力的**唯一公开入口**，所有外部 AI 调用都必须通过此类进行。
+ * 每个公开方法都有**明确的用途和预期调用者**，请勿复用方法做其他用途！
+ * 
+ * 方法用途清单：
+ * ┌─────────────────────────────┬─────────────────────────────────────────────────┐
+ * │ 方法名                       │ 唯一用途 & 预期调用者                              │
+ * ├─────────────────────────────┼─────────────────────────────────────────────────┤
+ * │ analyzeContent()            │ 文章内容分析 → ContentPipeline                    │
+ * │ screenFeedArticles()        │ Feed 初筛 → FeedPreScreeningService              │
+ * │ decidePoolStrategy()        │ 策略决策 → StrategyDecisionService               │
+ * │ generateUserProfile()       │ 画像生成 → ProfileGenerationService              │
+ * │ analyzeSource()             │ 订阅源分析 → FeedQualityAnalyzer                  │
+ * │ generateRecommendationReason()│ 推荐理由 → RecommendationReasonGenerator        │
+ * │ testConnection()            │ 连接测试 → 设置页面 / 诊断脚本                      │
+ * └─────────────────────────────┴─────────────────────────────────────────────────┘
+ * 
+ * ❌ 禁止行为：
+ * - 不要用 analyzeContent() 做初筛、策略决策等其他用途
+ * - 不要直接调用 Provider 的方法（应通过本类的封装方法）
+ * - 不要新增 AI 功能时复用已有方法，应为新功能创建专用方法
+ * 
+ * ✅ 新增 AI 功能的正确做法：
+ * 1. 在 types/ai.ts 的 AIProvider 接口中添加可选方法
+ * 2. 在 BaseAIService 中实现该方法（调用内部的 callChatAPI）
+ * 3. 在本类中添加包装方法（包含预算检查、provider 选择）
+ * 4. 在调用处使用本类的新方法
+ * ═══════════════════════════════════════════════════════════════════════════════
  */
 
 import type {
@@ -171,7 +203,13 @@ export class AICapabilityManager {
   }
   
   /**
-   * 分析内容
+   * 分析文章内容
+   * 
+   * 🎯 **唯一用途**: 文章内容分析（提取主题、生成摘要）
+   * 📍 **预期调用者**: ContentPipeline.processArticle()
+   * 
+   * ❌ 禁止用于: Feed 初筛、策略决策、画像生成等其他用途
+   * 
    * Phase 8: 支持按任务类型路由到指定引擎
    * 
    * @param content - 要分析的内容
@@ -258,7 +296,11 @@ export class AICapabilityManager {
   /**
    * Feed 文章初筛
    * 
-   * 批量筛选 Feed 中值得详细分析的文章，减少后续 AI 调用次数和成本。
+   * 🎯 **唯一用途**: 批量筛选 Feed 中值得详细分析的文章
+   * 📍 **预期调用者**: FeedPreScreeningService.screenArticles()
+   * 
+   * ❌ 禁止用于: 单篇文章分析、策略决策等其他用途
+   * 
    * 使用 lowFrequencyTasks 配置（低频任务）。
    * 
    * @param prompt - 已构建好的初筛提示词（由 PromptManager 生成）
@@ -307,8 +349,13 @@ export class AICapabilityManager {
   /**
    * AI 推荐池策略决策
    * 
+   * 🎯 **唯一用途**: 决策推荐池最优参数（poolSize、refillInterval 等）
+   * 📍 **预期调用者**: StrategyDecisionService.generateStrategy()
+   * 
+   * ❌ 禁止用于: 文章分析、Feed 初筛等其他用途
+   * 
    * 根据用户的 RSS 阅读数据和行为，使用 AI 决策最优的推荐池策略参数。
-   * 返回 JSON 格式的策略决策（包含 poolSize、refillInterval 等参数）。
+   * 返回 JSON 格式的策略决策。
    * 
    * @param prompt - 已构建好的决策提示词（由 PromptManager 生成）
    * @param options - 请求选项
@@ -353,9 +400,13 @@ export class AICapabilityManager {
   }
 
   /**
-   * Phase 8: 生成用户画像
+   * 生成用户画像
    * 
-   * 基于用户行为数据生成语义化的用户兴趣画像
+   * 🎯 **唯一用途**: 基于用户行为数据生成语义化的用户兴趣画像
+   * 📍 **预期调用者**: ProfileGenerationService.generateProfile()
+   * 
+   * ❌ 禁止用于: 文章分析、推荐生成等其他用途
+   * 
    * Phase 8: 使用 lowFrequencyTasks 任务配置
    * 
    * @param request - 用户画像生成请求
@@ -479,7 +530,12 @@ export class AICapabilityManager {
   /**
    * 订阅源质量分析
    * 
-   * 分析 RSS 订阅源的质量和分类，使用 sourceAnalysis 任务配置
+   * 🎯 **唯一用途**: 分析 RSS 订阅源的质量和分类
+   * 📍 **预期调用者**: FeedQualityAnalyzer.analyze()
+   * 
+   * ❌ 禁止用于: 文章分析、推荐生成等其他用途
+   * 
+   * 使用 lowFrequencyTasks 任务配置
    * 
    * @param request - 订阅源分析请求
    * @returns 解析后的分析结果
@@ -703,7 +759,13 @@ export class AICapabilityManager {
   }
 
   /**
-   * 测试连接
+   * 测试 AI 连接
+   * 
+   * 🎯 **唯一用途**: 验证 AI Provider 连接是否正常
+   * 📍 **预期调用者**: 设置页面、诊断脚本
+   * 
+   * ❌ 禁止用于: 实际的 AI 分析任务
+   * 
    * Phase 11: 从 providers 读取配置
    * Phase 11.2: 支持临时创建 local provider 进行测试
    */
@@ -828,6 +890,12 @@ export class AICapabilityManager {
   
   /**
    * 生成推荐理由
+   * 
+   * 🎯 **唯一用途**: 为推荐的文章生成个性化推荐理由
+   * 📍 **预期调用者**: RecommendationReasonGenerator.generate()
+   * 
+   * ❌ 禁止用于: 文章分析、用户画像等其他用途
+   * 
    * Phase 8: 使用 articleAnalysis 任务配置（推荐理由属于文章分析任务）
    */
   async generateRecommendationReason(

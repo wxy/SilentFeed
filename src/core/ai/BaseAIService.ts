@@ -103,11 +103,22 @@ export abstract class BaseAIService implements AIProvider {
   }
   
   /**
-   * 子类必须实现：调用 Chat-GPT 兼容的 API
+   * 🔒 内部方法：调用 Chat-GPT 兼容的 API
+   * 
+   * ⚠️ **访问限制**: protected abstract - 仅子类可实现，仅内部方法可调用
+   * 
+   * 此方法是所有 AI 调用的最底层入口。外部代码**禁止**直接调用此方法！
+   * 应该通过本类的专用方法（如 analyzeContent、screenFeedArticles 等）间接使用。
+   * 
+   * 调用链示例：
+   *   外部代码 → AICapabilityManager.screenFeedArticles()
+   *            → BaseAIService.screenFeedArticles()
+   *            → this.callChatAPI()  ← 只有这里可以调用
    * 
    * @param prompt - 用户提示词
    * @param options - 调用选项
    * @returns API 响应（JSON 格式的字符串）
+   * @internal 仅供 BaseAIService 内部的公开方法调用
    */
   protected abstract callChatAPI(
     prompt: string,
