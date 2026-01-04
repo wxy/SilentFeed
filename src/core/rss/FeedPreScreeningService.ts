@@ -239,12 +239,17 @@ export class FeedPreScreeningService {
 
     // 构建提示词
     const feedArticlesJson = JSON.stringify(articles, null, 2)
+    const useReasoning = taskConfig?.useReasoning || false
+    // 推理模式超时 5 分钟（批量文章分析），标准模式 2 分钟
+    const prescreeningTimeout = useReasoning ? 300000 : 120000
+    
     preScreenLogger.debug('准备调用AI初筛', {
       provider,
       model,
       articleCount: articles.length,
       jsonSize: feedArticlesJson.length,
-      useReasoning: taskConfig?.useReasoning || false,
+      useReasoning,
+      timeoutMs: prescreeningTimeout,
     })
     
     const prompt = promptManager.getFeedPreScreeningPrompt(
@@ -279,8 +284,10 @@ export class FeedPreScreeningService {
     }
     
     // 直接调用 provider 的 analyzeContent 方法获取原始响应
+    // Feed 初筛批量处理多篇文章，推理模式需要更长超时时间（已在上方定义）
     const analysisResult = await aiProvider.analyzeContent(prompt, {
-      useReasoning: taskConfig?.useReasoning || false
+      useReasoning,
+      timeout: prescreeningTimeout
     })
     
     // 从结果中提取字符串响应
