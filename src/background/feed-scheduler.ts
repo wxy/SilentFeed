@@ -11,7 +11,7 @@
  */
 
 import { db, updateFeedStats } from '../storage/db'
-import { RSSFetcher } from '../core/rss/RSSFetcher'
+import { RSSFetcher, type FetchResult } from '../core/rss/RSSFetcher'
 import { getSourceAnalysisService } from '../core/rss/SourceAnalysisService'
 import { feedPreScreeningService } from '../core/rss/FeedPreScreeningService'
 import { getUserProfile } from '../storage/db/db-profile'
@@ -204,69 +204,120 @@ export async function fetchFeed(feed: DiscoveredFeed): Promise<boolean> {
       throw new Error(result.error || 'Fetch failed')
     }
     
-    // 1.5. AI初筛：筛选值得详细分析的文章（新增）
+    // 1.2. 增量初筛优化：查询已存在的文章 link
+    // 已经在数据库中的文章不需要重新初筛
+    const allLinks = result.items.map(item => getArticleId({ link: item.link }))
+    const existingArticles = await db.feedArticles.bulkGet(allLinks)
+    const existingLinks = new Set(
+      existingArticles
+        .filter(a => a !== undefined)
+        .map(a => a!.link)
+    )
+    
+    // 过滤出真正需要初筛的新文章
+    const newItemsForPrescreen = result.items.filter(item => !existingLinks.has(item.link))
+    
+    if (process.env.NODE_ENV === 'development' && existingLinks.size > 0) {
+      console.log(`[FeedScheduler] 增量初筛:`, {
+        feedTitle: feed.title,
+        totalItems: result.items.length,
+        existingItems: existingLinks.size,
+        newItemsToPrescreen: newItemsForPrescreen.length
+      })
+    }
+    
+    // 1.5. AI初筛：只对新文章进行筛选
+    // 改进：无论是否通过初筛，所有文章都入库，只是 poolStatus 不同
     let selectedArticleLinks: Set<string> | null = null
     
     try {
-      // 获取用户画像（用于个性化初筛）
-      const dbProfile = await getUserProfile()
-      
-      // 转换为提示词所需的格式
-      const userProfile = dbProfile?.aiSummary ? {
-        interests: dbProfile.aiSummary.interests,
-        preferences: dbProfile.aiSummary.preferences,
-        avoidTopics: dbProfile.aiSummary.avoidTopics
-      } : undefined
-      
-      // 调用初筛服务
-      const preScreeningResult = await feedPreScreeningService.screenArticles(
-        result,
-        feed.title || 'Unknown Feed',
-        feed.url,
-        userProfile
-      )
-      
-      if (preScreeningResult) {
-        selectedArticleLinks = new Set(preScreeningResult.selectedArticleLinks)
+      // 如果没有新文章需要初筛，跳过 AI 调用
+      if (newItemsForPrescreen.length === 0) {
+        // 所有文章都已存在，不需要初筛
+        selectedArticleLinks = new Set() // 空集合表示无新文章通过初筛
+      } else if (newItemsForPrescreen.length <= 3) {
+        // 新文章太少，跳过初筛，全部进入 raw 池
+        selectedArticleLinks = null
+      } else {
+        // 获取用户画像（用于个性化初筛）
+        const dbProfile = await getUserProfile()
         
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`[FeedScheduler] 初筛完成:`, {
-            feedTitle: feed.title,
-            totalArticles: preScreeningResult.totalArticles,
-            selectedCount: preScreeningResult.selectedCount,
-            selectionRate: `${(preScreeningResult.selectedCount / preScreeningResult.totalArticles * 100).toFixed(1)}%`,
-            reason: preScreeningResult.reason
-          })
+        // 转换为提示词所需的格式
+        const userProfile = dbProfile?.aiSummary ? {
+          interests: dbProfile.aiSummary.interests,
+          preferences: dbProfile.aiSummary.preferences,
+          avoidTopics: dbProfile.aiSummary.avoidTopics
+        } : undefined
+        
+        // 构建只包含新文章的 FetchResult
+        const newItemsResult: FetchResult = {
+          ...result,
+          items: newItemsForPrescreen
+        }
+        
+        // 调用初筛服务（只处理新文章）
+        const preScreeningResult = await feedPreScreeningService.screenArticles(
+          newItemsResult,
+          feed.title || 'Unknown Feed',
+          feed.url,
+          userProfile
+        )
+        
+        if (preScreeningResult) {
+          selectedArticleLinks = new Set(preScreeningResult.selectedArticleLinks)
+          
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`[FeedScheduler] 初筛完成:`, {
+              feedTitle: feed.title,
+              newArticles: preScreeningResult.totalArticles,
+              selectedCount: preScreeningResult.selectedCount,
+              selectionRate: `${(preScreeningResult.selectedCount / preScreeningResult.totalArticles * 100).toFixed(1)}%`,
+              reason: preScreeningResult.reason
+            })
+          }
         }
       }
     } catch (error) {
-      // 初筛失败不影响主流程，回退到全量处理
+      // 初筛失败不影响主流程，回退到全量处理（所有新文章都进入 raw 池）
       console.warn('[FeedScheduler] 初筛失败，回退到全量处理:', error)
       selectedArticleLinks = null
     }
     
     // 2. 转换为 FeedArticle 格式
-    // 如果有初筛结果，只转换筛选通过的文章
+    // 改进：所有文章都入库，根据初筛结果设置不同的 poolStatus
+    // 已存在的文章不设置 poolStatus（保持原状态）
     const newArticles: FeedArticle[] = result.items
-      .filter(item => !selectedArticleLinks || selectedArticleLinks.has(item.link))
-      .map(item => ({
-        id: getArticleId({ link: item.link }),
-        feedId: feed.id,
-        title: item.title,
-        link: item.link,
-        description: item.description,
-        content: item.content,
-        author: item.author,
-        published: item.pubDate ? item.pubDate.getTime() : Date.now(),
-        fetched: Date.now(),
-        read: false,
-        starred: false
-      }))
+      .map(item => {
+        const isExisting = existingLinks.has(item.link)
+        const isNewAndSelected = !isExisting && 
+          (selectedArticleLinks === null || selectedArticleLinks.has(item.link))
+        
+        return {
+          id: getArticleId({ link: item.link }),
+          feedId: feed.id,
+          title: item.title,
+          link: item.link,
+          description: item.description,
+          content: item.content,
+          author: item.author,
+          published: item.pubDate ? item.pubDate.getTime() : Date.now(),
+          fetched: Date.now(),
+          read: false,
+          starred: false,
+          // 根据文章状态设置 poolStatus：
+          // - 已存在的文章：不设置（由数据库逻辑保持原状态）
+          // - 新文章且通过初筛或无初筛 → 'raw'（等待详细分析）
+          // - 新文章且未通过初筛 → 'prescreened-out'（不再分析）
+          ...(isExisting ? {} : {
+            poolStatus: isNewAndSelected ? 'raw' as const : 'prescreened-out' as const
+          })
+        }
+      })
     
-    // 如果初筛后没有文章，直接返回成功（避免无意义的后续处理）
+    // 如果没有任何文章（RSS 源为空），直接返回成功
     if (newArticles.length === 0) {
       if (process.env.NODE_ENV === 'development') {
-        console.log(`[FeedScheduler] 初筛后无文章，跳过后续处理:`, feed.title)
+        console.log(`[FeedScheduler] RSS 源无文章:`, feed.title)
       }
       
       // 更新最后抓取时间
@@ -277,6 +328,19 @@ export async function fetchFeed(feed: DiscoveredFeed): Promise<boolean> {
       })
       
       return true
+    }
+    
+    // 统计初筛结果
+    const rawCount = newArticles.filter(a => a.poolStatus === 'raw').length
+    const prescreenedOutCount = newArticles.filter(a => a.poolStatus === 'prescreened-out').length
+    
+    if (process.env.NODE_ENV === 'development' && prescreenedOutCount > 0) {
+      console.log(`[FeedScheduler] 文章入库:`, {
+        feedTitle: feed.title,
+        total: newArticles.length,
+        waitingAnalysis: rawCount,
+        prescreenedOut: prescreenedOutCount
+      })
     }
     
     // 3. 合并旧文章和新文章（去重 + 保留阅读状态）
@@ -361,12 +425,14 @@ export async function fetchFeed(feed: DiscoveredFeed): Promise<boolean> {
         
         if (!existing) {
           // 文章不存在，插入并标记 inFeed=true
+          // 使用文章自带的 poolStatus（来自初筛结果）
           articlesToInsert.push({
             ...article,
             inFeed: true,
             lastSeenInFeed: now,
             metadataUpdatedAt: now,
             updateCount: 0
+            // poolStatus 已在 newArticles 转换时设置（raw 或 prescreened-out）
           })
           ownedArticles.push(article)
         } else if (existing.feedId === feed.id) {

@@ -607,7 +607,11 @@ export function CollectionStats() {
                           'analyze-content': _("options.collectionStats.aiUsage.byPurpose.analyzeContent"),
                           'recommend-content': _("options.collectionStats.aiUsage.byPurpose.recommendContent"),
                           'generate-profile': _("options.collectionStats.aiUsage.byPurpose.generateProfile"),
-                          'test-connection': _("options.collectionStats.aiUsage.byPurpose.testConnection")
+                          'analyze-source': _("options.collectionStats.aiUsage.byPurpose.analyzeSource"),
+                          'strategy-decision': _("options.collectionStats.aiUsage.byPurpose.strategyDecision"),
+                          'translate': _("options.collectionStats.aiUsage.byPurpose.translate"),
+                          'test-connection': _("options.collectionStats.aiUsage.byPurpose.testConnection"),
+                          'other': _("options.collectionStats.aiUsage.byPurpose.other")
                         }
                         return Object.entries(aiUsageStats.byPurpose).map(([purpose, data]) => (
                           <div key={purpose} className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-green-100 dark:border-green-800">

@@ -41,7 +41,7 @@ export async function updateFeedStats(feedUrl: string): Promise<void> {
     
     // 3. Phase 10: 基于新架构计算文章统计
     const totalCount = articles.length
-    const analyzedCount = articles.filter(a => a.analysis && a.analysis.metadata?.provider !== 'tfidf-skipped').length
+    const analyzedCount = articles.filter(a => a.analysis).length
     const readCount = articles.filter(a => a.read).length
     const unreadCount = articles.filter(a => !a.read).length
     
@@ -52,7 +52,7 @@ export async function updateFeedStats(feedUrl: string): Promise<void> {
     const deletedCount = articles.filter(a => a.deleted === true).length      // 已软删除
     
     // Phase 10: inFeed 文章的细分统计（用于进度条）
-    const inFeedAnalyzedCount = inFeedArticles.filter(a => a.analysis && a.analysis.metadata?.provider !== 'tfidf-skipped').length
+    const inFeedAnalyzedCount = inFeedArticles.filter(a => a.analysis).length
     const inFeedRecommendedCount = inFeedArticles.filter(a => a.recommended && !a.read && !a.disliked).length  // 已推荐但未操作
     const inFeedReadCount = inFeedArticles.filter(a => a.read).length          // 已阅读
     const inFeedDislikedCount = inFeedArticles.filter(a => a.disliked).length  // 不想读

@@ -327,7 +327,6 @@ export class RecommendationService {
         useLocalAI,
         batchSize: recommendationConfig.batchSize,
         qualityThreshold: recommendationConfig.qualityThreshold,
-        tfidfThreshold: recommendationConfig.tfidfThreshold,
         // 冷启动配置
         useColdStart: coldStartDecision.useColdStart,
         coldStartConfidence: coldStartDecision.confidence
@@ -338,7 +337,6 @@ export class RecommendationService {
         useReasoning,
         useLocalAI,
         qualityThreshold: config.qualityThreshold,
-        tfidfThreshold: config.tfidfThreshold,
         batchSize: config.batchSize,
         maxRecommendations: config.maxRecommendations,
         useColdStart: config.useColdStart,
@@ -440,7 +438,7 @@ export class RecommendationService {
         '处理时长': `${stats.processingTimeMs}ms`,
         '推荐方式': algorithmUsed,
         'AI分析数': result.stats.processed.aiScored || 0,
-        'TFIDF筛选数': result.stats.processed.tfidfFiltered || 0
+        '全文抓取数': result.stats.processed.fullContent || 0
       })
 
       // 6. 跟踪推荐生成
@@ -532,16 +530,15 @@ export class RecommendationService {
         .reverse()  // 按发布时间倒序（最新的优先）
         .sortBy('published')
       
-      // Phase 10: 筛选条件：inFeed=true（仍在源中）&& (!analysis 或 tfidf-skipped)
-      // 注意：tfidf-skipped 的文章需要重新分析（可能是阈值调整导致的）
+      // Phase 10: 筛选条件：inFeed=true（仍在源中）&& poolStatus='raw'（等待分析）
       const unanalyzedArticles = feedArticles.filter(article => {
         if (article.inFeed === false) return false
         
-        // 没有分析结果的文章
-        if (!article.analysis) return true
+        // 只处理原料池中的文章
+        if (article.poolStatus === 'raw') return true
         
-        // 之前被 TF-IDF 跳过的文章，需要重新分析
-        if (article.analysis.metadata?.provider === 'tfidf-skipped') return true
+        // 没有分析结果且没有 poolStatus 的文章（兼容旧数据）
+        if (!article.analysis && !article.poolStatus) return true
         
         return false
       })
@@ -555,7 +552,7 @@ export class RecommendationService {
     }
 
     // 已经按发布时间倒序排序（查询时已处理）
-    recLogger.info(` 收集未分析文章（待TF-IDF筛选）: ${allArticles.length} 篇`)
+    recLogger.info(` 收集未分析文章（原料池）: ${allArticles.length} 篇`)
     return allArticles
   }
 
@@ -851,11 +848,11 @@ export class RecommendationService {
       case 'ai':
         return 'AI智能推荐'
       case 'hybrid':
-        return '混合推荐（AI降级到TF-IDF）'
-      case 'tfidf':
-        return 'TF-IDF关键词匹配'
+        return '混合推荐'
+      case 'cold-start':
+        return '冷启动推荐'
       default:
-        return '未知算法'
+        return '智能推荐'
     }
   }
 

@@ -1091,8 +1091,9 @@ export abstract class BaseAIService implements AIProvider {
       if (useReasoning) {
         // 🌊 推理模式使用流式调用
         // 使用空闲超时（60秒）而非总时间超时
+        // DeepSeek reasoner 最大输出 64K tokens
         apiResponse = await this.callChatAPIStreaming(prompt, {
-          maxTokens: options?.maxTokens || 8000,
+          maxTokens: options?.maxTokens || 64000,
           jsonMode: true,
           useReasoning: true,
           idleTimeout: 60000  // 60 秒空闲超时

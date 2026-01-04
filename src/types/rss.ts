@@ -146,7 +146,6 @@ export interface FeedArticle {
     confidence: number
     provider: string
   }
-  tfidfScore?: number
   
   // ===== 用户操作状态 =====
   recommended?: boolean   // 是否曾被推荐
@@ -179,12 +178,13 @@ export interface FeedArticle {
   // ===== 多池架构 (Phase 13: 推荐系统重构) =====
   /**
    * 池子状态：文章在推荐系统中的位置
-   * - raw: 原料池（未分析）
+   * - raw: 原料池（未分析，等待AI分析）
+   * - prescreened-out: 初筛淘汰（AI初筛认为不值得详细分析）
    * - analyzed-not-qualified: 已分析但未达到推荐阈值
    * - candidate: 候选池（高分文章，等待推荐）
    * - recommended: 推荐池（已推荐给用户）
    */
-  poolStatus?: 'raw' | 'analyzed-not-qualified' | 'candidate' | 'recommended'
+  poolStatus?: 'raw' | 'prescreened-out' | 'analyzed-not-qualified' | 'candidate' | 'recommended'
   
   /**
    * 分析得分：AI 分析后的推荐分数 (0-10)

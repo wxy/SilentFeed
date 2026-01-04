@@ -623,7 +623,7 @@ describe('feed-scheduler', () => {
         })
       )
       
-      // Phase 10: 验证新增文章带有正确的 inFeed 状态
+      // Phase 10: 验证新增文章带有正确的 inFeed 状态和 poolStatus
       expect(db.feedArticles.bulkAdd).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({
@@ -631,6 +631,7 @@ describe('feed-scheduler', () => {
             lastSeenInFeed: expect.any(Number),
             metadataUpdatedAt: expect.any(Number),
             updateCount: 0
+            // poolStatus 在转换时已设置（raw 或 prescreened-out）
           })
         ])
       )

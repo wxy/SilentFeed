@@ -294,12 +294,11 @@ export async function resetRecommendationData(): Promise<void> {
     let totalArticlesCleared = 0
     
     for (const feed of allFeeds) {
-      // 清除所有文章的 analysis、recommended 和 tfidfScore 字段
+      // 清除所有文章的 analysis 和 recommended 字段
       if (feed.latestArticles && feed.latestArticles.length > 0) {
         feed.latestArticles.forEach(article => {
           delete article.analysis       // 清除 AI 分析结果
           delete article.recommended    // 清除推荐池标记
-          delete article.tfidfScore     // 清除 TF-IDF 评分缓存（但保留全文）
         })
         totalArticlesCleared += feed.latestArticles.length
       }
@@ -310,7 +309,7 @@ export async function resetRecommendationData(): Promise<void> {
       })
     }
     dbLogger.info(`重置 RSS 源推荐数: ${allFeeds.length} 个源`)
-    dbLogger.info(`清除文章评分和分析数据: ${totalArticlesCleared} 篇文章`)
+    dbLogger.info(`清除文章分析数据: ${totalArticlesCleared} 篇文章`)
     
     // 3. 清空自适应指标（推荐相关的统计）
     await chrome.storage.local.remove('adaptive-metrics')

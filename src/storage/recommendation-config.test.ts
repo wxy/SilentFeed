@@ -229,13 +229,13 @@ describe('AI配置检查机制', () => {
   })
 
   describe('getRecommendedSettings', () => {
-    it('应该推荐TF-IDF算法（无AI可用时）', async () => {
+    it('应该提示配置AI（无AI可用时）', async () => {
       const recommendation = await getRecommendedSettings()
       
       expect(recommendation.config.useReasoning).toBe(false)
       expect(recommendation.config.useLocalAI).toBe(false)
       expect(recommendation.priority).toBe('low')
-      expect(recommendation.reason).toContain('TF-IDF')
+      expect(recommendation.reason).toContain('AI')
     })
 
     it('应该推荐远程AI（配置可用时）', async () => {
@@ -317,15 +317,14 @@ describe('AI配置检查机制', () => {
 
       await saveRecommendationConfig(config)
       
-      // Phase 6: 配置保存会合并默认值（batchSize, qualityThreshold, tfidfThreshold）
+      // Phase 6: 配置保存会合并默认值（batchSize, qualityThreshold）
       expect(mockChromeStorage.sync.set).toHaveBeenCalledWith({
         'recommendationConfig': expect.objectContaining({
           useReasoning: true,
           useLocalAI: false,
           maxRecommendations: 4,
           batchSize: expect.any(Number),
-          qualityThreshold: expect.any(Number),
-          tfidfThreshold: expect.any(Number)
+          qualityThreshold: expect.any(Number)
         })
       })
     })
