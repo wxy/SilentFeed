@@ -364,6 +364,12 @@ export class DeepSeekProvider extends BaseAIService {
       let usage = { input: 0, output: 0 }
       let buffer = ''  // 用于处理跨 chunk 的数据
       
+      // 进度追踪
+      let lastProgressLog = 0
+      const PROGRESS_LOG_INTERVAL = 2000  // 每 2000 字符输出一次进度
+      const streamStartTime = Date.now()
+      let chunkCount = 0
+      
       // 空闲超时控制
       let idleTimer: ReturnType<typeof setTimeout> | null = null
       let timedOut = false
@@ -391,6 +397,7 @@ export class DeepSeekProvider extends BaseAIService {
           
           // 收到数据，重置空闲计时器
           resetIdleTimer()
+          chunkCount++
           
           // 解码并处理 SSE 数据
           buffer += decoder.decode(value, { stream: true })
@@ -419,6 +426,19 @@ export class DeepSeekProvider extends BaseAIService {
                 reasoningContent += delta.reasoning_content
               }
               
+              // 📊 进度日志：每 PROGRESS_LOG_INTERVAL 字符输出一次
+              const totalReceived = fullContent.length + reasoningContent.length
+              if (totalReceived - lastProgressLog >= PROGRESS_LOG_INTERVAL) {
+                const elapsed = ((Date.now() - streamStartTime) / 1000).toFixed(1)
+                deepseekLogger.info(`🌊 流式接收中...`, {
+                  elapsed: `${elapsed}s`,
+                  contentChars: fullContent.length,
+                  reasoningChars: reasoningContent.length,
+                  chunks: chunkCount
+                })
+                lastProgressLog = totalReceived
+              }
+              
               // 提取 usage（最后一个 chunk）
               if (parsed.usage) {
                 usage = {
@@ -441,6 +461,9 @@ export class DeepSeekProvider extends BaseAIService {
         if (idleTimer) clearTimeout(idleTimer)
       }
       
+      // 计算总耗时
+      const totalDuration = ((Date.now() - streamStartTime) / 1000).toFixed(1)
+      
       // 推理模式特殊处理：可能需要从 reasoning_content 提取 JSON
       if (!fullContent && useReasoning && reasoningContent) {
         deepseekLogger.warn("⚠️ 流式推理模式返回空 content，尝试从 reasoning_content 提取")
@@ -451,9 +474,12 @@ export class DeepSeekProvider extends BaseAIService {
         throw new Error("Empty response from streaming API")
       }
       
-      deepseekLogger.debug("✅ 流式调用完成", {
-        contentLength: fullContent.length,
-        reasoningLength: reasoningContent.length,
+      // 📊 完成日志：显示完整统计
+      deepseekLogger.info("✅ 流式调用完成", {
+        duration: `${totalDuration}s`,
+        contentChars: fullContent.length,
+        reasoningChars: reasoningContent.length,
+        totalChunks: chunkCount,
         tokensUsed: usage
       })
       
