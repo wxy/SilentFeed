@@ -24,6 +24,7 @@ import type {
 } from '@/core/ai/prompts/types'
 import { getAIConfig } from '@/storage/ai-config'
 import { getSettings } from '@/storage/db/db-settings'
+import { resolveProvider } from '@/utils/ai-provider-resolver'
 
 const preScreenLogger = logger.withTag('FeedPreScreen')
 
@@ -224,11 +225,13 @@ export class FeedPreScreeningService {
 
     // Feed初筛属于低频任务，使用lowFrequencyTasks配置
     const taskConfig = aiConfig.engineAssignment?.lowFrequencyTasks
-    const provider = taskConfig?.provider || aiConfig.preferredRemoteProvider
+    // 使用 resolveProvider 将抽象 provider（如 'remote'）解析为具体 provider（如 'deepseek'）
+    const abstractProvider = taskConfig?.provider || 'remote'
+    const provider = resolveProvider(abstractProvider, aiConfig)
     const model = taskConfig?.model || aiConfig.providers?.[provider as keyof typeof aiConfig.providers]?.model
 
     if (!model) {
-      throw new Error(`模型配置不存在: ${provider}`)
+      throw new Error(`模型配置不存在: ${provider}（原始配置: ${abstractProvider}）`)
     }
 
     // 获取语言设置（默认中文）
