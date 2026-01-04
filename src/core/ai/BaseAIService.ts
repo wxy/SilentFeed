@@ -140,6 +140,51 @@ export abstract class BaseAIService implements AIProvider {
   }>
   
   /**
+   * 🔒 内部方法：流式调用 Chat-GPT 兼容的 API
+   * 
+   * ⚠️ **访问限制**: protected - 仅子类可实现，仅内部方法可调用
+   * 
+   * 用于推理模式等长时间运行的任务，通过流式传输保持连接活跃，
+   * 避免中间网络层（代理、CDN、负载均衡器）超时。
+   * 
+   * 特点：
+   * - 使用**空闲超时**而非总时间超时
+   * - 只要持续收到数据就不会超时
+   * - 服务器卡死时会触发空闲超时
+   * 
+   * @param prompt - 用户提示词
+   * @param options - 调用选项
+   * @param options.idleTimeout - 空闲超时时间（毫秒），默认 60000
+   * @returns API 响应（完整内容 + token 用量）
+   * @internal 仅供 BaseAIService 内部的公开方法调用
+   */
+  protected async callChatAPIStreaming(
+    prompt: string,
+    options?: {
+      maxTokens?: number
+      idleTimeout?: number
+      jsonMode?: boolean
+      useReasoning?: boolean
+      responseFormat?: Record<string, unknown>
+      temperature?: number
+    }
+  ): Promise<{
+    content: string
+    tokensUsed: {
+      input: number
+      output: number
+    }
+    model?: string
+  }> {
+    // 默认实现：回退到非流式调用
+    // 子类可以覆盖此方法实现真正的流式调用
+    return this.callChatAPI(prompt, {
+      ...options,
+      timeout: options?.idleTimeout ? options.idleTimeout * 10 : undefined // 非流式用更长的超时
+    })
+  }
+  
+  /**
    * 子类必须实现：获取货币类型
    * 
    * @returns 货币类型（CNY=人民币, USD=美元, FREE=免费/本地模型）
@@ -1020,6 +1065,8 @@ export abstract class BaseAIService implements AIProvider {
    * 批量筛选 Feed 中值得详细分析的文章，减少后续 AI 调用次数和成本。
    * 返回 JSON 格式的筛选结果（包含 selectedArticleLinks、stats 等）。
    * 
+   * 🌊 推理模式使用流式调用，避免长时间等待导致网络层超时。
+   * 
    * @param prompt - 已构建好的初筛提示词（由 PromptManager 生成）
    * @param options - 请求选项
    * @returns AI 的原始响应文本（JSON 格式）
@@ -1035,16 +1082,31 @@ export abstract class BaseAIService implements AIProvider {
     const useReasoning = options?.useReasoning || false
     
     try {
-      // 使用配置的超时时间（推理模式需要更长时间处理批量文章）
-      const timeout = this.getConfiguredTimeout(useReasoning)
+      let apiResponse: {
+        content: string
+        tokensUsed: { input: number; output: number }
+        model?: string
+      }
       
-      // 调用 API
-      const apiResponse = await this.callChatAPI(prompt, {
-        maxTokens: options?.maxTokens || (useReasoning ? 8000 : 4000),
-        jsonMode: true,  // 要求返回 JSON 格式
-        useReasoning,
-        timeout
-      })
+      if (useReasoning) {
+        // 🌊 推理模式使用流式调用
+        // 使用空闲超时（60秒）而非总时间超时
+        apiResponse = await this.callChatAPIStreaming(prompt, {
+          maxTokens: options?.maxTokens || 8000,
+          jsonMode: true,
+          useReasoning: true,
+          idleTimeout: 60000  // 60 秒空闲超时
+        })
+      } else {
+        // 标准模式使用普通调用
+        const timeout = this.getConfiguredTimeout(false)
+        apiResponse = await this.callChatAPI(prompt, {
+          maxTokens: options?.maxTokens || 4000,
+          jsonMode: true,
+          useReasoning: false,
+          timeout
+        })
+      }
       
       const duration = Date.now() - startTime
       const modelName = this.resolveModelName(apiResponse.model)
