@@ -581,12 +581,16 @@ export {
   resetRecommendationData
 } from './db-recommendations'
 
-// 数据迁移模块（db-migration.ts）- Phase 10
+// 数据迁移模块（db-migration.ts）- Phase 10 & Phase 13
 export {
   migrateRecommendationStatus,
   calculateArticleImportance,
   runFullMigration,
-  needsMigration
+  needsMigration,
+  // Phase 13: 多池架构迁移
+  migrateToPoolStatus,
+  needsPhase13Migration,
+  runPhase13Migration
 } from './db-migration'
 
 // 统计查询模块（待拆分）

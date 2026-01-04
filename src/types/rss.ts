@@ -66,6 +66,7 @@ export interface DiscoveredFeed {
   quality?: FeedQuality
   relevance?: FeedRelevance
   subscribedAt?: number
+  unsubscribedAt?: number      // 取消订阅时间
   isActive: boolean
   lastFetchedAt?: number
   nextScheduledFetch?: number  // Phase 7: 下次计划抓取时间
@@ -83,9 +84,14 @@ export interface DiscoveredFeed {
   inFeedCount?: number         // 仍在 RSS 源中的文章数（inFeed=true）
   inPoolCount?: number         // 当前在推荐池中的文章数（inPool=true）
   inFeedAnalyzedCount?: number // 在源中且已分析的文章数
-  inFeedRecommendedCount?: number  // 在源中且已推荐但未操作的文章数
-  inFeedReadCount?: number     // 在源中且已阅读的文章数
-  inFeedDislikedCount?: number // 在源中且不想读的文章数
+  inFeedRecommendedCount?: number  // 在源中且在推荐池的文章数（绿色）
+  inFeedReadCount?: number     // 在源中且已阅读的文章数（蓝色）
+  inFeedDislikedCount?: number // 在源中且不想读的文章数（红色）
+  
+  // Phase 13: 池状态统计字段
+  inFeedCandidateCount?: number   // 在源中的候选池文章数（黄色）
+  inFeedEliminatedCount?: number  // 在源中已淘汰的文章数（灰色：初筛淘汰+分析未达标）
+  inFeedRawCount?: number         // 在源中原始池文章数（白色：未分析）
   
   latestArticles?: FeedArticle[]
   
@@ -154,9 +160,16 @@ export interface FeedArticle {
   starred: boolean       // 是否收藏
   
   // ===== 推荐池管理 (Phase 8: 文章持久化重构) =====
+  /**
+   * @deprecated 使用 poolStatus 代替。此字段仅为向后兼容保留。
+   * Phase 13 后，poolStatus 是主要状态字段。
+   */
   inPool?: boolean               // 是否在推荐池中（候选）
+  /** @deprecated 使用 recommendedPoolAddedAt 或 candidatePoolAddedAt */
   poolAddedAt?: number           // 加入推荐池时间
+  /** @deprecated 使用 poolExitedAt */
   poolRemovedAt?: number         // 移出推荐池时间
+  /** @deprecated 使用 poolExitReason */
   poolRemovedReason?: 'read' | 'disliked' | 'replaced' | 'expired'
   
   // ===== RSS 源状态管理 (Phase 8) =====
@@ -183,8 +196,9 @@ export interface FeedArticle {
    * - analyzed-not-qualified: 已分析但未达到推荐阈值
    * - candidate: 候选池（高分文章，等待推荐）
    * - recommended: 推荐池（已推荐给用户）
+   * - exited: 已退出（用户操作或订阅源变更导致退出）
    */
-  poolStatus?: 'raw' | 'prescreened-out' | 'analyzed-not-qualified' | 'candidate' | 'recommended'
+  poolStatus?: 'raw' | 'prescreened-out' | 'analyzed-not-qualified' | 'candidate' | 'recommended' | 'exited'
   
   /**
    * 分析得分：AI 分析后的推荐分数 (0-10)
@@ -206,11 +220,14 @@ export interface FeedArticle {
    * 从候选池/推荐池移除的原因
    * - read: 用户已阅读
    * - disliked: 用户不想读
+   * - saved: 用户稍后读（加入阅读列表）
    * - replaced: 被更高分文章替换
    * - expired: 过期（超过保鲜期）
    * - quality_dropped: 质量下降（重新分析后）
+   * - feed_unsubscribed: 所属订阅源被取消订阅
+   * - feed_deleted: 所属订阅源被删除
    */
-  poolExitReason?: 'read' | 'disliked' | 'replaced' | 'expired' | 'quality_dropped'
+  poolExitReason?: 'read' | 'disliked' | 'saved' | 'replaced' | 'expired' | 'quality_dropped' | 'feed_unsubscribed' | 'feed_deleted'
   
   /**
    * 池子退出时间

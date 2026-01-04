@@ -1236,9 +1236,14 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
             const totalArticles = feed.articleCount || 0        // 所有文章（包括历史）
             const inFeedCount = feed.inFeedCount || 0           // 仍在RSS源中
             const inFeedAnalyzedCount = feed.inFeedAnalyzedCount || 0
-            const inFeedRecommendedCount = feed.inFeedRecommendedCount || 0  // 已推荐但未操作
-            const inFeedReadCount = feed.inFeedReadCount || 0
-            const inFeedDislikedCount = feed.inFeedDislikedCount || 0
+            const inFeedRecommendedCount = feed.inFeedRecommendedCount || 0  // 推荐池（绿色）
+            const inFeedReadCount = feed.inFeedReadCount || 0   // 已阅读（蓝色）
+            const inFeedDislikedCount = feed.inFeedDislikedCount || 0 // 不想读（红色）
+            
+            // Phase 13: 新池状态统计
+            const inFeedCandidateCount = feed.inFeedCandidateCount || 0  // 候选池（黄色）
+            const inFeedEliminatedCount = feed.inFeedEliminatedCount || 0  // 已淘汰（灰色）
+            const inFeedRawCount = feed.inFeedRawCount || 0  // 原始池（白色）
             
             // 推荐相关统计（历史总数，用于显示图标）
             const totalRecommended = feed.recommendedCount || 0
@@ -1259,18 +1264,23 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
             }
             
             // 计算各类型文章数（只统计 inFeed=true 的文章）
-            // 5 种颜色分类：绿色（已推荐未操作）、蓝色（已阅读）、红色（不想读）、灰色（已分析未推荐）、白色（未分析）
-            const recommendedBlocks = inFeedRecommendedCount  // 绿色
-            const readBlocks = inFeedReadCount                // 蓝色
-            const dislikedBlocks = inFeedDislikedCount        // 红色
-            const analyzedNotRecommendedBlocks = Math.max(0, 
-              inFeedAnalyzedCount - inFeedRecommendedCount - inFeedReadCount - inFeedDislikedCount
-            )  // 灰色
-            const unanalyzedBlocks = Math.max(0, displayTotal - inFeedAnalyzedCount)  // 白色
+            // 多池架构颜色分类：
+            // - 绿色：推荐池（已推荐给用户，未操作）
+            // - 蓝色：已阅读（用户点击阅读过）
+            // - 红色：不想读（用户标记不感兴趣）
+            // - 黄色：候选池（已分析达标，等待推荐）
+            // - 灰色：初筛淘汰/分析未达标（被淘汰的文章）
+            // - 白色：原始池（未分析，等待 AI 分析）
+            const recommendedBlocks = inFeedRecommendedCount  // 绿色 - 推荐池
+            const readBlocks = inFeedReadCount                // 蓝色 - 已阅读
+            const dislikedBlocks = inFeedDislikedCount        // 红色 - 不想读
+            const candidateBlocks = inFeedCandidateCount      // 黄色 - 候选池
+            const eliminatedBlocks = inFeedEliminatedCount    // 灰色 - 已淘汰
+            const rawBlocks = inFeedRawCount                  // 白色 - 原始池（未分析）
             
             // 构建方块数组
             const blocks: Array<{
-              type: 'recommended' | 'read' | 'disliked' | 'analyzed' | 'unanalyzed'
+              type: 'recommended' | 'read' | 'disliked' | 'analyzed' | 'eliminated' | 'unanalyzed'
               className: string
               tooltip: string
             }> = []
@@ -1302,21 +1312,30 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
               })
             }
             
-            // 已分析但未推荐（灰色）
-            for (let i = 0; i < analyzedNotRecommendedBlocks; i++) {
+            // 已分析但未推荐（黄色 - 候选池）
+            for (let i = 0; i < candidateBlocks; i++) {
               blocks.push({
                 type: 'analyzed',
-                className: 'bg-gray-200 dark:bg-gray-500 border border-gray-300 dark:border-gray-600',
-                tooltip: `${_('options.rssManager.stats.analyzed')}: ${inFeedAnalyzedCount} ${_('options.rssManager.stats.articles')}`
+                className: 'bg-yellow-300 dark:bg-yellow-500 border border-yellow-400 dark:border-yellow-600',
+                tooltip: `${_('options.rssManager.stats.candidate')}: ${inFeedCandidateCount} ${_('options.rssManager.stats.articles')}`
               })
             }
             
-            // 未分析（白色边框）
-            for (let i = 0; i < unanalyzedBlocks; i++) {
+            // 已淘汰（灰色 - 初筛淘汰+分析未达标）
+            for (let i = 0; i < eliminatedBlocks; i++) {
+              blocks.push({
+                type: 'eliminated',
+                className: 'bg-gray-300 dark:bg-gray-600 border border-gray-400 dark:border-gray-500',
+                tooltip: `${_('options.rssManager.stats.eliminated')}: ${inFeedEliminatedCount} ${_('options.rssManager.stats.articles')}`
+              })
+            }
+            
+            // 未分析（白色 - 原始池）
+            for (let i = 0; i < rawBlocks; i++) {
               blocks.push({
                 type: 'unanalyzed',
-                className: 'bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600',
-                tooltip: `${_('options.rssManager.stats.unanalyzed')}: ${unanalyzedBlocks} ${_('options.rssManager.stats.articles')}`
+                className: 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-500',
+                tooltip: `${_('options.rssManager.stats.unanalyzed')}: ${rawBlocks} ${_('options.rssManager.stats.articles')}`
               })
             }
             

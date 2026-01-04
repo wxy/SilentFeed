@@ -171,7 +171,7 @@ export async function moveToRecommended(articleId: string): Promise<void> {
  */
 export async function removeFromPool(
   articleId: string,
-  reason: 'read' | 'disliked' | 'replaced' | 'expired' | 'quality_dropped'
+  reason: 'read' | 'disliked' | 'saved' | 'replaced' | 'expired' | 'quality_dropped'
 ): Promise<void> {
   try {
     const article = await db.feedArticles.get(articleId)
@@ -181,7 +181,7 @@ export async function removeFromPool(
     }
     
     await db.feedArticles.update(articleId, {
-      poolStatus: undefined,  // 清除池状态
+      poolStatus: 'exited',  // 明确的退出状态
       poolExitReason: reason,
       poolExitedAt: Date.now()
     })
@@ -251,28 +251,49 @@ export async function batchMoveToRecommended(articleIds: string[]): Promise<void
  */
 export async function getPoolStats() {
   try {
-    const [rawCount, analyzedNotQualifiedCount, candidateCount, recommendedCount] = await Promise.all([
-      db.feedArticles.where('poolStatus').equals('raw').count(),
-      db.feedArticles.where('poolStatus').equals('analyzed-not-qualified').count(),
-      db.feedArticles.where('poolStatus').equals('candidate').count(),
-      db.feedArticles.where('poolStatus').equals('recommended').count()
+    // 获取活跃池的统计（poolStatus 有值且未退出的）
+    const [
+      rawCount, 
+      prescreenedOutCount,
+      analyzedNotQualifiedCount, 
+      candidateCount, 
+      recommendedCount
+    ] = await Promise.all([
+      db.feedArticles.filter(a => a.poolStatus === 'raw' && !a.poolExitedAt).count(),
+      db.feedArticles.filter(a => a.poolStatus === 'prescreened-out' && !a.poolExitedAt).count(),
+      db.feedArticles.filter(a => a.poolStatus === 'analyzed-not-qualified' && !a.poolExitedAt).count(),
+      db.feedArticles.filter(a => a.poolStatus === 'candidate' && !a.poolExitedAt).count(),
+      db.feedArticles.filter(a => a.poolStatus === 'recommended' && !a.poolExitedAt).count()
     ])
     
-    // 计算候选池的平均分数
+    // 获取已退出的文章（poolStatus 为空但有 poolExitedAt）
+    const exitedArticles = await db.feedArticles
+      .filter(a => !a.poolStatus && a.poolExitedAt)
+      .toArray()
+    
+    // 按退出原因分类统计
+    const exitReasons = {
+      read: exitedArticles.filter(a => a.poolExitReason === 'read').length,
+      disliked: exitedArticles.filter(a => a.poolExitReason === 'disliked').length,
+      saved: exitedArticles.filter(a => a.poolExitReason === 'saved').length,
+      replaced: exitedArticles.filter(a => a.poolExitReason === 'replaced').length,
+      expired: exitedArticles.filter(a => a.poolExitReason === 'expired').length,
+      quality_dropped: exitedArticles.filter(a => a.poolExitReason === 'quality_dropped').length
+    }
+    
+    // 计算候选池的平均分数（只统计未退出的）
     const candidateArticles = await db.feedArticles
-      .where('poolStatus')
-      .equals('candidate')
+      .filter(a => a.poolStatus === 'candidate' && !a.poolExitedAt)
       .toArray()
     
     const avgCandidateScore = candidateArticles.length > 0
       ? candidateArticles.reduce((sum, a) => sum + (a.analysisScore || 0), 0) / candidateArticles.length
       : 0
     
-    // 计算推荐池的平均存留时间
+    // 计算推荐池的平均存留时间（只统计未退出的）
     const now = Date.now()
     const recommendedArticles = await db.feedArticles
-      .where('poolStatus')
-      .equals('recommended')
+      .filter(a => a.poolStatus === 'recommended' && !a.poolExitedAt)
       .toArray()
     
     const avgRecommendedAge = recommendedArticles.length > 0
@@ -284,6 +305,7 @@ export async function getPoolStats() {
     
     const stats = {
       raw: rawCount,
+      prescreenedOut: prescreenedOutCount,
       analyzedNotQualified: analyzedNotQualifiedCount,
       candidate: {
         count: candidateCount,
@@ -294,7 +316,11 @@ export async function getPoolStats() {
         avgAgeMs: avgRecommendedAge,
         avgAgeDays: avgRecommendedAge / (24 * 60 * 60 * 1000)
       },
-      total: rawCount + analyzedNotQualifiedCount + candidateCount + recommendedCount
+      exited: {
+        total: exitedArticles.length,
+        byReason: exitReasons
+      },
+      activeTotal: rawCount + prescreenedOutCount + analyzedNotQualifiedCount + candidateCount + recommendedCount
     }
     
     poolLogger.debug('池统计', stats)

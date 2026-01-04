@@ -59,7 +59,22 @@ vi.mock('../../../storage/db', () => ({
     feedArticles: {
       where: vi.fn(() => ({
         equals: vi.fn(() => ({
-          toArray: vi.fn(() => Promise.resolve([]))
+          toArray: vi.fn(() => Promise.resolve([])),
+          filter: vi.fn(() => ({
+            toArray: vi.fn(() => Promise.resolve([]))
+          }))
+        })),
+        anyOf: vi.fn(() => ({
+          delete: vi.fn()
+        }))
+      })),
+      update: vi.fn()
+    },
+    recommendations: {
+      where: vi.fn(() => ({
+        equals: vi.fn(() => ({
+          toArray: vi.fn(() => Promise.resolve([])),
+          delete: vi.fn()
         })),
         anyOf: vi.fn(() => ({
           delete: vi.fn()
@@ -395,17 +410,31 @@ describe('FeedManager', () => {
   })
   
   describe('unsubscribe', () => {
-    it('应该取消订阅并放入忽略列表', async () => {
+    it('应该取消订阅（调用事务函数）', async () => {
+      // Mock feed 存在
+      vi.mocked(db.discoveredFeeds.get).mockResolvedValue({
+        id: 'test-id',
+        url: 'https://example.com/feed.xml',
+        title: 'Test Feed',
+        status: 'subscribed',
+        discoveredFrom: 'test',
+        discoveredAt: Date.now(),
+        isActive: true,
+        articleCount: 0,
+        unreadCount: 0,
+        recommendedCount: 0
+      })
       vi.mocked(db.discoveredFeeds.update).mockResolvedValue(1)
       
       await feedManager.unsubscribe('test-id')
       
+      // 验证事务函数被调用（更新了状态）
       expect(db.discoveredFeeds.update).toHaveBeenCalledWith(
         'test-id',
-        {
+        expect.objectContaining({
           status: 'ignored',
-          subscribedAt: undefined
-        }
+          isActive: false
+        })
       )
     })
   })

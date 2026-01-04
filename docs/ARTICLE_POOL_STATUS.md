@@ -75,10 +75,13 @@
    │                   池退出 (poolExitReason)                    │
    │                                                              │
    │  • read: 用户已阅读                                          │
+   │  • saved: 用户稍后读（加入阅读列表）                          │
    │  • disliked: 用户点了"不想读"                                 │
    │  • replaced: 被更高分文章替换（池满时）                       │
    │  • expired: 过期（超过保鲜期）                                │
    │  • quality_dropped: 重新分析后质量下降                        │
+   │  • feed_unsubscribed: 所属订阅源被取消订阅                    │
+   │  • feed_deleted: 所属订阅源被删除                             │
    └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -88,8 +91,8 @@
 
 ```typescript
 interface FeedArticle {
-  // 池状态
-  poolStatus?: 'raw' | 'prescreened-out' | 'analyzed-not-qualified' | 'candidate' | 'recommended'
+  // 池状态（Phase 13 主要字段）
+  poolStatus?: 'raw' | 'prescreened-out' | 'analyzed-not-qualified' | 'candidate' | 'recommended' | 'exited'
   
   // AI 分析得分 (0-10)
   analysisScore?: number
@@ -100,7 +103,7 @@ interface FeedArticle {
   poolExitedAt?: number            // 退出池时间
   
   // 退出原因
-  poolExitReason?: 'read' | 'disliked' | 'replaced' | 'expired' | 'quality_dropped'
+  poolExitReason?: 'read' | 'disliked' | 'saved' | 'replaced' | 'expired' | 'quality_dropped'
 }
 ```
 

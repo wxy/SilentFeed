@@ -10,13 +10,92 @@ import { AIConfig } from "@/components/settings/AIConfig"
 import { RSSSettings } from "@/components/settings/RSSSettings"
 import { NotificationSettings } from "@/components/settings/NotificationSettings"
 import { ProfileSettings } from "@/components/settings/ProfileSettings"
+import { RecommendationSettings } from "@/components/settings/RecommendationSettings"
 import { getUIStyle, setUIStyle, watchUIStyle, getUIConfig, updateUIConfig, type UIStyle } from "@/storage/ui-config"
 import { useTheme } from "@/hooks/useTheme"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
+import { getRecommendationConfig } from "@/storage/recommendation-config"
+import { OnboardingStateService } from "@/core/onboarding/OnboardingStateService"
+import { LEARNING_COMPLETE_PAGES } from "@/constants/progress"
 import "@/styles/global.css"
 import "@/styles/sketchy.css"
 
-type TabKey = "preferences" | "feeds" | "ai-engine" | "profile" | "data"
+type TabKey = "preferences" | "feeds" | "ai-engine" | "recommendation" | "profile" | "data"
+
+/**
+ * RecommendationSettings 的包装组件
+ * 负责加载和管理推荐相关的状态
+ */
+function RecommendationSettingsWrapper() {
+  const [poolStrategy, setPoolStrategy] = useState<any>(null)
+  const [recommendationScheduler, setRecommendationScheduler] = useState<any>(null)
+  const [maxRecommendations, setMaxRecommendations] = useState(3)
+  const [isLearningStage, setIsLearningStage] = useState(false)
+  const [pageCount, setPageCount] = useState(0)
+  const [totalPages, setTotalPages] = useState(LEARNING_COMPLETE_PAGES)
+  const [activeRecommendationCount, setActiveRecommendationCount] = useState(0)
+  const [poolCapacity, setPoolCapacity] = useState(6)
+
+  useEffect(() => {
+    // 加载推荐配置
+    getRecommendationConfig().then(config => {
+      const max = config.maxRecommendations || 3
+      setMaxRecommendations(max)
+      setPoolCapacity(max * 2) // 默认池容量 = 弹窗容量 × 2
+    })
+
+    // 加载推荐池策略
+    chrome.storage.local.get('pool_strategy_decision').then(result => {
+      if (result.pool_strategy_decision) {
+        setPoolStrategy(result.pool_strategy_decision)
+        // 从策略获取池容量
+        if (result.pool_strategy_decision.decision?.poolSize) {
+          setPoolCapacity(result.pool_strategy_decision.decision.poolSize)
+        }
+      }
+    })
+
+    // 加载调度器状态
+    chrome.runtime.sendMessage({ type: 'GET_SCHEDULERS_STATUS' }).then((response: any) => {
+      if (response?.recommendation) {
+        setRecommendationScheduler(response.recommendation)
+      }
+    })
+
+    // 检查学习阶段
+    OnboardingStateService.getState().then(state => {
+      setPageCount(state.pageCount)
+      setTotalPages(state.threshold)
+      setIsLearningStage(state.state === 'learning' || state.state === 'setup')
+    })
+
+    // 获取弹窗内活跃推荐数量
+    chrome.runtime.sendMessage({ type: 'GET_ACTIVE_RECOMMENDATIONS_COUNT' }).then((response: any) => {
+      console.log('[RecommendationSettingsWrapper] GET_ACTIVE_RECOMMENDATIONS_COUNT 响应:', response)
+      if (response?.success && typeof response.count === 'number') {
+        setActiveRecommendationCount(response.count)
+      } else if (typeof response?.count === 'number') {
+        // 兼容不返回 success 的情况
+        setActiveRecommendationCount(response.count)
+      }
+    }).catch(error => {
+      console.error('[RecommendationSettingsWrapper] 获取活跃推荐数量失败:', error)
+    })
+  }, [])
+
+  return (
+    <RecommendationSettings
+      poolStrategy={poolStrategy}
+      recommendationScheduler={recommendationScheduler}
+      maxRecommendations={maxRecommendations}
+      isLearningStage={isLearningStage}
+      pageCount={pageCount}
+      totalPages={totalPages}
+      activeRecommendationCount={activeRecommendationCount}
+      poolCapacity={poolCapacity}
+    />
+  )
+}
 
 /**
  * Silent Feed - 设置页面
@@ -26,7 +105,7 @@ type TabKey = "preferences" | "feeds" | "ai-engine" | "profile" | "data"
  * - preferences: 偏好设置（语言、UI风格、通知）
  * - feeds: 订阅源管理
  * - ai-engine: AI 引擎配置（基础设施层）
- * - analysis: 内容分析配置
+ * - recommendation: 内容推荐（策略、池状态、流转图）
  * - profile: 用户画像
  * - data: 系统数据（采集统计）
  */
@@ -43,14 +122,14 @@ function IndexOptions() {
   const getInitialTab = (): TabKey => {
     // 优先从 hash 读取（支持 #rss 这种格式）
     const hash = window.location.hash.slice(1) as TabKey
-    if (['preferences', 'feeds', 'ai-engine', 'profile', 'data'].includes(hash)) {
+    if (['preferences', 'feeds', 'ai-engine', 'recommendation', 'profile', 'data'].includes(hash)) {
       return hash
     }
     
     // 其次从 URL 参数读取
     const urlParams = new URLSearchParams(window.location.search)
     const tab = urlParams.get('tab') as TabKey
-    return ['preferences', 'feeds', 'ai-engine', 'profile', 'data'].includes(tab) ? tab : 'preferences'
+    return ['preferences', 'feeds', 'ai-engine', 'recommendation', 'profile', 'data'].includes(tab) ? tab : 'preferences'
   }
 
   const [activeTab, setActiveTab] = useState<TabKey>(getInitialTab)
@@ -148,6 +227,7 @@ function IndexOptions() {
     { key: "preferences", icon: "⚙️" },
     { key: "feeds", icon: "📡" },
     { key: "ai-engine", icon: "🤖" },
+    { key: "recommendation", icon: "🎯" },
     { key: "profile", icon: "👤" },
     { key: "data", icon: "📊" }
   ]
@@ -334,6 +414,13 @@ function IndexOptions() {
               {activeTab === "ai-engine" && (
                 <div className={isSketchyStyle ? "sketchy-card" : "bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg"}>
                   <AIConfig />
+                </div>
+              )}
+
+              {/* 内容推荐 - Phase 9: 新增独立标签 */}
+              {activeTab === "recommendation" && (
+                <div className={isSketchyStyle ? "sketchy-card" : "bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg"}>
+                  <RecommendationSettingsWrapper />
                 </div>
               )}
 

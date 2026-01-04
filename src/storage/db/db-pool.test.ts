@@ -250,7 +250,7 @@ describe('db-pool', () => {
       await removeFromPool('test-4', 'read')
 
       const updated = await db.feedArticles.get('test-4')
-      expect(updated?.poolStatus).toBeUndefined()
+      expect(updated?.poolStatus).toBe('exited')
       expect(updated?.poolExitReason).toBe('read')
       expect(updated?.poolExitedAt).toBeDefined()
     })
@@ -378,7 +378,7 @@ describe('db-pool', () => {
       expect(stats.candidate.count).toBe(1)
       expect(stats.candidate.avgScore).toBe(7.5)
       expect(stats.recommended.count).toBe(1)
-      expect(stats.total).toBe(4)
+      expect(stats.activeTotal).toBe(4)
     })
   })
 
@@ -416,7 +416,7 @@ describe('db-pool', () => {
       expect(cleaned).toBe(1)
 
       const expired = await db.feedArticles.get('expired-candidate')
-      expect(expired?.poolStatus).toBeUndefined()
+      expect(expired?.poolStatus).toBe('exited')
       expect(expired?.poolExitReason).toBe('expired')
 
       const fresh = await db.feedArticles.get('fresh-candidate')

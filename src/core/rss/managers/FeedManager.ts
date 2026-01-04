@@ -416,8 +416,34 @@ export class FeedManager {
     await db.discoveredFeeds.update(id, updates)
     feedLogger.info('已订阅:', { id, source: source || '(保持现有来源)' })
     
-    // 如果从忽略状态恢复，重新进行 AI 分析
+    // 如果从忽略状态恢复（重新订阅）
     if (wasIgnored) {
+      feedLogger.info('重新订阅：恢复因取消订阅而退出的文章...')
+      
+      // 将因取消订阅而退出的文章恢复到 raw 状态（重新流转）
+      const exitedArticles = await db.feedArticles
+        .where('feedId')
+        .equals(id)
+        .filter(a => a.poolStatus === 'exited' && a.poolExitReason === 'feed_unsubscribed')
+        .toArray()
+      
+      if (exitedArticles.length > 0) {
+        const now = Date.now()
+        for (const article of exitedArticles) {
+          await db.feedArticles.update(article.id, {
+            poolStatus: 'raw',           // 重新进入原料池
+            poolExitReason: undefined,   // 清除退出原因
+            poolExitedAt: undefined,     // 清除退出时间
+            // 兼容旧字段
+            inPool: undefined,
+            poolRemovedAt: undefined,
+            poolRemovedReason: undefined
+          })
+        }
+        feedLogger.info(`已恢复 ${exitedArticles.length} 篇文章到原料池`)
+      }
+      
+      // 重新进行 AI 分析
       feedLogger.info('从忽略列表恢复，重新进行 AI 分析...')
       // 异步执行，不阻塞订阅操作
       this.analyzeFeed(id, true).catch((error: Error) => {
@@ -430,14 +456,19 @@ export class FeedManager {
   /**
    * 取消订阅
    * 
+   * 取消订阅会：
+   * 1. 更新源状态为 ignored
+   * 2. 将所有在池中的文章移出（不删除）
+   * 3. 删除推荐记录
+   * 
+   * 注意：文章保留用于历史统计，但不再参与推荐流程
+   * 
    * @param id - 源 ID
    */
   async unsubscribe(id: string): Promise<void> {
-    await db.discoveredFeeds.update(id, {
-      status: 'ignored',
-      subscribedAt: undefined
-    })
-    feedLogger.info('已取消订阅（放入忽略列表）:', id)
+    const { unsubscribeFeed } = await import('../../../storage/transactions')
+    await unsubscribeFeed(id)
+    feedLogger.info('已取消订阅:', id)
   }
   
   /**
@@ -463,11 +494,19 @@ export class FeedManager {
   /**
    * 删除源
    * 
+   * 删除源会：
+   * 1. 删除源本身
+   * 2. 删除该源的所有文章
+   * 3. 删除该源的所有推荐记录
+   * 
    * @param id - 源 ID
    * @param deleteArticles - 是否同时删除该源的文章（默认 true）
    */
   async delete(id: string, deleteArticles: boolean = true): Promise<void> {
-    await db.transaction('rw', db.discoveredFeeds, db.feedArticles, async () => {
+    // 先获取源信息（用于清理推荐记录）
+    const feed = await db.discoveredFeeds.get(id)
+    
+    await db.transaction('rw', [db.discoveredFeeds, db.feedArticles, db.recommendations], async () => {
       if (deleteArticles) {
         // 删除该源的所有文章
         const articles = await db.feedArticles.where('feedId').equals(id).toArray()
@@ -476,6 +515,15 @@ export class FeedManager {
         if (articleIds.length > 0) {
           await db.feedArticles.where('id').anyOf(articleIds).delete()
           feedLogger.info(`已删除源 ${id} 的 ${articleIds.length} 篇文章`)
+        }
+      }
+      
+      // 删除该源的所有推荐记录
+      if (feed?.url) {
+        const recs = await db.recommendations.where('sourceUrl').equals(feed.url).toArray()
+        if (recs.length > 0) {
+          await db.recommendations.where('id').anyOf(recs.map(r => r.id)).delete()
+          feedLogger.info(`已删除源 ${id} 的 ${recs.length} 条推荐记录`)
         }
       }
       

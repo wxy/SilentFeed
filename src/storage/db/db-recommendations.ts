@@ -72,9 +72,13 @@ export async function markAsRead(
         const now = Date.now()
         await db.feedArticles.update(article.id, {
           read: true,                    // 标记已读
-          inPool: false,                 // Phase 10: 移出推荐池
-          poolRemovedAt: now,
-          poolRemovedReason: 'read'
+          inPool: false,                 // Phase 10: 移出推荐池（旧字段）
+          poolRemovedAt: now,            // 旧字段
+          poolRemovedReason: 'read',     // 旧字段
+          // Phase 13: 新字段 - 退出推荐池
+          poolStatus: 'exited',         // 明确的退出状态
+          poolExitedAt: now,
+          poolExitReason: 'read'
         })
       }
     } catch (error) {
@@ -134,9 +138,13 @@ export async function dismissRecommendations(ids: string[]): Promise<void> {
             // 标记文章为不想读 + 移出推荐池
             await db.feedArticles.update(article.id, {
               disliked: true,
-              inPool: false,                    // Phase 10: 移出推荐池
-              poolRemovedAt: now,
-              poolRemovedReason: 'disliked'
+              inPool: false,                    // Phase 10: 移出推荐池（旧字段）
+              poolRemovedAt: now,               // 旧字段
+              poolRemovedReason: 'disliked',    // 旧字段
+              // Phase 13: 新字段 - 退出推荐池
+              poolStatus: 'exited',            // 明确的退出状态
+              poolExitedAt: now,
+              poolExitReason: 'disliked'
             })
           } else {
             dbLogger.warn('⚠️ 未找到匹配的文章:', recommendation.url)

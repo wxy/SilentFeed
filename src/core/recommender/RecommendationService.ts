@@ -387,13 +387,20 @@ export class RecommendationService {
         }
       }
       
+      // 🔧 Phase 13.5: 计算实际可添加数量 = min(候选数量, 剩余容量)
+      // 防止每次都添加固定数量导致池溢出
+      const remainingCapacity = Math.max(0, maxPoolSize - currentPool.length)
+      const effectiveLimit = Math.min(targetMaxRecommendations, remainingCapacity)
+      
+      recLogger.debug(`📊 容量计算: 池容量=${maxPoolSize}, 当前=${currentPool.length}, 剩余=${remainingCapacity}, 本次限制=${effectiveLimit}`)
+      
       const highQualityArticles = sortedArticles.filter(article => {
         const isHighQuality = article.score >= dynamicThreshold
         if (!isHighQuality) {
           recLogger.debug(` ⚠️ 文章质量不达标 (${article.score.toFixed(2)} < ${dynamicThreshold.toFixed(2)}):`, article.title)
         }
         return isHighQuality
-      }).slice(0, targetMaxRecommendations)  // 限制数量
+      }).slice(0, effectiveLimit)  // 限制数量（考虑剩余容量）
       
       if (highQualityArticles.length === 0 && result.articles.length > 0) {
         recLogger.warn(` ⚠️ 所有文章都未达到最低阈值 ${minAbsoluteThreshold}，本次不生成推荐`)
@@ -655,7 +662,7 @@ export class RecommendationService {
         if (article.score > lowestInPool.score) {
           recLogger.debug(` 🔄 替换低分推荐: ${article.score.toFixed(2)} > ${lowestInPool.score.toFixed(2)}`)
           
-          // Phase 10: 同步更新被替换文章的 inPool 状态
+          // Phase 10 + Phase 13: 同步更新被替换文章的状态
           try {
             const replacedArticle = await db.feedArticles
               .where('link').equals(lowestInPool.url)
@@ -664,11 +671,16 @@ export class RecommendationService {
             if (replacedArticle) {
               const now = Date.now()
               await db.feedArticles.update(replacedArticle.id, {
+                // Phase 13: 新字段
+                poolStatus: 'exited',         // 明确的退出状态
+                poolExitedAt: now,
+                poolExitReason: 'replaced',
+                // Phase 10: 旧字段（兼容）
                 inPool: false,
                 poolRemovedAt: now,
                 poolRemovedReason: 'replaced'
               })
-              recLogger.debug(`📝 已更新被替换文章的 inPool 状态: ${replacedArticle.title}`)
+              recLogger.debug(`📝 已更新被替换文章的状态: ${replacedArticle.title}`)
             }
           } catch (error) {
             recLogger.warn(`更新被替换文章状态失败: ${lowestInPool.url}`, error)
@@ -779,19 +791,23 @@ export class RecommendationService {
       }
     }
     
-    // ✅ 批量更新文章的 inPool 和 recommended 状态
+    // ✅ 批量更新文章的 poolStatus 和 inPool 状态
+    // Phase 13: poolStatus='recommended' 是主要状态字段
+    // inPool=true 保留用于向后兼容旧查询逻辑
     if (articlesToUpdate.length > 0) {
       const now = Date.now()
       await db.transaction('rw', [db.feedArticles], async () => {
         for (const { id } of articlesToUpdate) {
           await db.feedArticles.update(id, {
-            inPool: true,              // Phase 10: 标记进入候选池
-            poolAddedAt: now,          // Phase 10: 记录进入时间
-            recommended: true          // 保留历史记录（兼容旧逻辑）
+            poolStatus: 'recommended',   // Phase 13: 主要状态字段
+            recommendedPoolAddedAt: now, // Phase 13: 记录进入推荐池时间
+            inPool: true,                // Phase 10: 兼容旧逻辑
+            poolAddedAt: now,            // Phase 10: 兼容旧逻辑
+            recommended: true            // 保留历史记录（兼容旧逻辑）
           })
         }
       })
-      recLogger.info(`✅ 已标记进入推荐池的文章: ${articlesToUpdate.length} 篇 (inPool=true)`)
+      recLogger.info(`✅ 已标记进入推荐池的文章: ${articlesToUpdate.length} 篇 (poolStatus=recommended, inPool=true)`)
     }
 
     // Phase 6: 更新 RSS 源的推荐数统计
