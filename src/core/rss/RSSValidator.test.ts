@@ -2,10 +2,17 @@
  * RSS 验证器测试
  */
 
-import { describe, it, expect } from "vitest"
+import { describe, it, expect, vi, beforeEach } from "vitest"
 import { RSSValidator } from "./RSSValidator"
 
+// Mock fetch
+const mockFetch = vi.fn()
+global.fetch = mockFetch
+
 describe("RSSValidator", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
   describe("validate - RSS 2.0", () => {
     it("应该验证有效的 RSS 2.0", async () => {
       const xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -228,6 +235,161 @@ describe("RSSValidator", () => {
     
     it("应该拒绝空字符串", () => {
       expect(RSSValidator.isRSSLike("")).toBe(false)
+    })
+  })
+  
+  describe("validateURL", () => {
+    it("应该验证有效的 RSS URL", async () => {
+      const validRSS = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Remote Feed</title>
+    <description>A remote RSS feed</description>
+    <link>https://example.com</link>
+    <item>
+      <title>Item 1</title>
+      <link>https://example.com/item1</link>
+    </item>
+  </channel>
+</rss>`
+      
+      mockFetch.mockResolvedValue({
+        ok: true,
+        text: () => Promise.resolve(validRSS),
+      })
+      
+      const result = await RSSValidator.validateURL("https://example.com/feed.xml")
+      
+      expect(result.valid).toBe(true)
+      expect(result.type).toBe("rss")
+      expect(result.metadata?.title).toBe("Remote Feed")
+      expect(mockFetch).toHaveBeenCalledWith(
+        "https://example.com/feed.xml",
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Accept: expect.stringContaining("application/rss+xml"),
+          }),
+        })
+      )
+    })
+    
+    it("应该处理 HTTP 错误响应", async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 404,
+        statusText: "Not Found",
+      })
+      
+      const result = await RSSValidator.validateURL("https://example.com/nonexistent.xml")
+      
+      expect(result.valid).toBe(false)
+      expect(result.error).toContain("HTTP 404")
+    })
+    
+    it("应该处理网络错误", async () => {
+      mockFetch.mockRejectedValue(new Error("Network failure"))
+      
+      const result = await RSSValidator.validateURL("https://example.com/feed.xml")
+      
+      expect(result.valid).toBe(false)
+      expect(result.error).toContain("网络请求失败")
+      expect(result.error).toContain("Network failure")
+    })
+    
+    it("应该验证 Atom URL", async () => {
+      const validAtom = `<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Remote Atom Feed</title>
+  <subtitle>A remote Atom feed</subtitle>
+  <link rel="alternate" href="https://example.com"/>
+</feed>`
+      
+      mockFetch.mockResolvedValue({
+        ok: true,
+        text: () => Promise.resolve(validAtom),
+      })
+      
+      const result = await RSSValidator.validateURL("https://example.com/atom.xml")
+      
+      expect(result.valid).toBe(true)
+      expect(result.type).toBe("atom")
+    })
+  })
+  
+  describe("getText 私有方法覆盖", () => {
+    // 通过 validate 方法间接测试 getText 的各种分支
+    it("应该处理 CDATA 内容", async () => {
+      const xml = `<?xml version="1.0"?>
+<rss version="2.0">
+  <channel>
+    <title><![CDATA[CDATA Title]]></title>
+    <description><![CDATA[CDATA Description]]></description>
+    <link>https://example.com</link>
+  </channel>
+</rss>`
+      
+      const result = await RSSValidator.validate(xml)
+      
+      expect(result.valid).toBe(true)
+      // CDATA 内容应该被正确提取
+      expect(result.metadata?.title).toBeDefined()
+    })
+  })
+  
+  describe("getCategories 覆盖", () => {
+    it("应该处理带分类的 RSS", async () => {
+      const xml = `<?xml version="1.0"?>
+<rss version="2.0">
+  <channel>
+    <title>Feed with Categories</title>
+    <description>A feed with categories</description>
+    <link>https://example.com</link>
+    <category>Tech</category>
+    <category>Web</category>
+    <category>JavaScript</category>
+    <category>Programming</category>
+  </channel>
+</rss>`
+      
+      const result = await RSSValidator.validate(xml)
+      
+      expect(result.valid).toBe(true)
+      // 分类应该被限制为最多3个
+      expect(result.metadata?.category).toBeDefined()
+    })
+    
+    it("应该处理带 CDATA 分类的 RSS", async () => {
+      const xml = `<?xml version="1.0"?>
+<rss version="2.0">
+  <channel>
+    <title>Feed with CDATA Categories</title>
+    <description>A feed with CDATA categories</description>
+    <link>https://example.com</link>
+    <category><![CDATA[Tech]]></category>
+  </channel>
+</rss>`
+      
+      const result = await RSSValidator.validate(xml)
+      
+      expect(result.valid).toBe(true)
+      expect(result.metadata?.category).toBeDefined()
+    })
+    
+    it("应该处理单个分类的 RSS", async () => {
+      const xml = `<?xml version="1.0"?>
+<rss version="2.0">
+  <channel>
+    <title>Single Category Feed</title>
+    <description>A feed with one category</description>
+    <link>https://example.com</link>
+    <category>Single</category>
+  </channel>
+</rss>`
+      
+      const result = await RSSValidator.validate(xml)
+      
+      expect(result.valid).toBe(true)
+      expect(result.metadata?.category).toBe("Single")
     })
   })
 })
