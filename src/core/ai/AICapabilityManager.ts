@@ -256,6 +256,55 @@ export class AICapabilityManager {
   }
 
   /**
+   * Feed 文章初筛
+   * 
+   * 批量筛选 Feed 中值得详细分析的文章，减少后续 AI 调用次数和成本。
+   * 使用 lowFrequencyTasks 配置（低频任务）。
+   * 
+   * @param prompt - 已构建好的初筛提示词（由 PromptManager 生成）
+   * @param options - 请求选项
+   * @returns AI 的原始响应文本（JSON 格式）
+   */
+  async screenFeedArticles(
+    prompt: string,
+    options?: {
+      maxTokens?: number
+      useReasoning?: boolean
+    }
+  ): Promise<string> {
+    // 预算检查
+    const shouldDowngrade = await BudgetChecker.shouldDowngrade()
+    if (shouldDowngrade) {
+      aiLogger.warn("⚠️ 月度预算已超支，无法进行 Feed 初筛")
+      throw new Error('预算已超支，无法进行 Feed 初筛')
+    }
+    
+    // 使用低频任务配置
+    const { provider } = await this.getProviderForTask('lowFrequencyTasks')
+    
+    if (!provider) {
+      aiLogger.error('没有可用的 AI Provider 进行 Feed 初筛')
+      throw new Error('没有可用的 AI Provider')
+    }
+    
+    // 检查预算
+    const budgetAllowed = await this.checkProviderBudget(provider.name)
+    if (!budgetAllowed) {
+      aiLogger.warn(`⚠️ ${provider.name} 预算超限，无法进行 Feed 初筛`)
+      throw new Error(`${provider.name} 预算超限`)
+    }
+    
+    // 检查 provider 是否实现了此方法
+    if (!provider.screenFeedArticles) {
+      aiLogger.error(`${provider.name} 未实现 screenFeedArticles 方法`)
+      throw new Error(`${provider.name} 不支持 Feed 初筛`)
+    }
+    
+    // 调用 provider 的实现
+    return await provider.screenFeedArticles(prompt, options)
+  }
+
+  /**
    * AI 推荐池策略决策
    * 
    * 根据用户的 RSS 阅读数据和行为，使用 AI 决策最优的推荐池策略参数。

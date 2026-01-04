@@ -240,8 +240,6 @@ export class FeedPreScreeningService {
     // 构建提示词
     const feedArticlesJson = JSON.stringify(articles, null, 2)
     const useReasoning = taskConfig?.useReasoning || false
-    // 推理模式超时 5 分钟（批量文章分析），标准模式 2 分钟
-    const prescreeningTimeout = useReasoning ? 300000 : 120000
     
     preScreenLogger.debug('准备调用AI初筛', {
       provider,
@@ -249,7 +247,6 @@ export class FeedPreScreeningService {
       articleCount: articles.length,
       jsonSize: feedArticlesJson.length,
       useReasoning,
-      timeoutMs: prescreeningTimeout,
     })
     
     const prompt = promptManager.getFeedPreScreeningPrompt(
@@ -269,30 +266,12 @@ export class FeedPreScreeningService {
       throw new Error('生成提示词失败：返回空字符串')
     }
 
-    // 调用AI
-    // 注意：使用 lowFrequencyTasks 配置（Feed初筛属于低频任务）
-    // analyzeContent 返回的是分析结果，但Feed初筛需要的是原始JSON响应
-    // 因此我们需要直接调用 provider 而不是通过 analyzeContent
-    
-    // 获取适当的 provider
-    const { provider: aiProvider } = (this.aiManager as any).getProviderForTask 
-      ? await (this.aiManager as any).getProviderForTask('lowFrequencyTasks')
-      : { provider: null }
-    
-    if (!aiProvider) {
-      throw new Error('无法获取AI Provider')
-    }
-    
-    // 直接调用 provider 的 analyzeContent 方法获取原始响应
-    // Feed 初筛批量处理多篇文章，推理模式需要更长超时时间（已在上方定义）
-    const analysisResult = await aiProvider.analyzeContent(prompt, {
+    // 调用 AI 初筛专用方法
+    // 使用 lowFrequencyTasks 配置，返回原始 JSON 响应
+    const response = await this.aiManager.screenFeedArticles(prompt, {
       useReasoning,
-      timeout: prescreeningTimeout
+      maxTokens: useReasoning ? 8000 : 4000  // 推理模式需要更多 token
     })
-    
-    // 从结果中提取字符串响应
-    // 如果有 rawText，使用它；否则将结果序列化为JSON
-    const response = (analysisResult as any).rawText || JSON.stringify(analysisResult)
 
     // 解析结果
     const result = this.parseAIResponse(response)

@@ -1002,6 +1002,95 @@ export abstract class BaseAIService implements AIProvider {
       return acc
     }, {} as Record<string, number>)
   }
+
+  /**
+   * Feed 文章初筛（默认实现）
+   * 
+   * 批量筛选 Feed 中值得详细分析的文章，减少后续 AI 调用次数和成本。
+   * 返回 JSON 格式的筛选结果（包含 selectedArticleLinks、stats 等）。
+   * 
+   * @param prompt - 已构建好的初筛提示词（由 PromptManager 生成）
+   * @param options - 请求选项
+   * @returns AI 的原始响应文本（JSON 格式）
+   */
+  async screenFeedArticles(
+    prompt: string,
+    options?: {
+      maxTokens?: number
+      useReasoning?: boolean
+    }
+  ): Promise<string> {
+    const startTime = Date.now()
+    const useReasoning = options?.useReasoning || false
+    
+    try {
+      // 使用配置的超时时间（推理模式需要更长时间处理批量文章）
+      const timeout = this.getConfiguredTimeout(useReasoning)
+      
+      // 调用 API
+      const apiResponse = await this.callChatAPI(prompt, {
+        maxTokens: options?.maxTokens || (useReasoning ? 8000 : 4000),
+        jsonMode: true,  // 要求返回 JSON 格式
+        useReasoning,
+        timeout
+      })
+      
+      const duration = Date.now() - startTime
+      const modelName = this.resolveModelName(apiResponse.model)
+      
+      // 计算成本
+      const cost = this.calculateCost(
+        apiResponse.tokensUsed.input,
+        apiResponse.tokensUsed.output,
+        modelName
+      )
+      
+      // 记录使用情况
+      await AIUsageTracker.recordUsage({
+        provider: this.name.toLowerCase() as any,
+        model: modelName,
+        purpose: 'feed-prescreening',
+        tokens: {
+          input: apiResponse.tokensUsed.input,
+          output: apiResponse.tokensUsed.output,
+          total: apiResponse.tokensUsed.input + apiResponse.tokensUsed.output,
+          estimated: false
+        },
+        cost: cost,
+        latency: duration,
+        success: true,
+        reasoning: useReasoning
+      })
+      
+      return apiResponse.content
+    } catch (error) {
+      const duration = Date.now() - startTime
+      
+      // 记录失败
+      await AIUsageTracker.recordUsage({
+        provider: this.name.toLowerCase() as any,
+        model: this.config.model || this.getDefaultModelName(),
+        purpose: 'feed-prescreening',
+        tokens: {
+          input: 0,
+          output: 0,
+          total: 0,
+          estimated: true
+        },
+        cost: {
+          currency: this.getCurrency(),
+          input: 0,
+          output: 0,
+          total: 0,
+          estimated: true
+        },
+        latency: duration,
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+        reasoning: useReasoning
+      })
+      
+      throw error
+    }
+  }
 }
-
-
