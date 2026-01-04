@@ -87,11 +87,10 @@ export class RecommendationService {
     const errors: string[] = []
     
     try {
-      // 🆕 预检查：在执行任务前先检查推荐池限流
-      // 避免浪费 AI 资源和丢弃推荐内容
+      // 获取推荐配置
       const recommendationConfig = await getRecommendationConfig()
       const baseSize = recommendationConfig.maxRecommendations || 3
-      const maxSize = baseSize * POOL_SIZE_MULTIPLIER
+      const maxPoolSize = baseSize * POOL_SIZE_MULTIPLIER
       
       // 获取当前推荐池容量
       const currentPool = await db.recommendations
@@ -104,29 +103,12 @@ export class RecommendationService {
         })
         .toArray()
       
-      // 检查是否需要补充推荐池
+      // 🔧 修正架构：冷却期只控制「候选池 → 推荐池」的补充
+      // AI 分析阶段（Raw → Candidate）不受冷却期限制
       const refillManager = getRefillManager()
-      const shouldRefill = await refillManager.shouldRefill(currentPool.length, maxSize)
+      const shouldRefillPool = await refillManager.shouldRefill(currentPool.length, maxPoolSize)
       
-      if (!shouldRefill) {
-        recLogger.info(
-          `⏸️  推荐池补充被限流：当前容量 ${currentPool.length}/${maxSize}，` +
-          `跳过本次推荐生成任务（避免浪费 AI 资源）`
-        )
-        return {
-          recommendations: [],
-          stats: {
-            totalArticles: 0,
-            processedArticles: 0,
-            recommendedCount: 0,
-            processingTimeMs: 0
-          }
-        }
-      }
-      
-      // 限流检查通过，记录本次补充操作
-      await refillManager.recordRefill()
-      recLogger.info(`✅ 推荐池补充检查通过，开始生成推荐...`)
+      recLogger.info(`📊 推荐池状态: ${currentPool.length}/${maxPoolSize}，补充许可: ${shouldRefillPool ? '✅' : '❌'}`)
       
       // 获取推荐配置（上面已获取，这里注释掉避免重复）
       // const recommendationConfig = await getRecommendationConfig()
@@ -419,8 +401,22 @@ export class RecommendationService {
         recLogger.info(` ✅ 选择了 ${highQualityArticles.length} 篇文章，分数范围: ${highQualityArticles[highQualityArticles.length - 1].score.toFixed(2)} - ${highQualityArticles[0].score.toFixed(2)}`)
       }
       
-      // 6. 转换为存储格式并保存（仅保存高质量文章）
-      const recommendations = await this.saveRecommendations(highQualityArticles, recommendationConfig)
+      // 6. 🔧 冷却期控制：只有在冷却期允许时才将高分文章加入推荐池
+      // AI 分析已完成（文章已被标记为 candidate 或 not-qualified）
+      // 这里只控制是否将 candidate 池的文章加入推荐表
+      let recommendations: Recommendation[] = []
+      if (shouldRefillPool && highQualityArticles.length > 0) {
+        // 冷却期通过，记录补充操作并保存推荐
+        await refillManager.recordRefill()
+        recLogger.info(`✅ 推荐池补充检查通过，保存 ${highQualityArticles.length} 条推荐...`)
+        recommendations = await this.saveRecommendations(highQualityArticles, recommendationConfig)
+      } else if (!shouldRefillPool && highQualityArticles.length > 0) {
+        // 冷却期未过，但 AI 分析已完成
+        recLogger.info(
+          `⏸️  推荐池补充被限流（冷却期），跳过保存 ${highQualityArticles.length} 条推荐。` +
+          `文章已分析并标记为候选，下次冷却期结束后可用。`
+        )
+      }
 
       const processingTimeMs = Date.now() - startTime
       const stats = {
