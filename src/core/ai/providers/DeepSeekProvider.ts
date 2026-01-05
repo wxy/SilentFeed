@@ -287,6 +287,261 @@ export class DeepSeekProvider extends BaseAIService {
   }
   
   /**
+   * 实现：流式调用 DeepSeek Chat API
+   * 
+   * 用于推理模式等长时间运行的任务。
+   * 使用空闲超时而非总时间超时，只要持续收到数据就不会超时。
+   */
+  protected override async callChatAPIStreaming(
+    prompt: string,
+    options?: {
+      maxTokens?: number
+      idleTimeout?: number
+      jsonMode?: boolean
+      useReasoning?: boolean
+      responseFormat?: Record<string, unknown>
+      temperature?: number
+    }
+  ): Promise<{
+    content: string
+    tokensUsed: {
+      input: number
+      output: number
+    }
+    model?: string
+  }> {
+    const useReasoning = options?.useReasoning || false
+    const actualModel = useReasoning ? this.REASONING_MODEL : this.model
+    const idleTimeout = options?.idleTimeout || 60000 // 默认 60 秒空闲超时
+    
+    this.lastUsedModel = actualModel
+    
+    const request: DeepSeekRequest = {
+      model: actualModel,
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: options?.maxTokens || (useReasoning ? 64000 : 8000),
+      stream: true  // 启用流式输出
+    }
+    
+    // 启用 JSON Mode
+    if (options?.responseFormat) {
+      request.response_format = options.responseFormat as { type: "json_object" }
+    } else if (options?.jsonMode) {
+      request.response_format = { type: "json_object" }
+    }
+    
+    deepseekLogger.debug("🌊 开始流式调用", {
+      model: actualModel,
+      maxTokens: request.max_tokens,
+      idleTimeout,
+      useReasoning
+    })
+    
+    try {
+      const response = await fetch(this.endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${this.config.apiKey}`
+        },
+        body: JSON.stringify(request)
+        // 注意：流式调用不设置总超时，依赖空闲超时
+      })
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`DeepSeek API error: ${response.status} ${errorText}`)
+      }
+      
+      if (!response.body) {
+        throw new Error("Response body is null")
+      }
+      
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let fullContent = ''
+      let reasoningContent = ''
+      let usage = { input: 0, output: 0 }
+      let buffer = ''  // 用于处理跨 chunk 的数据
+      
+      // 进度追踪
+      let lastProgressLog = 0
+      const PROGRESS_LOG_INTERVAL = 2000  // 每 2000 字符输出一次进度
+      const streamStartTime = Date.now()
+      let chunkCount = 0
+      
+      // 空闲超时控制
+      let idleTimer: ReturnType<typeof setTimeout> | null = null
+      let timedOut = false
+      
+      const resetIdleTimer = () => {
+        if (idleTimer) clearTimeout(idleTimer)
+        idleTimer = setTimeout(() => {
+          timedOut = true
+          reader.cancel()
+        }, idleTimeout)
+      }
+      
+      // 启动空闲计时器
+      resetIdleTimer()
+      
+      try {
+        while (true) {
+          const { done, value } = await reader.read()
+          
+          if (timedOut) {
+            throw new Error(`Idle timeout: no data received for ${idleTimeout}ms`)
+          }
+          
+          if (done) break
+          
+          // 收到数据，重置空闲计时器
+          resetIdleTimer()
+          chunkCount++
+          
+          // 解码并处理 SSE 数据
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split('\n')
+          
+          // 保留最后一行（可能不完整）
+          buffer = lines.pop() || ''
+          
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue
+            
+            const data = line.slice(6).trim()
+            if (data === '[DONE]') continue
+            
+            try {
+              const parsed = JSON.parse(data)
+              const delta = parsed.choices?.[0]?.delta
+              
+              // 提取内容
+              if (delta?.content) {
+                fullContent += delta.content
+              }
+              
+              // 提取推理内容（DeepSeek 特有）
+              if (delta?.reasoning_content) {
+                reasoningContent += delta.reasoning_content
+              }
+              
+              // 📊 进度日志：每 PROGRESS_LOG_INTERVAL 字符输出一次
+              const totalReceived = fullContent.length + reasoningContent.length
+              if (totalReceived - lastProgressLog >= PROGRESS_LOG_INTERVAL) {
+                const elapsed = ((Date.now() - streamStartTime) / 1000).toFixed(1)
+                deepseekLogger.info(`🌊 流式接收中...`, {
+                  elapsed: `${elapsed}s`,
+                  contentChars: fullContent.length,
+                  reasoningChars: reasoningContent.length,
+                  chunks: chunkCount
+                })
+                lastProgressLog = totalReceived
+              }
+              
+              // 提取 usage（最后一个 chunk）
+              if (parsed.usage) {
+                usage = {
+                  input: parsed.usage.prompt_tokens || 0,
+                  output: parsed.usage.completion_tokens || 0
+                }
+                
+                // 保存缓存统计
+                this.lastCacheStats = {
+                  hitTokens: parsed.usage.prompt_cache_hit_tokens || 0,
+                  missTokens: parsed.usage.prompt_cache_miss_tokens || parsed.usage.prompt_tokens || 0
+                }
+              }
+            } catch {
+              // 忽略解析错误（可能是不完整的 JSON）
+            }
+          }
+        }
+      } finally {
+        if (idleTimer) clearTimeout(idleTimer)
+      }
+      
+      // 计算总耗时
+      const totalDuration = ((Date.now() - streamStartTime) / 1000).toFixed(1)
+      
+      // 推理模式特殊处理：可能需要从 reasoning_content 提取 JSON
+      if (!fullContent && useReasoning && reasoningContent) {
+        deepseekLogger.warn("⚠️ 流式推理模式返回空 content，尝试从 reasoning_content 提取")
+        fullContent = this.extractJsonFromReasoning(reasoningContent)
+      }
+      
+      if (!fullContent) {
+        throw new Error("Empty response from streaming API")
+      }
+      
+      // 📊 完成日志：显示完整统计
+      deepseekLogger.info("✅ 流式调用完成", {
+        duration: `${totalDuration}s`,
+        contentChars: fullContent.length,
+        reasoningChars: reasoningContent.length,
+        totalChunks: chunkCount,
+        tokensUsed: usage
+      })
+      
+      return {
+        content: fullContent,
+        tokensUsed: usage,
+        model: actualModel
+      }
+    } catch (error) {
+      if (isNetworkError(error)) {
+        deepseekLogger.warn("⚠️ 流式调用失败（网络问题）", error)
+      } else {
+        deepseekLogger.error("❌ 流式调用失败", error)
+      }
+      throw error
+    }
+  }
+  
+  /**
+   * 从 reasoning_content 中提取 JSON
+   */
+  private extractJsonFromReasoning(reasoningContent: string): string {
+    // 方法1：查找 ```json 代码块
+    const jsonMatch = reasoningContent.match(/```json\s*([\s\S]*?)\s*```/)
+    if (jsonMatch) {
+      deepseekLogger.info("✅ 从 reasoning_content 中提取到 JSON 代码块")
+      return jsonMatch[1].trim()
+    }
+    
+    // 方法2：从后往前查找最后一个完整的 JSON 对象
+    const lastBraceIndex = reasoningContent.lastIndexOf('}')
+    if (lastBraceIndex !== -1) {
+      let braceCount = 0
+      let startIndex = -1
+      
+      for (let i = lastBraceIndex; i >= 0; i--) {
+        if (reasoningContent[i] === '}') braceCount++
+        if (reasoningContent[i] === '{') {
+          braceCount--
+          if (braceCount === 0) {
+            startIndex = i
+            break
+          }
+        }
+      }
+      
+      if (startIndex !== -1) {
+        const extracted = reasoningContent.substring(startIndex, lastBraceIndex + 1)
+        try {
+          JSON.parse(extracted)
+          deepseekLogger.info("✅ 从 reasoning_content 中提取到 JSON 对象")
+          return extracted
+        } catch {
+          deepseekLogger.warn("⚠️ 提取的 JSON 无效")
+        }
+      }
+    }
+    
+    return ''
+  }
+  
+  /**
    * 实现：获取货币类型
    */
   protected getCurrency(): 'CNY' | 'USD' | 'FREE' {

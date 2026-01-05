@@ -10,6 +10,10 @@ import {
   getProviderModel,
   getEngineAssignment,
   saveEngineAssignment,
+  getProviderFromModel,
+  getRecommendedPreset,
+  hasAnyAIAvailable,
+  AVAILABLE_MODELS,
   type AIConfig
 } from "./ai-config"
 import { AI_ENGINE_PRESETS, type AIEngineAssignment } from "@/types/ai-engine-assignment"
@@ -750,5 +754,179 @@ describe("ai-config", () => {
       expect(loaded.providers.openai?.reasoningTimeoutMs).toBeUndefined()
     })
   })
+  
+  describe("getProviderFromModel", () => {
+    it("应该从 deepseek-chat 返回 deepseek", () => {
+      expect(getProviderFromModel("deepseek-chat")).toBe("deepseek")
+    })
+    
+    it("应该从 gpt-5-nano 返回 openai", () => {
+      expect(getProviderFromModel("gpt-5-nano")).toBe("openai")
+    })
+    
+    it("应该从 gpt-5-mini 返回 openai", () => {
+      expect(getProviderFromModel("gpt-5-mini")).toBe("openai")
+    })
+    
+    it("应该从 gpt-5 返回 openai", () => {
+      expect(getProviderFromModel("gpt-5")).toBe("openai")
+    })
+    
+    it("应该从 o4-mini 返回 openai", () => {
+      expect(getProviderFromModel("o4-mini")).toBe("openai")
+    })
+    
+    it("应该对未知模型返回 null", () => {
+      expect(getProviderFromModel("unknown-model")).toBeNull()
+      expect(getProviderFromModel("")).toBeNull()
+    })
+  })
+  
+  describe("AVAILABLE_MODELS", () => {
+    it("应该包含 deepseek 的模型", () => {
+      expect(AVAILABLE_MODELS.deepseek).toBeDefined()
+      expect(AVAILABLE_MODELS.deepseek.length).toBeGreaterThan(0)
+      expect(AVAILABLE_MODELS.deepseek[0].id).toBe("deepseek-chat")
+    })
+    
+    it("应该包含 openai 的模型", () => {
+      expect(AVAILABLE_MODELS.openai).toBeDefined()
+      expect(AVAILABLE_MODELS.openai.length).toBeGreaterThan(0)
+    })
+    
+    it("每个模型应该有必要的属性", () => {
+      for (const [provider, models] of Object.entries(AVAILABLE_MODELS)) {
+        for (const model of models) {
+          expect(model.id).toBeDefined()
+          expect(model.name).toBeDefined()
+          expect(model.description).toBeDefined()
+          expect(typeof model.supportsReasoning).toBe("boolean")
+          expect(model.costMultiplier).toBeGreaterThan(0)
+        }
+      }
+    })
+  })
+  
+  describe("hasAnyAIAvailable", () => {
+    it("没有配置时应该返回 hasAny=false", async () => {
+      mockChromeStorage.sync.get.mockResolvedValue({})
+      
+      const status = await hasAnyAIAvailable()
+      
+      expect(status.hasAny).toBe(false)
+      expect(status.hasRemote).toBe(false)
+      expect(status.hasLocal).toBe(false)
+      expect(status.remoteProviders).toEqual([])
+    })
+    
+    it("配置远程 AI 时应该返回 hasRemote=true", async () => {
+      mockChromeStorage.sync.get.mockResolvedValue({
+        aiConfig: {
+          providers: {
+            deepseek: {
+              apiKey: btoa("sk-test-123"),
+              model: "deepseek-chat"
+            }
+          },
+          local: { enabled: false }
+        }
+      })
+      
+      const status = await hasAnyAIAvailable()
+      
+      expect(status.hasAny).toBe(true)
+      expect(status.hasRemote).toBe(true)
+      expect(status.hasLocal).toBe(false)
+      expect(status.remoteProviders).toContain("deepseek")
+    })
+    
+    it("配置本地 AI 时应该返回 hasLocal=true", async () => {
+      mockChromeStorage.sync.get.mockResolvedValue({
+        aiConfig: {
+          providers: {},
+          local: {
+            enabled: true,
+            provider: "ollama",
+            endpoint: "http://localhost:11434/v1",
+            model: "llama3"
+          }
+        }
+      })
+      
+      const status = await hasAnyAIAvailable()
+      
+      expect(status.hasAny).toBe(true)
+      expect(status.hasRemote).toBe(false)
+      expect(status.hasLocal).toBe(true)
+    })
+    
+    it("同时配置远程和本地 AI 时应该两者都为 true", async () => {
+      mockChromeStorage.sync.get.mockResolvedValue({
+        aiConfig: {
+          providers: {
+            openai: {
+              apiKey: btoa("sk-openai-key"),
+              model: "gpt-5-mini"
+            }
+          },
+          local: {
+            enabled: true,
+            endpoint: "http://localhost:11434/v1",
+            model: "llama3"
+          }
+        }
+      })
+      
+      const status = await hasAnyAIAvailable()
+      
+      expect(status.hasAny).toBe(true)
+      expect(status.hasRemote).toBe(true)
+      expect(status.hasLocal).toBe(true)
+    })
+  })
+  
+  describe("getRecommendedPreset", () => {
+    it("无 AI 配置时应该返回 null", async () => {
+      mockChromeStorage.sync.get.mockResolvedValue({})
+      
+      const preset = await getRecommendedPreset()
+      
+      expect(preset).toBeNull()
+    })
+    
+    it("有远程 AI 时应该返回 intelligence", async () => {
+      mockChromeStorage.sync.get.mockResolvedValue({
+        aiConfig: {
+          providers: {
+            deepseek: {
+              apiKey: btoa("sk-test"),
+              model: "deepseek-chat"
+            }
+          },
+          local: { enabled: false }
+        }
+      })
+      
+      const preset = await getRecommendedPreset()
+      
+      expect(preset).toBe("intelligence")
+    })
+    
+    it("仅有本地 AI 时应该返回 privacy", async () => {
+      mockChromeStorage.sync.get.mockResolvedValue({
+        aiConfig: {
+          providers: {},
+          local: {
+            enabled: true,
+            endpoint: "http://localhost:11434/v1",
+            model: "llama3"
+          }
+        }
+      })
+      
+      const preset = await getRecommendedPreset()
+      
+      expect(preset).toBe("privacy")
+    })
+  })
 })
-

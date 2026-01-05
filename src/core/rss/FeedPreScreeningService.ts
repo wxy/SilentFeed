@@ -5,6 +5,7 @@
  * 
  * 核心功能：
  * - 预处理Feed文章（截断content，保留关键元数据）
+ * - 清理 HTML 标签和实体，转换为纯文本
  * - 检查输入大小（避免超过API限制）
  * - 调用AI进行批量初筛
  * - 返回筛选通过的文章链接列表
@@ -24,9 +25,10 @@ import type {
 } from '@/core/ai/prompts/types'
 import { getAIConfig } from '@/storage/ai-config'
 import { getSettings } from '@/storage/db/db-settings'
+import { resolveProvider } from '@/utils/ai-provider-resolver'
+import { sanitizeHtmlToText, truncateText } from '@/utils/html-sanitizer'
 
 const preScreenLogger = logger.withTag('FeedPreScreen')
-
 /**
  * 最大输入大小配置
  * 
@@ -164,21 +166,34 @@ export class FeedPreScreeningService {
   /**
    * 预处理文章列表
    * 
-   * - 截断description到800字符（提供更多上下文）
-   * - 不包含content字段（太大且不必要）
-   * - 保留title、link、pubDate等关键元数据
-   * - 限制最多100篇文章
+   * 内容优先级：content > description > (需要抓取全文)
+   * 
+   * - 优先使用 content 字段（RSS 的完整内容）
+   * - 如果没有 content，使用 description
+   * - 清理 HTML 标签和实体，转换为纯文本
+   * - 截断到 800 字符
+   * - 如果内容太短（<100字符），标记为需要抓取全文
+   * - 保留 title、link、pubDate 等关键元数据
+   * - 限制最多 100 篇文章
    */
   private prepareArticles(items: FetchResult['items']): PreScreeningArticle[] {
     // 限制文章数量
     const limitedItems = items.slice(0, MAX_INPUT_SIZE.articlesCount)
 
-    return limitedItems.map(item => ({
-      title: item.title || '',
-      link: item.link || '',
-      description: item.description?.substring(0, 800) || '', // 截断到800字符，提供更多上下文
-      pubDate: item.pubDate?.toISOString() || '',
-    }))
+    return limitedItems.map(item => {
+      // 优先使用 content（完整内容），其次 description（摘要）
+      const rawContent = item.content || item.description || ''
+      const cleanContent = sanitizeHtmlToText(rawContent)
+      
+      return {
+        // 标题也可能包含 HTML 实体
+        title: sanitizeHtmlToText(item.title) || '',
+        link: item.link || '',
+        // 使用最佳可用内容，截断到 800 字符
+        description: truncateText(cleanContent, 800, ''),
+        pubDate: item.pubDate?.toISOString() || '',
+      }
+    })
   }
 
   /**
@@ -224,11 +239,13 @@ export class FeedPreScreeningService {
 
     // Feed初筛属于低频任务，使用lowFrequencyTasks配置
     const taskConfig = aiConfig.engineAssignment?.lowFrequencyTasks
-    const provider = taskConfig?.provider || aiConfig.preferredRemoteProvider
+    // 使用 resolveProvider 将抽象 provider（如 'remote'）解析为具体 provider（如 'deepseek'）
+    const abstractProvider = taskConfig?.provider || 'remote'
+    const provider = resolveProvider(abstractProvider, aiConfig)
     const model = taskConfig?.model || aiConfig.providers?.[provider as keyof typeof aiConfig.providers]?.model
 
     if (!model) {
-      throw new Error(`模型配置不存在: ${provider}`)
+      throw new Error(`模型配置不存在: ${provider}（原始配置: ${abstractProvider}）`)
     }
 
     // 获取语言设置（默认中文）
@@ -236,12 +253,14 @@ export class FeedPreScreeningService {
 
     // 构建提示词
     const feedArticlesJson = JSON.stringify(articles, null, 2)
+    const useReasoning = taskConfig?.useReasoning || false
+    
     preScreenLogger.debug('准备调用AI初筛', {
       provider,
       model,
       articleCount: articles.length,
       jsonSize: feedArticlesJson.length,
-      useReasoning: taskConfig?.useReasoning || false,
+      useReasoning,
     })
     
     const prompt = promptManager.getFeedPreScreeningPrompt(
@@ -261,28 +280,12 @@ export class FeedPreScreeningService {
       throw new Error('生成提示词失败：返回空字符串')
     }
 
-    // 调用AI
-    // 注意：使用 lowFrequencyTasks 配置（Feed初筛属于低频任务）
-    // analyzeContent 返回的是分析结果，但Feed初筛需要的是原始JSON响应
-    // 因此我们需要直接调用 provider 而不是通过 analyzeContent
-    
-    // 获取适当的 provider
-    const { provider: aiProvider } = (this.aiManager as any).getProviderForTask 
-      ? await (this.aiManager as any).getProviderForTask('lowFrequencyTasks')
-      : { provider: null }
-    
-    if (!aiProvider) {
-      throw new Error('无法获取AI Provider')
-    }
-    
-    // 直接调用 provider 的 analyzeContent 方法获取原始响应
-    const analysisResult = await aiProvider.analyzeContent(prompt, {
-      useReasoning: taskConfig?.useReasoning || false
+    // 调用 AI 初筛专用方法
+    // 使用 lowFrequencyTasks 配置，返回原始 JSON 响应
+    const response = await this.aiManager.screenFeedArticles(prompt, {
+      useReasoning,
+      maxTokens: useReasoning ? 64000 : 4000  // 推理模式使用最大值 64K（跨度思考需要更多 token）
     })
-    
-    // 从结果中提取字符串响应
-    // 如果有 rawText，使用它；否则将结果序列化为JSON
-    const response = (analysisResult as any).rawText || JSON.stringify(analysisResult)
 
     // 解析结果
     const result = this.parseAIResponse(response)

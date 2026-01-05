@@ -9,28 +9,21 @@ import { FeedPreScreeningService } from './FeedPreScreeningService'
 import type { FetchResult } from './RSSFetcher'
 import type { UserProfile } from '@/core/ai/prompts/types'
 
+// 使用 vi.hoisted 确保 mock 函数在模块导入前定义
+const { mockScreenFeedArticles } = vi.hoisted(() => {
+  return {
+    mockScreenFeedArticles: vi.fn()
+  }
+})
+
 // Mock AICapabilityManager
 vi.mock('@/core/ai/AICapabilityManager', () => {
   return {
     AICapabilityManager: class MockAICapabilityManager {
-      getProviderForTask = vi.fn().mockResolvedValue({
-        provider: {
-          analyzeContent: vi.fn().mockResolvedValue({
-            relevanceScore: 8,
-            reasoning: 'Test reasoning'
-          })
-        }
-      })
+      screenFeedArticles = mockScreenFeedArticles
     },
     aiManager: {
-      getProviderForTask: vi.fn().mockResolvedValue({
-        provider: {
-          analyzeContent: vi.fn().mockResolvedValue({
-            relevanceScore: 8,
-            reasoning: 'Test reasoning'
-          })
-        }
-      })
+      screenFeedArticles: mockScreenFeedArticles
     }
   }
 })
@@ -101,24 +94,19 @@ describe('FeedPreScreeningService', () => {
   let service: FeedPreScreeningService
   let mockAIManager: any
   let mockGetAIConfig: any
-  let mockAnalyzeContent: any
 
-  // 辅助函数：设置 AI provider mock 返回值
+  // 辅助函数：设置 AI response mock 返回值
   function mockAIResponse(responseObj: any) {
     const rawText = typeof responseObj === 'string' 
       ? responseObj 
       : JSON.stringify(responseObj)
     
-    mockAnalyzeContent.mockResolvedValue({
-      relevanceScore: 8,
-      reasoning: 'Test reasoning',
-      rawText
-    })
+    mockScreenFeedArticles.mockResolvedValue(rawText)
   }
 
   // 辅助函数：设置 AI provider mock 失败
   function mockAIError(error: Error) {
-    mockAnalyzeContent.mockRejectedValue(error)
+    mockScreenFeedArticles.mockRejectedValue(error)
   }
 
   beforeEach(async () => {
@@ -127,15 +115,11 @@ describe('FeedPreScreeningService', () => {
     const { getAIConfig } = await import('@/storage/ai-config')
     mockGetAIConfig = getAIConfig
     
-    // 创建 mock analyzeContent 函数
-    mockAnalyzeContent = vi.fn().mockResolvedValue({
-      relevanceScore: 8,
-      reasoning: 'Test reasoning',
-      rawText: JSON.stringify({
-        selectedArticleLinks: [],
-        stats: { totalArticles: 0, selectedCount: 0 }
-      })
-    })
+    // 重置 screenFeedArticles mock 默认返回值
+    mockScreenFeedArticles.mockResolvedValue(JSON.stringify({
+      selectedArticleLinks: [],
+      stats: { totalArticles: 0, selectedCount: 0 }
+    }))
     
     // 重置为默认有效配置
     mockGetAIConfig.mockResolvedValue({
@@ -163,13 +147,9 @@ describe('FeedPreScreeningService', () => {
     // @ts-ignore - 访问私有属性用于测试
     mockAIManager = service.aiManager
     
-    // 重新 mock getProviderForTask 以返回我们的 mock provider
-    if (mockAIManager && mockAIManager.getProviderForTask) {
-      mockAIManager.getProviderForTask = vi.fn().mockResolvedValue({
-        provider: {
-          analyzeContent: mockAnalyzeContent
-        }
-      })
+    // 重新绑定 mock screenFeedArticles 到 aiManager
+    if (mockAIManager) {
+      mockAIManager.screenFeedArticles = mockScreenFeedArticles
     }
   })
 
@@ -185,7 +165,7 @@ describe('FeedPreScreeningService', () => {
 
         expect(result).toBeNull()
       }
-      expect(mockAnalyzeContent).not.toHaveBeenCalled()
+      expect(mockScreenFeedArticles).not.toHaveBeenCalled()
     })
 
     it('应该在未配置任何 Provider 时跳过初筛', async () => {
@@ -208,7 +188,7 @@ describe('FeedPreScreeningService', () => {
       )
 
       expect(result).toBeNull()
-      expect(mockAnalyzeContent).not.toHaveBeenCalled()
+      expect(mockScreenFeedArticles).not.toHaveBeenCalled()
     })
 
     it('应该对4篇文章进行初筛', async () => {
@@ -229,7 +209,7 @@ describe('FeedPreScreeningService', () => {
       )
 
       expect(result).not.toBeNull()
-      expect(mockAnalyzeContent).toHaveBeenCalledOnce()
+      expect(mockScreenFeedArticles).toHaveBeenCalledOnce()
     })
 
     it('应该成功初筛10篇文章并返回结果', async () => {
@@ -259,7 +239,7 @@ describe('FeedPreScreeningService', () => {
       expect(result?.selectedArticleLinks).toHaveLength(3)
       expect(result?.totalArticles).toBe(10)
       expect(result?.selectedCount).toBe(3)
-      expect(mockAnalyzeContent).toHaveBeenCalledOnce()
+      expect(mockScreenFeedArticles).toHaveBeenCalledOnce()
     })
 
     it('应该支持用户画像参数', async () => {
@@ -284,10 +264,10 @@ describe('FeedPreScreeningService', () => {
       )
 
       expect(result).not.toBeNull()
-      expect(mockAnalyzeContent).toHaveBeenCalledOnce()
+      expect(mockScreenFeedArticles).toHaveBeenCalledOnce()
       
       // 验证调用参数中包含用户画像
-      const callArgs = mockAnalyzeContent.mock.calls[0][0]
+      const callArgs = mockScreenFeedArticles.mock.calls[0][0]
       expect(callArgs).toContain('JavaScript')
       expect(callArgs).toContain('技术文章')
     })

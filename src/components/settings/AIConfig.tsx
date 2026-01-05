@@ -158,16 +158,16 @@ export function AIConfig() {
     const now = Date.now()
     const diff = timestamp - now
     
-    if (diff < 0) return '即将执行'
+    if (diff < 0) return _("options.recommendation.strategy.imminent")
     
     const minutes = Math.floor(diff / 60000)
     const hours = Math.floor(minutes / 60)
     const days = Math.floor(hours / 24)
     
-    if (days > 0) return `${days} 天`
-    if (hours > 0) return `${hours} 小时`
-    if (minutes > 0) return `${minutes} 分钟`
-    return '即将执行'
+    if (days > 0) return _("options.recommendation.strategy.days", { count: days })
+    if (hours > 0) return _("options.recommendation.strategy.hours", { count: hours })
+    if (minutes > 0) return _("options.recommendation.strategy.minutes", { count: minutes })
+    return _("options.recommendation.strategy.imminent")
   }
   
 
@@ -846,49 +846,49 @@ export function AIConfig() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-gray-500 dark:text-gray-400">推荐池容量</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">{_("options.recommendation.strategy.poolSize")}</span>
                 <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                  {poolStrategy.decision.poolSize} 条
+                  {_("options.recommendation.strategy.itemsCount", { count: poolStrategy.decision.poolSize })}
                 </span>
               </div>
               <div className="text-xs text-gray-400">
-                （弹窗 {maxRecommendations} 条）
+                {_("options.recommendation.strategy.popupItems", { count: maxRecommendations })}
               </div>
             </div>
             
             <div>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-gray-500 dark:text-gray-400">补充间隔</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">{_("options.recommendation.strategy.refillInterval")}</span>
                 <span className="text-lg font-bold text-green-600 dark:text-green-400">
-                  {Math.round(poolStrategy.decision.minInterval / 1000 / 60)} 分钟
+                  {_("options.recommendation.strategy.minutesValue", { count: Math.round(poolStrategy.decision.minInterval / 1000 / 60) })}
                 </span>
               </div>
               <div className="text-xs text-gray-400">
-                避免频繁分析
+                {_("options.recommendation.strategy.refillIntervalHint")}
               </div>
             </div>
             
             <div>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-gray-500 dark:text-gray-400">每日补充上限</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">{_("options.recommendation.strategy.dailyRefillLimit")}</span>
                 <span className="text-lg font-bold text-orange-600 dark:text-orange-400">
-                  {poolStrategy.decision.maxDailyRefills} 次
+                  {_("options.recommendation.strategy.timesCount", { count: poolStrategy.decision.maxDailyRefills })}
                 </span>
               </div>
               <div className="text-xs text-gray-400">
-                控制 AI 成本
+                {_("options.recommendation.strategy.dailyRefillLimitHint")}
               </div>
             </div>
             
             <div>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-gray-500 dark:text-gray-400">触发阈值</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">{_("options.recommendation.strategy.triggerThreshold")}</span>
                 <span className="text-lg font-bold text-purple-600 dark:text-purple-400">
                   {(poolStrategy.decision.triggerThreshold * 100).toFixed(0)}%
                 </span>
               </div>
               <div className="text-xs text-gray-400">
-                低于此值时补充
+                {_("options.recommendation.strategy.triggerThresholdHint")}
               </div>
             </div>
           </div>
@@ -896,22 +896,22 @@ export function AIConfig() {
         
         {/* 数据源分析 */}
         <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-          <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">📊 决策依据</div>
+          <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">📊 {_("options.recommendation.strategy.decisionBasis")}</div>
           <div className="grid grid-cols-3 gap-3 text-xs">
             <div>
-              <div className="text-gray-500 dark:text-gray-400">订阅源</div>
+              <div className="text-gray-500 dark:text-gray-400">{_("options.recommendation.strategy.feedSources")}</div>
               <div className="font-medium text-gray-900 dark:text-gray-100">
-                {poolStrategy.context.feeds.totalCount} 个 ({poolStrategy.context.feeds.activeFeeds} 活跃)
+                {_("options.recommendation.strategy.feedSourcesValue", { total: poolStrategy.context.feeds.totalCount, active: poolStrategy.context.feeds.activeFeeds })}
               </div>
             </div>
             <div>
-              <div className="text-gray-500 dark:text-gray-400">日均文章</div>
+              <div className="text-gray-500 dark:text-gray-400">{_("options.recommendation.strategy.dailyArticles")}</div>
               <div className="font-medium text-gray-900 dark:text-gray-100">
-                {poolStrategy.context.articles.dailyAverage.toFixed(0)} 篇
+                {_("options.recommendation.strategy.articlesCount", { count: poolStrategy.context.articles.dailyAverage.toFixed(0) })}
               </div>
             </div>
             <div>
-              <div className="text-gray-500 dark:text-gray-400">昨日点击率</div>
+              <div className="text-gray-500 dark:text-gray-400">{_("options.recommendation.strategy.yesterdayClickRate")}</div>
               <div className="font-medium text-gray-900 dark:text-gray-100">
                 {poolStrategy.context.userBehavior.recommendationsShown > 0
                   ? ((poolStrategy.context.userBehavior.clicked / poolStrategy.context.userBehavior.recommendationsShown) * 100).toFixed(0)
@@ -925,7 +925,7 @@ export function AIConfig() {
         {recommendationScheduler?.nextRunTime && (
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-3">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-blue-700 dark:text-blue-300">⏱️ 下次推荐生成</span>
+              <span className="text-blue-700 dark:text-blue-300">⏱️ {_("options.recommendation.strategy.nextGeneration")}</span>
               <span className="font-medium text-blue-600 dark:text-blue-400">
                 {formatTimeUntil(recommendationScheduler.nextRunTime)}
               </span>
@@ -946,7 +946,7 @@ export function AIConfig() {
         {recommendationScheduler?.nextRunTime && (
           <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-500 dark:text-gray-400">⏱️ 下次推荐生成</span>
+              <span className="text-gray-500 dark:text-gray-400">⏱️ {_("options.recommendation.strategy.nextGeneration")}</span>
               <span className="font-medium text-blue-600 dark:text-blue-400">
                 {formatTimeUntil(recommendationScheduler.nextRunTime)}
               </span>

@@ -5,13 +5,16 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 
-// Mock db 模块
-vi.mock('./db', () => ({
-  db: {
+// 使用 vi.hoisted 来解决变量提升问题
+const { mockDb } = vi.hoisted(() => ({
+  mockDb: {
     discoveredFeeds: {
       where: vi.fn().mockReturnValue({
         equals: vi.fn().mockReturnValue({
-          count: vi.fn().mockResolvedValue(5)
+          count: vi.fn().mockResolvedValue(5),
+          and: vi.fn().mockReturnValue({
+            count: vi.fn().mockResolvedValue(3)
+          })
         })
       })
     },
@@ -50,7 +53,12 @@ vi.mock('./db', () => ({
         }))
       }))
     }
-  },
+  }
+}))
+
+// Mock db 模块
+vi.mock('./db', () => ({
+  db: mockDb,
   getRecommendationStats: vi.fn().mockResolvedValue({
     unreadCount: 5
   }),
@@ -72,6 +80,7 @@ import {
   clearSystemStats
 } from './system-stats'
 import type { SystemStats } from './system-stats'
+import { db } from './db'
 
 describe('system-stats', () => {
   // 保存原始的 chrome.storage mock
@@ -198,6 +207,140 @@ describe('system-stats', () => {
       await clearSystemStats()
       
       expect(removeSpy).toHaveBeenCalledWith('systemStats')
+    })
+  })
+  
+  describe('getSystemStats 边界测试', () => {
+    it('应该在过期时触发后台刷新', async () => {
+      const expiredStats = {
+        ...createEmptyStats(),
+        lastUpdated: Date.now() - 2 * 60 * 1000 // 2分钟前（超过1分钟过期时间）
+      }
+      
+      vi.spyOn(chrome.storage.local, 'get').mockResolvedValue({
+        systemStats: expiredStats
+      })
+      vi.spyOn(chrome.storage.local, 'set').mockResolvedValue()
+      
+      const result = await getSystemStats()
+      
+      // 应该返回当前值（即使过期）
+      expect(result).toBeDefined()
+    })
+    
+    it('应该处理 storage 读取错误', async () => {
+      vi.spyOn(chrome.storage.local, 'get').mockRejectedValue(new Error('Storage error'))
+      
+      const result = await getSystemStats()
+      
+      // 应该返回空统计作为兜底
+      expect(result).toBeDefined()
+      expect(result.recommendations.unreadCount).toBe(0)
+    })
+  })
+  
+  describe('updateSystemStats 边界测试', () => {
+    it('应该处理 storage 写入错误', async () => {
+      vi.spyOn(chrome.storage.local, 'get').mockResolvedValue({
+        systemStats: createEmptyStats()
+      })
+      vi.spyOn(chrome.storage.local, 'set').mockRejectedValue(new Error('Write error'))
+      
+      // 应该静默失败，不抛出错误
+      await expect(updateSystemStats({
+        recommendations: {
+          lastGeneratedAt: 0,
+          lastViewedAt: Date.now(),
+          unreadCount: 5,
+          generatedToday: 3,
+          readToday: 1
+        }
+      })).resolves.toBeUndefined()
+    })
+    
+    it('应该正确更新 lastUpdated 时间戳', async () => {
+      const existingStats = createEmptyStats()
+      const beforeUpdate = Date.now()
+      
+      vi.spyOn(chrome.storage.local, 'get').mockResolvedValue({
+        systemStats: existingStats
+      })
+      const setSpy = vi.spyOn(chrome.storage.local, 'set').mockResolvedValue()
+      
+      await updateSystemStats({
+        recommendations: {
+          lastGeneratedAt: 0,
+          lastViewedAt: Date.now(),
+          unreadCount: 3,
+          generatedToday: 2,
+          readToday: 1
+        }
+      })
+      
+      expect(setSpy).toHaveBeenCalled()
+      const savedStats = setSpy.mock.calls[0][0].systemStats
+      expect(savedStats.lastUpdated).toBeGreaterThanOrEqual(beforeUpdate)
+    })
+  })
+  
+  describe('clearSystemStats 边界测试', () => {
+    it('应该处理 storage 删除错误', async () => {
+      vi.spyOn(chrome.storage.local, 'remove').mockRejectedValue(new Error('Remove error'))
+      
+      // 应该静默失败，不抛出错误
+      await expect(clearSystemStats()).resolves.toBeUndefined()
+    })
+  })
+  
+  describe('syncSystemStats 边界测试', () => {
+    it('应该在同步超时时静默处理', async () => {
+      // Mock db 查询超慢导致超时
+      const originalDbDiscoveredFeeds = db.discoveredFeeds
+      Object.defineProperty(db, 'discoveredFeeds', {
+        get: () => ({
+          where: () => ({
+            equals: () => ({
+              count: () => new Promise((resolve) => setTimeout(() => resolve(0), 10000)),
+              and: () => ({
+                count: () => new Promise((resolve) => setTimeout(() => resolve(0), 10000))
+              })
+            })
+          })
+        }),
+        configurable: true
+      })
+      
+      // syncSystemStats 内部有 5 秒超时保护
+      // 虽然 mock 需要 10 秒，但 syncSystemStats 应该在 5 秒后超时并静默处理
+      // 由于测试超时设置，我们直接验证它不会抛错
+      await expect(syncSystemStats()).resolves.toBeUndefined()
+      
+      // 恢复
+      Object.defineProperty(db, 'discoveredFeeds', {
+        value: originalDbDiscoveredFeeds,
+        configurable: true
+      })
+    }, 10000)
+    
+    it('应该处理数据库查询错误', async () => {
+      const originalDbDiscoveredFeeds = db.discoveredFeeds
+      Object.defineProperty(db, 'discoveredFeeds', {
+        get: () => ({
+          where: () => {
+            throw new Error('DB error')
+          }
+        }),
+        configurable: true
+      })
+      
+      // 应该静默失败，不抛出错误
+      await expect(syncSystemStats()).resolves.toBeUndefined()
+      
+      // 恢复
+      Object.defineProperty(db, 'discoveredFeeds', {
+        value: originalDbDiscoveredFeeds,
+        configurable: true
+      })
     })
   })
 })

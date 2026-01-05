@@ -72,9 +72,13 @@ export async function markAsRead(
         const now = Date.now()
         await db.feedArticles.update(article.id, {
           read: true,                    // 标记已读
-          inPool: false,                 // Phase 10: 移出推荐池
-          poolRemovedAt: now,
-          poolRemovedReason: 'read'
+          inPool: false,                 // Phase 10: 移出推荐池（旧字段）
+          poolRemovedAt: now,            // 旧字段
+          poolRemovedReason: 'read',     // 旧字段
+          // Phase 13: 新字段 - 退出推荐池
+          poolStatus: 'exited',         // 明确的退出状态
+          poolExitedAt: now,
+          poolExitReason: 'read'
         })
       }
     } catch (error) {
@@ -134,9 +138,13 @@ export async function dismissRecommendations(ids: string[]): Promise<void> {
             // 标记文章为不想读 + 移出推荐池
             await db.feedArticles.update(article.id, {
               disliked: true,
-              inPool: false,                    // Phase 10: 移出推荐池
-              poolRemovedAt: now,
-              poolRemovedReason: 'disliked'
+              inPool: false,                    // Phase 10: 移出推荐池（旧字段）
+              poolRemovedAt: now,               // 旧字段
+              poolRemovedReason: 'disliked',    // 旧字段
+              // Phase 13: 新字段 - 退出推荐池
+              poolStatus: 'exited',            // 明确的退出状态
+              poolExitedAt: now,
+              poolExitReason: 'disliked'
             })
           } else {
             dbLogger.warn('⚠️ 未找到匹配的文章:', recommendation.url)
@@ -294,12 +302,11 @@ export async function resetRecommendationData(): Promise<void> {
     let totalArticlesCleared = 0
     
     for (const feed of allFeeds) {
-      // 清除所有文章的 analysis、recommended 和 tfidfScore 字段
+      // 清除所有文章的 analysis 和 recommended 字段
       if (feed.latestArticles && feed.latestArticles.length > 0) {
         feed.latestArticles.forEach(article => {
           delete article.analysis       // 清除 AI 分析结果
           delete article.recommended    // 清除推荐池标记
-          delete article.tfidfScore     // 清除 TF-IDF 评分缓存（但保留全文）
         })
         totalArticlesCleared += feed.latestArticles.length
       }
@@ -310,7 +317,7 @@ export async function resetRecommendationData(): Promise<void> {
       })
     }
     dbLogger.info(`重置 RSS 源推荐数: ${allFeeds.length} 个源`)
-    dbLogger.info(`清除文章评分和分析数据: ${totalArticlesCleared} 篇文章`)
+    dbLogger.info(`清除文章分析数据: ${totalArticlesCleared} 篇文章`)
     
     // 3. 清空自适应指标（推荐相关的统计）
     await chrome.storage.local.remove('adaptive-metrics')

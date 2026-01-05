@@ -76,4 +76,52 @@ describe('数据库初始化', () => {
     const finalCount = await db.settings.count()
     expect(finalCount).toBe(1)  // 关键：没有重复添加
   })
+  
+  it('应该处理已打开的数据库', async () => {
+    // 数据库已经打开（在 beforeEach 中）
+    expect(db.isOpen()).toBe(true)
+    
+    // initializeDatabase 应该能处理已打开的情况
+    await initializeDatabase()
+    
+    expect(db.isOpen()).toBe(true)
+    const settings = await db.settings.get('singleton')
+    expect(settings).toBeDefined()
+  })
+  
+  it('应该包含正确的默认排除规则', async () => {
+    await initializeDatabase()
+    
+    const settings = await db.settings.get('singleton')
+    expect(settings?.exclusionRules).toBeDefined()
+    expect(settings?.exclusionRules.autoExcludeIntranet).toBe(true)
+    expect(settings?.exclusionRules.autoExcludeSensitive).toBe(true)
+    expect(settings?.exclusionRules.customDomains).toEqual([])
+  })
+  
+  it('应该包含正确的默认数据保留设置', async () => {
+    await initializeDatabase()
+    
+    const settings = await db.settings.get('singleton')
+    expect(settings?.dataRetention).toBeDefined()
+    expect(settings?.dataRetention.rawVisitsDays).toBe(90)
+    expect(settings?.dataRetention.statisticsDays).toBe(365)
+  })
+  
+  it('应该能够多次安全地调用初始化', async () => {
+    // 第一次初始化
+    await initializeDatabase()
+    const count1 = await db.settings.count()
+    expect(count1).toBe(1)
+    
+    // 第二次初始化应该正常工作，不重复创建设置
+    await initializeDatabase()
+    const count2 = await db.settings.count()
+    expect(count2).toBe(1)
+    
+    // 第三次初始化，确保数据迁移逻辑也能正确执行
+    await initializeDatabase()
+    const count3 = await db.settings.count()
+    expect(count3).toBe(1)
+  })
 })

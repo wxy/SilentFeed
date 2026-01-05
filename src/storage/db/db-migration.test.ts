@@ -10,7 +10,11 @@ import {
   migrateRecommendationStatus,
   calculateArticleImportance,
   runFullMigration,
-  needsMigration
+  needsMigration,
+  // Phase 13
+  migrateToPoolStatus,
+  needsPhase13Migration,
+  runPhase13Migration
 } from './db-migration'
 
 describe('数据库迁移 - db-migration', () => {
@@ -361,6 +365,222 @@ describe('数据库迁移 - db-migration', () => {
       const success = await runFullMigration()
 
       expect(success).toBe(false)
+    })
+  })
+
+  // ===== Phase 13: poolStatus 迁移测试 =====
+  describe('Phase 13 - migrateToPoolStatus', () => {
+    it('应该将 recommended=true && inPool=true 迁移到 poolStatus=recommended', async () => {
+      // 准备旧格式数据
+      await db.feedArticles.add({
+        id: 'legacy-recommended',
+        feedId: 'feed-1',
+        link: 'http://example.com/1',
+        title: 'Legacy Recommended',
+        published: Date.now(),
+        fetched: Date.now(),
+        read: false,
+        starred: false,
+        recommended: true,
+        inPool: true,
+        poolAddedAt: Date.now() - 1000
+      })
+
+      const result = await migrateToPoolStatus()
+
+      expect(result.success).toBe(true)
+      expect(result.migrated.toRecommended).toBe(1)
+
+      const article = await db.feedArticles.get('legacy-recommended')
+      expect(article?.poolStatus).toBe('recommended')
+      expect(article?.recommendedPoolAddedAt).toBeDefined()
+    })
+
+    it('应该将 recommended=true && read=true 迁移为已退出', async () => {
+      const removedAt = Date.now() - 5000
+      await db.feedArticles.add({
+        id: 'legacy-read',
+        feedId: 'feed-1',
+        link: 'http://example.com/2',
+        title: 'Legacy Read',
+        published: Date.now(),
+        fetched: Date.now(),
+        read: true,
+        starred: false,
+        recommended: true,
+        inPool: false,
+        poolRemovedAt: removedAt,
+        poolRemovedReason: 'read'
+      })
+
+      const result = await migrateToPoolStatus()
+
+      expect(result.success).toBe(true)
+      expect(result.migrated.toExited).toBe(1)
+
+      const article = await db.feedArticles.get('legacy-read')
+      expect(article?.poolExitReason).toBe('read')
+      expect(article?.poolExitedAt).toBe(removedAt)
+    })
+
+    it('应该将有 analysis 且高分的文章迁移到候选池', async () => {
+      await db.feedArticles.add({
+        id: 'analyzed-high-score',
+        feedId: 'feed-1',
+        link: 'http://example.com/3',
+        title: 'Analyzed High Score',
+        published: Date.now(),
+        fetched: Date.now(),
+        read: false,
+        starred: false,
+        analysis: {
+          topicProbabilities: { 技术: 0.8 },
+          confidence: 0.9,
+          provider: 'test'
+        },
+        analysisScore: 7.5
+      })
+
+      const result = await migrateToPoolStatus()
+
+      expect(result.success).toBe(true)
+      expect(result.migrated.toCandidate).toBe(1)
+
+      const article = await db.feedArticles.get('analyzed-high-score')
+      expect(article?.poolStatus).toBe('candidate')
+      expect(article?.candidatePoolAddedAt).toBeDefined()
+    })
+
+    it('应该将有 analysis 且低分的文章标记为分析未达标', async () => {
+      await db.feedArticles.add({
+        id: 'analyzed-low-score',
+        feedId: 'feed-1',
+        link: 'http://example.com/4',
+        title: 'Analyzed Low Score',
+        published: Date.now(),
+        fetched: Date.now(),
+        read: false,
+        starred: false,
+        analysis: {
+          topicProbabilities: { 技术: 0.3 },
+          confidence: 0.9,
+          provider: 'test'
+        },
+        analysisScore: 4.5
+      })
+
+      const result = await migrateToPoolStatus()
+
+      expect(result.success).toBe(true)
+      expect(result.migrated.toAnalyzedNotQualified).toBe(1)
+
+      const article = await db.feedArticles.get('analyzed-low-score')
+      expect(article?.poolStatus).toBe('analyzed-not-qualified')
+    })
+
+    it('应该将无 analysis 且 inFeed=true 的文章迁移到原始池', async () => {
+      await db.feedArticles.add({
+        id: 'unanalyzed-in-feed',
+        feedId: 'feed-1',
+        link: 'http://example.com/5',
+        title: 'Unanalyzed In Feed',
+        published: Date.now(),
+        fetched: Date.now(),
+        read: false,
+        starred: false,
+        inFeed: true
+      })
+
+      const result = await migrateToPoolStatus()
+
+      expect(result.success).toBe(true)
+      expect(result.migrated.toRaw).toBe(1)
+
+      const article = await db.feedArticles.get('unanalyzed-in-feed')
+      expect(article?.poolStatus).toBe('raw')
+    })
+
+    it('应该跳过已有 poolStatus 的文章', async () => {
+      await db.feedArticles.add({
+        id: 'already-migrated',
+        feedId: 'feed-1',
+        link: 'http://example.com/6',
+        title: 'Already Migrated',
+        published: Date.now(),
+        fetched: Date.now(),
+        read: false,
+        starred: false,
+        poolStatus: 'candidate',
+        recommended: true,
+        inPool: true
+      })
+
+      const result = await migrateToPoolStatus()
+
+      expect(result.success).toBe(true)
+      expect(result.migrated.toRecommended).toBe(0)
+
+      const article = await db.feedArticles.get('already-migrated')
+      expect(article?.poolStatus).toBe('candidate') // 保持不变
+    })
+  })
+
+  describe('Phase 13 - needsPhase13Migration', () => {
+    it('应该返回 true 当有旧格式数据时', async () => {
+      await db.feedArticles.add({
+        id: 'legacy-data',
+        feedId: 'feed-1',
+        link: 'http://example.com/legacy',
+        title: 'Legacy Data',
+        published: Date.now(),
+        fetched: Date.now(),
+        read: false,
+        starred: false,
+        recommended: true,
+        inPool: true
+        // 没有 poolStatus
+      })
+
+      const needs = await needsPhase13Migration()
+      expect(needs).toBe(true)
+    })
+
+    it('应该返回 false 当迁移已完成时', async () => {
+      await db.settings.update('singleton', {
+        migrations: { phase10Completed: true, phase13Completed: true }
+      })
+
+      const needs = await needsPhase13Migration()
+      expect(needs).toBe(false)
+    })
+  })
+
+  describe('Phase 13 - runPhase13Migration', () => {
+    it('应该完成完整迁移流程并设置标记', async () => {
+      // 准备数据
+      await db.feedArticles.add({
+        id: 'to-migrate',
+        feedId: 'feed-1',
+        link: 'http://example.com/migrate',
+        title: 'To Migrate',
+        published: Date.now(),
+        fetched: Date.now(),
+        read: false,
+        starred: false,
+        recommended: true,
+        inPool: true
+      })
+
+      const success = await runPhase13Migration()
+      expect(success).toBe(true)
+
+      // 检查迁移标记
+      const settings = await db.settings.get('singleton')
+      expect(settings?.migrations?.phase13Completed).toBe(true)
+
+      // 检查数据迁移
+      const article = await db.feedArticles.get('to-migrate')
+      expect(article?.poolStatus).toBe('recommended')
     })
   })
 })

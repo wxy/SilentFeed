@@ -82,19 +82,6 @@ export interface RecommendationConfig {
    * - 0.0-0.5: 低相关（过滤）
    */
   qualityThreshold: number
-  
-  /**
-   * Phase 6: TF-IDF 最低分数阈值（0-1，默认 0.1）
-   * 低于此分数的文章不送 AI 分析，直接标记为已分析
-   * 
-   * 分数含义：
-   * - 0.3-1.0: 高度相关（多个关键词匹配）
-   * - 0.1-0.3: 一般相关（部分关键词匹配）
-   * - 0-0.1: 弱相关或不相关（几乎无匹配）
-   * 
-   * 推荐值：0.1（过滤明显不相关的，保留有一定相关性的给 AI 判断）
-   */
-  tfidfThreshold: number
 }
 
 /**
@@ -159,8 +146,7 @@ const DEFAULT_CONFIG: RecommendationConfig = {
   useLocalAI: false,   // @deprecated 向后兼容
   maxRecommendations: 3, // 初始值3条，后续自动调整
   batchSize: 1, // Phase 6: 默认每次处理 1 篇文章（避免超时）
-  qualityThreshold: 0.8, // Phase 9: 提高质量阈值到 0.8，实施激进质量控制（过滤 50-60% 低质量）
-  tfidfThreshold: 0.001 // 降低阈值，允许更多文章进入 AI 分析（TF-IDF 用于初筛，不应过于严格）
+  qualityThreshold: 0.8 // Phase 9: 提高质量阈值到 0.8，实施激进质量控制（过滤 50-60% 低质量）
 }
 
 /**
@@ -201,8 +187,11 @@ export async function getRecommendationConfig(): Promise<RecommendationConfig> {
       needsUpdate = true
     }
     
-    // 移除旧的 tfidfThreshold 自动升级逻辑（允许低阈值以便 AI 做最终筛选）
-    // 如果用户明确设置了低阈值，应该尊重用户选择
+    // 清理旧的 tfidfThreshold 字段（已移除 TF-IDF 阶段）
+    if ('tfidfThreshold' in merged) {
+      delete (merged as any).tfidfThreshold
+      needsUpdate = true
+    }
     
     // 自动保存更新后的配置
     if (needsUpdate) {
@@ -422,15 +411,15 @@ export async function getRecommendedSettings(): Promise<{
     }
   }
   
-  // 默认建议：使用TF-IDF算法
+  // 默认建议：需要配置 AI
   return {
     config: {
       useReasoning: false,
       useLocalAI: false
     },
     reason: aiStatus.error 
-      ? `AI配置异常（${aiStatus.error}），建议使用纯算法推荐`
-      : '暂无AI配置，使用高效的TF-IDF算法推荐',
+      ? `AI配置异常（${aiStatus.error}），请检查AI服务配置`
+      : '暂无AI配置，请配置AI服务以启用智能推荐',
     priority: 'low'
   }
 }

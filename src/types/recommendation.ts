@@ -26,7 +26,6 @@ export interface RecommendationConfig {
   useReasoning?: boolean
   useLocalAI?: boolean
   maxRecommendations?: number
-  tfidfThreshold?: number // TF-IDF 最低分数阈值（低于此分数的文章不送 AI 分析）
   qualityThreshold?: number // AI 分析质量阈值（进入推荐池的最低分数）
   batchSize?: number // 批次大小（每次处理的文章数量）
   /** 冷启动模式：用户画像不完善时使用跨源聚类推荐 */
@@ -48,7 +47,7 @@ export interface RecommendationOptions {
  */
 export interface RecommendationResult {
   articles: RecommendedArticle[]
-  algorithm: "tfidf" | "ai" | "hybrid" | "reasoning-ai" | "cold-start"
+  algorithm: "ai" | "hybrid" | "reasoning-ai" | "cold-start"
   stats: RecommendationStats
   timestamp: number
 }
@@ -88,7 +87,6 @@ export interface RecommendationStats {
   inputCount: number
   processed: {
     fullContent: number
-    tfidfFiltered: number
     aiAnalyzed: number
     aiScored: number
     finalRecommended: number
@@ -96,13 +94,11 @@ export interface RecommendationStats {
   timing: {
     total: number
     fullContentFetch: number
-    tfidfAnalysis: number
     aiAnalysis: number
     aiScoring: number
   }
   errors: {
     fullContentFailed: number
-    tfidfFailed: number
     aiAnalysisFailed: number
     aiFailed: number
   }
@@ -116,7 +112,6 @@ export interface PipelineProgress {
     | "idle"
     | "fetching"
     | "fullContent"
-    | "tfidf"
     | "ai"
     | "finalizing"
     | "complete"
@@ -166,8 +161,7 @@ export interface EnhancedArticle extends FeedArticle {
  * 评分的文章
  */
 export interface ScoredArticle extends EnhancedArticle {
-  tfidfScore: number
-  features: { content: number }
+  aiScore?: number
 }
 
 /**
@@ -180,18 +174,12 @@ export interface PipelineConfig {
     timeout: number
     retries: number
   }
-  tfidf: {
-    targetCount: number
-    minScore: number
-    vocabularySize: number
-  }
   ai: {
     enabled: boolean
     batchSize: number
     maxConcurrency: number
     timeout: number
     costLimit: number
-    fallbackToTFIDF: boolean
   }
   cache: {
     enabled: boolean

@@ -364,6 +364,25 @@ export interface AIProvider {
   ): Promise<string>
 
   /**
+   * Feed 文章初筛
+   * 
+   * 批量筛选 Feed 中值得详细分析的文章，减少后续 AI 调用次数和成本。
+   * 返回 JSON 格式的筛选结果（包含 selectedArticleLinks、stats 等）。
+   * 
+   * @param prompt - 已构建好的初筛提示词
+   * @param options - 请求选项
+   * @returns AI 的原始响应文本（JSON 格式）
+   * @throws Error 如果初筛失败
+   */
+  screenFeedArticles?(
+    prompt: string,
+    options?: {
+      maxTokens?: number
+      useReasoning?: boolean
+    }
+  ): Promise<string>
+
+  /**
    * 测试连接
    *
    * 发送最小请求测试 API 是否可用

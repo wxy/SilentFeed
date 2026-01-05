@@ -87,11 +87,10 @@ export class RecommendationService {
     const errors: string[] = []
     
     try {
-      // 🆕 预检查：在执行任务前先检查推荐池限流
-      // 避免浪费 AI 资源和丢弃推荐内容
+      // 获取推荐配置
       const recommendationConfig = await getRecommendationConfig()
       const baseSize = recommendationConfig.maxRecommendations || 3
-      const maxSize = baseSize * POOL_SIZE_MULTIPLIER
+      const maxPoolSize = baseSize * POOL_SIZE_MULTIPLIER
       
       // 获取当前推荐池容量
       const currentPool = await db.recommendations
@@ -104,29 +103,12 @@ export class RecommendationService {
         })
         .toArray()
       
-      // 检查是否需要补充推荐池
+      // 🔧 修正架构：冷却期只控制「候选池 → 推荐池」的补充
+      // AI 分析阶段（Raw → Candidate）不受冷却期限制
       const refillManager = getRefillManager()
-      const shouldRefill = await refillManager.shouldRefill(currentPool.length, maxSize)
+      const shouldRefillPool = await refillManager.shouldRefill(currentPool.length, maxPoolSize)
       
-      if (!shouldRefill) {
-        recLogger.info(
-          `⏸️  推荐池补充被限流：当前容量 ${currentPool.length}/${maxSize}，` +
-          `跳过本次推荐生成任务（避免浪费 AI 资源）`
-        )
-        return {
-          recommendations: [],
-          stats: {
-            totalArticles: 0,
-            processedArticles: 0,
-            recommendedCount: 0,
-            processingTimeMs: 0
-          }
-        }
-      }
-      
-      // 限流检查通过，记录本次补充操作
-      await refillManager.recordRefill()
-      recLogger.info(`✅ 推荐池补充检查通过，开始生成推荐...`)
+      recLogger.info(`📊 推荐池状态: ${currentPool.length}/${maxPoolSize}，补充许可: ${shouldRefillPool ? '✅' : '❌'}`)
       
       // 获取推荐配置（上面已获取，这里注释掉避免重复）
       // const recommendationConfig = await getRecommendationConfig()
@@ -327,7 +309,6 @@ export class RecommendationService {
         useLocalAI,
         batchSize: recommendationConfig.batchSize,
         qualityThreshold: recommendationConfig.qualityThreshold,
-        tfidfThreshold: recommendationConfig.tfidfThreshold,
         // 冷启动配置
         useColdStart: coldStartDecision.useColdStart,
         coldStartConfidence: coldStartDecision.confidence
@@ -338,7 +319,6 @@ export class RecommendationService {
         useReasoning,
         useLocalAI,
         qualityThreshold: config.qualityThreshold,
-        tfidfThreshold: config.tfidfThreshold,
         batchSize: config.batchSize,
         maxRecommendations: config.maxRecommendations,
         useColdStart: config.useColdStart,
@@ -407,13 +387,20 @@ export class RecommendationService {
         }
       }
       
+      // 🔧 Phase 13.5: 计算实际可添加数量 = min(候选数量, 剩余容量)
+      // 防止每次都添加固定数量导致池溢出
+      const remainingCapacity = Math.max(0, maxPoolSize - currentPool.length)
+      const effectiveLimit = Math.min(targetMaxRecommendations, remainingCapacity)
+      
+      recLogger.debug(`📊 容量计算: 池容量=${maxPoolSize}, 当前=${currentPool.length}, 剩余=${remainingCapacity}, 本次限制=${effectiveLimit}`)
+      
       const highQualityArticles = sortedArticles.filter(article => {
         const isHighQuality = article.score >= dynamicThreshold
         if (!isHighQuality) {
           recLogger.debug(` ⚠️ 文章质量不达标 (${article.score.toFixed(2)} < ${dynamicThreshold.toFixed(2)}):`, article.title)
         }
         return isHighQuality
-      }).slice(0, targetMaxRecommendations)  // 限制数量
+      }).slice(0, effectiveLimit)  // 限制数量（考虑剩余容量）
       
       if (highQualityArticles.length === 0 && result.articles.length > 0) {
         recLogger.warn(` ⚠️ 所有文章都未达到最低阈值 ${minAbsoluteThreshold}，本次不生成推荐`)
@@ -421,8 +408,22 @@ export class RecommendationService {
         recLogger.info(` ✅ 选择了 ${highQualityArticles.length} 篇文章，分数范围: ${highQualityArticles[highQualityArticles.length - 1].score.toFixed(2)} - ${highQualityArticles[0].score.toFixed(2)}`)
       }
       
-      // 6. 转换为存储格式并保存（仅保存高质量文章）
-      const recommendations = await this.saveRecommendations(highQualityArticles, recommendationConfig)
+      // 6. 🔧 冷却期控制：只有在冷却期允许时才将高分文章加入推荐池
+      // AI 分析已完成（文章已被标记为 candidate 或 not-qualified）
+      // 这里只控制是否将 candidate 池的文章加入推荐表
+      let recommendations: Recommendation[] = []
+      if (shouldRefillPool && highQualityArticles.length > 0) {
+        // 冷却期通过，记录补充操作并保存推荐
+        await refillManager.recordRefill()
+        recLogger.info(`✅ 推荐池补充检查通过，保存 ${highQualityArticles.length} 条推荐...`)
+        recommendations = await this.saveRecommendations(highQualityArticles, recommendationConfig)
+      } else if (!shouldRefillPool && highQualityArticles.length > 0) {
+        // 冷却期未过，但 AI 分析已完成
+        recLogger.info(
+          `⏸️  推荐池补充被限流（冷却期），跳过保存 ${highQualityArticles.length} 条推荐。` +
+          `文章已分析并标记为候选，下次冷却期结束后可用。`
+        )
+      }
 
       const processingTimeMs = Date.now() - startTime
       const stats = {
@@ -440,7 +441,7 @@ export class RecommendationService {
         '处理时长': `${stats.processingTimeMs}ms`,
         '推荐方式': algorithmUsed,
         'AI分析数': result.stats.processed.aiScored || 0,
-        'TFIDF筛选数': result.stats.processed.tfidfFiltered || 0
+        '全文抓取数': result.stats.processed.fullContent || 0
       })
 
       // 6. 跟踪推荐生成
@@ -532,16 +533,15 @@ export class RecommendationService {
         .reverse()  // 按发布时间倒序（最新的优先）
         .sortBy('published')
       
-      // Phase 10: 筛选条件：inFeed=true（仍在源中）&& (!analysis 或 tfidf-skipped)
-      // 注意：tfidf-skipped 的文章需要重新分析（可能是阈值调整导致的）
+      // Phase 10: 筛选条件：inFeed=true（仍在源中）&& poolStatus='raw'（等待分析）
       const unanalyzedArticles = feedArticles.filter(article => {
         if (article.inFeed === false) return false
         
-        // 没有分析结果的文章
-        if (!article.analysis) return true
+        // 只处理原料池中的文章
+        if (article.poolStatus === 'raw') return true
         
-        // 之前被 TF-IDF 跳过的文章，需要重新分析
-        if (article.analysis.metadata?.provider === 'tfidf-skipped') return true
+        // 没有分析结果且没有 poolStatus 的文章（兼容旧数据）
+        if (!article.analysis && !article.poolStatus) return true
         
         return false
       })
@@ -555,7 +555,7 @@ export class RecommendationService {
     }
 
     // 已经按发布时间倒序排序（查询时已处理）
-    recLogger.info(` 收集未分析文章（待TF-IDF筛选）: ${allArticles.length} 篇`)
+    recLogger.info(` 收集未分析文章（原料池）: ${allArticles.length} 篇`)
     return allArticles
   }
 
@@ -662,7 +662,7 @@ export class RecommendationService {
         if (article.score > lowestInPool.score) {
           recLogger.debug(` 🔄 替换低分推荐: ${article.score.toFixed(2)} > ${lowestInPool.score.toFixed(2)}`)
           
-          // Phase 10: 同步更新被替换文章的 inPool 状态
+          // Phase 10 + Phase 13: 同步更新被替换文章的状态
           try {
             const replacedArticle = await db.feedArticles
               .where('link').equals(lowestInPool.url)
@@ -671,11 +671,16 @@ export class RecommendationService {
             if (replacedArticle) {
               const now = Date.now()
               await db.feedArticles.update(replacedArticle.id, {
+                // Phase 13: 新字段
+                poolStatus: 'exited',         // 明确的退出状态
+                poolExitedAt: now,
+                poolExitReason: 'replaced',
+                // Phase 10: 旧字段（兼容）
                 inPool: false,
                 poolRemovedAt: now,
                 poolRemovedReason: 'replaced'
               })
-              recLogger.debug(`📝 已更新被替换文章的 inPool 状态: ${replacedArticle.title}`)
+              recLogger.debug(`📝 已更新被替换文章的状态: ${replacedArticle.title}`)
             }
           } catch (error) {
             recLogger.warn(`更新被替换文章状态失败: ${lowestInPool.url}`, error)
@@ -786,19 +791,23 @@ export class RecommendationService {
       }
     }
     
-    // ✅ 批量更新文章的 inPool 和 recommended 状态
+    // ✅ 批量更新文章的 poolStatus 和 inPool 状态
+    // Phase 13: poolStatus='recommended' 是主要状态字段
+    // inPool=true 保留用于向后兼容旧查询逻辑
     if (articlesToUpdate.length > 0) {
       const now = Date.now()
       await db.transaction('rw', [db.feedArticles], async () => {
         for (const { id } of articlesToUpdate) {
           await db.feedArticles.update(id, {
-            inPool: true,              // Phase 10: 标记进入候选池
-            poolAddedAt: now,          // Phase 10: 记录进入时间
-            recommended: true          // 保留历史记录（兼容旧逻辑）
+            poolStatus: 'recommended',   // Phase 13: 主要状态字段
+            recommendedPoolAddedAt: now, // Phase 13: 记录进入推荐池时间
+            inPool: true,                // Phase 10: 兼容旧逻辑
+            poolAddedAt: now,            // Phase 10: 兼容旧逻辑
+            recommended: true            // 保留历史记录（兼容旧逻辑）
           })
         }
       })
-      recLogger.info(`✅ 已标记进入推荐池的文章: ${articlesToUpdate.length} 篇 (inPool=true)`)
+      recLogger.info(`✅ 已标记进入推荐池的文章: ${articlesToUpdate.length} 篇 (poolStatus=recommended, inPool=true)`)
     }
 
     // Phase 6: 更新 RSS 源的推荐数统计
@@ -851,11 +860,11 @@ export class RecommendationService {
       case 'ai':
         return 'AI智能推荐'
       case 'hybrid':
-        return '混合推荐（AI降级到TF-IDF）'
-      case 'tfidf':
-        return 'TF-IDF关键词匹配'
+        return '混合推荐'
+      case 'cold-start':
+        return '冷启动推荐'
       default:
-        return '未知算法'
+        return '智能推荐'
     }
   }
 

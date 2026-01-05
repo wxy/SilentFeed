@@ -308,15 +308,17 @@ describe('数据库事务 - RSS Feed 相关', () => {
   })
 
   describe('unsubscribeFeed', () => {
-    it('应该取消订阅并删除相关数据', async () => {
+    it('应该取消订阅、移出池中文章、删除推荐记录，但保留文章', async () => {
       const feed = createTestFeed()
       await db.discoveredFeeds.add(feed)
 
+      // 创建一个在池中的文章
       await db.feedArticles.add(
         createTestArticle({
           id: 'article-1',
           title: 'Article',
-          link: 'https://example.com/article'
+          link: 'https://example.com/article',
+          poolStatus: 'candidate'  // 在候选池中
         })
       )
 
@@ -330,18 +332,24 @@ describe('数据库事务 - RSS Feed 相关', () => {
 
       await unsubscribeFeed('feed-1')
 
+      // 文章应该保留（但被移出池）
       const articles = await db.feedArticles.where('feedId').equals('feed-1').toArray()
-      expect(articles).toHaveLength(0)
+      expect(articles).toHaveLength(1)
+      expect(articles[0].poolStatus).toBe('exited')  // 明确的退出状态
+      expect(articles[0].poolExitReason).toBe('feed_unsubscribed')
 
+      // 推荐记录应该被删除
       const recs = await db.recommendations
         .where('sourceUrl')
         .equals(feed.url)
         .toArray()
       expect(recs).toHaveLength(0)
 
+      // 源状态应该更新
       const remainingFeed = await db.discoveredFeeds.get('feed-1')
-      expect(remainingFeed?.status).toBe('ignored') // 使用正确的状态
+      expect(remainingFeed?.status).toBe('ignored')
       expect(remainingFeed?.isActive).toBe(false)
+      expect(remainingFeed?.unsubscribedAt).toBeDefined()
     })
   })
 })

@@ -2,12 +2,10 @@
  * AI推荐系统数据流实现
  * Phase 6.4: 推荐处理管道
  * 
- * 实现三层筛选架构：
+ * 实现两层筛选架构：
  * 1. 全文内容抓取（并发控制）
- * 2. TF-IDF预筛选（200条→30条）  
- * 3. AI评分（30条→5条）
- * 4. Chrome AI增强（可选）
- * 5. 冷启动策略（用户画像不完善时）
+ * 2. AI评分（筛选高质量文章）
+ * 3. 冷启动策略（用户画像不完善时）
  */
 
 // 使用本地类型定义
@@ -20,7 +18,6 @@ import type {
   ProcessingError,
   ProcessingContext,
   EnhancedArticle,
-  ScoredArticle,
   PipelineConfig,
   RecommendationPipeline
 } from '@/types/recommendation'
@@ -29,10 +26,10 @@ import type { FeedArticle, DiscoveredFeed } from '@/types/rss'
 import type { ReasonData, AIProvider, ReasonType } from '@/types/recommendation-reason'
 import { convertFeedArticlesToArticleData, convertUserProfileToUserInterests } from './data-adapters'
 import { moveToCandidate, moveToAnalyzedNotQualified } from '@/storage/db/db-pool'
-import { RuleBasedRecommender } from './RuleBasedRecommender'
 import { aiManager } from '../ai/AICapabilityManager'
 import { db } from '@/storage/db'  // Phase 7: 静态导入，避免 Service Worker 动态导入错误
 import { ColdStartScorer, TopicClusterAnalyzer } from './cold-start'
+import { sanitizeHtmlToText, truncateText } from '@/utils/html-sanitizer'
 import { logger } from '@/utils/logger'
 
 const pipelineLogger = logger.withTag('Pipeline')
@@ -47,18 +44,12 @@ const DEFAULT_PIPELINE_CONFIG: PipelineConfig = {
     timeout: 10000,
     retries: 2
   },
-  tfidf: {
-    targetCount: 50, // 增加到50条，给AI更多选择
-    minScore: 0.005, // 降低最小分数，适应更严格的计算
-    vocabularySize: 1000
-  },
   ai: {
     enabled: true,
     batchSize: 5,
     maxConcurrency: 2,
     timeout: 120000,  // Phase 6: 默认 120 秒（推理模型需要更长时间）
-    costLimit: 1.0, // $1 per session
-    fallbackToTFIDF: true
+    costLimit: 1.0 // $1 per session
   },
   cache: {
     enabled: true,
@@ -105,7 +96,6 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
         inputCount: 0, // 将在处理时更新为实际值
         processed: {
           fullContent: 0,
-          tfidfFiltered: 0,
           aiAnalyzed: 0,
           aiScored: 0,
           finalRecommended: 0
@@ -113,13 +103,11 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
         timing: {
           total: 0,
           fullContentFetch: 0,
-          tfidfAnalysis: 0,
           aiAnalysis: 0,
           aiScoring: 0
         },
         errors: {
           fullContentFailed: 0,
-          tfidfFailed: 0,
           aiAnalysisFailed: 0,
           aiFailed: 0
         }
@@ -173,53 +161,34 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
       if (skippedOldArticles > 0) {
       }
       
-      this.updateProgress('tfidf', 0.1, '开始逐篇抓取和评分...')
-      
-      const userInterests = convertUserProfileToUserInterests(context.userProfile)
+      this.updateProgress('fetching', 0.1, '开始逐篇抓取和分析...')
       
       const recommendedArticles: RecommendedArticle[] = []
       let aiAnalyzedCount = 0  // AI 实际分析的文章数
-      let processedCount = 0   // 已处理（抓取+评分）的文章数
+      let processedCount = 0   // 已处理（抓取）的文章数
       
       for (let i = 0; i < filteredArticles.length && aiAnalyzedCount < batchSize; i++) {
         const article = filteredArticles[i]
         
-        // 1. 抓取全文并计算 TF-IDF 分数（用于后续评分，不再用于过滤）
-        let tfidfScore = article.tfidfScore
+        // 1. 抓取全文（如果还没有）
         let enhancedArticle: any = article
         
-        if (tfidfScore === undefined) {
-          // 抓取全文
+        if (!enhancedArticle.fullContent) {
           enhancedArticle = await this.fetchSingleArticle(article, context)
           processedCount++
-          
-          // 计算 TF-IDF 评分（使用全文）
-          const content = enhancedArticle.fullContent || article.content || article.description || article.title
-          tfidfScore = this.calculateSimpleRelevance(content, userInterests)
-          
-          // 保存 TF-IDF 分数和全文到数据库（缓存以避免重复计算和抓取）
-          await this.saveArticleEnhancement(article.id, article.feedId, tfidfScore, enhancedArticle.fullContent)
-        } else {
-          // 使用缓存的 TF-IDF 分数，但仍需抓取全文（如果还没有）
-          if (!enhancedArticle.fullContent) {
-            enhancedArticle = await this.fetchSingleArticle(article, context)
-            processedCount++
-            // 保存抓取的全文到数据库
-            if (enhancedArticle.fullContent) {
-              await this.saveArticleFullContent(article.id, enhancedArticle.fullContent)
-            }
+          // 保存抓取的全文到数据库
+          if (enhancedArticle.fullContent) {
+            await this.saveArticleFullContent(article.id, enhancedArticle.fullContent)
           }
         }
         
         // 更新进度
         const progress = 0.1 + (processedCount / Math.min(filteredArticles.length, 20)) * 0.2
-        this.updateProgress('fetch', progress, `已抓取 ${processedCount} 篇文章...`)
-        
-        // 确保 enhancedArticle 包含 tfidfScore（用于最终评分计算）
-        enhancedArticle.tfidfScore = tfidfScore
+        this.updateProgress('fullContent', progress, `已抓取 ${processedCount} 篇文章...`)
         
         this.updateProgress('ai', 0.3 + (aiAnalyzedCount / batchSize) * 0.6, `AI 分析文章...`)
         
+        // 2. AI 分析
         if (this.config.ai.enabled) {
           const aiResult = await this.analyzeSingleArticle(enhancedArticle, context)
           aiAnalyzedCount++  // 完成一次 AI 分析
@@ -235,7 +204,7 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
         }
       }
       
-      this.stats.processed!.tfidfFiltered = processedCount
+      this.stats.processed!.fullContent = processedCount
       this.stats.processed!.aiScored = aiAnalyzedCount
       this.stats.processed!.finalRecommended = recommendedArticles.length
       
@@ -436,121 +405,21 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
 
   /**
    * 从HTML提取文本内容
+   * 使用统一的 HTML 清理工具
    */
   private extractTextContent(html: string): string {
-    // 移除HTML标签和脚本
-    const text = html
+    // 先移除脚本和样式（sanitizeHtmlToText 不处理这些）
+    const withoutScripts = html
       .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
       .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim()
+      .replace(/<noscript[^>]*>[\s\S]*?<\/noscript>/gi, '')
+      .replace(/<!--[\s\S]*?-->/g, '')
     
-    // 限制长度
-    return text.length > 5000 ? text.substring(0, 5000) + '...' : text
-  }
-
-  /**
-   * 执行TF-IDF分析
-   */
-  private async performTFIDFAnalysis(
-    articles: EnhancedArticle[], 
-    context: ProcessingContext
-  ): Promise<ScoredArticle[]> {
-    try {
-      const userInterests = convertUserProfileToUserInterests(context.userProfile)
-      
-      // 使用RuleBasedRecommender进行TF-IDF计算
-      const recommender = new RuleBasedRecommender()
-      
-      // 计算相似度
-      const scored: ScoredArticle[] = []
-      
-      for (let i = 0; i < articles.length; i++) {
-        const article = articles[i]
-        // Phase 6: TF-IDF 初筛使用 RSS 自带内容（不抓取全文网页）
-        // 优先级：content（RSS完整内容） > description（摘要） > title
-        const content = article.content || article.description || article.title
-        
-        try {
-          // 简化的相似度计算
-          const score = this.calculateSimpleRelevance(content, userInterests)
-          
-          scored.push({
-            ...article,
-            tfidfScore: score,
-            features: { content: score } // 简化的特征向量
-          })
-        } catch (error) {
-          console.warn(`TF-IDF计算失败 (文章 ${article.id}):`, error)
-          this.stats.errors!.tfidfFailed++
-        }
-        
-        // 更新进度
-        if (i % 10 === 0) {
-          const progress = 0.3 + (i / articles.length) * 0.3
-          context.onProgress('tfidf', progress, `TF-IDF分析中... ${i}/${articles.length}`)
-        }
-      }
-      
-      // 排序并筛选
-      scored.sort((a, b) => b.tfidfScore - a.tfidfScore)
-      const filtered = scored.slice(0, this.config.tfidf.targetCount)
-      
-      return filtered.filter(a => a.tfidfScore >= this.config.tfidf.minScore)
-      
-    } catch (error) {
-      console.error('TF-IDF分析失败:', error)
-      throw new Error(`TF-IDF分析失败: ${error instanceof Error ? error.message : '未知错误'}`)
-    }
-  }
-
-  /**
-   * 简单的相关性计算
-   * 改进版：支持词组匹配和更合理的归一化
-   */
-  private calculateSimpleRelevance(content: string, userInterests: { keywords: Array<{word: string, weight: number}> }): number {
-    const lowerContent = content.toLowerCase()
-    const words = lowerContent.split(/\W+/).filter(word => word.length > 2)
-    let score = 0
-    let matchCount = 0
+    // 使用统一的 HTML 清理工具
+    const cleanText = sanitizeHtmlToText(withoutScripts)
     
-    for (const interest of userInterests.keywords) {
-      const keyword = interest.word.toLowerCase()
-      const weight = interest.weight
-      
-      // 1. 词组直接匹配（在原文中搜索完整词组）
-      const phraseMatches = (lowerContent.match(new RegExp(keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length
-      
-      // 2. 单词精确匹配（分词后逐个匹配）
-      const keywordWords = keyword.split(/\W+/).filter(w => w.length > 2)
-      let wordMatches = 0
-      for (const kw of keywordWords) {
-        const exactMatches = words.filter(word => word === kw).length
-        const partialMatches = words.filter(word => word.includes(kw) && word !== kw).length
-        wordMatches += exactMatches * 1.0 + partialMatches * 0.3
-      }
-      
-      // 词组匹配优先级最高，单词匹配次之
-      const totalMatches = phraseMatches * 2.0 + wordMatches
-      const matchScore = totalMatches * weight
-      score += matchScore
-      matchCount += phraseMatches + (wordMatches > 0 ? 1 : 0)
-    }
-    
-    // 如果没有任何匹配，返回很低的分数（但不是 0，给冷启动留机会）
-    if (matchCount === 0) {
-      return 0.001
-    }
-    
-    // 改进的归一化：使用对数缩放避免长文章被过度惩罚
-    // 基础分数：原始匹配分数
-    // 长度惩罚：使用 log(words.length) 而不是 words.length
-    const lengthFactor = Math.log10(Math.max(words.length, 10)) / Math.log10(1000) // 最大 1000 词时 lengthFactor = 1
-    const normalizedScore = score / (1 + lengthFactor)
-    
-    // 限制在合理范围内 [0, 1]
-    return Math.min(1.0, Math.max(0.001, normalizedScore))
+    // 限制长度（保留 5000 字符用于分析）
+    return truncateText(cleanText, 5000, '')
   }
 
   /**
@@ -589,21 +458,19 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
       // Phase 8: 使用 articleAnalysis 任务类型（会从引擎分配配置中自动读取引擎和推理设置）
       const analysis = await aiManager.analyzeContent(content, analysisOptions, "articleAnalysis")
       
-      // 计算最终评分
+      // 计算 AI 相关性评分（现在直接作为最终评分）
       const aiRelevanceScore = this.calculateAIRelevanceScore(analysis, userInterests)
-      const tfidfScore = (article as ScoredArticle).tfidfScore || article.tfidfScore || 0
-      const combinedScore = tfidfScore * 0.3 + aiRelevanceScore * 0.7
       const qualityThreshold = context.config.qualityThreshold ?? 0.7
       
       // Phase 13: 保存 AI 分析结果并更新池状态
       // 传递评分，让 saveArticleAnalysis 决定文章进入候选池还是不合格池
-      await this.saveArticleAnalysis(article.id, article.feedId, analysis, combinedScore, qualityThreshold)
+      await this.saveArticleAnalysis(article.id, article.feedId, analysis, aiRelevanceScore, qualityThreshold)
       
       // 调试日志：记录评分详情
-      pipelineLogger.debug(`文章评分 "${article.title?.substring(0, 30)}...": TF-IDF=${tfidfScore.toFixed(2)}, AI相关性=${aiRelevanceScore.toFixed(2)}, 综合=${combinedScore.toFixed(2)}, 阈值=${qualityThreshold}`)
+      pipelineLogger.debug(`文章评分 "${article.title?.substring(0, 30)}...": AI相关性=${aiRelevanceScore.toFixed(2)}, 阈值=${qualityThreshold}`)
       
       // 生成推荐理由
-      const reason = this.generateRecommendationReason(analysis, userInterests, combinedScore, context.config)
+      const reason = this.generateRecommendationReason(analysis, userInterests, aiRelevanceScore, context.config)
       
       // 构建推荐结果
       const result: RecommendedArticle = {
@@ -611,7 +478,7 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
         title: article.title,
         url: article.link,
         feedId: article.feedId,
-        score: combinedScore,
+        score: aiRelevanceScore,
         confidence: 0.8,  // 默认置信度
         reason,
         matchedInterests: userInterests.keywords.slice(0, 3).map(k => k.word),

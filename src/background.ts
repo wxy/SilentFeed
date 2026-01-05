@@ -1,6 +1,6 @@
 import { ProfileUpdateScheduler } from './core/profile/ProfileUpdateScheduler'
 import { semanticProfileBuilder } from './core/profile/SemanticProfileBuilder'
-import { initializeDatabase, getPageCount, getUnreadRecommendations, db, markAsRead } from './storage/db'
+import { initializeDatabase, getPageCount, getUnreadRecommendations, db, markAsRead, needsPhase13Migration, runPhase13Migration } from './storage/db'
 import type { ConfirmedVisit } from '@/types/database'
 import { FeedManager } from './core/rss/managers/FeedManager'
 import { RSSValidator } from './core/rss/RSSValidator'
@@ -268,6 +268,17 @@ chrome.runtime.onInstalled.addListener(async () => {
     
     // 1. 初始化数据库
     await initializeDatabase()
+    
+    // 1b. Phase 13: 检查并运行 poolStatus 迁移
+    if (await needsPhase13Migration()) {
+      bgLogger.info('🔄 检测到需要 Phase 13 数据迁移，开始迁移...')
+      const migrationSuccess = await runPhase13Migration()
+      if (migrationSuccess) {
+        bgLogger.info('✅ Phase 13 数据迁移完成')
+      } else {
+        bgLogger.warn('⚠️ Phase 13 数据迁移失败，部分数据可能需要手动处理')
+      }
+    }
     
     // 2. 清理可能残留的策略生成锁（防止热加载后锁卡住）
     await setPoolStrategyGenerating(false)
@@ -971,6 +982,43 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             sendResponse({ success: false, error: String(error) })
           }
           break
+
+        case 'GET_SCHEDULERS_STATUS':
+          // 为推荐设置页面提供调度器状态
+          try {
+            // 获取推荐调度器的当前间隔
+            const alarms = await chrome.alarms.getAll()
+            const recAlarm = alarms.find(a => a.name === 'generate-recommendation')
+            
+            sendResponse({
+              success: true,
+              recommendation: {
+                nextRunTime: recommendationScheduler.nextRunTime,
+                currentIntervalMinutes: recAlarm?.periodInMinutes || 1
+              }
+            })
+          } catch (error) {
+            bgLogger.error('❌ 获取调度器状态失败:', error)
+            sendResponse({ success: false, error: String(error) })
+          }
+          break
+
+        case 'GET_ACTIVE_RECOMMENDATIONS_COUNT':
+          // 获取弹窗内活跃推荐数量
+          try {
+            const activeRecs = await db.recommendations
+              .filter(rec => {
+                const isActive = !rec.status || rec.status === 'active'
+                const isUnreadAndNotDismissed = !rec.isRead && rec.feedback !== 'dismissed'
+                return isActive && isUnreadAndNotDismissed
+              })
+              .count()
+            sendResponse({ success: true, count: activeRecs })
+          } catch (error) {
+            bgLogger.error('❌ 获取活跃推荐数量失败:', error)
+            sendResponse({ success: false, error: String(error), count: 0 })
+          }
+          break
         
         // 画像学习：用户拒绝推荐
         case 'PROFILE_ON_DISMISS':
@@ -1257,10 +1305,16 @@ async function cleanupRecommendationPool(): Promise<void> {
               .first()
             
             if (article) {
+              const now = Date.now()
               await db.feedArticles.update(article.id, {
+                // Phase 13: 新字段
+                poolStatus: 'exited',         // 明确的退出状态
+                poolExitedAt: now,
+                poolExitReason: 'replaced',    // 被清理实际是被替换
+                // Phase 10: 旧字段（兼容）
                 inPool: false,
-                poolRemovedAt: Date.now(),
-                poolRemovedReason: 'expired' // 使用 'expired' 替代 'pool-cleanup'
+                poolRemovedAt: now,
+                poolRemovedReason: 'replaced'
               })
               updatedArticles++
             }

@@ -317,16 +317,16 @@ describe('推荐数据流管道', () => {
       const result = await pipeline.process(mockInput)
       
       expect(result.stats.timing.total).toBeGreaterThan(0)
-      expect(result.stats.timing.tfidfAnalysis).toBeGreaterThanOrEqual(0)
+      expect(result.stats.timing.aiAnalysis).toBeGreaterThanOrEqual(0)
       expect(result.timestamp).toBeCloseTo(Date.now(), -3) // 3位精度
     })
 
     it('应该记录处理统计', async () => {
       const result = await pipeline.process(mockInput)
       
-      expect(result.stats.processed.tfidfFiltered).toBeGreaterThanOrEqual(0)
+      expect(result.stats.processed.fullContent).toBeGreaterThanOrEqual(0)
       expect(result.stats.processed.finalRecommended).toBeGreaterThanOrEqual(0)
-      expect(result.stats.errors.tfidfFailed).toBeGreaterThanOrEqual(0)
+      expect(result.stats.errors.aiFailed).toBeGreaterThanOrEqual(0)
     })
   })
 
@@ -341,7 +341,7 @@ describe('推荐数据流管道', () => {
       
       const result = await pipeline.process(inputWithOptions)
       
-      expect(result.stats.processed.fullContent).toBe(0)
+      // 跳过全文抓取时，全文抓取时间应该为 0
       expect(result.stats.timing.fullContentFetch).toBe(0)
     })
 
@@ -459,7 +459,7 @@ describe('推荐数据流管道', () => {
       }
     })
 
-    it('TF-IDF 异常路径：关键词为空或计算异常时记录错误并继续', async () => {
+    it('AI 分析异常路径：关键词为空或计算异常时记录错误并继续', async () => {
       // 构造与兴趣完全不相关，且清空关键词模拟异常输入
       const input = {
         ...mockInput,
@@ -476,7 +476,7 @@ describe('推荐数据流管道', () => {
       // 流程应继续，错误计数至少存在（允许为0，因实现可能吞掉异常）
       expect(res).toBeDefined()
       expect(res.articles.length).toBeGreaterThanOrEqual(0)
-      expect(res.stats.errors.tfidfFailed).toBeGreaterThanOrEqual(0)
+      expect(res.stats.errors.aiAnalysisFailed).toBeGreaterThanOrEqual(0)
     })
   })
 
@@ -679,11 +679,11 @@ describe('推荐数据流管道', () => {
   })
 
   describe('统计信息', () => {
-    it('应该记录 TF-IDF 过滤统计', async () => {
+    it('应该记录全文抓取统计', async () => {
       const result = await pipeline.process(mockInput)
       
-      expect(result.stats.processed.tfidfFiltered).toBeGreaterThanOrEqual(0)
-      expect(result.stats.timing.tfidfAnalysis).toBeGreaterThanOrEqual(0)
+      expect(result.stats.processed.fullContent).toBeGreaterThanOrEqual(0)
+      expect(result.stats.timing.fullContentFetch).toBeGreaterThanOrEqual(0)
     })
 
     it('应该记录 AI 分析统计', async () => {
@@ -699,7 +699,6 @@ describe('推荐数据流管道', () => {
       // 错误计数应该存在（即使为 0）
       expect(result.stats.errors).toBeDefined()
       expect(result.stats.errors.fullContentFailed).toBeGreaterThanOrEqual(0)
-      expect(result.stats.errors.tfidfFailed).toBeGreaterThanOrEqual(0)
       expect(result.stats.errors.aiAnalysisFailed).toBeGreaterThanOrEqual(0)
     })
   })

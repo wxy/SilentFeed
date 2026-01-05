@@ -103,11 +103,22 @@ export abstract class BaseAIService implements AIProvider {
   }
   
   /**
-   * 子类必须实现：调用 Chat-GPT 兼容的 API
+   * 🔒 内部方法：调用 Chat-GPT 兼容的 API
+   * 
+   * ⚠️ **访问限制**: protected abstract - 仅子类可实现，仅内部方法可调用
+   * 
+   * 此方法是所有 AI 调用的最底层入口。外部代码**禁止**直接调用此方法！
+   * 应该通过本类的专用方法（如 analyzeContent、screenFeedArticles 等）间接使用。
+   * 
+   * 调用链示例：
+   *   外部代码 → AICapabilityManager.screenFeedArticles()
+   *            → BaseAIService.screenFeedArticles()
+   *            → this.callChatAPI()  ← 只有这里可以调用
    * 
    * @param prompt - 用户提示词
    * @param options - 调用选项
    * @returns API 响应（JSON 格式的字符串）
+   * @internal 仅供 BaseAIService 内部的公开方法调用
    */
   protected abstract callChatAPI(
     prompt: string,
@@ -127,6 +138,51 @@ export abstract class BaseAIService implements AIProvider {
     }
     model?: string
   }>
+  
+  /**
+   * 🔒 内部方法：流式调用 Chat-GPT 兼容的 API
+   * 
+   * ⚠️ **访问限制**: protected - 仅子类可实现，仅内部方法可调用
+   * 
+   * 用于推理模式等长时间运行的任务，通过流式传输保持连接活跃，
+   * 避免中间网络层（代理、CDN、负载均衡器）超时。
+   * 
+   * 特点：
+   * - 使用**空闲超时**而非总时间超时
+   * - 只要持续收到数据就不会超时
+   * - 服务器卡死时会触发空闲超时
+   * 
+   * @param prompt - 用户提示词
+   * @param options - 调用选项
+   * @param options.idleTimeout - 空闲超时时间（毫秒），默认 60000
+   * @returns API 响应（完整内容 + token 用量）
+   * @internal 仅供 BaseAIService 内部的公开方法调用
+   */
+  protected async callChatAPIStreaming(
+    prompt: string,
+    options?: {
+      maxTokens?: number
+      idleTimeout?: number
+      jsonMode?: boolean
+      useReasoning?: boolean
+      responseFormat?: Record<string, unknown>
+      temperature?: number
+    }
+  ): Promise<{
+    content: string
+    tokensUsed: {
+      input: number
+      output: number
+    }
+    model?: string
+  }> {
+    // 默认实现：回退到非流式调用
+    // 子类可以覆盖此方法实现真正的流式调用
+    return this.callChatAPI(prompt, {
+      ...options,
+      timeout: options?.idleTimeout ? options.idleTimeout * 10 : undefined // 非流式用更长的超时
+    })
+  }
   
   /**
    * 子类必须实现：获取货币类型
@@ -1002,6 +1058,113 @@ export abstract class BaseAIService implements AIProvider {
       return acc
     }, {} as Record<string, number>)
   }
+
+  /**
+   * Feed 文章初筛（默认实现）
+   * 
+   * 批量筛选 Feed 中值得详细分析的文章，减少后续 AI 调用次数和成本。
+   * 返回 JSON 格式的筛选结果（包含 selectedArticleLinks、stats 等）。
+   * 
+   * 🌊 推理模式使用流式调用，避免长时间等待导致网络层超时。
+   * 
+   * @param prompt - 已构建好的初筛提示词（由 PromptManager 生成）
+   * @param options - 请求选项
+   * @returns AI 的原始响应文本（JSON 格式）
+   */
+  async screenFeedArticles(
+    prompt: string,
+    options?: {
+      maxTokens?: number
+      useReasoning?: boolean
+    }
+  ): Promise<string> {
+    const startTime = Date.now()
+    const useReasoning = options?.useReasoning || false
+    
+    try {
+      let apiResponse: {
+        content: string
+        tokensUsed: { input: number; output: number }
+        model?: string
+      }
+      
+      if (useReasoning) {
+        // 🌊 推理模式使用流式调用
+        // 使用空闲超时（60秒）而非总时间超时
+        // DeepSeek reasoner 最大输出 64K tokens
+        apiResponse = await this.callChatAPIStreaming(prompt, {
+          maxTokens: options?.maxTokens || 64000,
+          jsonMode: true,
+          useReasoning: true,
+          idleTimeout: 60000  // 60 秒空闲超时
+        })
+      } else {
+        // 标准模式使用普通调用
+        const timeout = this.getConfiguredTimeout(false)
+        apiResponse = await this.callChatAPI(prompt, {
+          maxTokens: options?.maxTokens || 4000,
+          jsonMode: true,
+          useReasoning: false,
+          timeout
+        })
+      }
+      
+      const duration = Date.now() - startTime
+      const modelName = this.resolveModelName(apiResponse.model)
+      
+      // 计算成本
+      const cost = this.calculateCost(
+        apiResponse.tokensUsed.input,
+        apiResponse.tokensUsed.output,
+        modelName
+      )
+      
+      // 记录使用情况
+      await AIUsageTracker.recordUsage({
+        provider: this.name.toLowerCase() as any,
+        model: modelName,
+        purpose: 'feed-prescreening',
+        tokens: {
+          input: apiResponse.tokensUsed.input,
+          output: apiResponse.tokensUsed.output,
+          total: apiResponse.tokensUsed.input + apiResponse.tokensUsed.output,
+          estimated: false
+        },
+        cost: cost,
+        latency: duration,
+        success: true,
+        reasoning: useReasoning
+      })
+      
+      return apiResponse.content
+    } catch (error) {
+      const duration = Date.now() - startTime
+      
+      // 记录失败
+      await AIUsageTracker.recordUsage({
+        provider: this.name.toLowerCase() as any,
+        model: this.config.model || this.getDefaultModelName(),
+        purpose: 'feed-prescreening',
+        tokens: {
+          input: 0,
+          output: 0,
+          total: 0,
+          estimated: true
+        },
+        cost: {
+          currency: this.getCurrency(),
+          input: 0,
+          output: 0,
+          total: 0,
+          estimated: true
+        },
+        latency: duration,
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+        reasoning: useReasoning
+      })
+      
+      throw error
+    }
+  }
 }
-
-

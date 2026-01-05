@@ -266,9 +266,12 @@ export async function bulkSubscribeFeeds(
  * 原子性取消订阅 Feed
  * 
  * 场景：取消订阅时，需要同时：
- * 1. 更新 Feed 状态为 ignored
- * 2. 删除该 Feed 的所有推荐记录
- * 3. 删除该 Feed 的所有文章
+ * 1. 更新 Feed 状态为 unsubscribed（专门的取消订阅状态）
+ * 2. 将该 Feed 所有在池中的文章移出（设置 poolExitReason='feed_unsubscribed'）
+ * 3. 删除该 Feed 的所有推荐记录
+ * 4. 保留文章记录（不删除，用于历史统计）
+ * 
+ * 注意：取消订阅≠删除，文章保留但不再参与推荐流程
  * 
  * @param feedId - Feed ID
  */
@@ -283,29 +286,45 @@ export async function unsubscribeFeed(feedId: string): Promise<void> {
     feedUrl: feed.url
   })
 
+  const now = Date.now()
+
   await db.transaction(
     'rw',
     [db.discoveredFeeds, db.recommendations, db.feedArticles],
     async () => {
-      // 1. 更新 Feed 状态
+      // 1. 更新 Feed 状态为 unsubscribed
       await db.discoveredFeeds.update(feedId, {
-        status: 'ignored',
-        isActive: false
+        status: 'ignored',  // 复用 ignored 状态，语义上表示不再处理
+        isActive: false,
+        unsubscribedAt: now  // 记录取消订阅时间
       })
 
-      // 2. 删除所有推荐记录
+      // 2. 将所有在池中的文章移出（不删除，保留历史）
+      const articlesInPool = await db.feedArticles
+        .where('feedId')
+        .equals(feedId)
+        .filter(a => a.poolStatus && !a.poolExitedAt)
+        .toArray()
+      
+      for (const article of articlesInPool) {
+        await db.feedArticles.update(article.id, {
+          poolStatus: 'exited',
+          poolExitedAt: now,
+          poolExitReason: 'feed_unsubscribed',
+          // 兼容旧字段
+          inPool: false,
+          poolRemovedAt: now,
+          poolRemovedReason: 'expired'  // 旧字段没有 feed_unsubscribed
+        })
+      }
+      txLogger.debug(`✓ 移出池中文章: ${articlesInPool.length} 篇`)
+
+      // 3. 删除所有推荐记录（清理推荐池中的显示）
       const deletedRecs = await db.recommendations
         .where('sourceUrl')
         .equals(feed.url)
         .delete()
-      txLogger.debug(`✓ 删除 ${deletedRecs} 条推荐`)
-
-      // 3. 删除所有文章
-      const deletedArticles = await db.feedArticles
-        .where('feedId')
-        .equals(feedId)
-        .delete()
-      txLogger.debug(`✓ 删除 ${deletedArticles} 篇文章`)
+      txLogger.debug(`✓ 删除推荐记录: ${deletedRecs} 条`)
     }
   )
 
