@@ -518,3 +518,113 @@ describe('getCachedDecision 边界测试', () => {
     expect(mockStorageGet).not.toHaveBeenCalled()
   })
 })
+
+describe('collectDailyUsageContext 边界测试', () => {
+  it('应该在 getSystemStats 返回 null 时返回默认上下文', async () => {
+    const { getSystemStats } = await import('@/storage/system-stats')
+    vi.mocked(getSystemStats).mockResolvedValueOnce(null as any)
+    
+    const context = await collectDailyUsageContext()
+    
+    // 应该返回默认值
+    expect(context.feeds.totalCount).toBe(0)
+    expect(context.feeds.avgUpdateFrequency).toBe(24)
+    expect(context.feeds.avgBatchSize).toBe(10)
+    expect(context.articles.unreadCount).toBe(0)
+    expect(context.userBehavior.peakUsageHour).toBe(9)
+  })
+  
+  it('应该在 getSystemStats 抛出错误时返回默认上下文', async () => {
+    const { getSystemStats } = await import('@/storage/system-stats')
+    vi.mocked(getSystemStats).mockRejectedValueOnce(new Error('Stats error'))
+    
+    const context = await collectDailyUsageContext()
+    
+    // 应该返回默认值
+    expect(context.feeds.totalCount).toBe(0)
+    expect(context.currentPolicy.poolSize).toBe(6)
+  })
+})
+
+describe('getFallbackDecision 测试', () => {
+  let decider: AIPoolStrategyDecider
+  
+  const baseContext: DailyUsageContext = {
+    feeds: {
+      totalCount: 10,
+      avgUpdateFrequency: 12,
+      avgBatchSize: 15,
+      activeFeeds: 8,
+    },
+    articles: {
+      unreadCount: 50,
+      dailyAverage: 30,
+      yesterdayCount: 25,
+    },
+    userBehavior: {
+      recommendationsShown: 20,
+      clicked: 5,
+      dismissed: 3,
+      saved: 2,
+      avgReadTime: 120,
+      peakUsageHour: 10,
+    },
+    currentPolicy: {
+      poolSize: 6,
+      refillInterval: 45,
+      maxDailyRefills: 5,
+    },
+  }
+  
+  beforeEach(() => {
+    vi.clearAllMocks()
+    decider = new AIPoolStrategyDecider()
+    mockStorageGet.mockResolvedValue({})
+    mockStorageSet.mockResolvedValue(undefined)
+    mockStorageRemove.mockResolvedValue(undefined)
+  })
+  
+  it('应该为轻度用户（dailyAverage < 30）返回较小池', async () => {
+    // 需要通过 AI 配置但让 AI 调用失败来触发 fallback
+    const { getAIConfig } = await import('@/storage/ai-config')
+    vi.mocked(getAIConfig).mockResolvedValueOnce({
+      providers: { deepseek: { apiKey: 'test', model: 'test' } },
+      local: { enabled: false },
+      engineAssignment: { lowFrequencyTasks: { provider: 'deepseek' } },
+    } as any)
+    
+    mockDecidePoolStrategy.mockRejectedValueOnce(new Error('AI failed'))
+    
+    const lightUserContext = {
+      ...baseContext,
+      articles: { ...baseContext.articles, dailyAverage: 20 },
+    }
+    
+    const result = await decider.decideDailyStrategy(lightUserContext)
+    
+    // fallback 策略应该给轻度用户较小的池
+    expect(result.poolSize).toBeLessThanOrEqual(6)
+    expect(result.reasoning).toContain('降级')
+  })
+  
+  it('应该为重度用户（dailyAverage > 200）返回较大池', async () => {
+    const { getAIConfig } = await import('@/storage/ai-config')
+    vi.mocked(getAIConfig).mockResolvedValueOnce({
+      providers: { deepseek: { apiKey: 'test', model: 'test' } },
+      local: { enabled: false },
+      engineAssignment: { lowFrequencyTasks: { provider: 'deepseek' } },
+    } as any)
+    
+    mockDecidePoolStrategy.mockRejectedValueOnce(new Error('AI failed'))
+    
+    const heavyUserContext = {
+      ...baseContext,
+      articles: { ...baseContext.articles, dailyAverage: 250 },
+    }
+    
+    const result = await decider.decideDailyStrategy(heavyUserContext)
+    
+    // fallback 策略应该给重度用户较大的池
+    expect(result.poolSize).toBeGreaterThanOrEqual(8)
+  })
+})
