@@ -115,8 +115,10 @@ export function CollectionStats() {
   const [pageCount, setPageCount] = useState<number>(0)
   const [recommendationFunnel, setRecommendationFunnel] = useState<{
     rssArticles: number
-    inPool: number
-    notified: number
+    prescreened: number
+    analyzed: number
+    candidate: number
+    recommended: number
     read: number
     learningPages: number
     dismissed: number
@@ -890,9 +892,9 @@ export function CollectionStats() {
             <div className="rounded-2xl bg-gray-50 dark:bg-gray-800 p-6 md:p-8">
               <div className="flex flex-col xl:flex-row justify-center items-center gap-8">
               <svg
-                width="440"
-                height="480"
-                viewBox="0 0 440 480"
+                width="580"
+                height="560"
+                viewBox="0 0 580 560"
                 className="max-w-full h-auto"
               >
                 {(() => {
@@ -901,16 +903,18 @@ export function CollectionStats() {
                   }
 
                   const funnel = recommendationFunnel
-                  const svgWidth = 440
-                  const centerX = svgWidth / 2
+                  const svgWidth = 580
+                  const labelAreaWidth = 140  // 左侧标签区域宽度
+                  const funnelAreaWidth = svgWidth - labelAreaWidth
+                  const centerX = labelAreaWidth + funnelAreaWidth / 2
                   
-                  // 漏斗几何参数
-                  const funnelTopY = 120     // 漏斗顶部Y坐标（留空更多）
-                  const funnelBottomY = 400  // 漏斗底部Y坐标
+                  // 漏斗几何参数 - Phase 13+ 5层漏斗优化
+                  const funnelTopY = 80      // 漏斗顶部Y坐标
+                  const funnelBottomY = 480  // 漏斗底部Y坐标
                   const funnelHeight = funnelBottomY - funnelTopY
-                  const maxRadius = 140      // 数据层最大半径
+                  const maxRadius = 150      // 最顶层数据层半径
                   const topExpandRadius = 200 // 互联网层放大半径
-                  const minRadius = 25       // 最小半径（漏斗出口）
+                  const minRadius = 3        // 最小半径（仅作为兜底保护）
                   
                   // 漏斗顶部：扩展图标（代表RSS订阅源）
                   const extensionIconUrl = typeof chrome !== 'undefined' && chrome.runtime?.getURL
@@ -918,7 +922,8 @@ export function CollectionStats() {
                     : 'assets/icons/128/base-static.png'
 
                   // 椭圆纵向半径（透视效果）
-                  const getEllipseRy = (radius: number) => Math.max(10, radius * 0.22)
+                  // 保持恒定比例 0.20，最小值降低以保持小半径的椭圆率一致
+                  const getEllipseRy = (radius: number) => Math.max(2.5, radius * 0.20)
 
                   // 数据层配置（从底部到顶部）
                   type LayerConfig = {
@@ -934,6 +939,7 @@ export function CollectionStats() {
                   }
 
                   // 定义各层数据 - 从小到大排序（底部到顶部）
+                  // Phase 13+: 基于多池架构的漏斗层
                   // 添加渐变ID用于美化
                   const layers: (LayerConfig & { gradientId: string })[] = [
                     {
@@ -943,22 +949,46 @@ export function CollectionStats() {
                       ellipseColor: 'rgba(255, 249, 196, 0.8)',
                       textColor: '#1f2937',
                       value: funnel.read,
-                      percent: funnel.inPool > 0 ? `${((funnel.read / funnel.inPool) * 100).toFixed(1)}%` : '0%',
+                      percent: funnel.recommended > 0 ? `${((funnel.read / funnel.recommended) * 100).toFixed(1)}%` : '0%',
                       bodyOpacity: 0.85,
                       ellipseOpacity: 0.7,
                       gradientId: 'gradReading'
                     },
                     {
-                      key: 'recommendations',
-                      label: _('options.collectionStats.recommendationFunnelRecommendations'),
+                      key: 'recommended',
+                      label: _('options.collectionStats.recommendationFunnelRecommended'),
                       color: 'rgba(190, 242, 100, 0.85)',
                       ellipseColor: 'rgba(220, 252, 162, 0.78)',
                       textColor: '#1f2937',
-                      value: funnel.inPool,
-                      percent: funnel.rssArticles > 0 ? `${((funnel.inPool / funnel.rssArticles) * 100).toFixed(1)}%` : '0%',
+                      value: funnel.recommended,
+                      percent: funnel.candidate > 0 ? `${((funnel.recommended / funnel.candidate) * 100).toFixed(1)}%` : '0%',
                       bodyOpacity: 0.82,
                       ellipseOpacity: 0.65,
-                      gradientId: 'gradRecommendations'
+                      gradientId: 'gradRecommended'
+                    },
+                    {
+                      key: 'candidate',
+                      label: _('options.collectionStats.recommendationFunnelCandidate'),
+                      color: 'rgba(251, 191, 36, 0.85)',
+                      ellipseColor: 'rgba(253, 224, 71, 0.78)',
+                      textColor: '#1f2937',
+                      value: funnel.candidate,
+                      percent: funnel.analyzed > 0 ? `${((funnel.candidate / funnel.analyzed) * 100).toFixed(1)}%` : '0%',
+                      bodyOpacity: 0.80,
+                      ellipseOpacity: 0.62,
+                      gradientId: 'gradCandidate'
+                    },
+                    {
+                      key: 'analyzed',
+                      label: _('options.collectionStats.recommendationFunnelAnalyzed'),
+                      color: 'rgba(167, 139, 250, 0.85)',
+                      ellipseColor: 'rgba(196, 181, 253, 0.78)',
+                      textColor: '#1f2937',
+                      value: funnel.analyzed,
+                      percent: funnel.prescreened > 0 ? `${((funnel.analyzed / funnel.prescreened) * 100).toFixed(1)}%` : '0%',
+                      bodyOpacity: 0.78,
+                      ellipseOpacity: 0.58,
+                      gradientId: 'gradAnalyzed'
                     },
                     {
                       key: 'articles',
@@ -968,26 +998,37 @@ export function CollectionStats() {
                       textColor: '#0f172a',
                       value: funnel.rssArticles,
                       percent: '100%',
-                      bodyOpacity: 0.8,
-                      ellipseOpacity: 0.6,
+                      bodyOpacity: 0.75,
+                      ellipseOpacity: 0.55,
                       gradientId: 'gradArticles'
                     }
                   ]
 
-                  // 计算基准值：最大值作为100%面积
-                  const maxValue = Math.max(...layers.map(l => l.value), 1)
+                  // 计算基于上一层转化率的累积半径
+                  // 每层的半径 = 上一层半径 × 转化率（面积比例，所以用 √转化率）
+                  // 这样视觉上能更明显地体现过滤效果
+                  const layerBottomRadii: number[] = []
                   
-                  // 根据数值计算半径：面积 ∝ r²，因此 r ∝ √value
-                  // 每层的【底部截面】代表该层数值
-                  const getRadiusForValue = (value: number): number => {
-                    if (value <= 0) return minRadius
-                    // r = maxRadius * sqrt(value / maxValue)
-                    const radius = maxRadius * Math.sqrt(value / maxValue)
-                    return Math.max(radius, minRadius)
+                  // 从最顶层（文章层）开始计算
+                  // layers 数组是从底部到顶部：[阅读, 已推荐, 候选, 已分析, 文章]
+                  // 我们需要从文章层开始，依次向下计算
+                  for (let i = layers.length - 1; i >= 0; i--) {
+                    if (i === layers.length - 1) {
+                      // 最顶层（文章）使用 maxRadius
+                      layerBottomRadii[i] = maxRadius
+                    } else {
+                      // 当前层相对于上一层的转化率
+                      const upperLayer = layers[i + 1]
+                      const currentLayer = layers[i]
+                      const conversionRate = upperLayer.value > 0 
+                        ? currentLayer.value / upperLayer.value 
+                        : 0
+                      // 半径 = 上一层半径 × √转化率（面积正比于数值）
+                      const upperRadius = layerBottomRadii[i + 1]
+                      const newRadius = upperRadius * Math.sqrt(conversionRate)
+                      layerBottomRadii[i] = Math.max(newRadius, minRadius)
+                    }
                   }
-
-                  // 计算每层底部的半径（代表该层筛选后的数值）
-                  const layerBottomRadii = layers.map(l => getRadiusForValue(l.value))
                   
                   // 计算每层顶部的半径（等于上一层的底部，最顶层放大代表互联网）
                   const layerTopRadii = layers.map((_, i) => {
@@ -1079,16 +1120,26 @@ export function CollectionStats() {
                         <filter id="funnelShadow" x="-20%" y="-20%" width="140%" height="160%">
                           <feDropShadow dx="0" dy="8" stdDeviation="12" floodColor="#000" floodOpacity="0.2" />
                         </filter>
-                        {/* 各层渐变定义 */}
+                        {/* 各层渐变定义 - Phase 13+ 多池架构漏斗 */}
                         <linearGradient id="gradReading" x1="0%" y1="0%" x2="100%" y2="100%">
                           <stop offset="0%" stopColor="#FEF9C3" stopOpacity="0.95" />
                           <stop offset="50%" stopColor="#FDE047" stopOpacity="0.85" />
                           <stop offset="100%" stopColor="#FACC15" stopOpacity="0.75" />
                         </linearGradient>
-                        <linearGradient id="gradRecommendations" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <linearGradient id="gradRecommended" x1="0%" y1="0%" x2="100%" y2="100%">
                           <stop offset="0%" stopColor="#D9F99D" stopOpacity="0.95" />
                           <stop offset="50%" stopColor="#A3E635" stopOpacity="0.85" />
                           <stop offset="100%" stopColor="#84CC16" stopOpacity="0.75" />
+                        </linearGradient>
+                        <linearGradient id="gradCandidate" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="#FEF3C7" stopOpacity="0.95" />
+                          <stop offset="50%" stopColor="#FBBF24" stopOpacity="0.85" />
+                          <stop offset="100%" stopColor="#F59E0B" stopOpacity="0.75" />
+                        </linearGradient>
+                        <linearGradient id="gradAnalyzed" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="#EDE9FE" stopOpacity="0.95" />
+                          <stop offset="50%" stopColor="#A78BFA" stopOpacity="0.85" />
+                          <stop offset="100%" stopColor="#8B5CF6" stopOpacity="0.75" />
                         </linearGradient>
                         <linearGradient id="gradArticles" x1="0%" y1="0%" x2="100%" y2="100%">
                           <stop offset="0%" stopColor="#BAE6FD" stopOpacity="0.95" />
@@ -1130,16 +1181,6 @@ export function CollectionStats() {
                               ry={layer.topRy}
                               fill={layerIndex === layersWithGeometry.length - 1 ? 'url(#gradInternet)' : `url(#${layer.gradientId})`}
                               opacity={Math.min(layer.ellipseOpacity + 0.2, 1)}
-                            />
-                            {/* 层间高光分界线 */}
-                            <ellipse
-                              cx={centerX}
-                              cy={layer.bottomY}
-                              rx={layer.bottomRadius}
-                              ry={layer.bottomRy}
-                              fill="none"
-                              stroke="rgba(255,255,255,0.6)"
-                              strokeWidth="1.5"
                             />
                           </g>
                         ))}
@@ -1187,30 +1228,65 @@ export function CollectionStats() {
                         ))}
                       </g>
                       
-                      {/* 文字标签 - 靠近底部截面显示 */}
+                      {/* 左侧文字标签 - 垂直排列，用线条指向对应层 */}
                       <g pointerEvents="none">
                         {layersWithGeometry.map((layer, layerIdx) => {
-                          // 统一字号
-                          const labelFontSize = 12
-                          const valueFontSize = 16
-                          const percentFontSize = 11
+                          // 字号设置
+                          const labelFontSize = 11
+                          const valueFontSize = 14
+                          const percentFontSize = 10
                           
-                          // 文字位置靠近底部截面（底部截面代表该层数值）
-                          // 上层（文章、推荐）offsetMultiplier 更小，让文字更靠近底部
-                          const offsetMultiplier = layerIdx === 0 ? 0.15 : 0.05
-                          const textBaseY = layer.bottomY - layer.segmentHeight * offsetMultiplier
-                          const labelY = textBaseY - 28
-                          const valueY = textBaseY - 8
-                          const percentY = textBaseY + 12
+                          // 标签位于层的中心高度
+                          const layerCenterY = (layer.topY + layer.bottomY) / 2
+                          
+                          // 左侧标签区域
+                          const labelX = 10
+                          const labelY = layerCenterY - 8
+                          const valueY = layerCenterY + 8
+                          const percentY = layerCenterY + 22
+                          
+                          // 指示线终点（漏斗左边缘）
+                          const lineEndX = centerX - layer.bottomRadius - 5
+                          const lineStartX = 125
+                          
+                          // 层对应的颜色（用于指示线和圆点）
+                          const layerColors: Record<string, string> = {
+                            'reading': '#FACC15',
+                            'recommended': '#84CC16',
+                            'candidate': '#F59E0B',
+                            'analyzed': '#8B5CF6',
+                            'articles': '#0EA5E9'
+                          }
+                          const dotColor = layerColors[layer.key] || '#6B7280'
                           
                           return (
                             <g key={`segment-text-${layer.key}`}>
+                              {/* 指示线 */}
+                              <line
+                                x1={lineStartX}
+                                y1={layerCenterY}
+                                x2={lineEndX}
+                                y2={layerCenterY}
+                                stroke={dotColor}
+                                strokeWidth="1.5"
+                                strokeDasharray="4 2"
+                                opacity="0.6"
+                              />
+                              {/* 连接圆点 */}
+                              <circle
+                                cx={lineEndX}
+                                cy={layerCenterY}
+                                r="4"
+                                fill={dotColor}
+                                opacity="0.8"
+                              />
                               {/* 层标签 */}
                               <text
-                                x={centerX}
+                                x={labelX}
                                 y={labelY}
-                                textAnchor="middle"
-                                fill={layer.textColor}
+                                textAnchor="start"
+                                fill="#374151"
+                                className="dark:fill-gray-300"
                                 fontSize={labelFontSize}
                                 fontWeight="600"
                               >
@@ -1218,10 +1294,11 @@ export function CollectionStats() {
                               </text>
                               {/* 数值 */}
                               <text
-                                x={centerX}
+                                x={labelX}
                                 y={valueY}
-                                textAnchor="middle"
-                                fill={layer.textColor}
+                                textAnchor="start"
+                                fill="#1F2937"
+                                className="dark:fill-gray-100"
                                 fontSize={valueFontSize}
                                 fontWeight="700"
                               >
@@ -1229,15 +1306,15 @@ export function CollectionStats() {
                               </text>
                               {/* 百分比 */}
                               <text
-                                x={centerX}
-                                y={percentY}
-                                textAnchor="middle"
-                                fill={layer.textColor}
+                                x={labelX + 45}
+                                y={valueY}
+                                textAnchor="start"
+                                fill="#6B7280"
+                                className="dark:fill-gray-400"
                                 fontSize={percentFontSize}
                                 fontWeight="500"
-                                opacity={0.75}
                               >
-                                {layer.percent}
+                                ({layer.percent})
                               </text>
                             </g>
                           )
@@ -1246,7 +1323,7 @@ export function CollectionStats() {
                       
                       {/* 底部用户图标 */}
                       <g>
-                        <text x={centerX} y={funnelBottomY + 70} textAnchor="middle" fontSize="32">
+                        <text x={centerX} y={funnelBottomY + 60} textAnchor="middle" fontSize="32">
                           👨‍💻
                         </text>
                       </g>
@@ -1257,51 +1334,89 @@ export function CollectionStats() {
 
               {/* 侧边信息卡片 - 展示关联数据 */}
               <div className="flex flex-col gap-3 min-w-[180px]">
-                {/* 学习页面卡片 - 阅读是其中一部分 */}
+                {/* 初筛淘汰卡片 */}
                 <div className="relative">
-                  <div className="bg-gradient-to-br from-amber-50 to-yellow-100 dark:from-amber-900/30 dark:to-yellow-900/20 rounded-xl p-4 border-2 border-amber-300 dark:border-amber-600 shadow-md">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-lg">📚</span>
-                      <span className="text-sm font-semibold text-amber-800 dark:text-amber-200">
-                        {_("options.collectionStats.funnelLearningPages")}
+                  <div className="bg-gradient-to-br from-slate-50 to-gray-100 dark:from-slate-900/30 dark:to-gray-900/20 rounded-xl p-3 border border-slate-300 dark:border-slate-600 shadow-sm">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-base">🔍</span>
+                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                        {_("options.collectionStats.funnelPrescreenedOut")}
                       </span>
                     </div>
-                    <div className="text-3xl font-bold text-amber-900 dark:text-amber-100">
-                      {recommendationFunnel.learningPages}
+                    <div className="text-2xl font-bold text-slate-800 dark:text-slate-100">
+                      {recommendationFunnel.rssArticles - recommendationFunnel.prescreened}
                     </div>
-                    <div className="text-xs text-amber-600 dark:text-amber-400 mt-2">
-                      {_("options.collectionStats.funnelLearningPagesDesc")}
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      {recommendationFunnel.rssArticles > 0 
+                        ? `${(((recommendationFunnel.rssArticles - recommendationFunnel.prescreened) / recommendationFunnel.rssArticles) * 100).toFixed(1)}% ${_("options.collectionStats.funnelPrescreenedOutDesc")}`
+                        : _("options.collectionStats.funnelPrescreenedOutDesc")
+                      }
                     </div>
-                    {/* 关系指示：阅读 ⊂ 学习页面 */}
-                    <div className="mt-3 pt-3 border-t border-amber-200 dark:border-amber-700">
-                      <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-300">
-                        <span className="inline-block w-2 h-2 rounded-full bg-yellow-400"></span>
-                        <span>{_("options.collectionStats.funnelReadingIncluded")}</span>
-                      </div>
+                  </div>
+                </div>
+
+                {/* 未分析卡片 */}
+                <div className="relative">
+                  <div className="bg-gradient-to-br from-sky-50 to-cyan-100 dark:from-sky-900/30 dark:to-cyan-900/20 rounded-xl p-3 border border-sky-300 dark:border-sky-600 shadow-sm">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-base">⏳</span>
+                      <span className="text-xs font-semibold text-sky-700 dark:text-sky-200">
+                        {_("options.collectionStats.funnelNotAnalyzed")}
+                      </span>
+                    </div>
+                    <div className="text-2xl font-bold text-sky-800 dark:text-sky-100">
+                      {recommendationFunnel.prescreened - recommendationFunnel.analyzed}
+                    </div>
+                    <div className="text-xs text-sky-500 dark:text-sky-400 mt-1">
+                      {recommendationFunnel.prescreened > 0 
+                        ? `${(((recommendationFunnel.prescreened - recommendationFunnel.analyzed) / recommendationFunnel.prescreened) * 100).toFixed(1)}% ${_("options.collectionStats.funnelNotAnalyzedDesc")}`
+                        : _("options.collectionStats.funnelNotAnalyzedDesc")
+                      }
+                    </div>
+                  </div>
+                </div>
+
+                {/* 分析未达标卡片 */}
+                <div className="relative">
+                  <div className="bg-gradient-to-br from-violet-50 to-purple-100 dark:from-violet-900/30 dark:to-purple-900/20 rounded-xl p-3 border border-violet-300 dark:border-violet-600 shadow-sm">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-base">📊</span>
+                      <span className="text-xs font-semibold text-violet-700 dark:text-violet-200">
+                        {_("options.collectionStats.funnelAnalyzedNotQualified")}
+                      </span>
+                    </div>
+                    <div className="text-2xl font-bold text-violet-800 dark:text-violet-100">
+                      {recommendationFunnel.analyzed - recommendationFunnel.candidate}
+                    </div>
+                    <div className="text-xs text-violet-500 dark:text-violet-400 mt-1">
+                      {recommendationFunnel.analyzed > 0 
+                        ? `${(((recommendationFunnel.analyzed - recommendationFunnel.candidate) / recommendationFunnel.analyzed) * 100).toFixed(1)}% ${_("options.collectionStats.funnelAnalyzedNotQualifiedDesc")}`
+                        : _("options.collectionStats.funnelAnalyzedNotQualifiedDesc")
+                      }
                     </div>
                   </div>
                 </div>
 
                 {/* 不想读卡片 - 来自推荐 */}
                 <div className="relative">
-                  <div className="bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/30 dark:to-red-900/20 rounded-xl p-4 border-2 border-orange-300 dark:border-orange-600 shadow-md">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-lg">🚫</span>
-                      <span className="text-sm font-semibold text-orange-800 dark:text-orange-200">
+                  <div className="bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/30 dark:to-red-900/20 rounded-xl p-3 border border-orange-300 dark:border-orange-600 shadow-sm">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-base">🚫</span>
+                      <span className="text-xs font-semibold text-orange-800 dark:text-orange-200">
                         {_("options.collectionStats.funnelDismissed")}
                       </span>
                     </div>
-                    <div className="text-3xl font-bold text-orange-900 dark:text-orange-100">
+                    <div className="text-2xl font-bold text-orange-900 dark:text-orange-100">
                       {recommendationFunnel.dismissed}
                     </div>
-                    <div className="text-xs text-orange-600 dark:text-orange-400 mt-2">
-                      {recommendationFunnel.inPool > 0 
-                        ? `${((recommendationFunnel.dismissed / recommendationFunnel.inPool) * 100).toFixed(1)}% ${_("options.collectionStats.funnelDismissedDesc")}`
+                    <div className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                      {recommendationFunnel.recommended > 0 
+                        ? `${((recommendationFunnel.dismissed / recommendationFunnel.recommended) * 100).toFixed(1)}% ${_("options.collectionStats.funnelDismissedDesc")}`
                         : _("options.collectionStats.funnelDismissedDesc")
                       }
                     </div>
                     {/* 关系指示：不想读 ⊂ 推荐 */}
-                    <div className="mt-3 pt-3 border-t border-orange-200 dark:border-orange-700">
+                    <div className="mt-2 pt-2 border-t border-orange-200 dark:border-orange-700">
                       <div className="flex items-center gap-2 text-xs text-orange-700 dark:text-orange-300">
                         <span className="inline-block w-2 h-2 rounded-full bg-lime-400"></span>
                         <span>{_("options.collectionStats.funnelDismissedFrom")}</span>
@@ -1309,55 +1424,55 @@ export function CollectionStats() {
                     </div>
                   </div>
                 </div>
-
-                {/* 数据关系图示 */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-600 shadow-sm">
-                  <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-3">
-                    📊 {_("options.collectionStats.funnelDataRelation")}
-                  </div>
-                  <div className="space-y-2 text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className="inline-block w-3 h-3 rounded bg-lime-400"></span>
-                      <span className="text-gray-600 dark:text-gray-400">{_("options.collectionStats.recommendationFunnelRecommendations")}</span>
-                      <span className="text-gray-400">=</span>
-                      <span className="inline-block w-3 h-3 rounded bg-yellow-400"></span>
-                      <span className="text-gray-600 dark:text-gray-400">+</span>
-                      <span className="inline-block w-3 h-3 rounded bg-orange-400"></span>
-                    </div>
-                    <div className="flex items-center gap-2 pl-1">
-                      <span className="text-gray-500 dark:text-gray-400">
-                        {recommendationFunnel.inPool} = {recommendationFunnel.read} + {recommendationFunnel.dismissed}
-                      </span>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
 
-            {/* 转化率总结 */}
+            {/* 转化率总结 - Phase 13+ 多池架构 */}
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-5 border border-blue-200 dark:border-blue-700">
-              <div className="grid grid-cols-2 gap-6 text-center">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div>
+                  <div className="text-xs text-cyan-600 dark:text-cyan-400 mb-2 font-medium">
+                    {_("options.collectionStats.funnelPrescreenRate")}
+                  </div>
+                  <div className="text-xl font-bold text-cyan-900 dark:text-cyan-100">
+                    {recommendationFunnel.rssArticles > 0 ? ((recommendationFunnel.prescreened / recommendationFunnel.rssArticles) * 100).toFixed(1) : 0}%
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {_("options.collectionStats.funnelRssToPrescreened")}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-violet-600 dark:text-violet-400 mb-2 font-medium">
+                    {_("options.collectionStats.funnelCandidateRate")}
+                  </div>
+                  <div className="text-xl font-bold text-violet-900 dark:text-violet-100">
+                    {recommendationFunnel.analyzed > 0 ? ((recommendationFunnel.candidate / recommendationFunnel.analyzed) * 100).toFixed(1) : 0}%
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {_("options.collectionStats.funnelAnalyzedToCandidate")}
+                  </div>
+                </div>
                 <div>
                   <div className="text-xs text-green-600 dark:text-green-400 mb-2 font-medium">
                     {_("options.collectionStats.funnelRecommendationRate")}
                   </div>
-                  <div className="text-2xl font-bold text-green-900 dark:text-green-100">
-                    {recommendationFunnel.rssArticles > 0 ? ((recommendationFunnel.inPool / recommendationFunnel.rssArticles) * 100).toFixed(1) : 0}%
+                  <div className="text-xl font-bold text-green-900 dark:text-green-100">
+                    {recommendationFunnel.rssArticles > 0 ? ((recommendationFunnel.recommended / recommendationFunnel.rssArticles) * 100).toFixed(1) : 0}%
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {_("options.collectionStats.funnelRssToPool")}
+                    {_("options.collectionStats.funnelRssToRecommended")}
                   </div>
                 </div>
                 <div>
                   <div className="text-xs text-purple-600 dark:text-purple-400 mb-2 font-medium">
                     {_("options.collectionStats.funnelReadingRate")}
                   </div>
-                  <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">
-                    {recommendationFunnel.inPool > 0 ? ((recommendationFunnel.read / recommendationFunnel.inPool) * 100).toFixed(1) : 0}%
+                  <div className="text-xl font-bold text-purple-900 dark:text-purple-100">
+                    {recommendationFunnel.recommended > 0 ? ((recommendationFunnel.read / recommendationFunnel.recommended) * 100).toFixed(1) : 0}%
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {_("options.collectionStats.funnelPoolToRead")}
+                    {_("options.collectionStats.funnelRecommendedToRead")}
                   </div>
                 </div>
               </div>

@@ -4,6 +4,7 @@
  * 提供订阅源的文章数量统计，用于蛛网图可视化
  * 
  * Phase 11: 订阅源质量蛛网图
+ * Phase 13+: 基于多池架构更新统计逻辑
  */
 
 import { db } from './index'
@@ -22,12 +23,19 @@ export interface FeedStats {
   
   /** 文章总数（包括历史文章） */
   totalArticles: number
-  /** 推荐总数 */
+  /** 推荐总数（进入过候选池或推荐池） */
   recommendedCount: number
   /** 阅读总数 */
   readCount: number
   /** 不想读总数 */
   dislikedCount: number
+  
+  /** 候选池数量（当前在候选池等待推荐） */
+  candidateCount?: number
+  /** 初筛淘汰数量 */
+  prescreenedOutCount?: number
+  /** 分析未达标数量 */
+  analyzedNotQualifiedCount?: number
   
   /** 是否为表现最差的订阅源（推荐数最低的 3 个） */
   isWorstPerformer?: boolean
@@ -35,6 +43,7 @@ export interface FeedStats {
 
 /**
  * 获取所有已订阅源的统计数据
+ * 基于 Phase 13 多池架构的 poolStatus 字段进行统计
  * 
  * @returns 订阅源统计数组
  */
@@ -59,13 +68,23 @@ export async function getFeedStats(): Promise<FeedStats[]> {
       continue
     }
     
-    // 统计各类文章数量
-    // recommended: 已推荐过的文章（包括已读、不想读、仍在推荐池）
-    const recommendedArticles = articles.filter(a => a.recommended || a.inPool)
-    // read: 已推荐且已阅读的文章
-    const readArticles = recommendedArticles.filter(a => a.read)
-    // disliked: 已推荐且标记为不想读的文章
-    const dislikedArticles = recommendedArticles.filter(a => a.disliked)
+    // 基于 poolStatus 统计各类文章数量
+    // recommended: 曾被推荐的文章（当前在推荐池、或曾在推荐池退出、或有 recommended 标记）
+    const recommendedArticles = articles.filter(a => 
+      a.poolStatus === 'recommended' ||
+      (a.poolStatus === 'exited' && a.recommendedPoolAddedAt) ||
+      a.recommended === true  // 向后兼容
+    )
+    // read: 已阅读的文章
+    const readArticles = articles.filter(a => a.read === true)
+    // disliked: 标记为不想读的文章
+    const dislikedArticles = articles.filter(a => a.disliked === true)
+    // candidate: 当前在候选池的文章
+    const candidateArticles = articles.filter(a => a.poolStatus === 'candidate')
+    // prescreened-out: 初筛淘汰的文章
+    const prescreenedOutArticles = articles.filter(a => a.poolStatus === 'prescreened-out')
+    // analyzed-not-qualified: 分析未达标的文章
+    const analyzedNotQualifiedArticles = articles.filter(a => a.poolStatus === 'analyzed-not-qualified')
     
     stats.push({
       feedId: feed.id,
@@ -74,7 +93,10 @@ export async function getFeedStats(): Promise<FeedStats[]> {
       totalArticles: articles.length,
       recommendedCount: recommendedArticles.length,
       readCount: readArticles.length,
-      dislikedCount: dislikedArticles.length
+      dislikedCount: dislikedArticles.length,
+      candidateCount: candidateArticles.length,
+      prescreenedOutCount: prescreenedOutArticles.length,
+      analyzedNotQualifiedCount: analyzedNotQualifiedArticles.length
     })
   }
   

@@ -18,8 +18,10 @@ vi.mock('@/storage/db', () => ({
   getPageCount: vi.fn(async () => 0),
   getRecommendationFunnel: vi.fn(async () => ({
     rssArticles: 0,
-    inPool: 0,
-    notified: 0,
+    prescreened: 0,
+    analyzed: 0,
+    candidate: 0,
+    recommended: 0,
     read: 0,
     learningPages: 0,
     dismissed: 0,
@@ -94,8 +96,10 @@ describe('CollectionStats 渲染', () => {
     })
     ;(getRecommendationFunnel as any).mockResolvedValueOnce({
       rssArticles: 42,
-      inPool: 22,
-      notified: 10,
+      prescreened: 35,
+      analyzed: 30,
+      candidate: 25,
+      recommended: 22,
       read: 8,
       learningPages: 5,
       dismissed: 1,

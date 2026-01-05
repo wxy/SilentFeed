@@ -404,58 +404,81 @@ export async function getRSSArticleCount(): Promise<number> {
 /**
  * 推荐筛选漏斗统计
  * Phase 10.3: 重构漏斗数据结构
+ * Phase 13+: 基于多池架构重新设计
  * 
- * 漏斗层级：
- * - rssArticles: RSS 累计读取的文章总数（去重）
- * - inPool: 累计放入推荐池的文章数
- * - notified: 累计进入弹窗的文章数
- * - read: 累计阅读数
+ * 漏斗层级（基于 feedArticles 表的 poolStatus）：
+ * - rssArticles: RSS 累计抓取的文章总数（feedArticles 表所有记录）
+ * - prescreened: 通过初筛的文章数（raw + analyzed + candidate + recommended + exited with recommendation）
+ * - analyzed: 已深度分析的文章数（analyzed-not-qualified + candidate + recommended + exited with analysis）
+ * - candidate: 进入候选池的文章数（candidate + recommended + exited from candidate/recommended）
+ * - recommended: 推荐给用户的文章数（recommended + exited from recommended）
+ * - read: 用户已阅读数
  * 
  * 侧边数据：
- * - learningPages: 学习页面总数
+ * - learningPages: 学习页面总数（用户浏览学习）
  * - dismissed: 不想读总数
  */
 export async function getRecommendationFunnel(): Promise<{
   rssArticles: number
-  inPool: number
-  notified: number
+  prescreened: number
+  analyzed: number
+  candidate: number
+  recommended: number
   read: number
   learningPages: number
   dismissed: number
 }> {
   try {
-    // 统计 RSS 文章总数（去重）
-    const allFeeds = await db.discoveredFeeds.toArray()
-    const articleUrls = new Set<string>()
-    for (const feed of allFeeds) {
-      if (feed.latestArticles && feed.latestArticles.length > 0) {
-        feed.latestArticles.forEach(article => {
-          if (article.link) articleUrls.add(article.link)
-        })
-      }
-    }
-    const rssArticlesCount = articleUrls.size
+    // 获取所有文章（基于 feedArticles 表）
+    const allArticles = await db.feedArticles.toArray()
+    const rssArticlesCount = allArticles.length
     
-    // 推荐统计
-    const allRecommendations = await db.recommendations.toArray()
-    const inPoolCount = allRecommendations.length
+    // 通过初筛的文章（不是 prescreened-out 的）
+    const prescreenedCount = allArticles.filter(a => 
+      a.poolStatus && a.poolStatus !== 'prescreened-out'
+    ).length
     
-    // 统计弹窗通知数（所有 active 状态的推荐在创建时都会被通知）
-    const notifiedCount = allRecommendations.filter(r => r.status === 'active').length
+    // 已深度分析的文章（有 analysis 字段或状态在分析后阶段）
+    const analyzedCount = allArticles.filter(a => 
+      a.poolStatus === 'analyzed-not-qualified' ||
+      a.poolStatus === 'candidate' ||
+      a.poolStatus === 'recommended' ||
+      (a.poolStatus === 'exited' && a.analysisScore !== undefined) ||
+      a.analysis !== undefined
+    ).length
     
-    // 统计已读数（使用 isRead 字段）
-    const readCount = allRecommendations.filter(r => r.isRead === true).length
+    // 进入过候选池的文章（当前在候选池或推荐池，或已退出但曾在候选池/推荐池）
+    const candidateCount = allArticles.filter(a =>
+      a.poolStatus === 'candidate' ||
+      a.poolStatus === 'recommended' ||
+      (a.poolStatus === 'exited' && (a.candidatePoolAddedAt || a.recommendedPoolAddedAt)) ||
+      // 向后兼容：旧字段判断
+      a.recommended === true
+    ).length
     
-    // 统计不想读（status 为 dismissed）
-    const dismissedCount = allRecommendations.filter(r => r.status === 'dismissed').length
+    // 推荐给用户的文章数（当前在推荐池或曾被推荐）
+    const recommendedCount = allArticles.filter(a =>
+      a.poolStatus === 'recommended' ||
+      (a.poolStatus === 'exited' && a.recommendedPoolAddedAt) ||
+      // 向后兼容
+      a.recommended === true
+    ).length
+    
+    // 用户已阅读数
+    const readCount = allArticles.filter(a => a.read === true).length
+    
+    // 用户不想读数
+    const dismissedCount = allArticles.filter(a => a.disliked === true).length
     
     // 统计学习页面数
     const learningPagesCount = await db.confirmedVisits.count()
     
     return {
       rssArticles: rssArticlesCount,
-      inPool: inPoolCount,
-      notified: notifiedCount,
+      prescreened: prescreenedCount,
+      analyzed: analyzedCount,
+      candidate: candidateCount,
+      recommended: recommendedCount,
       read: readCount,
       learningPages: learningPagesCount,
       dismissed: dismissedCount
@@ -464,8 +487,10 @@ export async function getRecommendationFunnel(): Promise<{
     dbLogger.error('获取推荐漏斗统计失败:', error)
     return {
       rssArticles: 0,
-      inPool: 0,
-      notified: 0,
+      prescreened: 0,
+      analyzed: 0,
+      candidate: 0,
+      recommended: 0,
       read: 0,
       learningPages: 0,
       dismissed: 0
