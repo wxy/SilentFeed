@@ -39,13 +39,14 @@ describe('订阅源统计', () => {
       ]
 
       // Mock 文章数据
-      // 修正数据逻辑：推荐数 = 已推荐 + 在推荐池，阅读和不想读只统计已推荐的文章
+      // Phase 13+: 使用 poolStatus 字段统计
+      // recommendedCount = poolStatus='recommended' 或 poolStatus='exited' 且有 recommendedPoolAddedAt，或 recommended=true（向后兼容）
       const mockArticles = [
-        { id: '1', feedId: 'feed1', recommended: true, inPool: false, read: true, disliked: false },
-        { id: '2', feedId: 'feed1', recommended: true, inPool: false, read: false, disliked: false },
-        { id: '3', feedId: 'feed1', recommended: false, inPool: true, read: false, disliked: false }, // 在推荐池
-        { id: '4', feedId: 'feed1', recommended: true, inPool: false, read: false, disliked: true }, // 已推荐且不想读
-        { id: '5', feedId: 'feed1', recommended: false, inPool: false, read: false, disliked: false } // 未推荐
+        { id: '1', feedId: 'feed1', poolStatus: 'exited', recommendedPoolAddedAt: Date.now(), read: true, disliked: false }, // 已退出但曾推荐
+        { id: '2', feedId: 'feed1', recommended: true, read: false, disliked: false }, // 旧字段向后兼容
+        { id: '3', feedId: 'feed1', poolStatus: 'recommended', read: false, disliked: false }, // 当前在推荐池
+        { id: '4', feedId: 'feed1', recommended: true, read: false, disliked: true }, // 已推荐且不想读
+        { id: '5', feedId: 'feed1', poolStatus: 'candidate', read: false, disliked: false } // 在候选池，未推荐
       ]
 
       vi.mocked(db.discoveredFeeds.where).mockReturnValue({
@@ -68,9 +69,12 @@ describe('订阅源统计', () => {
         feedTitle: '科技博客',
         feedUrl: 'https://example.com/feed',
         totalArticles: 5,
-        recommendedCount: 4, // 3个已推荐 + 1个在推荐池
-        readCount: 1, // 只有已推荐的才算
-        dislikedCount: 1 // 只有已推荐的才算
+        recommendedCount: 4, // id 1, 2, 3, 4 都满足条件
+        readCount: 1, // id 1 read=true
+        dislikedCount: 1, // id 4 disliked=true
+        candidateCount: 1, // id 5 poolStatus='candidate'
+        prescreenedOutCount: 0,
+        analyzedNotQualifiedCount: 0
       })
     })
 
