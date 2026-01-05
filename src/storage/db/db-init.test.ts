@@ -107,4 +107,21 @@ describe('数据库初始化', () => {
     expect(settings?.dataRetention.rawVisitsDays).toBe(90)
     expect(settings?.dataRetention.statisticsDays).toBe(365)
   })
+  
+  it('应该能够多次安全地调用初始化', async () => {
+    // 第一次初始化
+    await initializeDatabase()
+    const count1 = await db.settings.count()
+    expect(count1).toBe(1)
+    
+    // 第二次初始化应该正常工作，不重复创建设置
+    await initializeDatabase()
+    const count2 = await db.settings.count()
+    expect(count2).toBe(1)
+    
+    // 第三次初始化，确保数据迁移逻辑也能正确执行
+    await initializeDatabase()
+    const count3 = await db.settings.count()
+    expect(count3).toBe(1)
+  })
 })

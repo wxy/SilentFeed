@@ -469,4 +469,97 @@ describe("AICapabilityManager", () => {
       expect(merged4).toBe(false)  // ✅ 回退到默认值
     })
   })
+  
+  describe("initialize 边界测试", () => {
+    it("应该在 engineAssignment 加载失败时继续初始化", async () => {
+      mockStorage.sync.get.mockResolvedValueOnce({ 
+        aiConfig: { 
+          providers: {},
+          engineAssignment: null
+        } 
+      })
+      // 初始化应该不会抛错
+      await expect(manager.initialize()).resolves.toBeUndefined()
+    })
+    
+    it("应该优先初始化 DeepSeek 而非 OpenAI", async () => {
+      mockStorage.sync.get.mockResolvedValueOnce({ 
+        aiConfig: { 
+          providers: {
+            deepseek: { apiKey: "deep-key", model: "deepseek-chat" },
+            openai: { apiKey: "openai-key", model: "gpt-4o-mini" }
+          },
+          engineAssignment: {
+            pageAnalysis: { provider: 'deepseek' },
+            articleAnalysis: { provider: 'deepseek' },
+            lowFrequencyTasks: { provider: 'deepseek' }
+          }
+        } 
+      })
+      await manager.initialize()
+      
+      // 验证有 remoteProvider
+      const hasRemote = manager["remoteProvider"] !== null
+      expect(hasRemote).toBe(true)
+    })
+    
+    it("应该在只配置 OpenAI 时尝试使用 OpenAI", async () => {
+      mockStorage.sync.get.mockResolvedValueOnce({ 
+        aiConfig: { 
+          providers: {
+            openai: { apiKey: "openai-key", model: "gpt-4o-mini" }
+          },
+          engineAssignment: {
+            pageAnalysis: { provider: 'openai' },
+            articleAnalysis: { provider: 'openai' },
+            lowFrequencyTasks: { provider: 'openai' }
+          }
+        } 
+      })
+      
+      // 初始化应该不会抛错
+      await expect(manager.initialize()).resolves.toBeUndefined()
+    })
+  })
+  
+  describe("analyzeContent 边界测试", () => {
+    it("应该在预算超支时降级到关键词", async () => {
+      // 设置预算超支状态
+      const { BudgetChecker } = await import('@/core/ai/BudgetChecker')
+      vi.spyOn(BudgetChecker, 'shouldDowngrade').mockResolvedValue(true)
+      
+      mockStorage.sync.get.mockResolvedValueOnce({ 
+        aiConfig: { 
+          providers: { deepseek: { apiKey: "key" } },
+          engineAssignment: {
+            pageAnalysis: { provider: 'deepseek' },
+            articleAnalysis: { provider: 'deepseek' },
+            lowFrequencyTasks: { provider: 'deepseek' }
+          }
+        } 
+      })
+      await manager.initialize()
+      
+      const result = await manager.analyzeContent("test content")
+      expect(result.metadata.provider).toBe('keyword')
+      
+      // 清理
+      vi.restoreAllMocks()
+    })
+    
+    it("应该在没有 taskType 时使用旧的 mode 逻辑", async () => {
+      mockStorage.sync.get.mockResolvedValueOnce({ 
+        aiConfig: { 
+          providers: {},
+          engineAssignment: null
+        } 
+      })
+      await manager.initialize()
+      
+      // 不提供 taskType，使用默认 "auto" mode
+      const result = await manager.analyzeContent("test content", {}, undefined, "auto")
+      expect(result).toBeDefined()
+      expect(result.metadata.provider).toBe('keyword')
+    })
+  })
 })

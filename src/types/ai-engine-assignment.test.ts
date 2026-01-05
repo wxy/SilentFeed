@@ -8,6 +8,7 @@ import {
   validateEngineConfig,
   validateEngineAssignment,
   getPresetDisplayInfo,
+  migrateEngineAssignment,
   type AIEngineAssignment,
   type AIEngineConfig
 } from "./ai-engine-assignment"
@@ -243,6 +244,97 @@ describe("ai-engine-assignment", () => {
           expect(abstractTypes).toContain(provider)
         })
       })
+    })
+  })
+
+  describe("migrateEngineAssignment", () => {
+    it("应该处理已有 lowFrequencyTasks 的配置（已迁移）", () => {
+      const alreadyMigrated = {
+        pageAnalysis: { provider: "remote" as const },
+        articleAnalysis: { provider: "remote" as const },
+        lowFrequencyTasks: { provider: "remote" as const, useReasoning: true }
+      }
+      const result = migrateEngineAssignment(alreadyMigrated)
+      expect(result.lowFrequencyTasks).toEqual(alreadyMigrated.lowFrequencyTasks)
+    })
+
+    it("应该从 profileGeneration 迁移到 lowFrequencyTasks", () => {
+      const oldConfig = {
+        pageAnalysis: { provider: "remote" as const },
+        articleAnalysis: { provider: "remote" as const },
+        profileGeneration: { provider: "deepseek" as const, useReasoning: true }
+      }
+      const result = migrateEngineAssignment(oldConfig)
+      expect(result.lowFrequencyTasks.provider).toBe("deepseek")
+      expect(result.lowFrequencyTasks.useReasoning).toBe(true)
+    })
+
+    it("应该从 sourceAnalysis 迁移到 lowFrequencyTasks（当无 profileGeneration 时）", () => {
+      const oldConfig = {
+        pageAnalysis: { provider: "remote" as const },
+        articleAnalysis: { provider: "remote" as const },
+        sourceAnalysis: { provider: "ollama" as const }
+      }
+      const result = migrateEngineAssignment(oldConfig)
+      expect(result.lowFrequencyTasks.provider).toBe("ollama")
+    })
+
+    it("应该优先使用 profileGeneration 而非 sourceAnalysis", () => {
+      const oldConfig = {
+        pageAnalysis: { provider: "remote" as const },
+        articleAnalysis: { provider: "remote" as const },
+        profileGeneration: { provider: "deepseek" as const },
+        sourceAnalysis: { provider: "ollama" as const }
+      }
+      const result = migrateEngineAssignment(oldConfig)
+      expect(result.lowFrequencyTasks.provider).toBe("deepseek")
+    })
+
+    it("应该使用默认值补全缺失的 pageAnalysis", () => {
+      const partialConfig = {
+        articleAnalysis: { provider: "remote" as const },
+        lowFrequencyTasks: { provider: "remote" as const }
+      }
+      const result = migrateEngineAssignment(partialConfig)
+      expect(result.pageAnalysis).toBeDefined()
+      expect(result.pageAnalysis.provider).toBeDefined()
+    })
+
+    it("应该使用默认值补全缺失的 articleAnalysis", () => {
+      const partialConfig = {
+        pageAnalysis: { provider: "remote" as const },
+        lowFrequencyTasks: { provider: "remote" as const }
+      }
+      const result = migrateEngineAssignment(partialConfig)
+      expect(result.articleAnalysis).toBeDefined()
+      expect(result.articleAnalysis.provider).toBeDefined()
+    })
+
+    it("应该使用默认 lowFrequencyTasks 当无旧配置可迁移时", () => {
+      const emptyConfig = {}
+      const result = migrateEngineAssignment(emptyConfig)
+      const defaultAssignment = getDefaultEngineAssignment()
+      expect(result.lowFrequencyTasks).toEqual(defaultAssignment.lowFrequencyTasks)
+    })
+  })
+
+  describe("validateEngineAssignment 边界测试", () => {
+    it("应该拒绝 articleAnalysis 包含无效 provider 的配置", () => {
+      const invalidAssignment: AIEngineAssignment = {
+        pageAnalysis: { provider: "deepseek" },
+        articleAnalysis: { provider: "invalid" as any },
+        lowFrequencyTasks: { provider: "deepseek" }
+      }
+      expect(validateEngineAssignment(invalidAssignment)).toBe(false)
+    })
+
+    it("应该拒绝 lowFrequencyTasks 包含无效 provider 的配置", () => {
+      const invalidAssignment: AIEngineAssignment = {
+        pageAnalysis: { provider: "deepseek" },
+        articleAnalysis: { provider: "deepseek" },
+        lowFrequencyTasks: { provider: "invalid" as any }
+      }
+      expect(validateEngineAssignment(invalidAssignment)).toBe(false)
     })
   })
 })
