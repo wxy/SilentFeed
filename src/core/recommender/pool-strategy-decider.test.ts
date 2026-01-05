@@ -349,3 +349,172 @@ describe('getStrategyDecider', () => {
     expect(decider).toBeInstanceOf(AIPoolStrategyDecider)
   })
 })
+
+describe('getRuleBasedDecision 边界测试', () => {
+  let decider: AIPoolStrategyDecider
+  
+  const baseContext: DailyUsageContext = {
+    feeds: {
+      totalCount: 10,
+      avgUpdateFrequency: 12,
+      avgBatchSize: 15,
+      activeFeeds: 8,
+    },
+    articles: {
+      unreadCount: 50,
+      dailyAverage: 30,
+      yesterdayCount: 25,
+    },
+    userBehavior: {
+      recommendationsShown: 20,
+      clicked: 5,
+      dismissed: 3,
+      saved: 2,
+      avgReadTime: 120,
+      peakUsageHour: 10,
+    },
+    currentPolicy: {
+      poolSize: 6,
+      refillInterval: 45,
+      maxDailyRefills: 5,
+    },
+  }
+  
+  beforeEach(() => {
+    vi.clearAllMocks()
+    decider = new AIPoolStrategyDecider()
+    mockStorageGet.mockResolvedValue({})
+    mockStorageSet.mockResolvedValue(undefined)
+    mockStorageRemove.mockResolvedValue(undefined)
+  })
+  
+  it('应该处理零推荐展示时使用默认点击率', async () => {
+    const zeroShowsContext = {
+      ...baseContext,
+      userBehavior: { 
+        ...baseContext.userBehavior, 
+        recommendationsShown: 0,
+        clicked: 0,
+        dismissed: 0
+      },
+    }
+
+    const result = await decider.decideDailyStrategy(zeroShowsContext)
+
+    expect(result.poolSize).toBeGreaterThanOrEqual(3)
+    expect(result.reasoning).toContain('基于规则')
+  })
+  
+  it('应该处理边界订阅数量（正好 5 个）', async () => {
+    const boundary5Context = {
+      ...baseContext,
+      feeds: { ...baseContext.feeds, totalCount: 5 },
+    }
+
+    const result = await decider.decideDailyStrategy(boundary5Context)
+
+    expect(result.poolSize).toBeLessThanOrEqual(6)
+  })
+  
+  it('应该处理边界订阅数量（正好 15 个）', async () => {
+    const boundary15Context = {
+      ...baseContext,
+      feeds: { ...baseContext.feeds, totalCount: 15 },
+    }
+
+    const result = await decider.decideDailyStrategy(boundary15Context)
+
+    expect(result.poolSize).toBeGreaterThanOrEqual(6)
+  })
+  
+  it('应该处理高文章产出（超过 100 篇/天）', async () => {
+    const highArticleContext = {
+      ...baseContext,
+      articles: { ...baseContext.articles, dailyAverage: 150 },
+    }
+
+    const result = await decider.decideDailyStrategy(highArticleContext)
+
+    // 高文章产出应该有较短的补充间隔
+    expect(result.minInterval).toBeLessThanOrEqual(45 * 60 * 1000)
+  })
+  
+  it('应该处理极低文章产出', async () => {
+    const veryLowArticleContext = {
+      ...baseContext,
+      articles: { ...baseContext.articles, dailyAverage: 5 },
+    }
+
+    const result = await decider.decideDailyStrategy(veryLowArticleContext)
+
+    // 低文章产出应该有较长的补充间隔
+    expect(result.minInterval).toBeGreaterThanOrEqual(45 * 60 * 1000)
+  })
+  
+  it('应该处理同时高点击率和高不想读率', async () => {
+    const mixedBehaviorContext = {
+      ...baseContext,
+      userBehavior: { 
+        ...baseContext.userBehavior, 
+        clicked: 8,  // 40% 点击率
+        dismissed: 12, // 60% 不想读率
+        recommendationsShown: 20 
+      },
+    }
+
+    const result = await decider.decideDailyStrategy(mixedBehaviorContext)
+
+    // 应该在两个因素之间取得平衡
+    expect(result.poolSize).toBeGreaterThanOrEqual(3)
+    expect(result.poolSize).toBeLessThanOrEqual(15)
+  })
+})
+
+describe('getCachedDecision 边界测试', () => {
+  let decider: AIPoolStrategyDecider
+  
+  beforeEach(() => {
+    vi.clearAllMocks()
+    decider = new AIPoolStrategyDecider()
+    mockStorageGet.mockResolvedValue({})
+    mockStorageSet.mockResolvedValue(undefined)
+    mockStorageRemove.mockResolvedValue(undefined)
+  })
+  
+  it('应该处理存储读取错误', async () => {
+    mockStorageGet.mockRejectedValue(new Error('Storage error'))
+
+    const result = await decider.getCachedDecision()
+
+    expect(result).toBeNull()
+  })
+  
+  it('应该正确使用内存缓存', async () => {
+    const today = new Date().toISOString().split('T')[0]
+    const cachedDecision: AIPoolDecision = {
+      poolSize: 8,
+      minInterval: 30 * 60 * 1000,
+      maxDailyRefills: 6,
+      triggerThreshold: 0.3,
+      reasoning: '缓存的决策',
+      confidence: 0.8,
+    }
+
+    // 第一次从存储加载
+    mockStorageGet.mockResolvedValue({
+      pool_strategy_decision: {
+        date: today,
+        decision: cachedDecision,
+      },
+    })
+
+    const result1 = await decider.getCachedDecision()
+    expect(result1).toEqual(cachedDecision)
+    
+    // 第二次应该使用内存缓存，不再查询存储
+    mockStorageGet.mockClear()
+    const result2 = await decider.getCachedDecision()
+    expect(result2).toEqual(cachedDecision)
+    expect(mockStorageGet).not.toHaveBeenCalled()
+  })
+})
