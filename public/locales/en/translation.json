@@ -630,9 +630,9 @@
       "funnelCandidateRate": "Candidate Rate",
       "funnelRssToPool": "Feed → Recommendation Pool",
       "funnelPoolToRead": "Recommendation Pool → Read",
-      "funnelRssToPrescreened": "RSS → Pre-screened",
+      "funnelRssToPrescreened": "Feed → Pre-screened",
       "funnelAnalyzedToCandidate": "Analyzed → Candidate",
-      "funnelRssToRecommended": "RSS → Recommended",
+      "funnelRssToRecommended": "Feed → Recommended",
       "funnelRecommendedToRead": "Recommended → Read",
       "aiUsage": {
         "title": "AI Usage Statistics",

@@ -1415,13 +1415,6 @@ export function CollectionStats() {
                         : _("options.collectionStats.funnelDismissedDesc")
                       }
                     </div>
-                    {/* 关系指示：不想读 ⊂ 推荐 */}
-                    <div className="mt-2 pt-2 border-t border-orange-200 dark:border-orange-700">
-                      <div className="flex items-center gap-2 text-xs text-orange-700 dark:text-orange-300">
-                        <span className="inline-block w-2 h-2 rounded-full bg-lime-400"></span>
-                        <span>{_("options.collectionStats.funnelDismissedFrom")}</span>
-                      </div>
-                    </div>
                   </div>
                 </div>
               </div>
