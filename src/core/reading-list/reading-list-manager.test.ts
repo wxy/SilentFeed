@@ -210,6 +210,7 @@ describe('ReadingListManager', () => {
       expect(db.recommendations.update).toHaveBeenCalledWith(mockRecommendation.id, {
         savedToReadingList: true,
         savedAt: expect.any(Number),
+        feedback: 'later',  // Phase 14: 标记为"稍后读"
       })
     })
 

@@ -12,6 +12,7 @@ import {
   unsubscribeFeed,
   clearAllRecommendations,
   cleanupExpiredArticles,
+  cleanupExpiredRecommendations,
   processBatches,
   withRetry
 } from './transactions'
@@ -438,6 +439,116 @@ describe('数据库事务 - 数据清理', () => {
 
       const feed = await db.discoveredFeeds.get('feed-1')
       expect(feed?.articleCount).toBe(1)
+    })
+  })
+
+  describe('cleanupExpiredRecommendations', () => {
+    it('应该删除过期的已消费推荐', async () => {
+      const now = Date.now()
+      const sixtyDaysAgo = now - 60 * 24 * 60 * 60 * 1000
+
+      // 创建测试文章
+      await db.feedArticles.bulkAdd([
+        createTestArticle({
+          id: 'article-1',
+          link: 'https://example.com/1',
+          published: now
+        }),
+        createTestArticle({
+          id: 'article-2',
+          link: 'https://example.com/2',
+          published: now
+        })
+      ])
+
+      // 创建推荐记录
+      await db.recommendations.bulkAdd([
+        // 过期且已读 - 应删除
+        createTestRecommendation({
+          id: 'rec-old-read',
+          url: 'https://example.com/1',
+          recommendedAt: sixtyDaysAgo,
+          isRead: true
+        }),
+        // 过期且已拒绝 - 应删除
+        createTestRecommendation({
+          id: 'rec-old-dismissed',
+          url: 'https://example.com/2',
+          recommendedAt: sixtyDaysAgo,
+          feedback: 'dismissed'
+        }),
+        // 新的未读 - 应保留
+        createTestRecommendation({
+          id: 'rec-new-unread',
+          url: 'https://example.com/1',
+          recommendedAt: now,
+          isRead: false
+        })
+      ])
+
+      const result = await cleanupExpiredRecommendations(45)
+
+      expect(result.expiredDeleted).toBe(2)
+      expect(result.orphanDeleted).toBe(0)
+
+      const remaining = await db.recommendations.toArray()
+      expect(remaining).toHaveLength(1)
+      expect(remaining[0].id).toBe('rec-new-unread')
+    })
+
+    it('应该删除孤儿推荐记录', async () => {
+      const now = Date.now()
+
+      // 只创建推荐，不创建文章（模拟孤儿记录）
+      await db.recommendations.add(
+        createTestRecommendation({
+          id: 'rec-orphan',
+          url: 'https://example.com/deleted-article',
+          recommendedAt: now,
+          isRead: false
+        })
+      )
+
+      const result = await cleanupExpiredRecommendations(45)
+
+      expect(result.expiredDeleted).toBe(0)
+      expect(result.orphanDeleted).toBe(1)
+
+      const remaining = await db.recommendations.toArray()
+      expect(remaining).toHaveLength(0)
+    })
+
+    it('应该保留未消费的活跃推荐', async () => {
+      const now = Date.now()
+      const sixtyDaysAgo = now - 60 * 24 * 60 * 60 * 1000
+
+      // 创建文章
+      await db.feedArticles.add(
+        createTestArticle({
+          id: 'article-1',
+          link: 'https://example.com/1',
+          published: sixtyDaysAgo
+        })
+      )
+
+      // 创建过期但未消费的推荐 - 应保留
+      await db.recommendations.add(
+        createTestRecommendation({
+          id: 'rec-old-active',
+          url: 'https://example.com/1',
+          recommendedAt: sixtyDaysAgo,
+          isRead: false,
+          feedback: undefined
+        })
+      )
+
+      const result = await cleanupExpiredRecommendations(45)
+
+      expect(result.expiredDeleted).toBe(0)
+      expect(result.orphanDeleted).toBe(0)
+
+      const remaining = await db.recommendations.toArray()
+      expect(remaining).toHaveLength(1)
     })
   })
 })

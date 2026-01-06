@@ -41,6 +41,7 @@ import {
 import { syncSystemStats } from '@/storage/system-stats'
 import { getStrategyDecider, collectDailyUsageContext } from './core/recommender/pool-strategy-decider'
 import { getRefillManager } from './core/recommender/pool-refill-policy'
+import { cleanupExpiredArticles, cleanupExpiredRecommendations } from '@/storage/transactions'
 
 const bgLogger = logger.withTag('Background')
 
@@ -377,6 +378,13 @@ chrome.runtime.onInstalled.addListener(async () => {
     chrome.alarms.create('cleanup-tracking-data', {
       delayInMinutes: 30, // 启动 30 分钟后首次执行
       periodInMinutes: 60 // 每小时
+    })
+    
+    // Phase 14: 创建每周数据清理定时器（清理过期文章和推荐）
+    bgLogger.info('创建每周数据清理定时器...')
+    chrome.alarms.create('weekly-data-cleanup', {
+      delayInMinutes: 120, // 启动 2 小时后首次执行
+      periodInMinutes: 7 * 24 * 60 // 每 7 天
     })
     
     // Phase 12.7: 数据迁移 - 为旧推荐补充 status 字段
@@ -1239,6 +1247,10 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       bgLogger.info('开始清理过期追踪数据...')
       const cleaned = await cleanupAggregatedTrackingData()
       bgLogger.info(`✅ 清理了 ${cleaned} 条过期追踪数据`)
+    } else if (alarm.name === 'weekly-data-cleanup') {
+      // Phase 14: 每周数据清理
+      bgLogger.info('开始每周数据清理...')
+      await weeklyDataCleanup()
     } else if (alarm.name === 'daily-pool-strategy') {
       // 🆕 每日推荐池策略生成
       bgLogger.info('开始每日推荐池策略生成...')
@@ -1394,5 +1406,42 @@ async function dailyProfileUpdate(): Promise<void> {
     bgLogger.info(`✅ 每日画像更新完成，耗时 ${(duration / 1000).toFixed(1)} 秒`)
   } catch (error) {
     bgLogger.error('❌ 每日画像更新失败:', error)
+  }
+}
+
+/**
+ * Phase 14: 每周数据清理
+ * 
+ * 策略：
+ * 1. 清理过期文章（超过 45 天的文章）
+ * 2. 清理过期推荐记录（已消费且超过 45 天的推荐）
+ * 3. 清理孤儿推荐记录（对应文章已删除）
+ * 
+ * 保留策略：
+ * - 未消费的活跃推荐始终保留（不论时间）
+ * - 已标记重要的文章保留更长时间
+ */
+async function weeklyDataCleanup(): Promise<void> {
+  try {
+    const RETENTION_DAYS = 45 // 保留 45 天
+    
+    bgLogger.info(`🧹 开始每周数据清理（保留 ${RETENTION_DAYS} 天内的数据）...`)
+    const startTime = Date.now()
+    
+    // 1. 清理过期文章
+    bgLogger.info('  📰 清理过期文章...')
+    await cleanupExpiredArticles(RETENTION_DAYS)
+    
+    // 2. 清理过期推荐记录
+    bgLogger.info('  📋 清理过期推荐记录...')
+    const recCleanupResult = await cleanupExpiredRecommendations(RETENTION_DAYS)
+    
+    const duration = Date.now() - startTime
+    bgLogger.info(`✅ 每周数据清理完成，耗时 ${(duration / 1000).toFixed(1)} 秒`, {
+      过期推荐: recCleanupResult.expiredDeleted,
+      孤儿推荐: recCleanupResult.orphanDeleted
+    })
+  } catch (error) {
+    bgLogger.error('❌ 每周数据清理失败:', error)
   }
 }

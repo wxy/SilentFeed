@@ -405,94 +405,296 @@ export async function getRSSArticleCount(): Promise<number> {
  * 推荐筛选漏斗统计
  * Phase 10.3: 重构漏斗数据结构
  * Phase 13+: 基于多池架构重新设计
+ * Phase 14: 混合数据源 + 动态指标分离
+ * Phase 14.1: 修正数据恒等式
+ * Phase 14.2: 支持筛选当前 XML 中的文章
  * 
- * 漏斗层级（基于 feedArticles 表的 poolStatus）：
- * - rssArticles: RSS 累计抓取的文章总数（feedArticles 表所有记录）
- * - prescreened: 通过初筛的文章数（raw + analyzed + candidate + recommended + exited with recommendation）
- * - analyzed: 已深度分析的文章数（analyzed-not-qualified + candidate + recommended + exited with analysis）
- * - candidate: 进入候选池的文章数（candidate + recommended + exited from candidate/recommended）
- * - recommended: 推荐给用户的文章数（recommended + exited from recommended）
- * - read: 用户已阅读数
+ * 数据恒等式（必须成立）：
+ * - rssArticles = raw + prescreenedOut + analyzed
+ * - analyzed = analyzedNotQualified + candidateEver（曾进入候选池的）
+ * - candidateEver = currentCandidate + currentRecommended + exitedFromPool
  * 
- * 侧边数据：
- * - learningPages: 学习页面总数（用户浏览学习）
- * - dismissed: 不想读总数
+ * 漏斗层级（累计统计，递减）：
+ * - rssArticles: RSS 累计抓取的文章总数
+ * - analyzed: 已深度分析的文章数（= 总数 - raw - prescreenedOut）
+ * - candidate: 曾进入候选池的文章数（有 candidatePoolAddedAt 时间戳）
+ * - recommended: 曾进入推荐池的文章数（有 recommendedPoolAddedAt 时间戳）
+ * - read: 用户已阅读数（poolExitReason = 'read'）
+ * 
+ * @param currentFeedOnly - 是否只统计当前还在 RSS XML 中的文章（默认 true）
  */
-export async function getRecommendationFunnel(): Promise<{
+export async function getRecommendationFunnel(currentFeedOnly: boolean = true): Promise<{
+  // 漏斗层（累计统计）
   rssArticles: number
-  prescreened: number
   analyzed: number
   candidate: number
   recommended: number
-  read: number
+  // 右侧卡片（状态/动态指标）
+  prescreenedOut: number
+  raw: number
+  analyzedNotQualified: number
+  currentRecommendedPool: number
+  recommendedPoolCapacity: number
+  currentPopupCount: number
+  popupCapacity: number
+  exitStats: {
+    total: number
+    read: number
+    saved: number
+    disliked: number
+    unread: number  // 未读（被替换/过期出去但无交互）
+    replaced: number
+    expired: number
+  }
   learningPages: number
+  // 筛选信息
+  currentFeedOnly: boolean
+  currentFeedArticleCount: number
+  totalArticleCount: number
+  // 兼容旧字段（将被弃用）
+  prescreened: number
   dismissed: number
 }> {
   try {
-    // 获取所有文章（基于 feedArticles 表）
-    const allArticles = await db.feedArticles.toArray()
+    // ===== 获取已订阅源信息 =====
+    const allFeeds = await db.discoveredFeeds.toArray()
+    const subscribedFeeds = allFeeds.filter(f => f.status === 'subscribed')
+    const subscribedFeedIds = new Set(subscribedFeeds.map(f => f.id))
+    
+    // ===== 数据源 1: feedArticles（文章池状态）=====
+    const allArticlesRaw = await db.feedArticles.toArray()
+    
+    // 已订阅源的文章
+    const subscribedFeedArticles = allArticlesRaw.filter(a => subscribedFeedIds.has(a.feedId))
+    
+    // 根据参数决定统计范围
+    // currentFeedOnly=true → 只统计已订阅源的文章
+    // currentFeedOnly=false → 统计文章池全部文章
+    const allArticles = currentFeedOnly ? subscribedFeedArticles : allArticlesRaw
+    
     const rssArticlesCount = allArticles.length
     
-    // 通过初筛的文章（不是 prescreened-out 的）
-    const prescreenedCount = allArticles.filter(a => 
-      a.poolStatus && a.poolStatus !== 'prescreened-out'
+    // ===== 基础状态统计（互斥，总和 = rssArticles）=====
+    
+    // 初筛淘汰（累计）
+    const prescreenedOutCount = allArticles.filter(a => 
+      a.poolStatus === 'prescreened-out'
     ).length
     
-    // 已深度分析的文章（有 analysis 字段或状态在分析后阶段）
-    const analyzedCount = allArticles.filter(a => 
-      a.poolStatus === 'analyzed-not-qualified' ||
-      a.poolStatus === 'candidate' ||
-      a.poolStatus === 'recommended' ||
-      (a.poolStatus === 'exited' && a.analysisScore !== undefined) ||
-      a.analysis !== undefined
+    // 待分析（当前 raw 状态或无状态）
+    const rawCount = allArticles.filter(a => 
+      a.poolStatus === 'raw' || !a.poolStatus
     ).length
     
-    // 进入过候选池的文章（当前在候选池或推荐池，或已退出但曾在候选池/推荐池）
-    const candidateCount = allArticles.filter(a =>
-      a.poolStatus === 'candidate' ||
-      a.poolStatus === 'recommended' ||
-      (a.poolStatus === 'exited' && (a.candidatePoolAddedAt || a.recommendedPoolAddedAt)) ||
-      // 向后兼容：旧字段判断
-      a.recommended === true
+    // 分析未达标（累计）- 分析后分数不够，未进入候选池
+    const analyzedNotQualifiedCount = allArticles.filter(a =>
+      a.poolStatus === 'analyzed-not-qualified'
     ).length
     
-    // 推荐给用户的文章数（当前在推荐池或曾被推荐）
-    const recommendedCount = allArticles.filter(a =>
-      a.poolStatus === 'recommended' ||
-      (a.poolStatus === 'exited' && a.recommendedPoolAddedAt) ||
-      // 向后兼容
-      a.recommended === true
+    // 当前在候选池
+    const currentCandidateCount = allArticles.filter(a =>
+      a.poolStatus === 'candidate'
     ).length
     
-    // 用户已阅读数
-    const readCount = allArticles.filter(a => a.read === true).length
+    // 当前在推荐池（动态）
+    const currentRecommendedPoolCount = allArticles.filter(a =>
+      a.poolStatus === 'recommended'
+    ).length
     
-    // 用户不想读数
-    const dismissedCount = allArticles.filter(a => a.disliked === true).length
+    // ===== 基于时间戳的历史统计（更可靠）=====
+    
+    // 曾进入候选池的文章（有 candidatePoolAddedAt 时间戳）
+    const everInCandidatePool = allArticles.filter(a => a.candidatePoolAddedAt)
+    
+    // 曾进入推荐池的文章（有 recommendedPoolAddedAt 时间戳）
+    const everInRecommendedPool = allArticles.filter(a => a.recommendedPoolAddedAt)
+    
+    // ===== 退出文章分类 =====
+    const exitedArticles = allArticles.filter(a => a.poolStatus === 'exited')
+    
+    // feedArticles 退出统计（按 poolExitReason）
+    const feedExitStats = {
+      total: exitedArticles.length,
+      byReason: {
+        read: exitedArticles.filter(a => a.poolExitReason === 'read').length,
+        saved: exitedArticles.filter(a => a.poolExitReason === 'saved').length,
+        disliked: exitedArticles.filter(a => a.poolExitReason === 'disliked').length,
+        replaced: exitedArticles.filter(a => a.poolExitReason === 'replaced').length,
+        expired: exitedArticles.filter(a => a.poolExitReason === 'expired').length,
+        other: exitedArticles.filter(a => 
+          !a.poolExitReason || 
+          !['read', 'saved', 'disliked', 'replaced', 'expired'].includes(a.poolExitReason)
+        ).length
+      }
+    }
+    
+    // ===== 数据源 2: recommendations（当前推荐记录）=====
+    // 用于"当前弹窗"等动态指标
+    const allRecommendations = await db.recommendations.toArray()
+    
+    // 当前弹窗显示数量（动态：活跃且未读的推荐）
+    const currentPopupCount = allRecommendations.filter(r => 
+      (!r.status || r.status === 'active') && 
+      !r.isRead && 
+      r.feedback !== 'dismissed'
+    ).length
+    
+    // recommendations 表统计（用于对比）
+    const recsTableStats = {
+      total: allRecommendations.length,
+      uniqueUrls: new Set(allRecommendations.map(r => r.url)).size,
+      read: allRecommendations.filter(r => r.isRead === true).length,
+      dismissed: allRecommendations.filter(r => r.feedback === 'dismissed' || r.status === 'dismissed').length,
+      later: allRecommendations.filter(r => r.feedback === 'later').length,
+      currentPopup: currentPopupCount
+    }
+    
+    // ===== 漏斗层计算（全部基于 feedArticles 表）=====
+    
+    // analyzed = 总数 - raw - prescreenedOut
+    const analyzedCount = rssArticlesCount - rawCount - prescreenedOutCount
+    
+    // candidate = 曾进入候选池的文章数（直接用时间戳统计，最准确）
+    const candidateCount = everInCandidatePool.length
+    
+    // recommended = 曾进入推荐池的文章数（直接用时间戳统计，最准确）
+    const recommendedCount = everInRecommendedPool.length
+    
+    // 退出统计（基于 feedArticles 表）
+    // 统计从推荐池退出的文章（有 recommendedPoolAddedAt 且已退出）
+    const exitedFromRecommendedPool = everInRecommendedPool.filter(a => a.poolStatus === 'exited')
+    
+    // 各类退出原因统计
+    const exitReadCount = exitedFromRecommendedPool.filter(a => a.poolExitReason === 'read').length
+    const exitSavedCount = exitedFromRecommendedPool.filter(a => a.poolExitReason === 'saved').length
+    const exitDislikedCount = exitedFromRecommendedPool.filter(a => a.poolExitReason === 'disliked').length
+    const exitReplacedCount = exitedFromRecommendedPool.filter(a => a.poolExitReason === 'replaced').length
+    const exitExpiredCount = exitedFromRecommendedPool.filter(a => a.poolExitReason === 'expired').length
+    // 未读 = 退出总数 - 已读 - 稍后 - 不想（被替换/过期但无用户交互的）
+    const exitUnreadCount = exitedFromRecommendedPool.length - exitReadCount - exitSavedCount - exitDislikedCount
+    
+    const exitStats = {
+      total: exitedFromRecommendedPool.length,
+      read: exitReadCount,
+      saved: exitSavedCount,
+      disliked: exitDislikedCount,
+      unread: exitUnreadCount,
+      replaced: exitReplacedCount,
+      expired: exitExpiredCount
+    }
+    
+    // ===== 调试日志：输出完整漏斗数据 =====
+    dbLogger.info('📊 漏斗数据统计:', {
+      // 筛选条件
+      '筛选': {
+        currentFeedOnly,
+        subscribedFeeds: subscribedFeeds.length,
+        subscribedFeedArticles: subscribedFeedArticles.length,
+        totalArticles: allArticlesRaw.length,
+        filteredArticles: allArticles.length
+      },
+      // 漏斗层（递减，全部基于 feedArticles）
+      '漏斗层': {
+        rssArticles: rssArticlesCount,
+        analyzed: analyzedCount,
+        candidate: candidateCount,
+        recommended: recommendedCount
+      },
+      // feedArticles 状态分布
+      'feedArticles状态': {
+        raw: rawCount,
+        prescreenedOut: prescreenedOutCount,
+        analyzedNotQualified: analyzedNotQualifiedCount,
+        currentCandidate: currentCandidateCount,
+        currentRecommended: currentRecommendedPoolCount,
+        exited: feedExitStats.total
+      },
+      // 基于时间戳的历史统计
+      '历史统计(时间戳)': {
+        everInCandidatePool: everInCandidatePool.length,
+        everInRecommendedPool: everInRecommendedPool.length,
+        exitedFromRecommendedPool: exitedFromRecommendedPool.length
+      },
+      // 退出统计详情
+      '退出统计': exitStats,
+      // recommendations 表统计（当前数据，用于对比）
+      'recommendations表(当前)': recsTableStats,
+      // 恒等式验证
+      '恒等式检查': {
+        'rss = raw + prescreenedOut + analyzed': `${rssArticlesCount} = ${rawCount} + ${prescreenedOutCount} + ${analyzedCount} (${rssArticlesCount === rawCount + prescreenedOutCount + analyzedCount ? '✓' : '✗'})`,
+        'candidate(时间戳) vs analyzed-notQualified': `${candidateCount} vs ${analyzedCount - analyzedNotQualifiedCount}`,
+        'recommended <= candidate': `${recommendedCount} <= ${candidateCount} (${recommendedCount <= candidateCount ? '✓' : '✗'})`,
+        'exitTotal = read+saved+disliked+unread': `${exitStats.total} = ${exitStats.read}+${exitStats.saved}+${exitStats.disliked}+${exitStats.unread} (${exitStats.total === exitStats.read + exitStats.saved + exitStats.disliked + exitStats.unread ? '✓' : '✗'})`
+      }
+    })
+    
+    // 验证漏斗递减: recommended <= candidate
+    if (recommendedCount > candidateCount) {
+      dbLogger.warn('漏斗递减约束不成立: recommended > candidate', {
+        candidate: candidateCount,
+        recommended: recommendedCount
+      })
+    }
     
     // 统计学习页面数
     const learningPagesCount = await db.confirmedVisits.count()
     
+    // 获取配置（推荐池容量和弹窗容量）
+    let recommendedPoolCapacity = 6  // 默认值
+    let popupCapacity = 3            // 默认值
+    try {
+      const { getRecommendationConfig } = await import('@/storage/recommendation-config')
+      const config = await getRecommendationConfig()
+      popupCapacity = config.maxRecommendations || 3
+      recommendedPoolCapacity = popupCapacity * 2
+    } catch {
+      // 使用默认值
+    }
+    
     return {
+      // 漏斗层（累计统计，全部基于 feedArticles，到 recommended 为止）
       rssArticles: rssArticlesCount,
-      prescreened: prescreenedCount,
       analyzed: analyzedCount,
       candidate: candidateCount,
       recommended: recommendedCount,
-      read: readCount,
+      // 右侧卡片（状态/动态指标）
+      prescreenedOut: prescreenedOutCount,
+      raw: rawCount,
+      analyzedNotQualified: analyzedNotQualifiedCount,
+      currentRecommendedPool: currentRecommendedPoolCount,
+      recommendedPoolCapacity,
+      currentPopupCount,
+      popupCapacity,
+      exitStats,
       learningPages: learningPagesCount,
-      dismissed: dismissedCount
+      // 筛选信息
+      currentFeedOnly,
+      currentFeedArticleCount: subscribedFeedArticles.length,
+      totalArticleCount: allArticlesRaw.length,
+      // 兼容旧字段
+      prescreened: analyzedCount, // 旧字段映射到 analyzed
+      dismissed: recsTableStats.dismissed // 当前不想读数（从 recommendations 表）
     }
   } catch (error) {
     dbLogger.error('获取推荐漏斗统计失败:', error)
     return {
       rssArticles: 0,
-      prescreened: 0,
       analyzed: 0,
       candidate: 0,
       recommended: 0,
-      read: 0,
+      prescreenedOut: 0,
+      raw: 0,
+      analyzedNotQualified: 0,
+      currentRecommendedPool: 0,
+      recommendedPoolCapacity: 6,
+      currentPopupCount: 0,
+      popupCapacity: 3,
+      exitStats: { total: 0, read: 0, saved: 0, disliked: 0, unread: 0, replaced: 0, expired: 0 },
       learningPages: 0,
+      currentFeedOnly: false,
+      currentFeedArticleCount: 0,
+      totalArticleCount: 0,
+      prescreened: 0,
       dismissed: 0
     }
   }

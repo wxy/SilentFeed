@@ -115,7 +115,32 @@ export class ReadingListManager {
       await db.recommendations.update(recommendation.id, {
         savedToReadingList: true,
         savedAt: Date.now(),
+        feedback: 'later',  // Phase 14: 标记为"稍后读"
       })
+      
+      // Phase 14: 同步更新 feedArticles 表中的文章状态
+      try {
+        const article = await db.feedArticles
+          .where('link').equals(recommendation.url)
+          .first()
+        
+        if (article) {
+          const now = Date.now()
+          await db.feedArticles.update(article.id, {
+            // 移出推荐池（用户已处理）
+            poolStatus: 'exited',
+            poolExitedAt: now,
+            poolExitReason: 'saved',
+            // 旧字段兼容
+            inPool: false,
+            poolRemovedAt: now,
+            poolRemovedReason: 'saved' as any,  // 旧类型不支持 saved，但保留兼容
+          })
+          rlLogger.debug('已同步更新文章状态', { articleId: article.id })
+        }
+      } catch (syncError) {
+        rlLogger.warn('同步更新 feedArticles 失败（不影响主功能）:', syncError)
+      }
       
       // 3. 统一追踪机制：预设追踪标记
       // 用途：30秒验证时识别"来自阅读列表"
@@ -156,7 +181,28 @@ export class ReadingListManager {
         await db.recommendations.update(recommendation.id, {
           savedToReadingList: true,
           savedAt: Date.now(),
+          feedback: 'later',  // Phase 14: 标记为"稍后读"
         })
+        
+        // Phase 14: 同步更新 feedArticles
+        try {
+          const article = await db.feedArticles
+            .where('link').equals(recommendation.url)
+            .first()
+          
+          if (article) {
+            const now = Date.now()
+            await db.feedArticles.update(article.id, {
+              poolStatus: 'exited',
+              poolExitedAt: now,
+              poolExitReason: 'saved',
+              inPool: false,
+              poolRemovedAt: now,
+            })
+          }
+        } catch (syncError) {
+          rlLogger.warn('同步更新 feedArticles 失败:', syncError)
+        }
         
         return true
       }
