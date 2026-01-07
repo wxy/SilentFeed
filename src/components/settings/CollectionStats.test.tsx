@@ -88,7 +88,8 @@ describe('CollectionStats 渲染', () => {
   it('空数据时应显示学习概览与零值', async () => {
     render(<CollectionStats />)
     expect(await screen.findByText('options.collectionStats.aiLearningOverview')).toBeDefined()
-    expect(screen.getByText('0')).toBeDefined()
+    // 页面上可能有多个 '0'，使用 getAllByText 确认至少存在一个
+    expect(screen.getAllByText('0').length).toBeGreaterThan(0)
   })
 
   it('部分缺失字段时应容错渲染', async () => {

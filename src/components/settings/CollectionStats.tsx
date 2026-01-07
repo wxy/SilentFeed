@@ -637,6 +637,8 @@ export function CollectionStats() {
                           'generate-profile': _("options.collectionStats.aiUsage.byPurpose.generateProfile"),
                           'analyze-source': _("options.collectionStats.aiUsage.byPurpose.analyzeSource"),
                           'strategy-decision': _("options.collectionStats.aiUsage.byPurpose.strategyDecision"),
+                          'pool-strategy-decision': _("options.collectionStats.aiUsage.byPurpose.poolStrategyDecision"),
+                          'feed-prescreening': _("options.collectionStats.aiUsage.byPurpose.feedPrescreening"),
                           'translate': _("options.collectionStats.aiUsage.byPurpose.translate"),
                           'test-connection': _("options.collectionStats.aiUsage.byPurpose.testConnection"),
                           'other': _("options.collectionStats.aiUsage.byPurpose.other")

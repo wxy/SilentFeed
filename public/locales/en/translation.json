@@ -683,6 +683,8 @@
           "generateProfile": "👤 Profile Generation",
           "analyzeSource": "📡 Feed Analysis",
           "strategyDecision": "🎲 Strategy Decision",
+          "poolStrategyDecision": "🎯 Pool Strategy Decision",
+          "feedPrescreening": "🔍 Feed Pre-screening",
           "translate": "🌐 Translation",
           "testConnection": "🔗 Connection Test",
           "other": "📦 Other",
@@ -1356,7 +1358,8 @@
         "title": "Monthly Budget Overview",
         "description": "View budget usage of all AI service providers by currency",
         "noBudgetSet": "No budget set",
-        "setBudgetHint": "Set the monthly budget in the configuration of the AI card above."
+        "setBudgetHint": "Set the monthly budget in the configuration of the AI card above.",
+        "noBudgetLimit": "No budget limit set"
       }
     },
     "rssManager": {
