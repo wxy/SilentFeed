@@ -17,13 +17,31 @@ vi.mock('@/storage/db', () => ({
   })),
   getPageCount: vi.fn(async () => 0),
   getRecommendationFunnel: vi.fn(async () => ({
+    // 漏斗层（累计统计）
     rssArticles: 0,
-    prescreened: 0,
     analyzed: 0,
     candidate: 0,
     recommended: 0,
     read: 0,
+    // 右侧卡片（状态/动态指标）
+    prescreenedOut: 0,
+    raw: 0,
+    analyzedNotQualified: 0,
+    currentRecommendedPool: 0,
+    recommendedPoolCapacity: 6,
+    currentPopupCount: 0,
+    popupCapacity: 3,
+    exitStats: {
+      total: 0,
+      read: 0,
+      saved: 0,
+      disliked: 0,
+      replaced: 0,
+      expired: 0
+    },
     learningPages: 0,
+    // 兼容旧字段
+    prescreened: 0,
     dismissed: 0,
   })),
   getFeedStats: vi.fn(async () => []),
@@ -70,7 +88,8 @@ describe('CollectionStats 渲染', () => {
   it('空数据时应显示学习概览与零值', async () => {
     render(<CollectionStats />)
     expect(await screen.findByText('options.collectionStats.aiLearningOverview')).toBeDefined()
-    expect(screen.getByText('0')).toBeDefined()
+    // 页面上可能有多个 '0'，使用 getAllByText 确认至少存在一个
+    expect(screen.getAllByText('0').length).toBeGreaterThan(0)
   })
 
   it('部分缺失字段时应容错渲染', async () => {
@@ -95,13 +114,31 @@ describe('CollectionStats 渲染', () => {
       avgDailyPages: 3.2,
     })
     ;(getRecommendationFunnel as any).mockResolvedValueOnce({
+      // 漏斗层（累计统计）
       rssArticles: 42,
-      prescreened: 35,
       analyzed: 30,
       candidate: 25,
       recommended: 22,
       read: 8,
+      // 右侧卡片（状态/动态指标）
+      prescreenedOut: 5,
+      raw: 7,
+      analyzedNotQualified: 5,
+      currentRecommendedPool: 4,
+      recommendedPoolCapacity: 6,
+      currentPopupCount: 2,
+      popupCapacity: 3,
+      exitStats: {
+        total: 10,
+        read: 5,
+        saved: 2,
+        disliked: 1,
+        replaced: 1,
+        expired: 1
+      },
       learningPages: 5,
+      // 兼容旧字段
+      prescreened: 35,
       dismissed: 1,
     })
     render(<CollectionStats />)

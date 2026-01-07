@@ -590,7 +590,10 @@ export {
   // Phase 13: 多池架构迁移
   migrateToPoolStatus,
   needsPhase13Migration,
-  runPhase13Migration
+  runPhase13Migration,
+  // Phase 14.3: Stale 状态迁移
+  needsStaleMigration,
+  runStaleMigration
 } from './db-migration'
 
 // 统计查询模块（待拆分）

@@ -648,3 +648,118 @@ export async function runPhase13Migration(): Promise<boolean> {
     return false
   }
 }
+
+// ================ Phase 14.3: Stale 状态迁移 ================
+
+/**
+ * 检查是否需要运行 Stale 状态迁移
+ * 将 inFeed=false 且 poolStatus='raw' 的文章迁移为 'stale'
+ */
+export async function needsStaleMigration(): Promise<boolean> {
+  try {
+    // 1. 检查迁移标记
+    const settings = await db.settings.get('singleton')
+    if (settings?.migrations?.staleMigrationCompleted === true) {
+      return false
+    }
+    
+    // 2. 检查是否有文章数据
+    const articleCount = await db.feedArticles.count()
+    if (articleCount === 0) {
+      await markStaleMigrationCompleted()
+      return false
+    }
+    
+    // 3. 采样检查是否有需要迁移的文章
+    const staleArticles = await db.feedArticles
+      .filter(a => 
+        (a.poolStatus === 'raw' || !a.poolStatus) && 
+        a.inFeed === false
+      )
+      .limit(5)
+      .toArray()
+    
+    if (staleArticles.length > 0) {
+      migrationLogger.info(`检测到 ${staleArticles.length}+ 篇已出源的 raw 文章需要迁移为 stale`)
+      return true
+    }
+    
+    // 全部检查通过，标记迁移完成
+    await markStaleMigrationCompleted()
+    return false
+    
+  } catch (error) {
+    migrationLogger.error('检查 Stale 迁移需求失败:', error)
+    return false
+  }
+}
+
+/**
+ * 标记 Stale 迁移完成
+ */
+async function markStaleMigrationCompleted(): Promise<void> {
+  const settings = await db.settings.get('singleton')
+  const existingMigrations = settings?.migrations || {}
+  await db.settings.update('singleton', {
+    migrations: {
+      ...existingMigrations,
+      staleMigrationCompleted: true
+    }
+  })
+}
+
+/**
+ * 运行 Stale 状态迁移
+ * 将 inFeed=false 且 poolStatus='raw'（或无状态）的文章改为 'stale'
+ */
+export async function runStaleMigration(): Promise<boolean> {
+  try {
+    migrationLogger.info('🔄 开始 Stale 状态迁移...')
+    
+    // 查找所有需要迁移的文章
+    const articlesToMigrate = await db.feedArticles
+      .filter(a => 
+        (a.poolStatus === 'raw' || !a.poolStatus) && 
+        a.inFeed === false
+      )
+      .toArray()
+    
+    migrationLogger.info(`📊 找到 ${articlesToMigrate.length} 篇需要迁移为 stale 的文章`)
+    
+    if (articlesToMigrate.length === 0) {
+      await markStaleMigrationCompleted()
+      return true
+    }
+    
+    // 批量更新
+    let migratedCount = 0
+    const batchSize = 100
+    
+    for (let i = 0; i < articlesToMigrate.length; i += batchSize) {
+      const batch = articlesToMigrate.slice(i, i + batchSize)
+      
+      await db.transaction('rw', db.feedArticles, async () => {
+        for (const article of batch) {
+          await db.feedArticles.update(article.id, {
+            poolStatus: 'stale'
+          })
+          migratedCount++
+        }
+      })
+      
+      if (migratedCount % 500 === 0 || migratedCount === articlesToMigrate.length) {
+        migrationLogger.info(`📝 Stale 迁移进度: ${migratedCount}/${articlesToMigrate.length}`)
+      }
+    }
+    
+    // 标记迁移完成
+    await markStaleMigrationCompleted()
+    migrationLogger.info(`✅ Stale 迁移完成！共迁移 ${migratedCount} 篇文章`)
+    
+    return true
+    
+  } catch (error) {
+    migrationLogger.error('❌ Stale 迁移失败:', error)
+    return false
+  }
+}

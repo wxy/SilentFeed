@@ -156,15 +156,22 @@ export async function updateFeedWithArticles(
       // 2. 构建新文章的 URL 集合（用于快速查找）
       const newArticleUrls = new Set(newArticles.map(a => a.link))
       
-      // 3. 标记不在新列表中的文章为 inFeed=false，并踢出推荐池
+      // 3. 标记不在新列表中的文章为 inFeed=false，并处理池状态
       for (const article of existingArticles) {
         if (!newArticleUrls.has(article.link) && article.inFeed !== false) {
           // 文章已从 RSS 源中移除
-          await db.feedArticles.update(article.id, {
+          const updates: Partial<FeedArticle> = {
             inFeed: false,
             inPool: false,  // 踢出推荐池
             metadataUpdatedAt: Date.now()
-          })
+          }
+          
+          // Phase 14.2: 如果文章是 raw 状态（未分析），标记为 stale（跳过分析）
+          if (article.poolStatus === 'raw' || !article.poolStatus) {
+            updates.poolStatus = 'stale'
+          }
+          
+          await db.feedArticles.update(article.id, updates)
           removedFromFeedCount++
           
           if (article.inPool === true) {
@@ -410,6 +417,76 @@ export async function cleanupExpiredArticles(retentionDays: number): Promise<voi
   )
 
   txLogger.info(`清理完成：删除 ${retentionDays} 天前的文章`)
+}
+
+/**
+ * 原子性清理过期推荐记录
+ * 
+ * Phase 14: 与文章清理同步，避免推荐表无限增长
+ * 
+ * 清理策略：
+ * 1. 删除超过保留期限的已消费推荐（已读/已拒绝/已保存）
+ * 2. 删除对应文章已不存在的推荐记录（孤儿记录）
+ * 3. 保留未消费的活跃推荐（不论时间）
+ * 
+ * @param retentionDays - 保留天数（针对已消费推荐）
+ * @returns 清理统计
+ */
+export async function cleanupExpiredRecommendations(retentionDays: number): Promise<{
+  expiredDeleted: number
+  orphanDeleted: number
+}> {
+  const cutoffTime = Date.now() - retentionDays * 24 * 60 * 60 * 1000
+  let expiredDeleted = 0
+  let orphanDeleted = 0
+
+  txLogger.debug('清理过期推荐（事务）', { 保留天数: retentionDays })
+
+  await db.transaction(
+    'rw',
+    [db.recommendations, db.feedArticles],
+    async () => {
+      const allRecommendations = await db.recommendations.toArray()
+      const idsToDelete: string[] = []
+      
+      // 获取所有现存文章的 URL 集合（用于检测孤儿记录）
+      const existingUrls = new Set(
+        (await db.feedArticles.toArray()).map(a => a.link)
+      )
+      
+      for (const rec of allRecommendations) {
+        // 策略 1：删除过期的已消费推荐
+        const isConsumed = rec.isRead || 
+                           rec.feedback === 'dismissed' || 
+                           rec.status === 'dismissed' ||
+                           rec.savedToReadingList
+        
+        if (isConsumed && rec.recommendedAt < cutoffTime) {
+          idsToDelete.push(rec.id!)
+          expiredDeleted++
+          continue
+        }
+        
+        // 策略 2：删除孤儿记录（对应文章已被删除）
+        if (!existingUrls.has(rec.url)) {
+          idsToDelete.push(rec.id!)
+          orphanDeleted++
+          continue
+        }
+      }
+      
+      // 批量删除
+      if (idsToDelete.length > 0) {
+        await db.recommendations.bulkDelete(idsToDelete)
+      }
+      
+      txLogger.debug(`✓ 删除 ${expiredDeleted} 条过期推荐，${orphanDeleted} 条孤儿推荐`)
+    }
+  )
+
+  txLogger.info(`推荐清理完成：${expiredDeleted} 条过期，${orphanDeleted} 条孤儿`)
+  
+  return { expiredDeleted, orphanDeleted }
 }
 
 // ============================================================================

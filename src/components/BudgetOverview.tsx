@@ -63,8 +63,8 @@ export function BudgetOverview() {
     const symbol = currency === 'USD' ? '$' : '¥'
     const providerName = currency === 'USD' ? 'OpenAI' : 'DeepSeek'
     
+    // 未设置预算且没有使用量时显示提示
     if (data.total === 0 && data.used === 0) {
-      // 未设置预算时显示提示
       return (
         <div key={currency} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600">
           <div className="flex items-center justify-between mb-2">
@@ -78,6 +78,26 @@ export function BudgetOverview() {
           <p className="text-xs text-gray-500 dark:text-gray-400">
             {_("options.aiConfig.budgetOverview.setBudgetHint")}
           </p>
+        </div>
+      )
+    }
+
+    // 有使用量但未设置预算限制的情况
+    if (data.total === 0 && data.used > 0) {
+      return (
+        <div key={currency} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {currency} ({providerName})
+            </span>
+            <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              {symbol}{data.used.toFixed(2)}
+            </span>
+          </div>
+          {/* 无预算限制提示 */}
+          <div className="text-xs text-amber-600 dark:text-amber-400">
+            {_("options.aiConfig.budgetOverview.noBudgetLimit")}
+          </div>
         </div>
       )
     }

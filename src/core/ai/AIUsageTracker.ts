@@ -18,6 +18,28 @@ import { getCurrentMonthRange } from '@/utils/date-utils'
 const usageLogger = logger.withTag("AIUsage")
 
 /**
+ * 解析 cost 字段的兼容性处理
+ * 旧格式：cost 是数字
+ * 新格式：cost 是对象 { input, output, total, currency, estimated }
+ */
+function parseCost(cost: any): { input: number; output: number; total: number; currency: 'CNY' | 'USD' | 'FREE' } {
+  if (typeof cost === 'number') {
+    // 旧格式：cost 直接是数字
+    return { input: 0, output: 0, total: cost, currency: 'CNY' }
+  } else if (cost && typeof cost === 'object') {
+    // 新格式：cost 是对象
+    return {
+      input: cost.input || 0,
+      output: cost.output || 0,
+      total: cost.total || 0,
+      currency: (cost.currency || 'CNY') as 'CNY' | 'USD' | 'FREE'
+    }
+  }
+  // 无效数据
+  return { input: 0, output: 0, total: 0, currency: 'CNY' }
+}
+
+/**
  * AI 用量追踪器
  */
 export class AIUsageTracker {
@@ -34,17 +56,17 @@ export class AIUsageTracker {
         timestamp: Date.now()
       }
       
-      await (db as any).aiUsage.add(fullRecord)
+      await db.aiUsage.add(fullRecord)
       
-      usageLogger.info("📊 AI 用量已记录", {
+      usageLogger.debug("📊 AI 用量已记录", {
         provider: record.provider,
         purpose: record.purpose,
         tokens: record.tokens.total,
-        cost: (record.cost?.total ?? 0).toFixed(6), // 提高精度到6位小数
-        reasoning: record.reasoning || false
+        cost: (record.cost?.total ?? 0).toFixed(6),
+        currency: record.cost?.currency || 'CNY'
       })
     } catch (error) {
-      usageLogger.error("记录 AI 用量失败:", error)
+      usageLogger.error("❌ 记录 AI 用量失败:", error)
     }
   }
   
@@ -68,8 +90,12 @@ export class AIUsageTracker {
         return
       }
       
-      // 如果已经是准确值，跳过
-      if (!record.tokens.estimated && !record.cost.estimated) {
+      // 兼容性处理：解析 cost 字段
+      const existingCost = parseCost(record.cost)
+      
+      // 如果已经是准确值，跳过（旧格式没有 estimated 字段，视为已估算）
+      const costEstimated = typeof record.cost === 'number' ? true : (record.cost?.estimated ?? true)
+      if (!record.tokens.estimated && !costEstimated) {
         return
       }
       
@@ -81,7 +107,7 @@ export class AIUsageTracker {
           estimated: false
         },
         cost: {
-          currency: record.cost.currency, // 保持原有货币
+          currency: existingCost.currency, // 保持原有货币
           input: actualCost.input,
           output: actualCost.output,
           total: actualCost.input + actualCost.output,
@@ -95,7 +121,7 @@ export class AIUsageTracker {
         recordId,
         before: {
           tokens: record.tokens.total,
-          cost: record.cost.total.toFixed(4)
+          cost: existingCost.total.toFixed(4)
         },
         after: {
           tokens: updates.tokens!.total,
@@ -171,20 +197,20 @@ export class AIUsageTracker {
         stats.tokens.output += record.tokens.output
         stats.tokens.total += record.tokens.total
         
-        // 获取货币类型，默认 CNY
-        const currency = (record.cost.currency || 'CNY') as 'CNY' | 'USD' | 'FREE'
+        // 兼容性处理：解析 cost 字段
+        const { input: costInput, output: costOutput, total: costTotal, currency } = parseCost(record.cost)
         
         // 按货币分组统计费用
-        stats.byCurrency[currency].input += record.cost.input
-        stats.byCurrency[currency].output += record.cost.output
-        stats.byCurrency[currency].total += record.cost.total
+        stats.byCurrency[currency].input += costInput
+        stats.byCurrency[currency].output += costOutput
+        stats.byCurrency[currency].total += costTotal
         
         // 总计费用（忽略 FREE 货币）
         const isFree = currency === 'FREE'
         if (!isFree) {
-          stats.cost.input += record.cost.input
-          stats.cost.output += record.cost.output
-          stats.cost.total += record.cost.total
+          stats.cost.input += costInput
+          stats.cost.output += costOutput
+          stats.cost.total += costTotal
         }
         
         totalLatency += record.latency
@@ -218,9 +244,9 @@ export class AIUsageTracker {
         reasoningStats.tokens.total += record.tokens.total
         
         if (!isFree) {
-          reasoningStats.cost.input += record.cost.input
-          reasoningStats.cost.output += record.cost.output
-          reasoningStats.cost.total += record.cost.total
+          reasoningStats.cost.input += costInput
+          reasoningStats.cost.output += costOutput
+          reasoningStats.cost.total += costTotal
         }
         
         if (record.reasoning) {
@@ -249,9 +275,9 @@ export class AIUsageTracker {
         providerStats.tokens.total += record.tokens.total
         
         if (!isFree) {
-          providerStats.cost.input += record.cost.input
-          providerStats.cost.output += record.cost.output
-          providerStats.cost.total += record.cost.total
+          providerStats.cost.input += costInput
+          providerStats.cost.output += costOutput
+          providerStats.cost.total += costTotal
         }
         
         // 按用途分组
@@ -275,15 +301,15 @@ export class AIUsageTracker {
         purposeStats.tokens.total += record.tokens.total
         
         // 按币种累计费用（保留 FREE）
-        purposeStats.byCurrency![currency].input += record.cost.input
-        purposeStats.byCurrency![currency].output += record.cost.output
-        purposeStats.byCurrency![currency].total += record.cost.total
+        purposeStats.byCurrency![currency].input += costInput
+        purposeStats.byCurrency![currency].output += costOutput
+        purposeStats.byCurrency![currency].total += costTotal
 
         // 汇总非 FREE 的费用到用途总计
         if (!isFree) {
-          purposeStats.cost.input += record.cost.input
-          purposeStats.cost.output += record.cost.output
-          purposeStats.cost.total += record.cost.total
+          purposeStats.cost.input += costInput
+          purposeStats.cost.output += costOutput
+          purposeStats.cost.total += costTotal
         }
       }
       
@@ -495,30 +521,30 @@ export class AIUsageTracker {
           stats.tokens.output += record.tokens.output
           stats.tokens.total += record.tokens.total
           
-          // 获取货币类型，跳过 FREE
-          const currency = (record.cost.currency || 'CNY') as 'CNY' | 'USD' | 'FREE'
+          // 兼容性处理：解析 cost 字段
+          const { input: costInput, output: costOutput, total: costTotal, currency } = parseCost(record.cost)
           const isFree = currency === 'FREE'
           
           if (!isFree) {
-            stats.cost.input += record.cost.input
-            stats.cost.output += record.cost.output
-            stats.cost.total += record.cost.total
+            stats.cost.input += costInput
+            stats.cost.output += costOutput
+            stats.cost.total += costTotal
           }
 
           // 按币种累计每日费用（包含 FREE）
-          stats.byCurrency![currency].input += record.cost.input
-          stats.byCurrency![currency].output += record.cost.output
-          stats.byCurrency![currency].total += record.cost.total
+          stats.byCurrency![currency].input += costInput
+          stats.byCurrency![currency].output += costOutput
+          stats.byCurrency![currency].total += costTotal
 
           // 按币种 + 推理模式累计每日费用（包含 FREE）
           if (record.reasoning) {
-            stats.byCurrencyReasoning![currency].withReasoning.input += record.cost.input
-            stats.byCurrencyReasoning![currency].withReasoning.output += record.cost.output
-            stats.byCurrencyReasoning![currency].withReasoning.total += record.cost.total
+            stats.byCurrencyReasoning![currency].withReasoning.input += costInput
+            stats.byCurrencyReasoning![currency].withReasoning.output += costOutput
+            stats.byCurrencyReasoning![currency].withReasoning.total += costTotal
           } else {
-            stats.byCurrencyReasoning![currency].withoutReasoning.input += record.cost.input
-            stats.byCurrencyReasoning![currency].withoutReasoning.output += record.cost.output
-            stats.byCurrencyReasoning![currency].withoutReasoning.total += record.cost.total
+            stats.byCurrencyReasoning![currency].withoutReasoning.input += costInput
+            stats.byCurrencyReasoning![currency].withoutReasoning.output += costOutput
+            stats.byCurrencyReasoning![currency].withoutReasoning.total += costTotal
           }
           
           // 推理模式统计（reasoning === undefined 视为 false）
@@ -532,9 +558,9 @@ export class AIUsageTracker {
           reasoningStats.tokens.total += record.tokens.total
           
           if (!isFree) {
-            reasoningStats.cost.input += record.cost.input
-            reasoningStats.cost.output += record.cost.output
-            reasoningStats.cost.total += record.cost.total
+            reasoningStats.cost.input += costInput
+            reasoningStats.cost.output += costOutput
+            reasoningStats.cost.total += costTotal
           }
           
           // 按 Provider 分组
@@ -553,9 +579,9 @@ export class AIUsageTracker {
           providerStats.tokens.total += record.tokens.total
           
           if (!isFree) {
-            providerStats.cost.input += record.cost.input
-            providerStats.cost.output += record.cost.output
-            providerStats.cost.total += record.cost.total
+            providerStats.cost.input += costInput
+            providerStats.cost.output += costOutput
+            providerStats.cost.total += costTotal
           }
           
           // 按用途分组
@@ -579,15 +605,15 @@ export class AIUsageTracker {
           purposeStats.tokens.total += record.tokens.total
           
           // 按币种累计用途费用（包含 FREE）
-          purposeStats.byCurrency![currency].input += record.cost.input
-          purposeStats.byCurrency![currency].output += record.cost.output
-          purposeStats.byCurrency![currency].total += record.cost.total
+          purposeStats.byCurrency![currency].input += costInput
+          purposeStats.byCurrency![currency].output += costOutput
+          purposeStats.byCurrency![currency].total += costTotal
 
           // 汇总非 FREE 的费用到用途总计
           if (!isFree) {
-            purposeStats.cost.input += record.cost.input
-            purposeStats.cost.output += record.cost.output
-            purposeStats.cost.total += record.cost.total
+            purposeStats.cost.input += costInput
+            purposeStats.cost.output += costOutput
+            purposeStats.cost.total += costTotal
           }
         }
         

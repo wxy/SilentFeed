@@ -103,6 +103,7 @@ export function CollectionStats() {
   const [showUsageDetails, setShowUsageDetails] = useState(false)
   const [usageStatsPeriod, setUsageStatsPeriod] = useState<'30days' | 'all'>('30days')
   const [isRebuildingProfile, setIsRebuildingProfile] = useState(false)
+  const [funnelCurrentFeedOnly, setFunnelCurrentFeedOnly] = useState(false) // 默认显示文章池（全部）
   const [aiConfigStatus, setAiConfigStatus] = useState<{
     enabled: boolean
     provider: string
@@ -114,13 +115,38 @@ export function CollectionStats() {
   })
   const [pageCount, setPageCount] = useState<number>(0)
   const [recommendationFunnel, setRecommendationFunnel] = useState<{
+    // 漏斗层（累计统计，到 recommended 为止）
     rssArticles: number
-    prescreened: number
     analyzed: number
     candidate: number
     recommended: number
-    read: number
+    // 右侧卡片（状态/动态指标）
+    prescreenedOut: number
+    raw: number
+    stale: number  // Phase 14.2: 已过时（出源未分析）
+    analyzedNotQualified: number
+    currentRecommendedPool: number
+    recommendedPoolCapacity: number
+    currentPopupCount: number
+    popupCapacity: number
+    exitStats: {
+      total: number
+      read: number
+      saved: number
+      disliked: number
+      unread: number  // 未读总数 = replaced + expired + stale + other
+      replaced: number
+      expired: number
+      stale: number   // 出源
+      other: number   // 其他
+    }
     learningPages: number
+    // 筛选信息
+    currentFeedOnly: boolean
+    currentFeedArticleCount: number
+    totalArticleCount: number
+    // 兼容旧字段
+    prescreened: number
     dismissed: number
   } | null>(null)
   
@@ -141,7 +167,7 @@ export function CollectionStats() {
           getStorageStats(),
           getAIConfig(),
           getPageCount(),
-          getRecommendationFunnel(),
+          getRecommendationFunnel(funnelCurrentFeedOnly),
           AIUsageTracker.getStats(
             usageStatsPeriod === '30days'
               ? { startTime: Date.now() - 30 * 24 * 60 * 60 * 1000 }
@@ -182,7 +208,7 @@ export function CollectionStats() {
     }
 
     loadStats()
-  }, [usageStatsPeriod])  // 当周期变化时重新加载
+  }, [usageStatsPeriod, funnelCurrentFeedOnly])  // 当周期或筛选变化时重新加载
 
   // 事件处理器（数据管理）
   const handleRebuildProfile = async () => {
@@ -611,6 +637,8 @@ export function CollectionStats() {
                           'generate-profile': _("options.collectionStats.aiUsage.byPurpose.generateProfile"),
                           'analyze-source': _("options.collectionStats.aiUsage.byPurpose.analyzeSource"),
                           'strategy-decision': _("options.collectionStats.aiUsage.byPurpose.strategyDecision"),
+                          'pool-strategy-decision': _("options.collectionStats.aiUsage.byPurpose.poolStrategyDecision"),
+                          'feed-prescreening': _("options.collectionStats.aiUsage.byPurpose.feedPrescreening"),
                           'translate': _("options.collectionStats.aiUsage.byPurpose.translate"),
                           'test-connection': _("options.collectionStats.aiUsage.byPurpose.testConnection"),
                           'other': _("options.collectionStats.aiUsage.byPurpose.other")
@@ -875,10 +903,40 @@ export function CollectionStats() {
 
       {/* 推荐筛选漏斗 (NEW) */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <span>🔍</span>
-          <span>{_("options.collectionStats.recommendationFunnelTitle")}</span>
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <span>🔍</span>
+            <span>{_("options.collectionStats.recommendationFunnelTitle")}</span>
+          </h2>
+          {/* 数据范围切换 - Tab 样式 */}
+          <div className="flex items-center gap-1 text-sm">
+            <span className="text-gray-400 dark:text-gray-500 text-xs mr-1">
+              {recommendationFunnel?.totalArticleCount ?? 0}
+            </span>
+            <div className="flex rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600">
+              <button
+                onClick={() => setFunnelCurrentFeedOnly(false)}
+                className={`px-3 py-1 text-xs font-medium transition-colors ${
+                  !funnelCurrentFeedOnly
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-50 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                }`}
+              >
+                {_("options.collectionStats.allHistory")}
+              </button>
+              <button
+                onClick={() => setFunnelCurrentFeedOnly(true)}
+                className={`px-3 py-1 text-xs font-medium transition-colors border-l border-gray-200 dark:border-gray-600 ${
+                  funnelCurrentFeedOnly
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-50 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                }`}
+              >
+                {_("options.collectionStats.currentFeedOnly")}
+              </button>
+            </div>
+          </div>
+        </div>
 
         {!recommendationFunnel || recommendationFunnel.rssArticles === 0 ? (
           <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border-2 border-dashed border-gray-300 dark:border-gray-600">
@@ -893,8 +951,8 @@ export function CollectionStats() {
               <div className="flex flex-col xl:flex-row justify-center items-center gap-8">
               <svg
                 width="580"
-                height="560"
-                viewBox="0 0 580 560"
+                height="620"
+                viewBox="0 0 580 620"
                 className="max-w-full h-auto"
               >
                 {(() => {
@@ -939,21 +997,11 @@ export function CollectionStats() {
                   }
 
                   // 定义各层数据 - 从小到大排序（底部到顶部）
-                  // Phase 13+: 基于多池架构的漏斗层
+                  // Phase 14: 修正漏斗层，移除"通过初筛"（动态指标不适合放在漏斗中）
+                  // Phase 14.2: 移除"已读"层，漏斗终止于"已推荐"
+                  // 漏斗层（累计统计）：RSS文章 → 已分析 → 候选池 → 已推荐
                   // 添加渐变ID用于美化
                   const layers: (LayerConfig & { gradientId: string })[] = [
-                    {
-                      key: 'reading',
-                      label: _('options.collectionStats.recommendationFunnelReading'),
-                      color: 'rgba(254, 240, 138, 0.85)',
-                      ellipseColor: 'rgba(255, 249, 196, 0.8)',
-                      textColor: '#1f2937',
-                      value: funnel.read,
-                      percent: funnel.recommended > 0 ? `${((funnel.read / funnel.recommended) * 100).toFixed(1)}%` : '0%',
-                      bodyOpacity: 0.85,
-                      ellipseOpacity: 0.7,
-                      gradientId: 'gradReading'
-                    },
                     {
                       key: 'recommended',
                       label: _('options.collectionStats.recommendationFunnelRecommended'),
@@ -985,7 +1033,7 @@ export function CollectionStats() {
                       ellipseColor: 'rgba(196, 181, 253, 0.78)',
                       textColor: '#1f2937',
                       value: funnel.analyzed,
-                      percent: funnel.prescreened > 0 ? `${((funnel.analyzed / funnel.prescreened) * 100).toFixed(1)}%` : '0%',
+                      percent: funnel.rssArticles > 0 ? `${((funnel.analyzed / funnel.rssArticles) * 100).toFixed(1)}%` : '0%',
                       bodyOpacity: 0.78,
                       ellipseOpacity: 0.58,
                       gradientId: 'gradAnalyzed'
@@ -1323,9 +1371,70 @@ export function CollectionStats() {
                       
                       {/* 底部用户图标 */}
                       <g>
-                        <text x={centerX} y={funnelBottomY + 60} textAnchor="middle" fontSize="32">
+                        <text x={centerX} y={funnelBottomY + 50} textAnchor="middle" fontSize="32">
                           👨‍💻
                         </text>
+                        
+                        {/* 退出统计 - 放在用户图标下方，横向排列 */}
+                        <g transform={`translate(${centerX}, ${funnelBottomY + 80})`}>
+                          {/* 退出详情横向排列 - 待读 + 分隔符 + 3个用户主动 + 分隔符 + 4个被动/未读细分 */}
+                          {(() => {
+                            const exitItems = [
+                              // 待读（当前在推荐池）
+                              { icon: '📖', label: _("options.collectionStats.funnelCurrentInPool"), value: funnel.currentRecommendedPool ?? 0, color: '#0EA5E9' },
+                              // 分隔符
+                              { icon: '│', label: '', value: '', color: '#D1D5DB', isSeparator: true },
+                              // 用户主动操作
+                              { icon: '✓', label: _("options.collectionStats.funnelExitRead"), value: funnel.exitStats?.read ?? 0, color: '#16A34A' },
+                              { icon: '📥', label: _("options.collectionStats.funnelExitSaved"), value: funnel.exitStats?.saved ?? 0, color: '#2563EB' },
+                              { icon: '✕', label: _("options.collectionStats.funnelExitDisliked"), value: funnel.exitStats?.disliked ?? 0, color: '#DC2626' },
+                              // 分隔符占位
+                              { icon: '│', label: '', value: '', color: '#D1D5DB', isSeparator: true },
+                              // 未读细分（被动离开）
+                              { icon: '🔄', label: _("options.collectionStats.funnelExitReplaced"), value: funnel.exitStats?.replaced ?? 0, color: '#9333EA' },
+                              { icon: '⏰', label: _("options.collectionStats.funnelExitExpired"), value: funnel.exitStats?.expired ?? 0, color: '#EA580C' },
+                              { icon: '🗑️', label: _("options.collectionStats.funnelStale"), value: funnel.exitStats?.stale ?? 0, color: '#6B7280' },
+                              { icon: '❓', label: _("options.collectionStats.funnelExitOther"), value: funnel.exitStats?.other ?? 0, color: '#9CA3AF' }
+                            ]
+                            const itemWidth = 44
+                            const totalWidth = exitItems.length * itemWidth
+                            const startX = -totalWidth / 2 + itemWidth / 2
+                            
+                            return exitItems.map((item, idx) => {
+                              if (item.isSeparator) {
+                                return (
+                                  <g key={`exit-${idx}`} transform={`translate(${startX + idx * itemWidth}, 0)`}>
+                                    <text x={0} y={14} textAnchor="middle" fontSize="16" fill="#D1D5DB">│</text>
+                                  </g>
+                                )
+                              }
+                              return (
+                                <g key={`exit-${idx}`} transform={`translate(${startX + idx * itemWidth}, 0)`}>
+                                  <text x={0} y={0} textAnchor="middle" fontSize="10">{item.icon}</text>
+                                  <text 
+                                    x={0} 
+                                    y={12} 
+                                    textAnchor="middle" 
+                                    fontSize="8" 
+                                    fill="#6B7280"
+                                  >
+                                    {item.label}
+                                  </text>
+                                  <text 
+                                    x={0} 
+                                    y={24} 
+                                    textAnchor="middle" 
+                                    fontSize="11" 
+                                    fontWeight="bold"
+                                    fill={item.color}
+                                  >
+                                    {item.value}
+                                  </text>
+                                </g>
+                              )
+                            })
+                          })()}
+                        </g>
                       </g>
                     </>
                   )
@@ -1333,7 +1442,8 @@ export function CollectionStats() {
               </svg>
 
               {/* 侧边信息卡片 - 展示关联数据 */}
-              <div className="flex flex-col gap-3 min-w-[180px]">
+              {/* Phase 14: 合并"文章池状态"组件，显示动态指标 */}
+              <div className="flex flex-col gap-3 min-w-[200px]">
                 {/* 初筛淘汰卡片 */}
                 <div className="relative">
                   <div className="bg-gradient-to-br from-slate-50 to-gray-100 dark:from-slate-900/30 dark:to-gray-900/20 rounded-xl p-3 border border-slate-300 dark:border-slate-600 shadow-sm">
@@ -1344,18 +1454,18 @@ export function CollectionStats() {
                       </span>
                     </div>
                     <div className="text-2xl font-bold text-slate-800 dark:text-slate-100">
-                      {recommendationFunnel.rssArticles - recommendationFunnel.prescreened}
+                      {recommendationFunnel.prescreenedOut}
                     </div>
                     <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                       {recommendationFunnel.rssArticles > 0 
-                        ? `${(((recommendationFunnel.rssArticles - recommendationFunnel.prescreened) / recommendationFunnel.rssArticles) * 100).toFixed(1)}% ${_("options.collectionStats.funnelPrescreenedOutDesc")}`
+                        ? `${((recommendationFunnel.prescreenedOut / recommendationFunnel.rssArticles) * 100).toFixed(1)}% ${_("options.collectionStats.funnelPrescreenedOutDesc")}`
                         : _("options.collectionStats.funnelPrescreenedOutDesc")
                       }
                     </div>
                   </div>
                 </div>
 
-                {/* 未分析卡片 */}
+                {/* 待分析卡片 */}
                 <div className="relative">
                   <div className="bg-gradient-to-br from-sky-50 to-cyan-100 dark:from-sky-900/30 dark:to-cyan-900/20 rounded-xl p-3 border border-sky-300 dark:border-sky-600 shadow-sm">
                     <div className="flex items-center gap-2 mb-1">
@@ -1365,13 +1475,28 @@ export function CollectionStats() {
                       </span>
                     </div>
                     <div className="text-2xl font-bold text-sky-800 dark:text-sky-100">
-                      {recommendationFunnel.prescreened - recommendationFunnel.analyzed}
+                      {recommendationFunnel.raw}
                     </div>
                     <div className="text-xs text-sky-500 dark:text-sky-400 mt-1">
-                      {recommendationFunnel.prescreened > 0 
-                        ? `${(((recommendationFunnel.prescreened - recommendationFunnel.analyzed) / recommendationFunnel.prescreened) * 100).toFixed(1)}% ${_("options.collectionStats.funnelNotAnalyzedDesc")}`
-                        : _("options.collectionStats.funnelNotAnalyzedDesc")
-                      }
+                      {_("options.collectionStats.funnelNotAnalyzedDesc")}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Phase 14.2: 已过时卡片（出源未分析）- 始终显示以保持布局一致 */}
+                <div className="relative">
+                  <div className="bg-gradient-to-br from-gray-50 to-slate-100 dark:from-gray-900/30 dark:to-slate-900/20 rounded-xl p-3 border border-gray-300 dark:border-gray-600 shadow-sm">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-base">🗑️</span>
+                      <span className="text-xs font-semibold text-gray-700 dark:text-gray-200">
+                        {_("options.collectionStats.funnelStale")}
+                      </span>
+                    </div>
+                    <div className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+                      {recommendationFunnel.stale}
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {_("options.collectionStats.funnelStaleDesc")}
                     </div>
                   </div>
                 </div>
@@ -1386,53 +1511,34 @@ export function CollectionStats() {
                       </span>
                     </div>
                     <div className="text-2xl font-bold text-violet-800 dark:text-violet-100">
-                      {recommendationFunnel.analyzed - recommendationFunnel.candidate}
+                      {recommendationFunnel.analyzedNotQualified}
                     </div>
                     <div className="text-xs text-violet-500 dark:text-violet-400 mt-1">
                       {recommendationFunnel.analyzed > 0 
-                        ? `${(((recommendationFunnel.analyzed - recommendationFunnel.candidate) / recommendationFunnel.analyzed) * 100).toFixed(1)}% ${_("options.collectionStats.funnelAnalyzedNotQualifiedDesc")}`
+                        ? `${((recommendationFunnel.analyzedNotQualified / recommendationFunnel.analyzed) * 100).toFixed(1)}% ${_("options.collectionStats.funnelAnalyzedNotQualifiedDesc")}`
                         : _("options.collectionStats.funnelAnalyzedNotQualifiedDesc")
                       }
                     </div>
                   </div>
                 </div>
 
-                {/* 不想读卡片 - 来自推荐 */}
-                <div className="relative">
-                  <div className="bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/30 dark:to-red-900/20 rounded-xl p-3 border border-orange-300 dark:border-orange-600 shadow-sm">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-base">🚫</span>
-                      <span className="text-xs font-semibold text-orange-800 dark:text-orange-200">
-                        {_("options.collectionStats.funnelDismissed")}
-                      </span>
-                    </div>
-                    <div className="text-2xl font-bold text-orange-900 dark:text-orange-100">
-                      {recommendationFunnel.dismissed}
-                    </div>
-                    <div className="text-xs text-orange-600 dark:text-orange-400 mt-1">
-                      {recommendationFunnel.recommended > 0 
-                        ? `${((recommendationFunnel.dismissed / recommendationFunnel.recommended) * 100).toFixed(1)}% ${_("options.collectionStats.funnelDismissedDesc")}`
-                        : _("options.collectionStats.funnelDismissedDesc")
-                      }
-                    </div>
-                  </div>
-                </div>
+                {/* Phase 14: 推荐池和弹窗显示已移到"内容推荐"的"智能推荐策略"区域 */}
               </div>
             </div>
           </div>
 
-            {/* 转化率总结 - Phase 13+ 多池架构 */}
+            {/* 转化率总结 - Phase 14: 基于新漏斗结构 */}
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-5 border border-blue-200 dark:border-blue-700">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                 <div>
                   <div className="text-xs text-cyan-600 dark:text-cyan-400 mb-2 font-medium">
-                    {_("options.collectionStats.funnelPrescreenRate")}
+                    {_("options.collectionStats.funnelAnalysisRate")}
                   </div>
                   <div className="text-xl font-bold text-cyan-900 dark:text-cyan-100">
-                    {recommendationFunnel.rssArticles > 0 ? ((recommendationFunnel.prescreened / recommendationFunnel.rssArticles) * 100).toFixed(1) : 0}%
+                    {recommendationFunnel.rssArticles > 0 ? ((recommendationFunnel.analyzed / recommendationFunnel.rssArticles) * 100).toFixed(1) : 0}%
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {_("options.collectionStats.funnelRssToPrescreened")}
+                    {_("options.collectionStats.funnelRssToAnalyzed")}
                   </div>
                 </div>
                 <div>
@@ -1462,7 +1568,7 @@ export function CollectionStats() {
                     {_("options.collectionStats.funnelReadingRate")}
                   </div>
                   <div className="text-xl font-bold text-purple-900 dark:text-purple-100">
-                    {recommendationFunnel.recommended > 0 ? ((recommendationFunnel.read / recommendationFunnel.recommended) * 100).toFixed(1) : 0}%
+                    {recommendationFunnel.recommended > 0 ? ((recommendationFunnel.exitStats.read / recommendationFunnel.recommended) * 100).toFixed(1) : 0}%
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     {_("options.collectionStats.funnelRecommendedToRead")}
