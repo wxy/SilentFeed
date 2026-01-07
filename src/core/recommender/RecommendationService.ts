@@ -534,8 +534,12 @@ export class RecommendationService {
         .sortBy('published')
       
       // Phase 10: 筛选条件：inFeed=true（仍在源中）&& poolStatus='raw'（等待分析）
+      // Phase 14.2: 排除 stale 状态（已出源，跳过分析）
       const unanalyzedArticles = feedArticles.filter(article => {
         if (article.inFeed === false) return false
+        
+        // Phase 14.2: 排除已标记为 stale 的文章
+        if (article.poolStatus === 'stale') return false
         
         // 只处理原料池中的文章
         if (article.poolStatus === 'raw') return true

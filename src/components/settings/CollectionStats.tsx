@@ -123,6 +123,7 @@ export function CollectionStats() {
     // 右侧卡片（状态/动态指标）
     prescreenedOut: number
     raw: number
+    stale: number  // Phase 14.2: 已过时（出源未分析）
     analyzedNotQualified: number
     currentRecommendedPool: number
     recommendedPoolCapacity: number
@@ -133,9 +134,11 @@ export function CollectionStats() {
       read: number
       saved: number
       disliked: number
-      unread: number
+      unread: number  // 未读总数 = replaced + expired + stale + other
       replaced: number
       expired: number
+      stale: number   // 出源
+      other: number   // 其他
     }
     learningPages: number
     // 筛选信息
@@ -946,8 +949,8 @@ export function CollectionStats() {
               <div className="flex flex-col xl:flex-row justify-center items-center gap-8">
               <svg
                 width="580"
-                height="560"
-                viewBox="0 0 580 560"
+                height="620"
+                viewBox="0 0 580 620"
                 className="max-w-full h-auto"
               >
                 {(() => {
@@ -1366,9 +1369,70 @@ export function CollectionStats() {
                       
                       {/* 底部用户图标 */}
                       <g>
-                        <text x={centerX} y={funnelBottomY + 60} textAnchor="middle" fontSize="32">
+                        <text x={centerX} y={funnelBottomY + 50} textAnchor="middle" fontSize="32">
                           👨‍💻
                         </text>
+                        
+                        {/* 退出统计 - 放在用户图标下方，横向排列 */}
+                        <g transform={`translate(${centerX}, ${funnelBottomY + 80})`}>
+                          {/* 退出详情横向排列 - 待读 + 分隔符 + 3个用户主动 + 分隔符 + 4个被动/未读细分 */}
+                          {(() => {
+                            const exitItems = [
+                              // 待读（当前在推荐池）
+                              { icon: '📖', label: _("options.collectionStats.funnelCurrentInPool"), value: funnel.currentRecommendedPool ?? 0, color: '#0EA5E9' },
+                              // 分隔符
+                              { icon: '│', label: '', value: '', color: '#D1D5DB', isSeparator: true },
+                              // 用户主动操作
+                              { icon: '✓', label: _("options.collectionStats.funnelExitRead"), value: funnel.exitStats?.read ?? 0, color: '#16A34A' },
+                              { icon: '📥', label: _("options.collectionStats.funnelExitSaved"), value: funnel.exitStats?.saved ?? 0, color: '#2563EB' },
+                              { icon: '✕', label: _("options.collectionStats.funnelExitDisliked"), value: funnel.exitStats?.disliked ?? 0, color: '#DC2626' },
+                              // 分隔符占位
+                              { icon: '│', label: '', value: '', color: '#D1D5DB', isSeparator: true },
+                              // 未读细分（被动离开）
+                              { icon: '🔄', label: _("options.collectionStats.funnelExitReplaced"), value: funnel.exitStats?.replaced ?? 0, color: '#9333EA' },
+                              { icon: '⏰', label: _("options.collectionStats.funnelExitExpired"), value: funnel.exitStats?.expired ?? 0, color: '#EA580C' },
+                              { icon: '🗑️', label: _("options.collectionStats.funnelStale"), value: funnel.exitStats?.stale ?? 0, color: '#6B7280' },
+                              { icon: '❓', label: _("options.collectionStats.funnelExitOther"), value: funnel.exitStats?.other ?? 0, color: '#9CA3AF' }
+                            ]
+                            const itemWidth = 44
+                            const totalWidth = exitItems.length * itemWidth
+                            const startX = -totalWidth / 2 + itemWidth / 2
+                            
+                            return exitItems.map((item, idx) => {
+                              if (item.isSeparator) {
+                                return (
+                                  <g key={`exit-${idx}`} transform={`translate(${startX + idx * itemWidth}, 0)`}>
+                                    <text x={0} y={14} textAnchor="middle" fontSize="16" fill="#D1D5DB">│</text>
+                                  </g>
+                                )
+                              }
+                              return (
+                                <g key={`exit-${idx}`} transform={`translate(${startX + idx * itemWidth}, 0)`}>
+                                  <text x={0} y={0} textAnchor="middle" fontSize="10">{item.icon}</text>
+                                  <text 
+                                    x={0} 
+                                    y={12} 
+                                    textAnchor="middle" 
+                                    fontSize="8" 
+                                    fill="#6B7280"
+                                  >
+                                    {item.label}
+                                  </text>
+                                  <text 
+                                    x={0} 
+                                    y={24} 
+                                    textAnchor="middle" 
+                                    fontSize="11" 
+                                    fontWeight="bold"
+                                    fill={item.color}
+                                  >
+                                    {item.value}
+                                  </text>
+                                </g>
+                              )
+                            })
+                          })()}
+                        </g>
                       </g>
                     </>
                   )
@@ -1417,6 +1481,24 @@ export function CollectionStats() {
                   </div>
                 </div>
 
+                {/* Phase 14.2: 已过时卡片（出源未分析）- 始终显示以保持布局一致 */}
+                <div className="relative">
+                  <div className="bg-gradient-to-br from-gray-50 to-slate-100 dark:from-gray-900/30 dark:to-slate-900/20 rounded-xl p-3 border border-gray-300 dark:border-gray-600 shadow-sm">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-base">🗑️</span>
+                      <span className="text-xs font-semibold text-gray-700 dark:text-gray-200">
+                        {_("options.collectionStats.funnelStale")}
+                      </span>
+                    </div>
+                    <div className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+                      {recommendationFunnel.stale}
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {_("options.collectionStats.funnelStaleDesc")}
+                    </div>
+                  </div>
+                </div>
+
                 {/* 分析未达标卡片 */}
                 <div className="relative">
                   <div className="bg-gradient-to-br from-violet-50 to-purple-100 dark:from-violet-900/30 dark:to-purple-900/20 rounded-xl p-3 border border-violet-300 dark:border-violet-600 shadow-sm">
@@ -1439,53 +1521,6 @@ export function CollectionStats() {
                 </div>
 
                 {/* Phase 14: 推荐池和弹窗显示已移到"内容推荐"的"智能推荐策略"区域 */}
-
-                {/* 退出统计卡片 - Phase 14.2: 添加未读状态 */}
-                <div className="relative">
-                  <div className="bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/30 dark:to-red-900/20 rounded-xl p-3 border border-orange-300 dark:border-orange-600 shadow-sm">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-base">📤</span>
-                      <span className="text-xs font-semibold text-orange-800 dark:text-orange-200">
-                        {_("options.collectionStats.funnelExitStats")}
-                      </span>
-                    </div>
-                    <div className="text-xl font-bold text-orange-900 dark:text-orange-100 mb-2">
-                      {recommendationFunnel.exitStats?.total ?? 0}
-                    </div>
-                    <div className="grid grid-cols-3 gap-1 text-xs">
-                      <div className="flex flex-col items-center">
-                        <span className="text-green-600 dark:text-green-400">✓</span>
-                        <span className="font-medium">{recommendationFunnel.exitStats?.read ?? 0}</span>
-                        <span className="text-gray-500 dark:text-gray-400 text-[10px]">{_("options.collectionStats.funnelExitRead")}</span>
-                      </div>
-                      <div className="flex flex-col items-center">
-                        <span className="text-blue-600 dark:text-blue-400">📥</span>
-                        <span className="font-medium">{recommendationFunnel.exitStats?.saved ?? 0}</span>
-                        <span className="text-gray-500 dark:text-gray-400 text-[10px]">{_("options.collectionStats.funnelExitSaved")}</span>
-                      </div>
-                      <div className="flex flex-col items-center">
-                        <span className="text-red-600 dark:text-red-400">✕</span>
-                        <span className="font-medium">{recommendationFunnel.exitStats?.disliked ?? 0}</span>
-                        <span className="text-gray-500 dark:text-gray-400 text-[10px]">{_("options.collectionStats.funnelExitDisliked")}</span>
-                      </div>
-                      <div className="flex flex-col items-center">
-                        <span className="text-gray-500 dark:text-gray-400">○</span>
-                        <span className="font-medium">{recommendationFunnel.exitStats?.unread ?? 0}</span>
-                        <span className="text-gray-500 dark:text-gray-400 text-[10px]">{_("options.collectionStats.funnelExitUnread")}</span>
-                      </div>
-                      <div className="flex flex-col items-center">
-                        <span className="text-purple-600 dark:text-purple-400">🔄</span>
-                        <span className="font-medium">{recommendationFunnel.exitStats?.replaced ?? 0}</span>
-                        <span className="text-gray-500 dark:text-gray-400 text-[10px]">{_("options.collectionStats.funnelExitReplaced")}</span>
-                      </div>
-                      <div className="flex flex-col items-center">
-                        <span className="text-orange-600 dark:text-orange-400">⏰</span>
-                        <span className="font-medium">{recommendationFunnel.exitStats?.expired ?? 0}</span>
-                        <span className="text-gray-500 dark:text-gray-400 text-[10px]">{_("options.collectionStats.funnelExitExpired")}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           </div>

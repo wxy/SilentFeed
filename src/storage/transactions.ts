@@ -156,15 +156,22 @@ export async function updateFeedWithArticles(
       // 2. 构建新文章的 URL 集合（用于快速查找）
       const newArticleUrls = new Set(newArticles.map(a => a.link))
       
-      // 3. 标记不在新列表中的文章为 inFeed=false，并踢出推荐池
+      // 3. 标记不在新列表中的文章为 inFeed=false，并处理池状态
       for (const article of existingArticles) {
         if (!newArticleUrls.has(article.link) && article.inFeed !== false) {
           // 文章已从 RSS 源中移除
-          await db.feedArticles.update(article.id, {
+          const updates: Partial<FeedArticle> = {
             inFeed: false,
             inPool: false,  // 踢出推荐池
             metadataUpdatedAt: Date.now()
-          })
+          }
+          
+          // Phase 14.2: 如果文章是 raw 状态（未分析），标记为 stale（跳过分析）
+          if (article.poolStatus === 'raw' || !article.poolStatus) {
+            updates.poolStatus = 'stale'
+          }
+          
+          await db.feedArticles.update(article.id, updates)
           removedFromFeedCount++
           
           if (article.inPool === true) {

@@ -439,12 +439,16 @@ export async function getRecommendationFunnel(currentFeedOnly: boolean = true): 
   popupCapacity: number
   exitStats: {
     total: number
+    // 用户主动操作
     read: number
     saved: number
     disliked: number
-    unread: number  // 未读（被替换/过期出去但无交互）
+    // 被动离开（互斥，合计=未读）
+    unread: number  // 未读总数 = replaced + expired + stale + other
     replaced: number
     expired: number
+    stale: number   // 出源
+    other: number   // 其他（无明确原因）
   }
   learningPages: number
   // 筛选信息
@@ -464,13 +468,21 @@ export async function getRecommendationFunnel(currentFeedOnly: boolean = true): 
     // ===== 数据源 1: feedArticles（文章池状态）=====
     const allArticlesRaw = await db.feedArticles.toArray()
     
-    // 已订阅源的文章
-    const subscribedFeedArticles = allArticlesRaw.filter(a => subscribedFeedIds.has(a.feedId))
+    // 当前在源中的文章（用于统计和日志）
+    const inFeedArticles = allArticlesRaw.filter(a => a.inFeed !== false)
     
     // 根据参数决定统计范围
-    // currentFeedOnly=true → 只统计已订阅源的文章
-    // currentFeedOnly=false → 统计文章池全部文章
-    const allArticles = currentFeedOnly ? subscribedFeedArticles : allArticlesRaw
+    // currentFeedOnly=true → 只统计当前在源中的文章（inFeed=true）
+    // currentFeedOnly=false → 统计文章池全部文章（包括已出源的历史记录）
+    // 
+    // 注意：这里的"在源中"指的是"当前在RSS源中"，而不是"来自已订阅的feed"
+    // 因为：
+    // 1. 待分析(raw)的文章必然在源中(inFeed=true)
+    // 2. 已过时(stale)的文章必然已出源(inFeed=false)
+    // 3. 所以"在源中"模式下不应该有已过时文章
+    const allArticles = currentFeedOnly 
+      ? inFeedArticles  // 只看当前在源中的
+      : allArticlesRaw  // 全部文章池（包括历史）
     
     const rssArticlesCount = allArticles.length
     
@@ -481,9 +493,19 @@ export async function getRecommendationFunnel(currentFeedOnly: boolean = true): 
       a.poolStatus === 'prescreened-out'
     ).length
     
-    // 待分析（当前 raw 状态或无状态）
+    // 待分析（当前 raw 状态，仍在源中）
+    // 在"订阅源"模式下，allArticles 已经是 inFeed=true 的，所以 rawCount 会正确统计
+    // 在"文章池"模式下，需要排除 inFeed=false 的（这些是 stale）
     const rawCount = allArticles.filter(a => 
-      a.poolStatus === 'raw' || !a.poolStatus
+      (a.poolStatus === 'raw' || !a.poolStatus) && a.inFeed !== false
+    ).length
+    
+    // 已过时（已出源，未分析，跳过）
+    // 在"订阅源"模式下，allArticles 不包含 inFeed=false 的，所以 staleCount=0
+    // 在"文章池"模式下，统计所有 stale 状态 + 未迁移的 (raw && inFeed=false)
+    const staleCount = allArticles.filter(a =>
+      a.poolStatus === 'stale' || 
+      ((a.poolStatus === 'raw' || !a.poolStatus) && a.inFeed === false)
     ).length
     
     // 分析未达标（累计）- 分析后分数不够，未进入候选池
@@ -551,8 +573,8 @@ export async function getRecommendationFunnel(currentFeedOnly: boolean = true): 
     
     // ===== 漏斗层计算（全部基于 feedArticles 表）=====
     
-    // analyzed = 总数 - raw - prescreenedOut
-    const analyzedCount = rssArticlesCount - rawCount - prescreenedOutCount
+    // analyzed = 总数 - raw - prescreenedOut - stale
+    const analyzedCount = rssArticlesCount - rawCount - prescreenedOutCount - staleCount
     
     // candidate = 曾进入候选池的文章数（直接用时间戳统计，最准确）
     const candidateCount = everInCandidatePool.length
@@ -561,26 +583,57 @@ export async function getRecommendationFunnel(currentFeedOnly: boolean = true): 
     const recommendedCount = everInRecommendedPool.length
     
     // 退出统计（基于 feedArticles 表）
-    // 统计从推荐池退出的文章（有 recommendedPoolAddedAt 且已退出）
-    const exitedFromRecommendedPool = everInRecommendedPool.filter(a => a.poolStatus === 'exited')
+    // 所有"已离开推荐池"的文章 = 曾推荐 - 当前在推荐池
+    // 包括：正式退出(exited) + 出源(stale) + 状态异常(其他)
+    const leftRecommendedPool = everInRecommendedPool.filter(a => a.poolStatus !== 'recommended')
     
-    // 各类退出原因统计
+    // 正式退出的文章（poolStatus = 'exited'）
+    const exitedFromRecommendedPool = leftRecommendedPool.filter(a => a.poolStatus === 'exited')
+    
+    // 曾推荐但已出源的文章
+    const staleFromRecommendedPool = leftRecommendedPool.filter(a => 
+      a.poolStatus === 'stale' || 
+      (a.poolStatus === 'raw' && a.inFeed === false) ||
+      !a.poolStatus  // undefined
+    )
+    
+    // 退出分类（互斥）：
+    // 1. 已读 - 用户点击阅读
+    // 2. 稍后 - 用户点击稍后
+    // 3. 不想读 - 用户点击不感兴趣
+    // 4. 未读 - 被动离开，细分为：被替换、过期、出源、其他
+    
+    // 用户主动操作（基于正式退出的文章）
     const exitReadCount = exitedFromRecommendedPool.filter(a => a.poolExitReason === 'read').length
     const exitSavedCount = exitedFromRecommendedPool.filter(a => a.poolExitReason === 'saved').length
     const exitDislikedCount = exitedFromRecommendedPool.filter(a => a.poolExitReason === 'disliked').length
+    
+    // 未读细分（被动离开的原因）
     const exitReplacedCount = exitedFromRecommendedPool.filter(a => a.poolExitReason === 'replaced').length
     const exitExpiredCount = exitedFromRecommendedPool.filter(a => a.poolExitReason === 'expired').length
-    // 未读 = 退出总数 - 已读 - 稍后 - 不想（被替换/过期但无用户交互的）
-    const exitUnreadCount = exitedFromRecommendedPool.length - exitReadCount - exitSavedCount - exitDislikedCount
+    const exitStaleCount = staleFromRecommendedPool.length  // 出源
+    
+    // 其他未读（exitedFromRecommendedPool 中没有明确原因的，可能是旧数据）
+    const exitOtherCount = exitedFromRecommendedPool.length - exitReadCount - exitSavedCount - exitDislikedCount - exitReplacedCount - exitExpiredCount
+    
+    // 未读总数 = 被替换 + 过期 + 出源 + 其他（这些都是用户没机会读到的）
+    const exitUnreadCount = exitReplacedCount + exitExpiredCount + exitStaleCount + exitOtherCount
+    
+    // 总退出数 = 已读 + 稍后 + 不想读 + 未读（互斥）
+    const exitTotalCount = exitReadCount + exitSavedCount + exitDislikedCount + exitUnreadCount
     
     const exitStats = {
-      total: exitedFromRecommendedPool.length,
+      total: exitTotalCount,
+      // 用户主动操作
       read: exitReadCount,
       saved: exitSavedCount,
       disliked: exitDislikedCount,
+      // 被动离开（未读细分）
       unread: exitUnreadCount,
       replaced: exitReplacedCount,
-      expired: exitExpiredCount
+      expired: exitExpiredCount,
+      stale: exitStaleCount,  // 出源
+      other: exitOtherCount   // 其他（无明确原因的旧数据）
     }
     
     // ===== 调试日志：输出完整漏斗数据 =====
@@ -589,7 +642,7 @@ export async function getRecommendationFunnel(currentFeedOnly: boolean = true): 
       '筛选': {
         currentFeedOnly,
         subscribedFeeds: subscribedFeeds.length,
-        subscribedFeedArticles: subscribedFeedArticles.length,
+        inFeedArticles: inFeedArticles.length,
         totalArticles: allArticlesRaw.length,
         filteredArticles: allArticles.length
       },
@@ -603,6 +656,7 @@ export async function getRecommendationFunnel(currentFeedOnly: boolean = true): 
       // feedArticles 状态分布
       'feedArticles状态': {
         raw: rawCount,
+        stale: staleCount,
         prescreenedOut: prescreenedOutCount,
         analyzedNotQualified: analyzedNotQualifiedCount,
         currentCandidate: currentCandidateCount,
@@ -613,7 +667,20 @@ export async function getRecommendationFunnel(currentFeedOnly: boolean = true): 
       '历史统计(时间戳)': {
         everInCandidatePool: everInCandidatePool.length,
         everInRecommendedPool: everInRecommendedPool.length,
-        exitedFromRecommendedPool: exitedFromRecommendedPool.length
+        exitedFromRecommendedPool: exitedFromRecommendedPool.length,
+        // 诊断：曾进入推荐池但状态异常的文章
+        recommendedButNotInPoolOrExited: (() => {
+          const notInPoolOrExited = everInRecommendedPool.filter(a => 
+            a.poolStatus !== 'recommended' && a.poolStatus !== 'exited'
+          )
+          // 按状态分组统计
+          const byStatus: Record<string, number> = {}
+          notInPoolOrExited.forEach(a => {
+            const status = a.poolStatus || 'undefined'
+            byStatus[status] = (byStatus[status] || 0) + 1
+          })
+          return { count: notInPoolOrExited.length, byStatus }
+        })()
       },
       // 退出统计详情
       '退出统计': exitStats,
@@ -621,9 +688,10 @@ export async function getRecommendationFunnel(currentFeedOnly: boolean = true): 
       'recommendations表(当前)': recsTableStats,
       // 恒等式验证
       '恒等式检查': {
-        'rss = raw + prescreenedOut + analyzed': `${rssArticlesCount} = ${rawCount} + ${prescreenedOutCount} + ${analyzedCount} (${rssArticlesCount === rawCount + prescreenedOutCount + analyzedCount ? '✓' : '✗'})`,
+        'rss = raw + stale + prescreenedOut + analyzed': `${rssArticlesCount} = ${rawCount} + ${staleCount} + ${prescreenedOutCount} + ${analyzedCount} (${rssArticlesCount === rawCount + staleCount + prescreenedOutCount + analyzedCount ? '✓' : '✗'})`,
         'candidate(时间戳) vs analyzed-notQualified': `${candidateCount} vs ${analyzedCount - analyzedNotQualifiedCount}`,
         'recommended <= candidate': `${recommendedCount} <= ${candidateCount} (${recommendedCount <= candidateCount ? '✓' : '✗'})`,
+        'recommended = currentInPool + exitTotal': `${recommendedCount} = ${currentRecommendedPoolCount} + ${exitStats.total} (${recommendedCount === currentRecommendedPoolCount + exitStats.total ? '✓' : '✗'})`,
         'exitTotal = read+saved+disliked+unread': `${exitStats.total} = ${exitStats.read}+${exitStats.saved}+${exitStats.disliked}+${exitStats.unread} (${exitStats.total === exitStats.read + exitStats.saved + exitStats.disliked + exitStats.unread ? '✓' : '✗'})`
       }
     })
@@ -660,6 +728,7 @@ export async function getRecommendationFunnel(currentFeedOnly: boolean = true): 
       // 右侧卡片（状态/动态指标）
       prescreenedOut: prescreenedOutCount,
       raw: rawCount,
+      stale: staleCount,
       analyzedNotQualified: analyzedNotQualifiedCount,
       currentRecommendedPool: currentRecommendedPoolCount,
       recommendedPoolCapacity,
@@ -669,7 +738,7 @@ export async function getRecommendationFunnel(currentFeedOnly: boolean = true): 
       learningPages: learningPagesCount,
       // 筛选信息
       currentFeedOnly,
-      currentFeedArticleCount: subscribedFeedArticles.length,
+      currentFeedArticleCount: inFeedArticles.length,
       totalArticleCount: allArticlesRaw.length,
       // 兼容旧字段
       prescreened: analyzedCount, // 旧字段映射到 analyzed
@@ -684,12 +753,13 @@ export async function getRecommendationFunnel(currentFeedOnly: boolean = true): 
       recommended: 0,
       prescreenedOut: 0,
       raw: 0,
+      stale: 0,
       analyzedNotQualified: 0,
       currentRecommendedPool: 0,
       recommendedPoolCapacity: 6,
       currentPopupCount: 0,
       popupCapacity: 3,
-      exitStats: { total: 0, read: 0, saved: 0, disliked: 0, unread: 0, replaced: 0, expired: 0 },
+      exitStats: { total: 0, read: 0, saved: 0, disliked: 0, unread: 0, replaced: 0, expired: 0, stale: 0, other: 0 },
       learningPages: 0,
       currentFeedOnly: false,
       currentFeedArticleCount: 0,

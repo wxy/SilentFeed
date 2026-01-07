@@ -1,6 +1,6 @@
 import { ProfileUpdateScheduler } from './core/profile/ProfileUpdateScheduler'
 import { semanticProfileBuilder } from './core/profile/SemanticProfileBuilder'
-import { initializeDatabase, getPageCount, getUnreadRecommendations, db, markAsRead, needsPhase13Migration, runPhase13Migration } from './storage/db'
+import { initializeDatabase, getPageCount, getUnreadRecommendations, db, markAsRead, needsPhase13Migration, runPhase13Migration, needsStaleMigration, runStaleMigration } from './storage/db'
 import type { ConfirmedVisit } from '@/types/database'
 import { FeedManager } from './core/rss/managers/FeedManager'
 import { RSSValidator } from './core/rss/RSSValidator'
@@ -278,6 +278,17 @@ chrome.runtime.onInstalled.addListener(async () => {
         bgLogger.info('✅ Phase 13 数据迁移完成')
       } else {
         bgLogger.warn('⚠️ Phase 13 数据迁移失败，部分数据可能需要手动处理')
+      }
+    }
+    
+    // 1c. Phase 14.3: 检查并运行 Stale 状态迁移
+    if (await needsStaleMigration()) {
+      bgLogger.info('🔄 检测到需要 Stale 状态迁移，开始迁移...')
+      const staleMigrationSuccess = await runStaleMigration()
+      if (staleMigrationSuccess) {
+        bgLogger.info('✅ Stale 状态迁移完成')
+      } else {
+        bgLogger.warn('⚠️ Stale 状态迁移失败，部分数据可能需要手动处理')
       }
     }
     

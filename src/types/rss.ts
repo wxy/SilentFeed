@@ -197,8 +197,9 @@ export interface FeedArticle {
    * - candidate: 候选池（高分文章，等待推荐）
    * - recommended: 推荐池（已推荐给用户）
    * - exited: 已退出（用户操作或订阅源变更导致退出）
+   * - stale: 已过时（文章已从RSS源中移除，跳过分析）
    */
-  poolStatus?: 'raw' | 'prescreened-out' | 'analyzed-not-qualified' | 'candidate' | 'recommended' | 'exited'
+  poolStatus?: 'raw' | 'prescreened-out' | 'analyzed-not-qualified' | 'candidate' | 'recommended' | 'exited' | 'stale'
   
   /**
    * 分析得分：AI 分析后的推荐分数 (0-10)
