@@ -15,6 +15,7 @@ import { logger } from '@/utils/logger'
 import type { RecommendationAnalysisEngine, FeedAnalysisEngine } from '@/types/analysis-engine'
 import { getAIAnalysisStats } from './db/index'
 import { listLocalModels } from '@/utils/local-ai-endpoint'
+import { isReadingListAvailable } from '@/utils/browser-compat'
 
 const configLogger = logger.withTag('RecommendationConfig')
 const localAILogger = logger.withTag('LocalAI')
@@ -55,6 +56,11 @@ export interface RecommendationConfig {
    * - 清理慢（推荐停留时间长）→ 推荐多
    */
   maxRecommendations: number
+
+  /** 推荐投递方式：弹窗或阅读清单 */
+  deliveryMode: 'popup' | 'readingList'
+  /** 阅读清单模式配置 */
+  readingList: ReadingListConfig
   
   /**
    * Phase 6: 每次处理的文章批次大小（默认 1 篇）
@@ -137,6 +143,32 @@ export interface LocalAIStatus {
 }
 
 /**
+ * 阅读清单模式清理配置
+ */
+export interface ReadingListCleanupConfig {
+  /** 是否启用自动清理 */
+  enabled: boolean
+  /** 保留天数，0 表示不按时间清理 */
+  retentionDays: number
+  /** 最大条目数，0 表示不按数量清理 */
+  maxEntries: number
+  /** 清理检查间隔（小时） */
+  intervalHours: number
+  /** 保留未读条目 */
+  keepUnread: boolean
+}
+
+/**
+ * 阅读清单模式配置
+ */
+export interface ReadingListConfig {
+  /** 标题前缀，用于视觉区分 */
+  titlePrefix: string
+  /** 自动清理配置 */
+  cleanup: ReadingListCleanupConfig
+}
+
+/**
  * 默认配置
  */
 const DEFAULT_CONFIG: RecommendationConfig = {
@@ -145,6 +177,17 @@ const DEFAULT_CONFIG: RecommendationConfig = {
   useReasoning: false, // @deprecated 向后兼容
   useLocalAI: false,   // @deprecated 向后兼容
   maxRecommendations: 3, // 初始值3条，后续自动调整
+  deliveryMode: 'popup',
+  readingList: {
+    titlePrefix: '📰 ',
+    cleanup: {
+      enabled: false,
+      retentionDays: 30,
+      maxEntries: 100,
+      intervalHours: 24,
+      keepUnread: true
+    }
+  },
   batchSize: 1, // Phase 6: 默认每次处理 1 篇文章（避免超时）
   qualityThreshold: 0.8 // Phase 9: 提高质量阈值到 0.8，实施激进质量控制（过滤 50-60% 低质量）
 }
@@ -164,6 +207,26 @@ export async function getRecommendationConfig(): Promise<RecommendationConfig> {
     
     // Phase 9: 数据迁移 - 从旧字段迁移到 analysisEngine
     let needsUpdate = false
+
+    // 阅读清单配置合并与降级
+    merged.readingList = {
+      ...DEFAULT_CONFIG.readingList,
+      ...merged.readingList,
+      cleanup: {
+        ...DEFAULT_CONFIG.readingList.cleanup,
+        ...(merged.readingList?.cleanup || {})
+      }
+    }
+
+    if (!merged.deliveryMode) {
+      merged.deliveryMode = 'popup'
+      needsUpdate = true
+    }
+    // Edge 等不支持阅读列表时强制降级到弹窗
+    if (merged.deliveryMode === 'readingList' && !isReadingListAvailable()) {
+      merged.deliveryMode = 'popup'
+      needsUpdate = true
+    }
     
     // 如果没有 analysisEngine 字段，根据旧字段推导
     if (!merged.analysisEngine) {
@@ -222,6 +285,32 @@ export async function saveRecommendationConfig(
     }
     if (updated.maxRecommendations > 5) {
       updated.maxRecommendations = 5
+    }
+
+    // 校验阅读清单配置
+    if (!updated.deliveryMode) {
+      updated.deliveryMode = 'popup'
+    }
+    if (!updated.readingList) {
+      updated.readingList = DEFAULT_CONFIG.readingList
+    } else {
+      updated.readingList = {
+        ...DEFAULT_CONFIG.readingList,
+        ...updated.readingList,
+        cleanup: {
+          ...DEFAULT_CONFIG.readingList.cleanup,
+          ...(updated.readingList.cleanup || {})
+        }
+      }
+      // 边界校验
+      updated.readingList.cleanup.retentionDays = Math.max(0, Math.min(365, updated.readingList.cleanup.retentionDays))
+      updated.readingList.cleanup.maxEntries = Math.max(0, Math.min(500, updated.readingList.cleanup.maxEntries))
+      updated.readingList.cleanup.intervalHours = Math.max(1, Math.min(168, updated.readingList.cleanup.intervalHours))
+    }
+
+    // 不支持阅读列表时强制回退
+    if (updated.deliveryMode === 'readingList' && !isReadingListAvailable()) {
+      updated.deliveryMode = 'popup'
     }
     
     await chrome.storage.sync.set({ [STORAGE_KEY]: updated })

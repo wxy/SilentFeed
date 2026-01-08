@@ -491,6 +491,32 @@
         "articlesCount": "{{count}} 篇",
         "yesterdayClickRate": "昨日点击率",
         "nextGeneration": "下次推荐生成"
+      },
+      "delivery": {
+        "title": "推荐投递方式",
+        "hint": "选择在弹窗展示或静默保存到阅读列表",
+        "popup": "弹窗提醒（默认）",
+        "popupDesc": "在扩展弹窗显示推荐，并可发送系统通知",
+        "readingList": "阅读列表（静默）",
+        "readingListDesc": "将推荐静默保存到 Chrome 阅读列表，保持浏览安静",
+        "readingListSupportHint": "需要 Chrome 120+，Edge 暂不支持"
+      },
+      "readingList": {
+        "notSupported": "当前浏览器不支持阅读列表，已自动使用弹窗模式",
+        "titlePrefix": "标题前缀",
+        "titlePrefixHint": "用于在阅读列表中区分 Silent Feed 添加的条目",
+        "cleanupTitle": "自动清理",
+        "cleanupDesc": "仅清理由 Silent Feed 添加的条目，按时间/数量定期整理",
+        "cleanupEnabled": "开启自动清理",
+        "retentionDays": "保留天数（0 表示不限）",
+        "maxEntries": "最大条目数（0 表示不限）",
+        "intervalHours": "清理间隔（小时）",
+        "keepUnread": "保留未读",
+        "keepUnreadHint": "仅清理已读或过期的条目",
+        "manualCleanup": "立即清理",
+        "cleanupRunning": "正在清理阅读列表...",
+        "cleanupResult": "已清理 {{removed}} / {{total}} 条",
+        "cleanupScope": "仅清理由 Silent Feed 添加的条目"
       }
     },
     "stats": {

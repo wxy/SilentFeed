@@ -354,6 +354,32 @@
         "articlesCount": "{{count}} articles",
         "yesterdayClickRate": "Yesterday Click Rate",
         "nextGeneration": "Next Generation"
+      },
+      "delivery": {
+        "title": "Delivery method",
+        "hint": "Choose popup or silently save to Reading List",
+        "popup": "Popup (default)",
+        "popupDesc": "Show recommendations in the extension popup and optionally send notifications",
+        "readingList": "Reading List (silent)",
+        "readingListDesc": "Silently save recommendations to Chrome Reading List to keep browsing quiet",
+        "readingListSupportHint": "Requires Chrome 120+. Edge is not supported"
+      },
+      "readingList": {
+        "notSupported": "Reading List is not supported in this browser; falling back to popup mode",
+        "titlePrefix": "Title prefix",
+        "titlePrefixHint": "Helps distinguish entries added by Silent Feed",
+        "cleanupTitle": "Auto cleanup",
+        "cleanupDesc": "Cleans only entries added by Silent Feed by age and count",
+        "cleanupEnabled": "Enable auto cleanup",
+        "retentionDays": "Retention days (0 = unlimited)",
+        "maxEntries": "Max entries (0 = unlimited)",
+        "intervalHours": "Cleanup interval (hours)",
+        "keepUnread": "Keep unread",
+        "keepUnreadHint": "Only remove items that are read or expired",
+        "manualCleanup": "Clean now",
+        "cleanupRunning": "Cleaning reading list...",
+        "cleanupResult": "Cleaned {{removed}} / {{total}} entries",
+        "cleanupScope": "Only items added by Silent Feed are touched"
       }
     },
     "privacy": {

@@ -174,6 +174,20 @@ export interface Recommendation {
 }
 
 /**
+ * 阅读列表追踪记录
+ */
+export interface ReadingListEntry {
+  /** 唯一键，使用保存到阅读列表的 URL（可能为翻译链接） */
+  url: string
+  /** 对应的推荐 ID，用于统计与清理 */
+  recommendationId?: string
+  /** 保存时间戳 */
+  addedAt: number
+  /** 使用的标题前缀（用于排查清理策略） */
+  titlePrefix?: string
+}
+
+/**
  * 推荐统计数据（实时查询）
  */
 export interface RecommendationStats {

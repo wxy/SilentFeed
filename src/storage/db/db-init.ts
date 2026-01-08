@@ -19,7 +19,7 @@ async function checkDatabaseVersion(): Promise<void> {
     const existingDB = dbs.find(d => d.name === 'SilentFeedDB')
     
     if (existingDB && existingDB.version) {
-      dbLogger.info(`现有数据库版本: ${existingDB.version}, 代码版本: 16`)
+      dbLogger.info(`现有数据库版本: ${existingDB.version}, 代码版本: 20`)
       
       if (existingDB.version > 16) {
         dbLogger.warn('⚠️ 浏览器中的数据库版本较高，Dexie 将自动处理')
@@ -40,7 +40,7 @@ export async function initializeDatabase(): Promise<void> {
     if (!db.isOpen()) {
       dbLogger.info('正在打开数据库...')
       await db.open()
-      dbLogger.info('✅ 数据库已打开（版本 16）')
+      dbLogger.info('✅ 数据库已打开（版本 20）')
     }
     
     const settingsCount = await db.settings.count()

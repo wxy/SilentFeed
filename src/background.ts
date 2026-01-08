@@ -119,6 +119,28 @@ async function setupOllamaDNRRules(): Promise<void> {
 // 检查 DNR 规则状态
 setupOllamaDNRRules()
 
+async function configureReadingListCleanupAlarm(): Promise<void> {
+  try {
+    const config = await getRecommendationConfig()
+    const cleanup = config.readingList?.cleanup
+
+    if (!ReadingListManager.isAvailable() || !cleanup?.enabled) {
+      await chrome.alarms.clear('cleanup-reading-list')
+      bgLogger.info('阅读列表清理未启用或不支持，已取消定时器')
+      return
+    }
+
+    const periodInMinutes = Math.max(1, cleanup.intervalHours) * 60
+    await chrome.alarms.create('cleanup-reading-list', {
+      delayInMinutes: 5,
+      periodInMinutes
+    })
+    bgLogger.info(`阅读列表清理定时器已配置，每 ${cleanup.intervalHours} 小时执行一次`)
+  } catch (error) {
+    bgLogger.error('配置阅读列表清理定时器失败', error)
+  }
+}
+
 // Phase 5.2: 初始化图标管理器
 let iconManager: IconManager | null = null
 
@@ -352,6 +374,10 @@ chrome.runtime.onInstalled.addListener(async () => {
     // 初始化阅读列表监听器
     ReadingListManager.setupListeners()
     bgLogger.info('✅ 阅读列表监听器已设置')
+
+    // 配置阅读列表清理定时器
+    await configureReadingListCleanupAlarm()
+    bgLogger.info('✅ 阅读列表清理定时器已配置')
     
     // Phase 7: 启动所有后台调度器
     await startAllSchedulers()
@@ -1137,6 +1163,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           }
           break
 
+        case 'CLEANUP_READING_LIST':
+          try {
+            const config = await getRecommendationConfig()
+            const result = await ReadingListManager.cleanup(config.readingList.cleanup)
+            sendResponse({ success: true, result })
+          } catch (error) {
+            bgLogger.error('❌ 手动清理阅读列表失败:', error)
+            sendResponse({ success: false, error: String(error) })
+          }
+          break
+
+        case 'REFRESH_READING_LIST_CLEANUP':
+          try {
+            await configureReadingListCleanupAlarm()
+            sendResponse({ success: true })
+          } catch (error) {
+            bgLogger.error('❌ 更新阅读列表清理定时器失败:', error)
+            sendResponse({ success: false, error: String(error) })
+          }
+          break
+
         default:
           sendResponse({ success: false, error: 'Unknown message type' })
       }
@@ -1266,6 +1313,11 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       // 🆕 每日推荐池策略生成
       bgLogger.info('开始每日推荐池策略生成...')
       await generateDailyPoolStrategy()
+    } else if (alarm.name === 'cleanup-reading-list') {
+      bgLogger.info('开始阅读列表清理...')
+      const config = await getRecommendationConfig()
+      const result = await ReadingListManager.cleanup(config.readingList.cleanup)
+      bgLogger.info(`阅读列表清理完成: ${result.removed}/${result.total}`)
     }
   } catch (error) {
     bgLogger.error('❌ 定时器处理失败:', error)
