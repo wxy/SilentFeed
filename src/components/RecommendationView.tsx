@@ -373,11 +373,13 @@ export function RecommendationView() {
       }
       
       // 获取自动翻译配置和界面语言
-      const config = await getUIConfig()
+      const uiConfig = await getUIConfig()
       const currentLanguage = i18n.language
       
-      // 保存到 Chrome 阅读列表（传递配置用于决定使用原文还是翻译链接）
-      await ReadingListManager.saveRecommendation(rec, config.autoTranslate, currentLanguage)
+      // 保存到 Chrome 阅读列表（使用不同前缀 📌 区分用户手动保存的"稍后读"）
+      // 这样在模式切换时不会被转移
+      const manualSavePrefix = '📌 '
+      await ReadingListManager.saveRecommendation(rec, uiConfig.autoTranslate, currentLanguage, manualSavePrefix)
       recViewLogger.info(`✅ 已保存到稍后读: ${rec.id}`)
       
       // 从推荐列表移除（但不标记为不想读）
@@ -421,8 +423,9 @@ export function RecommendationView() {
     })
   }
 
-  // 只显示前N条推荐（根据配置）
-  const displayedRecommendations = recommendations.slice(0, maxRecommendations)
+  // 🔧 Phase 15.1: 显示池中所有推荐，而不是截断为 maxRecommendations
+  // 原因：recommendationStore 已加载池容量（maxRecommendations * 2），应全部显示
+  const displayedRecommendations = recommendations
 
   /**
    * 智能决定哪些条目显示摘要

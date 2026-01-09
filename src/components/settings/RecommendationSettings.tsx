@@ -4,11 +4,14 @@
  * 
  * Phase 14: 文章池状态已合并到 CollectionStats 的推荐漏斗中
  *           推荐池和弹窗显示数据移到智能推荐策略区域
+ * Phase 15: 投递方式（弹窗/阅读列表静默）从 AI 引擎配置移至此处
  */
 
 import { useState, useEffect } from 'react'
 import { useI18n } from '@/i18n/helpers'
 import { db } from '@/storage/db'
+import { isReadingListAvailable } from '@/utils/browser-compat'
+import { getRecommendationConfig, saveRecommendationConfig } from '@/storage/recommendation-config'
 
 interface RecommendationSettingsProps {
   poolStrategy?: any
@@ -37,6 +40,52 @@ export function RecommendationSettings({
   poolCapacity
 }: RecommendationSettingsProps) {
   const { _ } = useI18n()
+  const readingListSupported = isReadingListAvailable()
+  
+  // 投递方式状态（从 recommendationConfig 加载）
+  const [deliveryMode, setDeliveryMode] = useState<'popup' | 'readingList'>('popup')
+  // 阅读列表清理配置已移除：统一由推荐池与用户行为控制
+  
+  // 从 recommendationConfig 初始化投递方式和清理配置
+  useEffect(() => {
+    const loadDeliveryMode = async () => {
+      try {
+        const recConfig = await getRecommendationConfig()
+        setDeliveryMode(recConfig.deliveryMode === 'readingList' && readingListSupported ? 'readingList' : 'popup')
+      } catch (error) {
+        console.error('加载投递方式失败:', error)
+      }
+    }
+    loadDeliveryMode()
+  }, [readingListSupported])
+  
+  // 保存投递方式到 recommendationConfig
+  const handleDeliveryModeChange = async (mode: 'popup' | 'readingList') => {
+    if (!readingListSupported && mode === 'readingList') return
+    
+    setDeliveryMode(mode)
+    try {
+      const recConfig = await getRecommendationConfig()
+      await saveRecommendationConfig({
+        ...recConfig,
+        deliveryMode: mode === 'readingList' && readingListSupported ? 'readingList' : 'popup'
+      })
+      // 通知后台服务
+      await chrome.runtime.sendMessage({ 
+        type: 'DELIVERY_MODE_CHANGED',
+        deliveryMode: mode
+      }).catch(() => {})
+    } catch (error) {
+      console.error('保存投递方式失败:', error)
+    }
+  }
+  
+  // 阅读列表标题前缀设置已移除，固定使用默认表情前缀
+  
+  // 阅读列表清理相关操作已移除
+  
+  const readingListModeEnabled = deliveryMode === 'readingList' && readingListSupported
+  
   
   // 实时获取推荐池和弹窗数据
   const [poolData, setPoolData] = useState<{
@@ -118,6 +167,66 @@ export function RecommendationSettings({
 
   return (
     <div className="space-y-6 p-6">
+      {/* Phase 15: 投递方式选择 */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-600 shadow-sm p-6">
+        <div className="flex items-start justify-between gap-2 mb-4">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <span>📮</span>
+              {_("推荐投递方式")}
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              {readingListSupported
+                ? _("options.recommendation.delivery.hint")
+                : _("options.recommendation.readingList.notSupported")}
+            </p>
+          </div>
+          {!readingListSupported && (
+            <span className="text-xs px-3 py-1 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200">
+              {_("options.recommendation.readingList.notSupported")}
+            </span>
+          )}
+        </div>
+
+        <div className="space-y-2 mb-4">
+          <label className={`flex items-start gap-3 p-4 rounded-lg border cursor-pointer transition ${deliveryMode === 'popup' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-200 dark:border-gray-700'}`}>
+            <input
+              type="radio"
+              className="mt-1"
+              checked={deliveryMode === 'popup'}
+              onChange={() => handleDeliveryModeChange('popup')}
+            />
+            <div className="space-y-1 flex-1">
+              <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{_("options.recommendation.delivery.popup")}</div>
+              <p className="text-xs text-gray-600 dark:text-gray-400">{_("options.recommendation.delivery.popupDesc")}</p>
+            </div>
+          </label>
+
+          <label className={`flex items-start gap-3 p-4 rounded-lg border transition ${readingListSupported ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed'} ${readingListModeEnabled ? 'border-green-500 bg-green-50 dark:bg-green-900/20' : 'border-gray-200 dark:border-gray-700'}`}>
+            <input
+              type="radio"
+              className="mt-1"
+              disabled={!readingListSupported}
+              checked={deliveryMode === 'readingList'}
+              onChange={() => handleDeliveryModeChange('readingList')}
+            />
+            <div className="space-y-1 flex-1">
+              <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{_("options.recommendation.delivery.readingList")}</div>
+              <p className="text-xs text-gray-600 dark:text-gray-400">{_("options.recommendation.delivery.readingListDesc")}</p>
+              {readingListSupported && (
+                <p className="text-[11px] text-emerald-600 dark:text-emerald-300">{_("options.recommendation.delivery.readingListSupportHint")}</p>
+              )}
+            </div>
+          </label>
+        </div>
+
+        {readingListModeEnabled && (
+          <div className="space-y-4">
+            {/* 阅读列表清理配置：移除（阅读清单与弹窗统一受控，清理不再暴露给用户） */}
+          </div>
+        )}
+      </div>
+
       {/* 学习阶段提示 */}
       {isLearningStage && (
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-800">

@@ -21,6 +21,7 @@ import type {
 } from '@/types/recommendation'
 import { trackRecommendationGenerated } from './adaptive-count'
 import { sendRecommendationNotification } from './notification'
+import { ReadingListManager } from '../reading-list/reading-list-manager'
 import { translateRecommendations } from '../translator/recommendation-translator'
 import { getUIConfig } from '../../storage/ui-config'
 import { logger } from '../../utils/logger'
@@ -89,6 +90,7 @@ export class RecommendationService {
     try {
       // 获取推荐配置
       const recommendationConfig = await getRecommendationConfig()
+      const deliveryMode = recommendationConfig.deliveryMode || 'popup'
       const baseSize = recommendationConfig.maxRecommendations || 3
       const maxPoolSize = baseSize * POOL_SIZE_MULTIPLIER
       
@@ -470,14 +472,36 @@ export class RecommendationService {
         }
       }
 
-      // 8. 发送通知（如果有推荐）
+      // 8. 根据投递模式处理
       if (recommendations.length > 0) {
-        const topRecommendation = recommendations[0]
-        await sendRecommendationNotification(recommendations.length, {
-          title: topRecommendation.title,
-          source: topRecommendation.source,
-          url: topRecommendation.url
-        })
+        const interfaceLanguage = typeof navigator !== 'undefined' ? navigator.language : 'zh-CN'
+
+        // 阅读清单模式：静默保存
+        if (deliveryMode === 'readingList' && ReadingListManager.isAvailable()) {
+          const titlePrefix = recommendationConfig.readingList?.titlePrefix || '📰 '
+          for (const rec of recommendations) {
+            try {
+              await ReadingListManager.saveRecommendation(
+                rec,
+                uiConfig.autoTranslate,
+                interfaceLanguage,
+                titlePrefix
+              )
+            } catch (error) {
+              recLogger.warn('保存到阅读列表失败（已忽略）', { id: rec.id, error })
+            }
+          }
+        }
+
+        // 弹窗模式（或降级回弹窗）依旧发送通知
+        if (deliveryMode === 'popup') {
+          const topRecommendation = recommendations[0]
+          await sendRecommendationNotification(recommendations.length, {
+            title: topRecommendation.title,
+            source: topRecommendation.source,
+            url: topRecommendation.url
+          })
+        }
       }
 
       return {

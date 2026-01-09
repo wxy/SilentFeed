@@ -77,13 +77,16 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
       // 获取推荐配置
       const config = await getRecommendationConfig()
       
-      // 只从数据库加载现有推荐，不生成新的
-      const recommendations = await getUnreadRecommendations(config.maxRecommendations * 2)
+      // 🔧 Phase 15.1: 加载池容量（maxRecommendations * 2），而不是仅加载 maxRecommendations
+      // 这样才能充分利用 AI 策略配置的池容量
+      const poolCapacity = config.maxRecommendations * 2
       
-      // 按评分降序排序并限制数量
+      // 只从数据库加载现有推荐，不生成新的
+      const recommendations = await getUnreadRecommendations(poolCapacity)
+      
+      // 按评分降序排序（不再限制数量，显示池中所有推荐）
       const sortedRecommendations = recommendations
         .sort((a: Recommendation, b: Recommendation) => b.score - a.score)
-        .slice(0, config.maxRecommendations)
       
       set({ 
         recommendations: sortedRecommendations, 
@@ -118,13 +121,23 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
       )
       
       // 无数据时不是错误，只是空状态
-      if (result.recommendations.length === 0 && result.stats?.reason) {
-        console.debug('[RecommendationStore] 无推荐数据:', result.stats.reason)
-        set({ 
-          recommendations: [], 
-          isLoading: false,
-          error: null // 不设置错误，让UI显示空状态
-        })
+      if (result.recommendations.length === 0) {
+        // 但如果有错误，则需要设置错误状态
+        if (result.errors && result.errors.length > 0) {
+          console.warn('[RecommendationStore] 推荐生成失败:', result.errors)
+          set({ 
+            recommendations: [], 
+            isLoading: false,
+            error: result.errors.join('; ')
+          })
+        } else {
+          console.debug('[RecommendationStore] 无推荐数据（已处理所有文章）:', result.stats)
+          set({ 
+            recommendations: [], 
+            isLoading: false,
+            error: null // 不设置错误，让UI显示空状态
+          })
+        }
         return
       }
       
@@ -137,8 +150,10 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
       }
       
       // 重新加载推荐（从数据库）
-      const recommendations = await getUnreadRecommendations(config.maxRecommendations)
+      // ✅ 修复：复用前面的 config 变量，不再重复声明
+      const recommendations = await getUnreadRecommendations(config.maxRecommendations * 2)
       
+      // 🔧 Phase 15.1: 显示池中全部推荐，不再截断
       set({ recommendations, isLoading: false })
       
     } catch (error) {
@@ -191,11 +206,9 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
       const config = await getRecommendationConfig()
       const recommendations = await getUnreadRecommendations(config.maxRecommendations * 2)
       
-      // ✅ 按评分降序排序并限制数量
-      // 注意：getUnreadRecommendations 已按分数排序，这里再次排序确保一致性
+      // 🔧 Phase 15.1: 按评分降序排序，显示池中全部推荐（不再截断）
       const sortedRecommendations = recommendations
         .sort((a: Recommendation, b: Recommendation) => b.score - a.score)
-        .slice(0, config.maxRecommendations)
       
       // 更新 store 状态
       set({
@@ -279,7 +292,6 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
     // 立即更新 UI，显示剩余的 + 新填充的
     const updatedRecommendations = [...remainingRecs, ...newRecs]
       .sort((a, b) => b.score - a.score)
-      .slice(0, config.maxRecommendations)
     
     set({ 
       recommendations: updatedRecommendations,
@@ -360,16 +372,15 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
       const needCount = config.maxRecommendations - remainingRecs.length
       
       const freshRecommendations = await getUnreadRecommendations(config.maxRecommendations * 2)
+      // 🔧 Phase 15.1: 加载池容量的全部推荐，而不是仅加载 needCount
       const newRecs = freshRecommendations
         .filter(r => !remainingRecs.some(existing => existing.id === r.id))
         .filter(r => !ids.includes(r.id))
         .sort((a: Recommendation, b: Recommendation) => b.score - a.score)
-        .slice(0, needCount)
       
-      // 立即更新 UI
+      // 立即更新 UI（显示池中全部推荐）
       const updatedRecommendations = [...remainingRecs, ...newRecs]
         .sort((a, b) => b.score - a.score)
-        .slice(0, config.maxRecommendations)
       
       set({ 
         recommendations: updatedRecommendations,

@@ -35,6 +35,7 @@ const mockChrome = {
   readingList: {
     addEntry: vi.fn(),
     query: vi.fn(),
+    removeEntry: vi.fn(),
     onEntryUpdated: {
       addListener: vi.fn(),
     },
@@ -69,6 +70,20 @@ vi.mock('@/storage/db', () => ({
         first: vi.fn(),
         count: vi.fn().mockResolvedValue(0),
       })),
+    },
+    readingListEntries: {
+      put: vi.fn(),
+      get: vi.fn().mockResolvedValue(undefined),
+      delete: vi.fn(),
+      toArray: vi.fn().mockResolvedValue([]),
+    },
+    feedArticles: {
+      where: vi.fn(() => ({
+        equals: vi.fn(() => ({
+          first: vi.fn().mockResolvedValue(undefined),
+        })),
+      })),
+      update: vi.fn(),
     },
     confirmedVisits: {
       filter: vi.fn(() => ({
@@ -131,7 +146,7 @@ describe('ReadingListManager', () => {
 
       expect(result).toBe(true)
       expect(mockChrome.readingList.addEntry).toHaveBeenCalledWith({
-        title: 'Test Article',
+        title: '📰 Test Article',
         url: 'https://example.com/article',
         hasBeenRead: false,
       })
@@ -145,7 +160,7 @@ describe('ReadingListManager', () => {
 
       expect(result).toBe(true)
       expect(mockChrome.readingList.addEntry).toHaveBeenCalledWith({
-        title: 'Test Article',
+        title: '📰 Test Article',
         url: 'https://example.com/article',
         hasBeenRead: false,
       })
@@ -170,8 +185,8 @@ describe('ReadingListManager', () => {
 
       expect(result).toBe(true)
       expect(mockChrome.readingList.addEntry).toHaveBeenCalledWith({
-        title: '测试文章',
-        url: expect.stringContaining('https://translate.google.com/translate?sl=auto&tl=zh-CN&u='),
+        title: '📰 测试文章',
+        url: `https://translate.google.com/translate?sl=auto&tl=zh-CN&u=${encodeURIComponent(recWithTranslation.url)}`,
         hasBeenRead: false,
       })
     })

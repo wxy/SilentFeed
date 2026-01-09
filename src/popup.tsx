@@ -7,11 +7,14 @@ import { getUIStyle, watchUIStyle, type UIStyle } from "@/storage/ui-config"
 import { useTheme } from "@/hooks/useTheme"
 import { ColdStartView } from "@/components/ColdStartView"
 import { RecommendationView } from "@/components/RecommendationView"
+import { ReadingListSummaryView } from "@/components/ReadingListSummaryView"
 import { OnboardingView } from "@/components/OnboardingView"
 import { type OnboardingState } from "@/storage/onboarding-state"
 import { trackPopupOpen } from "@/core/recommender/adaptive-count"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
 import { LEARNING_COMPLETE_PAGES } from "@/constants/progress"
+import { getRecommendationConfig } from "@/storage/recommendation-config"
+import { isReadingListAvailable } from "@/utils/browser-compat"
 import "@/styles/global.css"
 import "@/styles/sketchy.css" // 手绘风格样式
 
@@ -31,6 +34,7 @@ interface OnboardingStateInfo {
  * Silent Feed - Popup 主界面
  * Phase 2.7: 两阶段 UI（冷启动 + 推荐）
  * Phase 6: 添加弹窗打开跟踪，动态高度适应
+ * Phase 15: 根据投递方式显示不同视图（弹窗推荐 vs 阅读清单汇总）
  */
 function IndexPopup() {
   const { _ } = useI18n()
@@ -39,6 +43,7 @@ function IndexPopup() {
   const [stateInfo, setStateInfo] = useState<OnboardingStateInfo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [uiStyle, setUiStyle] = useState<UIStyle>("normal")
+  const [deliveryMode, setDeliveryMode] = useState<'popup' | 'readingList'>('popup')
   const [toolbarState, setToolbarState] = useState<{
     hasRSSFeeds: boolean
     hasCandidateFeeds: boolean  // 新发现的订阅源
@@ -83,6 +88,38 @@ function IndexPopup() {
     })
 
     return () => unwatch()
+  }, [])
+
+  // Phase 15: 加载投递方式配置
+  useEffect(() => {
+    const loadDeliveryMode = async () => {
+      try {
+        const config = await getRecommendationConfig()
+        const isReadingListMode = config.deliveryMode === 'readingList' && isReadingListAvailable()
+        setDeliveryMode(isReadingListMode ? 'readingList' : 'popup')
+        
+        // 🔧 Phase 15.1: 模式切换时清理旧推荐池
+        // 如果切换到阅读清单模式，检查是否有弹窗模式遗留的推荐
+        if (isReadingListMode) {
+          const activeRecs = await chrome.storage.local.get('mode_switched_timestamp')
+          const lastSwitchTime = activeRecs.mode_switched_timestamp || 0
+          const now = Date.now()
+          
+          // 如果最近未执行过清理（避免重复清理）
+          if (now - lastSwitchTime > 60000) { // 1分钟冷却
+            chrome.runtime.sendMessage({ 
+              type: 'CLEANUP_MODE_SWITCH',
+              targetMode: 'readingList'
+            })
+            await chrome.storage.local.set({ mode_switched_timestamp: now })
+          }
+        }
+      } catch (error) {
+        console.error('加载投递方式失败:', error)
+        setDeliveryMode('popup')
+      }
+    }
+    loadDeliveryMode()
   }, [])
 
   useEffect(() => {
@@ -271,7 +308,7 @@ function IndexPopup() {
           </div>
         </div>
 
-        {/* 主体内容 - 两阶段切换 */}
+        {/* 主体内容 - 三种模式：冷启动 / 推荐弹窗 / 阅读清单汇总 */}
         {isColdStart ? (
           <ColdStartView 
             pageCount={pageCount} 
@@ -279,6 +316,8 @@ function IndexPopup() {
             subscribedFeedCount={stateInfo.subscribedFeedCount}
             uiStyle={uiStyle} 
           />
+        ) : deliveryMode === 'readingList' ? (
+          <ReadingListSummaryView />
         ) : (
           <RecommendationView />
         )}

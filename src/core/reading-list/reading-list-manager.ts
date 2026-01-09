@@ -18,6 +18,7 @@ import type { Recommendation, ConfirmedVisit } from '@/types/database'
 import { db, dismissRecommendations } from '@/storage/db'
 import { isReadingListAvailable, getBrowserCompatInfo } from '@/utils/browser-compat'
 import { FeedManager } from '@/core/rss/managers/FeedManager'
+import type { ReadingListCleanupConfig } from '@/storage/recommendation-config'
 
 const rlLogger = logger.withTag('ReadingListManager')
 
@@ -51,7 +52,8 @@ export class ReadingListManager {
   static async saveRecommendation(
     recommendation: Recommendation,
     autoTranslateEnabled: boolean = false,
-    interfaceLanguage: string = 'zh-CN'
+    interfaceLanguage: string = 'zh-CN',
+    titlePrefix: string = '📰 '
   ): Promise<boolean> {
     // 检查浏览器是否支持阅读列表
     if (!this.isAvailable()) {
@@ -102,6 +104,11 @@ export class ReadingListManager {
           translated: urlToSave,
           language: `${recommendation.translation.sourceLanguage}→${interfaceLanguage}`
         })
+      }
+
+      // 应用可选的标题前缀，避免重复添加
+      if (titlePrefix && !titleToSave.startsWith(titlePrefix)) {
+        titleToSave = `${titlePrefix}${titleToSave}`
       }
       
       // 1. 添加到 Chrome 阅读列表
@@ -166,6 +173,18 @@ export class ReadingListManager {
         url: urlToSave,
       })
 
+      // 4. 记录到 readingListEntries 表，便于清理和标记来源
+      try {
+        await db.readingListEntries.put({
+          url: urlToSave,
+          recommendationId: recommendation.id,
+          addedAt: Date.now(),
+          titlePrefix
+        })
+      } catch (entryError) {
+        rlLogger.warn('记录阅读列表条目失败（不影响主功能）:', entryError)
+      }
+
       // 3. 检查是否需要显示提示
       await this.maybeShowOnboardingTip()
 
@@ -183,6 +202,17 @@ export class ReadingListManager {
           savedAt: Date.now(),
           feedback: 'later',  // Phase 14: 标记为"稍后读"
         })
+
+        try {
+          await db.readingListEntries.put({
+            url: urlToSave,
+            recommendationId: recommendation.id,
+            addedAt: Date.now(),
+            titlePrefix
+          })
+        } catch (entryError) {
+          rlLogger.warn('记录阅读列表条目失败（duplicate 分支）:', entryError)
+        }
         
         // Phase 14: 同步更新 feedArticles
         try {
@@ -348,6 +378,13 @@ export class ReadingListManager {
       
       // 检查是否是未读删除（视为"不想读"）
       await this.handleReadingListRemoved(entry.url)
+
+      // 清理内部追踪
+      try {
+        await db.readingListEntries.delete(entry.url)
+      } catch (error) {
+        rlLogger.warn('删除阅读列表追踪记录失败', error)
+      }
     })
 
     rlLogger.info('阅读列表事件监听器已设置')
@@ -359,10 +396,18 @@ export class ReadingListManager {
    */
   private static async handleReadingListRemoved(url: string): Promise<void> {
     try {
+      const trackingRecord = await db.readingListEntries.get(url)
+      let recommendation: Recommendation | undefined
+
       // 1. 查找对应的推荐记录
-      const recommendation = await db.recommendations
-        .filter((rec) => rec.url === url && rec.savedToReadingList === true)
-        .first()
+      if (trackingRecord?.recommendationId) {
+        recommendation = await db.recommendations.get(trackingRecord.recommendationId)
+      }
+      if (!recommendation) {
+        recommendation = await db.recommendations
+          .filter((rec) => rec.url === url && rec.savedToReadingList === true)
+          .first()
+      }
 
       if (!recommendation) {
         rlLogger.debug('未找到对应的推荐记录或该条目非推荐保存', { url })
@@ -407,6 +452,82 @@ export class ReadingListManager {
       await dismissRecommendations([recommendation.id])
     } catch (error) {
       rlLogger.error('处理阅读列表删除失败', error)
+    }
+  }
+
+  /**
+   * 判断条目是否由本扩展添加
+   */
+  static async isOurEntry(url: string): Promise<boolean> {
+    try {
+      const record = await db.readingListEntries.get(url)
+      return !!record
+    } catch (error) {
+      rlLogger.warn('查询阅读列表来源失败', error)
+      return false
+    }
+  }
+
+  /**
+   * 手动清理阅读列表（仅清理本扩展添加的条目）
+   */
+  static async cleanup(config: ReadingListCleanupConfig): Promise<{ removed: number; total: number }> {
+    if (!this.isAvailable()) return { removed: 0, total: 0 }
+    if (!config.enabled) return { removed: 0, total: 0 }
+
+    try {
+      const ourRecords = await db.readingListEntries.toArray()
+      const ourUrls = new Set(ourRecords.map(r => r.url))
+      const allEntries = await chrome.readingList.query({})
+      const ourEntries = allEntries.filter(e => ourUrls.has(e.url))
+      const removalSet = new Set<string>()
+      const now = Date.now()
+      const cutoff = config.retentionDays > 0
+        ? now - config.retentionDays * 24 * 60 * 60 * 1000
+        : 0
+
+      // 1) 时间过期
+      if (cutoff > 0) {
+        ourEntries.forEach(entry => {
+          if (entry.creationTime < cutoff) {
+            if (!config.keepUnread || entry.hasBeenRead) {
+              removalSet.add(entry.url)
+            }
+          }
+        })
+      }
+
+      // 2) 条目数超限（移除最早的）
+      if (config.maxEntries > 0 && ourEntries.length > config.maxEntries) {
+        const sorted = [...ourEntries].sort((a, b) => a.creationTime - b.creationTime)
+        const overflow = sorted.length - config.maxEntries
+        for (let i = 0; i < overflow; i++) {
+          const entry = sorted[i]
+          if (config.keepUnread && !entry.hasBeenRead) continue
+          removalSet.add(entry.url)
+        }
+      }
+
+      let removed = 0
+      for (const url of removalSet) {
+        try {
+          await chrome.readingList.removeEntry({ url })
+          await db.readingListEntries.delete(url)
+          removed++
+        } catch (err) {
+          rlLogger.warn('清理阅读列表条目失败', { url, err })
+        }
+      }
+
+      rlLogger.info('阅读列表清理完成', {
+        total: ourEntries.length,
+        removed
+      })
+
+      return { removed, total: ourEntries.length }
+    } catch (error) {
+      rlLogger.error('阅读列表清理失败', error)
+      return { removed: 0, total: 0 }
     }
   }
 

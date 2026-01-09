@@ -22,6 +22,7 @@ import { OnboardingStateService } from "@/core/onboarding/OnboardingStateService
 import { LEARNING_COMPLETE_PAGES } from "@/constants/progress"
 import { AIConfigPanel } from "@/components/AIConfigPanel"
 import { BudgetOverview } from "@/components/BudgetOverview"
+import { isReadingListAvailable } from "@/utils/browser-compat"
 
 const DEFAULT_LOCAL_CONFIG: LocalAIConfig = {
   enabled: false,
@@ -46,6 +47,7 @@ interface LocalAIStatus {
 
 export function AIConfig() {
   const { _ } = useI18n()
+  const readingListSupported = isReadingListAvailable()
   
   // 状态管理
   const [model, setModel] = useState<string>("")  // 模型选择（主要状态）
@@ -92,6 +94,8 @@ export function AIConfig() {
   
   // 推荐配置
   const [maxRecommendations, setMaxRecommendations] = useState(3)
+  const [deliveryMode, setDeliveryMode] = useState<'popup' | 'readingList'>('popup')
+  // 阅读列表标题前缀设置已移除，固定使用默认表情前缀
   const [isLearningStage, setIsLearningStage] = useState(false)
   const [pageCount, setPageCount] = useState(0)
   const [totalPages, setTotalPages] = useState(LEARNING_COMPLETE_PAGES)
@@ -134,6 +138,8 @@ export function AIConfig() {
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const isInitializedRef = useRef(false) // 追踪是否已完成初始化
 
+  const readingListModeEnabled = deliveryMode === 'readingList' && readingListSupported
+
   // 从模型推导当前 Provider
   const currentProvider = model ? getProviderFromModel(model) : null
   
@@ -169,6 +175,8 @@ export function AIConfig() {
     if (minutes > 0) return _("options.recommendation.strategy.minutes", { count: minutes })
     return _("options.recommendation.strategy.imminent")
   }
+
+  // 阅读列表清理定时器相关逻辑已废弃
   
 
   
@@ -242,6 +250,8 @@ export function AIConfig() {
     // 加载推荐配置
     getRecommendationConfig().then(recConfig => {
       setMaxRecommendations(recConfig.maxRecommendations || 3)
+      setDeliveryMode(recConfig.deliveryMode === 'readingList' && readingListSupported ? 'readingList' : 'popup')
+      // 标题前缀不再配置，保持默认
     })
     
     // 🆕 加载推荐池策略
@@ -535,11 +545,12 @@ export function AIConfig() {
         await saveEngineAssignment(engineAssignment)
       }
       
-      // 保存推荐配置
+      // 保存推荐配置（deliveryMode 和 readingList 是用户可配置的）
+      // maxRecommendations 由系统自动调整，不保存用户设置
       const recConfig = await getRecommendationConfig()
       await saveRecommendationConfig({
         ...recConfig,
-        maxRecommendations
+        deliveryMode: deliveryMode === 'readingList' && readingListSupported ? 'readingList' : 'popup'
       })
       
     } catch (error) {
@@ -547,7 +558,7 @@ export function AIConfig() {
     } finally {
       setAutoSaving(false)
     }
-  }, [model, currentProvider, currentApiKey, apiKeys, providerBudgets, providerTimeouts, enableReasoning, engineAssignment, maxRecommendations, localConfig, localAIChoice, preferredRemoteProvider, preferredLocalProvider])
+  }, [model, currentProvider, currentApiKey, apiKeys, providerBudgets, providerTimeouts, enableReasoning, engineAssignment, localConfig, localAIChoice, preferredRemoteProvider, preferredLocalProvider, deliveryMode, readingListSupported])
 
   /**
    * 触发自动保存（带防抖）
@@ -585,7 +596,7 @@ export function AIConfig() {
       triggerAutoSave()
     }
     // 只监听需要自动保存的字段，不包括函数引用
-  }, [providerBudgets, enableReasoning, engineAssignment, maxRecommendations, model, currentProvider, currentApiKey])
+  }, [providerBudgets, enableReasoning, engineAssignment, model, currentProvider, currentApiKey, deliveryMode])
 
   // 监听 engineAssignment 变化，同步更新 RecommendationConfig
   useEffect(() => {
@@ -688,11 +699,12 @@ export function AIConfig() {
       await saveEngineAssignment(engineAssignment)
     }
     
-    // 保存推荐配置
+    // 保存推荐配置（deliveryMode 和 readingList 是用户可配置的）
+    // maxRecommendations 由系统自动调整，不保存用户设置
     const recConfig = await getRecommendationConfig()
     await saveRecommendationConfig({
       ...recConfig,
-      maxRecommendations
+      deliveryMode: deliveryMode === 'readingList' && readingListSupported ? 'readingList' : 'popup'
     })
     
     setMessage({ type: "success", text: _("options.aiConfig.messages.saveSuccess") })
@@ -736,6 +748,8 @@ export function AIConfig() {
     setIsSaving(false)
     }
   }
+
+  // 手动清理阅读列表功能已移除
 
   return (
     <div className="space-y-6 p-6">
@@ -790,181 +804,6 @@ export function AIConfig() {
       />
     </div>
   )}
-
-  {/* 智能推荐策略 */}
-  <div className="p-6 bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 rounded-lg">
-    <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">
-      🎯 智能推荐策略
-    </h3>
-    {isLearningStage ? (
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
-        <div className="flex items-start gap-3">
-          <span className="text-2xl">📚</span>
-          <div className="flex-1">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                {_("options.recommendation.learningStageTitle")}
-              </span>
-              <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">0</span>
-            </div>
-            <p className="text-xs text-blue-700 dark:text-blue-300 mb-2">
-              {_("options.recommendation.learningStageHint", { current: pageCount, total: totalPages })}
-            </p>
-            <p className="text-xs text-blue-600 dark:text-blue-400">
-              {_("options.recommendation.learningStageNote")}
-            </p>
-          </div>
-        </div>
-      </div>
-    ) : poolStrategy ? (
-      <div className="space-y-4">
-        {/* AI 决策理由 */}
-        <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border border-purple-200 dark:border-purple-700 rounded-lg p-4">
-          <div className="flex items-start gap-3">
-            <span className="text-2xl">🤖</span>
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-purple-900 dark:text-purple-100">
-                  AI 决策建议
-                </span>
-                <span className="text-xs px-2 py-1 rounded-full bg-purple-100 dark:bg-purple-800 text-purple-700 dark:text-purple-200">
-                  置信度 {(poolStrategy.decision.confidence * 100).toFixed(0)}%
-                </span>
-              </div>
-              <p className="text-sm text-purple-800 dark:text-purple-200 mb-2">
-                {poolStrategy.decision.reasoning}
-              </p>
-              <p className="text-xs text-purple-600 dark:text-purple-400">
-                更新时间：{poolStrategy.date}
-              </p>
-            </div>
-          </div>
-        </div>
-        
-        {/* 当前策略参数 */}
-        <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-gray-500 dark:text-gray-400">{_("options.recommendation.strategy.poolSize")}</span>
-                <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                  {_("options.recommendation.strategy.itemsCount", { count: poolStrategy.decision.poolSize })}
-                </span>
-              </div>
-              <div className="text-xs text-gray-400">
-                {_("options.recommendation.strategy.popupItems", { count: maxRecommendations })}
-              </div>
-            </div>
-            
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-gray-500 dark:text-gray-400">{_("options.recommendation.strategy.refillInterval")}</span>
-                <span className="text-lg font-bold text-green-600 dark:text-green-400">
-                  {_("options.recommendation.strategy.minutesValue", { count: Math.round(poolStrategy.decision.minInterval / 1000 / 60) })}
-                </span>
-              </div>
-              <div className="text-xs text-gray-400">
-                {_("options.recommendation.strategy.refillIntervalHint")}
-              </div>
-            </div>
-            
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-gray-500 dark:text-gray-400">{_("options.recommendation.strategy.dailyRefillLimit")}</span>
-                <span className="text-lg font-bold text-orange-600 dark:text-orange-400">
-                  {_("options.recommendation.strategy.timesCount", { count: poolStrategy.decision.maxDailyRefills })}
-                </span>
-              </div>
-              <div className="text-xs text-gray-400">
-                {_("options.recommendation.strategy.dailyRefillLimitHint")}
-              </div>
-            </div>
-            
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-gray-500 dark:text-gray-400">{_("options.recommendation.strategy.triggerThreshold")}</span>
-                <span className="text-lg font-bold text-purple-600 dark:text-purple-400">
-                  {(poolStrategy.decision.triggerThreshold * 100).toFixed(0)}%
-                </span>
-              </div>
-              <div className="text-xs text-gray-400">
-                {_("options.recommendation.strategy.triggerThresholdHint")}
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* 数据源分析 */}
-        <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-          <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">📊 {_("options.recommendation.strategy.decisionBasis")}</div>
-          <div className="grid grid-cols-3 gap-3 text-xs">
-            <div>
-              <div className="text-gray-500 dark:text-gray-400">{_("options.recommendation.strategy.feedSources")}</div>
-              <div className="font-medium text-gray-900 dark:text-gray-100">
-                {_("options.recommendation.strategy.feedSourcesValue", { total: poolStrategy.context.feeds.totalCount, active: poolStrategy.context.feeds.activeFeeds })}
-              </div>
-            </div>
-            <div>
-              <div className="text-gray-500 dark:text-gray-400">{_("options.recommendation.strategy.dailyArticles")}</div>
-              <div className="font-medium text-gray-900 dark:text-gray-100">
-                {_("options.recommendation.strategy.articlesCount", { count: poolStrategy.context.articles.dailyAverage.toFixed(0) })}
-              </div>
-            </div>
-            <div>
-              <div className="text-gray-500 dark:text-gray-400">{_("options.recommendation.strategy.yesterdayClickRate")}</div>
-              <div className="font-medium text-gray-900 dark:text-gray-100">
-                {poolStrategy.context.userBehavior.recommendationsShown > 0
-                  ? ((poolStrategy.context.userBehavior.clicked / poolStrategy.context.userBehavior.recommendationsShown) * 100).toFixed(0)
-                  : 0}%
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* 推荐任务执行时间 */}
-        {recommendationScheduler?.nextRunTime && (
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-3">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-blue-700 dark:text-blue-300">⏱️ {_("options.recommendation.strategy.nextGeneration")}</span>
-              <span className="font-medium text-blue-600 dark:text-blue-400">
-                {formatTimeUntil(recommendationScheduler.nextRunTime)}
-              </span>
-            </div>
-          </div>
-        )}
-      </div>
-    ) : (
-      <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-sm text-gray-600 dark:text-gray-400">{_("options.recommendation.currentCount")}</span>
-          <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-            {_("options.recommendation.countItems", { count: maxRecommendations })}
-          </span>
-        </div>
-        
-        {/* 推荐任务执行时间 */}
-        {recommendationScheduler?.nextRunTime && (
-          <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-500 dark:text-gray-400">⏱️ {_("options.recommendation.strategy.nextGeneration")}</span>
-              <span className="font-medium text-blue-600 dark:text-blue-400">
-                {formatTimeUntil(recommendationScheduler.nextRunTime)}
-              </span>
-            </div>
-          </div>
-        )}
-        
-        <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
-          {_("options.recommendation.countHint")}
-        </p>
-        <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-2">
-          💡 扩展启动后 5 分钟，AI 将自动生成个性化推荐池策略（此后每 24 小时更新一次）
-        </p>
-      </div>
-    )}
-    
-
-  </div>
 
   {/* 自动保存状态提示 */}
   {autoSaving && (

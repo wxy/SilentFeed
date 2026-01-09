@@ -354,6 +354,32 @@
         "articlesCount": "{{count}} articles",
         "yesterdayClickRate": "Yesterday Click Rate",
         "nextGeneration": "Next Generation"
+      },
+      "delivery": {
+        "title": "Delivery method",
+        "hint": "Choose popup or silently save to Reading List",
+        "popup": "Popup (default)",
+        "popupDesc": "Show recommendations in the extension popup and optionally send notifications",
+        "readingList": "Reading List (silent)",
+        "readingListDesc": "Silently save recommendations to Chrome Reading List to keep browsing quiet",
+        "readingListSupportHint": "Requires Chrome 120+. Edge is not supported"
+      },
+      "readingList": {
+        "notSupported": "Reading List is not supported in this browser; falling back to popup mode",
+        "titlePrefix": "Title prefix",
+        "titlePrefixHint": "Helps distinguish entries added by Silent Feed",
+        "cleanupTitle": "Auto cleanup",
+        "cleanupDesc": "Cleans only entries added by Silent Feed by age and count",
+        "cleanupEnabled": "Enable auto cleanup",
+        "retentionDays": "Retention days (0 = unlimited)",
+        "maxEntries": "Max entries (0 = unlimited)",
+        "intervalHours": "Cleanup interval (hours)",
+        "keepUnread": "Keep unread",
+        "keepUnreadHint": "Only remove items that are read or expired",
+        "manualCleanup": "Clean now",
+        "cleanupRunning": "Cleaning reading list...",
+        "cleanupResult": "Cleaned {{removed}} / {{total}} entries",
+        "cleanupScope": "Only items added by Silent Feed are touched"
       }
     },
     "privacy": {
@@ -1929,4 +1955,14 @@
     "id": "Indonesian",
     "unknown": "Unknown"
   }
+  ,
+  "阅读清单模式": "Reading List Mode",
+  "阅读清单统计": "Reading List Statistics",
+  "总条目": "Total Items",
+  "未读": "Unread",
+  "扩展添加": "Extension Added",
+  "推荐投递方式": "Recommendation Delivery Method",
+  "推荐内容会自动添加到 Chrome 阅读清单": "Recommendations are automatically added to Chrome Reading List",
+  "可在设置页中切换在弹窗中显示推荐内容": "You can switch to showing recommendations in the popup from Settings",
+  "在 Chrome 侧边栏中查看完整阅读清单": "View the full Reading List in Chrome's sidebar"
 }

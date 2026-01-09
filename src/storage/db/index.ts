@@ -2,12 +2,13 @@
  * IndexedDB 数据库定义（使用 Dexie.js）
  * 
  * 数据库名称: SilentFeedDB
- * 当前版本: 19
+ * 当前版本: 20
  * 
  * ⚠️ 版本管理说明：
  * - 开发过程中如果遇到版本冲突，请删除旧数据库
  * - 生产环境版本号应该只增不减
  * - 版本 19（策略存储重构 - 移除 strategyDecisions 表，迁移到 chrome.storage.local）
+ * - 版本 20（阅读清单模式 - 阅读列表追踪表）
  * - 版本 18（推荐系统重构 - 多池架构 + 策略决策表）
  * - 版本 17（Phase 12.8: 页面访问去重支持）
  * - 版本 16（Phase 10: 文章持久化重构）
@@ -30,7 +31,8 @@ import type { Table } from 'dexie'
 import type {
   PendingVisit,
   ConfirmedVisit,
-  Recommendation
+  Recommendation,
+  ReadingListEntry
 } from "@/types/database"
 import type { UserSettings } from "@/types/config"
 import type { InterestSnapshot, UserProfile } from "@/types/profile"
@@ -61,6 +63,9 @@ export class SilentFeedDB extends Dexie {
   
   // 表 4: 推荐记录（Phase 2.7）
   recommendations!: Table<Recommendation, string>
+
+  // 表 5: 阅读列表追踪（Phase 15）
+  readingListEntries!: Table<ReadingListEntry, string>
 
   // 表 6: 用户画像（Phase 3.3）
   userProfile!: Table<UserProfile, string>
@@ -538,6 +543,25 @@ export class SilentFeedDB extends Dexie {
       }
       
       dbLogger.info('✅ 策略决策表已移除，现在使用 chrome.storage.local')
+    })
+
+    // 版本 20: 阅读清单追踪表（静默模式）
+    this.version(20).stores({
+      pendingVisits: 'id, url, startTime, expiresAt',
+      confirmedVisits: 'id, url, visitTime, domain, *analysis.keywords, [visitTime+domain], [url+visitTime]',
+      settings: 'id',
+      recommendations: 'id, recommendedAt, isRead, source, sourceUrl, status, replacedAt, [isRead+recommendedAt], [isRead+source], [status+recommendedAt]',
+      userProfile: 'id, lastUpdated, version',
+      interestSnapshots: 'id, timestamp, primaryTopic, trigger, [primaryTopic+timestamp]',
+      discoveredFeeds: 'id, url, status, discoveredAt, subscribedAt, discoveredFrom, isActive, lastFetchedAt, [status+discoveredAt], [isActive+lastFetchedAt]',
+      feedArticles: 'id, feedId, link, published, recommended, read, inPool, inFeed, deleted, poolStatus, analysisScore, [feedId+published], [recommended+published], [read+published], [inPool+poolAddedAt], [inFeed+published], [deleted+deletedAt], [poolStatus+analysisScore], [poolStatus+candidatePoolAddedAt]',
+      aiUsage: 'id, timestamp, provider, purpose, success, [provider+timestamp], [purpose+timestamp]',
+      readingListEntries: 'url, recommendationId, addedAt, titlePrefix'
+    }).upgrade(async tx => {
+      dbLogger.info('[阅读清单模式] 初始化 readingListEntries 表...')
+      // 无需迁移数据，表结构即可创建
+      const count = await tx.table('readingListEntries').count()
+      dbLogger.info(`[阅读清单模式] ✅ readingListEntries 表已就绪，现有记录: ${count}`)
     })
   }
 }

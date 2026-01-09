@@ -119,6 +119,8 @@ async function setupOllamaDNRRules(): Promise<void> {
 // 检查 DNR 规则状态
 setupOllamaDNRRules()
 
+// 阅读列表清理定时器已废弃：清理逻辑不再由后台定时器负责，交由池容量与用户行为统一控制
+
 // Phase 5.2: 初始化图标管理器
 let iconManager: IconManager | null = null
 
@@ -173,11 +175,36 @@ async function updateBadge(): Promise<void> {
       iconManager.setBadgeState(pageCount, 0, threshold)
       bgLogger.debug(`📚 学习进度：${pageCount}/${threshold} 页`)
     } else {
-      // 推荐阶段：显示推荐波纹
-      const unreadRecs = await getUnreadRecommendations(50)
-      const unreadCount = Math.min(unreadRecs.length, 3)  // 最多3条波纹
-      iconManager.setBadgeState(threshold, unreadCount, threshold)
-      bgLogger.debug(`📬 推荐阶段：${unreadCount} 条未读推荐`)
+      // 推荐阶段：根据投递模式显示
+      // Phase 15: 检查投递模式
+      const config = await getRecommendationConfig()
+      const isReadingListMode = config.deliveryMode === 'readingList'
+
+      if (isReadingListMode) {
+        // 阅读清单模式：统计阅读清单中由本扩展添加且未读的条目
+        let displayCount = 0
+        try {
+          if (ReadingListManager.isAvailable() && chrome.readingList) {
+            const entries = await chrome.readingList.query({})
+            const ourRecords = await db.readingListEntries.toArray()
+            const ourUrls = new Set(ourRecords.map(r => r.url))
+            displayCount = entries.filter(e => ourUrls.has(e.url) && !e.hasBeenRead).length
+          }
+        } catch (rlError) {
+          bgLogger.warn('读取阅读清单条目失败:', rlError)
+        }
+
+        iconManager.setRecommendCount(displayCount > 0 ? Math.min(displayCount, 3) : 0)
+        // 清除波纹以避免视觉冲突
+        iconManager.setBadgeState(threshold, 0, threshold)
+        bgLogger.debug(`📬 推荐阶段（阅读清单模式）：${displayCount} 条未读（扩展添加）`)
+      } else {
+        // 弹窗模式：显示数字徽章为未读推荐数量（最多3）
+        const unreadRecs = await getUnreadRecommendations(50)
+        const unreadCount = unreadRecs.length
+        iconManager.setRecommendCount(Math.min(unreadCount, 3))
+        bgLogger.debug(`📬 推荐阶段（弹窗模式）：${unreadCount} 条未读推荐`)
+      }
     }
     
     // 3. RSS 发现动画（优先级最高，会覆盖上面的状态）
@@ -352,6 +379,8 @@ chrome.runtime.onInstalled.addListener(async () => {
     // 初始化阅读列表监听器
     ReadingListManager.setupListeners()
     bgLogger.info('✅ 阅读列表监听器已设置')
+
+    // 阅读列表清理定时器已废弃：不再配置
     
     // Phase 7: 启动所有后台调度器
     await startAllSchedulers()
@@ -518,7 +547,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               break
             }
             
-            // 4. 后续处理（推荐标记、画像学习等）
+            // 4. 后续处理（推荐标记、画像学习、阅读清单移除等）
             if (pageData.recommendationId && !result.deduplicated) {
               try {
                 await markAsRead(pageData.recommendationId, pageData.duration, undefined)
@@ -528,6 +557,42 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 if (recommendation) {
                   await semanticProfileBuilder.onRead(recommendation, pageData.duration, 0.5)
                   bgLogger.debug('✅ 画像阅读学习完成')
+                  
+                  // Phase 15: 如果文章来自阅读清单，学习完成后自动移除
+                  if (recommendation.savedToReadingList && ReadingListManager.isAvailable()) {
+                    try {
+                      // 查找 readingListEntries 获取实际保存的 URL（可能是翻译链接）
+                      const entries = await db.readingListEntries
+                        .where('recommendationId').equals(pageData.recommendationId)
+                        .toArray()
+                      
+                      if (entries.length > 0) {
+                        for (const entry of entries) {
+                          try {
+                            await chrome.readingList.removeEntry({ url: entry.url })
+                            bgLogger.info('✅ 学习完成，已自动从阅读清单移除', {
+                              url: entry.url,
+                              title: recommendation.title
+                            })
+                          } catch (removeError) {
+                            bgLogger.warn('从阅读清单移除失败（可能已手动删除）:', removeError)
+                          }
+                        }
+                      } else {
+                        // 兼容旧数据：尝试使用推荐的原始 URL
+                        try {
+                          await chrome.readingList.removeEntry({ url: pageData.url })
+                          bgLogger.info('✅ 学习完成，已自动从阅读清单移除（使用原始URL）', {
+                            url: pageData.url
+                          })
+                        } catch (removeError) {
+                          bgLogger.debug('未找到对应的阅读清单条目（可能已手动删除）')
+                        }
+                      }
+                    } catch (error) {
+                      bgLogger.warn('自动移除阅读清单条目失败:', error)
+                    }
+                  }
                 }
               } catch (error) {
                 bgLogger.warn('推荐后续处理失败:', error)
@@ -1063,6 +1128,123 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           }
           break
         
+        // Phase 15.1: 清理模式切换时的旧推荐
+        case 'CLEANUP_MODE_SWITCH':
+          try {
+            const { targetMode } = message as { type: string; targetMode: 'popup' | 'readingList' }
+            bgLogger.info(`🔄 清理模式切换遗留数据，目标模式: ${targetMode}`)
+            
+            // 清理 recommendations 表中的旧推荐
+            const cleaned = await db.recommendations
+              .filter(rec => {
+                const isActive = !rec.status || rec.status === 'active'
+                const isUnreadAndNotDismissed = !rec.isRead && rec.feedback !== 'dismissed'
+                return isActive && isUnreadAndNotDismissed
+              })
+              .modify({ status: 'inactive' })
+            
+            bgLogger.info(`✅ 已清理 ${cleaned} 条旧推荐，推荐池已释放`)
+            
+            // 立即触发一次新推荐生成
+            recommendationScheduler.triggerNow().catch(error => {
+              bgLogger.error('强制生成推荐失败:', error)
+            })
+            
+            sendResponse({ success: true, cleaned })
+          } catch (error) {
+            bgLogger.error('❌ 清理模式切换数据失败:', error)
+            sendResponse({ success: false, error: String(error) })
+          }
+          break
+
+        // 模式切换：保存配置并进行条目转移
+        case 'DELIVERY_MODE_CHANGED':
+          (async () => {
+            try {
+              const { deliveryMode } = message as { type: string; deliveryMode: 'popup' | 'readingList' }
+              const prevConfig = await getRecommendationConfig()
+              const prevMode = prevConfig.deliveryMode
+              const newConfig = { ...prevConfig, deliveryMode }
+              await saveRecommendationConfig(newConfig)
+              bgLogger.info(`📮 推荐投递模式切换: ${prevMode} → ${deliveryMode}`)
+
+              // 仅转移由扩展自动添加的条目（📰 前缀）
+              // 用户手动保存的"稍后读"条目（📌 前缀）不转移
+              const autoAddedPrefix = '📰 '
+
+              // 转移逻辑
+              if (deliveryMode === 'readingList' && ReadingListManager.isAvailable()) {
+                // 将当前弹窗内活跃推荐转移到阅读列表（非"稍后读"的条目）
+                const activeRecs = await db.recommendations
+                  .filter(rec => {
+                    const isActive = !rec.status || rec.status === 'active'
+                    const isUnreadAndNotDismissed = !rec.isRead && rec.feedback !== 'dismissed'
+                    // 排除已标记为"稍后读"的条目（feedback === 'later'）
+                    const isNotLater = rec.feedback !== 'later'
+                    return isActive && isUnreadAndNotDismissed && isNotLater
+                  })
+                  .toArray()
+
+                const uiConfigResult = await chrome.storage.sync.get('ui_config')
+                const autoTranslate = !!(uiConfigResult?.ui_config?.autoTranslate)
+                const interfaceLanguage = typeof navigator !== 'undefined' ? navigator.language : 'zh-CN'
+
+                let transferred = 0
+                for (const rec of activeRecs) {
+                  try {
+                    const ok = await ReadingListManager.saveRecommendation(rec, autoTranslate, interfaceLanguage, autoAddedPrefix)
+                    if (ok) transferred++
+                  } catch (err) {
+                    bgLogger.warn('转移到阅读列表失败（忽略）', { id: rec.id, err })
+                  }
+                }
+
+                // 触发一次推荐生成以填充池
+                recommendationScheduler.triggerNow().catch(() => {})
+                sendResponse({ success: true, transferred })
+              } else if (deliveryMode === 'popup') {
+                // 从阅读列表移除仅由扩展自动添加的条目（📰 前缀），保留用户手动的"稍后读"（📌 前缀）
+                try {
+                  const entries = await chrome.readingList.query()
+                  // 仅移除自动添加的前缀条目
+                  const autoAddedEntries = entries.filter(e => e.title?.startsWith(autoAddedPrefix))
+                  let removed = 0
+                  for (const entry of autoAddedEntries) {
+                    try {
+                      await chrome.readingList.removeEntry({ url: entry.url })
+                      // 删除记录表中的对应映射
+                      try {
+                        const rlEntry = await db.readingListEntries.get(entry.url)
+                        if (rlEntry?.recommendationId) {
+                          await db.recommendations.update(rlEntry.recommendationId, {
+                            savedToReadingList: false,
+                            status: 'active'
+                          })
+                        }
+                        await db.readingListEntries.delete(entry.url)
+                      } catch {}
+                      removed++
+                    } catch (err) {
+                      bgLogger.warn('移除阅读列表条目失败（忽略）', { url: entry.url, err })
+                    }
+                  }
+                  // 触发推荐生成填充弹窗
+                  recommendationScheduler.triggerNow().catch(() => {})
+                  sendResponse({ success: true, removed })
+                } catch (err) {
+                  bgLogger.error('处理阅读列表转移失败:', err)
+                  sendResponse({ success: false, error: String(err) })
+                }
+              } else {
+                sendResponse({ success: true })
+              }
+            } catch (error) {
+              bgLogger.error('❌ 模式切换处理失败:', error)
+              sendResponse({ success: false, error: String(error) })
+            }
+          })()
+          return true
+        
         // 打开推荐文章（从弹窗或翻译按钮）
         // 由 Background 处理，确保追踪信息在创建 Tab 后立即保存
         case 'OPEN_RECOMMENDATION':
@@ -1136,6 +1318,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             })
           }
           break
+
+        // 阅读列表清理相关消息已废弃：保持接口精简
 
         default:
           sendResponse({ success: false, error: 'Unknown message type' })
