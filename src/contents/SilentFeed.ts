@@ -447,22 +447,6 @@ async function notifyPageVisit() {
         })
         titleManager?.completeLearning()
       }
-      
-      // 🔧 Phase 15.2: 如果是从阅读清单打开且阅读已完成，自动删除条目
-      if (response.fromReadingList && response.readingComplete) {
-        try {
-          // 从 Chrome Reading List 删除该条目
-          await chrome.readingList.removeEntry({
-            url: window.location.href
-          })
-          sfLogger.info('✅ 已从阅读清单自动删除（阅读完成）', {
-            url: window.location.href
-          })
-        } catch (error) {
-          // 删除失败不影响主流程
-          sfLogger.warn('从阅读清单删除失败（不影响主功能）:', error)
-        }
-      }
     } else {
       sfLogger.error('❌ 记录失败', response?.error)
     }
