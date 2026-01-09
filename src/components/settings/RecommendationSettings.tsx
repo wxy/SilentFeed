@@ -173,7 +173,7 @@ export function RecommendationSettings({
           <div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
               <span>📮</span>
-              推荐投递方式
+              {_("推荐投递方式")}
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
               {readingListSupported

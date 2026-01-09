@@ -1955,4 +1955,14 @@
     "id": "Indonesian",
     "unknown": "Unknown"
   }
+  ,
+  "阅读清单模式": "Reading List Mode",
+  "阅读清单统计": "Reading List Statistics",
+  "总条目": "Total Items",
+  "未读": "Unread",
+  "扩展添加": "Extension Added",
+  "推荐投递方式": "Recommendation Delivery Method",
+  "推荐内容会自动添加到 Chrome 阅读清单": "Recommendations are automatically added to Chrome Reading List",
+  "可在设置页中切换在弹窗中显示推荐内容": "You can switch to showing recommendations in the popup from Settings",
+  "在 Chrome 侧边栏中查看完整阅读清单": "View the full Reading List in Chrome's sidebar"
 }

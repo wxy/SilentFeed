@@ -77,7 +77,7 @@ export function ReadingListSummaryView() {
         <div className="flex items-center gap-2 text-sm">
           <span className="text-emerald-600 dark:text-emerald-400">📖</span>
           <span className="text-emerald-800 dark:text-emerald-300 font-medium">
-            阅读清单模式
+            {_("阅读清单模式")}
           </span>
         </div>
       </div>
@@ -88,21 +88,21 @@ export function ReadingListSummaryView() {
         <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 shadow-sm p-5">
           <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-4 flex items-center gap-2">
             <span>📊</span>
-            阅读清单统计
+            {_("阅读清单统计")}
           </h3>
           
           <div className="grid grid-cols-3 gap-3">
             <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
               <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{stats.total}</div>
-              <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">总条目</div>
+              <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">{_("总条目")}</div>
             </div>
             <div className="text-center p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
               <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{stats.unread}</div>
-              <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">未读</div>
+              <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">{_("未读")}</div>
             </div>
             <div className="text-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
               <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">{stats.extensionAdded}</div>
-              <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">扩展添加</div>
+              <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">{_("扩展添加")}</div>
             </div>
           </div>
         </div>
