@@ -421,9 +421,8 @@ export function RecommendationView() {
     })
   }
 
-  // 🔧 Phase 15.1: 显示池中所有推荐，而不是截断为 maxRecommendations
-  // 原因：recommendationStore 已加载池容量（maxRecommendations * 2），应全部显示
-  const displayedRecommendations = recommendations
+  // 只显示前N条推荐（根据配置）
+  const displayedRecommendations = recommendations.slice(0, maxRecommendations)
 
   /**
    * 智能决定哪些条目显示摘要
