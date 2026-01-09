@@ -122,12 +122,22 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
       
       // 无数据时不是错误，只是空状态
       if (result.recommendations.length === 0) {
-        console.debug('[RecommendationStore] 无推荐数据（已处理所有文章）:', result.stats)
-        set({ 
-          recommendations: [], 
-          isLoading: false,
-          error: null // 不设置错误，让UI显示空状态
-        })
+        // 但如果有错误，则需要设置错误状态
+        if (result.errors && result.errors.length > 0) {
+          console.warn('[RecommendationStore] 推荐生成失败:', result.errors)
+          set({ 
+            recommendations: [], 
+            isLoading: false,
+            error: result.errors.join('; ')
+          })
+        } else {
+          console.debug('[RecommendationStore] 无推荐数据（已处理所有文章）:', result.stats)
+          set({ 
+            recommendations: [], 
+            isLoading: false,
+            error: null // 不设置错误，让UI显示空状态
+          })
+        }
         return
       }
       
