@@ -140,7 +140,7 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
       }
       
       // 重新加载推荐（从数据库）
-      const config = await getRecommendationConfig()
+      // ✅ 修复：复用前面的 config 变量，不再重复声明
       const recommendations = await getUnreadRecommendations(config.maxRecommendations * 2)
       
       // 🔧 Phase 15.1: 显示池中全部推荐，不再截断
