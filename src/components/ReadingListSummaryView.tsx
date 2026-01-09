@@ -23,6 +23,7 @@ export function ReadingListSummaryView() {
   const [nextCleanupTime, setNextCleanupTime] = useState<number | null>(null)
   const [cleanupEnabled, setCleanupEnabled] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [isCleaningAll, setIsCleaningAll] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -77,6 +78,49 @@ export function ReadingListSummaryView() {
     return '即将清理'
   }
 
+  /**
+   * 手动清理所有扩展添加的条目
+   */
+  const handleCleanAllExtensionItems = async () => {
+    if (!chrome.readingList) {
+      console.warn('Chrome Reading List API 不可用')
+      return
+    }
+
+    if (!confirm(`确定要清理所有扩展添加的 ${stats.extensionAdded} 个条目吗？此操作不可撤销。`)) {
+      return
+    }
+
+    setIsCleaningAll(true)
+
+    try {
+      // 获取所有条目
+      const entries = await chrome.readingList.query({})
+      
+      // 筛选出扩展添加的条目
+      const extensionEntries = entries.filter(e => e.title.startsWith(titlePrefix))
+      
+      // 删除所有扩展条目
+      for (const entry of extensionEntries) {
+        try {
+          await chrome.readingList.removeEntry({ url: entry.url })
+        } catch (error) {
+          console.error('删除条目失败:', entry.url, error)
+        }
+      }
+
+      // 刷新数据
+      await loadData()
+      
+      console.log(`已清理 ${extensionEntries.length} 个扩展添加的阅读清单条目`)
+    } catch (error) {
+      console.error('清理阅读清单失败:', error)
+      alert('清理失败，请查看控制台了解详情')
+    } finally {
+      setIsCleaningAll(false)
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -89,14 +133,32 @@ export function ReadingListSummaryView() {
     <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900">
       {/* 模式提示 */}
       <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border-b border-emerald-200 dark:border-emerald-700 px-4 py-3">
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-emerald-600 dark:text-emerald-400">📖</span>
-          <span className="text-emerald-800 dark:text-emerald-300 font-medium">
-            阅读清单模式
-          </span>
-          <span className="text-emerald-600 dark:text-emerald-400 text-xs">
-            推荐内容将自动添加到阅读清单
-          </span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-emerald-600 dark:text-emerald-400">📖</span>
+            <span className="text-emerald-800 dark:text-emerald-300 font-medium">
+              阅读清单模式
+            </span>
+          </div>
+          {stats.extensionAdded > 0 && (
+            <button
+              onClick={handleCleanAllExtensionItems}
+              disabled={isCleaningAll}
+              className="px-3 py-1 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-md hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+            >
+              {isCleaningAll ? (
+                <>
+                  <span className="animate-spin">⏳</span>
+                  清理中...
+                </>
+              ) : (
+                <>
+                  <span>🗑️</span>
+                  清理全部
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
 

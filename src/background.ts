@@ -1089,6 +1089,35 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           }
           break
         
+        // Phase 15.1: 清理模式切换时的旧推荐
+        case 'CLEANUP_MODE_SWITCH':
+          try {
+            const { targetMode } = message as { type: string; targetMode: 'popup' | 'readingList' }
+            bgLogger.info(`🔄 清理模式切换遗留数据，目标模式: ${targetMode}`)
+            
+            // 清理 recommendations 表中的旧推荐
+            const cleaned = await db.recommendations
+              .filter(rec => {
+                const isActive = !rec.status || rec.status === 'active'
+                const isUnreadAndNotDismissed = !rec.isRead && rec.feedback !== 'dismissed'
+                return isActive && isUnreadAndNotDismissed
+              })
+              .modify({ status: 'inactive' })
+            
+            bgLogger.info(`✅ 已清理 ${cleaned} 条旧推荐，推荐池已释放`)
+            
+            // 立即触发一次新推荐生成
+            recommendationScheduler.forceRun().catch(error => {
+              bgLogger.error('强制生成推荐失败:', error)
+            })
+            
+            sendResponse({ success: true, cleaned })
+          } catch (error) {
+            bgLogger.error('❌ 清理模式切换数据失败:', error)
+            sendResponse({ success: false, error: String(error) })
+          }
+          break
+        
         // 打开推荐文章（从弹窗或翻译按钮）
         // 由 Background 处理，确保追踪信息在创建 Tab 后立即保存
         case 'OPEN_RECOMMENDATION':
