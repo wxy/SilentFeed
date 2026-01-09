@@ -20,10 +20,7 @@ export function ReadingListSummaryView() {
   const { _ } = useI18n()
   const [stats, setStats] = useState<ReadingListStats>({ total: 0, unread: 0, extensionAdded: 0 })
   const [titlePrefix, setTitlePrefix] = useState('📰 ')
-  const [nextCleanupTime, setNextCleanupTime] = useState<number | null>(null)
-  const [cleanupEnabled, setCleanupEnabled] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const [isCleaningAll, setIsCleaningAll] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -39,12 +36,7 @@ export function ReadingListSummaryView() {
       const config = await getRecommendationConfig()
       const prefix = config.readingList?.titlePrefix || '📰 '
       setTitlePrefix(prefix)
-      setCleanupEnabled(config.readingList?.cleanup?.enabled ?? false)
-      
-      if (config.readingList?.cleanup?.enabled) {
-        const intervalMs = (config.readingList.cleanup.intervalHours || 24) * 3600 * 1000
-        setNextCleanupTime(Date.now() + intervalMs)
-      }
+      // 统一策略：阅读清单不再显示或配置自动清理
 
       // 从 Chrome Reading List API 获取数据
       if (chrome.readingList) {
@@ -68,58 +60,7 @@ export function ReadingListSummaryView() {
     }
   }
 
-  const formatNextCleanup = (timestamp: number): string => {
-    const diff = timestamp - Date.now()
-    const hours = Math.floor(diff / 3600000)
-    const days = Math.floor(hours / 24)
-    
-    if (days > 0) return `${days} 天后`
-    if (hours > 0) return `${hours} 小时后`
-    return '即将清理'
-  }
-
-  /**
-   * 手动清理所有扩展添加的条目
-   */
-  const handleCleanAllExtensionItems = async () => {
-    if (!chrome.readingList) {
-      console.warn('Chrome Reading List API 不可用')
-      return
-    }
-
-    if (!confirm(`确定要清理所有扩展添加的 ${stats.extensionAdded} 个条目吗？此操作不可撤销。`)) {
-      return
-    }
-
-    setIsCleaningAll(true)
-
-    try {
-      // 获取所有条目
-      const entries = await chrome.readingList.query({})
-      
-      // 筛选出扩展添加的条目
-      const extensionEntries = entries.filter(e => e.title.startsWith(titlePrefix))
-      
-      // 删除所有扩展条目
-      for (const entry of extensionEntries) {
-        try {
-          await chrome.readingList.removeEntry({ url: entry.url })
-        } catch (error) {
-          console.error('删除条目失败:', entry.url, error)
-        }
-      }
-
-      // 刷新数据
-      await loadData()
-      
-      console.log(`已清理 ${extensionEntries.length} 个扩展添加的阅读清单条目`)
-    } catch (error) {
-      console.error('清理阅读清单失败:', error)
-      alert('清理失败，请查看控制台了解详情')
-    } finally {
-      setIsCleaningAll(false)
-    }
-  }
+  // 阅读清单不提供一键清理，保持与弹窗一致的受控策略
 
   if (isLoading) {
     return (
@@ -133,32 +74,11 @@ export function ReadingListSummaryView() {
     <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900">
       {/* 模式提示 */}
       <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border-b border-emerald-200 dark:border-emerald-700 px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-emerald-600 dark:text-emerald-400">📖</span>
-            <span className="text-emerald-800 dark:text-emerald-300 font-medium">
-              阅读清单模式
-            </span>
-          </div>
-          {stats.extensionAdded > 0 && (
-            <button
-              onClick={handleCleanAllExtensionItems}
-              disabled={isCleaningAll}
-              className="px-3 py-1 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-md hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-            >
-              {isCleaningAll ? (
-                <>
-                  <span className="animate-spin">⏳</span>
-                  清理中...
-                </>
-              ) : (
-                <>
-                  <span>🗑️</span>
-                  清理全部
-                </>
-              )}
-            </button>
-          )}
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-emerald-600 dark:text-emerald-400">📖</span>
+          <span className="text-emerald-800 dark:text-emerald-300 font-medium">
+            阅读清单模式
+          </span>
         </div>
       </div>
 
@@ -187,35 +107,14 @@ export function ReadingListSummaryView() {
           </div>
         </div>
 
-        {/* 清理状态 */}
-        {cleanupEnabled && nextCleanupTime && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 shadow-sm p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-lg">🧹</span>
-                <div>
-                  <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">自动清理已启用</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">定期清理过期条目</div>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {formatNextCleanup(nextCleanupTime)}
-                </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">下次清理</div>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* 提示信息 */}
         <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
           <div className="flex items-start gap-3">
             <span className="text-2xl">💡</span>
             <div className="flex-1 text-sm text-gray-700 dark:text-gray-300 space-y-1">
-              <p>• 推荐内容会自动添加到 Chrome 阅读清单</p>
-              <p>• 可在设置中配置标题前缀和自动清理规则</p>
-              <p>• 在 Chrome 侧边栏中查看完整阅读清单</p>
+              <p>• {_("推荐内容会自动添加到 Chrome 阅读清单")}</p>
+              <p>• {_("可在设置页中切换在弹窗中显示推荐内容")}</p>
+              <p>• {_("在 Chrome 侧边栏中查看完整阅读清单")}</p>
             </div>
           </div>
         </div>

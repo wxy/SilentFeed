@@ -95,17 +95,7 @@ export function AIConfig() {
   // 推荐配置
   const [maxRecommendations, setMaxRecommendations] = useState(3)
   const [deliveryMode, setDeliveryMode] = useState<'popup' | 'readingList'>('popup')
-  const [readingListTitlePrefix, setReadingListTitlePrefix] = useState('📰 ')
-  const [readingListCleanup, setReadingListCleanup] = useState({
-    enabled: false,
-    retentionDays: 30,
-    maxEntries: 100,
-    intervalHours: 24,
-    keepUnread: true
-  })
-  const [readingListCleanupRunning, setReadingListCleanupRunning] = useState(false)
-  const [readingListCleanupResult, setReadingListCleanupResult] = useState<{ removed: number; total: number } | null>(null)
-  const [readingListCleanupError, setReadingListCleanupError] = useState<string | null>(null)
+  // 阅读列表标题前缀设置已移除，固定使用默认表情前缀
   const [isLearningStage, setIsLearningStage] = useState(false)
   const [pageCount, setPageCount] = useState(0)
   const [totalPages, setTotalPages] = useState(LEARNING_COMPLETE_PAGES)
@@ -149,7 +139,6 @@ export function AIConfig() {
   const isInitializedRef = useRef(false) // 追踪是否已完成初始化
 
   const readingListModeEnabled = deliveryMode === 'readingList' && readingListSupported
-  const cleanupInputsDisabled = !readingListModeEnabled || !readingListCleanup.enabled
 
   // 从模型推导当前 Provider
   const currentProvider = model ? getProviderFromModel(model) : null
@@ -187,13 +176,7 @@ export function AIConfig() {
     return _("options.recommendation.strategy.imminent")
   }
 
-  const notifyReadingListCleanupScheduler = useCallback(async () => {
-    try {
-      await chrome.runtime.sendMessage({ type: 'REFRESH_READING_LIST_CLEANUP' })
-    } catch (error) {
-      console.warn('[AIConfig] 更新阅读列表清理定时器失败', error)
-    }
-  }, [])
+  // 阅读列表清理定时器相关逻辑已废弃
   
 
   
@@ -268,14 +251,7 @@ export function AIConfig() {
     getRecommendationConfig().then(recConfig => {
       setMaxRecommendations(recConfig.maxRecommendations || 3)
       setDeliveryMode(recConfig.deliveryMode === 'readingList' && readingListSupported ? 'readingList' : 'popup')
-      setReadingListTitlePrefix(recConfig.readingList?.titlePrefix || '📰 ')
-      setReadingListCleanup({
-        enabled: recConfig.readingList?.cleanup?.enabled ?? false,
-        retentionDays: recConfig.readingList?.cleanup?.retentionDays ?? 30,
-        maxEntries: recConfig.readingList?.cleanup?.maxEntries ?? 100,
-        intervalHours: recConfig.readingList?.cleanup?.intervalHours ?? 24,
-        keepUnread: recConfig.readingList?.cleanup?.keepUnread ?? true
-      })
+      // 标题前缀不再配置，保持默认
     })
     
     // 🆕 加载推荐池策略
@@ -574,21 +550,15 @@ export function AIConfig() {
       const recConfig = await getRecommendationConfig()
       await saveRecommendationConfig({
         ...recConfig,
-        deliveryMode: deliveryMode === 'readingList' && readingListSupported ? 'readingList' : 'popup',
-        readingList: {
-          titlePrefix: readingListTitlePrefix,
-          cleanup: readingListCleanup
-        }
+        deliveryMode: deliveryMode === 'readingList' && readingListSupported ? 'readingList' : 'popup'
       })
-
-      await notifyReadingListCleanupScheduler()
       
     } catch (error) {
       console.error('[AIConfig] Auto-save failed:', error)
     } finally {
       setAutoSaving(false)
     }
-  }, [model, currentProvider, currentApiKey, apiKeys, providerBudgets, providerTimeouts, enableReasoning, engineAssignment, localConfig, localAIChoice, preferredRemoteProvider, preferredLocalProvider, deliveryMode, readingListTitlePrefix, readingListCleanup, readingListSupported, notifyReadingListCleanupScheduler])
+  }, [model, currentProvider, currentApiKey, apiKeys, providerBudgets, providerTimeouts, enableReasoning, engineAssignment, localConfig, localAIChoice, preferredRemoteProvider, preferredLocalProvider, deliveryMode, readingListSupported])
 
   /**
    * 触发自动保存（带防抖）
@@ -626,7 +596,7 @@ export function AIConfig() {
       triggerAutoSave()
     }
     // 只监听需要自动保存的字段，不包括函数引用
-  }, [providerBudgets, enableReasoning, engineAssignment, model, currentProvider, currentApiKey, deliveryMode, readingListTitlePrefix, readingListCleanup, notifyReadingListCleanupScheduler])
+  }, [providerBudgets, enableReasoning, engineAssignment, model, currentProvider, currentApiKey, deliveryMode])
 
   // 监听 engineAssignment 变化，同步更新 RecommendationConfig
   useEffect(() => {
@@ -734,13 +704,8 @@ export function AIConfig() {
     const recConfig = await getRecommendationConfig()
     await saveRecommendationConfig({
       ...recConfig,
-      deliveryMode: deliveryMode === 'readingList' && readingListSupported ? 'readingList' : 'popup',
-      readingList: {
-        titlePrefix: readingListTitlePrefix,
-        cleanup: readingListCleanup
-      }
+      deliveryMode: deliveryMode === 'readingList' && readingListSupported ? 'readingList' : 'popup'
     })
-    await notifyReadingListCleanupScheduler()
     
     setMessage({ type: "success", text: _("options.aiConfig.messages.saveSuccess") })
     } catch (error) {
@@ -784,24 +749,7 @@ export function AIConfig() {
     }
   }
 
-  const handleManualReadingListCleanup = useCallback(async () => {
-    if (!readingListSupported) return
-    setReadingListCleanupRunning(true)
-    setReadingListCleanupError(null)
-
-    try {
-      const response = await chrome.runtime.sendMessage({ type: 'CLEANUP_READING_LIST' })
-      if (response?.success) {
-        setReadingListCleanupResult(response.result)
-      } else {
-        throw new Error(response?.error || 'unknown_error')
-      }
-    } catch (error) {
-      setReadingListCleanupError(error instanceof Error ? error.message : String(error))
-    } finally {
-      setReadingListCleanupRunning(false)
-    }
-  }, [readingListSupported])
+  // 手动清理阅读列表功能已移除
 
   return (
     <div className="space-y-6 p-6">

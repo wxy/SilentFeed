@@ -44,17 +44,7 @@ export function RecommendationSettings({
   
   // 投递方式状态（从 recommendationConfig 加载）
   const [deliveryMode, setDeliveryMode] = useState<'popup' | 'readingList'>('popup')
-  const [readingListTitlePrefix, setReadingListTitlePrefix] = useState('📰 ')
-  const [readingListCleanup, setReadingListCleanup] = useState({
-    enabled: false,
-    retentionDays: 30,
-    maxEntries: 100,
-    intervalHours: 24,
-    keepUnread: true
-  })
-  const [readingListCleanupRunning, setReadingListCleanupRunning] = useState(false)
-  const [readingListCleanupResult, setReadingListCleanupResult] = useState<{ removed: number; total: number } | null>(null)
-  const [readingListCleanupError, setReadingListCleanupError] = useState<string | null>(null)
+  // 阅读列表清理配置已移除：统一由推荐池与用户行为控制
   
   // 从 recommendationConfig 初始化投递方式和清理配置
   useEffect(() => {
@@ -62,14 +52,6 @@ export function RecommendationSettings({
       try {
         const recConfig = await getRecommendationConfig()
         setDeliveryMode(recConfig.deliveryMode === 'readingList' && readingListSupported ? 'readingList' : 'popup')
-        setReadingListTitlePrefix(recConfig.readingList?.titlePrefix || '📰 ')
-        setReadingListCleanup({
-          enabled: recConfig.readingList?.cleanup?.enabled ?? false,
-          retentionDays: recConfig.readingList?.cleanup?.retentionDays ?? 30,
-          maxEntries: recConfig.readingList?.cleanup?.maxEntries ?? 100,
-          intervalHours: recConfig.readingList?.cleanup?.intervalHours ?? 24,
-          keepUnread: recConfig.readingList?.cleanup?.keepUnread ?? true
-        })
       } catch (error) {
         console.error('加载投递方式失败:', error)
       }
@@ -98,65 +80,12 @@ export function RecommendationSettings({
     }
   }
   
-  // 保存标题前缀到 recommendationConfig
-  const handleTitlePrefixChange = async (prefix: string) => {
-    setReadingListTitlePrefix(prefix)
-    try {
-      const recConfig = await getRecommendationConfig()
-      await saveRecommendationConfig({
-        ...recConfig,
-        readingList: {
-          ...recConfig.readingList,
-          titlePrefix: prefix
-        }
-      })
-    } catch (error) {
-      console.error('保存标题前缀失败:', error)
-    }
-  }
+  // 阅读列表标题前缀设置已移除，固定使用默认表情前缀
   
-  // 保存清理配置到 recommendationConfig
-  const handleCleanupChange = async (updates: Partial<typeof readingListCleanup>) => {
-    const newCleanup = { ...readingListCleanup, ...updates }
-    setReadingListCleanup(newCleanup)
-    try {
-      const recConfig = await getRecommendationConfig()
-      await saveRecommendationConfig({
-        ...recConfig,
-        readingList: {
-          ...recConfig.readingList,
-          cleanup: newCleanup
-        }
-      })
-      // 通知清理调度器
-      await chrome.runtime.sendMessage({ type: 'REFRESH_READING_LIST_CLEANUP' }).catch(() => {})
-    } catch (error) {
-      console.error('保存清理配置失败:', error)
-    }
-  }
-  
-  // 手动触发阅读列表清理
-  const handleManualReadingListCleanup = async () => {
-    if (!readingListSupported) return
-    setReadingListCleanupRunning(true)
-    setReadingListCleanupError(null)
-
-    try {
-      const response = await chrome.runtime.sendMessage({ type: 'CLEANUP_READING_LIST' })
-      if (response?.success) {
-        setReadingListCleanupResult(response.result)
-      } else {
-        throw new Error(response?.error || 'unknown_error')
-      }
-    } catch (error) {
-      setReadingListCleanupError(error instanceof Error ? error.message : String(error))
-    } finally {
-      setReadingListCleanupRunning(false)
-    }
-  }
+  // 阅读列表清理相关操作已移除
   
   const readingListModeEnabled = deliveryMode === 'readingList' && readingListSupported
-  const cleanupInputsDisabled = !readingListModeEnabled || !readingListCleanup.enabled
+  
   
   // 实时获取推荐池和弹窗数据
   const [poolData, setPoolData] = useState<{
@@ -293,118 +222,7 @@ export function RecommendationSettings({
 
         {readingListModeEnabled && (
           <div className="space-y-4">
-            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 block mb-2">{_("options.recommendation.readingList.titlePrefix")}</label>
-              <input
-                type="text"
-                className="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm"
-                value={readingListTitlePrefix}
-                onChange={(e) => handleTitlePrefixChange(e.target.value)}
-                placeholder="📰 "
-              />
-              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-2">{_("options.recommendation.readingList.titlePrefixHint")}</p>
-            </div>
-
-            {/* 阅读列表清理配置 */}
-            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700 space-y-3">
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex items-start gap-2">
-                  <span>🧹</span>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{_("options.recommendation.readingList.cleanupTitle")}</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">{_("options.recommendation.readingList.cleanupDesc")}</p>
-                  </div>
-                </div>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={readingListCleanup.enabled}
-                    onChange={(e) => handleCleanupChange({ enabled: e.target.checked })}
-                  />
-                  <span>{_("options.recommendation.readingList.cleanupEnabled")}</span>
-                </label>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs text-gray-600 dark:text-gray-400">{_("options.recommendation.readingList.retentionDays")}</label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={365}
-                    disabled={cleanupInputsDisabled}
-                    value={readingListCleanup.retentionDays}
-                    onChange={(e) => {
-                      const value = Number(e.target.value)
-                      handleCleanupChange({ retentionDays: Number.isFinite(value) ? value : 30 })
-                    }}
-                    className="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 disabled:opacity-50"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs text-gray-600 dark:text-gray-400">{_("options.recommendation.readingList.maxEntries")}</label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={500}
-                    disabled={cleanupInputsDisabled}
-                    value={readingListCleanup.maxEntries}
-                    onChange={(e) => {
-                      const value = Number(e.target.value)
-                      handleCleanupChange({ maxEntries: Number.isFinite(value) ? value : 100 })
-                    }}
-                    className="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 disabled:opacity-50"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs text-gray-600 dark:text-gray-400">{_("options.recommendation.readingList.intervalHours")}</label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={168}
-                    disabled={cleanupInputsDisabled}
-                    value={readingListCleanup.intervalHours}
-                    onChange={(e) => {
-                      const value = Number(e.target.value)
-                      handleCleanupChange({ intervalHours: Number.isFinite(value) ? value : 24 })
-                    }}
-                    className="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 disabled:opacity-50"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs text-gray-600 dark:text-gray-400">{_("options.recommendation.readingList.keepUnread")}</label>
-                  <div className={`flex items-center gap-2 px-3 py-2 rounded border ${cleanupInputsDisabled ? 'border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-900/40 text-gray-400 dark:text-gray-500' : 'border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'}`}>
-                    <input
-                      type="checkbox"
-                      disabled={cleanupInputsDisabled}
-                      checked={readingListCleanup.keepUnread}
-                      onChange={(e) => handleCleanupChange({ keepUnread: e.target.checked })}
-                    />
-                    <span className="text-xs">{_("options.recommendation.readingList.keepUnreadHint")}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={handleManualReadingListCleanup}
-                  disabled={!readingListSupported || readingListCleanupRunning}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${(!readingListSupported || readingListCleanupRunning) ? 'bg-gray-300 text-gray-600 dark:bg-gray-700 dark:text-gray-300 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}`}
-                >
-                  {readingListCleanupRunning ? _("options.recommendation.readingList.cleanupRunning") : _("options.recommendation.readingList.manualCleanup")}
-                </button>
-                {readingListCleanupResult && (
-                  <span className="text-xs text-gray-600 dark:text-gray-400">
-                    {_("options.recommendation.readingList.cleanupResult", { removed: readingListCleanupResult.removed, total: readingListCleanupResult.total })}
-                  </span>
-                )}
-                {readingListCleanupError && (
-                  <span className="text-xs text-red-600 dark:text-red-400">{readingListCleanupError}</span>
-                )}
-              </div>
-              <p className="text-[11px] text-gray-500 dark:text-gray-400">{_("options.recommendation.readingList.cleanupScope")}</p>
-            </div>
+            {/* 阅读列表清理配置：移除（阅读清单与弹窗统一受控，清理不再暴露给用户） */}
           </div>
         )}
       </div>
