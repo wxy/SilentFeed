@@ -140,8 +140,10 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
       }
       
       // 重新加载推荐（从数据库）
-      const recommendations = await getUnreadRecommendations(config.maxRecommendations)
+      const config = await getRecommendationConfig()
+      const recommendations = await getUnreadRecommendations(config.maxRecommendations * 2)
       
+      // 🔧 Phase 15.1: 显示池中全部推荐，不再截断
       set({ recommendations, isLoading: false })
       
     } catch (error) {
@@ -194,11 +196,9 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
       const config = await getRecommendationConfig()
       const recommendations = await getUnreadRecommendations(config.maxRecommendations * 2)
       
-      // ✅ 按评分降序排序并限制数量
-      // 注意：getUnreadRecommendations 已按分数排序，这里再次排序确保一致性
+      // 🔧 Phase 15.1: 按评分降序排序，显示池中全部推荐（不再截断）
       const sortedRecommendations = recommendations
         .sort((a: Recommendation, b: Recommendation) => b.score - a.score)
-        .slice(0, config.maxRecommendations)
       
       // 更新 store 状态
       set({
@@ -282,7 +282,6 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
     // 立即更新 UI，显示剩余的 + 新填充的
     const updatedRecommendations = [...remainingRecs, ...newRecs]
       .sort((a, b) => b.score - a.score)
-      .slice(0, config.maxRecommendations)
     
     set({ 
       recommendations: updatedRecommendations,
@@ -363,16 +362,15 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
       const needCount = config.maxRecommendations - remainingRecs.length
       
       const freshRecommendations = await getUnreadRecommendations(config.maxRecommendations * 2)
+      // 🔧 Phase 15.1: 加载池容量的全部推荐，而不是仅加载 needCount
       const newRecs = freshRecommendations
         .filter(r => !remainingRecs.some(existing => existing.id === r.id))
         .filter(r => !ids.includes(r.id))
         .sort((a: Recommendation, b: Recommendation) => b.score - a.score)
-        .slice(0, needCount)
       
-      // 立即更新 UI
+      // 立即更新 UI（显示池中全部推荐）
       const updatedRecommendations = [...remainingRecs, ...newRecs]
         .sort((a, b) => b.score - a.score)
-        .slice(0, config.maxRecommendations)
       
       set({ 
         recommendations: updatedRecommendations,
