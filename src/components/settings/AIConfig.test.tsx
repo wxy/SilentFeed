@@ -65,17 +65,6 @@ vi.mock("@/constants/progress", () => ({
   LEARNING_COMPLETE_PAGES: 100
 }))
 
-// Mock OnboardingStateService
-vi.mock("@/core/onboarding/OnboardingStateService", () => ({
-  OnboardingStateService: {
-    getState: vi.fn().mockResolvedValue({
-      state: 'learning',
-      pageCount: 50,
-      threshold: 100
-    })
-  }
-}))
-
 // Mock local-ai-endpoint
 vi.mock("@/utils/local-ai-endpoint", () => ({
   listLocalModels: vi.fn().mockResolvedValue({
@@ -204,17 +193,7 @@ describe("AIConfig", () => {
     })
   })
 
-  describe("学习阶段与引擎分配渲染", () => {
-    it("学习阶段时应显示学习提示模块", async () => {
-      // getPageCount 在 db mock 中默认返回 50（小于阈值 100）
-      render(<AIConfig />)
-
-      // 学习阶段卡片包含一个 📚 图标
-      await vi.waitFor(() => {
-        expect(screen.getByText("📚")).toBeInTheDocument()
-      })
-    })
-
+  describe("引擎分配渲染", () => {
     it("存在引擎分配时应渲染 AIEngineAssignment 组件", async () => {
       vi.mocked(aiConfigModule.getEngineAssignment).mockResolvedValueOnce({
         contentAnalysis: { engine: "remoteAI" },
