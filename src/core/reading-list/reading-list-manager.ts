@@ -244,9 +244,6 @@ export class ReadingListManager {
 
   /**
    * 检查是否需要显示首次使用提示
-   * 
-   * Phase 15.2: 移除 alert() 调用（在 Service Worker 中不可用）
-   * 改为仅记录日志
    */
   private static async maybeShowOnboardingTip(): Promise<void> {
     try {
@@ -255,7 +252,7 @@ export class ReadingListManager {
         tipCount: 0,
       }
 
-      // 如果已经提示过 3 次，不再记录
+      // 如果已经提示过 3 次，不再提示
       if (onboarding.tipCount >= MAX_TIP_COUNT) {
         return
       }
@@ -267,14 +264,29 @@ export class ReadingListManager {
       }
       await chrome.storage.local.set({ [ONBOARDING_KEY]: onboarding })
 
-      // 🔧 Phase 15.2: 移除 alert()，改为日志
-      // 因为 Service Worker 中的 alert() 无法使用
-      rlLogger.info('✅ 已保存到阅读列表', {
-        tipCount: onboarding.tipCount,
-        totalCount: await this.getUnreadCount()
-      })
+      // 根据提示次数显示不同内容
+      let message: string
+      if (onboarding.tipCount === 1) {
+        message = 
+          '✅ 已保存到阅读列表！\n\n' +
+          '你可以在 Chrome 侧边栏中查看：\n' +
+          '1. 点击地址栏旁的 📑 图标\n' +
+          '2. 选择"阅读列表"'
+      } else if (onboarding.tipCount === 2) {
+        const count = await this.getUnreadCount()
+        message = 
+          `💡 阅读列表中已有 ${count} 篇文章\n\n` +
+          '点击地址栏旁的 📑 图标可随时查看'
+      } else {
+        message = '✅ 已保存到阅读列表'
+      }
+
+      // 使用 alert 显示提示
+      alert(message)
+
+      rlLogger.info('已显示首次使用提示', { count: onboarding.tipCount })
     } catch (error) {
-      rlLogger.error('处理首次使用提示失败', error)
+      rlLogger.error('显示提示失败', error)
     }
   }
 

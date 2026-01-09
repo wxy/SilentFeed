@@ -580,38 +580,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               })
             }
             
-            // 🔧 Phase 15.2: 检测是否来自阅读清单并判断是否阅读完成
-            let fromReadingList = false
-            let readingComplete = false
-            
-            if (pageData.recommendationId) {
-              try {
-                const rec = await db.recommendations.get(pageData.recommendationId)
-                if (rec && rec.feedback === 'later') {
-                  // 标记为"稍后读"说明来自阅读清单
-                  fromReadingList = true
-                  
-                  // 判断是否阅读完成：停留时间 > 30秒 且有交互
-                  readingComplete = (pageData.duration || 0) > 30000 && (pageData.interactionCount || 0) > 0
-                  
-                  bgLogger.info('🔍 检测阅读清单条目', {
-                    fromReadingList,
-                    readingComplete,
-                    duration: pageData.duration,
-                    interactions: pageData.interactionCount
-                  })
-                }
-              } catch (error) {
-                bgLogger.warn('检测阅读清单状态失败:', error)
-              }
-            }
-            
             await updateBadge()
-            sendResponse({ 
-              ...result,
-              fromReadingList,
-              readingComplete
-            })
+            sendResponse(result)
           } catch (error) {
             bgLogger.error('❌ 处理页面访问失败:', error)
             sendResponse({ 
