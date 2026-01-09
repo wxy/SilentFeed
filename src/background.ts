@@ -1205,7 +1205,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               } else if (deliveryMode === 'popup') {
                 // 从阅读列表移除仅由扩展自动添加的条目（📰 前缀），保留用户手动的"稍后读"（📌 前缀）
                 try {
-                  const entries = await chrome.readingList.query()
+                  const entries = await chrome.readingList.query({})
                   // 仅移除自动添加的前缀条目
                   const autoAddedEntries = entries.filter(e => e.title?.startsWith(autoAddedPrefix))
                   let removed = 0
