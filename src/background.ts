@@ -1107,7 +1107,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             bgLogger.info(`✅ 已清理 ${cleaned} 条旧推荐，推荐池已释放`)
             
             // 立即触发一次新推荐生成
-            recommendationScheduler.forceRun().catch(error => {
+            recommendationScheduler.triggerNow().catch(error => {
               bgLogger.error('强制生成推荐失败:', error)
             })
             
