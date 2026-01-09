@@ -97,23 +97,6 @@ function IndexPopup() {
         const config = await getRecommendationConfig()
         const isReadingListMode = config.deliveryMode === 'readingList' && isReadingListAvailable()
         setDeliveryMode(isReadingListMode ? 'readingList' : 'popup')
-        
-        // 🔧 Phase 15.1: 模式切换时清理旧推荐池
-        // 如果切换到阅读清单模式，检查是否有弹窗模式遗留的推荐
-        if (isReadingListMode) {
-          const activeRecs = await chrome.storage.local.get('mode_switched_timestamp')
-          const lastSwitchTime = activeRecs.mode_switched_timestamp || 0
-          const now = Date.now()
-          
-          // 如果最近未执行过清理（避免重复清理）
-          if (now - lastSwitchTime > 60000) { // 1分钟冷却
-            chrome.runtime.sendMessage({ 
-              type: 'CLEANUP_MODE_SWITCH',
-              targetMode: 'readingList'
-            })
-            await chrome.storage.local.set({ mode_switched_timestamp: now })
-          }
-        }
       } catch (error) {
         console.error('加载投递方式失败:', error)
         setDeliveryMode('popup')

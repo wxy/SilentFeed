@@ -77,16 +77,13 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
       // 获取推荐配置
       const config = await getRecommendationConfig()
       
-      // 🔧 Phase 15.1: 加载池容量（maxRecommendations * 2），而不是仅加载 maxRecommendations
-      // 这样才能充分利用 AI 策略配置的池容量
-      const poolCapacity = config.maxRecommendations * 2
-      
       // 只从数据库加载现有推荐，不生成新的
-      const recommendations = await getUnreadRecommendations(poolCapacity)
+      const recommendations = await getUnreadRecommendations(config.maxRecommendations * 2)
       
-      // 按评分降序排序（不再限制数量，显示池中所有推荐）
+      // 按评分降序排序并限制数量
       const sortedRecommendations = recommendations
         .sort((a: Recommendation, b: Recommendation) => b.score - a.score)
+        .slice(0, config.maxRecommendations)
       
       set({ 
         recommendations: sortedRecommendations, 
