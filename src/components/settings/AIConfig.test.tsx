@@ -65,6 +65,17 @@ vi.mock("@/constants/progress", () => ({
   LEARNING_COMPLETE_PAGES: 100
 }))
 
+// Mock OnboardingStateService
+vi.mock("@/core/onboarding/OnboardingStateService", () => ({
+  OnboardingStateService: {
+    getState: vi.fn().mockResolvedValue({
+      state: 'learning',
+      pageCount: 50,
+      threshold: 100
+    })
+  }
+}))
+
 // Mock local-ai-endpoint
 vi.mock("@/utils/local-ai-endpoint", () => ({
   listLocalModels: vi.fn().mockResolvedValue({
