@@ -15,7 +15,10 @@
     "i18n:extract": "i18next-parser",
     "i18n:translate": "node scripts/translate.js",
     "i18n:sync": "npm run i18n:extract && npm run i18n:translate",
-    "pre-push": "bash scripts/pre-push-check.sh"
+    "pre-push": "bash scripts/pre-push-check.sh",
+    "version:patch": "npm version patch -m 'chore: 发布 v%s'",
+    "version:minor": "npm version minor -m 'chore: 发布 v%s'",
+    "version:major": "npm version major -m 'chore: 发布 v%s'"
   },
   "dependencies": {
     "dexie": "^4.2.1",
