@@ -145,9 +145,12 @@ describe('ReadingListManager', () => {
       const result = await ReadingListManager.saveRecommendation(mockRecommendation)
 
       expect(result).toBe(true)
+      // 期望 URL 包含 sf_rec 参数用于推荐追踪
+      const urlObj = new URL(mockRecommendation.url)
+      urlObj.searchParams.set('sf_rec', mockRecommendation.id)
       expect(mockChrome.readingList.addEntry).toHaveBeenCalledWith({
         title: '📰 Test Article',
-        url: 'https://example.com/article',
+        url: urlObj.toString(),
         hasBeenRead: false,
       })
     })
@@ -159,9 +162,12 @@ describe('ReadingListManager', () => {
       const result = await ReadingListManager.saveRecommendation(mockRecommendation, true, 'zh-CN')
 
       expect(result).toBe(true)
+      // 期望 URL 包含 sf_rec 参数用于推荐追踪
+      const urlObj = new URL(mockRecommendation.url)
+      urlObj.searchParams.set('sf_rec', mockRecommendation.id)
       expect(mockChrome.readingList.addEntry).toHaveBeenCalledWith({
         title: '📰 Test Article',
-        url: 'https://example.com/article',
+        url: urlObj.toString(),
         hasBeenRead: false,
       })
     })
@@ -184,9 +190,13 @@ describe('ReadingListManager', () => {
       const result = await ReadingListManager.saveRecommendation(recWithTranslation, true, 'zh-CN')
 
       expect(result).toBe(true)
+      // 期望 URL 包含 sf_rec 参数用于推荐追踪
+      const urlObj = new URL(recWithTranslation.url)
+      urlObj.searchParams.set('sf_rec', mockRecommendation.id)
+      const urlWithTracking = urlObj.toString()
       expect(mockChrome.readingList.addEntry).toHaveBeenCalledWith({
         title: '📰 测试文章',
-        url: `https://translate.google.com/translate?sl=auto&tl=zh-CN&u=${encodeURIComponent(recWithTranslation.url)}`,
+        url: `https://translate.google.com/translate?sl=auto&tl=zh-CN&u=${encodeURIComponent(urlWithTracking)}`,
         hasBeenRead: false,
       })
     })
@@ -210,8 +220,13 @@ describe('ReadingListManager', () => {
       await ReadingListManager.saveRecommendation(recWithTranslation, true, 'zh-CN')
 
       const call = mockChrome.readingList.addEntry.mock.calls[0][0]
+      // URL 应该包含 sf_rec 参数用于推荐追踪
+      // 使用 URL API 正确处理查询参数，自动使用 & 而非 ?
+      const urlObj = new URL(recWithTranslation.url)
+      urlObj.searchParams.set('sf_rec', mockRecommendation.id)
+      const urlWithTracking = urlObj.toString()
       expect(call.url).toBe(
-        `https://translate.google.com/translate?sl=auto&tl=zh-CN&u=${encodeURIComponent(recWithTranslation.url)}`
+        `https://translate.google.com/translate?sl=auto&tl=zh-CN&u=${encodeURIComponent(urlWithTracking)}`
       )
     })
 
@@ -235,7 +250,12 @@ describe('ReadingListManager', () => {
 
       await ReadingListManager.saveRecommendation(mockRecommendation)
 
-      expect(saveUrlTracking).toHaveBeenCalledWith(mockRecommendation.url, {
+      // saveUrlTracking 应该被调用带 sf_rec 参数的 URL
+      // 使用 URL API 正确处理查询参数
+      const urlObj = new URL(mockRecommendation.url)
+      urlObj.searchParams.set('sf_rec', mockRecommendation.id)
+      const urlWithTracking = urlObj.toString()
+      expect(saveUrlTracking).toHaveBeenCalledWith(urlWithTracking, {
         recommendationId: mockRecommendation.id,
         title: mockRecommendation.title,
         source: 'readingList',
@@ -260,7 +280,9 @@ describe('ReadingListManager', () => {
 
       await ReadingListManager.saveRecommendation(recWithTranslation, true, 'zh-CN')
 
-      const translateUrl = `https://translate.google.com/translate?sl=auto&tl=zh-CN&u=${encodeURIComponent(mockRecommendation.url)}`
+      // 翻译 URL 应该包含原始 URL + sf_rec 参数
+      const urlWithTracking = `${mockRecommendation.url}?sf_rec=${mockRecommendation.id}`
+      const translateUrl = `https://translate.google.com/translate?sl=auto&tl=zh-CN&u=${encodeURIComponent(urlWithTracking)}`
       expect(saveUrlTracking).toHaveBeenCalledWith(translateUrl, {
         recommendationId: mockRecommendation.id,
         title: mockRecommendation.title,

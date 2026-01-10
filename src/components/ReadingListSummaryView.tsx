@@ -44,13 +44,13 @@ export function ReadingListSummaryView() {
         const entries = await chrome.readingList.query({})
         
         const total = entries.length
+        const unread = entries.filter(e => !e.hasBeenRead).length
         
         // 从数据库查询本扩展添加的条目数量（准确统计）
         // 与 Chrome 阅读列表取交集，确保只统计仍在列表中的条目
         const trackedEntries = await db.readingListEntries.toArray()
         const chromeUrls = new Set(entries.map(e => e.url))
-        const extensionAdded = trackedEntries.filter(entry => chromeUrls.has(entry.url
-        const extensionAdded = entries.filter(e => e.title.startsWith(prefix)).length
+        const extensionAdded = trackedEntries.filter(entry => chromeUrls.has(entry.url)).length
         
         setStats({ total, unread, extensionAdded })
       } else {

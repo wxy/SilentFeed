@@ -66,8 +66,8 @@ describe('URL 规范化 - ReadingListManager.normalizeUrlForTracking', () => {
       const translatedUrl = `https://translate.google.com/translate?u=${encodeURIComponent(originalUrl)}&hl=zh-CN`
       
       const normalized = ReadingListManager.normalizeUrlForTracking(translatedUrl)
-      // 规范化后应该移除 Google Translate 的 u 参数但保留结构
-      expect(normalized).toContain('translate.google.com')
+      // 规范化后应该提取原始 URL，移除 Google Translate 包装
+      expect(normalized).toBe(originalUrl)
     })
 
     it('两个相同的 URL 规范化后应该相等（不考虑 UTM）', () => {
