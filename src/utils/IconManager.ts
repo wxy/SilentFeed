@@ -398,7 +398,6 @@ export class IconManager {
     // 组合图标
     const imageData = this.composer.compose(state)
     
-    
     // 更新 Chrome 扩展图标
     // 使用128×128以支持高DPI屏幕(Retina等)
     // Chrome会根据设备像素比自动缩放
@@ -407,6 +406,48 @@ export class IconManager {
         128: imageData
       }
     })
+    
+    // 更新图标 title（根据当前状态）
+    this.updateTitle(state)
+  }
+  
+  /**
+   * 根据图标状态更新 title 文本
+   * @param state 当前的图标状态
+   */
+  private updateTitle(state: IconState): void {
+    let title = 'Silent Feed'
+    
+    // 优先级与图标状态保持一致
+    if (this.hasError) {
+      title = 'Silent Feed - ❌ 出错'
+    } else if (state.type === 'discover') {
+      title = 'Silent Feed - 🔍 发现 RSS 源'
+    } else if (state.type === 'paused') {
+      title = 'Silent Feed - ⏸ 已暂停'
+    } else if (state.type === 'analyzing') {
+      title = 'Silent Feed - 🤖 分析中...'
+    } else if (state.type === 'fetching') {
+      title = 'Silent Feed - ⬇️ 抓取中...'
+    } else if (state.type === 'learning') {
+      // 显示学习进度百分比
+      const percentage = Math.round((this.learningProgress / this.learningThreshold) * 100)
+      title = `Silent Feed - 📚 学习中 ${percentage}% (${this.learningProgress}/${this.learningThreshold})`
+    } else if (state.type === 'recommend') {
+      // 显示推荐数量
+      const countEmoji = this.recommendCount === 1 ? '📄' : this.recommendCount === 2 ? '📋' : '📑'
+      title = `Silent Feed - ${countEmoji} 推荐 ${this.recommendCount} 篇`
+    } else {
+      // static
+      title = 'Silent Feed - ✨ 就绪'
+    }
+    
+    // 调用 Chrome API 更新 title
+    try {
+      chrome.action.setTitle({ title })
+    } catch (error) {
+      console.warn('[IconManager] 更新 title 失败:', error)
+    }
   }
   
   /**
