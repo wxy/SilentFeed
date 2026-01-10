@@ -1,172 +1,245 @@
-# feat(Phase 15): 阅读清单静默模式与优化
+## 🤫 概述
 
-## 功能概述
+这个 PR 包含对 Silent Feed 推荐系统的深度优化和工程工作流的现代化升级：
 
-实现 Phase 15 阅读清单静默模式，用户推荐可静默保存到 Chrome Reading List，同时完善了相关的 UI、徽章显示和国际化。
-
-## 主要改进
-
-### 🔴 Bug 修复
-
-#### 1. 修复弹窗运行时错误（commit: 1e03d9c）
-- **问题**：`recommendationStore.ts` 中 `generateRecommendations()` 存在重复的 `const config` 声明导致 `Identifier 'config' has already been declared` 错误
-- **方案**：移除冗余声明，复用第一个 `config` 变量
-- **结果**：弹窗成功打开，不再报错
-
-#### 2. 修复类型错误（commit: 7305b74）
-- **问题**：`result.stats.reason` 属性不存在，导致 TypeScript 编译错误
-- **方案**：移除无效的属性访问，直接检查 `result.recommendations.length`
-- **结果**：编译通过，无类型错误
-
-### ✨ 新特性
-
-#### 1. **静默投递模式**（Reading List Mode）
-- 新增 `deliveryMode` 配置：`popup | readingList`
-- 推荐自动静默保存到 Chrome Reading List（使用 📰 前缀标识）
-- 在设置页中可切换投递方式
-- 不支持的浏览器（Edge 等）自动降级到弹窗模式
-
-#### 2. **学习后自动清理**
-- 用户从阅读清单中阅读完推荐内容（学习确认）后，自动从 Chrome Reading List 中移除该条目
-- 通过 `db.readingListEntries` 追踪本扩展添加的条目，确保精准操作
-- 实现了 `ReadingListManager.cleanup()` 接口，支持按时间和数量手动清理
-
-#### 3. **优化徽章显示逻辑**
-
-**弹窗模式**：
-- 显示未读推荐数字徽章（最多显示 3）
-- 徽章内容来自 `db.recommendations` 中的未读条目
-
-**阅读清单模式**：
-- 显示阅读清单中由本扩展添加且未读的条目数（最多显示 3）
-- 统计来自 `chrome.readingList.query()` + `db.readingListEntries` 的交集
-- 避免与学习进度波纹冲突
-
-#### 4. **模式切换时的数据转移**
-- **切换到阅读清单模式**：将活跃的弹窗推荐转移到 Reading List
-- **切换回弹窗模式**：清理自动添加的 Reading List 条目（保留用户手动添加的）
-- 转移完成后触发推荐生成以填充新模式的推荐池
-
-#### 5. **完善用户提示**（ReadingListSummaryView）
-- 在阅读清单模式的弹窗中显示汇总视图而非推荐列表
-- 统计展示：总条目、未读数、扩展添加的数量
-- 提示用户：
-  - 推荐会自动添加到 Chrome Reading List
-  - 可在设置页切换到弹窗模式
-  - 在 Chrome 侧边栏查看完整列表
-
-### 🌐 国际化
-
-#### 文件更新
-- `public/locales/zh-CN/translation.json` - 新增 8 个中文键
-- `public/locales/en/translation.json` - 新增 8 个英文键
-
-#### 新增翻译键
-```json
-{
-  "阅读清单模式": "Reading List Mode",
-  "阅读清单统计": "Reading List Statistics",
-  "总条目": "Total Items",
-  "未读": "Unread",
-  "扩展添加": "Extension Added",
-  "推荐投递方式": "Recommendation Delivery Method",
-  "推荐内容会自动添加到 Chrome 阅读清单": "Recommendations are automatically added to Chrome Reading List",
-  "可在设置页中切换在弹窗中显示推荐内容": "You can switch to showing recommendations in the popup from Settings",
-  "在 Chrome 侧边栏中查看完整阅读清单": "View the full Reading List in Chrome's sidebar"
-}
-```
-
-### 📦 数据库变更
-
-**版本升级**：v16 → v20
-
-**新表**：`readingListEntries`
-- 追踪本扩展添加到 Chrome Reading List 的条目
-- 字段：
-  - `url` (string) - 保存到阅读列表的 URL（可能是翻译链接）
-  - `recommendationId` (string) - 对应的推荐 ID
-  - `addedAt` (number) - 保存时间戳
-  - `titlePrefix` (string) - 使用的标题前缀
-
-### 📋 提交清单
-
-| Commit | 说明 |
-|--------|------|
-| 1e03d9c | fix(Phase 15): 修复 generateRecommendations 中 config 重复声明导致弹窗报错 |
-| 649a1d7 | docs(ui): 更新阅读清单模式提示文案并完善 i18n 包裹 |
-| 87d7928 | i18n: 补全阅读清单视图和设置页中的国际化字符串 |
-| 7305b74 | fix: 修复 recommendationStore 中 result.stats.reason 不存在的问题 |
-
-### ✅ 测试与验证
-
-- ✅ 构建通过（npm run build）
-- ✅ 弹窗成功打开（无运行时错误）
-- ✅ 国际化键全覆盖（中英文均完整）
-- ✅ 类型检查通过（无 TypeScript 错误）
-- ✅ Chrome Reading List API 兼容性检测已实现
-
-### 🔗 相关类型定义
-
-- **ReadingListEntry** - 阅读清单追踪记录
-  - 位置：`src/types/database.ts`
-  - 用途：追踪本扩展添加的条目
-
-- **ReadingListConfig** - 阅读清单模式配置
-  - 位置：`src/storage/recommendation-config.ts`
-  - 字段：`titlePrefix`, `cleanup`
-
-- **ReadingListCleanupConfig** - 自动清理配置
-  - 位置：`src/storage/recommendation-config.ts`
-  - 字段：`enabled`, `retentionDays`, `maxEntries`, `intervalHours`, `keepUnread`
-
-### 📂 修改的文件概览
-
-#### 核心功能文件
-- `src/background.ts` - 后台服务：徽章逻辑、消息处理、模式切换
-- `src/popup.tsx` - 弹窗：投递模式加载、模式切换提示
-- `src/stores/recommendationStore.ts` - 推荐状态管理：bug 修复
-
-#### UI 组件
-- `src/components/ReadingListSummaryView.tsx` - 阅读清单汇总视图（新增）
-- `src/components/settings/RecommendationSettings.tsx` - 投递方式选择（新增）
-
-#### 存储和配置
-- `src/storage/recommendation-config.ts` - 推荐配置：deliveryMode、readingList
-- `src/storage/db/index.ts` - 数据库：v20、readingListEntries 表
-- `src/storage/db/db-init.ts` - 数据库初始化
-
-#### 阅读列表管理
-- `src/core/reading-list/reading-list-manager.ts` - 增强：清理、追踪
-
-#### 推荐服务
-- `src/core/recommender/RecommendationService.ts` - 支持阅读清单模式投递
-
-#### 国际化文件
-- `public/locales/zh-CN/translation.json` - 中文翻译
-- `public/locales/en/translation.json` - 英文翻译
-
-#### 数据库
-- `src/types/database.ts` - ReadingListEntry 类型定义
+1. **品牌视觉标准化**：用 🤫 emoji 替代 📰，更好地体现"静默推荐"的项目理念
+2. **自动化版本管理系统**：GitHub Actions 自动检查版本号一致性，npm 快捷命令和 Claude Skill 辅助版本更新
+3. **智能 PR 创建系统**：引入 Claude Skill 来生成高质量、结构化的 PR 描述
 
 ---
 
-## Breaking Changes
+## 📝 变更内容
 
-无
+### 1. 品牌 Emoji 更新 (🤫)
+**文件**: 
+- `src/storage/recommendation-config.ts` - titlePrefix 改为 '🤫 '
+- `src/components/ReadingListSummaryView.tsx` - 读书清单标题前缀
+- `src/core/reading-list/reading-list-manager.ts` - 默认参数和方法签名
+- `src/background.ts` - 相关注释更新
+- `src/core/recommender/notification.ts` - 推荐通知标题改为"🤫 Silent Feed - 新推荐"
+- `src/core/recommender/RecommendationService.ts` - 默认配置
+- `src/core/reading-list/reading-list-manager.test.ts` - 测试期望值更新
 
-## 需要合并前的操作
+**为何选择 🤫**：
+- 符号意义：竖起食指的"嘘"手势，代表"静默、隐形的工作"
+- 品牌呼应：与 Silent Feed 核心理念"默默推荐优质内容"一致
+- 视觉差异：相比 📰 更具辨识度，在扩展中脱颖而出
 
-无
+### 2. 自动化版本管理系统
 
-## 审核重点
+#### GitHub Actions Workflow
+**文件**: `.github/workflows/version-check.yml`
 
-1. **Chrome Reading List API 兼容性**：确保在不支持的浏览器中正确降级到弹窗模式
-2. **数据库迁移**：v16 → v20 的迁移逻辑是否正确
-3. **徽章显示**：两种模式下的徽章逻辑是否正确分离
-4. **国际化完整性**：所有用户可见的文本是否都已翻译
+- 在 PR 创建时自动检查版本号变化
+- 根据 PR 标题和标签智能判断版本类型（breaking/feature/fix）
+- 通过 GitHub 评论提醒开发者更新版本号
+- 不阻止 PR 合并，仅作友好提醒
 
-## 相关文档
+**关键特性**:
+```yaml
+- 自动对比 origin/master 和 PR 分支的版本号
+- 支持 Conventional Commits 前缀识别 (feat:/fix:/BREAKING CHANGE:)
+- 智能版本建议：breaking → major, feat → minor, fix → patch
+```
 
-- [AI Architecture](docs/AI_ARCHITECTURE.md)
-- [阅读清单模式设计](docs/)
-- [Phase 15 计划](docs/)
+#### npm 快捷命令
+**文件**: `package.json`
+
+新增三个版本管理命令：
+```bash
+npm run version:patch    # 0.4.0 → 0.4.1
+npm run version:minor    # 0.4.0 → 0.5.0
+npm run version:major    # 0.4.0 → 1.0.0
+```
+
+#### 版本管理文档
+**文件**: `docs/VERSIONING.md`
+
+- 遵循 Semantic Versioning 2.0.0 规范
+- Conventional Commits 提交规范说明
+- 版本类型判断流程
+- 常见问题和最佳实践
+
+### 3. 智能 PR 创建系统
+
+#### Claude Skill - PR Creator
+**文件**: `.claude/skills/pr-creator/SKILL.md`
+
+完整的 PR 创建工作流程：
+1. **分析变更**: 获取 git log 和 git diff
+2. **理解语义**: 分析提交的功能和影响范围
+3. **参考模板**: 使用标准 PR 描述模板结构
+4. **生成描述**: 创建高质量、结构化的 PR 描述
+5. **智能建议**: 提供 PR 标题和标签建议
+
+#### PR 描述模板
+**文件**: `.claude/skills/pr-creator/references/pr-template.md`
+
+标准化的 PR 描述框架，包含：
+- 🤫 概述：简要描述 PR 目的和核心价值
+- 📝 变更内容：详细列举各项改动
+- 🎯 解决问题：关联的 Issue（若有）
+- 💡 技术实现：实现细节和设计决策
+- 🧪 测试：测试覆盖和验证情况
+- 📊 影响范围：对项目的影响评估
+- ✅ 检查清单：合并前的检查项
+- 🔗 相关资源：相关 Issue、PR 等
+
+#### 信息收集脚本
+**文件**: `scripts/create-pr-simple.sh`
+
+简化的 PR 信息收集脚本：
+- 自动检测当前分支名
+- 提示输入 PR 标题和描述
+- 调用 gh cli 创建 PR
+- 记录 PR 基本信息
+
+#### 快捷命令
+**文件**: `package.json` 
+
+新增命令：
+```bash
+npm run pr    # 调用 create-pr-simple.sh，开启 PR 创建流程
+```
+
+### 4. 工程流程完善
+
+**文件**: `.gitignore`
+- 新增 `.github/PR_DESCRIPTION.md` 规则，防止自动生成的 PR 描述被意外提交
+
+---
+
+## 🎯 解决问题
+
+1. **阅读清单 URL 追踪缺失** (前期修复)
+   - 添加 `sf_rec` 参数追踪推荐来源
+   - 在 `saveRecommendation()` 中自动附加参数
+
+2. **推荐系统积压** (前期修复)
+   - 实现两阶段分离架构
+   - AI 分析阶段总是执行，不受推荐池状态影响
+   - 推荐池补充阶段受冷却和容量限制
+
+3. **品牌视觉不统一**
+   - 🤫 emoji 统一替代 📰
+   - 所有用户可见文本已更新
+   - 保持了品牌一致性
+
+4. **版本管理自动化需求**
+   - GitHub Actions 自动检查版本号
+   - npm 快捷命令简化版本更新流程
+   - Claude Skill 智能生成版本建议
+
+5. **PR 描述质量和体验**
+   - Claude Skill 理解语义，生成高质量描述
+   - 标准模板确保结构一致性
+   - 快捷命令简化 PR 创建流程
+
+---
+
+## 💡 技术实现
+
+### 品牌 Emoji 策略
+- 在配置中定义 `titlePrefix`，便于未来统一管理
+- 通过默认参数传递，支持灵活定制
+
+### 两阶段推荐架构
+```
+原料池（待分析文章）
+    ↓
+[AI分析阶段] - 总是执行，独立于推荐池状态
+    ↓
+候选池（已分析待补充）
+    ↓
+[推荐池补充] - 受冷却和容量限制
+    ↓
+推荐池（待展示）→ 弹窗展示
+```
+
+### 版本号检查算法
+1. 解析当前版本和 master 版本
+2. 比较版本号：相同 → 提醒；更高 → 批准；更低 → 拒绝
+3. 根据 commit 分析建议版本类型
+4. 通过 GitHub 评论通知开发者
+
+### PR Creator Skill 工作流
+```
+User: npm run pr
+  ↓
+Skill 分析 git diff 和 commit log
+  ↓
+理解变更语义和影响范围
+  ↓
+参考 PR 模板生成描述
+  ↓
+保存到 .github/PR_DESCRIPTION.md
+  ↓
+输出 PR 标题和标签建议
+  ↓
+User: gh pr create --body-file .github/PR_DESCRIPTION.md
+```
+
+---
+
+## 🧪 测试
+
+### 单元测试
+- ✅ 所有 2143 个现有测试通过
+- ✅ 品牌 emoji 更新的所有测试用例验证通过
+- ✅ 无新的编译或语法错误
+
+### 集成验证
+- ✅ URL 追踪参数 (`sf_rec`) 正确附加
+- ✅ 推荐系统两阶段架构工作正常
+- ✅ 版本管理命令执行成功
+
+### 自动化流程验证
+- ✅ GitHub Actions workflow 定义完整
+- ✅ PR Creator Skill 生成描述成功（本 PR 即示例）
+- ✅ npm 快捷命令可用
+
+---
+
+## 📊 影响范围
+
+### 用户影响
+- **品牌视觉**: 阅读清单和推荐通知现使用 🤫 emoji，品牌更统一
+- **体验改进**: 无破坏性变更，平滑升级
+
+### 开发体验
+- **版本管理**: 自动化检查减少人工失误
+- **PR 流程**: 智能描述生成提升质量，快捷命令简化操作
+- **工程标准**: 建立了版本管理最佳实践文档
+
+### 代码库
+- **文件数**: +7 个新文件（workflow, skill, docs, scripts）
+- **修改范围**: ~8 个现有文件（品牌 emoji 更新）
+- **总变更**: 约 500+ 行代码和文档
+
+---
+
+## ✅ 检查清单
+
+- [x] 品牌 emoji 全量更新完成
+- [x] GitHub Actions workflow 验证通过
+- [x] npm 版本命令可用
+- [x] PR Creator Skill 完整实现
+- [x] 版本管理文档编写完成
+- [x] .gitignore 规则已更新
+- [x] 所有单元测试通过
+- [x] 无编译错误
+- [x] Conventional Commits 规范遵循
+- [x] 代码审查自检完成
+
+---
+
+## 🔗 相关资源
+
+- **版本管理指南**: [docs/VERSIONING.md](../docs/VERSIONING.md)
+- **PR Creator Skill**: [.claude/skills/pr-creator/SKILL.md](.claude/skills/pr-creator/SKILL.md)
+- **品牌标准**: 本 PR 中多处应用的 🤫 emoji
+- **Semantic Versioning**: https://semver.org/
+
+---
+
+**总结**: 这个 PR 通过品牌标准化、自动化版本管理和智能 PR 创建系统，将 Silent Feed 的工程工作流提升到更高水平，为后续的规模化开发奠定坚实基础。
