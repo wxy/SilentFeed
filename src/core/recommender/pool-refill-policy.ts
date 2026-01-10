@@ -94,6 +94,19 @@ export class PoolRefillManager {
       await this.saveState()
     }
     
+    // 🚨 紧急通道：推荐池完全为空时跳过冷却时间限制，但仍需检查每日次数上限
+    if (currentPoolSize === 0) {
+      if (this.state.dailyRefillCount >= this.policy.maxDailyRefills) {
+        refillLogger.info(
+          `🚫 推荐池已空但已达每日补充上限：${this.state.dailyRefillCount}/${this.policy.maxDailyRefills}，` +
+          `今日不再补充`
+        )
+        return false
+      }
+      refillLogger.info('🚨 推荐池已空，跳过冷却时间限制，立即补充')
+      return true
+    }
+    
     // 检查 1：时间间隔
     const timeSinceLastRefill = now - this.state.lastRefillTime
     if (this.state.lastRefillTime > 0 && timeSinceLastRefill < this.policy.minInterval) {

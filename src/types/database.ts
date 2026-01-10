@@ -177,7 +177,9 @@ export interface Recommendation {
  * 阅读列表追踪记录
  */
 export interface ReadingListEntry {
-  /** 唯一键，使用保存到阅读列表的 URL（可能为翻译链接） */
+  /** 唯一键，使用规范化的 URL（去掉 UTM 参数后），确保翻译 URL 和原始 URL 能匹配 */
+  normalizedUrl: string
+  /** 实际保存到阅读列表的 URL（可能为翻译链接） */
   url: string
   /** 对应的推荐 ID，用于统计与清理 */
   recommendationId?: string

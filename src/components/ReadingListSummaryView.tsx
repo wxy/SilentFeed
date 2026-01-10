@@ -6,11 +6,12 @@
 import { useState, useEffect } from 'react'
 import { useI18n } from '@/i18n/helpers'
 import { getRecommendationConfig } from '@/storage/recommendation-config'
+import { db } from '@/storage/db'
 
 interface ReadingListStats {
   total: number // Chrome Reading List 总条目数
   unread: number // Chrome Reading List 未读数
-  extensionAdded: number // 本扩展添加的条目数（通过 title prefix 识别）
+  extensionAdded: number // 本扩展添加的条目数（通过 db.readingListEntries 查询）
 }
 
 /**
@@ -43,8 +44,12 @@ export function ReadingListSummaryView() {
         const entries = await chrome.readingList.query({})
         
         const total = entries.length
-        const unread = entries.filter(e => !e.hasBeenRead).length
-        // 通过标题前缀识别本扩展添加的条目
+        
+        // 从数据库查询本扩展添加的条目数量（准确统计）
+        // 与 Chrome 阅读列表取交集，确保只统计仍在列表中的条目
+        const trackedEntries = await db.readingListEntries.toArray()
+        const chromeUrls = new Set(entries.map(e => e.url))
+        const extensionAdded = trackedEntries.filter(entry => chromeUrls.has(entry.url
         const extensionAdded = entries.filter(e => e.title.startsWith(prefix)).length
         
         setStats({ total, unread, extensionAdded })

@@ -35,11 +35,79 @@ const MAX_TIP_COUNT = 3
 
 export class ReadingListManager {
   /**
+   * 在 URL 上附加推荐ID参数（sf_rec），若已存在则覆写
+   */
+  private static appendRecommendationId(url: string, recId: string): string {
+    try {
+      const u = new URL(url)
+      u.searchParams.set('sf_rec', recId)
+      return u.toString()
+    } catch {
+      return url
+    }
+  }
+  /**
    * 检查阅读列表功能是否可用
    * @returns 是否支持阅读列表
    */
   static isAvailable(): boolean {
     return isReadingListAvailable()
+  }
+
+  /**
+   * 规范化 URL 用于数据库查询
+   * 移除 UTM 和其他追踪参数，确保翻译 URL 和原始 URL 能匹配
+   * 
+   * @param url - 原始 URL
+   * @returns 规范化后的 URL
+   */
+  static normalizeUrlForTracking(url: string): string {
+    try {
+      let workingUrl = url
+      // 1) 处理 translate.google.com/translate?u= 原始链接
+      if (workingUrl.includes('translate.google.com/translate')) {
+        try {
+          const tUrl = new URL(workingUrl)
+          const uParam = tUrl.searchParams.get('u')
+          if (uParam) {
+            workingUrl = uParam
+          }
+        } catch {}
+      }
+
+      const urlObj = new URL(workingUrl)
+
+      // 2) 处理 *.translate.goog 主机，将原始主机还原
+      if (urlObj.hostname.endsWith('.translate.goog')) {
+        const rawHost = urlObj.hostname.replace('.translate.goog', '')
+        // 将连字符还原为点（translate.goog 用 - 代替 .）
+        const restoredHost = rawHost.replace(/-/g, '.')
+        urlObj.hostname = restoredHost
+        // 删除 Google 翻译附加的参数
+        Array.from(urlObj.searchParams.keys())
+          .filter((k) => k.startsWith('_x_tr_'))
+          .forEach((k) => urlObj.searchParams.delete(k))
+      }
+      
+      // 移除常见的追踪参数
+      const trackedParams = [
+        'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term',
+        'fbclid', 'gclid', 'msclkid', 'gclsrc',
+        '_ga', '_gid', 'source', 'campaign',
+        // 扩展自定义参数（用于在阅读清单中携带推荐ID）
+        'sf_rec'
+      ]
+      
+      trackedParams.forEach(param => {
+        urlObj.searchParams.delete(param)
+      })
+      
+      // 返回规范化后的 URL（保留其他有意义的参数）
+      return urlObj.toString()
+    } catch {
+      // 如果 URL 无效，返回原始 URL
+      return url
+    }
   }
 
   /**
@@ -91,10 +159,13 @@ export class ReadingListManager {
           url: recommendation.url,
           source: recommendation.source
         })
+        // 在原文链接上附加推荐ID
+        urlToSave = ReadingListManager.appendRecommendationId(urlToSave, recommendation.id!)
       } else if (autoTranslateEnabled && recommendation.translation) {
         // 如果启用自动翻译且存在翻译数据（说明文章语言和界面语言不同）
         // 生成谷歌翻译链接
-        const encodedUrl = encodeURIComponent(recommendation.url)
+        const originalWithRec = ReadingListManager.appendRecommendationId(recommendation.url, recommendation.id!)
+        const encodedUrl = encodeURIComponent(originalWithRec)
         urlToSave = `https://translate.google.com/translate?sl=auto&tl=${interfaceLanguage}&u=${encodedUrl}`
         // 使用翻译后的标题
         titleToSave = recommendation.translation.translatedTitle
@@ -104,6 +175,9 @@ export class ReadingListManager {
           translated: urlToSave,
           language: `${recommendation.translation.sourceLanguage}→${interfaceLanguage}`
         })
+      } else {
+        // 使用原文且允许翻译开关但无需翻译时，也附加推荐ID
+        urlToSave = ReadingListManager.appendRecommendationId(urlToSave, recommendation.id!)
       }
 
       // 应用可选的标题前缀，避免重复添加
@@ -175,11 +249,19 @@ export class ReadingListManager {
 
       // 4. 记录到 readingListEntries 表，便于清理和标记来源
       try {
+        const normalizedUrl = ReadingListManager.normalizeUrlForTracking(urlToSave)
         await db.readingListEntries.put({
+          normalizedUrl,
           url: urlToSave,
           recommendationId: recommendation.id,
           addedAt: Date.now(),
           titlePrefix
+        })
+        rlLogger.info('💾 已保存阅读列表条目到数据库', {
+          '原始URL': urlToSave,
+          '规范化URL': normalizedUrl,
+          '推荐ID': recommendation.id,
+          '是否翻译链接': urlToSave.includes('translate.google')
         })
       } catch (entryError) {
         rlLogger.warn('记录阅读列表条目失败（不影响主功能）:', entryError)
@@ -204,11 +286,19 @@ export class ReadingListManager {
         })
 
         try {
+          const normalizedUrl = ReadingListManager.normalizeUrlForTracking(urlToSave)
           await db.readingListEntries.put({
+            normalizedUrl,
             url: urlToSave,
             recommendationId: recommendation.id,
             addedAt: Date.now(),
             titlePrefix
+          })
+          rlLogger.info('💾 已保存阅读列表条目到数据库（重复条目分支）', {
+            '原始URL': urlToSave,
+            '规范化URL': normalizedUrl,
+            '推荐ID': recommendation.id,
+            '是否翻译链接': urlToSave.includes('translate.google')
           })
         } catch (entryError) {
           rlLogger.warn('记录阅读列表条目失败（duplicate 分支）:', entryError)
@@ -372,10 +462,12 @@ export class ReadingListManager {
       rlLogger.debug('阅读列表移除条目', {
         title: entry.title,
         url: entry.url,
+        hasBeenRead: entry.hasBeenRead
       })
       
       // 检查是否是未读删除（视为"不想读"）
-      await this.handleReadingListRemoved(entry.url)
+      // 传递 hasBeenRead 状态以区分已读删除和未读删除
+      await this.handleReadingListRemoved(entry.url, entry.hasBeenRead)
 
       // 清理内部追踪
       try {
@@ -391,8 +483,11 @@ export class ReadingListManager {
   /**
    * 处理阅读列表条目被删除
    * 策略B：检查数据库中是否有实际访问记录，而不是 session storage
+   * 
+   * @param url - 被删除的条目URL
+   * @param hasBeenRead - Chrome阅读列表中的已读状态
    */
-  private static async handleReadingListRemoved(url: string): Promise<void> {
+  private static async handleReadingListRemoved(url: string, hasBeenRead?: boolean): Promise<void> {
     try {
       const trackingRecord = await db.readingListEntries.get(url)
       let recommendation: Recommendation | undefined
@@ -436,12 +531,28 @@ export class ReadingListManager {
         return
       }
 
-      // 3. 没有访问记录，说明从未打开或未达到 30 秒阈值，视为"不想读"
+      // 3. 检查Chrome阅读列表中的已读状态
+      // 如果已标记为已读（hasBeenRead=true），说明是从"已读"tab删除
+      // 这是系统的正常清理行为，不视为"不想读"，不做任何特殊处理
+      if (hasBeenRead) {
+        rlLogger.info('📚 [稍后读] 删除已读条目 → 正常清理', {
+          id: recommendation.id,
+          title: recommendation.title,
+          url,
+          hasBeenRead,
+          处理方式: '不标记为"不想读"，无需额外处理',
+        })
+        return
+      }
+
+      // 4. 从"未读"tab删除：没有访问记录且未标记为已读
+      // 说明从未打开或未达到 30 秒阈值，视为"不想读"
       // 统一追踪机制：使用与dismissSelected相同的逻辑
       rlLogger.info('❌ [稍后读] 删除前从未阅读 → 视为【不想读】', {
         id: recommendation.id,
         title: recommendation.title,
         url,
+        hasBeenRead,
         source: 'readingList',
         处理方式: '调用 dismissRecommendations(统一逻辑)',
       })
