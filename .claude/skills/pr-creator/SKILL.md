@@ -113,8 +113,8 @@ git diff origin/master..HEAD --stat
 
 4. **创建文件**
    ```bash
-   # 将 PR 描述保存到临时文件
-   cat > /tmp/pr-description.md << 'EOF'
+   # 将 PR 描述保存到项目目录
+   cat > .github/PR_DESCRIPTION.md << 'EOF'
    [生成的 PR 描述]
    EOF
    ```
@@ -124,7 +124,7 @@ git diff origin/master..HEAD --stat
    # 使用文件创建 PR
    gh pr create \
      --title "type: 简短标题" \
-     --body-file /tmp/pr-description.md \
+     --body-file .github/PR_DESCRIPTION.md \
      --label "label1,label2"
    ```
 
@@ -174,7 +174,7 @@ git diff origin/master..HEAD --stat
 
 [显示生成的完整 PR 描述]
 
-PR 描述已保存到 /tmp/pr-description.md
+PR 描述已保存到 .github/PR_DESCRIPTION.md
 
 建议的 PR 标题："refactor: 品牌优化与智能版本管理"
 
