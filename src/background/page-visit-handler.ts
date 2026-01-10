@@ -24,6 +24,8 @@ export interface PageVisitData {
   interactionCount: number
   source?: 'organic' | 'recommended' | 'search'
   recommendationId?: string
+  /** 内容过短时允许跳过学习，但仍触发后续移除逻辑 */
+  skipAnalysis?: boolean
   meta: {
     description?: string
     keywords?: string[]
@@ -170,6 +172,20 @@ export async function processPageVisit(
   data: PageVisitData
 ): Promise<PageVisitResult> {
   try {
+    // 0. 若请求明确要求跳过分析，则不进行 AI 与入库，仅返回成功以触发后续流程
+    if (data.skipAnalysis === true) {
+      bgLogger.debug('⏭️ 跳过内容分析（内容过短或策略要求）', {
+        url: data.url,
+        title: data.title,
+        duration: data.duration,
+        interactionCount: data.interactionCount
+      })
+      return {
+        success: true,
+        deduplicated: false
+      }
+    }
+
     // 1. 检查重复
     const existingVisit = await checkDuplicate(data.url, data.visitTime)
 

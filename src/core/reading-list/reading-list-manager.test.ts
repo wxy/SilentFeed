@@ -145,9 +145,12 @@ describe('ReadingListManager', () => {
       const result = await ReadingListManager.saveRecommendation(mockRecommendation)
 
       expect(result).toBe(true)
+      // 期望 URL 包含 sf_rec 参数用于推荐追踪
+      const urlObj = new URL(mockRecommendation.url)
+      urlObj.searchParams.set('sf_rec', mockRecommendation.id)
       expect(mockChrome.readingList.addEntry).toHaveBeenCalledWith({
         title: '📰 Test Article',
-        url: 'https://example.com/article',
+        url: urlObj.toString(),
         hasBeenRead: false,
       })
     })
@@ -159,9 +162,12 @@ describe('ReadingListManager', () => {
       const result = await ReadingListManager.saveRecommendation(mockRecommendation, true, 'zh-CN')
 
       expect(result).toBe(true)
+      // 期望 URL 包含 sf_rec 参数用于推荐追踪
+      const urlObj = new URL(mockRecommendation.url)
+      urlObj.searchParams.set('sf_rec', mockRecommendation.id)
       expect(mockChrome.readingList.addEntry).toHaveBeenCalledWith({
         title: '📰 Test Article',
-        url: 'https://example.com/article',
+        url: urlObj.toString(),
         hasBeenRead: false,
       })
     })
@@ -184,9 +190,13 @@ describe('ReadingListManager', () => {
       const result = await ReadingListManager.saveRecommendation(recWithTranslation, true, 'zh-CN')
 
       expect(result).toBe(true)
+      // 期望 URL 包含 sf_rec 参数用于推荐追踪
+      const urlObj = new URL(recWithTranslation.url)
+      urlObj.searchParams.set('sf_rec', mockRecommendation.id)
+      const urlWithTracking = urlObj.toString()
       expect(mockChrome.readingList.addEntry).toHaveBeenCalledWith({
         title: '📰 测试文章',
-        url: `https://translate.google.com/translate?sl=auto&tl=zh-CN&u=${encodeURIComponent(recWithTranslation.url)}`,
+        url: `https://translate.google.com/translate?sl=auto&tl=zh-CN&u=${encodeURIComponent(urlWithTracking)}`,
         hasBeenRead: false,
       })
     })
@@ -210,8 +220,13 @@ describe('ReadingListManager', () => {
       await ReadingListManager.saveRecommendation(recWithTranslation, true, 'zh-CN')
 
       const call = mockChrome.readingList.addEntry.mock.calls[0][0]
+      // URL 应该包含 sf_rec 参数用于推荐追踪
+      // 使用 URL API 正确处理查询参数，自动使用 & 而非 ?
+      const urlObj = new URL(recWithTranslation.url)
+      urlObj.searchParams.set('sf_rec', mockRecommendation.id)
+      const urlWithTracking = urlObj.toString()
       expect(call.url).toBe(
-        `https://translate.google.com/translate?sl=auto&tl=zh-CN&u=${encodeURIComponent(recWithTranslation.url)}`
+        `https://translate.google.com/translate?sl=auto&tl=zh-CN&u=${encodeURIComponent(urlWithTracking)}`
       )
     })
 
@@ -235,7 +250,12 @@ describe('ReadingListManager', () => {
 
       await ReadingListManager.saveRecommendation(mockRecommendation)
 
-      expect(saveUrlTracking).toHaveBeenCalledWith(mockRecommendation.url, {
+      // saveUrlTracking 应该被调用带 sf_rec 参数的 URL
+      // 使用 URL API 正确处理查询参数
+      const urlObj = new URL(mockRecommendation.url)
+      urlObj.searchParams.set('sf_rec', mockRecommendation.id)
+      const urlWithTracking = urlObj.toString()
+      expect(saveUrlTracking).toHaveBeenCalledWith(urlWithTracking, {
         recommendationId: mockRecommendation.id,
         title: mockRecommendation.title,
         source: 'readingList',
@@ -260,7 +280,9 @@ describe('ReadingListManager', () => {
 
       await ReadingListManager.saveRecommendation(recWithTranslation, true, 'zh-CN')
 
-      const translateUrl = `https://translate.google.com/translate?sl=auto&tl=zh-CN&u=${encodeURIComponent(mockRecommendation.url)}`
+      // 翻译 URL 应该包含原始 URL + sf_rec 参数
+      const urlWithTracking = `${mockRecommendation.url}?sf_rec=${mockRecommendation.id}`
+      const translateUrl = `https://translate.google.com/translate?sl=auto&tl=zh-CN&u=${encodeURIComponent(urlWithTracking)}`
       expect(saveUrlTracking).toHaveBeenCalledWith(translateUrl, {
         recommendationId: mockRecommendation.id,
         title: mockRecommendation.title,
@@ -484,11 +506,10 @@ describe('ReadingListManager', () => {
       status: 'active',
     }
 
-    it('应该在首次保存时显示提示（tipCount=1）', async () => {
+    it('应该在首次保存时记录提示（tipCount=1）', async () => {
       mockChrome.readingList.addEntry.mockResolvedValue(undefined)
       mockChrome.storage.local.get.mockResolvedValue({})
       mockChrome.storage.local.set.mockResolvedValue(undefined)
-      global.alert = vi.fn()
 
       await ReadingListManager.saveRecommendation(mockRecommendation)
 
@@ -499,17 +520,15 @@ describe('ReadingListManager', () => {
           firstSaveTime: expect.any(Number),
         },
       })
-      expect(global.alert).toHaveBeenCalledWith(expect.stringContaining('已保存到阅读列表'))
     })
 
-    it('应该在第二次保存时显示不同提示（tipCount=2）', async () => {
+    it('应该在第二次保存时记录不同提示（tipCount=2）', async () => {
       mockChrome.readingList.addEntry.mockResolvedValue(undefined)
       mockChrome.storage.local.get.mockResolvedValue({
         readingListOnboarding: { tipCount: 1, firstSaveTime: Date.now() },
       })
       mockChrome.storage.local.set.mockResolvedValue(undefined)
       mockChrome.readingList.query.mockResolvedValue([{ title: 'Test', url: 'test', hasBeenRead: false }])
-      global.alert = vi.fn()
 
       await ReadingListManager.saveRecommendation(mockRecommendation)
 
@@ -519,16 +538,14 @@ describe('ReadingListManager', () => {
           firstSaveTime: expect.any(Number),
         },
       })
-      expect(global.alert).toHaveBeenCalledWith(expect.stringContaining('阅读列表中已有'))
     })
 
-    it('应该在第三次保存时显示简短提示（tipCount=3）', async () => {
+    it('应该在第三次保存时记录简短提示（tipCount=3）', async () => {
       mockChrome.readingList.addEntry.mockResolvedValue(undefined)
       mockChrome.storage.local.get.mockResolvedValue({
         readingListOnboarding: { tipCount: 2, firstSaveTime: Date.now() },
       })
       mockChrome.storage.local.set.mockResolvedValue(undefined)
-      global.alert = vi.fn()
 
       await ReadingListManager.saveRecommendation(mockRecommendation)
 
@@ -538,21 +555,19 @@ describe('ReadingListManager', () => {
           firstSaveTime: expect.any(Number),
         },
       })
-      expect(global.alert).toHaveBeenCalledWith('✅ 已保存到阅读列表')
     })
 
-    it('应该在达到最大次数后不再显示提示', async () => {
+    it('应该在达到最大次数后不再更新提示计数', async () => {
       mockChrome.readingList.addEntry.mockResolvedValue(undefined)
       mockChrome.storage.local.get.mockResolvedValue({
         readingListOnboarding: { tipCount: 3, firstSaveTime: Date.now() },
       })
       mockChrome.storage.local.set.mockResolvedValue(undefined)
-      global.alert = vi.fn()
 
       await ReadingListManager.saveRecommendation(mockRecommendation)
 
-      // 不应该再更新 tipCount 或显示 alert
-      expect(global.alert).not.toHaveBeenCalled()
+      // 不应该再更新 tipCount（set 不被调用）
+      expect(mockChrome.storage.local.set).not.toHaveBeenCalled()
     })
   })
 

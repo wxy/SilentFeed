@@ -347,10 +347,38 @@ export class RecommendationService {
         }
       }
 
-      // 4. 运行推荐管道（会根据 useColdStart 选择策略）
+      // 4. 运行推荐管道（AI 分析阶段 - 不受推荐池状态影响）
+      // 这个阶段会：
+      // - 抓取文章全文
+      // - AI 分析并评分
+      // - 将分析结果标记到候选池（poolStatus='candidate'）或不合格池
       const result = await this.pipeline.process(input, coldStartDecision.useColdStart ? feeds : undefined)
       
-      // 5. Phase 6: 动态质量阈值 - 根据推荐池大小和评分分布选择文章
+      recLogger.info(`📦 AI 分析完成: ${result.articles.length} 篇文章已标记到候选池`)
+      
+      // 5. Phase 13: 候选池 → 推荐池（受冷却和容量限制）
+      // 这个阶段只是从候选池中挑选文章加入推荐表，不执行 AI 分析
+      
+      // 5.1 检查是否允许补充推荐池
+      if (!shouldRefillPool) {
+        recLogger.info(
+          `⏸️  推荐池补充被限流（冷却期），跳过本次推荐池补充。` +
+          `AI 分析已完成，文章已标记到候选池，等待下次冷却期结束后可用。`
+        )
+        // 返回空推荐列表，但 AI 分析已完成
+        return {
+          recommendations: [],
+          stats: {
+            total: articles.length,
+            analyzed: result.stats.processed?.aiScored || 0,
+            recommended: 0,
+            filtered: articles.length,
+            reason: 'refillCooldown'
+          }
+        }
+      }
+      
+      // 5.2 Phase 6: 动态质量阈值 - 根据推荐池大小和评分分布选择文章
       const configThreshold = recommendationConfig.qualityThreshold
       const minAbsoluteThreshold = 0.5  // 最低绝对阈值，低于此分数的文章绝对不推荐
       const targetMaxRecommendations = recommendationConfig.maxRecommendations
@@ -404,27 +432,36 @@ export class RecommendationService {
         return isHighQuality
       }).slice(0, effectiveLimit)  // 限制数量（考虑剩余容量）
       
+      // 诊断日志：如果没有高质量文章，输出详细原因
+      if (highQualityArticles.length === 0 && sortedArticles.length > 0) {
+        const topArticle = sortedArticles[0]
+        recLogger.warn(` ⚠️ 无高质量文章通过筛选`, {
+          '文章总数': sortedArticles.length,
+          '最高分': topArticle.score.toFixed(2),
+          '动态阈值': dynamicThreshold.toFixed(2),
+          '配置阈值': configThreshold,
+          '最低阈值': minAbsoluteThreshold,
+          '选择策略': selectionStrategy,
+          '前3篇分数': sortedArticles.slice(0, 3).map(a => a.score.toFixed(2))
+        })
+      }
+      
       if (highQualityArticles.length === 0 && result.articles.length > 0) {
         recLogger.warn(` ⚠️ 所有文章都未达到最低阈值 ${minAbsoluteThreshold}，本次不生成推荐`)
       } else if (highQualityArticles.length > 0) {
         recLogger.info(` ✅ 选择了 ${highQualityArticles.length} 篇文章，分数范围: ${highQualityArticles[highQualityArticles.length - 1].score.toFixed(2)} - ${highQualityArticles[0].score.toFixed(2)}`)
       }
       
-      // 6. 🔧 冷却期控制：只有在冷却期允许时才将高分文章加入推荐池
-      // AI 分析已完成（文章已被标记为 candidate 或 not-qualified）
-      // 这里只控制是否将 candidate 池的文章加入推荐表
+      // 6. 推荐池补充：将候选池的高分文章加入推荐表
+      // 冷却期已通过（shouldRefillPool = true），可以补充
       let recommendations: Recommendation[] = []
-      if (shouldRefillPool && highQualityArticles.length > 0) {
-        // 冷却期通过，记录补充操作并保存推荐
+      if (highQualityArticles.length > 0) {
+        // 记录补充操作
         await refillManager.recordRefill()
-        recLogger.info(`✅ 推荐池补充检查通过，保存 ${highQualityArticles.length} 条推荐...`)
+        recLogger.info(`✅ 推荐池补充：保存 ${highQualityArticles.length} 条推荐到推荐表`)
         recommendations = await this.saveRecommendations(highQualityArticles, recommendationConfig)
-      } else if (!shouldRefillPool && highQualityArticles.length > 0) {
-        // 冷却期未过，但 AI 分析已完成
-        recLogger.info(
-          `⏸️  推荐池补充被限流（冷却期），跳过保存 ${highQualityArticles.length} 条推荐。` +
-          `文章已分析并标记为候选，下次冷却期结束后可用。`
-        )
+      } else {
+        recLogger.info(`📭 候选池中暂无高质量文章（评分 >= ${dynamicThreshold.toFixed(2)}），本次不补充`)
       }
 
       const processingTimeMs = Date.now() - startTime

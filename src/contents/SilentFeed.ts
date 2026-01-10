@@ -152,6 +152,8 @@ let interactionCount = 0 // 追踪用户交互次数
 let hasDetectedRSS = false // RSS 检测标记
 let currentUrl = window.location.href // 用于检测 SPA 导航
 let checkTimer: number | null = null // 定时检查计时器
+let isContentTooShort = false // 标记内容是否太短，避免重复尝试
+let lastContentCheckTime = 0 // 上次内容检查时间，用于重试机制
 
 // ==================== 扩展上下文检查 ====================
 
@@ -368,7 +370,14 @@ function extractPageContent(): string {
     const extracted = extractor.extract(document)
     
     if (!extracted.content || extracted.content.trim().length < MIN_CONTENT_LENGTH) {
-      sfLogger.debug('Content too short, skipping')
+      sfLogger.debug('Content too short, skipping', {
+        contentLength: extracted.content?.trim().length || 0,
+        minLength: MIN_CONTENT_LENGTH,
+        hasArticle: !!document.querySelector('article'),
+        hasMain: !!document.querySelector('main'),
+        hasContentClass: !!document.querySelector('.article-content, .post-content, .entry-content, .content'),
+        url: window.location.href
+      })
       return ''
     }
     
@@ -413,6 +422,48 @@ async function notifyPageVisit() {
   const content = extractPageContent()
   
   if (!content) {
+    // 内容过短：跳过学习，但仍触发后续移除流程
+    // 直接发送轻量化的 PAGE_VISIT，请求 background 跳过分析
+    // 从 URL 读取推荐ID（若存在于阅读清单保存的 sf_rec 参数）
+    let recIdFromUrl: string | undefined
+    try {
+      const u = new URL(window.location.href)
+      recIdFromUrl = u.searchParams.get('sf_rec') || undefined
+    } catch {}
+    const payload = {
+      type: 'PAGE_VISIT' as const,
+      payload: {
+        url: window.location.href,
+        title: document.title,
+        domain: window.location.hostname,
+        visitTime: Date.now(),
+        duration: dwellTime,
+        interactionCount: interactionCount,
+        meta: metadata,
+        content: '',
+        skipAnalysis: true,
+        recommendationId: recIdFromUrl
+      }
+    }
+    try {
+      const response = await chrome.runtime.sendMessage(payload)
+      if (response?.success) {
+        isRecorded = true
+        sfLogger.info('⏭️ 内容过短，已跳过学习并触发移除流程')
+        // 输出阅读清单移除诊断信息
+        if (response.removal?.attempted) {
+          sfLogger.info('🧹 阅读清单移除诊断（短内容）', {
+            匹配到条目: response.removal.entriesFound,
+            已移除: response.removal.removedCount,
+            条目URLs: response.removal.matchedUrls
+          })
+        }
+      } else {
+        sfLogger.error('❌ 跳过学习请求失败', response?.error)
+      }
+    } catch (error) {
+      sfLogger.error('Communication error (skipAnalysis)', error)
+    }
     return
   }
   
@@ -428,7 +479,16 @@ async function notifyPageVisit() {
         duration: dwellTime,
         interactionCount: interactionCount,
         meta: metadata,
-        content: content
+        content: content,
+        // 从 URL 读取推荐ID（若存在于阅读清单保存的 sf_rec 参数）
+        recommendationId: (() => {
+          try {
+            const u = new URL(window.location.href)
+            return u.searchParams.get('sf_rec') || undefined
+          } catch {
+            return undefined
+          }
+        })()
       }
     })
     
@@ -438,6 +498,14 @@ async function notifyPageVisit() {
       if (response.deduplicated) {
         // 重复访问：静默处理，清除学习标记
         sfLogger.info('🔄 重复访问，已合并')
+        // 输出阅读清单移除诊断信息（重复访问路径也打印）
+        if (response.removal?.attempted) {
+          sfLogger.info('🧹 阅读清单移除诊断', {
+            '匹配到条目': response.removal.entriesFound,
+            '已移除': response.removal.removedCount,
+            '条目URLs': response.removal.matchedUrls
+          })
+        }
         titleManager?.clearLearning()
       } else {
         // 新访问：显示完成标记
@@ -445,6 +513,14 @@ async function notifyPageVisit() {
           主题: response.analysis?.topics?.slice(0, 3).join(', '),
           provider: response.analysis?.provider
         })
+        // 输出阅读清单移除诊断信息（正常学习路径）
+        if (response.removal?.attempted) {
+          sfLogger.info('🧹 阅读清单移除诊断', {
+            '匹配到条目': response.removal.entriesFound,
+            '已移除': response.removal.removedCount,
+            '条目URLs': response.removal.matchedUrls
+          })
+        }
         titleManager?.completeLearning()
       }
     } else {
@@ -601,6 +677,8 @@ function resetTracking() {
   isRecorded = false
   interactionCount = 0
   hasDetectedRSS = false
+  isContentTooShort = false
+  lastContentCheckTime = 0
   
   // 重新初始化
   titleManager = new TitleStateManager()

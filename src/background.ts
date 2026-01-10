@@ -548,54 +548,143 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             }
             
             // 4. 后续处理（推荐标记、画像学习、阅读清单移除等）
-            if (pageData.recommendationId && !result.deduplicated) {
+            // 为内容脚本提供阅读清单移除的诊断信息
+            const removalDebug: {
+              attempted: boolean
+              normalizedUrl?: string
+              entriesFound?: number
+              matchedUrls?: string[]
+              removedCount?: number
+              fallbackAttempted?: boolean
+              fallbackRemoved?: boolean
+              error?: string
+            } = { attempted: false }
+
+            // 标记为已读与画像学习仅在非去重时进行，但移除阅读清单在两种情况下都兜底执行
+            if (pageData.recommendationId) {
               try {
-                await markAsRead(pageData.recommendationId, pageData.duration, undefined)
-                bgLogger.info(`✅ 推荐已标记为已读: ${pageData.recommendationId}`)
+                if (!result.deduplicated) {
+                  await markAsRead(pageData.recommendationId, pageData.duration, undefined)
+                  bgLogger.info(`✅ 推荐已标记为已读: ${pageData.recommendationId}`)
+                }
                 
                 const recommendation = await db.recommendations.get(pageData.recommendationId)
                 if (recommendation) {
-                  await semanticProfileBuilder.onRead(recommendation, pageData.duration, 0.5)
-                  bgLogger.debug('✅ 画像阅读学习完成')
+                  if (!result.deduplicated) {
+                    await semanticProfileBuilder.onRead(recommendation, pageData.duration, 0.5)
+                    bgLogger.debug('✅ 画像阅读学习完成')
+                  }
                   
                   // Phase 15: 如果文章来自阅读清单，学习完成后自动移除
                   if (recommendation.savedToReadingList && ReadingListManager.isAvailable()) {
                     try {
-                      // 查找 readingListEntries 获取实际保存的 URL（可能是翻译链接）
+                      // 直接使用 recommendationId 查询，避免 URL 格式匹配问题
                       const entries = await db.readingListEntries
                         .where('recommendationId').equals(pageData.recommendationId)
                         .toArray()
                       
+                      removalDebug.attempted = true
+                      removalDebug.entriesFound = entries.length
+                      removalDebug.matchedUrls = entries.map(e => e.url)
+                      removalDebug.removedCount = 0
+                      
+                      bgLogger.info('🔍 通过推荐ID查询阅读清单记录', {
+                        '推荐ID': pageData.recommendationId,
+                        '匹配到条目数': entries.length,
+                        '匹配到的URLs': entries.map(e => e.url)
+                      })
+
                       if (entries.length > 0) {
                         for (const entry of entries) {
                           try {
-                            await chrome.readingList.removeEntry({ url: entry.url })
-                            bgLogger.info('✅ 学习完成，已自动从阅读清单移除', {
+                            // 标记为已读而非删除，保留历史记录
+                            await chrome.readingList.updateEntry({ url: entry.url, hasBeenRead: true })
+                            // 从数据库记录表中删除（已完成任务）
+                            await db.readingListEntries.delete(entry.normalizedUrl)
+                            removalDebug.removedCount = (removalDebug.removedCount || 0) + 1
+                            bgLogger.info('✅ 学习完成，已标记阅读清单条目为已读', {
                               url: entry.url,
+                              normalizedUrl: entry.normalizedUrl,
+                              recommendationId: pageData.recommendationId,
                               title: recommendation.title
                             })
-                          } catch (removeError) {
-                            bgLogger.warn('从阅读清单移除失败（可能已手动删除）:', removeError)
+                          } catch (updateError) {
+                            bgLogger.warn('更新阅读清单失败（可能已手动删除）:', {
+                              error: updateError,
+                              url: entry.url,
+                              recommendationId: pageData.recommendationId
+                            })
                           }
                         }
                       } else {
-                        // 兼容旧数据：尝试使用推荐的原始 URL
-                        try {
-                          await chrome.readingList.removeEntry({ url: pageData.url })
-                          bgLogger.info('✅ 学习完成，已自动从阅读清单移除（使用原始URL）', {
-                            url: pageData.url
-                          })
-                        } catch (removeError) {
-                          bgLogger.debug('未找到对应的阅读清单条目（可能已手动删除）')
-                        }
+                        bgLogger.debug('未找到对应的阅读清单记录（可能已手动删除或旧数据）', {
+                          recommendationId: pageData.recommendationId
+                        })
                       }
                     } catch (error) {
+                      removalDebug.error = error instanceof Error ? error.message : String(error)
                       bgLogger.warn('自动移除阅读清单条目失败:', error)
                     }
                   }
                 }
               } catch (error) {
                 bgLogger.warn('推荐后续处理失败:', error)
+              }
+            }
+            
+            // 若未执行移除尝试（例如无 recommendationId），进行通用的规范化匹配移除
+            if (!removalDebug.attempted && ReadingListManager.isAvailable()) {
+              try {
+                const normalizedUrl = ReadingListManager.normalizeUrlForTracking(pageData.url)
+                const entries = await db.readingListEntries
+                  .where('normalizedUrl').equals(normalizedUrl)
+                  .toArray()
+                removalDebug.attempted = true
+                removalDebug.normalizedUrl = normalizedUrl
+                removalDebug.entriesFound = entries.length
+                removalDebug.matchedUrls = entries.map(e => e.url)
+                removalDebug.removedCount = 0
+                bgLogger.debug('通用路径查询阅读清单记录', { normalizedUrl, entriesFound: entries.length })
+                if (entries.length === 0 && pageData.meta?.canonical) {
+                  const canonicalNorm = ReadingListManager.normalizeUrlForTracking(pageData.meta.canonical)
+                  const canonicalEntries = await db.readingListEntries
+                    .where('normalizedUrl').equals(canonicalNorm)
+                    .toArray()
+                  bgLogger.debug('通用路径使用 canonical 兜底查询', { canonicalNorm, entriesFound: canonicalEntries.length })
+                  if (canonicalEntries.length > 0) {
+                    removalDebug.normalizedUrl = canonicalNorm
+                    removalDebug.entriesFound = canonicalEntries.length
+                    removalDebug.matchedUrls = canonicalEntries.map(e => e.url)
+                    entries.splice(0, entries.length, ...canonicalEntries)
+                  }
+                }
+                if (entries.length > 0) {
+                  for (const entry of entries) {
+                    try {
+                      // 标记为已读而非删除
+                      await chrome.readingList.updateEntry({ url: entry.url, hasBeenRead: true })
+                      await db.readingListEntries.delete(entry.normalizedUrl)
+                      removalDebug.removedCount = (removalDebug.removedCount || 0) + 1
+                      bgLogger.info('✅ 通用路径标记阅读清单条目为已读', { url: entry.url, normalizedUrl: entry.normalizedUrl })
+                    } catch (updateError) {
+                      bgLogger.warn('通用路径更新失败', { error: updateError, url: entry.url })
+                    }
+                  }
+                } else {
+                  removalDebug.fallbackAttempted = true
+                  try {
+                    // 标记为已读而非删除
+                    await chrome.readingList.updateEntry({ url: pageData.url, hasBeenRead: true })
+                    removalDebug.fallbackRemoved = true
+                    bgLogger.info('✅ 通用路径标记为已读（使用原始URL）', { url: pageData.url })
+                  } catch (updateError) {
+                    removalDebug.fallbackRemoved = false
+                    bgLogger.debug('通用路径未找到对应条目', { error: updateError, url: pageData.url })
+                  }
+                }
+              } catch (e) {
+                removalDebug.error = e instanceof Error ? e.message : String(e)
+                bgLogger.warn('通用路径移除尝试失败', e)
               }
             }
             
@@ -620,7 +709,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             }
             
             await updateBadge()
-            sendResponse(result)
+            // 将阅读清单移除诊断信息返回给内容脚本，便于前端日志调试
+            sendResponse({ ...result, removal: removalDebug })
           } catch (error) {
             bgLogger.error('❌ 处理页面访问失败:', error)
             sendResponse({ 
@@ -1205,7 +1295,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               } else if (deliveryMode === 'popup') {
                 // 从阅读列表移除仅由扩展自动添加的条目（📰 前缀），保留用户手动的"稍后读"（📌 前缀）
                 try {
-                  const entries = await chrome.readingList.query()
+                  const entries = await chrome.readingList.query({})
                   // 仅移除自动添加的前缀条目
                   const autoAddedEntries = entries.filter(e => e.title?.startsWith(autoAddedPrefix))
                   let removed = 0
