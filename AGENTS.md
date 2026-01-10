@@ -70,12 +70,6 @@ Usage notes:
 </skill>
 
 <skill>
-<name>pr-creator</name>
-<description>Intelligent PR creation assistant for Silent Feed project. Use this skill when the user wants to create a pull request, needs help with PR description, or mentions "创建PR" / "create PR". Analyzes commits and code changes to generate comprehensive, well-structured PR descriptions following project conventions.</description>
-<location>project</location>
-</skill>
-
-<skill>
 <name>pdf</name>
 <description>Comprehensive PDF manipulation toolkit for extracting text and tables, creating new PDFs, merging/splitting documents, and handling forms. When Claude needs to fill in a PDF form or programmatically process, generate, or analyze PDF documents at scale.</description>
 <location>project</location>
@@ -84,6 +78,12 @@ Usage notes:
 <skill>
 <name>pptx</name>
 <description>"Presentation creation, editing, and analysis. When Claude needs to work with presentations (.pptx files) for: (1) Creating new presentations, (2) Modifying or editing content, (3) Working with layouts, (4) Adding comments or speaker notes, or any other presentation tasks"</description>
+<location>project</location>
+</skill>
+
+<skill>
+<name>pr-creator</name>
+<description>A minimal, dependency-light skill to create PRs with semantic versioning support, structured descriptions, and automatic branch renaming.</description>
 <location>project</location>
 </skill>
 

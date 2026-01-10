@@ -1,420 +1,122 @@
 ---
 name: pr-creator
-description: Intelligent PR creation assistant for Silent Feed project. Use this skill when the user wants to create a pull request, needs help with PR description, or mentions "创建PR" / "create PR". Analyzes commits and code changes to generate comprehensive, well-structured PR descriptions following project conventions.
+description: A minimal, dependency-light skill to create PRs with semantic versioning support, structured descriptions, and automatic branch renaming.
 ---
 
 # PR Creator Skill
 
-智能 PR 创建助手，专为 Silent Feed 项目优化。
+This skill automates PR creation with AI-guided semantic versioning and branch renaming.
 
-## 触发条件
+## Installation
 
-当用户提到以下任一情况时使用此 skill：
-- "创建 PR" / "create PR"
-- "生成 PR 描述"
-- "帮我写 PR 说明"
-- "分析这些提交"
-- 准备合并代码到 master
-
-## 核心功能
-
-### 1. 提交分析
+### Using OpenSkills (Remote Install)
 
 ```bash
-# 获取所有待合并的提交
-git log origin/master..HEAD --oneline
+# Install latest skill from remote repository
+openskills install wxy/pr-creator -y
 
-# 获取详细提交信息
-git log origin/master..HEAD --pretty=format:"%h %s%n%b"
-
-# 查看变更文件
-git diff --name-status origin/master..HEAD
-
-# 查看代码差异
-git diff origin/master..HEAD --stat
+# Sync to AGENTS.md for conversation usage
+openskills sync -y
 ```
 
-### 2. 智能分类
+### Manual Installation
 
-根据提交和文件变更自动识别：
+Clone this repository to your local skills directory or use the script directly.
 
-**变更类型**：
-- `feat:` / `feature/` → 新功能
-- `fix:` / `bugfix` → Bug 修复
-- `refactor:` → 重构
-- `perf:` → 性能优化
-- `docs:` → 文档更新
-- `test:` → 测试相关
-- `chore:` → 构建/工具链
+## Usage
 
-**影响范围**：
-- `src/core/` → 核心功能
-- `src/components/` → UI 组件
-- `src/storage/` → 数据存储
-- `src/background.ts` → 后台服务
-- `*.test.ts` → 测试覆盖
-
-**版本建议**（基于 Semantic Versioning）：
-- 包含 `!` 或 `BREAKING` → major
-- 包含 `feat:` → minor
-- 包含 `fix:` / `refactor:` → patch
-
-### 3. PR 描述结构
-
-生成符合项目规范的 PR 描述。
-
-**参考模板**: 查看 [references/pr-template.md](references/pr-template.md) 了解完整的 PR 描述结构。
-
-**核心部分**：
-- 🤫 概述 - 一句话总结
-- 📝 变更内容 - 主要功能和次要改进
-- 🎯 解决的问题 - 需求背景
-- 💡 技术实现 - 架构、代码、依赖
-- 🧪 测试 - 覆盖率和测试场景
-- 📊 影响范围 - 文件、模块、兼容性
-- ✅ 检查清单 - 完成度确认
-
-根据实际变更内容灵活调整章节，不需要的可以省略。
-
-### 4. 特殊考虑
-
-**Silent Feed 项目特性**：
-- 使用 🤫 emoji 作为品牌标识
-- 推荐系统架构：原料池 → AI分析 → 候选池 → 推荐池
-- 数据库使用 Dexie（IndexedDB）
-- 测试框架 Vitest，覆盖率要求 ≥70%
-- i18n 使用 react-i18next，所有用户可见文本需 `_()` 包裹
-- Chrome MV3 扩展架构
-
-**版本号规则**：
-- 当前版本从 `package.json` 读取
-- **必须检查**是否已更新版本号
-- 建议更新方式：`npm run version:patch/minor/major`
-- **重要**：如果版本号未更新，在生成描述后主动提醒用户
-
-## 工作流程
-
-### 阶段 1：分析变更与版本规划
-
-1. **获取变更信息**
-   ```bash
-   git log origin/master..HEAD --oneline
-   git log origin/master..HEAD --format="%s%n%b" | head -50
-   git diff --stat origin/master..HEAD
-   grep '"version"' package.json
-   ```
-
-2. **使用 AI 分析版本类型**
-   - 读取所有提交信息和文件变更
-   - 分析是否包含：
-     - `BREAKING CHANGE:` 或 `!` → **major** 版本
-     - `feat:` / 新功能 → **minor** 版本  
-     - `fix:` / `refactor:` / 改进 → **patch** 版本
-   - 综合判断（多个 feat 仍是 minor，混合类型也是 minor）
-   - 输出清晰的分析理由
-
-3. **建议版本更新**
-   ```
-   📊 版本号分析
-   ──────────────
-   当前版本：0.4.0
-   
-   提交分析：
-   ├─ 新功能（feat）：2 个 → 建议 minor
-   ├─ Bug 修复（fix）：4 个 → 建议 patch
-   └─ 重构（refactor）：1 个 → 建议 patch
-   
-   最终建议：0.5.0（minor 版本）
-   
-   理由：
-   - 包含多个新功能（自动版本检查、PR Creator Skill）
-   - 符合 Semantic Versioning 规范
-   ```
-
-### 阶段 2：用户确认与版本更新
-
-4. **获取用户确认**
-   - 显示建议的版本号和理由
-   - 询问用户的选择：
-     ```
-     是否同意更新版本号？
-     [A] 接受建议 (0.5.0 - minor)
-     [B] 尝试其他级别 (手动选择)
-     [C] 跳过版本更新 (保持 0.4.0)
-     ```
-
-5. **处理用户选择**
-   
-   **选项 A - 接受建议**：
-   - 确认版本号：0.4.0 → 0.5.0
-   - 执行更新步骤 → 跳到阶段 3
-   
-   **选项 B - 尝试其他级别**：
-   - 询问用户想尝试哪个级别：
-     ```
-     选择版本级别：
-     [1] major (0.4.0 → 1.0.0) - 重大版本
-     [2] minor (0.4.0 → 0.5.0) - 新功能
-     [3] patch (0.4.0 → 0.4.1) - Bug 修复/改进
-     ```
-   - 计算并展示新版本号
-   - 询问是否确认 → 如果同意，执行阶段 3；如果拒绝，回到选项 B
-   
-   **选项 C - 跳过更新**：
-   - 保持版本号为 0.4.0
-   - 继续到 PR 描述生成步骤
-
-### 阶段 3：修改版本号文件
-
-6. **更新版本号文件**（仅当用户确认时）
-   ```bash
-   # 修改 package.json
-   # 修改 public/manifest.json (如果存在)
-   ```
-   
-   具体操作：
-   - 更新 `package.json` 的 `version` 字段
-   - 如果 Plasmo 项目，自动同步到 `manifest.json`
-   - 确保文件格式和缩进正确
-
-7. **创建版本更新提交**
-   ```bash
-   git add package.json [manifest.json]
-   git commit -m "chore: 版本号更新 0.4.0 → 0.5.0"
-   git push origin [分支名]
-   ```
-
-### 阶段 4：生成 PR 描述和创建 PR
-
-8. **理解语义**
-   - 阅读提交信息理解变更意图
-   - 查看关键文件的 diff（如需要）
-   - 识别测试覆盖情况
-
-9. **生成 PR 描述**
-   - 读取模板：查看 `references/pr-template.md`
-   - 按模板结构组织内容
-   - 使用项目约定的 emoji 和术语
-   - 在描述中明确标注版本号变化（如有）
-   - 确保描述清晰、准确、完整
-
-10. **创建文件和 PR**
-    ```bash
-    # 将 PR 描述保存到项目目录
-    cat > .github/PR_DESCRIPTION.md << 'EOF'
-    [生成的 PR 描述]
-    EOF
-    
-    # 使用文件创建 PR
-    gh pr create \
-      --title "type: 简短标题" \
-      --body-file .github/PR_DESCRIPTION.md \
-      --label "label1,label2"
-    ```
-
-## 示例对话
-
-**用户**：帮我创建一个 PR，包含最近的提交
-
-**助手行动**：
-
-**[阶段 1：分析变更]**
-```
-分析中...
-
-✓ 获取了 8 个提交
-✓ 分析文件变更 15 个文件修改
-✓ 当前版本：0.4.0
-```
-
-**[阶段 2：版本规划]**
-```
-📊 版本号分析
-──────────────
-当前版本：0.4.0
-
-提交分析：
-├─ feat: 添加 PR 创建 Claude Skill（新功能）
-├─ feat: 添加 PR 自动版本检查机制（新功能）
-├─ refactor: 品牌优化 🤫（改进）
-└─ fix: 多个修复
-
-最终建议：0.5.0（minor 版本）
-
-理由：
-- 新增两个重要功能（自动版本检查、PR Creator Skill）
-- 符合 Semantic Versioning 规范
-- 这个版本为工程流程带来了显著改进
-```
-
-**[阶段 3：用户确认]**
-```
-是否同意更新版本号？
-
-[A] ✓ 接受建议 (0.4.0 → 0.5.0)
-[B]   尝试其他级别
-[C]   跳过版本更新
-
-→ 用户选择：A
-```
-
-**[阶段 4：更新版本号]**
-```
-更新中...
-
-✓ 修改 package.json: version 0.4.0 → 0.5.0
-✓ 修改 public/manifest.json: version 0.4.0 → 0.5.0
-✓ git add package.json public/manifest.json
-✓ git commit -m "chore: 版本号更新 0.4.0 → 0.5.0"
-✓ git push origin fix/reading-list-critical-fixes
-
-版本号已更新并推送！
-```
-
-**[阶段 5：生成 PR 描述]**
-```
-根据变更分析，生成 PR 描述...
-
-✓ 分析了 15 个文件的变更
-✓ 识别了品牌 emoji 更新、版本管理系统等核心功能
-✓ 按照项目规范组织描述
-✓ 保存到 .github/PR_DESCRIPTION.md
-```
-
-**[阶段 6：创建 PR]**
-```
-创建 PR...
-
-✓ PR #105 创建成功
-  标题：refactor: 品牌优化与智能版本管理系统
-  版本号：0.5.0（新）
-  标签：enhancement
-
-链接：https://github.com/wxy/SilentFeed/pull/105
-
-完成！🎉
-```
-
----
-
-**备选场景 - 用户选择其他级别**：
-```
-是否同意更新版本号？
-
-[A]   接受建议 (0.4.0 → 0.5.0)
-[B]   尝试其他级别
-[C]   跳过版本更新
-
-→ 用户选择：B
-
-选择版本级别：
-[1] major (0.4.0 → 1.0.0) - 重大版本
-[2] minor (0.4.0 → 0.5.0) - 新功能（推荐）
-[3] patch (0.4.0 → 0.4.1) - Bug 修复/改进
-
-→ 用户选择：3
-
-是否确认更新为 0.4.1？
-[Y] 是
-[N] 否，重新选择
-
-→ 用户选择：Y
-
-版本号已更新...（继续更新流程）
-```
-
-## 提示词模板
-
-当用户请求创建 PR 时，使用此模板：
-
-1. **分析变更**
-   - 运行 git 命令获取提交和差异
-   - 理解变更的语义和关联
-
-2. **生成描述**
-   - 根据 `references/pr-template.md` 结构
-   - 填充实际的变更内容
-   - 调整章节（省略不需要的部分）
-
-3. **交互确认**
-   - 显示生成的 PR 描述
-   - 询问标题和标签
-   - 确认后创建 PR
-
-**示例输出**：
-
-让我分析一下当前分支的变更...
-
-根据分析，这个 PR 的主要变更是：
-- 品牌 emoji 更新（📰 → 🤫）
-- 添加自动版本检查机制
-
-建议版本类型：minor（包含新功能）
-建议标签：enhancement, refactor
-
-我将根据模板生成详细的 PR 描述...
-
-[显示生成的完整 PR 描述]
-
-PR 描述已保存到 .github/PR_DESCRIPTION.md
-
-建议的 PR 标题："refactor: 品牌优化与智能版本管理"
-
-是否使用此标题创建 PR？
-
-## 注意事项
-
-1. **版本号管理（核心功能）**：
-   - ✅ **主动分析**：在创建 PR 前分析所有提交
-   - ✅ **AI 判断**：使用 AI 逻辑判断版本类型（major/minor/patch）
-   - ✅ **用户确认**：提示用户并获得明确同意
-   - ✅ **灵活选择**：用户可接受建议、尝试其他级别、或跳过
-   - ✅ **自动修改**：一旦用户确认，自动修改 package.json 和 manifest.json
-   - ✅ **自动提交**：创建版本更新 commit 并推送
-   - ✅ **透明过程**：每个步骤都显示进度和结果
-
-2. **文件修改原则**：
-   - 修改 `package.json` 中的 `version` 字段
-   - 如果项目使用 Plasmo，同时修改 `public/manifest.json`
-   - 确保 JSON 格式正确（缩进、引号等）
-   - 创建清晰的 commit 消息：`chore: 版本号更新 X.Y.Z → A.B.C`
-
-3. **版本判断算法**：
-   - 检查 `BREAKING CHANGE:` 或 commit 中有 `!` → **major**
-   - 检查 `feat:` 新功能 → **minor**
-   - 其他（`fix:`、`refactor:`、`perf:` 等）→ **patch**
-   - 多个提交时取最高级别
-
-4. **版本号计算**：
-   ```
-   major: 从 0.4.0 → 1.0.0
-   minor: 从 0.4.0 → 0.5.0
-   patch: 从 0.4.0 → 0.4.1
-   ```
-
-5. **敏感信息**：检查 PR 描述中不要包含敏感信息（API keys、密码等）
-
-6. **测试状态**：建议用户确认测试已通过再创建 PR
-
-7. **图片资源**：如有 UI 变更，建议用户提供截图
-
-8. **向后兼容**：明确标注是否有破坏性变更（BREAKING CHANGE）
-
-## 快捷命令参考
+### With OpenSkills (Recommended)
 
 ```bash
-# 查看提交
-git log origin/master..HEAD --oneline
+# Use the skill in your project
+openskills use pr-creator "Create a PR"
 
-# 查看详细变更
-git log origin/master..HEAD --stat
-
-# 查看文件差异
-git diff origin/master..HEAD
-
-# 创建 PR
-gh pr create --title "xxx" --body-file /tmp/pr-description.md
-
-# 添加标签
-gh pr edit --add-label "enhancement,feature"
+# Or trigger with specific commands
+openskills use pr-creator "Suggest version bump"
+openskills use pr-creator "Update version and open PR"
 ```
+
+### Direct Script Execution
+
+```bash
+bash path/to/scripts/create-pr.sh
+```
+
+## Triggers
+- "Create a PR"
+- "Suggest version bump"
+- "Update version and open PR"
+
+## Capabilities
+- Analyze commits and detect change types (BREAKING/`!`, `feat`, `fix`, `refactor`, etc.)
+- Suggest a semantic version bump: major > minor > patch
+- Prompt the user to accept/adjust/skip the bump
+- Update `manifest.json` version (if present)
+- **Detect user's conversation language** and use appropriate PR template
+- Generate a structured PR description (see `.github/pull_request_template.md` or `pull_request_template_zh.md`)
+- **Check for existing PR** on current branch and update instead of creating new one
+- Rename current branch to match the PR title (optional)
+- Create or update PR via `gh`
+
+## Workflow
+1. **Check for existing PR**:
+```bash
+gh pr list --head $(git branch --show-current)
+```
+   - If PR exists → update mode (edit PR description)
+   - If no PR exists → create mode
+
+2. **Detect user's language**:
+   - Analyze recent conversation messages
+   - Chinese/中文 → use `references/pull_request_template_zh.md`
+   - English/default → use `references/pull_request_template.md`
+
+3. Gather changes:
+```bash
+git log origin/master..HEAD --format="%h %s"
+git diff --stat origin/master..HEAD
+```
+
+4. Decide bump:
+- BREAKING or `!` in commits → major
+- Any `feat:` → minor
+- Otherwise → patch
+
+5. Confirm with user:
+- Accept suggestion
+- Try alternative level
+- Skip bump
+
+6. Apply bump (if confirmed):
+- Update `manifest.json` version via sed
+- Create commit and push
+
+7. Generate PR description:
+ - Use language-appropriate template from `references/pull_request_template.md` or `references/pull_request_template_zh.md`
+ - Generate temporary file at `.github/.pr_description_tmp.md` (not committed to git)
+ - Include version bump details and key changes
+
+## Installation & Version Control Notes
+
+- Installed skills are placed under `.claude/skills/` and are installation artifacts; do not commit them to git. The repository includes `.gitignore` rules to exclude `.claude/`.
+- Universal installs (shared across projects) use `.agent/skills/`. These are also installation artifacts and excluded from version control.
+- The source of truth is the remote repository `wxy/pr-creator`. Re-run `openskills install wxy/pr-creator -y` and `openskills sync -y` after updates to stay current.
+
+8. Rename branch (optional):
+- Derive slug from PR title
+- `git branch -m <new>` and `git push --set-upstream origin <new>`
+
+9. Create or update PR via `gh`:
+   - **Create**: `gh pr create --title "..." --body-file .github/.pr_description_tmp.md`
+   - **Update**: `gh pr edit <number> --body-file .github/.pr_description_tmp.md`
+   - Temporary file is cleaned up after PR creation/update
+
+## Minimal Script
+See `scripts/create-pr.sh` for an implementation using POSIX shell and `gh`.
+
+## Future Enhancements
+- Add support for more project files (package.json, pyproject.toml)
+- CI hooks to validate version bump after PR creation
+
+## License
+MIT
