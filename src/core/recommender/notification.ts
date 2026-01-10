@@ -181,7 +181,7 @@ export async function sendRecommendationNotification(
     await chrome.notifications.create(notificationId, {
       type: "basic",
       iconUrl: getNotificationIconUrl(),
-      title: "Silent Feed - 新推荐",
+      title: "🤫 Silent Feed - 新推荐",
       message: message,
       priority: 1,
       requireInteraction: false, // 不强制交互，自动消失

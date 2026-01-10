@@ -1258,9 +1258,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               await saveRecommendationConfig(newConfig)
               bgLogger.info(`📮 推荐投递模式切换: ${prevMode} → ${deliveryMode}`)
 
-              // 仅转移由扩展自动添加的条目（📰 前缀）
+              // 仅转移由扩展自动添加的条目（🤫 前缀）
               // 用户手动保存的"稍后读"条目（📌 前缀）不转移
-              const autoAddedPrefix = '📰 '
+              const autoAddedPrefix = '🤫 '
 
               // 转移逻辑
               if (deliveryMode === 'readingList' && ReadingListManager.isAvailable()) {
@@ -1293,7 +1293,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 recommendationScheduler.triggerNow().catch(() => {})
                 sendResponse({ success: true, transferred })
               } else if (deliveryMode === 'popup') {
-                // 从阅读列表移除仅由扩展自动添加的条目（📰 前缀），保留用户手动的"稍后读"（📌 前缀）
+                // 从阅读列表移除仅由扩展自动添加的条目（🤫 前缀），保留用户手动的"稍后读"（📌 前缀）
                 try {
                   const entries = await chrome.readingList.query({})
                   // 仅移除自动添加的前缀条目

@@ -121,7 +121,7 @@ export class ReadingListManager {
     recommendation: Recommendation,
     autoTranslateEnabled: boolean = false,
     interfaceLanguage: string = 'zh-CN',
-    titlePrefix: string = '📰 '
+    titlePrefix: string = '🤫 '
   ): Promise<boolean> {
     // 检查浏览器是否支持阅读列表
     if (!this.isAvailable()) {

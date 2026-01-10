@@ -20,7 +20,7 @@ interface ReadingListStats {
 export function ReadingListSummaryView() {
   const { _ } = useI18n()
   const [stats, setStats] = useState<ReadingListStats>({ total: 0, unread: 0, extensionAdded: 0 })
-  const [titlePrefix, setTitlePrefix] = useState('📰 ')
+  const [titlePrefix, setTitlePrefix] = useState('🤫 ')
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
