@@ -281,10 +281,8 @@ export class ReadingListManager {
         message = '✅ 已保存到阅读列表'
       }
 
-      // 使用 alert 显示提示
-      alert(message)
-
-      rlLogger.info('已显示首次使用提示', { count: onboarding.tipCount })
+      // 记录到日志而非使用 alert (background service worker 不支持 alert)
+      rlLogger.info('已显示首次使用提示', { message, count: onboarding.tipCount })
     } catch (error) {
       rlLogger.error('显示提示失败', error)
     }

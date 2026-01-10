@@ -566,27 +566,45 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         .where('recommendationId').equals(pageData.recommendationId)
                         .toArray()
                       
+                      bgLogger.debug('查询阅读清单记录', {
+                        recommendationId: pageData.recommendationId,
+                        entriesFound: entries.length,
+                        urls: entries.map(e => e.url)
+                      })
+                      
                       if (entries.length > 0) {
                         for (const entry of entries) {
                           try {
                             await chrome.readingList.removeEntry({ url: entry.url })
+                            // 同时删除记录表中的对应条目
+                            await db.readingListEntries.delete(entry.url)
                             bgLogger.info('✅ 学习完成，已自动从阅读清单移除', {
                               url: entry.url,
                               title: recommendation.title
                             })
                           } catch (removeError) {
-                            bgLogger.warn('从阅读清单移除失败（可能已手动删除）:', removeError)
+                            bgLogger.warn('从阅读清单移除失败（可能已手动删除）:', {
+                              error: removeError,
+                              url: entry.url
+                            })
                           }
                         }
                       } else {
                         // 兼容旧数据：尝试使用推荐的原始 URL
+                        bgLogger.debug('未找到阅读清单记录，尝试使用原始URL', {
+                          url: pageData.url,
+                          recommendationId: pageData.recommendationId
+                        })
                         try {
                           await chrome.readingList.removeEntry({ url: pageData.url })
                           bgLogger.info('✅ 学习完成，已自动从阅读清单移除（使用原始URL）', {
                             url: pageData.url
                           })
                         } catch (removeError) {
-                          bgLogger.debug('未找到对应的阅读清单条目（可能已手动删除）')
+                          bgLogger.debug('未找到对应的阅读清单条目（可能已手动删除）', {
+                            error: removeError,
+                            url: pageData.url
+                          })
                         }
                       }
                     } catch (error) {
