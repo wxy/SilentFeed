@@ -1,7 +1,7 @@
 {
   "name": "silentfeed",
   "displayName": "__MSG_extName__",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "__MSG_extDescription__",
   "author": "xingyu.wang@gmail.com",
   "scripts": {
@@ -15,7 +15,12 @@
     "i18n:extract": "i18next-parser",
     "i18n:translate": "node scripts/translate.js",
     "i18n:sync": "npm run i18n:extract && npm run i18n:translate",
-    "pre-push": "bash scripts/pre-push-check.sh"
+    "pre-push": "bash scripts/pre-push-check.sh",
+    "version:patch": "npm version patch -m 'chore: 发布 v%s'",
+    "version:minor": "npm version minor -m 'chore: 发布 v%s'",
+    "version:major": "npm version major -m 'chore: 发布 v%s'",
+    "version:check": "bash scripts/check-version.sh",
+    "pr": "bash scripts/create-pr.sh"
   },
   "dependencies": {
     "dexie": "^4.2.1",

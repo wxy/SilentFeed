@@ -10,6 +10,7 @@
  * 1. 优先使用 Google Favicon Service
  * 2. 解析失败时使用扩展图标作为后备
  * 3. 所有错误静默处理，不显示给用户
+ * 4. 自动处理 Google Translate URL，提取原始域名
  * 
  * @param url - 网站 URL 或域名
  * @returns favicon URL（Google 服务 URL 或扩展图标）
@@ -19,7 +20,26 @@ export function getFaviconUrl(url: string): string {
     // 如果不是完整 URL，添加 https://
     const fullUrl = url.startsWith('http') ? url : `https://${url}`
     const urlObj = new URL(fullUrl)
-    const domain = urlObj.hostname
+    let domain = urlObj.hostname
+    
+    // 处理 Google Translate URL (translate.google.com 和 *.translate.goog)
+    if (domain === 'translate.google.com') {
+      // 从 u 参数提取原始 URL
+      const originalUrl = urlObj.searchParams.get('u')
+      if (originalUrl) {
+        try {
+          const originalUrlObj = new URL(originalUrl)
+          domain = originalUrlObj.hostname
+        } catch {
+          // 解析失败，使用 translate.google.com
+        }
+      }
+    } else if (domain.endsWith('.translate.goog')) {
+      // 从主机名还原原始域名（example-com.translate.goog -> example.com）
+      const rawHost = domain.replace('.translate.goog', '')
+      // 将连字符还原为点
+      domain = rawHost.replace(/-/g, '.')
+    }
     
     // 方案 1: 使用网站自己的 favicon.ico（最快，但可能不存在）
     // 方案 2: 使用 Google Favicon Service（稳定可靠）

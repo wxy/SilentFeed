@@ -1,0 +1,192 @@
+name: 版本号检查
+
+on:
+  pull_request:
+    branches: [master]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+jobs:
+  version-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 检出 PR 分支
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: 获取 master 分支版本
+        id: master-version
+        run: |
+          git fetch origin master
+          MASTER_VERSION=$(git show origin/master:package.json | grep '"version"' | head -1 | sed 's/.*"version": "\(.*\)".*/\1/')
+          echo "version=$MASTER_VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Master 版本: $MASTER_VERSION"
+      
+      - name: 获取 PR 分支版本
+        id: pr-version
+        run: |
+          PR_VERSION=$(grep '"version"' package.json | head -1 | sed 's/.*"version": "\(.*\)".*/\1/')
+          echo "version=$PR_VERSION" >> $GITHUB_OUTPUT
+          echo "📦 PR 版本: $PR_VERSION"
+      
+      - name: 判断版本类型
+        id: version-type
+        run: |
+          # 根据 PR 标签判断建议的版本类型
+          LABELS="${{ join(github.event.pull_request.labels.*.name, ',') }}"
+          echo "🏷️  PR 标签: $LABELS"
+          
+          SUGGESTED_TYPE="patch"
+          if [[ "$LABELS" == *"breaking"* ]] || [[ "$LABELS" == *"major"* ]]; then
+            SUGGESTED_TYPE="major"
+          elif [[ "$LABELS" == *"feature"* ]] || [[ "$LABELS" == *"enhancement"* ]] || [[ "$LABELS" == *"minor"* ]]; then
+            SUGGESTED_TYPE="minor"
+          fi
+          
+          # 根据 PR 标题判断（备选方案）
+          TITLE="${{ github.event.pull_request.title }}"
+          if [[ "$TITLE" =~ ^feat(\(.*\))?!: ]] || [[ "$TITLE" =~ BREAKING ]]; then
+            SUGGESTED_TYPE="major"
+          elif [[ "$TITLE" =~ ^feat ]]; then
+            SUGGESTED_TYPE="minor"
+          fi
+          
+          echo "type=$SUGGESTED_TYPE" >> $GITHUB_OUTPUT
+          echo "✨ 建议版本类型: $SUGGESTED_TYPE"
+      
+      - name: 计算期望版本号
+        id: expected-version
+        run: |
+          MASTER_VERSION="${{ steps.master-version.outputs.version }}"
+          TYPE="${{ steps.version-type.outputs.type }}"
+          
+          # 解析当前版本号
+          IFS='.' read -ra VERSION_PARTS <<< "$MASTER_VERSION"
+          MAJOR=${VERSION_PARTS[0]}
+          MINOR=${VERSION_PARTS[1]}
+          PATCH=${VERSION_PARTS[2]}
+          
+          # 计算新版本号
+          case $TYPE in
+            major)
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              ;;
+            minor)
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              ;;
+            patch)
+              PATCH=$((PATCH + 1))
+              ;;
+          esac
+          
+          EXPECTED_VERSION="$MAJOR.$MINOR.$PATCH"
+          echo "version=$EXPECTED_VERSION" >> $GITHUB_OUTPUT
+          echo "🎯 期望版本: $EXPECTED_VERSION"
+      
+      - name: 比较版本号
+        id: compare
+        run: |
+          MASTER_VERSION="${{ steps.master-version.outputs.version }}"
+          PR_VERSION="${{ steps.pr-version.outputs.version }}"
+          EXPECTED_VERSION="${{ steps.expected-version.outputs.version }}"
+          
+          if [ "$PR_VERSION" = "$MASTER_VERSION" ]; then
+            echo "needs_update=true" >> $GITHUB_OUTPUT
+            echo "⚠️ 版本号未更新"
+          else
+            echo "needs_update=false" >> $GITHUB_OUTPUT
+            echo "✅ 版本号已更新: $MASTER_VERSION → $PR_VERSION"
+          fi
+      
+      - name: 创建版本提示评论
+        if: steps.compare.outputs.needs_update == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const masterVersion = '${{ steps.master-version.outputs.version }}';
+            const prVersion = '${{ steps.pr-version.outputs.version }}';
+            const suggestedType = '${{ steps.version-type.outputs.type }}';
+            const expectedVersion = '${{ steps.expected-version.outputs.version }}';
+            
+            const typeDescriptions = {
+              'patch': '🐛 Bug 修复（0.4.0 → 0.4.1）',
+              'minor': '✨ 新功能（0.4.0 → 0.5.0）',
+              'major': '💥 破坏性变更（0.4.0 → 1.0.0）'
+            };
+            
+            const message = `## 🔔 版本号提醒
+            
+当前 PR 未更新版本号。
+
+**当前版本**: \`${masterVersion}\`  
+**建议类型**: ${typeDescriptions[suggestedType]}  
+**建议版本**: \`${expectedVersion}\`
+
+### 如何更新版本？
+
+**方法 1: 使用 npm version（推荐）**
+\`\`\`bash
+npm version ${suggestedType}
+git push origin $(git branch --show-current)
+\`\`\`
+
+**方法 2: 手动编辑 package.json**
+\`\`\`json
+{
+  "version": "${expectedVersion}"
+}
+\`\`\`
+
+### 版本类型说明
+
+- **patch** (0.4.x): Bug 修复、文档更新、小优化
+- **minor** (0.x.0): 新功能、向后兼容的改进
+- **major** (x.0.0): 破坏性变更、重大架构调整
+
+> 💡 提示：你可以通过添加标签 \`breaking\`、\`feature\` 或 \`fix\` 来帮助自动判断版本类型。`;
+            
+            // 查找已有的版本提醒评论
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+            
+            const botComment = comments.data.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('🔔 版本号提醒')
+            );
+            
+            if (botComment) {
+              // 更新已有评论
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: message
+              });
+            } else {
+              // 创建新评论
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: message
+              });
+            }
+      
+      - name: 设置检查状态
+        if: steps.compare.outputs.needs_update == 'true'
+        run: |
+          echo "::warning::PR 未更新版本号。建议更新到 ${{ steps.expected-version.outputs.version }} (${{ steps.version-type.outputs.type }})"
+          # 不阻止 PR 合并，仅作为提醒
+          exit 0
+      
+      - name: 版本已更新
+        if: steps.compare.outputs.needs_update == 'false'
+        run: |
+          echo "✅ 版本号已正确更新"

@@ -149,7 +149,7 @@ describe('ReadingListManager', () => {
       const urlObj = new URL(mockRecommendation.url)
       urlObj.searchParams.set('sf_rec', mockRecommendation.id)
       expect(mockChrome.readingList.addEntry).toHaveBeenCalledWith({
-        title: '📰 Test Article',
+        title: '🤫 Test Article',
         url: urlObj.toString(),
         hasBeenRead: false,
       })
@@ -166,7 +166,7 @@ describe('ReadingListManager', () => {
       const urlObj = new URL(mockRecommendation.url)
       urlObj.searchParams.set('sf_rec', mockRecommendation.id)
       expect(mockChrome.readingList.addEntry).toHaveBeenCalledWith({
-        title: '📰 Test Article',
+        title: '🤫 Test Article',
         url: urlObj.toString(),
         hasBeenRead: false,
       })
@@ -195,7 +195,7 @@ describe('ReadingListManager', () => {
       urlObj.searchParams.set('sf_rec', mockRecommendation.id)
       const urlWithTracking = urlObj.toString()
       expect(mockChrome.readingList.addEntry).toHaveBeenCalledWith({
-        title: '📰 测试文章',
+        title: '🤫 测试文章',
         url: `https://translate.google.com/translate?sl=auto&tl=zh-CN&u=${encodeURIComponent(urlWithTracking)}`,
         hasBeenRead: false,
       })

@@ -515,7 +515,7 @@ export class RecommendationService {
 
         // 阅读清单模式：静默保存
         if (deliveryMode === 'readingList' && ReadingListManager.isAvailable()) {
-          const titlePrefix = recommendationConfig.readingList?.titlePrefix || '📰 '
+          const titlePrefix = recommendationConfig.readingList?.titlePrefix || '🤫 '
           for (const rec of recommendations) {
             try {
               await ReadingListManager.saveRecommendation(

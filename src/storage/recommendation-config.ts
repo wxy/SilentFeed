@@ -179,7 +179,7 @@ const DEFAULT_CONFIG: RecommendationConfig = {
   maxRecommendations: 3, // 初始值3条，后续自动调整
   deliveryMode: 'popup',
   readingList: {
-    titlePrefix: '📰 ',
+    titlePrefix: '🤫 ',
     cleanup: {
       enabled: false,
       retentionDays: 30,
