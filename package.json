@@ -18,7 +18,9 @@
     "pre-push": "bash scripts/pre-push-check.sh",
     "version:patch": "npm version patch -m 'chore: 发布 v%s'",
     "version:minor": "npm version minor -m 'chore: 发布 v%s'",
-    "version:major": "npm version major -m 'chore: 发布 v%s'"
+    "version:major": "npm version major -m 'chore: 发布 v%s'",
+    "version:check": "bash scripts/check-version.sh",
+    "pr": "bash scripts/create-pr.sh"
   },
   "dependencies": {
     "dexie": "^4.2.1",
