@@ -15,6 +15,7 @@ import { aiManager } from '../ai/AICapabilityManager'
 import { PromptManager, type SupportedLanguage } from '../ai/prompts'
 import { getAIConfig } from '@/storage/ai-config'
 import { getSystemStats } from '@/storage/system-stats'
+import { LOCAL_STORAGE_KEYS } from '@/storage/local-storage-keys'
 
 const deciderLogger = logger.withTag('PoolStrategyDecider')
 
@@ -106,7 +107,7 @@ export class AIPoolStrategyDecider {
       
       // 保存到存储
       await chrome.storage.local.set({
-        'pool_strategy_decision': {
+        [LOCAL_STORAGE_KEYS.POOL_STRATEGY_DECISION]: {
           date: today,
           decision,
           context
@@ -142,8 +143,8 @@ export class AIPoolStrategyDecider {
     
     // 从存储加载
     try {
-      const result = await chrome.storage.local.get('pool_strategy_decision')
-      const stored = result.pool_strategy_decision
+      const result = await chrome.storage.local.get(LOCAL_STORAGE_KEYS.POOL_STRATEGY_DECISION)
+      const stored = result[LOCAL_STORAGE_KEYS.POOL_STRATEGY_DECISION]
       
       if (stored && stored.date === today) {
         this.cachedDecision = stored.decision
@@ -164,7 +165,7 @@ export class AIPoolStrategyDecider {
   async clearCache(): Promise<void> {
     this.cachedDecision = null
     this.lastDecisionDate = ''
-    await chrome.storage.local.remove('pool_strategy_decision')
+    await chrome.storage.local.remove(LOCAL_STORAGE_KEYS.POOL_STRATEGY_DECISION)
     deciderLogger.info('已清除决策缓存')
   }
   

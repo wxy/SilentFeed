@@ -14,12 +14,15 @@ describe('local-storage-keys', () => {
       expect(LOCAL_STORAGE_KEYS.TRACKING_NOTIFICATIONS).toBe('trackingNotifications')
     })
 
-    it('所有键应该使用 camelCase 命名（排除 legacy 键）', () => {
+    it('所有键应该使用 camelCase 命名（排除 legacy 键和旧系统兼容键）', () => {
       const entries = Object.entries(LOCAL_STORAGE_KEYS)
       
       for (const [key, value] of entries) {
         // 跳过 legacy 键（这些是为迁移保留的旧格式）
         if (key.startsWith('LEGACY_')) continue
+        
+        // 跳过旧系统兼容键（POOL_STRATEGY_* 使用下划线是为了兼容旧版本）
+        if (key.startsWith('POOL_STRATEGY_')) continue
         
         // 检查是否符合 camelCase 格式（首字母小写，无连字符和下划线）
         expect(value).toMatch(/^[a-z][a-zA-Z0-9]*$/)

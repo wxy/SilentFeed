@@ -511,7 +511,8 @@ export class StrategyDecisionService {
       candidatePool: {
         targetSize: this.clamp(strategy.candidatePool.targetSize, 10, 100),
         maxSize: this.clamp(strategy.candidatePool.maxSize, 20, 200),
-        expiryHours: this.clamp(strategy.candidatePool.expiryHours, 24, 336)
+        expiryHours: this.clamp(strategy.candidatePool.expiryHours, 24, 336),
+        entryThreshold: this.clamp(strategy.candidatePool.entryThreshold ?? 0.7, 0.5, 0.9)
       },
       meta: {
         validHours: this.clamp(strategy.meta.validHours, 12, 48),

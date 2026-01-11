@@ -88,6 +88,7 @@ export interface RecommendationStrategy {
     targetSize: number             // 候选池目标容量 (10-100)
     maxSize: number                // 候选池最大容量 (20-200)
     expiryHours: number            // 过期时间（小时，24-168）
+    entryThreshold: number         // 准入阈值 (0.5-0.9)，AI根据系统状态动态决策
   }
   
   /** 元数据 */

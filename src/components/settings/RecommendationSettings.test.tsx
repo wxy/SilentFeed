@@ -7,6 +7,39 @@ vi.mock('@/i18n/helpers', () => ({
   useI18n: () => ({
     _: (key: string) => {
       const translations: Record<string, string> = {
+        // 标题和文本
+        '推荐投递方式': '推荐投递方式',
+        '阅读列表可用': '阅读列表可用',
+        '阅读列表不可用': '阅读列表不可用',
+        '弹窗': '弹窗',
+        '阅读列表': '阅读列表',
+        '已启用阅读列表模式': '已启用阅读列表模式',
+        '学习阶段': '学习阶段',
+        '已浏览': '已浏览',
+        '页，系统正在学习你的兴趣偏好': '页，系统正在学习你的兴趣偏好',
+        
+        // 策略相关
+        '智能推荐策略': '智能推荐策略',
+        '更新于': '更新于',
+        '使用默认策略': '使用默认策略',
+        '置信度': '置信度',
+        '下次推荐生成': '下次推荐生成',
+        
+        // 阈值相关
+        '候选池准入阈值': '候选池准入阈值',
+        '文章评分高于此值才进入候选池': '文章评分高于此值才进入候选池',
+        '来源：AI 策略（ID:': '来源：AI 策略（ID:',
+        '）': '）',
+        '触发阈值': '触发阈值',
+        '池容量低于此比例时触发补充': '池容量低于此比例时触发补充',
+        '补充间隔': '补充间隔',
+        '下次：': '下次：',
+        '每日上限': '每日上限',
+        '剩余：': '剩余：',
+        
+        // 池状态
+        '推荐池': '推荐池',
+        '弹窗显示': '弹窗显示',
         'recommendations.title': '推荐设置',
       }
       return translations[key] || key
@@ -42,12 +75,11 @@ describe('RecommendationSettings', () => {
   })
 
   describe('智能推荐策略区块', () => {
-    it('学习阶段应显示学习中状态', async () => {
+    it('学习阶段应显示学习中状态（不显示智能推荐策略）', async () => {
       render(<RecommendationSettings {...defaultProps} isLearningStage={true} />)
 
       await waitFor(() => {
-        // 智能推荐策略标题
-        expect(screen.getByText('智能推荐策略')).toBeInTheDocument()
+        expect(screen.getByText('学习阶段')).toBeInTheDocument()
       })
     })
 
@@ -71,6 +103,138 @@ describe('RecommendationSettings', () => {
       await waitFor(() => {
         expect(screen.getByText('智能推荐策略')).toBeInTheDocument()
         expect(screen.getByText('根据历史行为优化推荐频率')).toBeInTheDocument()
+      })
+    })
+  })
+
+  describe('增强显示', () => {
+    it('应显示候选池准入阈值与来源', async () => {
+      const props = {
+        ...defaultProps,
+        poolStrategy: {
+          date: '2026-01-11',
+          meta: { decisionId: 'strategy-123' },
+          decision: {
+            minInterval: 1800000,
+            maxDailyRefills: 5,
+            triggerThreshold: 0.4,
+            reasoning: '动态调整入口阈值以稳定质量',
+          },
+          strategy: {
+            candidatePool: { entryThreshold: 0.75 },
+          },
+        },
+      }
+
+      render(<RecommendationSettings {...props} />)
+
+      await waitFor(() => {
+        expect(screen.getByText(/准入阈值/)).toBeInTheDocument()
+        expect(screen.getByText('75%')).toBeInTheDocument()
+        expect(screen.getByText(/来源：AI 策略（ID: strategy-123）/)).toBeInTheDocument()
+      })
+    })
+
+    it('应显示下次推荐生成的绝对与相对时间', async () => {
+      const future = Date.now() + 2 * 60 * 1000 // 2 分钟后
+      const props = {
+        ...defaultProps,
+        poolStrategy: { decision: { reasoning: '测试', minInterval: 3600000 }, date: '2026-01-11' },
+        recommendationScheduler: { nextRunTime: future },
+      }
+
+      render(<RecommendationSettings {...props} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('⏱️ 下次推荐生成')).toBeInTheDocument()
+        // 相对时间可能显示“分钟后”
+        expect(screen.getByText(/分钟后|即将执行/)).toBeInTheDocument()
+      })
+    })
+
+    it('应显示补充间隔、每日上限与触发阈值', async () => {
+      const props = {
+        ...defaultProps,
+        poolStrategy: {
+          date: '2026-01-11',
+          decision: {
+            minInterval: 45 * 60 * 1000, // 45 分钟
+            maxDailyRefills: 8,
+            triggerThreshold: 0.35,
+            reasoning: '测试参数',
+          },
+        },
+      }
+
+      render(<RecommendationSettings {...props} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('补充间隔')).toBeInTheDocument()
+        expect(screen.getByText(/45 分钟/)).toBeInTheDocument()
+        expect(screen.getByText('每日上限')).toBeInTheDocument()
+        expect(screen.getByText(/8 次/)).toBeInTheDocument()
+        expect(screen.getByText('触发阈值')).toBeInTheDocument()
+        expect(screen.getByText(/35%/)).toBeInTheDocument()
+      })
+    })
+
+    it('应显示下次可补充时间与今日剩余次数（storage 模拟）', async () => {
+      const now = Date.now()
+      // 模拟 chrome.storage.local.get 返回补充状态
+      const originalGet = (globalThis as any).chrome?.storage?.local?.get
+      const mockGet = vi.fn().mockResolvedValue({ pool_refill_state: { lastRefillTime: now, dailyRefillCount: 2, currentDate: '2026-01-11' } })
+      ;(globalThis as any).chrome = (globalThis as any).chrome || {}
+      ;(globalThis as any).chrome.storage = (globalThis as any).chrome.storage || { local: {} }
+      ;(globalThis as any).chrome.storage.local.get = mockGet
+
+      const props = {
+        ...defaultProps,
+        poolStrategy: {
+          date: '2026-01-11',
+          decision: {
+            minInterval: 60 * 60 * 1000, // 60 分钟
+            maxDailyRefills: 5,
+            triggerThreshold: 0.3,
+            reasoning: '测试补充状态',
+          },
+        },
+      }
+
+      render(<RecommendationSettings {...props} />)
+
+      await waitFor(() => {
+        // 检查补充相关的标签
+        expect(screen.getByText('补充间隔')).toBeInTheDocument()
+        expect(screen.getByText('每日上限')).toBeInTheDocument()
+        // 检查数值
+        expect(screen.getByText(/60 分钟/)).toBeInTheDocument()
+        expect(screen.getByText(/5 次/)).toBeInTheDocument()
+      })
+
+      // 还原 get
+      ;(globalThis as any).chrome.storage.local.get = originalGet || vi.fn().mockResolvedValue({})
+    })
+  })
+
+  describe('其他区块', () => {
+    it('应显示推荐投递方式区块', async () => {
+      render(<RecommendationSettings {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('推荐投递方式')).toBeInTheDocument()
+      })
+    })
+
+    it('应显示实时状态：推荐池与弹窗', async () => {
+      const props = {
+        ...defaultProps,
+        poolStrategy: { date: '2026-01-11', decision: { reasoning: '测试', poolSize: 6 } },
+      }
+      render(<RecommendationSettings {...props} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('推荐池')).toBeInTheDocument()
+        expect(screen.getByText('弹窗显示')).toBeInTheDocument()
       })
     })
   })

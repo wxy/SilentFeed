@@ -460,14 +460,18 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
       
       // 计算 AI 相关性评分（现在直接作为最终评分）
       const aiRelevanceScore = this.calculateAIRelevanceScore(analysis, userInterests)
-      const qualityThreshold = context.config.qualityThreshold ?? 0.7
+      
+      // Phase 16: 候选池准入阈值 - 优先使用 AI 策略决策，回退到配置值
+      // TODO: 集成 AI 策略系统后，从 context.strategy?.candidatePool.entryThreshold 读取动态阈值
+      // AI 策略会根据候选池状态和订阅源质量动态调整此值（范围 0.5-0.9）
+      const entryThreshold = context.config.qualityThreshold ?? 0.7
       
       // Phase 13: 保存 AI 分析结果并更新池状态
       // 传递评分，让 saveArticleAnalysis 决定文章进入候选池还是不合格池
-      await this.saveArticleAnalysis(article.id, article.feedId, analysis, aiRelevanceScore, qualityThreshold)
+      await this.saveArticleAnalysis(article.id, article.feedId, analysis, aiRelevanceScore, entryThreshold)
       
       // 调试日志：记录评分详情
-      pipelineLogger.debug(`文章评分 "${article.title?.substring(0, 30)}...": AI相关性=${aiRelevanceScore.toFixed(2)}, 阈值=${qualityThreshold}`)
+      pipelineLogger.debug(`文章评分 "${article.title?.substring(0, 30)}...": AI相关性=${aiRelevanceScore.toFixed(2)}, 阈值=${entryThreshold}`)
       
       // 生成推荐理由
       const reason = this.generateRecommendationReason(analysis, userInterests, aiRelevanceScore, context.config)

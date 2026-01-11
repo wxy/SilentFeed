@@ -525,7 +525,7 @@ export function ProfileSettings() {
         <div className="flex items-start gap-4 mb-6">
           <div className="flex-shrink-0">
             <div className={`w-12 h-12 ${avatarBgClass} rounded-full flex items-center justify-center text-2xl shadow-md`}>
-              🤖
+              🤫
             </div>
           </div>
           <div className="flex-1 max-w-3xl">
@@ -580,7 +580,7 @@ export function ProfileSettings() {
         <div className="flex items-start gap-4">
           <div className="flex-shrink-0">
             <div className={`w-12 h-12 ${avatarBgClass} rounded-full flex items-center justify-center text-2xl shadow-md`}>
-              🤖
+              🤫
             </div>
           </div>
           <div className="flex-1 max-w-3xl">
