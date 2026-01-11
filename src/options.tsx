@@ -28,6 +28,7 @@ type TabKey = "preferences" | "feeds" | "ai-engine" | "recommendation" | "profil
  */
 function RecommendationSettingsWrapper() {
   const [poolStrategy, setPoolStrategy] = useState<any>(null)
+  const [currentStrategy, setCurrentStrategy] = useState<any>(null)
   const [recommendationScheduler, setRecommendationScheduler] = useState<any>(null)
   const [maxRecommendations, setMaxRecommendations] = useState(3)
   const [isLearningStage, setIsLearningStage] = useState(false)
@@ -52,6 +53,13 @@ function RecommendationSettingsWrapper() {
         if (result.pool_strategy_decision.decision?.poolSize) {
           setPoolCapacity(result.pool_strategy_decision.decision.poolSize)
         }
+      }
+    })
+
+    // 加载当前 AI 策略（新系统）
+    chrome.storage.local.get('current_strategy').then(result => {
+      if (result.current_strategy) {
+        setCurrentStrategy(result.current_strategy)
       }
     })
 
@@ -86,6 +94,7 @@ function RecommendationSettingsWrapper() {
   return (
     <RecommendationSettings
       poolStrategy={poolStrategy}
+      currentStrategy={currentStrategy}
       recommendationScheduler={recommendationScheduler}
       maxRecommendations={maxRecommendations}
       isLearningStage={isLearningStage}
