@@ -19,6 +19,12 @@
 # PR description (generated during PR creation process)
 .github/PR_DESCRIPTION.md
 
+# Claude / OpenSkills - installation artifacts
+# Skills are installed on-demand via: openskills install wxy/<skill-name>
+# Sync with: openskills sync -y
+.claude/
+.agent/
+
 # debug
 npm-debug.log*
 yarn-debug.log*
