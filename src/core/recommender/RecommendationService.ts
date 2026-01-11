@@ -29,6 +29,7 @@ import { passesHistoricalBaseline } from './historical-score-tracker'
 import { shouldUseColdStartStrategy, type ColdStartDecision } from './cold-start'
 import i18n from '@/i18n'
 import { getRefillManager } from './pool-refill-policy'
+import { getCurrentStrategy } from '@/storage/strategy-storage'
 
 // 创建带标签的 logger
 const recLogger = logger.withTag('RecommendationService')
@@ -303,14 +304,26 @@ export class RecommendationService {
 
       recLogger.info(`收集到文章: ${articles.length} 篇（批次大小：${batchSize}）`)
 
-      // 3. 构建推荐输入（包含冷启动配置）
+      // 3. 获取 AI 策略决策（用于候选池准入阈值）
+      const currentStrategy = await getCurrentStrategy()
+      const entryThreshold = currentStrategy?.candidatePool?.entryThreshold 
+        ?? recommendationConfig.qualityThreshold 
+        ?? 0.7
+      
+      recLogger.info('🎯 候选池准入阈值:', {
+        来源: currentStrategy ? 'AI策略' : '配置默认值',
+        阈值: entryThreshold,
+        策略ID: currentStrategy?.meta?.decisionId
+      })
+      
+      // 3. 构建推荐输入（包含冷启动配置和策略阈值）
       const config: RecommendationConfig = {
         analysisEngine: effectiveAnalysisEngine,
         maxRecommendations,
         useReasoning,
         useLocalAI,
         batchSize: recommendationConfig.batchSize,
-        qualityThreshold: recommendationConfig.qualityThreshold,
+        qualityThreshold: entryThreshold, // 使用策略决策的准入阈值
         // 冷启动配置
         useColdStart: coldStartDecision.useColdStart,
         coldStartConfidence: coldStartDecision.confidence
