@@ -32,6 +32,7 @@ import {
   cleanupLegacyNotificationKeys,
   cleanupAggregatedTrackingData
 } from '@/storage/migrations/local-storage-migration'
+import { LOCAL_STORAGE_KEYS } from '@/storage/local-storage-keys'
 import {
   consumeTabTracking,
   consumeUrlTracking,
@@ -52,8 +53,8 @@ bgLogger.info('Silent Feed Background Service Worker 已启动')
  */
 async function isPoolStrategyGenerating(): Promise<boolean> {
   try {
-    const result = await chrome.storage.local.get('pool_strategy_generating')
-    return result.pool_strategy_generating === true
+    const result = await chrome.storage.local.get(LOCAL_STORAGE_KEYS.POOL_STRATEGY_GENERATING)
+    return result[LOCAL_STORAGE_KEYS.POOL_STRATEGY_GENERATING] === true
   } catch {
     return false
   }
@@ -65,9 +66,9 @@ async function isPoolStrategyGenerating(): Promise<boolean> {
 async function setPoolStrategyGenerating(isGenerating: boolean): Promise<void> {
   try {
     if (isGenerating) {
-      await chrome.storage.local.set({ 'pool_strategy_generating': true })
+      await chrome.storage.local.set({ [LOCAL_STORAGE_KEYS.POOL_STRATEGY_GENERATING]: true })
     } else {
-      await chrome.storage.local.remove('pool_strategy_generating')
+      await chrome.storage.local.remove(LOCAL_STORAGE_KEYS.POOL_STRATEGY_GENERATING)
     }
   } catch (error) {
     bgLogger.error('设置池策略生成状态失败', error)

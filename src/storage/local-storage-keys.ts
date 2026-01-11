@@ -31,6 +31,12 @@ export const LOCAL_STORAGE_KEYS = {
   /** 阅读列表引导状态（区别于主引导流程） */
   READING_LIST_GUIDE: 'readingListGuide',
   
+  // ========== 策略系统 ==========
+  /** 推荐池策略决策（日级缓存，旧系统，已废弃） */
+  POOL_STRATEGY_DECISION: 'pool_strategy_decision',
+  /** 池策略生成中标记（防止并发） */
+  POOL_STRATEGY_GENERATING: 'pool_strategy_generating',
+  
   // ========== 临时追踪（聚合存储） ==========
   /** Tab 推荐追踪集合: { [tabId]: TrackingInfo } */
   TRACKING_TABS: 'trackingTabs',
