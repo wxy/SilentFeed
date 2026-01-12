@@ -466,7 +466,10 @@ export async function getRecommendationFunnel(currentFeedOnly: boolean = true): 
     const subscribedFeedIds = new Set(subscribedFeeds.map(f => f.id))
     
     // ===== 数据源 1: feedArticles（文章池状态）=====
-    const allArticlesRaw = await db.feedArticles.toArray()
+    // 只统计来自已订阅源的文章，与订阅列表统计保持一致
+    const allArticlesRaw = await db.feedArticles
+      .filter(article => subscribedFeedIds.has(article.feedId))
+      .toArray()
     
     // 当前在源中的文章（用于统计和日志）
     const inFeedArticles = allArticlesRaw.filter(a => a.inFeed !== false)
@@ -576,11 +579,15 @@ export async function getRecommendationFunnel(currentFeedOnly: boolean = true): 
     // analyzed = 总数 - raw - prescreenedOut - stale
     const analyzedCount = rssArticlesCount - rawCount - prescreenedOutCount - staleCount
     
-    // candidate = 曾进入候选池的文章数（直接用时间戳统计，最准确）
-    const candidateCount = everInCandidatePool.length
+    // candidate = 当前在候选池的文章数（与订阅源统计保持一致）
+    const candidateCount = currentCandidateCount
     
-    // recommended = 曾进入推荐池的文章数（直接用时间戳统计，最准确）
-    const recommendedCount = everInRecommendedPool.length
+    // recommended = 当前在推荐池的文章数（与订阅源统计保持一致）
+    const recommendedCount = currentRecommendedPoolCount
+    
+    // 历史累计统计（保留用于其他用途）
+    const everCandidateCount = everInCandidatePool.length
+    const everRecommendedCount = everInRecommendedPool.length
     
     // 退出统计（基于 feedArticles 表）
     // 所有"已离开推荐池"的文章 = 曾推荐 - 当前在推荐池
@@ -665,8 +672,8 @@ export async function getRecommendationFunnel(currentFeedOnly: boolean = true): 
       },
       // 基于时间戳的历史统计
       '历史统计(时间戳)': {
-        everInCandidatePool: everInCandidatePool.length,
-        everInRecommendedPool: everInRecommendedPool.length,
+        everInCandidatePool: everCandidateCount,
+        everInRecommendedPool: everRecommendedCount,
         exitedFromRecommendedPool: exitedFromRecommendedPool.length,
         // 诊断：曾进入推荐池但状态异常的文章
         recommendedButNotInPoolOrExited: (() => {

@@ -644,10 +644,11 @@ export {
 // RSS 订阅源统计模块（db-feeds-stats.ts）- Phase 11
 export {
   getFeedStats,
+  getFeedFunnelStats,
   arrangeSymmetrically,
   normalizeLogarithmic
 } from './db-feeds-stats'
-export type { FeedStats } from './db-feeds-stats'
+export type { FeedStats, FeedFunnelStats } from './db-feeds-stats'
 
 // 策略决策模块已迁移到 strategy-storage.ts（使用 chrome.storage.local）
 // 为了向后兼容，从新位置重新导出
