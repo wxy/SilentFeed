@@ -1433,7 +1433,7 @@ export function CollectionStats() {
                         </g>
                         
                         {/* 推荐漏斗恒等式 - 放在退出统计下方 */}
-                        <g transform={`translate(${centerX}, ${funnelBottomY + 110})`}>
+                        <g transform={`translate(${centerX}, ${funnelBottomY + 135})`}>
                           {(() => {
                             const funnel = recommendationFunnel
                             if (!funnel) return null
@@ -1449,7 +1449,7 @@ export function CollectionStats() {
                             
                             // 定义恒等式的所有项：左边4个 - 右边4个 = 中间1个
                             const items = [
-                              { value: funnel.rssArticles, label: 'RSS', color: '#1F2937' },
+                              { value: funnel.rssArticles, label: '订阅源', color: '#1F2937' },
                               { value: funnel.raw, label: '待分析', color: '#6B7280' },
                               { value: funnel.stale, label: '已过时', color: '#6B7280' },
                               { value: funnel.prescreenedOut, label: '初筛淘汰', color: '#6B7280' },
