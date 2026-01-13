@@ -125,7 +125,7 @@ export function FunnelBlockBar({ inFeedStats, poolStats }: FunnelBlockBarProps) 
                 {Array.from({ length: cat.inFeedCount }).map((_, idx) => (
                   <div
                     key={`${cat.key}-${idx}`}
-                    className={`w-2 h-2 rounded transition-all shadow-sm ${cat.color} ${cat.hoverColor} ${
+                    className={`w-1.5 h-1.5 rounded transition-all shadow-sm ${cat.color} ${cat.hoverColor} ${
                       isHovered ? 'ring-1 ring-offset-1 ring-gray-300 dark:ring-gray-500 shadow-md scale-110' : ''
                     }`}
                   />

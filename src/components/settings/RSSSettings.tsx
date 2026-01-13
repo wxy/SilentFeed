@@ -1603,7 +1603,7 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
               ]
               
               // 渲染汇总行的函数（块+数字 + 连贯等式）
-              const renderSummaryRow = (total: any, label: string, icon: string, bgColor: string, borderColor: string, textColor: string) => {
+              const renderSummaryRow = (total: any, label: string, icon: string, bgColor: string, borderColor: string, textColor: string, isPoolSummary: boolean = false) => {
                 // 验证等式：rssArticles - raw - stale - prescreenedOut = analyzed
                 const analyzedCalc = total.rssArticles - total.raw - total.stale - total.prescreenedOut
                 const isValid1 = analyzedCalc === total.analyzed
@@ -1643,14 +1643,27 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                         <span>{label}</span>
                       </span>
                       <div className="flex items-center gap-1.5 text-xs font-mono text-gray-600 dark:text-gray-300">
+                        {/* 根据是否是池汇总来选择圆点或方块 */}
                         {/* 左边：rssArticles - raw - stale - prescreenedOut */}
-                        {renderTagWithDot('bg-blue-400 dark:bg-blue-500', total.rssArticles, `${_('options.rssManager.funnel.rssArticles') || 'RSS总数'}: ${total.rssArticles}`)}
+                        {isPoolSummary 
+                          ? renderTagWithBlock('bg-blue-400 dark:bg-blue-500', total.rssArticles, `${_('options.rssManager.funnel.rssArticles') || 'RSS总数'}: ${total.rssArticles}`)
+                          : renderTagWithDot('bg-blue-400 dark:bg-blue-500', total.rssArticles, `${_('options.rssManager.funnel.rssArticles') || 'RSS总数'}: ${total.rssArticles}`)
+                        }
                         <span className="text-gray-400">-</span>
-                        {renderTagWithDot(getColorForKey('raw'), total.raw, `${_('options.rssManager.status.raw') || '待分析'}: ${total.raw}`)}
+                        {isPoolSummary 
+                          ? renderTagWithBlock(getColorForKey('raw'), total.raw, `${_('options.rssManager.status.raw') || '待分析'}: ${total.raw}`)
+                          : renderTagWithDot(getColorForKey('raw'), total.raw, `${_('options.rssManager.status.raw') || '待分析'}: ${total.raw}`)
+                        }
                         <span className="text-gray-400">-</span>
-                        {renderTagWithDot(getColorForKey('stale'), total.stale, `${_('options.rssManager.status.stale') || '已过时'}: ${total.stale}`)}
+                        {isPoolSummary 
+                          ? renderTagWithBlock(getColorForKey('stale'), total.stale, `${_('options.rssManager.status.stale') || '已过时'}: ${total.stale}`)
+                          : renderTagWithDot(getColorForKey('stale'), total.stale, `${_('options.rssManager.status.stale') || '已过时'}: ${total.stale}`)
+                        }
                         <span className="text-gray-400">-</span>
-                        {renderTagWithDot(getColorForKey('prescreenedOut'), total.prescreenedOut, `${_('options.rssManager.status.prescreenedOut') || '初筛淘汰'}: ${total.prescreenedOut}`)}
+                        {isPoolSummary 
+                          ? renderTagWithBlock(getColorForKey('prescreenedOut'), total.prescreenedOut, `${_('options.rssManager.status.prescreenedOut') || '初筛淘汰'}: ${total.prescreenedOut}`)
+                          : renderTagWithDot(getColorForKey('prescreenedOut'), total.prescreenedOut, `${_('options.rssManager.status.prescreenedOut') || '初筛淘汰'}: ${total.prescreenedOut}`)
+                        }
                         
                         {/* 第一个等号 */}
                         <span className={`font-bold ${isValid1 ? 'text-green-500' : 'text-red-500'}`}>
@@ -1658,7 +1671,10 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                         </span>
                         
                         {/* 中间：analyzed */}
-                        {renderTagWithDot('bg-indigo-500 dark:bg-indigo-600', total.analyzed, `${_('options.rssManager.funnel.analyzed') || '已分析'}: ${total.analyzed} (${isValid1 ? '计算正确' : `计算值: ${analyzedCalc}, 差值: ${total.analyzed - analyzedCalc}`})`)}
+                        {isPoolSummary 
+                          ? renderTagWithBlock('bg-indigo-500 dark:bg-indigo-600', total.analyzed, `${_('options.rssManager.funnel.analyzed') || '已分析'}: ${total.analyzed} (${isValid1 ? '计算正确' : `计算值: ${analyzedCalc}, 差值: ${total.analyzed - analyzedCalc}`})`)
+                          : renderTagWithDot('bg-indigo-500 dark:bg-indigo-600', total.analyzed, `${_('options.rssManager.funnel.analyzed') || '已分析'}: ${total.analyzed} (${isValid1 ? '计算正确' : `计算值: ${analyzedCalc}, 差值: ${total.analyzed - analyzedCalc}`})`)
+                        }
                         
                         {/* 第二个等号 */}
                         <span className={`font-bold ${isValid2 ? 'text-green-500' : 'text-red-500'}`}>
@@ -1688,7 +1704,8 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                     '📦',
                     'bg-purple-50 dark:bg-purple-900/20',
                     'border-purple-200 dark:border-purple-700',
-                    'text-purple-700 dark:text-purple-300'
+                    'text-purple-700 dark:text-purple-300',
+                    true
                   )}
                   
                   {/* 在源中汇总 */}

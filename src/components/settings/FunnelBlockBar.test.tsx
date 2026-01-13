@@ -97,7 +97,7 @@ describe('FunnelBlockBar Component', () => {
     )
 
     // 检查左侧方块是否存在（源数据）
-    const leftBlocks = container.querySelectorAll('.flex-1 .w-2.h-2')
+    const leftBlocks = container.querySelectorAll('.flex-1 .w-1\\.5.h-1\\.5')
     // 应该等于各分类总和: 5+5+5+10+15+10+5 = 55
     expect(leftBlocks.length).toBe(55)
     
@@ -142,7 +142,7 @@ describe('FunnelBlockBar Component', () => {
     )
 
     // 左侧方块应该只显示有数据的分类（总共 20 个方块）
-    const leftBlocks = container.querySelectorAll('.flex-1 .w-2.h-2')
+    const leftBlocks = container.querySelectorAll('.flex-1 .w-1\\.5.h-1\\.5')
     expect(leftBlocks.length).toBe(20)
   })
 
@@ -226,7 +226,7 @@ describe('FunnelBlockBar Component', () => {
     )
 
     // 左侧应该有 11 个方块(raw:1 + currentCandidate:5 + currentRecommended:5 = 11)
-    const leftBlocks = container.querySelectorAll('.flex-1 .w-2.h-2')
+    const leftBlocks = container.querySelectorAll('.flex-1 .w-1\\.5.h-1\\.5')
     expect(leftBlocks.length).toBe(11)
     
     // 右侧应该有方块显示池数据
