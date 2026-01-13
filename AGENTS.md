@@ -83,7 +83,7 @@ Usage notes:
 
 <skill>
 <name>pr-creator</name>
-<description>A minimal, dependency-light skill to create PRs with semantic versioning support, structured descriptions, and automatic branch renaming.</description>
+<description>AI-native skill to automate PR creation with semantic versioning and intelligent descriptions.</description>
 <location>project</location>
 </skill>
 
