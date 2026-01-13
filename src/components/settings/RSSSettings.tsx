@@ -1272,18 +1272,15 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
           }
           
           // 渲染单行统计的函数（使用块进度条可视化）
-          const renderFunnelRow = (inFeedStats: FeedFunnelStats | undefined, poolStats: FeedFunnelStats | undefined, label: string, icon: string) => {
+          const renderFunnelRow = (inFeedStats: FeedFunnelStats | undefined, poolStats: FeedFunnelStats | undefined) => {
             if (!inFeedStats || !poolStats) return null
-            return <FunnelBlockBar inFeedStats={inFeedStats} poolStats={poolStats} label={label} icon={icon} />
+            return <FunnelBlockBar inFeedStats={inFeedStats} poolStats={poolStats} />
           }
           
           return (
             <>
-              {/* 第三行：文章池统计（包括历史） */}
-              {renderFunnelRow(poolStats, poolStats, _('options.rssManager.stats.pool') || '池', '📦')}
-              
-              {/* 第四行：在源中统计（当前） */}
-              {renderFunnelRow(inFeedStats, poolStats, _('options.rssManager.stats.inFeed') || '源', '📚')}
+              {/* 漏斗统计：只显示在源中的数据，右侧显示文章池的汇总 */}
+              {renderFunnelRow(inFeedStats, poolStats)}
             </>
           )
         })()}

@@ -93,15 +93,11 @@ describe('FunnelBlockBar Component', () => {
       <FunnelBlockBar
         inFeedStats={mockInFeedStats}
         poolStats={mockPoolStats}
-        label="源"
-        icon="📚"
       />
     )
 
-    // 检查标签是否存在
-    expect(screen.getByText(/📚 源:/)).toBeInTheDocument()
-    // 检查总数是否显示
-    expect(screen.getByText('50')).toBeInTheDocument()
+    // 检查右侧池的汇总数字是否显示
+    expect(screen.getByText('100')).toBeInTheDocument()
   })
 
   it('应该为每个文章显示一个块', () => {
@@ -109,8 +105,6 @@ describe('FunnelBlockBar Component', () => {
       <FunnelBlockBar
         inFeedStats={mockInFeedStats}
         poolStats={mockPoolStats}
-        label="源"
-        icon="📚"
       />
     )
 
@@ -126,13 +120,11 @@ describe('FunnelBlockBar Component', () => {
       <FunnelBlockBar
         inFeedStats={mockInFeedStats}
         poolStats={mockPoolStats}
-        label="源"
-        icon="📚"
       />
     )
 
     // 找到第一个块组（待分析 - raw）
-    const blockGroups = container.querySelectorAll('div.flex.gap-0\\.5.relative')
+    const blockGroups = container.querySelectorAll('div.flex.gap-px')
     const firstBlockGroup = blockGroups[0]
 
     // hover 第一个块组
@@ -175,8 +167,6 @@ describe('FunnelBlockBar Component', () => {
       <FunnelBlockBar
         inFeedStats={smallStats}
         poolStats={smallStats}
-        label="源"
-        icon="📚"
       />
     )
 

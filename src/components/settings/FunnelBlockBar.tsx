@@ -15,10 +15,8 @@ import type { FeedFunnelStats } from '@/storage/db'
 interface FunnelBlockBarProps {
   /** 在源中的统计数据（用于显示块进度条） */
   inFeedStats: FeedFunnelStats
-  /** 文章池的统计数据（用于 tooltip 对比） */
+  /** 文章池的统计数据（用于右侧汇总显示） */
   poolStats: FeedFunnelStats
-  label: string
-  icon: string
 }
 
 /**
@@ -77,13 +75,14 @@ const BLOCK_CATEGORIES = [
   }
 ]
 
-export function FunnelBlockBar({ inFeedStats, poolStats, label, icon }: FunnelBlockBarProps) {
+export function FunnelBlockBar({ inFeedStats, poolStats }: FunnelBlockBarProps) {
   const { _ } = useI18n()
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null)
   const blockRefs = useRef<Record<string, HTMLDivElement | null>>({})
 
   // 使用在源中的统计作为主要显示数据
   const totalInFeedArticles = inFeedStats.rssArticles
+  const totalPoolArticles = poolStats.rssArticles
 
   // 生成块数据（基于在源中的统计）
   const blockData = BLOCK_CATEGORIES.map((cat) => {
@@ -107,22 +106,21 @@ export function FunnelBlockBar({ inFeedStats, poolStats, label, icon }: FunnelBl
   }
 
   return (
-    <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 relative">
-      <span className="text-[10px] text-gray-400 dark:text-gray-500 font-sans font-medium w-8 flex-shrink-0">
-        {icon} {label}:
-      </span>
-
+    <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 relative">
       {/* 块容器 */}
-      <div className="flex items-center gap-0.5 flex-wrap flex-1 relative min-h-6">
+      <div className="flex items-center flex-1 relative min-h-6">
         {blockData.map((cat) => {
           const { inFeedCount, poolCount, name, color, hoverColor } = cat
           const isHovered = hoveredCategory === cat.key
+          
+          // 只显示有数据的块组
+          if (inFeedCount === 0) return null
           
           // 每个方块代表一个文章
           return (
             <div
               key={cat.key}
-              className="flex gap-0.5 relative group"
+              className="flex gap-px relative group"
               onMouseEnter={() => handleBlockEnter(cat.key)}
               onMouseLeave={handleBlockLeave}
             >
@@ -141,7 +139,7 @@ export function FunnelBlockBar({ inFeedStats, poolStats, label, icon }: FunnelBl
               ))}
 
               {/* Tooltip - 仅在 hover 该类别时显示 */}
-              {isHovered && inFeedCount > 0 && (
+              {isHovered && (
                 <div
                   className={`absolute z-50 px-2 py-1.5 rounded text-[9px] text-white whitespace-nowrap pointer-events-none shadow-lg bg-gray-800 dark:bg-gray-900`}
                   style={{
@@ -162,9 +160,9 @@ export function FunnelBlockBar({ inFeedStats, poolStats, label, icon }: FunnelBl
         })}
       </div>
 
-      {/* 右侧总数显示 */}
-      <span className="text-[10px] text-gray-400 dark:text-gray-500 ml-1 flex-shrink-0 font-mono">
-        {totalInFeedArticles}
+      {/* 右侧文章池的汇总数字 */}
+      <span className="text-[10px] text-gray-400 dark:text-gray-500 flex-shrink-0 font-mono ml-2 px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800" title="文章池总计">
+        {totalPoolArticles}
       </span>
     </div>
   )
