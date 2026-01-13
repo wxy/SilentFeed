@@ -1593,13 +1593,13 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
               
               // 彩色块的分类配置（与 FunnelBlockBar 保持一致）
               const BLOCK_CATEGORIES = [
-                { key: 'raw', labelKey: 'options.rssManager.status.raw', color: 'bg-gray-500' },
-                { key: 'stale', labelKey: 'options.rssManager.status.stale', color: 'bg-yellow-700' },
-                { key: 'prescreenedOut', labelKey: 'options.rssManager.status.prescreenedOut', color: 'bg-red-600' },
-                { key: 'analyzedNotQualified', labelKey: 'options.rssManager.status.analyzedNotQualified', color: 'bg-orange-500' },
-                { key: 'currentCandidate', labelKey: 'options.rssManager.status.currentCandidate', color: 'bg-amber-500' },
-                { key: 'currentRecommended', labelKey: 'options.rssManager.status.currentRecommended', color: 'bg-green-600' },
-                { key: 'exited', labelKey: 'options.rssManager.status.exited', color: 'bg-blue-600' }
+                { key: 'raw', labelKey: 'options.rssManager.status.raw', color: 'bg-gray-200 dark:bg-gray-700' },
+                { key: 'stale', labelKey: 'options.rssManager.status.stale', color: 'bg-gray-400 dark:bg-gray-500' },
+                { key: 'prescreenedOut', labelKey: 'options.rssManager.status.prescreenedOut', color: 'bg-gray-500 dark:bg-gray-600' },
+                { key: 'analyzedNotQualified', labelKey: 'options.rssManager.status.analyzedNotQualified', color: 'bg-gray-500 dark:bg-gray-600' },
+                { key: 'currentCandidate', labelKey: 'options.rssManager.status.currentCandidate', color: 'bg-green-400 dark:bg-green-500' },
+                { key: 'currentRecommended', labelKey: 'options.rssManager.status.currentRecommended', color: 'bg-green-600 dark:bg-green-700' },
+                { key: 'exited', labelKey: 'options.rssManager.status.exited', color: 'bg-slate-700 dark:bg-slate-800' }
               ]
               
               // 渲染汇总行的函数（块+数字 + 连贯等式）
@@ -1635,7 +1635,7 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                       </span>
                       <div className="flex items-center gap-1.5 text-xs font-mono text-gray-600 dark:text-gray-300">
                         {/* 左边：rssArticles - raw - stale - prescreenedOut */}
-                        {renderTag('bg-slate-400', total.rssArticles, `${_('options.rssManager.funnel.rssArticles') || 'RSS总数'}: ${total.rssArticles}`)}
+                        {renderTag('bg-blue-400 dark:bg-blue-500', total.rssArticles, `${_('options.rssManager.funnel.rssArticles') || 'RSS总数'}: ${total.rssArticles}`)}
                         <span className="text-gray-400">-</span>
                         {renderTag(getColorForKey('raw'), total.raw, `${_('options.rssManager.status.raw') || '待分析'}: ${total.raw}`)}
                         <span className="text-gray-400">-</span>
@@ -1649,7 +1649,7 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                         </span>
                         
                         {/* 中间：analyzed */}
-                        {renderTag('bg-indigo-500', total.analyzed, `${_('options.rssManager.funnel.analyzed') || '已分析'}: ${total.analyzed} (${isValid1 ? '计算正确' : `计算值: ${analyzedCalc}, 差值: ${total.analyzed - analyzedCalc}`})`)}
+                        {renderTag('bg-cyan-500 dark:bg-cyan-600', total.analyzed, `${_('options.rssManager.funnel.analyzed') || '已分析'}: ${total.analyzed} (${isValid1 ? '计算正确' : `计算值: ${analyzedCalc}, 差值: ${total.analyzed - analyzedCalc}`})`)}
                         
                         {/* 第二个等号 */}
                         <span className={`font-bold ${isValid2 ? 'text-green-500' : 'text-red-500'}`}>

@@ -27,51 +27,51 @@ const BLOCK_CATEGORIES = [
   {
     key: 'raw' as const,
     labelKey: 'options.rssManager.status.raw',
-    // 待分析 - 灰色（未处理）
-    color: 'bg-gray-500 dark:bg-gray-500',
-    hoverColor: 'hover:bg-gray-600 dark:hover:bg-gray-400'
+    // 待分析 - 浅白色（未处理）
+    color: 'bg-gray-200 dark:bg-gray-700',
+    hoverColor: 'hover:bg-gray-300 dark:hover:bg-gray-600'
   },
   {
     key: 'stale' as const,
     labelKey: 'options.rssManager.status.stale',
-    // 已过时 - 棕色/深黄（陈旧内容）
-    color: 'bg-yellow-700 dark:bg-yellow-700',
-    hoverColor: 'hover:bg-yellow-800 dark:hover:bg-yellow-600'
+    // 已过时 - 灰色（淘汰类）
+    color: 'bg-gray-400 dark:bg-gray-500',
+    hoverColor: 'hover:bg-gray-500 dark:hover:bg-gray-400'
   },
   {
     key: 'prescreenedOut' as const,
     labelKey: 'options.rssManager.status.prescreenedOut',
-    // 初筛淘汰 - 红色（被排除）
-    color: 'bg-red-600 dark:bg-red-600',
-    hoverColor: 'hover:bg-red-700 dark:hover:bg-red-500'
+    // 初筛淘汰 - 深灰（淘汰类）
+    color: 'bg-gray-500 dark:bg-gray-600',
+    hoverColor: 'hover:bg-gray-600 dark:hover:bg-gray-500'
   },
   {
     key: 'analyzedNotQualified' as const,
     labelKey: 'options.rssManager.status.analyzedNotQualified',
-    // 未达标 - 橙色（不符合标准）
-    color: 'bg-orange-500 dark:bg-orange-600',
-    hoverColor: 'hover:bg-orange-600 dark:hover:bg-orange-500'
+    // 未达标 - 中灰（淘汰类）
+    color: 'bg-gray-500 dark:bg-gray-600',
+    hoverColor: 'hover:bg-gray-600 dark:hover:bg-gray-500'
   },
   {
     key: 'currentCandidate' as const,
     labelKey: 'options.rssManager.status.currentCandidate',
-    // 候选池 - 琥珀色（待审核）
-    color: 'bg-amber-500 dark:bg-amber-600',
-    hoverColor: 'hover:bg-amber-600 dark:hover:bg-amber-500'
+    // 候选池 - 浅绿（候选类）
+    color: 'bg-green-400 dark:bg-green-500',
+    hoverColor: 'hover:bg-green-500 dark:hover:bg-green-400'
   },
   {
     key: 'currentRecommended' as const,
     labelKey: 'options.rssManager.status.currentRecommended',
-    // 推荐池 - 绿色（推荐）
-    color: 'bg-green-600 dark:bg-green-600',
-    hoverColor: 'hover:bg-green-700 dark:hover:bg-green-500'
+    // 推荐池 - 深绿（推荐类）
+    color: 'bg-green-600 dark:bg-green-700',
+    hoverColor: 'hover:bg-green-700 dark:hover:bg-green-600'
   },
   {
     key: 'exited' as const,
     labelKey: 'options.rssManager.status.exited',
-    // 已退出 - 蓝色（已处理/完成）
-    color: 'bg-blue-600 dark:bg-blue-600',
-    hoverColor: 'hover:bg-blue-700 dark:hover:bg-blue-500'
+    // 已退出 - 深色（已处理）
+    color: 'bg-slate-700 dark:bg-slate-800',
+    hoverColor: 'hover:bg-slate-800 dark:hover:bg-slate-700'
   }
 ]
 
