@@ -13,6 +13,7 @@ import { logger } from "@/utils/logger"
 import { getFeedFunnelStats, type FeedFunnelStats } from "@/storage/db"
 import { formatDateTime as formatDateTimeI18n } from "@/utils/date-formatter"
 import { isValidCategoryKey, type FeedCategoryKey } from "@/types/feed-category"
+import { FunnelBlockBar } from "./FunnelBlockBar"
 
 const rssManagerLogger = logger.withTag("RSSManager")
 
@@ -1270,81 +1271,10 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
             )
           }
           
-          // 渲染单行统计的函数（连贯等式显示）
+          // 渲染单行统计的函数（使用块进度条可视化）
           const renderFunnelRow = (stats: FeedFunnelStats | undefined, label: string, icon: string) => {
             if (!stats) return null
-            
-            // 验证等式：rssArticles - raw - stale - prescreenedOut = analyzed
-            const analyzedCalc = stats.rssArticles - stats.raw - stats.stale - stats.prescreenedOut
-            const isValid1 = analyzedCalc === stats.analyzed
-            
-            // 验证等式：analyzed = analyzedNotQualified + currentCandidate + currentRecommended + exited
-            const analyzedSum = stats.analyzedNotQualified + stats.currentCandidate + stats.currentRecommended + stats.exited
-            const isValid2 = analyzedSum === stats.analyzed
-            
-            return (
-              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 font-mono">
-                <span className="text-[10px] text-gray-400 dark:text-gray-500 font-sans font-medium w-8">{icon} {label}:</span>
-                
-                {/* 左边：rssArticles - raw - stale - prescreenedOut */}
-                <span className="inline-block w-9 text-right cursor-help font-semibold text-gray-600 dark:text-gray-300" 
-                      title={`${_('options.rssManager.funnel.rssArticles') || 'RSS总数'}: ${stats.rssArticles}`}>
-                  {stats.rssArticles}
-                </span>
-                <span className="text-gray-400">-</span>
-                <span className="inline-block w-8 text-right cursor-help" 
-                      title={`${_('options.rssManager.status.raw') || '待分析'}: ${stats.raw}`}>
-                  {stats.raw}
-                </span>
-                <span className="text-gray-400">-</span>
-                <span className="inline-block w-8 text-right cursor-help" 
-                      title={`${_('options.rssManager.status.stale') || '已过时'}: ${stats.stale}`}>
-                  {stats.stale}
-                </span>
-                <span className="text-gray-400">-</span>
-                <span className="inline-block w-8 text-right cursor-help" 
-                      title={`${_('options.rssManager.status.prescreenedOut') || '初筛淘汰'}: ${stats.prescreenedOut}`}>
-                  {stats.prescreenedOut}
-                </span>
-                
-                {/* 第一个等号 */}
-                <span className={`font-bold ${isValid1 ? 'text-green-500' : 'text-red-500'}`}>
-                  {isValid1 ? '=' : '≠'}
-                </span>
-                
-                {/* 中间：analyzed */}
-                <span className="inline-block w-9 text-right cursor-help font-semibold text-blue-500 dark:text-blue-400" 
-                      title={`${_('options.rssManager.funnel.analyzed') || '已分析'}: ${stats.analyzed} (${isValid1 ? '计算正确' : `计算值: ${analyzedCalc}, 差值: ${stats.analyzed - analyzedCalc}`})`}>
-                  {stats.analyzed}
-                </span>
-                
-                {/* 第二个等号 */}
-                <span className={`font-bold ${isValid2 ? 'text-green-500' : 'text-red-500'}`}>
-                  {isValid2 ? '=' : '≠'}
-                </span>
-                
-                {/* 右边：analyzedNotQualified + currentCandidate + currentRecommended + exited */}
-                <span className="inline-block w-8 text-right cursor-help" 
-                      title={`${_('options.rssManager.status.analyzedNotQualified') || '分析未达标'}: ${stats.analyzedNotQualified}`}>
-                  {stats.analyzedNotQualified}
-                </span>
-                <span className="text-gray-400">+</span>
-                <span className="inline-block w-8 text-right cursor-help text-yellow-500 dark:text-yellow-400" 
-                      title={`${_('options.rssManager.status.currentCandidate') || '当前候选池'}: ${stats.currentCandidate}`}>
-                  {stats.currentCandidate}
-                </span>
-                <span className="text-gray-400">+</span>
-                <span className="inline-block w-8 text-right cursor-help text-green-500 dark:text-green-400" 
-                      title={`${_('options.rssManager.status.currentRecommended') || '当前推荐池'}: ${stats.currentRecommended}`}>
-                  {stats.currentRecommended}
-                </span>
-                <span className="text-gray-400">+</span>
-                <span className="inline-block w-8 text-right cursor-help" 
-                      title={`${_('options.rssManager.status.exited') || '已退出'}: ${stats.exited}`}>
-                  {stats.exited}
-                </span>
-              </div>
-            )
+            return <FunnelBlockBar stats={stats} label={label} icon={icon} />
           }
           
           return (

@@ -1432,102 +1432,136 @@ export function CollectionStats() {
                           })()}
                         </g>
                         
-                        {/* 恒等式显示 - 放在退出统计下方 */}
-                        <g transform={`translate(${centerX}, ${funnelBottomY + 135})`}>
+                        {/* 已分析组件分布 - 方块进度条 */}
+                        <g transform={`translate(${centerX}, ${funnelBottomY + 100})`}>
                           {(() => {
                             const funnel = recommendationFunnel
                             if (!funnel) return null
                             
-                            // 验证等式
-                            const analyzedCalc = funnel.rssArticles - funnel.raw - funnel.stale - funnel.prescreenedOut
-                            const isValid1 = analyzedCalc === funnel.analyzed
+                            // 计算四个组件的数量
+                            const notQualified = funnel.analyzedNotQualified ?? 0
+                            const candidate = funnel.candidate ?? 0
+                            const recommended = funnel.currentRecommendedPool ?? 0
+                            const exited = (funnel.exitStats?.total ?? 0) - (funnel.exitStats?.stale ?? 0)
+                            const totalAnalyzed = notQualified + candidate + recommended + exited
                             
-                            const exitedCount = (funnel.exitStats?.total ?? 0) - (funnel.exitStats?.stale ?? 0)
-                            const analyzedSum = (funnel.analyzedNotQualified ?? 0) + funnel.candidate + (funnel.currentRecommendedPool ?? 0) + exitedCount
-                            const isValid2 = analyzedSum === funnel.analyzed
-                            
-                            // 定义所有项（左边4个数字 - 右边4个数字 = 中间1个数字）
-                            const items = [
-                              { value: funnel.rssArticles, label: 'RSS', color: '#1F2937' },
-                              { value: funnel.raw, label: '待分析', color: '#6B7280' },
-                              { value: funnel.stale, label: '已过时', color: '#6B7280' },
-                              { value: funnel.prescreenedOut, label: '初筛淘汰', color: '#6B7280' },
-                              { value: funnel.analyzed, label: '已分析', color: '#3B82F6', isBold: true },
-                              { value: funnel.analyzedNotQualified ?? 0, label: '未达标', color: '#6B7280' },
-                              { value: funnel.candidate, label: '候选池', color: '#EAB308' },
-                              { value: funnel.currentRecommendedPool ?? 0, label: '推荐池', color: '#10B981' },
-                              { value: exitedCount, label: '已退出', color: '#6B7280' }
+                            // 定义组件信息
+                            const components = [
+                              { label: _("options.collectionStats.funnelAnalyzedNotQualified"), value: notQualified, color: '#A78BFA', colorLight: '#EDE9FE' }, // 紫色
+                              { label: _("options.collectionStats.funnelCandidateRate"), value: candidate, color: '#EAB308', colorLight: '#FEFCE8' }, // 黄色
+                              { label: _("options.collectionStats.funnelRecommendationRate"), value: recommended, color: '#10B981', colorLight: '#D1FAE5' }, // 绿色
+                              { label: _("options.collectionStats.funnelExitOther"), value: exited, color: '#6B7280', colorLight: '#F3F4F6' } // 灰色
                             ]
                             
-                            // 每个数据项占用 50px（包含数字+运算符）
-                            const itemWidth = 50
-                            const startX = -4 * itemWidth - 25  // 确保左右对称
+                            // 总宽度为300px，高度为40px
+                            const barWidth = 300
+                            const barHeight = 40
+                            const blockGap = 2
+                            let currentX = -barWidth / 2
                             
+                            // 计算每个块的宽度（按比例分配空间）
+                            const blockWidths = components.map(comp => {
+                              if (totalAnalyzed === 0) return 0
+                              return (comp.value / totalAnalyzed) * (barWidth - blockGap * 3)
+                            })
+                            
+                            // 绘制方块和标签
+                            let blockX = currentX
                             return (
                               <>
-                                {/* 第一行：数字 */}
-                                {items.map((item, idx) => (
-                                  <text
-                                    key={`value-${idx}`}
-                                    x={startX + idx * itemWidth}
-                                    y={0}
-                                    textAnchor="middle"
-                                    fontSize="13"
-                                    fontWeight={item.isBold ? 'bold' : 'normal'}
-                                    fill={item.color}
-                                  >
-                                    {item.value}
-                                  </text>
-                                ))}
-                                
-                                {/* 运算符行 */}
-                                {[0, 1, 2, 3, 4, 5, 6, 7].map((idx) => {
-                                  let operator = ''
-                                  let color = '#9CA3AF'
-                                  let bold = false
+                                {/* 方块条 */}
+                                {components.map((comp, idx) => {
+                                  const width = blockWidths[idx]
+                                  if (width === 0) return null
                                   
-                                  if (idx === 3) {
-                                    operator = isValid1 ? '=' : '≠'
-                                    color = isValid1 ? '#10B981' : '#EF4444'
-                                    bold = true
-                                  } else if (idx === 4) {
-                                    operator = isValid2 ? '=' : '≠'
-                                    color = isValid2 ? '#10B981' : '#EF4444'
-                                    bold = true
-                                  } else if (idx < 3) {
-                                    operator = '-'
-                                  } else {
-                                    operator = '+'
-                                  }
+                                  const x = blockX
+                                  blockX += width + blockGap
                                   
                                   return (
-                                    <text
-                                      key={`op-${idx}`}
-                                      x={startX + (idx + 0.5) * itemWidth}
-                                      y={-2}
-                                      textAnchor="middle"
-                                      fontSize="12"
-                                      fontWeight={bold ? 'bold' : 'normal'}
-                                      fill={color}
-                                    >
-                                      {operator}
-                                    </text>
+                                    <g key={`block-${idx}`}>
+                                      {/* 方块背景 */}
+                                      <rect
+                                        x={x}
+                                        y={0}
+                                        width={width}
+                                        height={barHeight}
+                                        fill={comp.color}
+                                        opacity="0.8"
+                                        rx="4"
+                                        style={{ cursor: 'pointer' }}
+                                      />
+                                      
+                                      {/* 方块内文字（仅在宽度足够时显示） */}
+                                      {width > 40 && (
+                                        <text
+                                          x={x + width / 2}
+                                          y={barHeight / 2}
+                                          textAnchor="middle"
+                                          dominantBaseline="middle"
+                                          fontSize="11"
+                                          fontWeight="bold"
+                                          fill="white"
+                                        >
+                                          {comp.value}
+                                        </text>
+                                      )}
+                                      
+                                      {/* 隐藏的交互区域用于tooltip */}
+                                      <rect
+                                        x={x}
+                                        y={0}
+                                        width={width}
+                                        height={barHeight}
+                                        fill="transparent"
+                                      >
+                                        <title>{comp.label}: {comp.value}</title>
+                                      </rect>
+                                    </g>
                                   )
                                 })}
                                 
-                                {/* 第二行：标签（往下移以避免被画布隐藏） */}
-                                {items.map((item, idx) => (
-                                  <text
-                                    key={`label-${idx}`}
-                                    x={startX + idx * itemWidth}
-                                    y={22}
-                                    textAnchor="middle"
-                                    fontSize="8"
-                                    fill="#9CA3AF"
-                                  >
-                                    {item.label}
-                                  </text>
-                                ))}
+                                {/* 底部标签行 - 显示组件名称和数量 */}
+                                <g transform={`translate(0, ${barHeight + 15})`}>
+                                  {components.map((comp, idx) => {
+                                    const width = blockWidths[idx]
+                                    if (width === 0) return null
+                                    
+                                    // 计算当前块的中心X位置
+                                    let centerXPos = -barWidth / 2
+                                    for (let i = 0; i < idx; i++) {
+                                      centerXPos += blockWidths[i] + blockGap
+                                    }
+                                    centerXPos += width / 2
+                                    
+                                    return (
+                                      <g key={`label-${idx}`}>
+                                        {/* 标签 */}
+                                        <text
+                                          x={centerXPos}
+                                          y={0}
+                                          textAnchor="middle"
+                                          fontSize="9"
+                                          fontWeight="bold"
+                                          fill="#555555"
+                                        >
+                                          {comp.label}
+                                        </text>
+                                        
+                                        {/* 数值 */}
+                                        <text
+                                          x={centerXPos}
+                                          y={14}
+                                          textAnchor="middle"
+                                          fontSize="10"
+                                          fontWeight="bold"
+                                          fill={comp.color}
+                                        >
+                                          {comp.value}
+                                        </text>
+                                      </g>
+                                    )
+                                  })}
+                                </g>
                               </>
                             )
                           })()}
