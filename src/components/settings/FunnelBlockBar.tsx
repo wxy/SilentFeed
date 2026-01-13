@@ -97,28 +97,31 @@ export function FunnelBlockBar({ inFeedStats, poolStats }: FunnelBlockBarProps) 
   // 过滤出在池中有数据的分类
   const poolCategories = blockData.filter(cat => cat.poolCount > 0)
 
-  // 计算总数用于百分比
-  const totalInFeed = inFeedStats.rssArticles
-
   return (
     <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 relative">
-      {/* 左侧：在源数据进度条 */}
+      {/* 左侧：在源数据方块进度条 */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center h-4 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden shadow-inner">
+        <div className="flex items-center gap-px flex-wrap">
           {inFeedCategories.map((cat) => {
-            const percentage = (cat.inFeedCount / totalInFeed) * 100
             const isHovered = hoveredCategory === cat.key
             
             return (
               <div
                 key={cat.key}
-                className={`relative transition-all ${cat.color} ${cat.hoverColor} ${
-                  isHovered ? 'brightness-110 z-10' : ''
-                }`}
-                style={{ width: `${percentage}%` }}
+                className="flex gap-px relative"
                 onMouseEnter={() => setHoveredCategory(cat.key)}
                 onMouseLeave={() => setHoveredCategory(null)}
               >
+                {/* 每个方块代表一篇文章 */}
+                {Array.from({ length: cat.inFeedCount }).map((_, idx) => (
+                  <div
+                    key={`${cat.key}-${idx}`}
+                    className={`w-2 h-2 rounded-sm transition-all shadow-sm ${cat.color} ${cat.hoverColor} ${
+                      isHovered ? 'ring-1 ring-white dark:ring-gray-300 shadow-md scale-110' : ''
+                    }`}
+                  />
+                ))}
+
                 {/* Tooltip */}
                 {isHovered && (
                   <div

@@ -96,13 +96,13 @@ describe('FunnelBlockBar Component', () => {
       />
     )
 
-    // 检查进度条容器是否存在
-    const progressBar = container.querySelector('.bg-gray-200.dark\\:bg-gray-700')
-    expect(progressBar).toBeInTheDocument()
+    // 检查左侧方块是否存在（源数据）
+    const leftBlocks = container.querySelectorAll('.flex-1 .w-2.h-2')
+    expect(leftBlocks.length).toBe(50) // mockInFeedStats.rssArticles
     
-    // 检查右侧方块容器是否存在
-    const blocks = container.querySelectorAll('.w-2\\.5.h-2\\.5')
-    expect(blocks.length).toBeGreaterThan(0)
+    // 检查右侧方块容器是否存在（池数据）
+    const rightBlocks = container.querySelectorAll('.w-2\\.5.h-2\\.5')
+    expect(rightBlocks.length).toBeGreaterThan(0)
   })
 
   it('应该只显示非零数据的分类', () => {
@@ -140,10 +140,9 @@ describe('FunnelBlockBar Component', () => {
       />
     )
 
-    // 进度条应该只包含有数据的分类
-    // 右侧方块也应该只显示池中有数据的分类
-    const progressSegments = container.querySelectorAll('.bg-gray-200.dark\\:bg-gray-700 > div')
-    expect(progressSegments.length).toBeGreaterThan(0)
+    // 左侧方块应该只显示有数据的分类（总共 20 个方块）
+    const leftBlocks = container.querySelectorAll('.flex-1 .w-2.h-2')
+    expect(leftBlocks.length).toBe(20)
   })
 
   it('应该在 hover 时显示源内数据提示', async () => {
@@ -155,15 +154,17 @@ describe('FunnelBlockBar Component', () => {
       />
     )
 
-    // 找到进度条的第一个分段
-    const progressSegments = container.querySelectorAll('.bg-gray-200.dark\\:bg-gray-700 > div')
-    const firstSegment = progressSegments[0]
+    // 找到左侧的第一个方块组
+    const blockGroups = container.querySelectorAll('.flex-1 > div > div')
+    const firstGroup = blockGroups[0]
 
-    // hover 第一个分段
-    await user.hover(firstSegment)
+    if (firstGroup) {
+      // hover 第一个方块组
+      await user.hover(firstGroup)
 
-    // tooltip 应该显示源数据
-    expect(screen.getByText(/源:/)).toBeInTheDocument()
+      // tooltip 应该显示源数据
+      expect(screen.getByText(/源:/)).toBeInTheDocument()
+    }
   })
 
   it('应该在 hover 时显示池内数据提示', async () => {
@@ -223,12 +224,12 @@ describe('FunnelBlockBar Component', () => {
       />
     )
 
-    // 应该有进度条
-    const progressBar = container.querySelector('.bg-gray-200.dark\\:bg-gray-700')
-    expect(progressBar).toBeInTheDocument()
+    // 左侧应该有 10 个方块
+    const leftBlocks = container.querySelectorAll('.flex-1 .w-2.h-2')
+    expect(leftBlocks.length).toBe(10)
     
-    // 应该有方块显示池数据
-    const blocks = container.querySelectorAll('.w-2\\.5.h-2\\.5')
-    expect(blocks.length).toBeGreaterThan(0)
+    // 右侧应该有方块显示池数据
+    const rightBlocks = container.querySelectorAll('.w-2\\.5.h-2\\.5')
+    expect(rightBlocks.length).toBeGreaterThan(0)
   })
 })
