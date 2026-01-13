@@ -69,9 +69,9 @@ const BLOCK_CATEGORIES = [
   {
     key: 'exited' as const,
     labelKey: 'options.rssManager.status.exited',
-    // 已退出 - 深色（已处理）
-    color: 'bg-slate-700 dark:bg-slate-800',
-    hoverColor: 'hover:bg-slate-800 dark:hover:bg-slate-700'
+    // 已退出 - 蓝色（已处理）
+    color: 'bg-blue-600 dark:bg-blue-700',
+    hoverColor: 'hover:bg-blue-700 dark:hover:bg-blue-600'
   }
 ]
 
@@ -125,7 +125,7 @@ export function FunnelBlockBar({ inFeedStats, poolStats }: FunnelBlockBarProps) 
                 {Array.from({ length: cat.inFeedCount }).map((_, idx) => (
                   <div
                     key={`${cat.key}-${idx}`}
-                    className={`w-2 h-2 rounded-sm transition-all shadow-sm ${cat.color} ${cat.hoverColor} ${
+                    className={`w-2 h-2 rounded transition-all shadow-sm ${cat.color} ${cat.hoverColor} ${
                       isHovered ? 'ring-1 ring-white dark:ring-gray-300 shadow-md scale-110' : ''
                     }`}
                   />

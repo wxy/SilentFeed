@@ -1599,7 +1599,7 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                 { key: 'analyzedNotQualified', labelKey: 'options.rssManager.status.analyzedNotQualified', color: 'bg-gray-500 dark:bg-gray-600' },
                 { key: 'currentCandidate', labelKey: 'options.rssManager.status.currentCandidate', color: 'bg-green-400 dark:bg-green-500' },
                 { key: 'currentRecommended', labelKey: 'options.rssManager.status.currentRecommended', color: 'bg-green-600 dark:bg-green-700' },
-                { key: 'exited', labelKey: 'options.rssManager.status.exited', color: 'bg-slate-700 dark:bg-slate-800' }
+                { key: 'exited', labelKey: 'options.rssManager.status.exited', color: 'bg-blue-600 dark:bg-blue-700' }
               ]
               
               // 渲染汇总行的函数（块+数字 + 连贯等式）
@@ -1619,9 +1619,9 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                 
                 // 渲染标签样式的方块+数字组合（固定宽度保持一致）
                 const renderTag = (color: string, value: number, title: string) => (
-                  <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 cursor-help"
+                  <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 cursor-help shadow-sm"
                        title={title}>
-                    <div className={`w-2 h-2 rounded-sm flex-shrink-0 ${color}`} />
+                    <div className={`w-2 h-2 rounded flex-shrink-0 ${color} shadow-xs`} />
                     <span className="text-[11px] font-medium w-8 text-right">{value}</span>
                   </div>
                 )
@@ -1649,7 +1649,7 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                         </span>
                         
                         {/* 中间：analyzed */}
-                        {renderTag('bg-cyan-500 dark:bg-cyan-600', total.analyzed, `${_('options.rssManager.funnel.analyzed') || '已分析'}: ${total.analyzed} (${isValid1 ? '计算正确' : `计算值: ${analyzedCalc}, 差值: ${total.analyzed - analyzedCalc}`})`)}
+                        {renderTag('bg-indigo-500 dark:bg-indigo-600', total.analyzed, `${_('options.rssManager.funnel.analyzed') || '已分析'}: ${total.analyzed} (${isValid1 ? '计算正确' : `计算值: ${analyzedCalc}, 差值: ${total.analyzed - analyzedCalc}`})`)}
                         
                         {/* 第二个等号 */}
                         <span className={`font-bold ${isValid2 ? 'text-green-500' : 'text-red-500'}`}>
