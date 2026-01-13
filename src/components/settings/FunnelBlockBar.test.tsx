@@ -96,8 +96,9 @@ describe('FunnelBlockBar Component', () => {
       />
     )
 
-    // 检查右侧池的汇总数字是否显示
-    expect(screen.getByText('100')).toBeInTheDocument()
+    // 检查分类标签是否显示
+    expect(screen.getByText('待分析')).toBeInTheDocument()
+    expect(screen.getByText('已过时')).toBeInTheDocument()
   })
 
   it('应该为每个文章显示一个块', () => {
@@ -108,9 +109,9 @@ describe('FunnelBlockBar Component', () => {
       />
     )
 
-    // 查找所有块元素
-    const blocks = container.querySelectorAll('div.w-1\\.5.h-1\\.5')
-    // inFeedStats.rssArticles = 50，应该有 50 个块
+    // 查找所有块元素（大小为 w-2 h-2 的）
+    const blocks = container.querySelectorAll('div.w-2.h-2')
+    // inFeedStats 的各类别块总数应该等于 rssArticles
     expect(blocks.length).toBe(50)
   })
 
@@ -124,7 +125,7 @@ describe('FunnelBlockBar Component', () => {
     )
 
     // 找到第一个块组（待分析 - raw）
-    const blockGroups = container.querySelectorAll('div.flex.gap-px')
+    const blockGroups = container.querySelectorAll('div.flex.flex-col')
     const firstBlockGroup = blockGroups[0]
 
     // hover 第一个块组
@@ -171,7 +172,7 @@ describe('FunnelBlockBar Component', () => {
     )
 
     // 应该显示 10 个块
-    const blocks = container.querySelectorAll('div.w-1\\.5.h-1\\.5')
+    const blocks = container.querySelectorAll('div.w-2.h-2')
     expect(blocks.length).toBe(10)
   })
 })

@@ -80,10 +80,6 @@ export function FunnelBlockBar({ inFeedStats, poolStats }: FunnelBlockBarProps) 
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null)
   const blockRefs = useRef<Record<string, HTMLDivElement | null>>({})
 
-  // 使用在源中的统计作为主要显示数据
-  const totalInFeedArticles = inFeedStats.rssArticles
-  const totalPoolArticles = poolStats.rssArticles
-
   // 生成块数据（基于在源中的统计）
   const blockData = BLOCK_CATEGORIES.map((cat) => {
     const inFeedCount = inFeedStats[cat.key] as number
@@ -106,45 +102,53 @@ export function FunnelBlockBar({ inFeedStats, poolStats }: FunnelBlockBarProps) 
   }
 
   return (
-    <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 relative">
+    <div className="flex items-start gap-2 text-xs text-gray-500 dark:text-gray-400 relative">
       {/* 块容器 */}
-      <div className="flex items-center flex-1 relative min-h-6">
+      <div className="flex items-center gap-2 flex-wrap flex-1 relative min-h-7">
         {blockData.map((cat) => {
           const { inFeedCount, poolCount, name, color, hoverColor } = cat
           const isHovered = hoveredCategory === cat.key
           
-          // 只显示有数据的块组
-          if (inFeedCount === 0) return null
-          
-          // 每个方块代表一个文章
+          // 每个块组包括一个分类的所有块（即使数量为 0 也显示占位符）
           return (
             <div
               key={cat.key}
-              className="flex gap-px relative group"
+              className="flex flex-col gap-0.5 items-start relative group"
               onMouseEnter={() => handleBlockEnter(cat.key)}
               onMouseLeave={handleBlockLeave}
             >
-              {/* 显示块 - 每个块代表一篇文章 */}
-              {Array.from({ length: inFeedCount }).map((_, idx) => (
-                <div
-                  key={`${cat.key}-${idx}`}
-                  ref={(el) => {
-                    if (el) blockRefs.current[cat.key] = el
-                  }}
-                  className={`w-1.5 h-1.5 rounded transition-all ${color} ${hoverColor} ${
-                    isHovered ? 'ring-1 ring-white dark:ring-gray-300' : ''
-                  }`}
-                  title={`${name}`}
-                />
-              ))}
+              {/* 块行 - 每个块代表一篇文章 */}
+              <div className="flex gap-px flex-wrap max-w-[60px]">
+                {inFeedCount > 0 ? (
+                  Array.from({ length: inFeedCount }).map((_, idx) => (
+                    <div
+                      key={`${cat.key}-${idx}`}
+                      ref={(el) => {
+                        if (el) blockRefs.current[cat.key] = el
+                      }}
+                      className={`w-2 h-2 rounded-sm transition-all ${color} ${hoverColor} shadow-sm ${
+                        isHovered ? 'ring-1 ring-white dark:ring-gray-300 shadow-md scale-110' : ''
+                      }`}
+                      title={`${name}`}
+                    />
+                  ))
+                ) : (
+                  // 空占位符，保持间隙
+                  <div className="w-2 h-2 rounded-sm bg-gray-200 dark:bg-gray-700 opacity-40" />
+                )}
+              </div>
+
+              {/* 分类标签和池数据 */}
+              <div className="text-[8px] font-medium text-gray-500 dark:text-gray-400 leading-tight">
+                <div className="font-semibold">{name}</div>
+                <div className="text-[7px] text-gray-400 dark:text-gray-500">源:{inFeedCount} 池:{poolCount}</div>
+              </div>
 
               {/* Tooltip - 仅在 hover 该类别时显示 */}
               {isHovered && (
                 <div
-                  className={`absolute z-50 px-2 py-1.5 rounded text-[9px] text-white whitespace-nowrap pointer-events-none shadow-lg bg-gray-800 dark:bg-gray-900`}
+                  className={`absolute z-50 px-2.5 py-1.5 rounded text-[9px] text-white whitespace-nowrap pointer-events-none shadow-lg bg-gray-800 dark:bg-gray-900 bottom-full left-0`}
                   style={{
-                    bottom: '100%',
-                    left: 0,
                     transform: 'translateY(-4px)',
                     marginBottom: '4px'
                   }}
@@ -159,11 +163,6 @@ export function FunnelBlockBar({ inFeedStats, poolStats }: FunnelBlockBarProps) 
           )
         })}
       </div>
-
-      {/* 右侧文章池的汇总数字 */}
-      <span className="text-[10px] text-gray-400 dark:text-gray-500 flex-shrink-0 font-mono ml-2 px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800" title="文章池总计">
-        {totalPoolArticles}
-      </span>
     </div>
   )
 }
