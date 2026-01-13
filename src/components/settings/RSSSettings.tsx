@@ -1617,8 +1617,17 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                   return BLOCK_CATEGORIES.find(cat => cat.key === key)?.color || 'bg-gray-400'
                 }
                 
-                // 渲染标签样式的方块+数字组合（固定宽度保持一致）
-                const renderTag = (color: string, value: number, title: string) => (
+                // 渲染标签样式的圆点+数字组合（在源中使用）
+                const renderTagWithDot = (color: string, value: number, title: string) => (
+                  <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 cursor-help shadow-sm"
+                       title={title}>
+                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${color} shadow-xs`} />
+                    <span className="text-[11px] font-medium w-8 text-right">{value}</span>
+                  </div>
+                )
+                
+                // 渲染标签样式的方块+数字组合（在池中使用）
+                const renderTagWithBlock = (color: string, value: number, title: string) => (
                   <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 cursor-help shadow-sm"
                        title={title}>
                     <div className={`w-2 h-2 rounded flex-shrink-0 ${color} shadow-xs`} />
@@ -1635,13 +1644,13 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                       </span>
                       <div className="flex items-center gap-1.5 text-xs font-mono text-gray-600 dark:text-gray-300">
                         {/* 左边：rssArticles - raw - stale - prescreenedOut */}
-                        {renderTag('bg-blue-400 dark:bg-blue-500', total.rssArticles, `${_('options.rssManager.funnel.rssArticles') || 'RSS总数'}: ${total.rssArticles}`)}
+                        {renderTagWithDot('bg-blue-400 dark:bg-blue-500', total.rssArticles, `${_('options.rssManager.funnel.rssArticles') || 'RSS总数'}: ${total.rssArticles}`)}
                         <span className="text-gray-400">-</span>
-                        {renderTag(getColorForKey('raw'), total.raw, `${_('options.rssManager.status.raw') || '待分析'}: ${total.raw}`)}
+                        {renderTagWithDot(getColorForKey('raw'), total.raw, `${_('options.rssManager.status.raw') || '待分析'}: ${total.raw}`)}
                         <span className="text-gray-400">-</span>
-                        {renderTag(getColorForKey('stale'), total.stale, `${_('options.rssManager.status.stale') || '已过时'}: ${total.stale}`)}
+                        {renderTagWithDot(getColorForKey('stale'), total.stale, `${_('options.rssManager.status.stale') || '已过时'}: ${total.stale}`)}
                         <span className="text-gray-400">-</span>
-                        {renderTag(getColorForKey('prescreenedOut'), total.prescreenedOut, `${_('options.rssManager.status.prescreenedOut') || '初筛淘汰'}: ${total.prescreenedOut}`)}
+                        {renderTagWithDot(getColorForKey('prescreenedOut'), total.prescreenedOut, `${_('options.rssManager.status.prescreenedOut') || '初筛淘汰'}: ${total.prescreenedOut}`)}
                         
                         {/* 第一个等号 */}
                         <span className={`font-bold ${isValid1 ? 'text-green-500' : 'text-red-500'}`}>
@@ -1649,21 +1658,21 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                         </span>
                         
                         {/* 中间：analyzed */}
-                        {renderTag('bg-indigo-500 dark:bg-indigo-600', total.analyzed, `${_('options.rssManager.funnel.analyzed') || '已分析'}: ${total.analyzed} (${isValid1 ? '计算正确' : `计算值: ${analyzedCalc}, 差值: ${total.analyzed - analyzedCalc}`})`)}
+                        {renderTagWithDot('bg-indigo-500 dark:bg-indigo-600', total.analyzed, `${_('options.rssManager.funnel.analyzed') || '已分析'}: ${total.analyzed} (${isValid1 ? '计算正确' : `计算值: ${analyzedCalc}, 差值: ${total.analyzed - analyzedCalc}`})`)}
                         
                         {/* 第二个等号 */}
                         <span className={`font-bold ${isValid2 ? 'text-green-500' : 'text-red-500'}`}>
                           {isValid2 ? '=' : '≠'}
                         </span>
                         
-                        {/* 右边：analyzedNotQualified + currentCandidate + currentRecommended + exited */}
-                        {renderTag(getColorForKey('analyzedNotQualified'), total.analyzedNotQualified, `${_('options.rssManager.status.analyzedNotQualified') || '分析未达标'}: ${total.analyzedNotQualified}`)}
+                        {/* 右边：analyzedNotQualified + currentCandidate + currentRecommended + exited（使用方块表示池数据）*/}
+                        {renderTagWithBlock(getColorForKey('analyzedNotQualified'), total.analyzedNotQualified, `${_('options.rssManager.status.analyzedNotQualified') || '分析未达标'}: ${total.analyzedNotQualified}`)}
                         <span className="text-gray-400">+</span>
-                        {renderTag(getColorForKey('currentCandidate'), total.currentCandidate, `${_('options.rssManager.status.currentCandidate') || '当前候选池'}: ${total.currentCandidate}`)}
+                        {renderTagWithBlock(getColorForKey('currentCandidate'), total.currentCandidate, `${_('options.rssManager.status.currentCandidate') || '当前候选池'}: ${total.currentCandidate}`)}
                         <span className="text-gray-400">+</span>
-                        {renderTag(getColorForKey('currentRecommended'), total.currentRecommended, `${_('options.rssManager.status.currentRecommended') || '当前推荐池'}: ${total.currentRecommended}`)}
+                        {renderTagWithBlock(getColorForKey('currentRecommended'), total.currentRecommended, `${_('options.rssManager.status.currentRecommended') || '当前推荐池'}: ${total.currentRecommended}`)}
                         <span className="text-gray-400">+</span>
-                        {renderTag(getColorForKey('exited'), total.exited, `${_('options.rssManager.status.exited') || '已退出'}: ${total.exited}`)}
+                        {renderTagWithBlock(getColorForKey('exited'), total.exited, `${_('options.rssManager.status.exited') || '已退出'}: ${total.exited}`)}
                       </div>
                     </div>
                   </div>

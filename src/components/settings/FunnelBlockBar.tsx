@@ -110,14 +110,14 @@ export function FunnelBlockBar({ inFeedStats, poolStats }: FunnelBlockBarProps) 
             {totalInFeed}
           </span>
           {/* 方块进度条 */}
-          <div className="flex items-center gap-px flex-wrap flex-1">
+          <div className="flex items-center gap-1 flex-wrap flex-1">
             {inFeedCategories.map((cat) => {
               const isHovered = hoveredCategory === cat.key
             
             return (
               <div
                 key={cat.key}
-                className="flex gap-px relative"
+                className="flex gap-1 relative"
                 onMouseEnter={() => setHoveredCategory(cat.key)}
                 onMouseLeave={() => setHoveredCategory(null)}
               >
@@ -126,7 +126,7 @@ export function FunnelBlockBar({ inFeedStats, poolStats }: FunnelBlockBarProps) 
                   <div
                     key={`${cat.key}-${idx}`}
                     className={`w-2 h-2 rounded transition-all shadow-sm ${cat.color} ${cat.hoverColor} ${
-                      isHovered ? 'ring-1 ring-white dark:ring-gray-300 shadow-md scale-110' : ''
+                      isHovered ? 'ring-1 ring-offset-1 ring-gray-300 dark:ring-gray-500 shadow-md scale-110' : ''
                     }`}
                   />
                 ))}
