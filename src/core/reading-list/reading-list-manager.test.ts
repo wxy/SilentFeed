@@ -30,6 +30,16 @@ vi.mock('@/storage/tracking-storage', () => ({
   removeUrlTracking: vi.fn().mockResolvedValue(undefined),
 }))
 
+// Mock FeedManager
+const mockGetFeedByUrl = vi.fn().mockResolvedValue(undefined)
+vi.mock('@/core/rss/managers/FeedManager', () => ({
+  FeedManager: function () {
+    return {
+      getFeedByUrl: mockGetFeedByUrl,
+    }
+  },
+}))
+
 // Mock chrome API
 const mockChrome = {
   readingList: {
@@ -197,6 +207,43 @@ describe('ReadingListManager', () => {
       expect(mockChrome.readingList.addEntry).toHaveBeenCalledWith({
         title: '🤫 测试文章',
         url: `https://translate.google.com/translate?sl=auto&tl=zh-CN&u=${encodeURIComponent(urlWithTracking)}`,
+        hasBeenRead: false,
+      })
+    })
+
+    it('应该在订阅源禁用翻译时使用原文链接（即使有translation字段）', async () => {
+      const recWithTranslation: Recommendation = {
+        ...mockRecommendation,
+        translation: {
+          sourceLanguage: 'zh-CN',
+          targetLanguage: 'zh-CN',
+          translatedTitle: '测试文章',
+          translatedSummary: '测试摘要',
+          translatedAt: Date.now(),
+        },
+      }
+
+      // Mock FeedManager 返回禁用翻译的订阅源设置
+      mockGetFeedByUrl.mockResolvedValueOnce({
+        id: 'feed-123',
+        url: 'https://example.com/feed',
+        title: 'Test Feed',
+        addedAt: Date.now(),
+        useGoogleTranslate: false, // 订阅源禁用翻译
+      })
+
+      mockChrome.readingList.addEntry.mockResolvedValue(undefined)
+      mockChrome.storage.local.set.mockResolvedValue(undefined)
+
+      const result = await ReadingListManager.saveRecommendation(recWithTranslation, true, 'zh-CN')
+
+      expect(result).toBe(true)
+      // 应该使用原文链接，不应该生成翻译链接
+      const urlObj = new URL(recWithTranslation.url)
+      urlObj.searchParams.set('sf_rec', mockRecommendation.id)
+      expect(mockChrome.readingList.addEntry).toHaveBeenCalledWith({
+        title: '🤫 Test Article',
+        url: urlObj.toString(),
         hasBeenRead: false,
       })
     })
