@@ -161,8 +161,8 @@ export class ReadingListManager {
         })
         // 在原文链接上附加推荐ID
         urlToSave = ReadingListManager.appendRecommendationId(urlToSave, recommendation.id!)
-      } else if (autoTranslateEnabled && recommendation.translation) {
-        // 如果启用自动翻译且存在翻译数据（说明文章语言和界面语言不同）
+      } else if (autoTranslateEnabled && feedUseGoogleTranslate && recommendation.translation) {
+        // 如果启用自动翻译、订阅源允许翻译且存在翻译数据（说明文章语言和界面语言不同）
         // 生成谷歌翻译链接
         const originalWithRec = ReadingListManager.appendRecommendationId(recommendation.url, recommendation.id!)
         const encodedUrl = encodeURIComponent(originalWithRec)

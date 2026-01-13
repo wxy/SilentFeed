@@ -42,7 +42,184 @@ export interface FeedStats {
 }
 
 /**
- * 获取所有已订阅源的统计数据
+ * 订阅源漏斗统计（完全对齐推荐漏斗维度）
+ */
+export interface FeedFunnelStats {
+  feedId: string
+  feedTitle: string
+  
+  // === 漏斗层（累计统计，基于时间戳） ===
+  rssArticles: number      // RSS文章总数
+  analyzed: number         // 已分析数
+  candidate: number        // 曾进入候选池（有 candidatePoolAddedAt）
+  recommended: number      // 曾进入推荐池（有 recommendedPoolAddedAt）
+  
+  // === 当前状态（互斥，总和 = rssArticles） ===
+  raw: number              // 待分析（仍在源中）
+  stale: number            // 已过时（已出源，未分析）
+  prescreenedOut: number   // 初筛淘汰
+  analyzedNotQualified: number  // 分析未达标
+  currentCandidate: number      // 当前在候选池
+  currentRecommended: number    // 当前在推荐池
+  exited: number                // 已退出
+  
+  // === 退出统计 ===
+  exitStats: {
+    total: number
+    read: number         // 已读
+    saved: number        // 稍后
+    disliked: number     // 不想读
+    unread: number       // 未读总数（被动离开）
+    replaced: number     // 被替换
+    expired: number      // 过期
+    staleExit: number    // 出源
+    other: number        // 其他
+  }
+}
+
+/**
+ * 获取所有已订阅源的漏斗统计
+ * 完全对齐推荐漏斗的统计维度
+ * 
+ * @param currentFeedOnly - 是否只统计当前在源中的文章（默认 true）
+ * @returns 订阅源漏斗统计数组
+ */
+export async function getFeedFunnelStats(currentFeedOnly: boolean = true): Promise<FeedFunnelStats[]> {
+  const feeds = await db.discoveredFeeds
+    .where('status')
+    .equals('subscribed')
+    .toArray()
+  
+  const stats: FeedFunnelStats[] = []
+  
+  for (const feed of feeds) {
+    // 获取该源的所有文章
+    const allArticlesRaw = await db.feedArticles
+      .where('feedId')
+      .equals(feed.id)
+      .toArray()
+    
+    // 当前在源中的文章
+    const inFeedArticles = allArticlesRaw.filter(a => a.inFeed !== false)
+    
+    // 根据参数决定统计范围
+    const allArticles = currentFeedOnly ? inFeedArticles : allArticlesRaw
+    
+    const rssArticlesCount = allArticles.length
+    
+    // === 基础状态统计（互斥） ===
+    
+    // 初筛淘汰
+    const prescreenedOutCount = allArticles.filter(a => 
+      a.poolStatus === 'prescreened-out'
+    ).length
+    
+    // 待分析（仍在源中）
+    const rawCount = allArticles.filter(a => 
+      (a.poolStatus === 'raw' || !a.poolStatus) && a.inFeed !== false
+    ).length
+    
+    // 已过时（已出源，未分析）
+    const staleCount = allArticles.filter(a =>
+      a.poolStatus === 'stale' || 
+      ((a.poolStatus === 'raw' || !a.poolStatus) && a.inFeed === false)
+    ).length
+    
+    // 分析未达标
+    const analyzedNotQualifiedCount = allArticles.filter(a =>
+      a.poolStatus === 'analyzed-not-qualified'
+    ).length
+    
+    // 当前在候选池
+    const currentCandidateCount = allArticles.filter(a =>
+      a.poolStatus === 'candidate'
+    ).length
+    
+    // 当前在推荐池
+    const currentRecommendedCount = allArticles.filter(a =>
+      a.poolStatus === 'recommended'
+    ).length
+    
+    // === 基于时间戳的历史统计 ===
+    
+    // 曾进入候选池（有时间戳）
+    const everInCandidatePool = allArticles.filter(a => a.candidatePoolAddedAt)
+    const candidateCount = everInCandidatePool.length
+    
+    // 曾进入推荐池（有时间戳）
+    const everInRecommendedPool = allArticles.filter(a => a.recommendedPoolAddedAt)
+    const recommendedCount = everInRecommendedPool.length
+    
+    // === 退出统计 ===
+    const exitedArticles = allArticles.filter(a => a.poolStatus === 'exited')
+    const exitedFromRecommendedPool = everInRecommendedPool.filter(a => a.poolStatus === 'exited')
+    const staleFromRecommendedPool = everInRecommendedPool.filter(a => 
+      a.poolStatus === 'stale' || 
+      (a.poolStatus === 'raw' && a.inFeed === false) ||
+      !a.poolStatus
+    )
+    
+    const exitReadCount = exitedFromRecommendedPool.filter(a => a.poolExitReason === 'read').length
+    const exitSavedCount = exitedFromRecommendedPool.filter(a => a.poolExitReason === 'saved').length
+    const exitDislikedCount = exitedFromRecommendedPool.filter(a => a.poolExitReason === 'disliked').length
+    const exitReplacedCount = exitedFromRecommendedPool.filter(a => a.poolExitReason === 'replaced').length
+    const exitExpiredCount = exitedFromRecommendedPool.filter(a => a.poolExitReason === 'expired').length
+    const exitStaleCount = staleFromRecommendedPool.length
+    const exitOtherCount = exitedFromRecommendedPool.length - exitReadCount - exitSavedCount - exitDislikedCount - exitReplacedCount - exitExpiredCount
+    const exitUnreadCount = exitReplacedCount + exitExpiredCount + exitStaleCount + exitOtherCount
+    const exitTotalCount = exitReadCount + exitSavedCount + exitDislikedCount + exitUnreadCount
+    
+    // analyzed = 总数 - raw - prescreenedOut - stale
+    const analyzedCount = rssArticlesCount - rawCount - prescreenedOutCount - staleCount
+    
+    stats.push({
+      feedId: feed.id,
+      feedTitle: feed.title,
+      // 漏斗层
+      rssArticles: rssArticlesCount,
+      analyzed: analyzedCount,
+      candidate: candidateCount,
+      recommended: recommendedCount,
+      // 当前状态
+      raw: rawCount,
+      stale: staleCount,
+      prescreenedOut: prescreenedOutCount,
+      analyzedNotQualified: analyzedNotQualifiedCount,
+      currentCandidate: currentCandidateCount,
+      currentRecommended: currentRecommendedCount,
+      exited: exitedArticles.length,
+      // 退出统计
+      exitStats: {
+        total: exitTotalCount,
+        read: exitReadCount,
+        saved: exitSavedCount,
+        disliked: exitDislikedCount,
+        unread: exitUnreadCount,
+        replaced: exitReplacedCount,
+        expired: exitExpiredCount,
+        staleExit: exitStaleCount,
+        other: exitOtherCount
+      }
+    })
+  }
+  
+  // 标记推荐数最差的 3 个订阅源（建议取消订阅）
+  if (stats.length > 3) {
+    const sortedByRecommended = [...stats].sort((a, b) => a.recommended - b.recommended)
+    const worstThree = sortedByRecommended.slice(0, 3)
+    worstThree.forEach(worst => {
+      const stat = stats.find(s => s.feedId === worst.feedId)
+      if (stat) {
+        ;(stat as any).isWorstPerformer = true
+      }
+    })
+  }
+  
+  return stats
+}
+
+/**
+ * 获取所有已订阅源的统计数据（旧版，保持兼容）
  * 基于 Phase 13 多池架构的 poolStatus 字段进行统计
  * 
  * @returns 订阅源统计数组

@@ -951,8 +951,8 @@ export function CollectionStats() {
               <div className="flex flex-col xl:flex-row justify-center items-center gap-8">
               <svg
                 width="580"
-                height="620"
-                viewBox="0 0 580 620"
+                height="680"
+                viewBox="0 0 580 680"
                 className="max-w-full h-auto"
               >
                 {(() => {
@@ -1377,13 +1377,9 @@ export function CollectionStats() {
                         
                         {/* 退出统计 - 放在用户图标下方，横向排列 */}
                         <g transform={`translate(${centerX}, ${funnelBottomY + 80})`}>
-                          {/* 退出详情横向排列 - 待读 + 分隔符 + 3个用户主动 + 分隔符 + 4个被动/未读细分 */}
+                          {/* 退出详情横向排列 - 3个用户主动 + 分隔符 + 4个被动/未读细分 */}
                           {(() => {
                             const exitItems = [
-                              // 待读（当前在推荐池）
-                              { icon: '📖', label: _("options.collectionStats.funnelCurrentInPool"), value: funnel.currentRecommendedPool ?? 0, color: '#0EA5E9' },
-                              // 分隔符
-                              { icon: '│', label: '', value: '', color: '#D1D5DB', isSeparator: true },
                               // 用户主动操作
                               { icon: '✓', label: _("options.collectionStats.funnelExitRead"), value: funnel.exitStats?.read ?? 0, color: '#16A34A' },
                               { icon: '📥', label: _("options.collectionStats.funnelExitSaved"), value: funnel.exitStats?.saved ?? 0, color: '#2563EB' },
@@ -1433,6 +1429,110 @@ export function CollectionStats() {
                                 </g>
                               )
                             })
+                          })()}
+                        </g>
+                        
+                        {/* 推荐漏斗恒等式 - 放在退出统计下方 */}
+                        <g transform={`translate(${centerX}, ${funnelBottomY + 135})`}>
+                          {(() => {
+                            const funnel = recommendationFunnel
+                            if (!funnel) return null
+                            
+                            // 验证等式 1: analyzed = rssArticles - raw - stale - prescreenedOut
+                            const analyzedCalc = funnel.rssArticles - funnel.raw - funnel.stale - funnel.prescreenedOut
+                            const isValid1 = analyzedCalc === funnel.analyzed
+                            
+                            // 验证等式 2: analyzed = analyzedNotQualified + candidate + currentRecommendedPool + exited
+                            const exitedCount = (funnel.exitStats?.total ?? 0) - (funnel.exitStats?.stale ?? 0)
+                            const analyzedSum = (funnel.analyzedNotQualified ?? 0) + funnel.candidate + (funnel.currentRecommendedPool ?? 0) + exitedCount
+                            const isValid2 = analyzedSum === funnel.analyzed
+                            
+                            // 定义恒等式的所有项：左边4个 - 右边4个 = 中间1个
+                            const items = [
+                              { value: funnel.rssArticles, label: '订阅源', color: '#1F2937' },
+                              { value: funnel.raw, label: '待分析', color: '#6B7280' },
+                              { value: funnel.stale, label: '已过时', color: '#6B7280' },
+                              { value: funnel.prescreenedOut, label: '初筛淘汰', color: '#6B7280' },
+                              { value: funnel.analyzed, label: '已分析', color: '#3B82F6', isBold: true },
+                              { value: funnel.analyzedNotQualified ?? 0, label: '未达标', color: '#6B7280' },
+                              { value: funnel.candidate, label: '候选池', color: '#EAB308' },
+                              { value: funnel.currentRecommendedPool ?? 0, label: '推荐池', color: '#10B981' },
+                              { value: exitedCount, label: '已退出', color: '#6B7280' }
+                            ]
+                            
+                            // 每个项目占用 55px 宽度
+                            const itemWidth = 55
+                            const startX = -4 * itemWidth - 27
+                            
+                            return (
+                              <>
+                                {/* 数字行 */}
+                                {items.map((item, idx) => (
+                                  <text
+                                    key={`value-${idx}`}
+                                    x={startX + idx * itemWidth}
+                                    y={0}
+                                    textAnchor="middle"
+                                    fontSize="13"
+                                    fontWeight={item.isBold ? 'bold' : 'normal'}
+                                    fill={item.color}
+                                  >
+                                    {item.value}
+                                  </text>
+                                ))}
+                                
+                                {/* 运算符行 */}
+                                {[0, 1, 2, 3, 4, 5, 6, 7].map((idx) => {
+                                  let operator = ''
+                                  let color = '#9CA3AF'
+                                  let bold = false
+                                  
+                                  if (idx === 3) {
+                                    // 第一个等号
+                                    operator = isValid1 ? '=' : '≠'
+                                    color = isValid1 ? '#10B981' : '#EF4444'
+                                    bold = true
+                                  } else if (idx === 4) {
+                                    // 第二个等号
+                                    operator = isValid2 ? '=' : '≠'
+                                    color = isValid2 ? '#10B981' : '#EF4444'
+                                    bold = true
+                                  } else if (idx < 3) {
+                                    operator = '-'
+                                  } else {
+                                    operator = '+'
+                                  }
+                                  
+                                  return (
+                                    <text
+                                      key={`op-${idx}`}
+                                      x={startX + (idx + 0.5) * itemWidth}
+                                      y={-2}
+                                      textAnchor="middle"
+                                      fontSize="12"
+                                      fontWeight={bold ? 'bold' : 'normal'}
+                                      fill={color}
+                                    >
+                                      {operator}
+                                    </text>
+                                  )
+                                })}
+                                
+                                {/* 标签行 */}
+                                {items.map((item, idx) => (
+                                  <text
+                                    key={`label-${idx}`}
+                                    x={startX + idx * itemWidth}
+                                    y={22}
+                                    textAnchor="middle"
+                                    fontSize="8"
+                                    fill="#9CA3AF"
+                                  >
+                                    {item.label}
+                                  </text>
+                                ))}
+                              </>
+                            )
                           })()}
                         </g>
                       </g>
@@ -1557,7 +1657,7 @@ export function CollectionStats() {
                     {_("options.collectionStats.funnelRecommendationRate")}
                   </div>
                   <div className="text-xl font-bold text-green-900 dark:text-green-100">
-                    {recommendationFunnel.rssArticles > 0 ? ((recommendationFunnel.recommended / recommendationFunnel.rssArticles) * 100).toFixed(1) : 0}%
+                    {recommendationFunnel.rssArticles > 0 ? (((recommendationFunnel.currentRecommendedPool ?? 0) + (recommendationFunnel.exitStats?.total ?? 0) - (recommendationFunnel.exitStats?.stale ?? 0)) / recommendationFunnel.rssArticles * 100).toFixed(1) : 0}%
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     {_("options.collectionStats.funnelRssToRecommended")}
@@ -1568,7 +1668,10 @@ export function CollectionStats() {
                     {_("options.collectionStats.funnelReadingRate")}
                   </div>
                   <div className="text-xl font-bold text-purple-900 dark:text-purple-100">
-                    {recommendationFunnel.recommended > 0 ? ((recommendationFunnel.exitStats.read / recommendationFunnel.recommended) * 100).toFixed(1) : 0}%
+                    {(() => {
+                      const totalRecommendedHistorical = (recommendationFunnel.currentRecommendedPool ?? 0) + (recommendationFunnel.exitStats?.total ?? 0) - (recommendationFunnel.exitStats?.stale ?? 0)
+                      return totalRecommendedHistorical > 0 ? ((recommendationFunnel.exitStats?.read ?? 0) / totalRecommendedHistorical * 100).toFixed(1) : 0
+                    })()}%
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     {_("options.collectionStats.funnelRecommendedToRead")}

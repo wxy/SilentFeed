@@ -10,8 +10,10 @@ import { getFaviconUrl, handleFaviconError } from "@/utils/favicon"
 import { formatFeedTitle, decodeHtmlEntities } from "@/utils/html"
 import type { DiscoveredFeed } from "@/types/rss"
 import { logger } from "@/utils/logger"
+import { getFeedFunnelStats, type FeedFunnelStats } from "@/storage/db"
 import { formatDateTime as formatDateTimeI18n } from "@/utils/date-formatter"
 import { isValidCategoryKey, type FeedCategoryKey } from "@/types/feed-category"
+import { FunnelBlockBar } from "./FunnelBlockBar"
 
 const rssManagerLogger = logger.withTag("RSSManager")
 
@@ -40,6 +42,10 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
   const [ignoredFeeds, setIgnoredFeeds] = useState<DiscoveredFeed[]>([])
   const [loading, setLoading] = useState(true)
   const [showIgnored, setShowIgnored] = useState(false)
+  // 漏斗统计（完全对齐推荐漏斗）- 文章池（包括历史）
+  const [feedPoolStatsMap, setFeedPoolStatsMap] = useState<Record<string, FeedFunnelStats>>({})
+  // 漏斗统计（完全对齐推荐漏斗）- 在源中（当前）
+  const [feedInFeedStatsMap, setFeedInFeedStatsMap] = useState<Record<string, FeedFunnelStats>>({})
   
   // Phase 5.1.6: 手动订阅和 OPML 导入
   const [manualUrl, setManualUrl] = useState('')
@@ -141,6 +147,27 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
       setCandidateFeeds(sanitize(candidates))
       setSubscribedFeeds(sanitize(subscribed))
       setIgnoredFeeds(sanitize(ignored))
+
+      // 加载每源漏斗统计（完全对齐推荐漏斗维度）
+      try {
+        // 文章池统计（包括历史文章）
+        const poolStats = await getFeedFunnelStats(false)
+        const poolMap: Record<string, FeedFunnelStats> = {}
+        for (const s of poolStats) {
+          poolMap[s.feedId] = s
+        }
+        setFeedPoolStatsMap(poolMap)
+        
+        // 在源中统计（当前在RSS源中的文章）
+        const inFeedStats = await getFeedFunnelStats(true)
+        const inFeedMap: Record<string, FeedFunnelStats> = {}
+        for (const s of inFeedStats) {
+          inFeedMap[s.feedId] = s
+        }
+        setFeedInFeedStatsMap(inFeedMap)
+      } catch (e) {
+        rssManagerLogger.warn('加载每源文章池统计失败（将跳过文章池汇总的部分项）', e)
+      }
     } catch (error) {
       rssManagerLogger.error('加载候选源失败:', error)
     } finally {
@@ -1228,229 +1255,65 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
           )}
         </div>
         
-        {/* 第三行：文章统计数据条（完整宽度）*/}
-        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-          {/* 已订阅源：文章统计可视化 */}
-          {feed.status === 'subscribed' && feed.articleCount > 0 && (() => {
-            // Phase 10: 基于新架构统计（只显示仍在源中的文章）
-            const totalArticles = feed.articleCount || 0        // 所有文章（包括历史）
-            const inFeedCount = feed.inFeedCount || 0           // 仍在RSS源中
-            const inFeedAnalyzedCount = feed.inFeedAnalyzedCount || 0
-            const inFeedRecommendedCount = feed.inFeedRecommendedCount || 0  // 推荐池（绿色）
-            const inFeedReadCount = feed.inFeedReadCount || 0   // 已阅读（蓝色）
-            const inFeedDislikedCount = feed.inFeedDislikedCount || 0 // 不想读（红色）
-            
-            // Phase 13: 新池状态统计
-            const inFeedCandidateCount = feed.inFeedCandidateCount || 0  // 候选池（黄色）
-            const inFeedEliminatedCount = feed.inFeedEliminatedCount || 0  // 已淘汰（灰色）
-            const inFeedRawCount = feed.inFeedRawCount || 0  // 原始池（白色）
-            
-            // 推荐相关统计（历史总数，用于显示图标）
-            const totalRecommended = feed.recommendedCount || 0
-            const totalDisliked = feed.dislikedCount || 0
-            
-            // Phase 10: 进度条只显示"仍在源中"的文章（inFeed=true）
-            const displayTotal = inFeedCount
-            
-            if (displayTotal === 0) {
-              // 如果没有在源中的文章，显示简单统计
-              return (
-                <div className="flex items-center gap-2">
-                  <span>📰</span>
-                  <span className="font-medium text-gray-700 dark:text-gray-300">{totalArticles}</span>
-                  <span className="text-gray-400">({_('options.rssManager.stats.allHistorical')})</span>
-                </div>
-              )
-            }
-            
-            // 计算各类型文章数（只统计 inFeed=true 的文章）
-            // 多池架构颜色分类：
-            // - 绿色：推荐池（已推荐给用户，未操作）
-            // - 蓝色：已阅读（用户点击阅读过）
-            // - 红色：不想读（用户标记不感兴趣）
-            // - 黄色：候选池（已分析达标，等待推荐）
-            // - 灰色：初筛淘汰/分析未达标（被淘汰的文章）
-            // - 白色：原始池（未分析，等待 AI 分析）
-            const recommendedBlocks = inFeedRecommendedCount  // 绿色 - 推荐池
-            const readBlocks = inFeedReadCount                // 蓝色 - 已阅读
-            const dislikedBlocks = inFeedDislikedCount        // 红色 - 不想读
-            const candidateBlocks = inFeedCandidateCount      // 黄色 - 候选池
-            const eliminatedBlocks = inFeedEliminatedCount    // 灰色 - 已淘汰
-            const rawBlocks = inFeedRawCount                  // 白色 - 原始池（未分析）
-            
-            // 构建方块数组
-            const blocks: Array<{
-              type: 'recommended' | 'read' | 'disliked' | 'analyzed' | 'eliminated' | 'unanalyzed'
-              className: string
-              tooltip: string
-            }> = []
-            
-            // 已推荐（绿色）
-            for (let i = 0; i < recommendedBlocks; i++) {
-              blocks.push({
-                type: 'recommended',
-                className: 'bg-green-400 dark:bg-green-500 border border-green-500 dark:border-green-600',
-                tooltip: `${_('options.rssManager.stats.recommended')}: ${inFeedRecommendedCount} ${_('options.rssManager.stats.articles')}`
-              })
-            }
-            
-            // 已阅读（蓝色）
-            for (let i = 0; i < readBlocks; i++) {
-              blocks.push({
-                type: 'read',
-                className: 'bg-blue-400 dark:bg-blue-500 border border-blue-500 dark:border-blue-600',
-                tooltip: `${_('options.rssManager.stats.read')}: ${inFeedReadCount} ${_('options.rssManager.stats.articles')}`
-              })
-            }
-            
-            // 不想读（红色）
-            for (let i = 0; i < dislikedBlocks; i++) {
-              blocks.push({
-                type: 'disliked',
-                className: 'bg-red-400 dark:bg-red-500 border border-red-500 dark:border-red-600',
-                tooltip: `${_('options.rssManager.stats.disliked')}: ${inFeedDislikedCount} ${_('options.rssManager.stats.articles')}`
-              })
-            }
-            
-            // 已分析但未推荐（黄色 - 候选池）
-            for (let i = 0; i < candidateBlocks; i++) {
-              blocks.push({
-                type: 'analyzed',
-                className: 'bg-yellow-300 dark:bg-yellow-500 border border-yellow-400 dark:border-yellow-600',
-                tooltip: `${_('options.rssManager.stats.candidate')}: ${inFeedCandidateCount} ${_('options.rssManager.stats.articles')}`
-              })
-            }
-            
-            // 已淘汰（灰色 - 初筛淘汰+分析未达标）
-            for (let i = 0; i < eliminatedBlocks; i++) {
-              blocks.push({
-                type: 'eliminated',
-                className: 'bg-gray-300 dark:bg-gray-600 border border-gray-400 dark:border-gray-500',
-                tooltip: `${_('options.rssManager.stats.eliminated')}: ${inFeedEliminatedCount} ${_('options.rssManager.stats.articles')}`
-              })
-            }
-            
-            // 未分析（白色 - 原始池）
-            for (let i = 0; i < rawBlocks; i++) {
-              blocks.push({
-                type: 'unanalyzed',
-                className: 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-500',
-                tooltip: `${_('options.rssManager.stats.unanalyzed')}: ${rawBlocks} ${_('options.rssManager.stats.articles')}`
-              })
-            }
-            
-            // 最多显示 50 个方块（每块=1篇）
-            const maxVisible = 50
-            const visibleBlocks = blocks.slice(0, maxVisible)
-            const hiddenCount = blocks.length - visibleBlocks.length
-            
+        {/* 第三行和第四行：漏斗统计（分文章池和在源中两种情况）*/}
+        {feed.status === 'subscribed' && feed.articleCount > 0 && (() => {
+          // 获取文章池和在源中两种统计数据
+          const poolStats = feedPoolStatsMap[feed.id]
+          const inFeedStats = feedInFeedStatsMap[feed.id]
+          
+          if (!poolStats && !inFeedStats) {
+            // 如果没有统计数据，显示简单计数
             return (
-              <div className="flex items-center gap-2 flex-1">
-                {/* 总数标签（显示在源中的文章数）*/}
-                <span 
-                  className="flex items-center gap-1 flex-shrink-0 cursor-help"
-                  title={totalArticles > displayTotal 
-                    ? _('options.rssManager.stats.articleCountTooltip', { inFeed: displayTotal, total: totalArticles })
-                    : _('options.rssManager.stats.articleCountSimpleTooltip', { count: displayTotal })
-                  }
-                >
-                  <span>📰</span>
-                  <span className="font-medium text-gray-700 dark:text-gray-300">
-                    {displayTotal}
-                  </span>
-                  {totalArticles > displayTotal && (
-                    <span className="text-gray-400 text-xs">
-                      /{totalArticles}
-                    </span>
-                  )}
-                </span>
-                
-                {/* 方块可视化 */}
-                <div className="flex items-center gap-0.5 flex-wrap flex-1">
-                  {visibleBlocks.map((block, idx) => (
-                    <div
-                      key={`${feed.id}-block-${block.className}-${idx}`}
-                      className={`w-2 h-2 rounded-sm cursor-help transition-transform hover:scale-150 ${block.className}`}
-                      title={block.tooltip}
-                    />
-                  ))}
-                  {hiddenCount > 0 && (
-                    <span className="text-xs text-gray-400 dark:text-gray-500 ml-1">
-                      +{hiddenCount}
-                    </span>
-                  )}
-                </div>
-                
-                {/* 简洁数字图例 */}
-                <div className="flex items-center gap-2 text-xs flex-shrink-0">
-                  {inFeedRecommendedCount > 0 && (
-                    <span className="flex items-center gap-1 cursor-help" title={_('options.rssManager.stats.recommendedTooltip')}>
-                      <span className="w-2 h-2 bg-green-400 dark:bg-green-500 rounded-sm"></span>
-                      <span>{inFeedRecommendedCount}</span>
-                    </span>
-                  )}
-                  {inFeedReadCount > 0 && (
-                    <span className="flex items-center gap-1 cursor-help" title={_('options.rssManager.stats.readTooltip')}>
-                      <span className="w-2 h-2 bg-blue-400 dark:bg-blue-500 rounded-sm"></span>
-                      <span>{inFeedReadCount}</span>
-                    </span>
-                  )}
-                  {inFeedDislikedCount > 0 && (
-                    <span className="flex items-center gap-1 cursor-help" title={_('options.rssManager.stats.dislikedTooltip')}>
-                      <span className="w-2 h-2 bg-red-400 dark:bg-red-500 rounded-sm"></span>
-                      <span>{inFeedDislikedCount}</span>
-                    </span>
-                  )}
-                  {totalRecommended > 0 && (
-                    <span className="flex items-center gap-1 text-gray-400 cursor-help" title={_('options.rssManager.stats.totalRecommendedTooltip')}>
-                      <span>👍</span>
-                      <span>{totalRecommended}</span>
-                    </span>
-                  )}
-                  {totalDisliked > 0 && (
-                    <span className="flex items-center gap-1 text-gray-400 cursor-help" title={_('options.rssManager.stats.totalDislikedTooltip')}>
-                      <span>👎</span>
-                      <span>{totalDisliked}</span>
-                    </span>
-                  )}
-                </div>
+              <div className="flex items-center gap-2 text-xs text-gray-400">
+                <span>📰</span>
+                <span>{feed.articleCount} {_('options.rssManager.fetch.articles')}</span>
               </div>
             )
-          })()}
+          }
           
-          {/* 候选源和忽略源：显示发现时的统计或提示 */}
-          {(feed.status === 'candidate' || feed.status === 'ignored') && (
-            <div className="flex items-center gap-2 flex-1">
-              {/* 发现时的文章数 */}
-              {feed.itemCount && feed.itemCount > 0 ? (
-                <>
-                  <span className="flex items-center gap-1">
-                    <span>📰</span>
-                    <span>{feed.itemCount} {_('options.rssManager.fetch.articles')}</span>
-                  </span>
-                  
-                  {/* 预估每周文章数 */}
-                  {feed.quality && feed.quality.updateFrequency > 0 && (
-                    <>
-                      <span>•</span>
-                      <span className="flex items-center gap-1">
-                        <span>📊</span>
-                        <span>{feed.quality.updateFrequency.toFixed(1)} {_('options.rssManager.fetch.perWeek')}</span>
-                      </span>
-                    </>
-                  )}
-                </>
-              ) : (
-                <span className="text-gray-400 dark:text-gray-500 text-xs">
-                  💡 订阅后才会抓取文章
+          // 渲染单行统计的函数（使用块进度条可视化）
+          const renderFunnelRow = (inFeedStats: FeedFunnelStats | undefined, poolStats: FeedFunnelStats | undefined) => {
+            if (!inFeedStats || !poolStats) return null
+            return <FunnelBlockBar inFeedStats={inFeedStats} poolStats={poolStats} />
+          }
+          
+          return (
+            <>
+              {/* 漏斗统计：只显示在源中的数据，右侧显示文章池的汇总 */}
+              {renderFunnelRow(inFeedStats, poolStats)}
+            </>
+          )
+        })()}
+        
+        {/* 候选源和忽略源：显示发现时的统计或提示 */}
+        {(feed.status === 'candidate' || feed.status === 'ignored') && (
+          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+            {/* 发现时的文章数 */}
+            {feed.itemCount && feed.itemCount > 0 ? (
+              <>
+                <span className="flex items-center gap-1">
+                  <span>📰</span>
+                  <span>{feed.itemCount} {_('options.rssManager.fetch.articles')}</span>
                 </span>
-              )}
-            </div>
-          )}
-          
-          {/* 格式警告已废弃：AI 分析不再评估技术格式，移除此警告 */}
-          {/* 如需要显示错误，应该使用 feed.lastError 字段 */}
-        </div>
+                
+                {/* 预估每周文章数 */}
+                {feed.quality && feed.quality.updateFrequency > 0 && (
+                  <>
+                    <span>•</span>
+                    <span className="flex items-center gap-1">
+                      <span>📊</span>
+                      <span>{feed.quality.updateFrequency.toFixed(1)} {_('options.rssManager.fetch.perWeek')}</span>
+                    </span>
+                  </>
+                )}
+              </>
+            ) : (
+              <span className="text-gray-400 dark:text-gray-500 text-xs">
+                💡 订阅后才会抓取文章
+              </span>
+            )}
+          </div>
+        )}
         
         {/* 文章预览区域 */}
         {expandedFeedId === feed.id && previewArticles[feed.id] && (
@@ -1493,21 +1356,17 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
       </div>
     )
   }
-
-
-  if (loading) {
-    return (
-      <div className="py-8 text-center">
-        <div className="text-4xl animate-pulse">⏳</div>
-        <p className="text-sm text-gray-500 mt-2">{_('options.rssManager.loading')}</p>
-      </div>
-    )
-  }
-
   const totalFeeds = candidateFeeds.length + subscribedFeeds.length + ignoredFeeds.length
 
   return (
     <div className="space-y-6">
+      {/* 加载指示：保留但不阻塞输入区域 */}
+      {loading && (
+        <div className="py-4 text-center">
+          <div className="text-2xl animate-pulse">⏳</div>
+          <p className="text-xs text-gray-500 mt-1">{_('options.rssManager.loading')}</p>
+        </div>
+      )}
       {/* Phase 5.1.6: 手动订阅和 OPML 导入 */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
         <h3 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-3">
@@ -1700,6 +1559,167 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
               }
             ]} />
             ))}
+            {/* 汇总：漏斗统计（分文章池和在源中）*/}
+            {subscribedFeeds.length > 0 && (() => {
+              // 聚合文章池统计
+              const allPoolStats = subscribedFeeds.map(f => feedPoolStatsMap[f.id]).filter(Boolean)
+              // 聚合在源中统计
+              const allInFeedStats = subscribedFeeds.map(f => feedInFeedStatsMap[f.id]).filter(Boolean)
+              
+              if (allPoolStats.length === 0 && allInFeedStats.length === 0) {
+                return null  // 如果没有统计数据，不显示汇总
+              }
+              
+              // 计算汇总函数
+              const calculateTotal = (stats: FeedFunnelStats[]) => {
+                const total = {
+                  rssArticles: stats.reduce((sum, s) => sum + s.rssArticles, 0),
+                  analyzed: stats.reduce((sum, s) => sum + s.analyzed, 0),
+                  candidate: stats.reduce((sum, s) => sum + s.candidate, 0),
+                  recommended: stats.reduce((sum, s) => sum + s.recommended, 0),
+                  raw: stats.reduce((sum, s) => sum + s.raw, 0),
+                  stale: stats.reduce((sum, s) => sum + s.stale, 0),
+                  prescreenedOut: stats.reduce((sum, s) => sum + s.prescreenedOut, 0),
+                  analyzedNotQualified: stats.reduce((sum, s) => sum + s.analyzedNotQualified, 0),
+                  currentCandidate: stats.reduce((sum, s) => sum + s.currentCandidate, 0),
+                  currentRecommended: stats.reduce((sum, s) => sum + s.currentRecommended, 0),
+                  exited: stats.reduce((sum, s) => sum + s.exited, 0),
+                }
+                return total
+              }
+              
+              const totalPool = calculateTotal(allPoolStats)
+              const totalInFeed = calculateTotal(allInFeedStats)
+              
+              // 彩色块的分类配置（与 FunnelBlockBar 保持一致）
+              const BLOCK_CATEGORIES = [
+                { key: 'raw', labelKey: 'options.rssManager.status.raw', color: 'bg-gray-200 dark:bg-gray-700' },
+                { key: 'stale', labelKey: 'options.rssManager.status.stale', color: 'bg-gray-400 dark:bg-gray-500' },
+                { key: 'prescreenedOut', labelKey: 'options.rssManager.status.prescreenedOut', color: 'bg-gray-500 dark:bg-gray-600' },
+                { key: 'analyzedNotQualified', labelKey: 'options.rssManager.status.analyzedNotQualified', color: 'bg-gray-500 dark:bg-gray-600' },
+                { key: 'currentCandidate', labelKey: 'options.rssManager.status.currentCandidate', color: 'bg-green-400 dark:bg-green-500' },
+                { key: 'currentRecommended', labelKey: 'options.rssManager.status.currentRecommended', color: 'bg-green-600 dark:bg-green-700' },
+                { key: 'exited', labelKey: 'options.rssManager.status.exited', color: 'bg-blue-600 dark:bg-blue-700' }
+              ]
+              
+              // 渲染汇总行的函数（块+数字 + 连贯等式）
+              const renderSummaryRow = (total: any, label: string, icon: string, bgColor: string, borderColor: string, textColor: string, isPoolSummary: boolean = false) => {
+                // 验证等式：rssArticles - raw - stale - prescreenedOut = analyzed
+                const analyzedCalc = total.rssArticles - total.raw - total.stale - total.prescreenedOut
+                const isValid1 = analyzedCalc === total.analyzed
+                
+                // 验证等式：analyzed = analyzedNotQualified + currentCandidate + currentRecommended + exited
+                const analyzedSum = total.analyzedNotQualified + total.currentCandidate + total.currentRecommended + total.exited
+                const isValid2 = analyzedSum === total.analyzed
+                
+                // 获取分类颜色的辅助函数
+                const getColorForKey = (key: string) => {
+                  return BLOCK_CATEGORIES.find(cat => cat.key === key)?.color || 'bg-gray-400'
+                }
+                
+                // 渲染标签样式的圆点+数字组合（在源中使用）
+                const renderTagWithDot = (color: string, value: number, title: string) => (
+                  <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 cursor-help shadow-sm"
+                       title={title}>
+                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${color} shadow-xs`} />
+                    <span className="text-[11px] font-medium w-8 text-right">{value}</span>
+                  </div>
+                )
+                
+                // 渲染标签样式的方块+数字组合（在池中使用）
+                const renderTagWithBlock = (color: string, value: number, title: string) => (
+                  <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 cursor-help shadow-sm"
+                       title={title}>
+                    <div className={`w-2 h-2 rounded flex-shrink-0 ${color} shadow-xs`} />
+                    <span className="text-[11px] font-medium w-8 text-right">{value}</span>
+                  </div>
+                )
+                
+                return (
+                  <div className={`p-3 ${bgColor} rounded-lg border ${borderColor}`}>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`text-xs font-semibold ${textColor} flex items-center gap-1.5`}>
+                        <span>{icon}</span>
+                        <span>{label}</span>
+                      </span>
+                      <div className="flex items-center gap-1.5 text-xs font-mono text-gray-600 dark:text-gray-300">
+                        {/* 根据是否是池汇总来选择圆点或方块 */}
+                        {/* 左边：rssArticles - raw - stale - prescreenedOut */}
+                        {isPoolSummary 
+                          ? renderTagWithBlock('bg-blue-400 dark:bg-blue-500', total.rssArticles, `${_('options.rssManager.funnel.rssArticles') || 'RSS总数'}: ${total.rssArticles}`)
+                          : renderTagWithDot('bg-blue-400 dark:bg-blue-500', total.rssArticles, `${_('options.rssManager.funnel.rssArticles') || 'RSS总数'}: ${total.rssArticles}`)
+                        }
+                        <span className="text-gray-400">-</span>
+                        {isPoolSummary 
+                          ? renderTagWithBlock(getColorForKey('raw'), total.raw, `${_('options.rssManager.status.raw') || '待分析'}: ${total.raw}`)
+                          : renderTagWithDot(getColorForKey('raw'), total.raw, `${_('options.rssManager.status.raw') || '待分析'}: ${total.raw}`)
+                        }
+                        <span className="text-gray-400">-</span>
+                        {isPoolSummary 
+                          ? renderTagWithBlock(getColorForKey('stale'), total.stale, `${_('options.rssManager.status.stale') || '已过时'}: ${total.stale}`)
+                          : renderTagWithDot(getColorForKey('stale'), total.stale, `${_('options.rssManager.status.stale') || '已过时'}: ${total.stale}`)
+                        }
+                        <span className="text-gray-400">-</span>
+                        {isPoolSummary 
+                          ? renderTagWithBlock(getColorForKey('prescreenedOut'), total.prescreenedOut, `${_('options.rssManager.status.prescreenedOut') || '初筛淘汰'}: ${total.prescreenedOut}`)
+                          : renderTagWithDot(getColorForKey('prescreenedOut'), total.prescreenedOut, `${_('options.rssManager.status.prescreenedOut') || '初筛淘汰'}: ${total.prescreenedOut}`)
+                        }
+                        
+                        {/* 第一个等号 */}
+                        <span className={`font-bold ${isValid1 ? 'text-green-500' : 'text-red-500'}`}>
+                          {isValid1 ? '=' : '≠'}
+                        </span>
+                        
+                        {/* 中间：analyzed */}
+                        {isPoolSummary 
+                          ? renderTagWithBlock('bg-indigo-500 dark:bg-indigo-600', total.analyzed, `${_('options.rssManager.funnel.analyzed') || '已分析'}: ${total.analyzed} (${isValid1 ? '计算正确' : `计算值: ${analyzedCalc}, 差值: ${total.analyzed - analyzedCalc}`})`)
+                          : renderTagWithDot('bg-indigo-500 dark:bg-indigo-600', total.analyzed, `${_('options.rssManager.funnel.analyzed') || '已分析'}: ${total.analyzed} (${isValid1 ? '计算正确' : `计算值: ${analyzedCalc}, 差值: ${total.analyzed - analyzedCalc}`})`)
+                        }
+                        
+                        {/* 第二个等号 */}
+                        <span className={`font-bold ${isValid2 ? 'text-green-500' : 'text-red-500'}`}>
+                          {isValid2 ? '=' : '≠'}
+                        </span>
+                        
+                        {/* 右边：analyzedNotQualified + currentCandidate + currentRecommended + exited（使用方块表示池数据）*/}
+                        {renderTagWithBlock(getColorForKey('analyzedNotQualified'), total.analyzedNotQualified, `${_('options.rssManager.status.analyzedNotQualified') || '分析未达标'}: ${total.analyzedNotQualified}`)}
+                        <span className="text-gray-400">+</span>
+                        {renderTagWithBlock(getColorForKey('currentCandidate'), total.currentCandidate, `${_('options.rssManager.status.currentCandidate') || '当前候选池'}: ${total.currentCandidate}`)}
+                        <span className="text-gray-400">+</span>
+                        {renderTagWithBlock(getColorForKey('currentRecommended'), total.currentRecommended, `${_('options.rssManager.status.currentRecommended') || '当前推荐池'}: ${total.currentRecommended}`)}
+                        <span className="text-gray-400">+</span>
+                        {renderTagWithBlock(getColorForKey('exited'), total.exited, `${_('options.rssManager.status.exited') || '已退出'}: ${total.exited}`)}
+                      </div>
+                    </div>
+                  </div>
+                )
+              }
+              
+              return (
+                <div className="mt-3 space-y-2">
+                  {/* 文章池汇总 */}
+                  {allPoolStats.length > 0 && renderSummaryRow(
+                    totalPool,
+                    _('options.rssManager.stats.poolSummary') || '文章池汇总',
+                    '📦',
+                    'bg-purple-50 dark:bg-purple-900/20',
+                    'border-purple-200 dark:border-purple-700',
+                    'text-purple-700 dark:text-purple-300',
+                    true
+                  )}
+                  
+                  {/* 在源中汇总 */}
+                  {allInFeedStats.length > 0 && renderSummaryRow(
+                    totalInFeed,
+                    _('options.rssManager.stats.inFeedSummary') || '在源中汇总',
+                    '📚',
+                    'bg-blue-50 dark:bg-blue-900/20',
+                    'border-blue-200 dark:border-blue-700',
+                    'text-blue-700 dark:text-blue-300'
+                  )}
+                </div>
+              )
+            })()}
           </div>
         </div>
       )}
