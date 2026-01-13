@@ -1612,54 +1612,48 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                 const analyzedSum = total.analyzedNotQualified + total.currentCandidate + total.currentRecommended + total.exited
                 const isValid2 = analyzedSum === total.analyzed
                 
+                // 获取分类颜色的辅助函数
+                const getColorForKey = (key: string) => {
+                  return BLOCK_CATEGORIES.find(cat => cat.key === key)?.color || 'bg-gray-400'
+                }
+                
                 return (
                   <div className={`p-3 ${bgColor} rounded-lg border ${borderColor}`}>
-                    {/* 上方：彩色块汇总 */}
-                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className={`text-xs font-semibold ${textColor} flex items-center gap-1.5`}>
                         <span>{icon}</span>
                         <span>{label}</span>
                       </span>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {BLOCK_CATEGORIES.map((cat) => {
-                          const count = total[cat.key]
-                          if (count === 0) return null
-                          return (
-                            <div key={cat.key} className="flex items-center gap-1">
-                              <div className={`w-2.5 h-2.5 rounded-sm ${cat.color}`} 
-                                   title={_(cat.labelKey) || cat.key} />
-                              <span className="text-xs text-gray-600 dark:text-gray-300 font-mono">
-                                {count}
-                              </span>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-                    
-                    {/* 下方：连贯等式 */}
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <div className="flex items-center gap-1.5 text-xs font-mono">
+                      <div className="flex items-center gap-1.5 text-xs font-mono text-gray-600 dark:text-gray-300">
                         {/* 左边：rssArticles - raw - stale - prescreenedOut */}
-                        <span className="inline-block w-12 text-right cursor-help font-semibold text-gray-600 dark:text-gray-300" 
+                        <span className="inline-block w-12 text-right cursor-help font-semibold" 
                               title={`${_('options.rssManager.funnel.rssArticles') || 'RSS总数'}: ${total.rssArticles}`}>
                           {total.rssArticles}
                         </span>
                         <span className="text-gray-400">-</span>
-                        <span className="inline-block w-10 text-right cursor-help" 
-                              title={`${_('options.rssManager.status.raw') || '待分析'}: ${total.raw}`}>
-                          {total.raw}
-                        </span>
+                        <div className="flex items-center gap-0.5">
+                          <div className={`w-2 h-2 rounded-sm ${getColorForKey('raw')}`} />
+                          <span className="inline-block w-10 text-right cursor-help" 
+                                title={`${_('options.rssManager.status.raw') || '待分析'}: ${total.raw}`}>
+                            {total.raw}
+                          </span>
+                        </div>
                         <span className="text-gray-400">-</span>
-                        <span className="inline-block w-10 text-right cursor-help" 
-                              title={`${_('options.rssManager.status.stale') || '已过时'}: ${total.stale}`}>
-                          {total.stale}
-                        </span>
+                        <div className="flex items-center gap-0.5">
+                          <div className={`w-2 h-2 rounded-sm ${getColorForKey('stale')}`} />
+                          <span className="inline-block w-10 text-right cursor-help" 
+                                title={`${_('options.rssManager.status.stale') || '已过时'}: ${total.stale}`}>
+                            {total.stale}
+                          </span>
+                        </div>
                         <span className="text-gray-400">-</span>
-                        <span className="inline-block w-10 text-right cursor-help" 
-                              title={`${_('options.rssManager.status.prescreenedOut') || '初筛淘汰'}: ${total.prescreenedOut}`}>
-                          {total.prescreenedOut}
-                        </span>
+                        <div className="flex items-center gap-0.5">
+                          <div className={`w-2 h-2 rounded-sm ${getColorForKey('prescreenedOut')}`} />
+                          <span className="inline-block w-10 text-right cursor-help" 
+                                title={`${_('options.rssManager.status.prescreenedOut') || '初筛淘汰'}: ${total.prescreenedOut}`}>
+                            {total.prescreenedOut}
+                          </span>
+                        </div>
                         
                         {/* 第一个等号 */}
                         <span className={`font-bold ${isValid1 ? 'text-green-500' : 'text-red-500'}`}>
@@ -1667,7 +1661,7 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                         </span>
                         
                         {/* 中间：analyzed */}
-                        <span className="inline-block w-12 text-right cursor-help font-semibold text-blue-500 dark:text-blue-400" 
+                        <span className="inline-block w-12 text-right cursor-help font-semibold" 
                               title={`${_('options.rssManager.funnel.analyzed') || '已分析'}: ${total.analyzed} (${isValid1 ? '计算正确' : `计算值: ${analyzedCalc}, 差值: ${total.analyzed - analyzedCalc}`})`}>
                           {total.analyzed}
                         </span>
@@ -1678,25 +1672,37 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                         </span>
                         
                         {/* 右边：analyzedNotQualified + currentCandidate + currentRecommended + exited */}
-                        <span className="inline-block w-10 text-right cursor-help" 
-                              title={`${_('options.rssManager.status.analyzedNotQualified') || '分析未达标'}: ${total.analyzedNotQualified}`}>
-                          {total.analyzedNotQualified}
-                        </span>
+                        <div className="flex items-center gap-0.5">
+                          <div className={`w-2 h-2 rounded-sm ${getColorForKey('analyzedNotQualified')}`} />
+                          <span className="inline-block w-10 text-right cursor-help" 
+                                title={`${_('options.rssManager.status.analyzedNotQualified') || '分析未达标'}: ${total.analyzedNotQualified}`}>
+                            {total.analyzedNotQualified}
+                          </span>
+                        </div>
                         <span className="text-gray-400">+</span>
-                        <span className="inline-block w-10 text-right cursor-help text-yellow-500 dark:text-yellow-400" 
-                              title={`${_('options.rssManager.status.currentCandidate') || '当前候选池'}: ${total.currentCandidate}`}>
-                          {total.currentCandidate}
-                        </span>
+                        <div className="flex items-center gap-0.5">
+                          <div className={`w-2 h-2 rounded-sm ${getColorForKey('currentCandidate')}`} />
+                          <span className="inline-block w-10 text-right cursor-help" 
+                                title={`${_('options.rssManager.status.currentCandidate') || '当前候选池'}: ${total.currentCandidate}`}>
+                            {total.currentCandidate}
+                          </span>
+                        </div>
                         <span className="text-gray-400">+</span>
-                        <span className="inline-block w-10 text-right cursor-help text-green-500 dark:text-green-400" 
-                              title={`${_('options.rssManager.status.currentRecommended') || '当前推荐池'}: ${total.currentRecommended}`}>
-                          {total.currentRecommended}
-                        </span>
+                        <div className="flex items-center gap-0.5">
+                          <div className={`w-2 h-2 rounded-sm ${getColorForKey('currentRecommended')}`} />
+                          <span className="inline-block w-10 text-right cursor-help" 
+                                title={`${_('options.rssManager.status.currentRecommended') || '当前推荐池'}: ${total.currentRecommended}`}>
+                            {total.currentRecommended}
+                          </span>
+                        </div>
                         <span className="text-gray-400">+</span>
-                        <span className="inline-block w-10 text-right cursor-help" 
-                              title={`${_('options.rssManager.status.exited') || '已退出'}: ${total.exited}`}>
-                          {total.exited}
-                        </span>
+                        <div className="flex items-center gap-0.5">
+                          <div className={`w-2 h-2 rounded-sm ${getColorForKey('exited')}`} />
+                          <span className="inline-block w-10 text-right cursor-help" 
+                                title={`${_('options.rssManager.status.exited') || '已退出'}: ${total.exited}`}>
+                            {total.exited}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>

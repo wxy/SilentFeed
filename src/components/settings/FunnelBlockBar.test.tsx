@@ -155,8 +155,8 @@ describe('FunnelBlockBar Component', () => {
       />
     )
 
-    // 找到左侧的第一个方块组
-    const blockGroups = container.querySelectorAll('.flex-1 > div > div')
+    // 找到左侧的第一个方块组（需要在 flex-1 > .flex-wrap > div 中找）
+    const blockGroups = container.querySelectorAll('.flex-1 .flex-wrap > div')
     const firstGroup = blockGroups[0]
 
     if (firstGroup) {

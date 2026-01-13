@@ -96,14 +96,23 @@ export function FunnelBlockBar({ inFeedStats, poolStats }: FunnelBlockBarProps) 
   
   // 过滤出在池中有数据的分类
   const poolCategories = blockData.filter(cat => cat.poolCount > 0)
+  
+  // 计算在源文章总数
+  const totalInFeed = inFeedCategories.reduce((sum, cat) => sum + cat.inFeedCount, 0)
 
   return (
     <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 relative">
       {/* 左侧：在源数据方块进度条 */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-px flex-wrap">
-          {inFeedCategories.map((cat) => {
-            const isHovered = hoveredCategory === cat.key
+        <div className="flex items-center gap-2">
+          {/* 显示总数 */}
+          <span className="text-xs font-semibold text-gray-600 dark:text-gray-300 flex-shrink-0">
+            {totalInFeed}
+          </span>
+          {/* 方块进度条 */}
+          <div className="flex items-center gap-px flex-wrap flex-1">
+            {inFeedCategories.map((cat) => {
+              const isHovered = hoveredCategory === cat.key
             
             return (
               <div
@@ -142,6 +151,7 @@ export function FunnelBlockBar({ inFeedStats, poolStats }: FunnelBlockBarProps) 
               </div>
             )
           })}
+          </div>
         </div>
       </div>
 
