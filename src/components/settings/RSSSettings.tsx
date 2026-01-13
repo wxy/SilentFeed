@@ -1591,25 +1591,112 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
               const totalPool = calculateTotal(allPoolStats)
               const totalInFeed = calculateTotal(allInFeedStats)
               
-              // 渲染汇总行的函数（使用块进度条可视化）
-              const renderSummaryBlockRow = (
-                inFeedStats: FeedFunnelStats, 
-                poolStats: FeedFunnelStats, 
-                label: string, 
-                icon: string,
-                bgColor: string, 
-                borderColor: string, 
-                textColor: string
-              ) => {
+              // 彩色块的分类配置（与 FunnelBlockBar 保持一致）
+              const BLOCK_CATEGORIES = [
+                { key: 'raw', labelKey: 'options.rssManager.status.raw', color: 'bg-gray-500' },
+                { key: 'stale', labelKey: 'options.rssManager.status.stale', color: 'bg-yellow-700' },
+                { key: 'prescreenedOut', labelKey: 'options.rssManager.status.prescreenedOut', color: 'bg-red-600' },
+                { key: 'analyzedNotQualified', labelKey: 'options.rssManager.status.analyzedNotQualified', color: 'bg-orange-500' },
+                { key: 'currentCandidate', labelKey: 'options.rssManager.status.currentCandidate', color: 'bg-amber-500' },
+                { key: 'currentRecommended', labelKey: 'options.rssManager.status.currentRecommended', color: 'bg-green-600' },
+                { key: 'exited', labelKey: 'options.rssManager.status.exited', color: 'bg-blue-600' }
+              ]
+              
+              // 渲染汇总行的函数（块+数字 + 连贯等式）
+              const renderSummaryRow = (total: any, label: string, icon: string, bgColor: string, borderColor: string, textColor: string) => {
+                // 验证等式：rssArticles - raw - stale - prescreenedOut = analyzed
+                const analyzedCalc = total.rssArticles - total.raw - total.stale - total.prescreenedOut
+                const isValid1 = analyzedCalc === total.analyzed
+                
+                // 验证等式：analyzed = analyzedNotQualified + currentCandidate + currentRecommended + exited
+                const analyzedSum = total.analyzedNotQualified + total.currentCandidate + total.currentRecommended + total.exited
+                const isValid2 = analyzedSum === total.analyzed
+                
                 return (
                   <div className={`p-3 ${bgColor} rounded-lg border ${borderColor}`}>
-                    <div className="flex items-center gap-3">
-                      <span className={`text-xs font-semibold ${textColor} min-w-[100px] flex items-center gap-1.5`}>
+                    {/* 上方：彩色块汇总 */}
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <span className={`text-xs font-semibold ${textColor} flex items-center gap-1.5`}>
                         <span>{icon}</span>
                         <span>{label}</span>
                       </span>
-                      <div className="flex-1">
-                        <FunnelBlockBar inFeedStats={inFeedStats} poolStats={poolStats} />
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {BLOCK_CATEGORIES.map((cat) => {
+                          const count = total[cat.key]
+                          if (count === 0) return null
+                          return (
+                            <div key={cat.key} className="flex items-center gap-1">
+                              <div className={`w-2.5 h-2.5 rounded-sm ${cat.color}`} 
+                                   title={_(cat.labelKey) || cat.key} />
+                              <span className="text-xs text-gray-600 dark:text-gray-300 font-mono">
+                                {count}
+                              </span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                    
+                    {/* 下方：连贯等式 */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center gap-1.5 text-xs font-mono">
+                        {/* 左边：rssArticles - raw - stale - prescreenedOut */}
+                        <span className="inline-block w-12 text-right cursor-help font-semibold text-gray-600 dark:text-gray-300" 
+                              title={`${_('options.rssManager.funnel.rssArticles') || 'RSS总数'}: ${total.rssArticles}`}>
+                          {total.rssArticles}
+                        </span>
+                        <span className="text-gray-400">-</span>
+                        <span className="inline-block w-10 text-right cursor-help" 
+                              title={`${_('options.rssManager.status.raw') || '待分析'}: ${total.raw}`}>
+                          {total.raw}
+                        </span>
+                        <span className="text-gray-400">-</span>
+                        <span className="inline-block w-10 text-right cursor-help" 
+                              title={`${_('options.rssManager.status.stale') || '已过时'}: ${total.stale}`}>
+                          {total.stale}
+                        </span>
+                        <span className="text-gray-400">-</span>
+                        <span className="inline-block w-10 text-right cursor-help" 
+                              title={`${_('options.rssManager.status.prescreenedOut') || '初筛淘汰'}: ${total.prescreenedOut}`}>
+                          {total.prescreenedOut}
+                        </span>
+                        
+                        {/* 第一个等号 */}
+                        <span className={`font-bold ${isValid1 ? 'text-green-500' : 'text-red-500'}`}>
+                          {isValid1 ? '=' : '≠'}
+                        </span>
+                        
+                        {/* 中间：analyzed */}
+                        <span className="inline-block w-12 text-right cursor-help font-semibold text-blue-500 dark:text-blue-400" 
+                              title={`${_('options.rssManager.funnel.analyzed') || '已分析'}: ${total.analyzed} (${isValid1 ? '计算正确' : `计算值: ${analyzedCalc}, 差值: ${total.analyzed - analyzedCalc}`})`}>
+                          {total.analyzed}
+                        </span>
+                        
+                        {/* 第二个等号 */}
+                        <span className={`font-bold ${isValid2 ? 'text-green-500' : 'text-red-500'}`}>
+                          {isValid2 ? '=' : '≠'}
+                        </span>
+                        
+                        {/* 右边：analyzedNotQualified + currentCandidate + currentRecommended + exited */}
+                        <span className="inline-block w-10 text-right cursor-help" 
+                              title={`${_('options.rssManager.status.analyzedNotQualified') || '分析未达标'}: ${total.analyzedNotQualified}`}>
+                          {total.analyzedNotQualified}
+                        </span>
+                        <span className="text-gray-400">+</span>
+                        <span className="inline-block w-10 text-right cursor-help text-yellow-500 dark:text-yellow-400" 
+                              title={`${_('options.rssManager.status.currentCandidate') || '当前候选池'}: ${total.currentCandidate}`}>
+                          {total.currentCandidate}
+                        </span>
+                        <span className="text-gray-400">+</span>
+                        <span className="inline-block w-10 text-right cursor-help text-green-500 dark:text-green-400" 
+                              title={`${_('options.rssManager.status.currentRecommended') || '当前推荐池'}: ${total.currentRecommended}`}>
+                          {total.currentRecommended}
+                        </span>
+                        <span className="text-gray-400">+</span>
+                        <span className="inline-block w-10 text-right cursor-help" 
+                              title={`${_('options.rssManager.status.exited') || '已退出'}: ${total.exited}`}>
+                          {total.exited}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -1619,8 +1706,7 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
               return (
                 <div className="mt-3 space-y-2">
                   {/* 文章池汇总 */}
-                  {allPoolStats.length > 0 && renderSummaryBlockRow(
-                    totalPool,
+                  {allPoolStats.length > 0 && renderSummaryRow(
                     totalPool,
                     _('options.rssManager.stats.poolSummary') || '文章池汇总',
                     '📦',
@@ -1630,9 +1716,8 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                   )}
                   
                   {/* 在源中汇总 */}
-                  {allInFeedStats.length > 0 && renderSummaryBlockRow(
+                  {allInFeedStats.length > 0 && renderSummaryRow(
                     totalInFeed,
-                    totalPool,
                     _('options.rssManager.stats.inFeedSummary') || '在源中汇总',
                     '📚',
                     'bg-blue-50 dark:bg-blue-900/20',
