@@ -24,7 +24,37 @@ vi.mock('@/i18n/helpers', () => ({
 }))
 
 describe('FunnelBlockBar Component', () => {
-  const mockStats: FeedFunnelStats = {
+  const mockInFeedStats: FeedFunnelStats = {
+    feedId: 'test-feed-1',
+    feedTitle: 'Test Feed',
+    // 漏斗层
+    rssArticles: 50,
+    analyzed: 40,
+    candidate: 15,
+    recommended: 10,
+    // 当前状态
+    raw: 5,
+    stale: 5,
+    prescreenedOut: 5,
+    analyzedNotQualified: 10,
+    currentCandidate: 15,
+    currentRecommended: 10,
+    exited: 5,
+    // 退出统计
+    exitStats: {
+      total: 5,
+      read: 2,
+      saved: 1,
+      disliked: 1,
+      unread: 1,
+      replaced: 0,
+      expired: 0,
+      staleExit: 0,
+      other: 0
+    }
+  }
+
+  const mockPoolStats: FeedFunnelStats = {
     feedId: 'test-feed-1',
     feedTitle: 'Test Feed',
     // 漏斗层
@@ -61,46 +91,48 @@ describe('FunnelBlockBar Component', () => {
   it('应该渲染块进度条组件', () => {
     render(
       <FunnelBlockBar
-        stats={mockStats}
-        label="Pool"
-        icon="📦"
+        inFeedStats={mockInFeedStats}
+        poolStats={mockPoolStats}
+        label="源"
+        icon="📚"
       />
     )
 
     // 检查标签是否存在
-    expect(screen.getByText(/📦 Pool:/)).toBeInTheDocument()
+    expect(screen.getByText(/📚 源:/)).toBeInTheDocument()
     // 检查总数是否显示
-    expect(screen.getByText('(100)')).toBeInTheDocument()
+    expect(screen.getByText('50')).toBeInTheDocument()
   })
 
-  it('应该根据数据量生成正确数量的块', () => {
+  it('应该为每个文章显示一个块', () => {
     const { container } = render(
       <FunnelBlockBar
-        stats={mockStats}
-        label="Pool"
-        icon="📦"
+        inFeedStats={mockInFeedStats}
+        poolStats={mockPoolStats}
+        label="源"
+        icon="📚"
       />
     )
 
     // 查找所有块元素
-    const blocks = container.querySelectorAll('div.w-2.h-2')
-    // 总共应该有 100 个文章，分配到 7 个类别
-    // 由于 blockUnitsPerArticle 的计算，块数应该是合理的
-    expect(blocks.length).toBeGreaterThan(0)
+    const blocks = container.querySelectorAll('div.w-1\\.5.h-1\\.5')
+    // inFeedStats.rssArticles = 50，应该有 50 个块
+    expect(blocks.length).toBe(50)
   })
 
-  it('应该在 hover 时显示 tooltip', async () => {
+  it('应该在 hover 时显示源内和池内数据对比', async () => {
     const user = userEvent.setup()
     const { container } = render(
       <FunnelBlockBar
-        stats={mockStats}
-        label="Pool"
-        icon="📦"
+        inFeedStats={mockInFeedStats}
+        poolStats={mockPoolStats}
+        label="源"
+        icon="📚"
       />
     )
 
-    // 找到第一个块组（待分析）
-    const blockGroups = container.querySelectorAll('div.flex.gap-0\\.5')
+    // 找到第一个块组（待分析 - raw）
+    const blockGroups = container.querySelectorAll('div.flex.gap-0\\.5.relative')
     const firstBlockGroup = blockGroups[0]
 
     // hover 第一个块组
@@ -108,63 +140,48 @@ describe('FunnelBlockBar Component', () => {
 
     // tooltip 应该显示
     expect(screen.getByText('待分析')).toBeInTheDocument()
-    expect(screen.getByText(/5 \/ 100/)).toBeInTheDocument()
+    expect(screen.getByText('源: 5 | 池: 5')).toBeInTheDocument()
   })
 
-  it('应该正确处理零计数的类别', () => {
-    const statsWithZeros: FeedFunnelStats = {
-      ...mockStats,
-      raw: 0,
-      stale: 0,
-      prescreenedOut: 0,
-      analyzedNotQualified: 0,
-      currentCandidate: 50,
-      currentRecommended: 50,
-      exited: 0,
-      rssArticles: 100,
-      analyzed: 100
-    }
-
-    const { container } = render(
-      <FunnelBlockBar
-        stats={statsWithZeros}
-        label="Pool"
-        icon="📦"
-      />
-    )
-
-    // 应该能正常渲染
-    expect(screen.getByText(/📦 Pool:/)).toBeInTheDocument()
-    expect(screen.getByText('(100)')).toBeInTheDocument()
-
-    // 应该有一些块
-    const blocks = container.querySelectorAll('div.w-2.h-2')
-    expect(blocks.length).toBeGreaterThan(0)
-  })
-
-  it('应该在少量文章时显示清晰的块', () => {
+  it('应该为少量文章显示清晰的块', () => {
     const smallStats: FeedFunnelStats = {
-      ...mockStats,
+      feedId: 'test-feed-1',
+      feedTitle: 'Test Feed',
       rssArticles: 10,
-      raw: 2,
+      analyzed: 8,
+      candidate: 3,
+      recommended: 2,
+      raw: 1,
       stale: 1,
       prescreenedOut: 1,
       analyzedNotQualified: 2,
-      currentCandidate: 2,
-      currentRecommended: 1,
-      exited: 1
+      currentCandidate: 3,
+      currentRecommended: 2,
+      exited: 1,
+      exitStats: {
+        total: 1,
+        read: 1,
+        saved: 0,
+        disliked: 0,
+        unread: 0,
+        replaced: 0,
+        expired: 0,
+        staleExit: 0,
+        other: 0
+      }
     }
 
     const { container } = render(
       <FunnelBlockBar
-        stats={smallStats}
-        label="Pool"
-        icon="📦"
+        inFeedStats={smallStats}
+        poolStats={smallStats}
+        label="源"
+        icon="📚"
       />
     )
 
-    // 应该至少有 7 个块（每个类别至少 1 个）
-    const blocks = container.querySelectorAll('div.w-2.h-2')
-    expect(blocks.length).toBeGreaterThanOrEqual(7)
+    // 应该显示 10 个块
+    const blocks = container.querySelectorAll('div.w-1\\.5.h-1\\.5')
+    expect(blocks.length).toBe(10)
   })
 })
