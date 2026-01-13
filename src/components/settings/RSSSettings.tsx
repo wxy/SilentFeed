@@ -1617,12 +1617,12 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                   return BLOCK_CATEGORIES.find(cat => cat.key === key)?.color || 'bg-gray-400'
                 }
                 
-                // 渲染标签样式的方块+数字组合
+                // 渲染标签样式的方块+数字组合（固定宽度保持一致）
                 const renderTag = (color: string, value: number, title: string) => (
                   <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 cursor-help"
                        title={title}>
-                    <div className={`w-2 h-2 rounded-sm ${color}`} />
-                    <span className="text-[11px] font-medium">{value}</span>
+                    <div className={`w-2 h-2 rounded-sm flex-shrink-0 ${color}`} />
+                    <span className="text-[11px] font-medium w-8 text-right">{value}</span>
                   </div>
                 )
                 
