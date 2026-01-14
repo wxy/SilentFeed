@@ -175,9 +175,9 @@ Silent Feed needs **100 valid page visits** before full recommendations:
 - Complete translate.goog URL handling
 
 <div align="center">
-   **[Screenshot pending - RSS Settings interface showing colored block progress bars and feed-level translation settings]**
+   <img src="assets/screenshots/screenshot-2-rss-settings-en.png" width="720" alt="RSS Settings" />
    <br/>
-   <em>Manage feeds, visualize progress, feed-level translation control</em>
+   <em>Visual feed management with colored blocks and feed-level translation control</em>
    <br/>
 </div>
 

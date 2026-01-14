@@ -175,7 +175,7 @@ Silent Feed 需要收集 **100 个有效页面访问** 才能建立完整的兴�
 - 完整的 translate.goog URL 处理
 
 <div align="center">
-   **[待补充截图 - RSS 设置界面，展示彩色方块进度条和源级翻译设置]**
+   <img src="assets/screenshots/screenshot-2-rss-settings-zh.png" width="720" alt="RSS 设置" />
    <br/>
    <em>管理订阅、可视化进度、源级翻译控制</em>
    <br/>
