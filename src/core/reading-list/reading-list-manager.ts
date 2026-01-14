@@ -193,6 +193,11 @@ export class ReadingListManager {
       return false
     }
 
+    // 兜底变量，确保在错误分支也能使用决策后的 URL/标题
+    let urlToSave = recommendation.url
+    let titleToSave = recommendation.title
+    let finalTitle = titleToSave
+
     try {
       // 检查订阅源的谷歌翻译设置
       let feedUseGoogleTranslate = true // 默认使用谷歌翻译
@@ -210,16 +215,18 @@ export class ReadingListManager {
       }
       
       // 使用共用的 URL 决策函数
-      const { url: urlToSave, title: titleToSave } = await ReadingListManager.decideRecommendationUrl(
+      const { url, title } = await ReadingListManager.decideRecommendationUrl(
         recommendation,
         autoTranslateEnabled,
         interfaceLanguage,
         feedUseGoogleTranslate,
         true // 附加推荐ID
       )
+      urlToSave = url
+      titleToSave = title
 
       // 应用可选的标题前缀，避免重复添加
-      const finalTitle = (titlePrefix && !titleToSave.startsWith(titlePrefix))
+      finalTitle = (titlePrefix && !titleToSave.startsWith(titlePrefix))
         ? `${titlePrefix}${titleToSave}`
         : titleToSave
       
@@ -260,37 +267,67 @@ export class ReadingListManager {
         rlLogger.warn('更新文章状态失败（不影响保存）', err)
       }
 
+      // 3. 统一追踪：预设阅读列表打开标记
+      try {
+        await saveUrlTracking(urlToSave, {
+          recommendationId: recommendation.id!,
+          title: recommendation.title,
+          source: 'readingList',
+          action: 'opened'
+        })
+        rlLogger.debug('已预设阅读列表追踪标记', { url: urlToSave })
+      } catch (trackingError) {
+        rlLogger.warn('保存追踪标记失败（不影响主功能）', trackingError)
+      }
+
+      // 4. 记录到 readingListEntries，便于清理与追踪
+      try {
+        const normalizedUrl = ReadingListManager.normalizeUrlForTracking(urlToSave)
+        await db.readingListEntries.put({
+          normalizedUrl,
+          url: urlToSave,
+          recommendationId: recommendation.id,
+          addedAt: Date.now(),
+          titlePrefix
+        })
+        rlLogger.info('💾 已保存阅读列表条目到数据库', {
+          '原始URL': urlToSave,
+          '规范化URL': normalizedUrl,
+          '推荐ID': recommendation.id,
+          '是否翻译链接': urlToSave.includes('translate.google')
+        })
+      } catch (entryError) {
+        rlLogger.warn('记录阅读列表条目失败（不影响主功能）:', entryError)
+      }
+
       rlLogger.info('✅ 已保存到阅读列表:', {
         title: titleToSave,
         url: urlToSave.substring(0, 80) + '...',
         hasTranslation: !!recommendation.translation,
       })
+
+      // 5. 显示首次使用提示（若需要）
+      await this.maybeShowOnboardingTip()
       
       return true
     } catch (error) {
-      rlLogger.error('❌ 保存到阅读列表失败:', error)
-      return false
-    }
-  }
+      const errorMessage = (error as Error).message || ''
 
-  /**
-   * 将推荐文章保存到 Chrome 阅读列表（遗留兼容版本，不再推荐使用）
-   * @deprecated 使用 decideRecommendationUrl + saveRecommendation 代替
-   * @param recommendation 推荐条目
-   * @param autoTranslateEnabled 是否启用自动翻译
-   * @param interfaceLanguage 界面语言（用于生成翻译链接）
-   * @returns 是否成功保存
-   */
-  static async saveRecommendationLegacy(
-    recommendation: Recommendation,
-    autoTranslateEnabled: boolean = false,
-    interfaceLanguage: string = 'zh-CN',
-    titlePrefix: string = '🤫 '
-  ): Promise<boolean> {
-    // 委托到新的 saveRecommendation 方法
-    return this.saveRecommendation(recommendation, autoTranslateEnabled, interfaceLanguage, titlePrefix)
-  }
+      // 兼容 Chrome 报错: Duplicate / already exists
+      if (errorMessage.includes('Duplicate') || errorMessage.includes('already exists')) {
+        rlLogger.debug('文章已在阅读列表中', { url: recommendation.url })
 
+        // 仍然更新 Dexie 状态
+        await db.recommendations.update(recommendation.id, {
+          savedToReadingList: true,
+          savedAt: Date.now(),
+          feedback: 'later',  // Phase 14: 标记为"稍后读"
+        })
+
+        // 记录阅读列表条目（重复分支）
+        try {
+          const normalizedUrl = ReadingListManager.normalizeUrlForTracking(urlToSave)
+          await db.readingListEntries.put({
             normalizedUrl,
             url: urlToSave,
             recommendationId: recommendation.id,
@@ -307,7 +344,7 @@ export class ReadingListManager {
           rlLogger.warn('记录阅读列表条目失败（duplicate 分支）:', entryError)
         }
         
-        // Phase 14: 同步更新 feedArticles
+        // 同步更新 feedArticles
         try {
           const article = await db.feedArticles
             .where('link').equals(recommendation.url)
@@ -329,10 +366,28 @@ export class ReadingListManager {
         
         return true
       }
-      
-      rlLogger.error('保存到阅读列表失败', error)
+
+      rlLogger.error('❌ 保存到阅读列表失败:', error)
       return false
     }
+  }
+
+  /**
+   * 将推荐文章保存到 Chrome 阅读列表（遗留兼容版本，不再推荐使用）
+   * @deprecated 使用 decideRecommendationUrl + saveRecommendation 代替
+   * @param recommendation 推荐条目
+   * @param autoTranslateEnabled 是否启用自动翻译
+   * @param interfaceLanguage 界面语言（用于生成翻译链接）
+   * @returns 是否成功保存
+   */
+  static async saveRecommendationLegacy(
+    recommendation: Recommendation,
+    autoTranslateEnabled: boolean = false,
+    interfaceLanguage: string = 'zh-CN',
+    titlePrefix: string = '🤫 '
+  ): Promise<boolean> {
+    // 委托到新的 saveRecommendation 方法
+    return this.saveRecommendation(recommendation, autoTranslateEnabled, interfaceLanguage, titlePrefix)
   }
 
   /**

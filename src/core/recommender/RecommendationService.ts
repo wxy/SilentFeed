@@ -806,9 +806,6 @@ export class RecommendationService {
         feedUrl = this.extractBaseUrl(article.url)
       }
 
-      // 统一使用原始链接作为推荐的存储 URL，避免把翻译链接写入数据库
-      const normalizedArticleUrl = ReadingListManager.normalizeUrlForTracking(article.url)
-
       const recommendation: Recommendation = {
         id: `rec-${now}-${index}`,
         url: normalizedArticleUrl,

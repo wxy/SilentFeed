@@ -43,35 +43,33 @@ const mockChrome = {
 }
 global.chrome = mockChrome as any
 
-// Mock db
-const mockDbReadingListEntries = {
-  put: vi.fn(),
-  get: vi.fn(),
-  delete: vi.fn(),
-  toArray: vi.fn(),
-}
-
-const mockDbRecommendations = {
-  update: vi.fn(),
-  filter: vi.fn(() => ({
-    modify: vi.fn(),
+// Mock db（使用 hoisted 避免顶层变量与 vi.mock 提前提升冲突）
+const mockDb = vi.hoisted(() => ({
+  readingListEntries: {
+    put: vi.fn(),
+    get: vi.fn(),
+    delete: vi.fn(),
     toArray: vi.fn(),
-  })),
-}
+  },
+  recommendations: {
+    update: vi.fn(),
+    filter: vi.fn(() => ({
+      modify: vi.fn(),
+      toArray: vi.fn(),
+    })),
+  },
+  feedArticles: {
+    where: vi.fn(() => ({
+      equals: vi.fn(() => ({
+        first: vi.fn(),
+      })),
+    })),
+    update: vi.fn(),
+  },
+}))
 
 vi.mock('@/storage/db', () => ({
-  db: {
-    readingListEntries: mockDbReadingListEntries,
-    recommendations: mockDbRecommendations,
-    feedArticles: {
-      where: vi.fn(() => ({
-        equals: vi.fn(() => ({
-          first: vi.fn(),
-        })),
-      })),
-      update: vi.fn(),
-    },
-  },
+  db: mockDb,
 }))
 
 describe('Reading List Mode Switch - Bug #2 Fix', () => {
@@ -127,17 +125,17 @@ describe('Reading List Mode Switch - Bug #2 Fix', () => {
       }
       
       // Mock db.readingListEntries.get() 返回数据库记录
-      mockDbReadingListEntries.get.mockResolvedValue(dbEntry)
-      mockDbRecommendations.update.mockResolvedValue(undefined)
+      mockDb.readingListEntries.get.mockResolvedValue(dbEntry)
+      mockDb.recommendations.update.mockResolvedValue(undefined)
       mockChrome.readingList.removeEntry.mockResolvedValue(undefined)
-      mockDbReadingListEntries.delete.mockResolvedValue(undefined)
+      mockDb.readingListEntries.delete.mockResolvedValue(undefined)
       
       // 模拟模式切换的查询过程
       const normalizedKey = ReadingListManager.normalizeUrlForTracking(chromeReadingListUrl)
       expect(normalizedKey).toBe(normalizedUrl)
       
       // 使用规范化的 URL 查询
-      const entry = await mockDbReadingListEntries.get(normalizedKey)
+      const entry = await mockDb.readingListEntries.get(normalizedKey)
       
       // 验证：
       // 1. 应该找到数据库记录
@@ -145,10 +143,10 @@ describe('Reading List Mode Switch - Bug #2 Fix', () => {
       expect(entry.recommendationId).toBe('rec-123')
       
       // 2. 应该恢复推荐到活跃状态
-      expect(mockDbRecommendations.update).not.toHaveBeenCalled() // 这里没有调用，只是演示
+      expect(mockDb.recommendations.update).not.toHaveBeenCalled() // 这里没有调用，只是演示
       
       // 3. 应该从阅读列表删除条目
-      expect(mockDbReadingListEntries.delete).not.toHaveBeenCalled() // 这里没有调用，只是演示
+      expect(mockDb.readingListEntries.delete).not.toHaveBeenCalled() // 这里没有调用，只是演示
     })
 
     it('应该在规范化 URL 相同时找到不同的实际 URL', async () => {

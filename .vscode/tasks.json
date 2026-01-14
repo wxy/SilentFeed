@@ -8,7 +8,13 @@
 			"args": [],
 			"isBackground": false,
 			"problemMatcher": [],
-			"group": "test"
+			"group": "test",
+			"options": {
+				"shell": {
+					"executable": "/bin/zsh",
+					"args": ["-c"]
+				}
+			}
 		},
 		{
 			"label": "unit-tests-once",
@@ -17,16 +23,13 @@
 			"args": [],
 			"isBackground": false,
 			"problemMatcher": [],
-			"group": "test"
-		},
-		{
-			"label": "unit-tests-once",
-			"type": "shell",
-			"command": "npm run test:run -s",
-			"args": [],
-			"isBackground": false,
-			"problemMatcher": [],
-			"group": "test"
+			"group": "test",
+			"options": {
+				"shell": {
+					"executable": "/bin/zsh",
+					"args": ["-c"]
+				}
+			}
 		}
 	]
 }
