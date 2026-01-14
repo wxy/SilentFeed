@@ -45,6 +45,8 @@
    - Extension icon appears in toolbar
    - Click icon to view popup (first time will guide configuration)
 
+> 💡 **Version Note**: Current version is v0.5.1, includes AI Strategy Decision System, Visual Feed Management, and other important updates.
+
 ---
 
 ## First Time Use
@@ -148,14 +150,34 @@ Silent Feed needs **100 valid page visits** before full recommendations:
 - Pause/resume subscription
 - Delete feed
 
+**New Feature - Visual Feed Management (v0.5.1)** 🎨
+- **Colored Block Progress Bar**: Each block represents an article
+  - 🩶 Eliminated (grey): Does not meet quality requirements
+  - 🟢 Unprocessed (light green): Awaiting analysis
+  - 💚 Candidate (green): Entered candidate pool
+  - 💙 Recommended (dark green): Recommended to you
+  - 💙 Processed (blue): Read or skipped
+- **Recommendation Funnel Identity**: Visualize complete article flow from source to recommendation
+- **Hover for Details**: Mouse over blocks to view detailed statistics
+
+**New Feature - Feed-Level Translation Settings (v0.5.1)** 🌍
+- Set translation preference individually for each feed
+- Automatic language detection and intelligent matching
+- Merged with language tags to save space
+
 **OPML Import/Export**
 - Import: Migrate from other RSS readers
 - Export: Backup your subscriptions
 
+**Google Translate URL Support (v0.5.1)** 🌐
+- Automatically recognize and convert RSS links from translated pages
+- Prevent duplicate subscriptions to the same feed
+- Complete translate.goog URL handling
+
 <div align="center">
-   <img src="assets/screenshots/screenshot-4-rss-settings-en.png" width="720" alt="RSS Settings" />
+   **[Screenshot pending - RSS Settings interface showing colored block progress bars and feed-level translation settings]**
    <br/>
-   <em>Manage feeds, stats, and OPML import/export</em>
+   <em>Manage feeds, visualize progress, feed-level translation control</em>
    <br/>
 </div>
 
@@ -185,6 +207,12 @@ Silent Feed needs **100 valid page visits** before full recommendations:
 </div>
 
 ### 4. Configure AI
+
+**New Feature - AI Strategy Decision System (v0.5.1)** 🎯
+- **Smart Recommendation Pool Management**: AI dynamically decides based on your profile and content quality
+- **Candidate Pool Admission Control**: Automatically adjust quality thresholds to ensure recommendation accuracy
+- **Adaptive Learning**: System continuously optimizes recommendation strategy with use
+- **Multi-layer Quality Control**: Intelligent filtering from raw articles to final recommendations
 
 **AI Engine Selection**
 - **DeepSeek Chat** (Recommended): Low cost (¥0.001/article), great performance
