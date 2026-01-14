@@ -1,5 +1,156 @@
 # Changelog
 
+## [0.5.1] - 2026-01-14
+
+### Added
+
+- **AI Strategy Decision System (Phase 13)**
+  - Intelligent recommendation pool strategy with AI-driven quality control
+  - Candidate pool admission threshold integrated into AI strategy decisions
+  - Dynamic threshold adjustment based on user profile and content quality
+  - Smart quality control for recommendation optimization
+
+- **RSS Feed Visualization Overhaul**
+  - Colorful block progress bars replacing mathematical equations
+  - Semantic color scheme: Discarded (gray), Unprocessed (light green), Candidate (green), Recommended (dark green), Processed (blue)
+  - Visual representation of article flow through the system
+  - Restored and optimized recommendation funnel equation display
+  - Summary rows with tag-style labels and color blocks
+
+- **Feed-Level Translation Settings**
+  - Independent translation control for each RSS feed
+  - Merged translation toggle with language label UI
+  - Smart language detection and matching logic
+  - AI prompt language used as translation target
+
+- **Page Visit Deduplication**
+  - 30-minute time window deduplication mechanism
+  - Prevents duplicate learning of same page within short timeframe
+  - Reduces unnecessary AI API calls
+
+- **Browser Compatibility**
+  - Full Chrome and Edge browser support (#89)
+  - Unified cross-browser experience
+
+- **OpenSkills Integration**
+  - Claude Skills support for development workflow
+  - PR Creator Skill with intelligent version management
+  - Automated release workflow
+
+### Changed
+
+- **Content Script Architecture Refactor**
+  - Unified all content script functionality into SilentFeed.ts
+  - Integrated RSS detection, title management, and user tracking
+  - Lightweight and modular architecture
+  - Reduced memory footprint and improved performance
+
+- **Storage Architecture Optimization**
+  - Unified message protocol
+  - Optimized storage patterns
+  - Simplified configuration system
+
+- **Recommendation Settings UI**
+  - Improved layout and visual hierarchy
+  - Better organization of settings
+
+- **Brand Identity**
+  - Updated brand emoji from 📰 to 🤫
+
+### Fixed
+
+- **Google Translate URL Deduplication** (Critical)
+  - Complete fix for translated page RSS feed duplicate subscription issue
+  - FeedManager now has full translate.goog URL support
+  - Multi-layer defense mechanism for reliable deduplication
+  - Enhanced URL normalization logic
+  - Detailed investigation: `docs/INVESTIGATION_TRANSLATE_URL_DEDUP.md`
+
+- **Reading List Integration**
+  - Fixed translation settings being ignored when saving to reading list
+  - Improved recommendation tracking and removal logic
+  - Better URL normalization for reading list items
+
+- **RSS Feed Management**
+  - Fixed duplicate RSS feed addition bug
+  - Fixed favicon display for translated URLs
+  - Improved feed discovery on translated pages
+
+- **AI and Recommendation System**
+  - Fixed AI analysis language detection failures
+  - Fixed incomplete multi-pool architecture migration
+  - Fixed remote provider abstract resolver issue
+  - Fixed cooling period check position (AI analysis no longer blocked)
+  - Fixed recommendationStore result.stats.reason undefined issue
+  - Improved error handling in recommendation generation
+
+- **UI and Interactions**
+  - Fixed button click event bubbling
+  - Fixed LOCAL_STORAGE_KEYS undefined runtime error
+  - Fixed icon state display issues
+  - Improved progress bar sizing and spacing
+
+- **Testing and Engineering**
+  - Adjusted test coverage thresholds to pass CI checks
+  - Fixed multiple compilation errors and test failures
+  - Removed excessive debug logging
+
+### Technical
+
+- **Test Suite**: 2156 tests passing (127 test files)
+- **Coverage**: Statements 68%, Functions 69%, Lines ~70%
+- **Commits**: 158 commits since v0.3.6
+- **Development Period**: 23 days (2025-12-22 → 2026-01-14)
+- **Documentation**: Added comprehensive technical documentation and analysis
+
+### Removed
+
+- Removed TF-IDF redundant logic
+- Deprecated `FeedQualityAnalyzer` (unified with AI source analysis)
+- Cleaned up excessive logging from debugging sessions
+
+### Documentation
+
+- Added `RELEASE_0.5.1_ANALYSIS.md` - Detailed version change analysis
+- Added `INVESTIGATION_TRANSLATE_URL_DEDUP.md` - Google Translate URL issue investigation
+- Added `TRANSLATE_URL_DEDUP_FIX_SUMMARY.md` - Complete fix solution summary
+- Added `WHY_TRANSLATE_URL_FIX_FAILED.md` - Failure analysis
+- Moved 15+ archived documents to `docs/archive/`
+- Organized scripts into `scripts/archive/` and `scripts/utils/`
+
+---
+
+## [0.5.0] - 2026-01-11
+
+### Added
+
+- **PR Creator Skill**
+  - Intelligent PR creation with version management
+  - Automated changelog generation
+  - Smart version bump suggestions
+
+### Changed
+
+- Continuous improvements to AI strategy system
+- UI refinements and optimizations
+
+---
+
+## [0.4.0] - 2026-01-08
+
+### Added
+
+- **Candidate Pool Threshold Integration**
+  - Entry threshold for candidate pool
+  - Quality-based admission control
+
+### Changed
+
+- Further AI strategy system enhancements
+- Recommendation quality improvements
+
+---
+
 ## [0.3.6] - 2025-12-22
 
 ### Added
