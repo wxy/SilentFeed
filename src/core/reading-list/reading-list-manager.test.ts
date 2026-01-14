@@ -248,6 +248,81 @@ describe('ReadingListManager', () => {
       })
     })
 
+      it('Bug #1 场景A：语言一致时始终使用原文链接', async () => {
+        // 场景：文章是中文，界面语言也是中文，无需翻译
+        const sameLangRec: Recommendation = {
+          ...mockRecommendation,
+          title: '测试文章',
+          // 注意：没有 translation 字段（因为语言相同）
+        }
+
+        mockGetFeedByUrl.mockResolvedValueOnce({
+          id: 'feed-123',
+          url: 'https://example.com/feed',
+          title: 'Test Feed',
+          addedAt: Date.now(),
+          useGoogleTranslate: true, // 订阅源允许翻译
+        })
+
+        mockChrome.readingList.addEntry.mockResolvedValue(undefined)
+        mockChrome.storage.local.set.mockResolvedValue(undefined)
+
+        const result = await ReadingListManager.saveRecommendation(sameLangRec, true, 'zh-CN')
+
+        expect(result).toBe(true)
+        // 应该使用原文链接（因为没有翻译数据）
+        const urlObj = new URL(sameLangRec.url)
+        urlObj.searchParams.set('sf_rec', sameLangRec.id)
+        expect(mockChrome.readingList.addEntry).toHaveBeenCalledWith({
+          title: '🤫 测试文章',
+          url: urlObj.toString(),
+          hasBeenRead: false,
+        })
+      })
+
+      it('Bug #1 场景B：语言不一致但源禁用翻译时始终使用原文链接', async () => {
+        // 场景：文章是英文，界面是中文，但源配置禁用翻译
+        const differentLangNoTranslateRec: Recommendation = {
+          ...mockRecommendation,
+          title: 'English Article',
+          translation: {
+            sourceLanguage: 'en',
+            targetLanguage: 'zh-CN',
+            translatedTitle: '英文文章',
+            translatedSummary: '这是一篇英文文章',
+            translatedAt: Date.now(),
+          },
+        }
+
+        // 重要：订阅源禁用翻译
+        mockGetFeedByUrl.mockResolvedValueOnce({
+          id: 'feed-123',
+          url: 'https://example.com/feed',
+          title: 'Test Feed',
+          addedAt: Date.now(),
+          useGoogleTranslate: false, // 订阅源禁用翻译！
+        })
+
+        mockChrome.readingList.addEntry.mockResolvedValue(undefined)
+        mockChrome.storage.local.set.mockResolvedValue(undefined)
+
+        const result = await ReadingListManager.saveRecommendation(
+          differentLangNoTranslateRec,
+          true, // 自动翻译已启用
+          'zh-CN'
+        )
+
+        expect(result).toBe(true)
+        // 应该使用原文链接，即使自动翻译启用且有翻译数据
+        const urlObj = new URL(differentLangNoTranslateRec.url)
+        urlObj.searchParams.set('sf_rec', differentLangNoTranslateRec.id)
+        expect(mockChrome.readingList.addEntry).toHaveBeenCalledWith({
+          title: '🤫 English Article',
+          url: urlObj.toString(),
+          hasBeenRead: false,
+        })
+      })
+
     it('应该正确编码翻译URL', async () => {
       const recWithTranslation: Recommendation = {
         ...mockRecommendation,
