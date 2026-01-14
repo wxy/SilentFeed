@@ -1303,17 +1303,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                   for (const entry of autoAddedEntries) {
                     try {
                       await chrome.readingList.removeEntry({ url: entry.url })
-                      // 删除记录表中的对应映射
+                      // Bug #2 修复：使用 normalizedUrl 而不是 url 查询数据库
+                      // readingListEntries 表的主键是 normalizedUrl，不是 url
                       try {
-                        const rlEntry = await db.readingListEntries.get(entry.url)
+                        // 计算该条目的规范化 URL，用于数据库查询
+                        const normalizedUrl = ReadingListManager.normalizeUrlForTracking(entry.url)
+                        const rlEntry = await db.readingListEntries.get(normalizedUrl)
                         if (rlEntry?.recommendationId) {
+                          // 恢复推荐到活跃状态
                           await db.recommendations.update(rlEntry.recommendationId, {
                             savedToReadingList: false,
                             status: 'active'
                           })
+                          bgLogger.info('已恢复推荐到弹窗模式', {
+                            recommendationId: rlEntry.recommendationId,
+                            normalizedUrl
+                          })
                         }
-                        await db.readingListEntries.delete(entry.url)
-                      } catch {}
+                        await db.readingListEntries.delete(normalizedUrl)
+                      } catch (err) {
+                        bgLogger.warn('恢复推荐状态失败（忽略）', { url: entry.url, err })
+                      }
                       removed++
                     } catch (err) {
                       bgLogger.warn('移除阅读列表条目失败（忽略）', { url: entry.url, err })

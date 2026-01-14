@@ -4,7 +4,7 @@
 
 # 🤫 Silent Feed
 
-> 当前版本：`0.3.6`
+> 当前版本：`0.5.1`
 
 **AI-powered RSS reader that learns what you love**
 
@@ -14,7 +14,7 @@
 [![GitHub Release](https://img.shields.io/github/v/release/wxy/SilentFeed?style=for-the-badge)](https://github.com/wxy/SilentFeed/releases)
 [![License](https://img.shields.io/badge/License-Apache_2.0-green.svg?style=for-the-badge)](LICENSE)
 
-![Test Coverage](https://img.shields.io/badge/coverage-72.9%25-brightgreen?style=for-the-badge)
+![Test Coverage](https://img.shields.io/badge/coverage-69%25-brightgreen?style=for-the-badge)
 ![Stars](https://img.shields.io/github/stars/wxy/SilentFeed?style=for-the-badge&color=yellow)
 ![Last Commit](https://img.shields.io/github/last-commit/wxy/SilentFeed?style=for-the-badge)
 ![TypeScript](https://img.shields.io/badge/TypeScript-90%25-blue?style=for-the-badge&logo=typescript&logoColor=white)
@@ -37,26 +37,34 @@ Silent Feed is a **browser extension** that uses AI to understand what you're in
 ### ✨ Key Features
 
 - **🤖 AI-Powered Recommendations** - Understands your interests from browsing behavior, powered by AI-generated interest summaries
-- **🔍 Auto RSS Discovery** - Finds RSS feeds from websites you visit
+- **🎯 AI Strategy Decision System** - Intelligent recommendation pool management with dynamic quality control
+- **🔍 Auto RSS Discovery** - Finds RSS feeds from websites you visit, with complete Google Translate URL support
+- **🎨 Visual Feed Management** - Colorful block progress bars showing article flow with semantic colors
 - **📚 Read Later** - Save recommendations to Chrome's native reading list with one click
-- **🎨 Clean Interface** - Minimal design for distraction-free reading
+- **🌍 Feed-Level Translation** - Independent translation control for each RSS feed
 - **🔒 Privacy First** - All data stays local, you control your API keys
 - **⚡ Smart Engine Assignment** - Optimize cost by assigning different AI engines for different tasks (reduce costs by up to 95%)
 - **📊 AI Usage Tracking** - Monitor API usage, tokens, and estimated costs
-- **📈 Recommendation Funnel** - Visualize content flow from RSS feeds to recommendations with conversion rates
 - **🌐 Bilingual** - Full support for English & 中文
 
 ### 📸 Screenshots
 
 <div align="center">
 
-<img src="docs/assets/screenshots/screenshot-1-recommendations-en.png" width="600" alt="AI Recommendations" />
+<img src="docs/assets/screenshots/screenshot-1-recommendations-en.png" width="720" alt="AI Recommendations" />
+<br/>
+<em>AI-powered personalized recommendations with intelligent quality control</em>
+<br/>
 
-*AI-powered personalized recommendations*
+<img src="docs/assets/screenshots/screenshot-2-rss-settings-en.png" width="720" alt="RSS Settings with Translation" />
+<br/>
+<em>Visual feed management with colored blocks and feed-level translation control</em>
+<br/>
 
-<img src="docs/assets/screenshots/screenshot-3-profile-en.png" width="600" alt="Interest Profile" />
-
-*Visual interest profile based on your reading habits*
+<img src="docs/assets/screenshots/screenshot-3-profile-en.png" width="720" alt="Interest Profile" />
+<br/>
+<em>AI-generated interest summary and preference features</em>
+<br/>
 
 </div>
 
@@ -99,9 +107,10 @@ See [Technical Documentation](docs/TDD.md) for architecture details.
 
 ### 📊 Project Status
 
-- **Version**: 0.3.6 (Reading List & Profile Updates)
+- **Version**: 0.5.1 (AI Strategy System & Visual Enhancements)
 - **Status**: ✅ Released
-- **Test Coverage**: 72%+
+- **Test Coverage**: 69%+ (2156 tests)
+- **Commits since v0.3.6**: 158
 - **Supported**: Chrome/Edge (Manifest V3)
 
 ### 💬 Community & Support
@@ -123,26 +132,34 @@ Silent Feed 是一个**浏览器扩展**，通过分析你的浏览历史，用 
 ### ✨ 核心功能
 
 - **🤖 AI 智能推荐** - 从浏览行为理解你的兴趣，基于 AI 生成的兴趣总结
-- **🔍 自动发现订阅源** - 从你访问的网站发现 RSS
+- **🎯 AI 策略决策系统** - 智能推荐池管理，动态质量控制
+- **🔍 自动发现订阅源** - 从你访问的网站发现 RSS，完整支持 Google 翻译链接
+- **🎨 可视化源管理** - 彩色方块进度条，语义化颜色展示文章流
 - **📚 稍后阅读** - 一键保存推荐到 Chrome 原生阅读列表
-- **🎨 简洁界面** - 极简设计，专注阅读
+- **🌍 源级翻译设置** - 每个订阅源可独立控制翻译
 - **🔒 隐私优先** - 数据本地存储，你掌控 API 密钥
 - **⚡ 智能引擎分配** - 为不同任务分配不同 AI 引擎，优化成本（最高节省 95% 费用）
 - **📊 AI 用量追踪** - 监控 API 使用量、Token 和预估费用
-- **📈 推荐筛选漏斗** - 可视化从 RSS 文章到推荐的完整流程，包含转化率统计
 - **🌐 双语支持** - 完整支持 English & 中文
 
 ### 📸 截图
 
 <div align="center">
 
-<img src="docs/assets/screenshots/screenshot-1-recommendations-cn.png" width="600" alt="AI 推荐" />
+<img src="docs/assets/screenshots/screenshot-1-recommendations-zh.png" width="720" alt="AI 推荐" />
+<br/>
+<em>AI 驱动的个性化推荐，智能质量控制</em>
+<br/>
 
-*AI 驱动的个性化推荐*
+<img src="docs/assets/screenshots/screenshot-2-rss-settings-zh.png" width="720" alt="RSS 设置与翻译" />
+<br/>
+<em>彩色方块可视化源管理，源级翻译控制</em>
+<br/>
 
-<img src="docs/assets/screenshots/screenshot-3-profile-cn.png" width="600" alt="兴趣画像" />
-
-*基于阅读习惯的可视化兴趣画像*
+<img src="docs/assets/screenshots/screenshot-3-profile-zh.png" width="720" alt="兴趣画像" />
+<br/>
+<em>AI 生成的兴趣总结和偏好特征</em>
+<br/>
 
 </div>
 

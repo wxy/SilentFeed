@@ -73,9 +73,12 @@ See [HOW_TO_LOAD_EXTENSION.md](docs/archive/HOW_TO_LOAD_EXTENSION.md) for detail
    npm run pre-push
    ```
    This ensures:
-   - All tests pass
+   - All tests pass (currently 2156 tests)
    - Code coverage meets requirements (≥70% lines, ≥70% functions, ≥60% branches)
+     - Current status: Statements 69%, Branches 58.21%, Functions 73.53%, Lines 69.11%
    - Production build succeeds
+   
+   > **Note**: v0.5.1 refactored multiple core modules. Current coverage is 69%, continuously improving.
 
 5. **Commit changes**
    ```bash
@@ -147,12 +150,20 @@ export function buildUserProfile(visits: PageVisit[]): UserProfile {
 
 ### Test Requirements
 
-- **Coverage**: ≥70% lines, ≥70% functions, ≥60% branches
+- **Coverage targets**: ≥70% lines, ≥70% functions, ≥60% branches
+- **Current status** (v0.5.1):
+  - Test count: 2156 tests, all passing ✅
+  - Statement coverage: 69%
+  - Branch coverage: 58.21%
+  - Function coverage: 73.53%
+  - Line coverage: 69.11%
 - **New code**: Must include tests
 - **Test types**:
   - Pure functions → Unit tests
   - Classes/Modules → Integration tests
   - React components → Component tests
+
+> **v0.5.1 Update**: The project underwent major refactoring (AI Strategy System, content script architecture, storage layer optimization). Coverage decreased from 72.9% to 69%. We're gradually adding tests for new code—contributions welcome!
 
 ### Writing Tests
 
