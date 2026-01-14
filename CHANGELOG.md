@@ -124,15 +124,110 @@
 
 ### Added
 
+- **Reading List Mode (Phase 15)**
+  - Integrated summary view for reading list in popup
+  - Chrome Reading List mode with dedicated UI
+  - Delivery method configuration in recommendation settings
+  - Reading list auto-cleanup configuration
+  - Mode switching with data isolation handling
+
 - **PR Creator Skill**
   - Intelligent PR creation with version management
   - Automated changelog generation
   - Smart version bump suggestions
+  - Template-based PR description generation
+  - Automatic version checking mechanism
+
+- **Recommendation Funnel Enhancement**
+  - Added `stale` status support for articles
+  - Exit statistics tracking and visualization
+  - Refactored funnel data collection and display
+  - Multi-pool architecture adaptation for funnel and radar charts
+  - Visual funnel representation of content flow
+
+- **AI Streaming Output**
+  - Streaming output for reasoning mode with progress logging
+  - Idle timeout strategy for stream handling
+  - Dedicated `screenFeedArticles` method for feed prescreening
+  - Improved feed prescreening timeout handling
+
+- **Test Coverage Improvements**
+  - pool-strategy-decider comprehensive tests
+  - useAIUsageStats hook tests
+  - Database initialization boundary tests
+  - AI config, RSSValidator, and feed-category tests
+  - RecommendationSettings component tests
+  - OnboardingStateService tests
+  - pool-refill-policy complete test coverage
 
 ### Changed
 
+- **Brand Identity Update**
+  - Replaced 📰 emoji with 🤫 as brand representative
+  - Updated brand presence across UI
+
+- **Recommendation Settings UI**
+  - Refactored recommendation settings page flow diagram layout
+  - Moved delivery method config from AI engine to recommendation settings
+  - Improved visual organization and hierarchy
+
+- **AI Architecture**
+  - Removed TF-IDF redundant logic
+  - Enhanced internationalization across AI components
+  - Added architecture constraint documentation for AI method invocation
+  - Improved AI prompt handling
+
+- **Code Quality**
+  - Adjusted coverage thresholds to realistic levels
+  - Fixed multiple compilation errors
+  - Improved test reliability
+
+### Fixed
+
+- **Reading List Integration**
+  - Fixed reading list and recommendation system critical issues
+  - Removed alert() calls and improved reading list removal logging
+  - Added missing parameter to `chrome.readingList.query()`
+  - Fixed scheduler method names and popup display quantity limits
+  - Fixed mode switching data isolation issues
+  - Fixed config redeclaration in `generateRecommendations`
+
+- **Translation and Favicon**
+  - Fixed favicon display for translated URLs
+  - Better handling of Google Translate URLs
+
+- **Recommendation Generation**
+  - Fixed `result.stats.reason` undefined issue in recommendationStore
+  - Improved error handling in `generateRecommendations`
+  - Fixed cooling period check position (AI analysis no longer blocked)
+
+- **Multi-Pool Architecture**
+  - Fixed incomplete multi-pool architecture migration
+  - Fixed scheduler interval configuration
+  - Fixed abstract provider 'remote' resolution in prescreening service
+
+- **AI Cost Tracking**
+  - Fixed AI usage statistics display issues
+  - Improved internationalization for AI cost displays
+
+- **Internationalization**
+  - Completed i18n for reading list view and settings page
+  - Fixed funnel diagram text optimization
+  - Comprehensive i18n wrapper improvements
+
+- **Testing**
+  - Fixed test cases to adapt to `sf_rec` parameter
+  - Removed unrelated learning stage test from AIConfig
+  - Fixed AIConfig learning stage display
+  - Fixed OnboardingStateService tests with improved coverage
+  - CI coverage threshold adjustments
+
+### Technical
+
 - Continuous improvements to AI strategy system
 - UI refinements and optimizations
+- Enhanced test coverage across core modules
+- Improved error handling and logging
 
 ---
 
@@ -140,14 +235,147 @@
 
 ### Added
 
-- **Candidate Pool Threshold Integration**
-  - Entry threshold for candidate pool
-  - Quality-based admission control
+- **AI Strategy Decision System (Phase 13 Core)**
+  - AI-driven recommendation pool strategy with intelligent quality control
+  - Candidate pool admission threshold with quality-based filtering
+  - Dynamic threshold adjustment based on content quality and user profile
+  - Multi-layer recommendation funnel optimization
+
+- **Feed XML Batch Prescreening**
+  - Batch analysis of RSS feed articles before full processing
+  - 75% reduction in AI API calls through intelligent filtering
+  - Configurable prescreening thresholds
+  - Early quality assessment at XML parsing stage
+
+- **Cold Start Recommendation Strategy**
+  - Smart recommendations during initial learning phase (<100 pages)
+  - Visual distinction for cold-start recommendations in UI
+  - Progressive quality improvement as profile develops
+  - Dedicated cold-start reasoning display
+
+- **Content Quality Assessment Framework**
+  - Source-level AI quality analysis service
+  - Feed article quality scoring and categorization
+  - Content quality evaluation integrated into AI task types
+  - Quality-based content filtering pipeline
+
+- **Feed-Level Translation Control**
+  - Independent translation settings for each RSS feed
+  - Merged translation toggle with language label UI
+  - Automatic language detection from RSS feed metadata
+  - AI prompt language used as translation target
+  - Smart translation decision based on feed settings and language matching
+
+- **Page Visit Deduplication (30-min Window)**
+  - Time-window-based deduplication mechanism
+  - Prevents duplicate learning of same page within 30 minutes
+  - Reduces unnecessary AI API calls
+  - Persistent deduplication state tracking
+
+- **OpenSkills Integration**
+  - Claude Skills support for enhanced development workflow
+  - Skill-based task automation
+  - Integration with AI-assisted development tools
+
+- **Icon States Guide**
+  - User-friendly interactive guide for extension icon states
+  - Visual documentation of all icon states and meanings
+  - Replaces developer-focused demo page
 
 ### Changed
 
-- Further AI strategy system enhancements
-- Recommendation quality improvements
+- **Content Script Architecture Refactor**
+  - Unified all content script functionality into `SilentFeed.ts`
+  - Integrated RSS detection, title management, and user tracking
+  - Lightweight and modular architecture
+  - Reduced memory footprint and improved performance
+  - Removed redundant content script files
+
+- **Storage Architecture Optimization**
+  - Unified message protocol across all components
+  - Optimized storage patterns for better performance
+  - Simplified configuration system
+  - Improved data consistency
+
+- **Feed Source Analysis**
+  - Refactored feed analysis as independent AI method
+  - Dedicated `sourceAnalysis` AI task type
+  - Improved language detection logic with fallback mechanisms
+  - Priority given to RSS feed's declared language
+
+- **Recommendation System UI**
+  - Added breathing effect during recommendation analysis
+  - Learning mask with brightness variation animation
+  - Improved visual feedback during AI processing
+  - Optimized icon ripple effect for background tasks
+
+- **RSS Discovery UI**
+  - Comprehensive Google Translate URL conversion in RSS discovery cards
+  - Improved source domain display
+  - Better URL normalization for discovery
+
+- **AI Task Management**
+  - Consolidated low-frequency AI tasks configuration
+  - Simplified user experience for AI task allocation
+  - Optimized task routing and distribution
+
+- **Translation Logic**
+  - Optimized translation link decision logic in popup
+  - Based on feed settings and language matching
+  - More intelligent translation recommendations
+
+### Fixed
+
+- **AI Configuration**
+  - Fixed AI config check logic, removed non-existent `enabled` field
+  - Corrected `getAIConfig` usage across codebase
+  - Strategy service now checks AI config before calls
+  - Feed prescreening checks AI config early to prevent invalid calls
+  - Enhanced error logging for debugging
+
+- **Feed Management**
+  - Fixed duplicate RSS feed addition bug
+  - Improved feed update frequency recalculation after each fetch
+  - Better handling of feed metadata
+
+- **Language Detection**
+  - Fixed AI analysis language detection failures
+  - Added fallback language detection from text content
+  - Fixed feed analysis prompt format for proper language detection
+  - Prioritized RSS source file language declarations
+
+- **Translation Issues**
+  - Fixed recommendation title translation language mismatch
+  - Used AI prompt language as translation target
+  - Better translation consistency
+
+- **UI Interactions**
+  - Fixed button click event bubbling
+  - Fixed auto-trigger of AI analysis when reading
+  - Improved error state red mask display and border radius
+
+- **Testing**
+  - Fixed chrome.storage.sync mock issues in tests
+  - Added storage module test coverage
+  - Fixed RSSFetcher test Mock Response issues
+  - Fixed onboarding step updates during setup state
+  - Comprehensive test cleanup and fixes
+
+- **Code Quality**
+  - Fixed type errors throughout codebase
+  - Cleaned up excessive debug logging
+  - Removed overly detailed statistics logging from RecommendationService
+  - Fixed FeedArticle field references in SourceAnalysisService
+
+### Deprecated
+
+- **FeedQualityAnalyzer**: Replaced with unified AI-based source analysis
+
+### Technical
+
+- Dynamic learning threshold unified across system
+- Test suite improvements and mock fixes
+- Dependencies: Updated baseline-browser-mapping to 2.9.11
 
 ---
 
