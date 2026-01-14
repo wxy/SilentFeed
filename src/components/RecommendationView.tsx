@@ -717,10 +717,12 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
   // 计算默认打开的 URL
   // 逻辑：全局自动翻译开启 + 订阅源翻译开启 + 需要翻译 → 默认打开翻译版；否则打开原文
   const getDefaultUrl = (): string => {
+    // 始终以原始链接为基础，避免因推荐中残留翻译链接而误判
+    const originalUrl = ReadingListManager.normalizeUrlForTracking(currentRecommendation.url)
     if (autoTranslateEnabled && feedTranslateEnabled && needsTranslation) {
-      return getGoogleTranslateUrl(currentRecommendation.url, i18n.language)
+      return getGoogleTranslateUrl(originalUrl, i18n.language)
     }
-    return currentRecommendation.url
+    return originalUrl
   }
   
   // 处理默认点击（标题/摘要）
@@ -755,12 +757,14 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
   const handleAlternateClick = async (e: React.MouseEvent) => {
     e.stopPropagation()
     
+    // 统一从原始链接出发
+    const originalUrl = ReadingListManager.normalizeUrlForTracking(currentRecommendation.url)
     // 如果自动翻译开启，按钮是「查看原文」，所以打开原文
-    // 如果自动翻译关闭，按钮是「翻译」，所以打开翻译版
-    const url = autoTranslateEnabled 
-      ? currentRecommendation.url 
-      : getGoogleTranslateUrl(currentRecommendation.url, i18n.language)
-    const isTranslated = !autoTranslateEnabled
+    // 如果自动翻译关闭，按钮是「翻译」，但当订阅源禁用翻译时也应打开原文
+    const url = autoTranslateEnabled
+      ? originalUrl
+      : (feedTranslateEnabled ? getGoogleTranslateUrl(originalUrl, i18n.language) : originalUrl)
+    const isTranslated = !autoTranslateEnabled && feedTranslateEnabled
     
     recViewLogger.debug(`点击条目（备选）: ${currentRecommendation.id}, 翻译版: ${isTranslated}`)
     

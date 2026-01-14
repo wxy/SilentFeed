@@ -111,6 +111,66 @@ export class ReadingListManager {
   }
 
   /**
+   * 决策推荐URL的最终呈现（共用逻辑）
+   * 
+   * 核心策略：
+   * 1. 总是从原始链接出发（去掉任何翻译包装）
+   * 2. 如果订阅源禁用翻译 → 原文链接
+   * 3. 如果自动翻译开启 + 订阅源允许 + 推荐已翻译 → 翻译链接
+   * 4. 其它情况 → 原文链接
+   * 
+   * @param recommendation 推荐条目
+   * @param autoTranslateEnabled 是否启用自动翻译
+   * @param interfaceLanguage 界面语言
+   * @param feedUseGoogleTranslate 订阅源是否允许翻译
+   * @param appendTrackingId 是否附加推荐ID参数
+   * @returns 最终URL和标题
+   */
+  static async decideRecommendationUrl(
+    recommendation: Recommendation,
+    autoTranslateEnabled: boolean,
+    interfaceLanguage: string,
+    feedUseGoogleTranslate: boolean,
+    appendTrackingId: boolean = true
+  ): Promise<{ url: string; title: string }> {
+    // 兜底：无论推荐中的 URL 是否为翻译链接，先还原为原始链接作为基底
+    const baseOriginalUrl = ReadingListManager.normalizeUrlForTracking(recommendation.url)
+
+    let finalUrl = baseOriginalUrl
+    let finalTitle = recommendation.title
+
+    // 逻辑1：如果订阅源禁用翻译，无条件使用原文
+    if (!feedUseGoogleTranslate) {
+      rlLogger.debug('订阅源禁用翻译，使用原文链接')
+      if (appendTrackingId) {
+        finalUrl = ReadingListManager.appendRecommendationId(baseOriginalUrl, recommendation.id!)
+      }
+      return { url: finalUrl, title: finalTitle }
+    }
+
+    // 逻辑2：如果启用自动翻译且推荐已翻译，生成翻译链接
+    if (autoTranslateEnabled && recommendation.translation) {
+      const originalWithRec = appendTrackingId
+        ? ReadingListManager.appendRecommendationId(baseOriginalUrl, recommendation.id!)
+        : baseOriginalUrl
+      const encodedUrl = encodeURIComponent(originalWithRec)
+      finalUrl = `https://translate.google.com/translate?sl=auto&tl=${interfaceLanguage}&u=${encodedUrl}`
+      finalTitle = recommendation.translation.translatedTitle
+
+      rlLogger.debug('使用翻译链接', {
+        language: `${recommendation.translation.sourceLanguage}→${interfaceLanguage}`
+      })
+      return { url: finalUrl, title: finalTitle }
+    }
+
+    // 逻辑3：其它情况使用原文
+    if (appendTrackingId) {
+      finalUrl = ReadingListManager.appendRecommendationId(baseOriginalUrl, recommendation.id!)
+    }
+    return { url: finalUrl, title: finalTitle }
+  }
+
+  /**
    * 将推荐文章保存到 Chrome 阅读列表
    * @param recommendation 推荐条目
    * @param autoTranslateEnabled 是否启用自动翻译
@@ -149,46 +209,23 @@ export class ReadingListManager {
         }
       }
       
-      // 决定使用原文链接还是翻译链接
-      let urlToSave = recommendation.url
-      let titleToSave = recommendation.title
-      
-      // Bug #1 修复：当订阅源禁用了谷歌翻译时，无论自动翻译开关如何，都必须使用原文链接
-      if (!feedUseGoogleTranslate) {
-        rlLogger.info('订阅源禁用谷歌翻译，使用原文链接', {
-          url: recommendation.url,
-          source: recommendation.source,
-          autoTranslateEnabled,  // 记录自动翻译设置，即使被忽略
-        })
-        // 在原文链接上附加推荐ID
-        urlToSave = ReadingListManager.appendRecommendationId(urlToSave, recommendation.id!)
-      } else if (autoTranslateEnabled && feedUseGoogleTranslate && recommendation.translation) {
-        // 如果启用自动翻译、订阅源允许翻译且存在翻译数据（说明文章语言和界面语言不同）
-        // 生成谷歌翻译链接
-        const originalWithRec = ReadingListManager.appendRecommendationId(recommendation.url, recommendation.id!)
-        const encodedUrl = encodeURIComponent(originalWithRec)
-        urlToSave = `https://translate.google.com/translate?sl=auto&tl=${interfaceLanguage}&u=${encodedUrl}`
-        // 使用翻译后的标题
-        titleToSave = recommendation.translation.translatedTitle
-        
-        rlLogger.info('使用翻译链接保存到阅读列表', {
-          original: recommendation.url,
-          translated: urlToSave,
-          language: `${recommendation.translation.sourceLanguage}→${interfaceLanguage}`
-        })
-      } else {
-        // 使用原文且允许翻译开关但无需翻译时，也附加推荐ID
-        urlToSave = ReadingListManager.appendRecommendationId(urlToSave, recommendation.id!)
-      }
+      // 使用共用的 URL 决策函数
+      const { url: urlToSave, title: titleToSave } = await ReadingListManager.decideRecommendationUrl(
+        recommendation,
+        autoTranslateEnabled,
+        interfaceLanguage,
+        feedUseGoogleTranslate,
+        true // 附加推荐ID
+      )
 
       // 应用可选的标题前缀，避免重复添加
-      if (titlePrefix && !titleToSave.startsWith(titlePrefix)) {
-        titleToSave = `${titlePrefix}${titleToSave}`
-      }
+      const finalTitle = (titlePrefix && !titleToSave.startsWith(titlePrefix))
+        ? `${titlePrefix}${titleToSave}`
+        : titleToSave
       
       // 1. 添加到 Chrome 阅读列表
       await chrome.readingList.addEntry({
-        title: titleToSave,
+        title: finalTitle,
         url: urlToSave,
         hasBeenRead: false,
       })
@@ -218,77 +255,42 @@ export class ReadingListManager {
             poolRemovedAt: now,
             poolRemovedReason: 'saved' as any,  // 旧类型不支持 saved，但保留兼容
           })
-          rlLogger.debug('已同步更新文章状态', { articleId: article.id })
         }
-      } catch (syncError) {
-        rlLogger.warn('同步更新 feedArticles 失败（不影响主功能）:', syncError)
-      }
-      
-      // 3. 统一追踪机制：预设追踪标记
-      // 用途：30秒验证时识别"来自阅读列表"
-      // 注：Chrome Reading List API 无 onEntryOpened 事件
-      //     保存时预设标记，打开时无法直接监听
-      // 使用 local storage 而非 session，避免扩展重启后丢失
-      // ⚠️ 重要：使用实际保存的URL（可能是翻译链接）作为追踪键
-      try {
-        await saveUrlTracking(urlToSave, {
-          recommendationId: recommendation.id!,
-          title: recommendation.title,
-          source: 'readingList',
-          action: 'opened'  // 表示"通过阅读列表打开"
-        })
-        rlLogger.debug('已预设阅读列表追踪标记', { url: urlToSave })
-      } catch (storageError) {
-        rlLogger.warn('保存追踪标记失败（不影响主功能）', storageError)
+      } catch (err) {
+        rlLogger.warn('更新文章状态失败（不影响保存）', err)
       }
 
-      rlLogger.info('已保存到阅读列表', {
-        id: recommendation.id,
+      rlLogger.info('✅ 已保存到阅读列表:', {
         title: titleToSave,
-        url: urlToSave,
+        url: urlToSave.substring(0, 80) + '...',
+        hasTranslation: !!recommendation.translation,
       })
-
-      // 4. 记录到 readingListEntries 表，便于清理和标记来源
-      try {
-        const normalizedUrl = ReadingListManager.normalizeUrlForTracking(urlToSave)
-        await db.readingListEntries.put({
-          normalizedUrl,
-          url: urlToSave,
-          recommendationId: recommendation.id,
-          addedAt: Date.now(),
-          titlePrefix
-        })
-        rlLogger.info('💾 已保存阅读列表条目到数据库', {
-          '原始URL': urlToSave,
-          '规范化URL': normalizedUrl,
-          '推荐ID': recommendation.id,
-          '是否翻译链接': urlToSave.includes('translate.google')
-        })
-      } catch (entryError) {
-        rlLogger.warn('记录阅读列表条目失败（不影响主功能）:', entryError)
-      }
-
-      // 3. 检查是否需要显示提示
-      await this.maybeShowOnboardingTip()
-
+      
       return true
     } catch (error) {
-      const errorMessage = (error as Error).message || ''
-      
-      // 如果文章已在阅读列表中，也算成功
-      if (errorMessage.includes('Duplicate') || errorMessage.includes('already exists')) {
-        rlLogger.debug('文章已在阅读列表中', { url: recommendation.url })
-        
-        // 仍然更新 Dexie 状态
-        await db.recommendations.update(recommendation.id, {
-          savedToReadingList: true,
-          savedAt: Date.now(),
-          feedback: 'later',  // Phase 14: 标记为"稍后读"
-        })
+      rlLogger.error('❌ 保存到阅读列表失败:', error)
+      return false
+    }
+  }
 
-        try {
-          const normalizedUrl = ReadingListManager.normalizeUrlForTracking(urlToSave)
-          await db.readingListEntries.put({
+  /**
+   * 将推荐文章保存到 Chrome 阅读列表（遗留兼容版本，不再推荐使用）
+   * @deprecated 使用 decideRecommendationUrl + saveRecommendation 代替
+   * @param recommendation 推荐条目
+   * @param autoTranslateEnabled 是否启用自动翻译
+   * @param interfaceLanguage 界面语言（用于生成翻译链接）
+   * @returns 是否成功保存
+   */
+  static async saveRecommendationLegacy(
+    recommendation: Recommendation,
+    autoTranslateEnabled: boolean = false,
+    interfaceLanguage: string = 'zh-CN',
+    titlePrefix: string = '🤫 '
+  ): Promise<boolean> {
+    // 委托到新的 saveRecommendation 方法
+    return this.saveRecommendation(recommendation, autoTranslateEnabled, interfaceLanguage, titlePrefix)
+  }
+
             normalizedUrl,
             url: urlToSave,
             recommendationId: recommendation.id,

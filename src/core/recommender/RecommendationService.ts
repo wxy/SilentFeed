@@ -683,22 +683,30 @@ export class RecommendationService {
 
     recLogger.info(`🔄 开始补充推荐池（当前容量：${currentPool.length}/${maxSize}）...`)
 
-    // 获取最近7天的推荐URL，用于去重
+    // 获取最近7天的推荐URL，用于去重（使用规范化URL避免原始/翻译链接重复）
     try {
       const recentRecommendations = await db.recommendations
         .where('recommendedAt')
         .above(now - 7 * 24 * 60 * 60 * 1000) // 7天前
         .toArray()
       
-      recentRecommendations.forEach(rec => existingUrls.add(rec.url))
-      recLogger.info(`最近7天已有推荐: ${existingUrls.size} 条，用于去重`)
+      // 导入规范化函数用于去重
+      const { normalizeUrlForTracking } = ReadingListManager
+      
+      recentRecommendations.forEach(rec => {
+        // 统一使用规范化URL做去重，确保"原始URL"和"翻译URL"被认为是同一文章
+        const normalizedUrl = normalizeUrlForTracking(rec.url)
+        existingUrls.add(normalizedUrl)
+      })
+      recLogger.info(`最近7天已有推荐: ${existingUrls.size} 条（按规范化URL去重）`)
     } catch (error) {
       recLogger.warn(' 获取历史推荐失败:', error)
     }
 
     for (const [index, article] of recommendedArticles.entries()) {
-      // 检查是否重复
-      if (existingUrls.has(article.url)) {
+      // 检查是否重复（使用规范化URL比对）
+      const normalizedArticleUrl = ReadingListManager.normalizeUrlForTracking(article.url)
+      if (existingUrls.has(normalizedArticleUrl)) {
         recLogger.debug(`跳过重复推荐: ${article.title} - ${article.url}`)
         continue
       }
@@ -798,14 +806,17 @@ export class RecommendationService {
         feedUrl = this.extractBaseUrl(article.url)
       }
 
+      // 统一使用原始链接作为推荐的存储 URL，避免把翻译链接写入数据库
+      const normalizedArticleUrl = ReadingListManager.normalizeUrlForTracking(article.url)
+
       const recommendation: Recommendation = {
         id: `rec-${now}-${index}`,
-        url: article.url,
+        url: normalizedArticleUrl,
         title: article.title,
         // 优先使用 AI 摘要
         // 如果没有，使用 keyPoints 但跳过第一项（第一项是标题，会重复）
         summary: article.aiAnalysis?.summary || (article.keyPoints && article.keyPoints.length > 1 ? article.keyPoints.slice(1).join('\n') : '') || '',
-        source: this.extractSourceFromUrl(article.url),
+        source: this.extractSourceFromUrl(normalizedArticleUrl),
         sourceUrl: feedUrl,  // Phase 6: 使用准确的 feed URL
         recommendedAt: now,
         score: article.score,
@@ -837,7 +848,8 @@ export class RecommendationService {
 
       recommendations.push(recommendation)
       currentPool.push(recommendation) // 加入当前池（用于后续比较）
-      existingUrls.add(article.url) // 防止本批次内重复
+      // 使用规范化URL防止本批次内重复（原始URL和翻译URL视为同一篇）
+      existingUrls.add(ReadingListManager.normalizeUrlForTracking(article.url))
     }
 
     if (recommendations.length === 0) {
