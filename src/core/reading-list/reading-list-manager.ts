@@ -153,15 +153,16 @@ export class ReadingListManager {
       let urlToSave = recommendation.url
       let titleToSave = recommendation.title
       
-      // 如果订阅源禁用了谷歌翻译，直接使用原文
+      // Bug #1 修复：当订阅源禁用了谷歌翻译时，无论自动翻译开关如何，都必须使用原文链接
       if (!feedUseGoogleTranslate) {
         rlLogger.info('订阅源禁用谷歌翻译，使用原文链接', {
           url: recommendation.url,
-          source: recommendation.source
+          source: recommendation.source,
+          autoTranslateEnabled,  // 记录自动翻译设置，即使被忽略
         })
         // 在原文链接上附加推荐ID
         urlToSave = ReadingListManager.appendRecommendationId(urlToSave, recommendation.id!)
-      } else if (autoTranslateEnabled && feedUseGoogleTranslate && recommendation.translation) {
+      } else if (autoTranslateEnabled && recommendation.translation) {
         // 如果启用自动翻译、订阅源允许翻译且存在翻译数据（说明文章语言和界面语言不同）
         // 生成谷歌翻译链接
         const originalWithRec = ReadingListManager.appendRecommendationId(recommendation.url, recommendation.id!)
