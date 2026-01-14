@@ -22,15 +22,32 @@ export class FeedManager {
    * 规范化 URL 用于去重比较
    * 
    * 规则：
-   * 1. 移除尾部的 '/'
-   * 2. 移除尾部的 index.html、index.xml、index.rss 等索引文件
+   * 1. 转换谷歌翻译 URL 为原始 URL
+   * 2. 移除尾部的 '/'
+   * 3. 移除尾部的 index.html、index.xml、index.rss 等索引文件
    * 
-   * @param url - 原始 URL
+   * @param url - 原始 URL（可能包含翻译链接）
    * @returns 规范化后的 URL
    */
   private normalizeUrlForDedup(url: string): string {
     try {
-      const urlObj = new URL(url)
+      let normalizedUrl = url
+      
+      // 1. 首先转换谷歌翻译 URL
+      try {
+        const urlObj = new URL(url)
+        if (urlObj.hostname.endsWith('.translate.goog')) {
+          const originalUrl = this.convertTranslateUrl(urlObj)
+          if (originalUrl) {
+            normalizedUrl = originalUrl
+          }
+        }
+      } catch {
+        // 继续使用原始 URL
+      }
+      
+      // 2. 规范化 URL
+      const urlObj = new URL(normalizedUrl)
       let pathname = urlObj.pathname
       
       // 移除尾部的 '/'
@@ -44,6 +61,41 @@ export class FeedManager {
     } catch {
       // 如果 URL 无效，返回原始 URL
       return url
+    }
+  }
+  
+  /**
+   * 转换谷歌翻译 URL 为原始 URL
+   * 
+   * @param translateUrl - 翻译后的 URL
+   * @returns 原始 URL 或 null
+   */
+  private convertTranslateUrl(translateUrl: URL): string | null {
+    try {
+      const hostname = translateUrl.hostname
+      const translatedDomain = hostname.replace('.translate.goog', '')
+      
+      // 策略：将 "--" 替换为临时占位符，"-" 替换为 "."，再将占位符替换回 "-"
+      const placeholder = '\x00'
+      const originalDomain = translatedDomain
+        .replace(/--/g, placeholder)
+        .replace(/-/g, '.')
+        .replace(new RegExp(placeholder, 'g'), '-')
+      
+      const originalUrl = new URL(translateUrl.pathname, `https://${originalDomain}`)
+      
+      // 保留非翻译相关的查询参数
+      const params = new URLSearchParams(translateUrl.search)
+      const translateParams = ['_x_tr_sl', '_x_tr_tl', '_x_tr_hl', '_x_tr_pto', '_x_tr_hist']
+      translateParams.forEach(param => params.delete(param))
+      
+      if (params.toString()) {
+        originalUrl.search = params.toString()
+      }
+      
+      return originalUrl.href
+    } catch {
+      return null
     }
   }
   
@@ -168,10 +220,17 @@ export class FeedManager {
   /**
    * 通过 URL 获取源
    * 
-   * @param url - RSS URL
+   * @param url - RSS URL（可能包含翻译链接）
    */
   async getFeedByUrl(url: string): Promise<DiscoveredFeed | undefined> {
-    return await db.discoveredFeeds.where('url').equals(url).first()
+    // 规范化输入 URL 用于比较
+    const normalizedInputUrl = this.normalizeUrlForDedup(url)
+    
+    // 获取所有源，比较规范化后的 URL
+    const allFeeds = await db.discoveredFeeds.toArray()
+    return allFeeds.find(feed => 
+      this.normalizeUrlForDedup(feed.url) === normalizedInputUrl
+    )
   }
   
   /**

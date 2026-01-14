@@ -715,12 +715,33 @@ describe('FeedManager', () => {
         recommendedCount: 0
       }
       
-      const mockFirst = vi.fn().mockResolvedValue(mockFeed)
-      const mockEquals = vi.fn().mockReturnValue({ first: mockFirst })
-      const mockWhere = vi.fn().mockReturnValue({ equals: mockEquals })
-      vi.mocked(db.discoveredFeeds.where).mockReturnValue(mockWhere() as any)
+      // Mock toArray 返回包含该源的列表
+      vi.mocked(db.discoveredFeeds.toArray).mockResolvedValue([mockFeed])
       
       const feed = await feedManager.getFeedByUrl('https://example.com/feed.xml')
+      
+      expect(feed).toEqual(mockFeed)
+    })
+
+    it('应该通过规范化 URL 匹配翻译链接', async () => {
+      const mockFeed: DiscoveredFeed = {
+        id: 'test-id',
+        url: 'https://example.com/feed.xml',
+        title: 'Test Feed',
+        status: 'candidate',
+        discoveredFrom: 'https://example.com',
+        discoveredAt: Date.now(),
+        isActive: true,
+        articleCount: 0,
+        unreadCount: 0,
+        recommendedCount: 0
+      }
+      
+      // Mock toArray 返回包含该源的列表
+      vi.mocked(db.discoveredFeeds.toArray).mockResolvedValue([mockFeed])
+      
+      // 使用翻译 URL 查询，应该找到原始 URL 的源
+      const feed = await feedManager.getFeedByUrl('https://example-com.translate.goog/feed.xml')
       
       expect(feed).toEqual(mockFeed)
     })
