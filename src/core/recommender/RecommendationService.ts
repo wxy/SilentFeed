@@ -522,36 +522,16 @@ export class RecommendationService {
         }
       }
 
-      // 8. 根据投递模式处理
-      if (recommendations.length > 0) {
-        const interfaceLanguage = typeof navigator !== 'undefined' ? navigator.language : 'zh-CN'
-
-        // 阅读清单模式：静默保存
-        if (deliveryMode === 'readingList' && ReadingListManager.isAvailable()) {
-          const titlePrefix = recommendationConfig.readingList?.titlePrefix || '🤫 '
-          for (const rec of recommendations) {
-            try {
-              await ReadingListManager.saveRecommendation(
-                rec,
-                uiConfig.autoTranslate,
-                interfaceLanguage,
-                titlePrefix
-              )
-            } catch (error) {
-              recLogger.warn('保存到阅读列表失败（已忽略）', { id: rec.id, error })
-            }
-          }
-        }
-
-        // 弹窗模式（或降级回弹窗）依旧发送通知
-        if (deliveryMode === 'popup') {
-          const topRecommendation = recommendations[0]
-          await sendRecommendationNotification(recommendations.length, {
-            title: topRecommendation.title,
-            source: topRecommendation.source,
-            url: topRecommendation.url
-          })
-        }
+      // 8. 仅在弹窗模式下发送通知
+      // Phase 15: 简化设计 - 阅读清单模式不在此处理
+      // 阅读清单的投递由 background.ts 的模式切换逻辑处理
+      if (recommendations.length > 0 && deliveryMode === 'popup') {
+        const topRecommendation = recommendations[0]
+        await sendRecommendationNotification(recommendations.length, {
+          title: topRecommendation.title,
+          source: topRecommendation.source,
+          url: topRecommendation.url
+        })
       }
 
       return {

@@ -1259,32 +1259,61 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               await saveRecommendationConfig(newConfig)
               bgLogger.info(`📮 推荐投递模式切换: ${prevMode} → ${deliveryMode}`)
 
-              // 仅转移由扩展自动添加的条目（🤫 前缀）
-              // 用户手动保存的"稍后读"条目（📌 前缀）不转移
               const autoAddedPrefix = '🤫 '
 
-              // 转移逻辑
+              // Phase 15: 简化设计 - 直接使用弹窗已处理的 URL 和标题
               if (deliveryMode === 'readingList' && ReadingListManager.isAvailable()) {
-                // 将当前弹窗内活跃推荐转移到阅读列表（非"稍后读"的条目）
+                // 1. 获取当前弹窗中活跃的推荐
                 const activeRecs = await db.recommendations
                   .filter(rec => {
                     const isActive = !rec.status || rec.status === 'active'
-                    const isUnreadAndNotDismissed = !rec.isRead && rec.feedback !== 'dismissed'
-                    // 排除已标记为"稍后读"的条目（feedback === 'later'）
-                    const isNotLater = rec.feedback !== 'later'
-                    return isActive && isUnreadAndNotDismissed && isNotLater
+                    const isUnread = !rec.isRead
+                    const notDismissed = rec.feedback !== 'dismissed'
+                    const notLater = rec.feedback !== 'later'
+                    return isActive && isUnread && notDismissed && notLater
                   })
                   .toArray()
 
+                // 2. 获取配置
                 const uiConfigResult = await chrome.storage.sync.get('ui_config')
                 const autoTranslate = !!(uiConfigResult?.ui_config?.autoTranslate)
                 const interfaceLanguage = typeof navigator !== 'undefined' ? navigator.language : 'zh-CN'
 
+                // 3. 使用统一的 URL 决策函数（复用弹窗逻辑）
+                const { decideUrlForReadingListEntry } = await import('@/utils/recommendation-display')
+
                 let transferred = 0
                 for (const rec of activeRecs) {
                   try {
-                    const ok = await ReadingListManager.saveRecommendation(rec, autoTranslate, interfaceLanguage, autoAddedPrefix)
-                    if (ok) transferred++
+                    // 决策最终显示的 URL 和标题
+                    const { url, title } = await decideUrlForReadingListEntry(rec, {
+                      autoTranslate,
+                      interfaceLanguage
+                    })
+
+                    // 添加到阅读清单
+                    const finalTitle = `${autoAddedPrefix}${title}`
+                    const ok = await ReadingListManager.addToReadingList(finalTitle, url, rec.isRead)
+
+                    if (ok) {
+                      // 记录映射关系
+                      const normalizedUrl = ReadingListManager.normalizeUrlForTracking(url)
+                      await db.readingListEntries.put({
+                        normalizedUrl,
+                        url,
+                        recommendationId: rec.id,
+                        addedAt: Date.now(),
+                        titlePrefix: autoAddedPrefix
+                      })
+
+                      // 标记推荐为在清单中
+                      await db.recommendations.update(rec.id, {
+                        displayLocation: 'readingList'
+                      })
+
+                      transferred++
+                      bgLogger.debug('已转移到阅读清单', { id: rec.id, title })
+                    }
                   } catch (err) {
                     bgLogger.warn('转移到阅读列表失败（忽略）', { id: rec.id, err })
                   }
@@ -1294,48 +1323,45 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 recommendationScheduler.triggerNow().catch(() => {})
                 sendResponse({ success: true, transferred })
               } else if (deliveryMode === 'popup') {
-                // 从阅读列表移除仅由扩展自动添加的条目（🤫 前缀），保留用户手动的"稍后读"（📌 前缀）
-                try {
-                  const entries = await chrome.readingList.query({})
-                  // 仅移除自动添加的前缀条目
-                  const autoAddedEntries = entries.filter(e => e.title?.startsWith(autoAddedPrefix))
-                  let removed = 0
-                  for (const entry of autoAddedEntries) {
+                // 1. 查询阅读清单中由扩展管理的条目
+                const entries = await chrome.readingList.query({})
+                const ourEntries = entries.filter(e => e.title?.startsWith(autoAddedPrefix))
+
+                let removed = 0
+                for (const entry of ourEntries) {
+                  try {
+                    // 2. 从阅读清单删除
+                    await ReadingListManager.removeFromReadingList(entry.url)
+
+                    // 3. 恢复推荐到弹窗模式
                     try {
-                      await chrome.readingList.removeEntry({ url: entry.url })
-                      // Bug #2 修复：使用 normalizedUrl 而不是 url 查询数据库
-                      // readingListEntries 表的主键是 normalizedUrl，不是 url
-                      try {
-                        // 计算该条目的规范化 URL，用于数据库查询
-                        const normalizedUrl = ReadingListManager.normalizeUrlForTracking(entry.url)
-                        const rlEntry = await db.readingListEntries.get(normalizedUrl)
-                        if (rlEntry?.recommendationId) {
-                          // 恢复推荐到活跃状态
-                          await db.recommendations.update(rlEntry.recommendationId, {
-                            savedToReadingList: false,
-                            status: 'active'
-                          })
-                          bgLogger.info('已恢复推荐到弹窗模式', {
-                            recommendationId: rlEntry.recommendationId,
-                            normalizedUrl
-                          })
-                        }
-                        await db.readingListEntries.delete(normalizedUrl)
-                      } catch (err) {
-                        bgLogger.warn('恢复推荐状态失败（忽略）', { url: entry.url, err })
+                      const normalizedUrl = ReadingListManager.normalizeUrlForTracking(entry.url)
+                      const rlEntry = await db.readingListEntries.get(normalizedUrl)
+
+                      if (rlEntry?.recommendationId) {
+                        await db.recommendations.update(rlEntry.recommendationId, {
+                          displayLocation: 'popup'
+                        })
+
+                        bgLogger.info('已恢复推荐到弹窗模式', {
+                          recommendationId: rlEntry.recommendationId
+                        })
                       }
+
+                      // 4. 清理映射关系
+                      await db.readingListEntries.delete(normalizedUrl)
                       removed++
                     } catch (err) {
-                      bgLogger.warn('移除阅读列表条目失败（忽略）', { url: entry.url, err })
+                      bgLogger.warn('恢复推荐状态失败（忽略）', { url: entry.url, err })
                     }
+                  } catch (err) {
+                    bgLogger.warn('删除阅读列表条目失败（忽略）', { url: entry.url, err })
                   }
-                  // 触发推荐生成填充弹窗
-                  recommendationScheduler.triggerNow().catch(() => {})
-                  sendResponse({ success: true, removed })
-                } catch (err) {
-                  bgLogger.error('处理阅读列表转移失败:', err)
-                  sendResponse({ success: false, error: String(err) })
                 }
+
+                // 触发推荐生成填充弹窗
+                recommendationScheduler.triggerNow().catch(() => {})
+                sendResponse({ success: true, removed })
               } else {
                 sendResponse({ success: true })
               }
