@@ -1,0 +1,134 @@
+## 🐛 问题描述
+
+在弹窗模式和阅读清单模式之间切换时，推荐条目的 URL 处理存在混乱：
+
+1. **切换到阅读清单模式时**：
+   - 推荐条目会被转移到阅读清单
+   - 但链接类型（翻译/原文）出现错误
+   - 应使用翻译链接的反而使用原文链接
+   - 不该使用翻译链接的反而使用了翻译链接
+
+2. **再次切换回弹窗模式时**：
+   - 这些条目从阅读清单消失
+   - 推荐也未能正确恢复到弹窗
+
+## 🔍 根本原因
+
+在 `background.ts` 的 `DELIVERY_MODE_CHANGED` 消息处理中：
+
+```typescript
+for (const rec of activeRecs) {
+  try {
+    const ok = await ReadingListManager.saveRecommendation(rec, autoTranslate, interfaceLanguage, autoAddedPrefix)
+    // ...
+  }
+}
+```
+
+`saveRecommendation` 方法内部会：
+1. 重新查询订阅源的翻译设置（`useGoogleTranslate`）
+2. 基于新查询的设置重新决策 URL（翻译链接 vs 原文链接）
+
+**问题**：每次查询的订阅源设置可能与推荐生成时不一致，导致 URL 决策错误。例如：
+- 推荐生成时订阅源允许翻译 → 生成了翻译链接
+- 模式切换时重新查询发现订阅源禁用翻译 → 使用原文链接 ❌
+- 结果：链接类型不一致，导致查询失败和条目丢失
+
+## ✅ 解决方案
+
+### 1. 为 `saveRecommendation` 添加可选参数
+
+在 [reading-list-manager.ts](src/core/reading-list/reading-list-manager.ts) 中：
+
+```typescript
+static async saveRecommendation(
+  recommendation: Recommendation,
+  autoTranslateEnabled: boolean = false,
+  interfaceLanguage: string = 'zh-CN',
+  titlePrefix: string = '🤫 ',
+  feedUseGoogleTranslate?: boolean  // 新增可选参数
+): Promise<boolean>
+```
+
+- 允许调用者直接传入订阅源的翻译设置
+- 如果传入，则优先使用，避免重复查询
+- 如果未传入，则回退到原有的查询逻辑（向后兼容）
+
+### 2. 批量预查询订阅源设置
+
+在 [background.ts](src/background.ts) 的 `DELIVERY_MODE_CHANGED` 处理中：
+
+```typescript
+// 批量获取所有订阅源的翻译设置，避免重复查询和决策不一致
+const feedManager = new FeedManager()
+const feedTranslateSettings = new Map<string, boolean>()
+
+// 收集所有唯一的 sourceUrl
+const uniqueSourceUrls = [...new Set(activeRecs.map(r => r.sourceUrl).filter(Boolean))] as string[]
+
+// 批量查询订阅源设置
+for (const sourceUrl of uniqueSourceUrls) {
+  try {
+    const feed = await feedManager.getFeedByUrl(sourceUrl)
+    if (feed) {
+      feedTranslateSettings.set(sourceUrl, feed.useGoogleTranslate !== false)
+    }
+  } catch (err) {
+    feedTranslateSettings.set(sourceUrl, true) // 默认允许翻译
+  }
+}
+```
+
+### 3. 转移时传入订阅源设置
+
+```typescript
+for (const rec of activeRecs) {
+  try {
+    // 获取该推荐对应的订阅源翻译设置
+    const feedUseGoogleTranslate = rec.sourceUrl 
+      ? (feedTranslateSettings.get(rec.sourceUrl) ?? true)
+      : true
+    
+    const ok = await ReadingListManager.saveRecommendation(
+      rec, 
+      autoTranslate, 
+      interfaceLanguage, 
+      autoAddedPrefix,
+      feedUseGoogleTranslate // 传入订阅源翻译设置
+    )
+    if (ok) transferred++
+  } catch (err) {
+    bgLogger.warn('转移到阅读列表失败（忽略）', { id: rec.id, err })
+  }
+}
+```
+
+## 🧪 测试验证
+
+- ✅ 所有 `reading-list` 测试通过（59 个测试）
+- ✅ `background` 测试通过（5 个测试）
+- ✅ URL 规范化测试覆盖多种翻译链接格式
+- ✅ 模式切换测试验证 Bug #2 修复
+
+## 📋 影响范围
+
+- **核心修改**：
+  - `src/core/reading-list/reading-list-manager.ts`: 添加可选参数，优化订阅源设置查询逻辑
+  - `src/background.ts`: 批量预查询订阅源设置，确保模式切换时 URL 决策一致
+
+- **向后兼容**：
+  - 新参数为可选，现有调用无需修改
+  - 未传入参数时保持原有行为
+
+- **性能优化**：
+  - 批量查询订阅源设置，减少数据库查询次数
+  - 避免模式切换时重复查询同一订阅源
+
+## 🔗 相关
+
+- 关联 PR #108（之前的阅读清单修复）
+- 修复了 PR #108 未完全解决的模式切换问题
+
+---
+
+这是一个 **bug 修复**（patch 级别），解决了阅读清单模式切换时的 URL 混乱问题。

@@ -171,6 +171,69 @@ export class ReadingListManager {
   }
 
   /**
+   * Phase 15: 简化方法 - 直接添加到阅读清单
+   * 
+   * 用于阅读清单模式，直接添加已处理好的 URL 和标题
+   * 避免重复的 URL 决策逻辑
+   * 
+   * @param title - 显示标题（已包含前缀和翻译）
+   * @param url - 显示URL（已决策为原文或翻译链接）
+   * @param hasBeenRead - 是否已读
+   * @returns 是否成功
+   */
+  static async addToReadingList(
+    title: string,
+    url: string,
+    hasBeenRead: boolean = false
+  ): Promise<boolean> {
+    if (!this.isAvailable()) {
+      const compatInfo = getBrowserCompatInfo()
+      rlLogger.warn('当前浏览器不支持阅读列表功能', {
+        browser: compatInfo.browser,
+        version: compatInfo.version,
+      })
+      return false
+    }
+
+    try {
+      await chrome.readingList.addEntry({
+        title,
+        url,
+        hasBeenRead
+      })
+
+      rlLogger.debug('已添加到阅读清单', { title, url })
+      return true
+    } catch (error) {
+      rlLogger.error('添加到阅读列表失败', { title, url, error })
+      return false
+    }
+  }
+
+  /**
+   * Phase 15: 简化方法 - 从阅读清单删除条目
+   * 
+   * @param url - 条目URL
+   * @returns 是否成功
+   */
+  static async removeFromReadingList(url: string): Promise<boolean> {
+    if (!this.isAvailable()) {
+      return false
+    }
+
+    try {
+      await chrome.readingList.removeEntry({ url })
+      rlLogger.debug('已从阅读清单删除', { url })
+      return true
+    } catch (error) {
+      rlLogger.error('从阅读列表删除失败', { url, error })
+      return false
+    }
+  }
+
+  /**
+   * @deprecated 使用 addToReadingList 代替
+   * 
    * 将推荐文章保存到 Chrome 阅读列表
    * @param recommendation 推荐条目
    * @param autoTranslateEnabled 是否启用自动翻译
