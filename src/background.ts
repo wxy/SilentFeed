@@ -1225,23 +1225,43 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             const { targetMode } = message as { type: string; targetMode: 'popup' | 'readingList' }
             bgLogger.info(`🔄 清理模式切换遗留数据，目标模式: ${targetMode}`)
             
-            // 清理 recommendations 表中的旧推荐
-            const cleaned = await db.recommendations
+            // 1. 先获取要清理的推荐列表（需要同步更新 feedArticles）
+            const recsToClean = await db.recommendations
               .filter(rec => {
                 const isActive = !rec.status || rec.status === 'active'
                 const isUnreadAndNotDismissed = !rec.isRead && rec.feedback !== 'dismissed'
                 return isActive && isUnreadAndNotDismissed
               })
-              .modify({ status: 'expired' })
+              .toArray()
             
-            bgLogger.info(`✅ 已清理 ${cleaned} 条旧推荐，推荐池已释放`)
+            const now = Date.now()
+            
+            // 2. 同时更新 recommendations 和 feedArticles 两个表
+            await db.transaction('rw', [db.recommendations, db.feedArticles], async () => {
+              // 更新 recommendations 表
+              for (const rec of recsToClean) {
+                await db.recommendations.update(rec.id, { status: 'expired' })
+                
+                // 同步更新 feedArticles 表的 poolStatus
+                const article = await db.feedArticles.where('link').equals(rec.url).first()
+                if (article) {
+                  await db.feedArticles.update(article.id, {
+                    poolStatus: 'exited',
+                    poolExitedAt: now,
+                    poolExitReason: 'expired'
+                  })
+                }
+              }
+            })
+            
+            bgLogger.info(`✅ 已清理 ${recsToClean.length} 条旧推荐，推荐池已同步释放`)
             
             // 立即触发一次新推荐生成
             recommendationScheduler.triggerNow().catch(error => {
               bgLogger.error('强制生成推荐失败:', error)
             })
             
-            sendResponse({ success: true, cleaned })
+            sendResponse({ success: true, cleaned: recsToClean.length })
           } catch (error) {
             bgLogger.error('❌ 清理模式切换数据失败:', error)
             sendResponse({ success: false, error: String(error) })
