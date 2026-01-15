@@ -35,8 +35,8 @@
 ### 第 2 张：RSS 设置与源级翻译（⭐ 最重要 - v0.5.1 核心新功能）
 
 - **文件名**: 
-  - `screenshot-2-rss-settings-en.png` (全球可用)
-  - `screenshot-2-rss-settings-zh.png` (中文版)
+  - `screenshot-2-rss-settings-en.png` (全球可用) ✅
+  - `screenshot-2-rss-settings-cn.png` (中文版) ✅
 - **尺寸**: 1280×800
 - **显示内容**:
   - RSS 订阅源列表
@@ -58,8 +58,8 @@
 ### 第 3 张：兴趣画像
 
 - **文件名**: 
-  - `screenshot-3-profile-en.png` (全球可用)
-  - `screenshot-3-profile-zh.png` (中文版)
+  - `screenshot-3-profile-en.png` (全球可用) ✅
+  - `screenshot-3-profile-cn.png` (中文版) ✅
 - **尺寸**: 1280×800
 - **显示内容**:
   - AI 兴趣总结（自然语言）
@@ -75,8 +75,8 @@
 ### 第 4 张：AI 配置与成本控制
 
 - **文件名**: 
-  - `screenshot-4-ai-config-en.png` (全球可用)
-  - `screenshot-4-ai-config-zh.png` (中文版)
+  - `screenshot-4-ai-config-en.png` (全球可用) ✅
+  - `screenshot-4-ai-config-cn.png` (中文版) ✅
 - **尺寸**: 1280×800
 - **显示内容**:
   - AI 引擎选择（DeepSeek/OpenAI/Ollama 等）
@@ -91,8 +91,8 @@
 ### 第 5 张：推荐漏斗统计（多池架构）
 
 - **文件名**: 
-  - `screenshot-5-funnel-stats-en.png` (全球可用)
-  - `screenshot-5-funnel-stats-zh.png` (中文版)
+  - `screenshot-5-funnel-stats-en.png` (全球可用) ✅
+  - `screenshot-5-funnel-stats-cn.png` (中文版) ✅
 - **尺寸**: 1280×800
 - **显示内容**:
   - 推荐漏斗恒等式
@@ -106,87 +106,25 @@
 
 ---
 
-## 📚 项目文档中的补充截图（非 Web Store）
+## � 最终截图清单（v0.5.3 发布）
 
-这些截图可放在项目文档中，不用上传 Web Store：
-
-| 序号 | 名称 | 用途 |
-|------|------|------|
-| 6 | 冷启动进度 | USER_GUIDE.md 首次使用部分 |
-| 7 | 阅读清单模式 | USER_GUIDE.md 高级功能部分 |
-| 8 | 推荐分析呼吸效果 | GIF 动画（可选装饰） |
-| 9 | Google Translate 流程图 | RELEASE_0.5.1.md 说明 |
-
----
-
-## 🗑️ 旧截图处理
-
-### 当前现存文件
-```
-docs/assets/screenshots/
-├── README.md
-├── screenshot-1-recommendations-cn.png ✓ 保留（v0.3.6 版本）
-├── screenshot-1-recommendations-en.png ✓ 保留（v0.3.6 版本）
-├── screenshot-2-system-data-cn.png → 替换为 rss-settings
-├── screenshot-2-system-data-en.png → 替换为 rss-settings
-├── screenshot-3-profile-cn.png ✓ 保留
-├── screenshot-3-profile-en.png ✓ 保留
-├── screenshot-4-rss-settings-cn.png → 替换为 ai-config
-├── screenshot-4-rss-settings-en.png → 替换为 ai-config
-├── screenshot-5-ai-config-cn.png → 替换为 funnel-stats
-├── screenshot-5-ai-config-en.png → 替换为 funnel-stats
-├── popup-recommendations-cn.png → 归档
-├── popup-recommendations-en.png → 归档
-├── promo-tile-small-440x280.png ✓ 保留（Web Store 用）
-├── marquee-1400x560.png ✓ 保留（Web Store 用）
-├── settings-profile-cn.png → 归档
-└── settings-profile-en.png → 归档
-```
-
-### 处理策略
-
-**替换**（不删除旧文件，直接覆盖）:
-```bash
-# 拍摄新截图时，命名为相同文件名
-screenshot-1-recommendations-en.png  # 新 v0.5.1 推荐界面
-screenshot-2-rss-settings-en.png     # 新 RSS 设置（彩色方块）
-screenshot-4-ai-config-en.png        # 新 AI 配置
-# ... 等等
-```
-
-**优点**:
-- 无需删除操作
-- Git 会自动跟踪变更
-- 提交时清晰显示"update"而非"delete + add"
-- 保留版本历史（可回溯）
-
----
-
-## 🎯 截图拍摄优先级建议
-
-### 立即拍摄（今天）- 用于发布
-5 张截图满足 Chrome Web Store 要求 + 所有文档需求：
+### 已完成的 10 张截图 ✅
 
 **英文版本**（全球可用）:
 1. ✅ `screenshot-1-recommendations-en.png` 
-2. ✅ `screenshot-2-rss-settings-en.png` ⭐ **最重要**
+2. ✅ `screenshot-2-rss-settings-en.png` 
 3. ✅ `screenshot-3-profile-en.png`
 4. ✅ `screenshot-4-ai-config-en.png`
 5. ✅ `screenshot-5-funnel-stats-en.png`
 
 **中文版本**（中文版 Web Store）:
-1. ✅ `screenshot-1-recommendations-zh.png` 
-2. ✅ `screenshot-2-rss-settings-zh.png` ⭐ **最重要**
-3. ✅ `screenshot-3-profile-zh.png`
-4. ✅ `screenshot-4-ai-config-zh.png`
-5. ✅ `screenshot-5-funnel-stats-zh.png`
+1. ✅ `screenshot-1-recommendations-cn.png` 
+2. ✅ `screenshot-2-rss-settings-cn.png` 
+3. ✅ `screenshot-3-profile-cn.png`
+4. ✅ `screenshot-4-ai-config-cn.png`
+5. ✅ `screenshot-5-funnel-stats-cn.png`
 
-**总计**: 10 张截图（5 英文 + 5 中文）
-
-### 稍后补充（可选，文档用）
-- 冷启动进度
-- 阅读清单模式
-- 其他装饰性截图
+**总计**: 10 张截图（5 英文 + 5 中文）✅ **完成**
 
 ---
 

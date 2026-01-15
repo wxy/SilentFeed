@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.5.3] - 2026-01-15
+
+### Fixed
+
+- **Reading List Translation Link Recognition (Bug #1)**
+  - Fixed URL normalization to correctly identify translated links
+  - Unified handling of Google Translate, translate.goog, and original URLs
+  - Improved mode switching to correctly restore recommendations
+  
+- **Reading List Mode Switching Issues (Bug #2)**
+  - Fixed recommendation recovery when switching from reading list back to popup mode
+  - Improved duplicate detection using normalized URLs
+  - Enhanced error handling in `saveRecommendation()` for edge cases
+  
+- **Development Environment Configuration**
+  - Fixed Vitest task runner Node version mismatch (v20.9.0 → v22.15.1)
+  - Added nvm initialization to `~/.zprofile` for consistent shell environments
+  - Updated VS Code task configuration to use non-login shell execution
+
+### Changed
+
+- **URL Decision Logic Refactoring**
+  - Unified URL decision logic for popup and reading list modes
+  - Consolidated translation strategy handling at feed, config, and content levels
+  - Improved fallback handling to ensure valid URLs in all error scenarios
+
 ## [0.5.1] - 2026-01-14
 
 ### Added
