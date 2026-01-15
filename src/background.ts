@@ -1232,7 +1232,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 const isUnreadAndNotDismissed = !rec.isRead && rec.feedback !== 'dismissed'
                 return isActive && isUnreadAndNotDismissed
               })
-              .modify({ status: 'inactive' })
+              .modify({ status: 'expired' })
             
             bgLogger.info(`✅ 已清理 ${cleaned} 条旧推荐，推荐池已释放`)
             
