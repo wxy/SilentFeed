@@ -1386,8 +1386,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 sendResponse({ success: true })
               }
             } catch (error) {
-              bgLogger.error('❌ 模式切换处理失败:', error)
-              sendResponse({ success: false, error: String(error) })
+              // 详细的错误信息输出
+              const errorMessage = error instanceof Error ? error.message : String(error)
+              const errorName = error instanceof Error ? error.name : 'Unknown'
+              bgLogger.error('❌ 模式切换处理失败:', {
+                name: errorName,
+                message: errorMessage,
+                error
+              })
+              sendResponse({ success: false, error: errorMessage })
             }
           })()
           return true
