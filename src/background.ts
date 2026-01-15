@@ -24,6 +24,7 @@ import { aiManager } from './core/ai/AICapabilityManager'
 import { getAIConfig, saveAIConfig, isAIConfigured } from '@/storage/ai-config'
 import { getRecommendationConfig, saveRecommendationConfig } from '@/storage/recommendation-config'
 import { ReadingListManager } from './core/reading-list/reading-list-manager'
+import { decideUrlForReadingListEntry } from '@/utils/recommendation-display'
 import { processPageVisit, type PageVisitData } from './background/page-visit-handler'
 import { migrateStorageKeys, needsStorageKeyMigration } from '@/storage/migrations/storage-key-migration'
 import {
@@ -1298,9 +1299,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 const uiConfigResult = await chrome.storage.sync.get('ui_config')
                 const autoTranslate = !!(uiConfigResult?.ui_config?.autoTranslate)
                 const interfaceLanguage = typeof navigator !== 'undefined' ? navigator.language : 'zh-CN'
-
-                // 3. 使用统一的 URL 决策函数（复用弹窗逻辑）
-                const { decideUrlForReadingListEntry } = await import('@/utils/recommendation-display')
 
                 let transferred = 0
                 for (const rec of activeRecs) {
