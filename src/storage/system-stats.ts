@@ -297,21 +297,16 @@ async function collectStats(now: number, oneDayAgo: number, sevenDaysAgo: number
     const dismissed = recommendationStats.filter(r => r.feedback === 'dismissed').length
     const saved = recommendationStats.filter(r => r.feedback === 'later').length
     
-    // 访问记录统计（限制100条，用于计算平均值）
-    const visits = await db.confirmedVisits
-      .where('visitTime')
-      .above(oneDayAgo)
-      .limit(100)
-      .toArray()
+    // 计算推荐的平均阅读时长（从 recommendations.readDuration 获取）
+    const readRecs = recommendationStats.filter(r => r.isRead && r.readDuration)
+    const avgReadTime = readRecs.length > 0
+      ? readRecs.reduce((sum, r) => sum + (r.readDuration || 0), 0) / readRecs.length
+      : 0  // 没有阅读记录时返回 0，而不是默认 60
     
-    const avgReadTime = visits.length > 0
-      ? visits.reduce((sum, v) => sum + (v.duration || 0), 0) / visits.length / 1000
-      : 60
-    
-    // 计算活跃时段
+    // 计算活跃时段（从推荐点击时间统计）
     const hourCounts: Record<number, number> = {}
-    visits.forEach(v => {
-      const hour = new Date(v.visitTime).getHours()
+    recommendationStats.filter(r => r.clickedAt).forEach(r => {
+      const hour = new Date(r.clickedAt!).getHours()
       hourCounts[hour] = (hourCounts[hour] || 0) + 1
     })
     const peakUsageHour = Object.entries(hourCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 9
@@ -339,7 +334,7 @@ async function collectStats(now: number, oneDayAgo: number, sevenDaysAgo: number
         dismissed,
         saved,
         avgReadTime,
-        visitCount: visits.length,
+        visitCount: clicked,  // 使用推荐点击数代替所有访问数
         peakUsageHour: parseInt(String(peakUsageHour))
       },
       articles: {
