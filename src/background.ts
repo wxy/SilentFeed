@@ -24,6 +24,7 @@ import { aiManager } from './core/ai/AICapabilityManager'
 import { getAIConfig, saveAIConfig, isAIConfigured } from '@/storage/ai-config'
 import { getRecommendationConfig, saveRecommendationConfig } from '@/storage/recommendation-config'
 import { ReadingListManager } from './core/reading-list/reading-list-manager'
+import { decideUrlForReadingListEntry } from '@/utils/recommendation-display'
 import { processPageVisit, type PageVisitData } from './background/page-visit-handler'
 import { migrateStorageKeys, needsStorageKeyMigration } from '@/storage/migrations/storage-key-migration'
 import {
@@ -1225,23 +1226,43 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             const { targetMode } = message as { type: string; targetMode: 'popup' | 'readingList' }
             bgLogger.info(`🔄 清理模式切换遗留数据，目标模式: ${targetMode}`)
             
-            // 清理 recommendations 表中的旧推荐
-            const cleaned = await db.recommendations
+            // 1. 先获取要清理的推荐列表（需要同步更新 feedArticles）
+            const recsToClean = await db.recommendations
               .filter(rec => {
                 const isActive = !rec.status || rec.status === 'active'
                 const isUnreadAndNotDismissed = !rec.isRead && rec.feedback !== 'dismissed'
                 return isActive && isUnreadAndNotDismissed
               })
-              .modify({ status: 'inactive' })
+              .toArray()
             
-            bgLogger.info(`✅ 已清理 ${cleaned} 条旧推荐，推荐池已释放`)
+            const now = Date.now()
+            
+            // 2. 同时更新 recommendations 和 feedArticles 两个表
+            await db.transaction('rw', [db.recommendations, db.feedArticles], async () => {
+              // 更新 recommendations 表
+              for (const rec of recsToClean) {
+                await db.recommendations.update(rec.id, { status: 'expired' })
+                
+                // 同步更新 feedArticles 表的 poolStatus
+                const article = await db.feedArticles.where('link').equals(rec.url).first()
+                if (article) {
+                  await db.feedArticles.update(article.id, {
+                    poolStatus: 'exited',
+                    poolExitedAt: now,
+                    poolExitReason: 'expired'
+                  })
+                }
+              }
+            })
+            
+            bgLogger.info(`✅ 已清理 ${recsToClean.length} 条旧推荐，推荐池已同步释放`)
             
             // 立即触发一次新推荐生成
             recommendationScheduler.triggerNow().catch(error => {
               bgLogger.error('强制生成推荐失败:', error)
             })
             
-            sendResponse({ success: true, cleaned })
+            sendResponse({ success: true, cleaned: recsToClean.length })
           } catch (error) {
             bgLogger.error('❌ 清理模式切换数据失败:', error)
             sendResponse({ success: false, error: String(error) })
@@ -1278,9 +1299,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 const uiConfigResult = await chrome.storage.sync.get('ui_config')
                 const autoTranslate = !!(uiConfigResult?.ui_config?.autoTranslate)
                 const interfaceLanguage = typeof navigator !== 'undefined' ? navigator.language : 'zh-CN'
-
-                // 3. 使用统一的 URL 决策函数（复用弹窗逻辑）
-                const { decideUrlForReadingListEntry } = await import('@/utils/recommendation-display')
 
                 let transferred = 0
                 for (const rec of activeRecs) {
@@ -1366,8 +1384,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 sendResponse({ success: true })
               }
             } catch (error) {
-              bgLogger.error('❌ 模式切换处理失败:', error)
-              sendResponse({ success: false, error: String(error) })
+              // 详细的错误信息输出
+              const errorMessage = error instanceof Error ? error.message : String(error)
+              const errorName = error instanceof Error ? error.name : 'Unknown'
+              bgLogger.error('❌ 模式切换处理失败:', {
+                name: errorName,
+                message: errorMessage,
+                error
+              })
+              sendResponse({ success: false, error: errorMessage })
             }
           })()
           return true

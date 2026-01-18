@@ -12,6 +12,9 @@ const dbLogger = logger.withTag('DB')
 
 /**
  * 检查数据库版本（仅用于调试日志）
+ * 
+ * 注意：indexedDB.databases() 返回的版本号是浏览器内部维护的累积版本号，
+ * 可能与 Dexie 定义的版本号不同。这是正常现象，Dexie 会自动处理版本差异。
  */
 async function checkDatabaseVersion(): Promise<void> {
   try {
@@ -19,11 +22,11 @@ async function checkDatabaseVersion(): Promise<void> {
     const existingDB = dbs.find(d => d.name === 'SilentFeedDB')
     
     if (existingDB && existingDB.version) {
-      dbLogger.info(`现有数据库版本: ${existingDB.version}, 代码版本: 20`)
+      // 只在开发模式下输出详细日志
+      dbLogger.debug(`IndexedDB 内部版本: ${existingDB.version}, Dexie schema 版本: 20`)
       
-      if (existingDB.version > 16) {
-        dbLogger.warn('⚠️ 浏览器中的数据库版本较高，Dexie 将自动处理')
-      }
+      // 移除误导性的警告，因为版本差异是正常的
+      // Dexie 会根据 schema 定义自动处理版本升级
     }
   } catch (error) {
     dbLogger.debug('无法检查版本（可能是首次运行）:', error)
