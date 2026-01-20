@@ -29,6 +29,7 @@ import { resolveProvider } from '@/utils/ai-provider-resolver'
 import { FeedManager } from '@/core/rss/managers/FeedManager'
 import { logger } from '@/utils/logger'
 import { getCurrentStrategy } from '@/storage/strategy-storage'
+import { aiManager } from '@/core/ai/AICapabilityManager'
 import type { UserProfile } from '@/types/profile'
 import type { FeedArticle } from '@/types/rss'
 import type { RecommendationInput } from '@/types/recommendation'
@@ -204,7 +205,6 @@ export class AnalysisScheduler {
       }
 
       // 初始化 AI 管理器
-      const { aiManager } = await import('@/core/ai/AICapabilityManager')
       await aiManager.initialize()
 
       try {
