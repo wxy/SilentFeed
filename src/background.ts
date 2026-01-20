@@ -9,7 +9,8 @@ import { fetchFeed } from './background/feed-scheduler'
 import { 
   startAllSchedulers, 
   feedScheduler, 
-  recommendationScheduler, 
+  analysisScheduler,
+  refillScheduler,
   strategyReviewScheduler,
   reconfigureSchedulersForState 
 } from './background/index'
@@ -1135,17 +1136,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                   periodInMinutes: a.periodInMinutes
                 }))
               },
-              recommendationScheduler: {
-                name: '推荐生成',
-                nextRunTime: recommendationScheduler.nextRunTime,
-                alarms: alarms.filter(a => a.name === 'generate-recommendation').map(a => ({
+              analysisScheduler: {
+                name: '文章分析',
+                nextRunTime: analysisScheduler.nextRunTime,
+                alarms: alarms.filter(a => a.name === 'analyze-articles').map(a => ({
+                  name: a.name,
+                  scheduledTime: a.scheduledTime,
+                  periodInMinutes: a.periodInMinutes
+                }))
+              },
+              refillScheduler: {
+                name: '推荐池补充',
+                nextRunTime: refillScheduler.nextRunTime,
+                alarms: alarms.filter(a => a.name === 'refill-recommendation-pool').map(a => ({
                   name: a.name,
                   scheduledTime: a.scheduledTime,
                   periodInMinutes: a.periodInMinutes
                 }))
               },
               otherTasks: alarms.filter(a => 
-                !['fetch-feeds', 'generate-recommendation'].includes(a.name)
+                !['fetch-feeds', 'analyze-articles', 'refill-recommendation-pool'].includes(a.name)
               ).map(a => ({
                 name: a.name,
                 scheduledTime: a.scheduledTime,
@@ -1162,15 +1172,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         case 'GET_SCHEDULERS_STATUS':
           // 为推荐设置页面提供调度器状态
           try {
-            // 获取推荐调度器的当前间隔
             const alarms = await chrome.alarms.getAll()
-            const recAlarm = alarms.find(a => a.name === 'generate-recommendation')
+            const analysisAlarm = alarms.find(a => a.name === 'analyze-articles')
+            const refillAlarm = alarms.find(a => a.name === 'refill-recommendation-pool')
             
             sendResponse({
               success: true,
-              recommendation: {
-                nextRunTime: recommendationScheduler.nextRunTime,
-                currentIntervalMinutes: recAlarm?.periodInMinutes || 1
+              analysis: {
+                nextRunTime: analysisScheduler.nextRunTime,
+                currentIntervalMinutes: analysisAlarm?.periodInMinutes || 5
+              },
+              refill: {
+                nextRunTime: refillScheduler.nextRunTime,
+                currentIntervalMinutes: refillAlarm?.periodInMinutes || 5
               }
             })
           } catch (error) {
@@ -1257,9 +1271,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             
             bgLogger.info(`✅ 已清理 ${recsToClean.length} 条旧推荐，推荐池已同步释放`)
             
-            // 立即触发一次新推荐生成
-            recommendationScheduler.triggerNow().catch(error => {
-              bgLogger.error('强制生成推荐失败:', error)
+            // 立即触发分析和补充
+            analysisScheduler.triggerManual().catch(error => {
+              bgLogger.error('触发分析失败:', error)
+            })
+            refillScheduler.triggerManual().catch(error => {
+              bgLogger.error('触发补充失败:', error)
             })
             
             sendResponse({ success: true, cleaned: recsToClean.length })
@@ -1337,8 +1354,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                   }
                 }
 
-                // 触发一次推荐生成以填充池
-                recommendationScheduler.triggerNow().catch(() => {})
+                // 触发补充以填充池
+                refillScheduler.triggerManual().catch(() => {})
                 sendResponse({ success: true, transferred })
               } else if (deliveryMode === 'popup') {
                 // 1. 查询阅读清单中由扩展管理的条目
@@ -1377,8 +1394,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                   }
                 }
 
-                // 触发推荐生成填充弹窗
-                recommendationScheduler.triggerNow().catch(() => {})
+                // 触发补充以填充弹窗
+                refillScheduler.triggerManual().catch(() => {})
                 sendResponse({ success: true, removed })
               } else {
                 sendResponse({ success: true })
@@ -1552,6 +1569,7 @@ async function generateDailyPoolStrategy(): Promise<void> {
  * Phase 6/7: 定时器事件监听器
  * 处理推荐数量定期评估和推荐生成
  * Phase: 推荐系统重构 - 策略审查
+ * Phase: 双调度器架构 - 各调度器独立处理自己的 Alarm
  */
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   bgLogger.debug('定时器触发:', alarm.name)
@@ -1561,19 +1579,12 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       bgLogger.info('开始评估弹窗容量...')
       const newCount = await evaluateAndAdjust()
       bgLogger.info(`✅ 弹窗容量已调整为: ${newCount} 条`)
-    } else if (alarm.name === 'generate-recommendation') {
-      // Phase 7: 委托给 recommendationScheduler 处理
-      // Phase 5.2: 启动推荐分析动画（呼吸效果）
-      if (iconManager) {
-        iconManager.startAnalyzingAnimation()
-      }
-      
-      await recommendationScheduler.handleAlarm()
-      
-      // Phase 5.2: 停止推荐分析动画
-      if (iconManager) {
-        iconManager.stopAnalyzingAnimation()
-      }
+    } else if (alarm.name === 'analyze-articles') {
+      // 文章分析由 AnalysisScheduler 处理
+      bgLogger.debug('文章分析 Alarm（由 AnalysisScheduler 处理）')
+    } else if (alarm.name === 'refill-recommendation-pool') {
+      // 推荐池补充由 RefillScheduler 处理
+      bgLogger.debug('推荐池补充 Alarm（由 RefillScheduler 处理）')
       
       // 更新徽章显示新推荐
       await updateBadge()

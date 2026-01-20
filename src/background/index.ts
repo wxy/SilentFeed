@@ -4,12 +4,20 @@
  * Phase 7: 后台定时任务架构重构
  * Phase 9.1: 根据 Onboarding 状态控制任务执行
  * Phase: 推荐系统重构 - 多池架构 + 动态策略
+ * Phase: 双调度器架构 - 分析与补充职责分离
  * 
  * 提供统一的接口来启动、停止和管理所有后台调度器
+ * 
+ * 调度器架构：
+ * - FeedScheduler: RSS 源抓取
+ * - AnalysisScheduler: AI 分析原始文章 → 候选池
+ * - RefillScheduler: 从候选池补充 → 推荐池
+ * - StrategyReviewScheduler: 策略审查和更新
  */
 
 import { feedScheduler } from './feed-scheduler'
-import { recommendationScheduler } from './recommendation-scheduler'
+import { analysisScheduler } from './analysis-scheduler'
+import { refillScheduler } from './refill-scheduler'
 import { strategyReviewScheduler } from './strategy-review-scheduler'
 import { getOnboardingState } from '@/storage/onboarding-state'
 import { logger } from '@/utils/logger'
@@ -22,7 +30,11 @@ const bgLogger = logger.withTag('BackgroundSchedulers')
  * Phase 9.1: 根据 Onboarding 状态决定启动哪些调度器
  * - setup: 不启动任何调度器
  * - learning: 不启动任何调度器（学习阶段不需要抓取和推荐）
- * - ready: 启动 RSS 抓取 + 推荐生成
+ * - ready: 启动所有调度器
+ * 
+ * Phase: 双调度器架构
+ * - AnalysisScheduler: 分析原始文章
+ * - RefillScheduler: 补充推荐池
  */
 export async function startAllSchedulers(): Promise<void> {
   bgLogger.info('启动所有后台调度器...')
@@ -42,24 +54,31 @@ export async function startAllSchedulers(): Promise<void> {
       return
     }
     
-    // 只有 ready 状态才启动 RSS 抓取和推荐生成
+    // 只有 ready 状态才启动所有调度器
     if (status.state === 'ready') {
-      // 启动策略审查调度器（优先，因为它会生成初始策略）
+      // 1. 启动策略审查调度器（优先，因为它会生成初始策略）
       bgLogger.info('启动策略审查调度器...')
       
-      // 注册策略更新回调：通知推荐调度器
+      // 注册策略更新回调：通知分析和补充调度器
       strategyReviewScheduler.onStrategyUpdate(async (newStrategy) => {
-        bgLogger.info('策略已更新，通知推荐调度器...')
-        await recommendationScheduler.updateStrategy(newStrategy)
+        bgLogger.info('策略已更新，通知所有调度器...')
+        await analysisScheduler.updateStrategy(newStrategy)
+        await refillScheduler.updateStrategy(newStrategy)
       })
       
       await strategyReviewScheduler.start()
       
+      // 2. 启动 RSS 定时调度器
       bgLogger.info('启动 RSS 定时调度器...')
       feedScheduler.start(30) // 每 30 分钟检查一次
       
-      bgLogger.info('启动推荐生成调度器...')
-      await recommendationScheduler.start() // 使用策略参数
+      // 3. 启动文章分析调度器
+      bgLogger.info('启动文章分析调度器...')
+      await analysisScheduler.start()
+      
+      // 4. 启动推荐池补充调度器
+      bgLogger.info('启动推荐池补充调度器...')
+      await refillScheduler.start()
     }
     
     bgLogger.info('✅ 后台调度器启动完成')
@@ -77,7 +96,8 @@ export async function stopAllSchedulers(): Promise<void> {
   
   try {
     feedScheduler.stop()
-    await recommendationScheduler.stop()
+    await analysisScheduler.stop()
+    await refillScheduler.stop()
     await strategyReviewScheduler.stop()
     
     bgLogger.info('✅ 所有后台调度器已停止')
@@ -94,9 +114,16 @@ export function getAllSchedulersStatus(): {
   rss: {
     isRunning: boolean
   }
-  recommendation: {
+  analysis: {
     isRunning: boolean
-    config: any
+    isAnalyzing: boolean
+    adjustedInterval: number | null
+    nextRunTime: number | null
+  }
+  refill: {
+    isRunning: boolean
+    isRefilling: boolean
+    nextRunTime: number | null
   }
   strategy: {
     isRunning: boolean
@@ -108,7 +135,8 @@ export function getAllSchedulersStatus(): {
     rss: {
       isRunning: feedScheduler['isRunning'] || false
     },
-    recommendation: recommendationScheduler.getStatus(),
+    analysis: analysisScheduler.getStatus(),
+    refill: refillScheduler.getStatus(),
     strategy: strategyReviewScheduler.getStatus()
   }
 }
@@ -136,4 +164,4 @@ export async function reconfigureSchedulersForState(newState: 'setup' | 'learnin
 /**
  * 导出调度器实例（用于手动控制）
  */
-export { feedScheduler, recommendationScheduler, strategyReviewScheduler }
+export { feedScheduler, analysisScheduler, refillScheduler, strategyReviewScheduler }
