@@ -176,7 +176,7 @@ export class AnalysisScheduler {
 
       // 4. 获取 Feed 列表（用于冷启动判断）
       const feedManager = new FeedManager()
-      const feeds = await feedManager.getAllFeeds()
+      const feeds = await feedManager.getFeeds()
 
       // 5. 准备分析输入
       const input: RecommendationInput = {
@@ -184,10 +184,7 @@ export class AnalysisScheduler {
         userProfile,
         config: {
           ...recommendationConfig,
-          analysisEngine: aiConfig.analysisEngine,
-          selectedModel: aiConfig.selectedModel,
-          useLocalAI: aiConfig.analysisEngine === 'localAI',
-          qualityThreshold: strategy.strategy.recommendation.candidateThreshold
+          qualityThreshold: strategy.strategy.candidatePool.entryThreshold
         },
         options: {
           maxArticles: rawArticles.length
@@ -201,8 +198,8 @@ export class AnalysisScheduler {
       const duration = Date.now() - startTime
       schedLogger.info(`✅ AI 分析完成`, {
         '总文章数': rawArticles.length,
-        '进入候选池': result.articles.filter(a => a.score >= strategy.strategy.recommendation.candidateThreshold).length,
-        '不合格': result.articles.filter(a => a.score < strategy.strategy.recommendation.candidateThreshold).length,
+        '进入候选池': result.articles.filter(a => a.score >= strategy.strategy.candidatePool.entryThreshold).length,
+        '不合格': result.articles.filter(a => a.score < strategy.strategy.candidatePool.entryThreshold).length,
         '耗时': `${duration}ms`
       })
 
@@ -292,7 +289,7 @@ export class AnalysisScheduler {
    */
   async updateStrategy(strategy: any): Promise<void> {
     schedLogger.info('更新分析调度器策略', {
-      candidateThreshold: strategy.strategy.recommendation.candidateThreshold,
+      entryThreshold: strategy.strategy.candidatePool.entryThreshold,
       targetPoolSize: strategy.strategy.recommendation.targetPoolSize
     })
 

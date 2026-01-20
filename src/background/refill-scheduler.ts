@@ -23,7 +23,8 @@ import { ReadingListManager } from '@/core/reading-list/reading-list-manager'
 import { getUIConfig } from '@/storage/ui-config'
 import { IconManager } from '@/utils/IconManager'
 import { logger } from '@/utils/logger'
-import type { Recommendation, FeedArticle } from '@/types/database'
+import type { Recommendation } from '@/types/database'
+import type { FeedArticle } from '@/types/rss'
 
 const schedLogger = logger.withTag('RefillScheduler')
 
@@ -138,7 +139,7 @@ export class RefillScheduler {
       }
 
       const targetPoolSize = strategy.strategy.recommendation.targetPoolSize
-      const qualityThreshold = strategy.strategy.recommendation.candidateThreshold
+      const qualityThreshold = strategy.strategy.candidatePool.entryThreshold
 
       // 2. 检查当前推荐池状态
       const currentPool = await db.recommendations
@@ -159,11 +160,21 @@ export class RefillScheduler {
 
       // 3. 检查冷却期和每日限额
       const refillManager = getRefillManager()
-      const canRefill = await refillManager.canRefillNow()
+      const policy = refillManager.getPolicy()
+      const state = refillManager.getState()
       
-      if (!canRefill) {
-        const status = await refillManager.getRefillStatus()
-        schedLogger.info(`⏸️ 补充受限:`, status)
+      // 检查冷却期
+      const now = Date.now()
+      const timeSinceLastRefill = now - state.lastRefillTime
+      if (timeSinceLastRefill < policy.minInterval) {
+        schedLogger.info(`⏸️ 补充受限：冷却期未满 (${Math.round(timeSinceLastRefill / 60000)}/${Math.round(policy.minInterval / 60000)}分钟)`)
+        return
+      }
+      
+      // 检查每日限额
+      const today = new Date(now).toDateString()
+      if (state.currentDate === today && state.dailyRefillCount >= policy.maxDailyRefills) {
+        schedLogger.info(`⏸️ 补充受限：已达每日上限 (${state.dailyRefillCount}/${policy.maxDailyRefills})`)
         return
       }
 
@@ -188,7 +199,7 @@ export class RefillScheduler {
       await this.handleDisplayMode(recommendations)
 
       // 8. 更新徽章
-      await IconManager.updateBadgeForRecommendations()
+      await IconManager.updateIconState()
 
       const duration = Date.now() - startTime
       schedLogger.info(`✅ 推荐池补充完成`, {
@@ -216,14 +227,14 @@ export class RefillScheduler {
           // 必须还在源中
           if (a.inFeed === false) return false
           // 必须有评分且达到阈值
-          if (!a.analysis?.score || a.analysis.score < threshold) return false
+          if (!a.analysisScore || a.analysisScore < threshold) return false
           return true
         })
         .toArray()
 
       // 按评分降序排序，取前 N 篇
       const sorted = candidates.sort((a, b) => 
-        (b.analysis?.score || 0) - (a.analysis?.score || 0)
+        (b.analysisScore || 0) - (a.analysisScore || 0)
       )
 
       return sorted.slice(0, limit)
@@ -245,11 +256,11 @@ export class RefillScheduler {
         id: `rec-${article.id}-${now}`,
         url: article.link,
         title: article.title,
-        description: article.description || '',
+        summary: article.description || '',
         source: article.feedId || 'unknown',
         sourceUrl: article.link,
         recommendedAt: now,
-        score: article.analysis?.score || 0,
+        score: article.analysisScore || 0,
         isRead: false,
         status: 'active'
       }
@@ -274,22 +285,19 @@ export class RefillScheduler {
    */
   private async handleDisplayMode(recommendations: Recommendation[]): Promise<void> {
     try {
-      const uiConfig = await getUIConfig()
-      const displayMode = uiConfig.recommendationDisplay?.mode || 'popup'
+      const config = await getRecommendationConfig()
+      const displayMode = config.deliveryMode || 'popup'
 
       schedLogger.debug(`显示模式: ${displayMode}`)
 
       if (displayMode === 'readingList') {
         // 写入阅读清单
-        const readingListManager = new ReadingListManager()
-        
         for (const rec of recommendations) {
-          await readingListManager.addToReadingList({
-            url: rec.url,
-            title: rec.title,
-            description: rec.description,
-            source: 'recommendation'
-          })
+          await ReadingListManager.addToReadingList(
+            rec.title,
+            rec.url,
+            rec.isRead
+          )
         }
 
         schedLogger.info(`✅ 已将 ${recommendations.length} 条推荐写入阅读清单`)
@@ -333,7 +341,7 @@ export class RefillScheduler {
     // 更新 PoolRefillManager 的策略
     const refillManager = getRefillManager()
     refillManager.updatePolicy({
-      minIntervalMs: strategy.strategy.recommendation.cooldownMinutes * 60 * 1000,
+      minInterval: strategy.strategy.recommendation.cooldownMinutes * 60 * 1000,
       maxDailyRefills: strategy.strategy.recommendation.dailyLimit
     })
 
