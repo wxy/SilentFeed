@@ -281,15 +281,33 @@ export class AnalysisScheduler {
         }
 
       } catch (error) {
-        schedLogger.error(`❌ 分析失败: ${article.title}`, error)
+        // 提取详细错误信息
+        const errorDetails = {
+          name: error instanceof Error ? error.name : 'Unknown',
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+          type: typeof error,
+          raw: error
+        }
+        schedLogger.error(`❌ 分析失败: ${article.title}`, errorDetails)
+        
         // 标记为失败，下次重试
-        await db.feedArticles.update(article.id, {
-          poolStatus: 'raw'  // 保持 raw 状态，下次继续尝试
-        })
+        try {
+          await db.feedArticles.update(article.id, {
+            poolStatus: 'raw'  // 保持 raw 状态，下次继续尝试
+          })
+        } catch (updateError) {
+          schedLogger.error('更新文章状态失败:', updateError)
+        }
       }
 
     } catch (error) {
-      schedLogger.error('❌ 分析文章失败:', error)
+      const errorDetails = {
+        name: error instanceof Error ? error.name : 'Unknown',
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      }
+      schedLogger.error('❌ 分析文章失败:', errorDetails)
     } finally {
       this.isAnalyzing = false
     }
