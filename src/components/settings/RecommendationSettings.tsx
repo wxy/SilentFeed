@@ -86,7 +86,13 @@ export function RecommendationSettings({
   useEffect(() => {
     const loadPoolData = async () => {
       try {
-        const recommendedPoolCount = await db.feedArticles.filter(a => a.poolStatus === 'recommended').count()
+        // 修复：统一查询 recommendations 表，而不是 feedArticles
+        // 推荐池容量 = 所有活跃状态的推荐（包括已读和未读）
+        const recommendedPoolCount = await db.recommendations
+          .filter(r => !r.status || r.status === 'active')
+          .count()
+        
+        // 弹窗显示数量 = 活跃且未读且未忽略的推荐
         const popupCount = await db.recommendations
           .filter(r => {
             const isActive = !r.status || r.status === 'active'
