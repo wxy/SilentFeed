@@ -475,6 +475,30 @@ export class RecommendationService {
         recommendations = await this.saveRecommendations(highQualityArticles, recommendationConfig)
       } else {
         recLogger.info(`📭 候选池中暂无高质量文章（评分 >= ${dynamicThreshold.toFixed(2)}），本次不补充`)
+        
+        // Phase 13.5: 清理候选池中不达标的文章
+        // 如果候选池有文章但都不达标，将它们标记为 analyzed-not-qualified
+        const lowScoreArticles = sortedArticles.filter(article => article.score < dynamicThreshold)
+        if (lowScoreArticles.length > 0) {
+          recLogger.info(`🧹 清理 ${lowScoreArticles.length} 篇不达标的候选池文章（评分 < ${dynamicThreshold.toFixed(2)}）`)
+          
+          for (const article of lowScoreArticles) {
+            try {
+              // 查找数据库中的文章
+              const dbArticle = await db.feedArticles.where('link').equals(article.url).first()
+              if (dbArticle && dbArticle.poolStatus === 'candidate') {
+                await db.feedArticles.update(dbArticle.id, {
+                  poolStatus: 'analyzed-not-qualified',
+                  poolExitedAt: Date.now(),
+                  poolExitReason: 'below-threshold'
+                })
+                recLogger.debug(`  ✓ ${article.title} (${article.score.toFixed(2)})`)
+              }
+            } catch (error) {
+              recLogger.warn(`清理文章失败: ${article.title}`, error)
+            }
+          }
+        }
       }
 
       const processingTimeMs = Date.now() - startTime
