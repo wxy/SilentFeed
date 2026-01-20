@@ -195,11 +195,53 @@ export class AnalysisScheduler {
       schedLogger.info(`🤖 开始 AI 分析 ${rawArticles.length} 篇文章...`)
       const result = await this.pipeline.process(input, feeds)
       
+      // 7. 更新数据库：将文章标记为候选或不合格
+      const threshold = strategy.strategy.candidatePool.entryThreshold
+      let candidateCount = 0
+      let notQualifiedCount = 0
+
+      for (const analyzedArticle of result.articles) {
+        try {
+          // 查找原始文章
+          const dbArticle = await db.feedArticles
+            .where('link')
+            .equals(analyzedArticle.url)
+            .first()
+
+          if (!dbArticle) {
+            schedLogger.warn(`找不到文章: ${analyzedArticle.url}`)
+            continue
+          }
+
+          // 根据评分更新状态
+          if (analyzedArticle.score >= threshold) {
+            // 进入候选池
+            await db.feedArticles.update(dbArticle.id, {
+              poolStatus: 'candidate',
+              analysisScore: analyzedArticle.score,
+              poolEnteredAt: Date.now()
+            })
+            candidateCount++
+          } else {
+            // 不合格
+            await db.feedArticles.update(dbArticle.id, {
+              poolStatus: 'analyzed-not-qualified',
+              analysisScore: analyzedArticle.score,
+              poolExitedAt: Date.now(),
+              poolExitReason: 'below-threshold'
+            })
+            notQualifiedCount++
+          }
+        } catch (error) {
+          schedLogger.warn(`更新文章状态失败: ${analyzedArticle.url}`, error)
+        }
+      }
+
       const duration = Date.now() - startTime
       schedLogger.info(`✅ AI 分析完成`, {
         '总文章数': rawArticles.length,
-        '进入候选池': result.articles.filter(a => a.score >= strategy.strategy.candidatePool.entryThreshold).length,
-        '不合格': result.articles.filter(a => a.score < strategy.strategy.candidatePool.entryThreshold).length,
+        '进入候选池': candidateCount,
+        '不合格': notQualifiedCount,
         '耗时': `${duration}ms`
       })
 
