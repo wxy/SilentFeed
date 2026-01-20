@@ -147,7 +147,7 @@ export class AnalysisScheduler {
     try {
       schedLogger.info('开始分析原始文章...')
 
-      // 1. 获取原始文章
+      // 1. 获取原始文章（每次只取一篇，避免长时间阻塞）
       const rawArticles = await this.getRawArticles()
       
       if (rawArticles.length === 0) {
@@ -155,7 +155,9 @@ export class AnalysisScheduler {
         return
       }
 
-      schedLogger.info(`📦 找到 ${rawArticles.length} 篇原始文章待分析`)
+      // 只分析第一篇文章
+      const article = rawArticles[0]
+      schedLogger.info(`📦 准备分析文章: ${article.title?.substring(0, 50)}...`)
 
       // 2. 获取用户画像
       const userProfile = await getUserProfile()
@@ -191,13 +193,10 @@ export class AnalysisScheduler {
         }
       }
 
-      // 6. 执行 AI 分析（逐篇分析并更新数据库）
-      schedLogger.info(`🤖 开始 AI 分析 ${rawArticles.length} 篇文章...`)
+      // 6. 执行 AI 分析（单篇）
+      schedLogger.info(`🤖 开始 AI 分析...`)
       
       const threshold = strategy.strategy.candidatePool.entryThreshold
-      let candidateCount = 0
-      let notQualifiedCount = 0
-      let failedCount = 0
 
       // 准备用户兴趣（用于评分）
       const userInterests = {
@@ -208,93 +207,86 @@ export class AnalysisScheduler {
       const { aiManager } = await import('@/core/ai/AICapabilityManager')
       await aiManager.initialize()
 
-      // 逐篇分析
-      for (const article of rawArticles) {
-        try {
-          // 准备内容
-          const content = article.content || article.description || article.title || ''
-          if (!content.trim()) {
-            schedLogger.warn(`文章内容为空，跳过: ${article.title}`)
-            failedCount++
-            continue
-          }
+      try {
+        // 准备内容
+        const content = article.content || article.description || article.title || ''
+        if (!content.trim()) {
+          schedLogger.warn(`文章内容为空，标记为失败: ${article.title}`)
+          await db.feedArticles.update(article.id, {
+            poolStatus: 'analyzed-not-qualified',
+            poolExitedAt: Date.now(),
+            poolExitReason: 'empty-content'
+          })
+          return
+        }
 
-          // 调用 AI 分析
-          const analysis = await aiManager.analyzeContent(content, {
-            userProfile: userProfile.aiSummary ? {
-              interests: userProfile.aiSummary.interests,
-              preferences: userProfile.aiSummary.preferences,
-              avoidTopics: userProfile.aiSummary.avoidTopics
-            } : undefined,
-            purpose: 'recommend-content'
-          }, 'articleAnalysis')
+        // 调用 AI 分析
+        const analysis = await aiManager.analyzeContent(content, {
+          userProfile: userProfile.aiSummary ? {
+            interests: userProfile.aiSummary.interests,
+            preferences: userProfile.aiSummary.preferences,
+            avoidTopics: userProfile.aiSummary.avoidTopics
+          } : undefined,
+          purpose: 'recommend-content'
+        }, 'articleAnalysis')
 
-          // 计算相关性评分（根据主题匹配用户兴趣）
-          let relevanceScore = 0
-          const topics = analysis.topicProbabilities || {}
-          
-          for (const [topic, probability] of Object.entries(topics)) {
-            const prob = probability as number
-            if (prob > 0.2) {
-              // 查找匹配的用户兴趣
-              const matchingInterests = userInterests.keywords.filter(k => 
-                topic.includes(k.word) || k.word.includes(topic)
-              )
-              
-              if (matchingInterests.length > 0) {
-                const maxWeight = Math.max(...matchingInterests.map(i => i.weight))
-                relevanceScore += prob * maxWeight
-              }
+        // 计算相关性评分（根据主题匹配用户兴趣）
+        let relevanceScore = 0
+        const topics = analysis.topicProbabilities || {}
+        
+        for (const [topic, probability] of Object.entries(topics)) {
+          const prob = probability as number
+          if (prob > 0.2) {
+            // 查找匹配的用户兴趣
+            const matchingInterests = userInterests.keywords.filter(k => 
+              topic.includes(k.word) || k.word.includes(topic)
+            )
+            
+            if (matchingInterests.length > 0) {
+              const maxWeight = Math.max(...matchingInterests.map(i => i.weight))
+              relevanceScore += prob * maxWeight
             }
           }
-
-          // 归一化评分
-          const totalProbability = Object.values(topics).reduce((sum: number, p) => sum + (p as number), 0)
-          if (totalProbability > 0) {
-            relevanceScore = Math.min(1.0, relevanceScore / totalProbability)
-          } else {
-            relevanceScore = 0.3 // 默认分数
-          }
-
-          // 保存分析结果
-          await db.feedArticles.update(article.id, {
-            analysis,
-            analysisScore: relevanceScore
-          })
-
-          // 根据评分更新池状态
-          if (relevanceScore >= threshold) {
-            await db.feedArticles.update(article.id, {
-              poolStatus: 'candidate',
-              poolEnteredAt: Date.now()
-            })
-            candidateCount++
-            schedLogger.debug(`✅ 进入候选池: ${article.title?.substring(0, 30)}... (评分: ${relevanceScore.toFixed(2)})`)
-          } else {
-            await db.feedArticles.update(article.id, {
-              poolStatus: 'analyzed-not-qualified',
-              poolExitedAt: Date.now(),
-              poolExitReason: 'below-threshold'
-            })
-            notQualifiedCount++
-            schedLogger.debug(`❌ 未达标: ${article.title?.substring(0, 30)}... (评分: ${relevanceScore.toFixed(2)}, 阈值: ${threshold})`)
-          }
-
-        } catch (error) {
-          schedLogger.warn(`分析失败: ${article.title}`, error)
-          failedCount++
         }
-      }
 
-      const duration = Date.now() - startTime
-      schedLogger.info(`✅ AI 分析完成`, {
-        '总文章数': rawArticles.length,
-        '进入候选池': candidateCount,
-        '不合格': notQualifiedCount,
-        '失败': failedCount,
-        '耗时': `${duration}ms`,
-        '平均耗时': `${(duration / rawArticles.length).toFixed(0)}ms/篇`
-      })
+        // 归一化评分
+        const totalProbability = Object.values(topics).reduce((sum: number, p) => sum + (p as number), 0)
+        if (totalProbability > 0) {
+          relevanceScore = Math.min(1.0, relevanceScore / totalProbability)
+        } else {
+          relevanceScore = 0.3 // 默认分数
+        }
+
+        // 保存分析结果
+        await db.feedArticles.update(article.id, {
+          analysis,
+          analysisScore: relevanceScore
+        })
+
+        // 根据评分更新池状态
+        const duration = Date.now() - startTime
+        if (relevanceScore >= threshold) {
+          await db.feedArticles.update(article.id, {
+            poolStatus: 'candidate',
+            poolEnteredAt: Date.now()
+          })
+          schedLogger.info(`✅ 进入候选池: ${article.title?.substring(0, 40)}... (评分: ${relevanceScore.toFixed(2)}, 耗时: ${duration}ms)`)
+        } else {
+          await db.feedArticles.update(article.id, {
+            poolStatus: 'analyzed-not-qualified',
+            poolExitedAt: Date.now(),
+            poolExitReason: 'below-threshold'
+          })
+          schedLogger.info(`❌ 未达标: ${article.title?.substring(0, 40)}... (评分: ${relevanceScore.toFixed(2)}, 阈值: ${threshold}, 耗时: ${duration}ms)`)
+        }
+
+      } catch (error) {
+        schedLogger.error(`❌ 分析失败: ${article.title}`, error)
+        // 标记为失败，下次重试
+        await db.feedArticles.update(article.id, {
+          poolStatus: 'raw'  // 保持 raw 状态，下次继续尝试
+        })
+      }
 
     } catch (error) {
       schedLogger.error('❌ 分析文章失败:', error)
