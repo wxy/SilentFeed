@@ -281,15 +281,30 @@ export class AnalysisScheduler {
         }
 
       } catch (error) {
-        // 提取详细错误信息
-        const errorDetails = {
-          name: error instanceof Error ? error.name : 'Unknown',
-          message: error instanceof Error ? error.message : String(error),
-          stack: error instanceof Error ? error.stack : undefined,
-          type: typeof error,
-          raw: error
+        // 完全序列化错误信息
+        let errorMessage = '未知错误'
+        if (error instanceof Error) {
+          errorMessage = `${error.name}: ${error.message}`
+          if (error.stack) {
+            errorMessage += `\n堆栈: ${error.stack.substring(0, 500)}`
+          }
+        } else if (error && typeof error === 'object') {
+          // 处理 DOMException 等非 Error 对象
+          try {
+            errorMessage = JSON.stringify({
+              name: (error as any).name || 'Unknown',
+              message: (error as any).message || String(error),
+              code: (error as any).code,
+              constructor: (error as any).constructor?.name
+            }, null, 2)
+          } catch {
+            errorMessage = String(error)
+          }
+        } else {
+          errorMessage = String(error)
         }
-        schedLogger.error(`❌ 分析失败: ${article.title}`, errorDetails)
+        
+        schedLogger.error(`❌ 分析失败: ${article.title}\n错误详情:\n${errorMessage}`)
         
         // 标记为失败，下次重试
         try {
@@ -297,17 +312,18 @@ export class AnalysisScheduler {
             poolStatus: 'raw'  // 保持 raw 状态，下次继续尝试
           })
         } catch (updateError) {
-          schedLogger.error('更新文章状态失败:', updateError)
+          schedLogger.error('更新文章状态失败:', String(updateError))
         }
       }
 
     } catch (error) {
-      const errorDetails = {
-        name: error instanceof Error ? error.name : 'Unknown',
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
+      let errorMessage = '未知错误'
+      if (error instanceof Error) {
+        errorMessage = `${error.name}: ${error.message}`
+      } else {
+        errorMessage = String(error)
       }
-      schedLogger.error('❌ 分析文章失败:', errorDetails)
+      schedLogger.error(`❌ 分析文章失败: ${errorMessage}`)
     } finally {
       this.isAnalyzing = false
     }
