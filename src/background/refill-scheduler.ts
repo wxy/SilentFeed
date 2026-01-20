@@ -21,7 +21,6 @@ import { getCurrentStrategy } from '@/storage/strategy-storage'
 import { getRefillManager } from '@/core/recommender/pool-refill-policy'
 import { ReadingListManager } from '@/core/reading-list/reading-list-manager'
 import { getUIConfig } from '@/storage/ui-config'
-import { IconManager } from '@/utils/IconManager'
 import { logger } from '@/utils/logger'
 import type { Recommendation } from '@/types/database'
 import type { FeedArticle } from '@/types/rss'
@@ -182,8 +181,7 @@ export class RefillScheduler {
       // 7. 根据显示模式决定是否写入阅读清单
       await this.handleDisplayMode(recommendations)
 
-      // 8. 更新徽章
-      await IconManager.updateIconState()
+      // 8. 图标会在下次 updateBadge() 调用时自动更新（无需手动触发）
 
       const duration = Date.now() - startTime
       schedLogger.info(`✅ 推荐池补充完成`, {
