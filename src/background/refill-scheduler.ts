@@ -153,28 +153,12 @@ export class RefillScheduler {
       const currentPoolSize = currentPool.length
       schedLogger.debug(`📊 推荐池状态: ${currentPoolSize}/${targetPoolSize}`)
 
-      if (currentPoolSize >= targetPoolSize) {
-        schedLogger.info(`✅ 推荐池已满 (${currentPoolSize}/${targetPoolSize})，无需补充`)
-        return
-      }
-
-      // 3. 检查冷却期和每日限额
+      // 3. 检查是否允许补充（冷却期、每日限额、容量阈值）
       const refillManager = getRefillManager()
-      const policy = refillManager.getPolicy()
-      const state = refillManager.getState()
+      const shouldRefill = await refillManager.shouldRefill(currentPoolSize, targetPoolSize)
       
-      // 检查冷却期
-      const now = Date.now()
-      const timeSinceLastRefill = now - state.lastRefillTime
-      if (timeSinceLastRefill < policy.minInterval) {
-        schedLogger.info(`⏸️ 补充受限：冷却期未满 (${Math.round(timeSinceLastRefill / 60000)}/${Math.round(policy.minInterval / 60000)}分钟)`)
-        return
-      }
-      
-      // 检查每日限额
-      const today = new Date(now).toDateString()
-      if (state.currentDate === today && state.dailyRefillCount >= policy.maxDailyRefills) {
-        schedLogger.info(`⏸️ 补充受限：已达每日上限 (${state.dailyRefillCount}/${policy.maxDailyRefills})`)
+      if (!shouldRefill) {
+        schedLogger.info(`⏸️ 补充受限：不满足补充条件 (${currentPoolSize}/${targetPoolSize})`)
         return
       }
 
