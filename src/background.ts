@@ -1368,6 +1368,58 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           })()
           return true
         
+        // 手动触发推荐策略
+        case 'TRIGGER_RECOMMENDATION_STRATEGY':
+          (async () => {
+            try {
+              bgLogger.info('🎯 手动触发推荐策略执行')
+              refillScheduler.triggerManual().catch(() => {})
+              sendResponse({ success: true })
+            } catch (error) {
+              bgLogger.error('触发推荐策略失败:', error)
+              sendResponse({ success: false, error: String(error) })
+            }
+          })()
+          return true
+        
+        // 重置下次补充时间为现在
+        case 'RESET_REFILL_TIME':
+          (async () => {
+            try {
+              bgLogger.info('⏰ 重置下次补充时间为现在')
+              await chrome.storage.local.set({
+                'refill_state': {
+                  lastRefillTime: 0,  // 设置为 0，下次检查时会立即触发
+                  dailyRefillCount: (await chrome.storage.local.get('refill_state'))?.refill_state?.dailyRefillCount || 0
+                }
+              })
+              sendResponse({ success: true })
+            } catch (error) {
+              bgLogger.error('重置补充时间失败:', error)
+              sendResponse({ success: false, error: String(error) })
+            }
+          })()
+          return true
+        
+        // 重置每日补充次数
+        case 'RESET_DAILY_REFILL_COUNT':
+          (async () => {
+            try {
+              bgLogger.info('🔄 重置每日补充次数')
+              await chrome.storage.local.set({
+                'refill_state': {
+                  lastRefillTime: (await chrome.storage.local.get('refill_state'))?.refill_state?.lastRefillTime || 0,
+                  dailyRefillCount: 0  // 重置为 0
+                }
+              })
+              sendResponse({ success: true })
+            } catch (error) {
+              bgLogger.error('重置补充次数失败:', error)
+              sendResponse({ success: false, error: String(error) })
+            }
+          })()
+          return true
+        
         // 打开推荐文章（从弹窗或翻译按钮）
         // 由 Background 处理，确保追踪信息在创建 Tab 后立即保存
         case 'OPEN_RECOMMENDATION':
