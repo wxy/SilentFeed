@@ -145,6 +145,10 @@ export function RecommendationSettings({
   // Phase 13: 从 AI 策略系统读取所有参数
   const entryThreshold = currentStrategy?.strategy?.candidatePool?.entryThreshold ?? 0.5
   
+  // AI 决策的推荐池目标容量（先定义，因为后面要用）
+  const poolSize = currentStrategy?.strategy?.recommendation?.targetPoolSize ?? 
+                  maxRecommendations * 2
+  
   // AI 生成的补充策略参数
   const cooldownMinutes = currentStrategy?.strategy?.recommendation?.cooldownMinutes ?? 60
   const minIntervalMinutes = cooldownMinutes
@@ -153,10 +157,6 @@ export function RecommendationSettings({
   const triggerPercent = refillThreshold && poolSize 
     ? ((refillThreshold / poolSize) * 100).toFixed(0)
     : '50'
-  
-  // AI 决策的推荐池目标容量
-  const poolSize = currentStrategy?.strategy?.recommendation?.targetPoolSize ?? 
-                  maxRecommendations * 2
 
   // 读取补充状态以显示下次补充时间
   const nextRefillTime =
