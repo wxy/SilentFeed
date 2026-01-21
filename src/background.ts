@@ -1562,6 +1562,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           })()
           return true
         
+        // 立即触发推荐池补充
+        case 'TRIGGER_REFILL':
+          (async () => {
+            try {
+              bgLogger.info('⚡ 手动触发推荐池补充')
+              // 直接调用补充方法
+              await refillScheduler.refill()
+              bgLogger.info('✅ 补充完成')
+              sendResponse({ success: true })
+            } catch (error) {
+              bgLogger.error('手动补充失败:', error)
+              sendResponse({ success: false, error: String(error) })
+            }
+          })()
+          return true
+        
         // 修复历史遗留的推荐池数据
         case 'FIX_LEGACY_POOL_DATA':
           (async () => {

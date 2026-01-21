@@ -329,10 +329,22 @@ export function RecommendationSettings({
                           <button
                             onClick={async () => {
                               try {
-                                // 同时重置间隔和次数，然后触发补充
-                                await chrome.runtime.sendMessage({ type: 'RESET_REFILL_TIME' })
-                                await chrome.runtime.sendMessage({ type: 'RESET_DAILY_REFILL_COUNT' })
-                                await chrome.runtime.sendMessage({ type: 'TRIGGER_REFILL' })
+                                // 严格按顺序执行：1. 重置时间 2. 重置次数 3. 触发补充
+                                const step1 = await chrome.runtime.sendMessage({ type: 'RESET_REFILL_TIME' })
+                                if (!step1?.success) {
+                                  throw new Error('重置冷却时间失败')
+                                }
+                                
+                                const step2 = await chrome.runtime.sendMessage({ type: 'RESET_DAILY_REFILL_COUNT' })
+                                if (!step2?.success) {
+                                  throw new Error('重置每日次数失败')
+                                }
+                                
+                                const step3 = await chrome.runtime.sendMessage({ type: 'TRIGGER_REFILL' })
+                                if (!step3?.success) {
+                                  throw new Error('触发补充失败: ' + (step3?.error || '未知错误'))
+                                }
+                                
                                 alert('✅ 已触发立即补充')
                                 setTimeout(() => window.location.reload(), 1000)
                               } catch (error) {
