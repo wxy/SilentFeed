@@ -81,12 +81,22 @@ export function RecommendationSettings({
     loadRefillState()
   }, [])
 
-  // 实时池/弹窗状态
-  const [poolData, setPoolData] = useState<{ currentRecommendedPool: number; currentPopupCount: number }>({ currentRecommendedPool: 0, currentPopupCount: 0 })
+  // 实时池/弹窗状态（使用推荐漏斗统计口径）
+  const [poolData, setPoolData] = useState<{ candidatePoolCount: number; currentRecommendedPool: number; currentPopupCount: number }>({ 
+    candidatePoolCount: 0,
+    currentRecommendedPool: 0, 
+    currentPopupCount: 0 
+  })
   useEffect(() => {
     const loadPoolData = async () => {
       try {
+        // 推荐漏斗统计口径：当前在候选池的文章数（poolStatus = 'candidate'）
+        const candidatePoolCount = await db.feedArticles.filter(a => a.poolStatus === 'candidate').count()
+        
+        // 推荐漏斗统计口径：当前在推荐池的文章数（poolStatus = 'recommended'）
         const recommendedPoolCount = await db.feedArticles.filter(a => a.poolStatus === 'recommended').count()
+        
+        // 推荐漏斗统计口径：当前弹窗显示数量（活跃且未读未不感兴趣的推荐）
         const popupCount = await db.recommendations
           .filter(r => {
             const isActive = !r.status || r.status === 'active'
@@ -94,7 +104,12 @@ export function RecommendationSettings({
             return isActive && isUnreadAndNotDismissed
           })
           .count()
-        setPoolData({ currentRecommendedPool: recommendedPoolCount, currentPopupCount: popupCount })
+        
+        setPoolData({ 
+          candidatePoolCount,
+          currentRecommendedPool: recommendedPoolCount, 
+          currentPopupCount: popupCount 
+        })
       } catch {
         // 忽略错误
       }
@@ -220,9 +235,59 @@ export function RecommendationSettings({
                     <div className="text-sm font-semibold text-gray-800 dark:text-gray-100">{_('智能推荐策略')}</div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">{poolStrategy?.date ? `${_('更新于')} ${poolStrategy.date}` : _('使用默认策略')}</div>
                   </div>
-                  {poolStrategy?.decision?.confidence && (
-                    <span className="text-xs text-indigo-600 dark:text-indigo-300 flex-shrink-0">{_('置信度')} {Math.round(poolStrategy.decision.confidence * 100)}%</span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {poolStrategy?.decision?.confidence && (
+                      <span className="text-xs text-indigo-600 dark:text-indigo-300 flex-shrink-0">{_('置信度')} {Math.round(poolStrategy.decision.confidence * 100)}%</span>
+                    )}
+                    {/* 操作按钮组 */}
+                    <div className="flex gap-1 ml-2">
+                      <button
+                        onClick={async () => {
+                          try {
+                            await chrome.runtime.sendMessage({ type: 'TRIGGER_RECOMMENDATION_STRATEGY' })
+                            alert('✅ 已触发 AI 策略生成')
+                            setTimeout(() => window.location.reload(), 1000)
+                          } catch (error) {
+                            alert('❌ 触发失败: ' + String(error))
+                          }
+                        }}
+                        className="px-2 py-1 text-[10px] bg-indigo-500 hover:bg-indigo-600 text-white rounded transition-colors"
+                        title={_('重新生成 AI 策略')}
+                      >
+                        🎯 {_('重新生成')}
+                      </button>
+                      <button
+                        onClick={async () => {
+                          try {
+                            await chrome.runtime.sendMessage({ type: 'RESET_REFILL_TIME' })
+                            alert('✅ 已重置补充间隔')
+                            setTimeout(() => window.location.reload(), 500)
+                          } catch (error) {
+                            alert('❌ 重置失败: ' + String(error))
+                          }
+                        }}
+                        className="px-2 py-1 text-[10px] bg-green-500 hover:bg-green-600 text-white rounded transition-colors"
+                        title={_('重置下次补充时间为现在')}
+                      >
+                        ⏰ {_('重置间隔')}
+                      </button>
+                      <button
+                        onClick={async () => {
+                          try {
+                            await chrome.runtime.sendMessage({ type: 'RESET_DAILY_REFILL_COUNT' })
+                            alert('✅ 已重置每日补充次数')
+                            setTimeout(() => window.location.reload(), 500)
+                          } catch (error) {
+                            alert('❌ 重置失败: ' + String(error))
+                          }
+                        }}
+                        className="px-2 py-1 text-[10px] bg-orange-500 hover:bg-orange-600 text-white rounded transition-colors"
+                        title={_('重置今日剩余补充次数')}
+                      >
+                        🔢 {_('重置次数')}
+                      </button>
+                    </div>
+                  </div>
                 </div>
                 
                 {/* 策略推理文本 */}
@@ -244,9 +309,11 @@ export function RecommendationSettings({
                       <div className="bg-indigo-600 dark:bg-indigo-400 h-2 rounded-full transition-all" style={{ width: `${entryThreshold * 100}%` }} />
                     </div>
                     <div className="text-[11px] text-gray-500 dark:text-gray-500 mt-1">{_('文章评分高于此值才进入候选池')}</div>
-                    {(poolStrategy as any)?.meta?.decisionId && (
-                      <div className="text-[11px] text-gray-500 dark:text-gray-500 mt-1">{_('来源：AI 策略（ID:')} {(poolStrategy as any).meta.decisionId}{_('）')}</div>
-                    )}
+                    {/* 当前候选池数量 */}
+                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-indigo-200 dark:border-indigo-700/50">
+                      <span className="text-xs text-gray-600 dark:text-gray-400">{_('当前候选池')}</span>
+                      <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{poolData.candidatePoolCount} <span className="text-xs font-normal">{_('篇')}</span></span>
+                    </div>
                   </div>
                   
                   {/* 推荐池 - 大框整合所有相关数据 */}
