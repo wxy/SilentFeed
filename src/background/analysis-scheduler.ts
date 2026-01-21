@@ -215,7 +215,7 @@ export class AnalysisScheduler {
           await db.feedArticles.update(article.id, {
             poolStatus: 'analyzed-not-qualified',
             poolExitedAt: Date.now(),
-            poolExitReason: 'empty-content'
+            poolExitReason: 'expired'
           })
           return
         }
@@ -259,7 +259,11 @@ export class AnalysisScheduler {
 
         // 保存分析结果
         await db.feedArticles.update(article.id, {
-          analysis,
+          analysis: {
+            topicProbabilities: analysis.topicProbabilities || {},
+            confidence: 0.8,  // 默认置信度
+            provider: 'ai-manager'  // 使用 AI Manager
+          },
           analysisScore: relevanceScore
         })
 
@@ -268,14 +272,14 @@ export class AnalysisScheduler {
         if (relevanceScore >= threshold) {
           await db.feedArticles.update(article.id, {
             poolStatus: 'candidate',
-            poolEnteredAt: Date.now()
+            candidatePoolAddedAt: Date.now()
           })
           schedLogger.info(`✅ 进入候选池: ${article.title?.substring(0, 40)}... (评分: ${relevanceScore.toFixed(2)}, 耗时: ${duration}ms)`)
         } else {
           await db.feedArticles.update(article.id, {
             poolStatus: 'analyzed-not-qualified',
             poolExitedAt: Date.now(),
-            poolExitReason: 'below-threshold'
+            poolExitReason: 'quality_dropped'
           })
           schedLogger.info(`❌ 未达标: ${article.title?.substring(0, 40)}... (评分: ${relevanceScore.toFixed(2)}, 阈值: ${threshold}, 耗时: ${duration}ms)`)
         }
