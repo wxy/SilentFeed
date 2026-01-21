@@ -296,26 +296,11 @@ export function RecommendationSettings({
                       <div className="text-[11px] text-gray-500 dark:text-gray-500 mt-1">{_('池容量低于此比例时触发补充')}</div>
                     </div>
 
-                    {/* 补充配置 */}
+                    {/* 补充配置（仅显示，不可操作） */}
                     <div className="grid grid-cols-2 gap-3 mb-4 text-xs pb-4 border-b border-purple-200 dark:border-purple-700/50">
                       <div>
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-gray-600 dark:text-gray-400">{_('补充间隔')}</span>
-                          <button
-                            onClick={async () => {
-                              try {
-                                await chrome.runtime.sendMessage({ type: 'RESET_REFILL_TIME' })
-                                alert('✅ 已重置补充间隔')
-                                setTimeout(() => window.location.reload(), 500)
-                              } catch (error) {
-                                alert('❌ 重置失败: ' + String(error))
-                              }
-                            }}
-                            className="px-1.5 py-0.5 text-[9px] bg-green-500 hover:bg-green-600 text-white rounded transition-colors"
-                            title={_('重置下次补充时间')}
-                          >
-                            ⏰ {_('重置')}
-                          </button>
                         </div>
                         <div className="font-bold text-green-600 dark:text-green-400">{minIntervalMinutes} 分钟</div>
                         {nextRefillTime && (
@@ -325,21 +310,6 @@ export function RecommendationSettings({
                       <div>
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-gray-600 dark:text-gray-400">{_('每日上限')}</span>
-                          <button
-                            onClick={async () => {
-                              try {
-                                await chrome.runtime.sendMessage({ type: 'RESET_DAILY_REFILL_COUNT' })
-                                alert('✅ 已重置每日补充次数')
-                                setTimeout(() => window.location.reload(), 500)
-                              } catch (error) {
-                                alert('❌ 重置失败: ' + String(error))
-                              }
-                            }}
-                            className="px-1.5 py-0.5 text-[9px] bg-orange-500 hover:bg-orange-600 text-white rounded transition-colors"
-                            title={_('重置今日剩余补充次数')}
-                          >
-                            🔢 {_('重置')}
-                          </button>
                         </div>
                         <div className="font-bold text-orange-600 dark:text-orange-400">{dailyRefillLimit} {_('次')}</div>
                         {remainingRefills !== null && (
@@ -351,9 +321,29 @@ export function RecommendationSettings({
                     {/* 推荐池容量状态（推荐池即弹窗显示） */}
                     <div className="grid grid-cols-1 gap-3">
                       <div>
-                        <div className="flex items-center gap-1 mb-2">
-                          <span>📦</span>
-                          <span className="text-xs font-medium text-green-700 dark:text-green-300">{_('推荐池')} ({_('弹窗显示')})</span>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-1">
+                            <span>📦</span>
+                            <span className="text-xs font-medium text-green-700 dark:text-green-300">{_('推荐池')} ({_('弹窗显示')})</span>
+                          </div>
+                          <button
+                            onClick={async () => {
+                              try {
+                                // 同时重置间隔和次数，然后触发补充
+                                await chrome.runtime.sendMessage({ type: 'RESET_REFILL_TIME' })
+                                await chrome.runtime.sendMessage({ type: 'RESET_DAILY_REFILL_COUNT' })
+                                await chrome.runtime.sendMessage({ type: 'TRIGGER_REFILL' })
+                                alert('✅ 已触发立即补充')
+                                setTimeout(() => window.location.reload(), 1000)
+                              } catch (error) {
+                                alert('❌ 补充失败: ' + String(error))
+                              }
+                            }}
+                            className="px-2 py-1 text-[10px] bg-green-500 hover:bg-green-600 text-white rounded transition-colors"
+                            title={_('重置冷却时间并立即补充推荐池')}
+                          >
+                            ⚡ {_('立即补充')}
+                          </button>
                         </div>
                         <div className="flex items-baseline gap-1 mb-2">
                           <span className="text-lg font-bold text-green-600 dark:text-green-400">{poolData.recommendedPoolCount}</span>

@@ -28,6 +28,44 @@ import { ReadingListManager } from './core/reading-list/reading-list-manager'
 import { processPageVisit, type PageVisitData } from './background/page-visit-handler'
 import { getUIConfig } from '@/storage/ui-config'
 import i18n from '@/i18n'
+
+/**
+ * 生成谷歌翻译子站链接 (translate.goog 格式)
+ * 例如：https://example.com/article → https://example-com.translate.goog/article?_x_tr_sl=auto&_x_tr_tl=zh-CN&_x_tr_hl=zh-CN
+ * 
+ * @param url - 原始 URL
+ * @param targetLang - 目标语言代码
+ * @returns 谷歌翻译子站链接
+ */
+function generateTranslateGoogUrl(url: string, targetLang: string): string {
+  try {
+    const urlObj = new URL(url)
+    
+    // 将域名中的点替换为短横线
+    // 例如：example.com → example-com
+    const translatedHost = urlObj.hostname.replace(/\./g, '-')
+    
+    // 构造新 URL
+    const translatedUrl = new URL(`https://${translatedHost}.translate.goog${urlObj.pathname}${urlObj.search}`)
+    
+    // 添加翻译参数
+    translatedUrl.searchParams.set('_x_tr_sl', 'auto')     // 源语言：自动检测
+    translatedUrl.searchParams.set('_x_tr_tl', targetLang) // 目标语言
+    translatedUrl.searchParams.set('_x_tr_hl', targetLang) // 界面语言
+    
+    // 保留原始 hash
+    if (urlObj.hash) {
+      translatedUrl.hash = urlObj.hash
+    }
+    
+    return translatedUrl.toString()
+  } catch (error) {
+    // 如果 URL 解析失败，降级使用传统格式
+    bgLogger.warn('生成 translate.goog URL 失败，使用传统格式', { url, error })
+    const encodedUrl = encodeURIComponent(url)
+    return `https://translate.google.com/translate?sl=auto&tl=${targetLang}&u=${encodedUrl}`
+  }
+}
 import { migrateStorageKeys, needsStorageKeyMigration } from '@/storage/migrations/storage-key-migration'
 import {
   migrateLocalStorageKeys,
@@ -1306,9 +1344,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                       if (langMatches && needsTranslation) {
                         // 使用翻译标题
                         displayTitle = article.translation.translatedTitle || article.title
-                        // 生成谷歌翻译链接
-                        const encodedUrl = encodeURIComponent(article.link)
-                        displayUrl = `https://translate.google.com/translate?sl=auto&tl=${targetLang}&u=${encodedUrl}`
+                        // 生成谷歌翻译子站链接 (translate.goog 格式)
+                        displayUrl = generateTranslateGoogUrl(article.link, targetLang)
                         
                         bgLogger.debug('使用翻译版本添加到阅读清单', {
                           articleId: article.id,
