@@ -129,9 +129,6 @@ export class RefillScheduler {
     try {
       schedLogger.info('开始推荐池补充...')
 
-      // 0. 迁移旧状态数据（一次性操作）
-      await this.migrateOldRecommendedStatus()
-
       // 1. 获取策略配置
       const strategy = await getCurrentStrategy()
       if (!strategy) {
@@ -148,7 +145,7 @@ export class RefillScheduler {
       // 2. 检查当前弹窗推荐状态
       const currentPool = await db.feedArticles
         .filter(a => {
-          const isPopup = a.poolStatus === 'popup'
+          const isPopup = a.poolStatus === 'recommended'
           const isUnread = !a.isRead
           const notDismissed = a.feedback !== 'dismissed'
           return isPopup && isUnread && notDismissed
@@ -207,104 +204,15 @@ export class RefillScheduler {
   }
 
   /**
-   * 迁移旧的 'recommended' 状态到新状态
-   * 一次性数据修复：将旧的 poolStatus='recommended' 迁移到正确的状态
-   */
-  private async migrateOldRecommendedStatus(): Promise<void> {
-    try {
-      // 查找所有使用旧状态的文章
-      const oldStatusArticles = await db.feedArticles
-        .filter(a => a.poolStatus === 'recommended')
-        .toArray()
-
-      if (oldStatusArticles.length === 0) {
-        return // 没有需要迁移的数据
-      }
-
-      schedLogger.info(`🔄 检测到 ${oldStatusArticles.length} 篇旧状态文章，开始迁移...`)
-
-      // 获取当前策略的目标池大小
-      const strategy = await getCurrentStrategy()
-      const targetPoolSize = strategy?.strategy.recommendation.targetPoolSize || 5
-
-      // 分类处理
-      const toPopup: FeedArticle[] = [] // 保留在推荐池
-      const toCandidate: FeedArticle[] = [] // 退回候选池
-      const toExit: FeedArticle[] = [] // 标记为已退出
-
-      for (const article of oldStatusArticles) {
-        // 已读或已拒绝 → 退出
-        if (article.isRead || article.feedback === 'dismissed') {
-          toExit.push(article)
-        }
-        // 未读且未拒绝 → 根据评分决定
-        else {
-          if (article.analysisScore && article.analysisScore >= 6.0) {
-            toPopup.push(article)
-          } else {
-            toCandidate.push(article)
-          }
-        }
-      }
-
-      // 按评分排序，只保留高分的到 targetPoolSize
-      toPopup.sort((a, b) => (b.analysisScore || 0) - (a.analysisScore || 0))
-      const keepInPopup = toPopup.slice(0, targetPoolSize)
-      const moveBackToCandidate = toPopup.slice(targetPoolSize)
-
-      // 执行迁移
-      let migratedCount = 0
-
-      // 1. 保留在推荐池（改为 popup 状态）
-      for (const article of keepInPopup) {
-        await db.feedArticles.update(article.id, {
-          poolStatus: 'popup',
-          popupAddedAt: article.popupAddedAt || Date.now()
-        })
-        migratedCount++
-      }
-
-      // 2. 退回候选池
-      for (const article of [...toCandidate, ...moveBackToCandidate]) {
-        await db.feedArticles.update(article.id, {
-          poolStatus: 'candidate',
-          poolExitReason: 'migration_cleanup'
-        })
-        migratedCount++
-      }
-
-      // 3. 标记为已退出
-      for (const article of toExit) {
-        await db.feedArticles.update(article.id, {
-          poolStatus: 'exited',
-          poolExitReason: article.isRead ? 'read' : 'dismissed',
-          poolExitAt: Date.now()
-        })
-        migratedCount++
-      }
-
-      schedLogger.info(`✅ 旧状态迁移完成`, {
-        '保留在推荐池': keepInPopup.length,
-        '退回候选池': toCandidate.length + moveBackToCandidate.length,
-        '标记为已退出': toExit.length,
-        '总迁移数': migratedCount
-      })
-
-    } catch (error) {
-      schedLogger.error('❌ 旧状态迁移失败:', error)
-    }
-  }
-
-  /**
    * 清理超出容量的推荐（退回候选池）
    * 
    * 策略：保留高分推荐，将低分推荐退回候选池
    */
   private async cleanupExcessRecommendations(targetPoolSize: number): Promise<void> {
     try {
-      // 获取当前所有弹窗推荐（包括已读和未读）
+      // 获取当前所有推荐池文章（包括已读和未读）
       const allPopupArticles = await db.feedArticles
-        .filter(a => a.poolStatus === 'popup')
+        .filter(a => a.poolStatus === 'recommended')
         .toArray()
 
       if (allPopupArticles.length <= targetPoolSize) {
@@ -399,7 +307,7 @@ export class RefillScheduler {
     // 检查当前推荐池大小
     const currentPoolSize = await db.feedArticles
       .filter(a => {
-        const isPopup = a.poolStatus === 'popup'
+        const isPopup = a.poolStatus === 'recommended'
         const isUnread = !a.isRead
         const notDismissed = a.feedback !== 'dismissed'
         return isPopup && isUnread && notDismissed
@@ -428,7 +336,7 @@ export class RefillScheduler {
       try {
         // 直接更新文章状态为弹窗推荐
         await db.feedArticles.update(article.id, {
-          poolStatus: 'popup',
+          poolStatus: 'recommended',
           popupAddedAt: now,
           recommendedPoolAddedAt: now,  // 兼容旧字段
           isRead: false,                 // 初始化为未读
@@ -452,7 +360,7 @@ export class RefillScheduler {
     // 最终验证：查询数据库中弹窗状态的文章数量
     const finalCount = await db.feedArticles
       .filter(a => {
-        const isPopup = a.poolStatus === 'popup'
+        const isPopup = a.poolStatus === 'recommended'
         const isUnread = !a.isRead
         const notDismissed = a.feedback !== 'dismissed'
         return isPopup && isUnread && notDismissed

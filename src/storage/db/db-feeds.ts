@@ -78,7 +78,7 @@ export async function updateFeedStats(feedUrl: string): Promise<void> {
     
     // 4. 从推荐池统计（包括所有历史，基于 feedArticles）
     const recommendationsFromThisFeed = inFeedArticles.filter(a => 
-      a.poolStatus === 'popup' || (a.poolStatus === 'exited' && a.popupAddedAt)
+      a.poolStatus === 'recommended' || (a.poolStatus === 'exited' && a.popupAddedAt)
     )
     
     // 统计推荐相关数据

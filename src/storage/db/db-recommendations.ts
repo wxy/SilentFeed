@@ -1,12 +1,12 @@
 /**
  * 数据库推荐管理模块（Phase 13+: 基于 feedArticles 表）
  * 
- * 负责弹窗推荐的查询和用户操作
+ * 负责推荐查询和用户操作
  * 
- * 架构变更（v21）：
- * - 删除 recommendations 表
- * - 所有推荐数据统一在 feedArticles 表中
- * - poolStatus='popup' 表示文章在弹窗中显示
+ * 架构变更（v22）：
+ * - 推荐池与显示方式分离
+ * - poolStatus='recommended' 表示文章在推荐池中
+ * - 显示方式（弹窗/清单）由 deliveryMode 配置决定
  */
 
 import { db } from './index'
@@ -163,10 +163,10 @@ export async function getUnreadRecommendations(limit: number = 50): Promise<Reco
   try {
     const articles = await db.feedArticles
       .filter(a => {
-        const isPopup = a.poolStatus === 'popup'
+        const isInPool = a.poolStatus === 'recommended'
         const isUnread = !a.isRead
         const notDismissed = a.feedback !== 'dismissed'
-        return isPopup && isUnread && notDismissed
+        return isInPool && isUnread && notDismissed
       })
       .toArray()
     
@@ -283,12 +283,12 @@ export async function resetRecommendationData(): Promise<void> {
   try {
     dbLogger.info('开始重置推荐数据...')
     
-    // 查找所有弹窗状态的文章
+    // 查找所有推荐池中的文章
     const popupArticles = await db.feedArticles
-      .filter(a => a.poolStatus === 'popup')
+      .filter(a => a.poolStatus === 'recommended')
       .toArray()
     
-    dbLogger.info(`找到 ${popupArticles.length} 篇弹窗文章，将标记为已退出`)
+    dbLogger.info(`找到 ${popupArticles.length} 篇推荐池文章，将标记为已退出`)
     
     // 批量更新为 exited 状态
     const now = Date.now()

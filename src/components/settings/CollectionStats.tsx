@@ -268,7 +268,7 @@ export function CollectionStats() {
       ])
       
       // 清理所有弹窗推荐状态
-      const popupArticles = await db.feedArticles.filter(a => a.poolStatus === 'popup').toArray()
+      const popupArticles = await db.feedArticles.filter(a => a.poolStatus === 'recommended').toArray()
       const now = Date.now()
       for (const article of popupArticles) {
         await db.feedArticles.update(article.id, {

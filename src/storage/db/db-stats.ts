@@ -39,7 +39,7 @@ export async function getRecommendationStats(
       // 查询最近 N 天的推荐记录（使用 feedArticles，poolStatus='popup' 表示曾在弹窗中）
       let recentRecommendations = await db.feedArticles
         .filter(a => {
-          const wasRecommended = a.poolStatus === 'popup' || a.poolStatus === 'exited'
+          const wasRecommended = a.poolStatus === 'recommended' || a.poolStatus === 'exited'
           const inTimeRange = (a.popupAddedAt || 0) > cutoffTime
           return wasRecommended && inTimeRange
         })
@@ -48,7 +48,7 @@ export async function getRecommendationStats(
       // Phase 7: 如果只统计活跃推荐，只看当前在弹窗中的
       if (onlyActive) {
         recentRecommendations = recentRecommendations.filter(a => 
-          a.poolStatus === 'popup'
+          a.poolStatus === 'recommended'
         )
       }
       
@@ -117,7 +117,7 @@ export async function getStorageStats(): Promise<StorageStats> {
   const confirmedCount = await db.confirmedVisits.count()
   // 统计曾在弹窗中的推荐数量（poolStatus='popup' 或已退出但来源是弹窗）
   const recommendationCount = await db.feedArticles
-    .filter(a => a.poolStatus === 'popup' || (a.poolStatus === 'exited' && a.popupAddedAt))
+    .filter(a => a.poolStatus === 'recommended' || (a.poolStatus === 'exited' && a.popupAddedAt))
     .count()
   
   // 计算总页面数（= confirmed visits）
@@ -563,12 +563,12 @@ export async function getRecommendationFunnel(currentFeedOnly: boolean = true): 
     // ===== 数据源 2: 弹窗推荐统计（基于 feedArticles.poolStatus='popup'）=====
     // 用于"当前弹窗"等动态指标
     const popupArticles = await db.feedArticles
-      .filter(a => a.poolStatus === 'popup' || (a.poolStatus === 'exited' && a.popupAddedAt))
+      .filter(a => a.poolStatus === 'recommended' || (a.poolStatus === 'exited' && a.popupAddedAt))
       .toArray()
     
     // 当前弹窗显示数量（动态：在弹窗中且未读）
     const currentPopupCount = popupArticles.filter(a => 
-      a.poolStatus === 'popup' && 
+      a.poolStatus === 'recommended' && 
       !a.isRead && 
       a.feedback !== 'dismissed'
     ).length

@@ -571,6 +571,51 @@ export class SilentFeedDB extends Dexie {
       // 表会被自动删除，无需手动操作
       dbLogger.info('[架构简化] ✅ recommendations 表已删除，推荐数据统一存储在 feedArticles 中')
     })
+
+    // v22: 推荐池与显示方式分离 - 将 poolStatus='popup' 改为 'recommended'
+    this.version(22).upgrade(async tx => {
+      dbLogger.info('[架构简化] 推荐池与显示方式分离：popup → recommended')
+      
+      // 1. 迁移 popup 状态到 recommended
+      const popupArticles = await tx.table('feedArticles')
+        .filter(a => a.poolStatus === 'popup')
+        .toArray()
+      
+      if (popupArticles.length > 0) {
+        dbLogger.info(`[迁移] 发现 ${popupArticles.length} 篇 popup 状态文章，开始迁移...`)
+        
+        for (const article of popupArticles) {
+          await tx.table('feedArticles').update(article.id, {
+            poolStatus: 'recommended'
+          })
+        }
+        
+        dbLogger.info(`[迁移] ✅ 已将 ${popupArticles.length} 篇文章从 popup 改为 recommended`)
+      }
+      
+      // 2. 清理可能残留的旧 'recommended' 状态（来自 Phase 10 之前）
+      const oldRecommended = await tx.table('feedArticles')
+        .filter(a => a.status === 'recommended')
+        .toArray()
+      
+      if (oldRecommended.length > 0) {
+        dbLogger.info(`[清理] 发现 ${oldRecommended.length} 篇使用旧 status='recommended' 的文章`)
+        
+        for (const article of oldRecommended) {
+          // 如果没有 poolStatus 或 poolStatus 不合理，设置为 recommended
+          if (!article.poolStatus || article.poolStatus === 'raw') {
+            await tx.table('feedArticles').update(article.id, {
+              poolStatus: 'recommended',
+              status: undefined  // 清除旧字段
+            })
+          }
+        }
+        
+        dbLogger.info('[清理] ✅ 旧状态清理完成')
+      }
+      
+      dbLogger.info('[架构简化] ✅ v22 迁移完成 - 推荐池状态统一为 recommended')
+    })
   }
 }
 

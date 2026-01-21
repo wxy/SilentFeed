@@ -195,11 +195,11 @@ export interface FeedArticle {
    * - prescreened-out: 初筛淘汰（AI初筛认为不值得详细分析）
    * - analyzed-not-qualified: 已分析但未达到推荐阈值
    * - candidate: 候选池（高分文章，等待推荐）
-   * - popup: 弹窗推荐（已推荐给用户，显示在弹窗中）← 替代原 'recommended'
+   * - recommended: 推荐池（已推荐给用户，待处理）- 显示方式由 deliveryMode 决定
    * - exited: 已退出（用户操作或订阅源变更导致退出）
    * - stale: 已过时（文章已从RSS源中移除，跳过分析）
    */
-  poolStatus?: 'raw' | 'prescreened-out' | 'analyzed-not-qualified' | 'candidate' | 'popup' | 'exited' | 'stale'
+  poolStatus?: 'raw' | 'prescreened-out' | 'analyzed-not-qualified' | 'candidate' | 'recommended' | 'exited' | 'stale'
   
   /**
    * 分析得分：AI 分析后的推荐分数 (0-10)

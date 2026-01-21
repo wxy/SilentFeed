@@ -289,7 +289,7 @@ async function collectStats(now: number, oneDayAgo: number, sevenDaysAgo: number
     // 用户行为统计（基于 feedArticles，poolStatus='popup' 表示曾在弹窗中）
     const recommendationStats = await db.feedArticles
       .filter(a => {
-        const wasInPopup = a.poolStatus === 'popup' || (a.poolStatus === 'exited' && a.popupAddedAt)
+        const wasInPopup = a.poolStatus === 'recommended' || (a.poolStatus === 'exited' && a.popupAddedAt)
         const inTimeRange = (a.popupAddedAt || 0) > oneDayAgo
         return wasInPopup && inTimeRange
       })

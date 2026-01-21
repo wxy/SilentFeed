@@ -1171,7 +1171,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           try {
             const activeRecs = await db.feedArticles
               .filter(article => {
-                const isInPopup = article.poolStatus === 'popup'
+                const isInPopup = article.poolStatus === 'recommended'
                 const isUnreadAndNotDismissed = !article.isRead && article.feedback !== 'dismissed'
                 return isInPopup && isUnreadAndNotDismissed
               })
@@ -1216,7 +1216,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             // 使用 feedArticles 表（poolStatus='popup' 表示在弹窗中）
             const articlesToCleanInPopup = await db.feedArticles
               .filter(a => {
-                const isInPopup = a.poolStatus === 'popup'
+                const isInPopup = a.poolStatus === 'recommended'
                 const isUnreadAndNotDismissed = !a.isRead && a.feedback !== 'dismissed'
                 return isInPopup && isUnreadAndNotDismissed
               })
@@ -1272,7 +1272,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 // 获取弹窗中的未读推荐
                 const activeRecs = await db.feedArticles
                   .filter(article => {
-                    const isInPopup = article.poolStatus === 'popup'
+                    const isInPopup = article.poolStatus === 'recommended'
                     const isUnread = !article.isRead
                     const notDismissed = article.feedback !== 'dismissed'
                     return isInPopup && isUnread && notDismissed
@@ -1671,7 +1671,7 @@ async function cleanupRecommendationPool(): Promise<void> {
     // 使用 feedArticles 表（poolStatus='popup' 表示在弹窗中）
     const activeRecs = await db.feedArticles
       .filter(a => {
-        const isInPopup = a.poolStatus === 'popup'
+        const isInPopup = a.poolStatus === 'recommended'
         const isUnreadAndNotDismissed = !a.isRead && a.feedback !== 'dismissed'
         return isInPopup && isUnreadAndNotDismissed
       })
