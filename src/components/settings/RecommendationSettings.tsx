@@ -239,54 +239,22 @@ export function RecommendationSettings({
                     {poolStrategy?.decision?.confidence && (
                       <span className="text-xs text-indigo-600 dark:text-indigo-300 flex-shrink-0">{_('置信度')} {Math.round(poolStrategy.decision.confidence * 100)}%</span>
                     )}
-                    {/* 操作按钮组 */}
-                    <div className="flex gap-1 ml-2">
-                      <button
-                        onClick={async () => {
-                          try {
-                            await chrome.runtime.sendMessage({ type: 'TRIGGER_RECOMMENDATION_STRATEGY' })
-                            alert('✅ 已触发 AI 策略生成')
-                            setTimeout(() => window.location.reload(), 1000)
-                          } catch (error) {
-                            alert('❌ 触发失败: ' + String(error))
-                          }
-                        }}
-                        className="px-2 py-1 text-[10px] bg-indigo-500 hover:bg-indigo-600 text-white rounded transition-colors"
-                        title={_('重新生成 AI 策略')}
-                      >
-                        🎯 {_('重新生成')}
-                      </button>
-                      <button
-                        onClick={async () => {
-                          try {
-                            await chrome.runtime.sendMessage({ type: 'RESET_REFILL_TIME' })
-                            alert('✅ 已重置补充间隔')
-                            setTimeout(() => window.location.reload(), 500)
-                          } catch (error) {
-                            alert('❌ 重置失败: ' + String(error))
-                          }
-                        }}
-                        className="px-2 py-1 text-[10px] bg-green-500 hover:bg-green-600 text-white rounded transition-colors"
-                        title={_('重置下次补充时间为现在')}
-                      >
-                        ⏰ {_('重置间隔')}
-                      </button>
-                      <button
-                        onClick={async () => {
-                          try {
-                            await chrome.runtime.sendMessage({ type: 'RESET_DAILY_REFILL_COUNT' })
-                            alert('✅ 已重置每日补充次数')
-                            setTimeout(() => window.location.reload(), 500)
-                          } catch (error) {
-                            alert('❌ 重置失败: ' + String(error))
-                          }
-                        }}
-                        className="px-2 py-1 text-[10px] bg-orange-500 hover:bg-orange-600 text-white rounded transition-colors"
-                        title={_('重置今日剩余补充次数')}
-                      >
-                        🔢 {_('重置次数')}
-                      </button>
-                    </div>
+                    {/* 重新生成策略按钮 */}
+                    <button
+                      onClick={async () => {
+                        try {
+                          await chrome.runtime.sendMessage({ type: 'TRIGGER_RECOMMENDATION_STRATEGY' })
+                          alert('✅ 已触发 AI 策略生成')
+                          setTimeout(() => window.location.reload(), 1000)
+                        } catch (error) {
+                          alert('❌ 触发失败: ' + String(error))
+                        }
+                      }}
+                      className="px-2 py-1 text-[10px] bg-indigo-500 hover:bg-indigo-600 text-white rounded transition-colors"
+                      title={_('重新生成 AI 策略')}
+                    >
+                      🎯 {_('重新生成')}
+                    </button>
                   </div>
                 </div>
                 
@@ -337,14 +305,48 @@ export function RecommendationSettings({
                     {/* 补充配置 */}
                     <div className="grid grid-cols-2 gap-3 mb-4 text-xs pb-4 border-b border-purple-200 dark:border-purple-700/50">
                       <div>
-                        <span className="text-gray-600 dark:text-gray-400">{_('补充间隔')}</span>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-gray-600 dark:text-gray-400">{_('补充间隔')}</span>
+                          <button
+                            onClick={async () => {
+                              try {
+                                await chrome.runtime.sendMessage({ type: 'RESET_REFILL_TIME' })
+                                alert('✅ 已重置补充间隔')
+                                setTimeout(() => window.location.reload(), 500)
+                              } catch (error) {
+                                alert('❌ 重置失败: ' + String(error))
+                              }
+                            }}
+                            className="px-1.5 py-0.5 text-[9px] bg-green-500 hover:bg-green-600 text-white rounded transition-colors"
+                            title={_('重置下次补充时间')}
+                          >
+                            ⏰ {_('重置')}
+                          </button>
+                        </div>
                         <div className="font-bold text-green-600 dark:text-green-400">{minIntervalMinutes} 分钟</div>
                         {nextRefillTime && (
                           <div className="text-[10px] text-gray-500 dark:text-gray-500 mt-1">{_('下次：')} {formatAbsoluteTime(nextRefillTime)}</div>
                         )}
                       </div>
                       <div>
-                        <span className="text-gray-600 dark:text-gray-400">{_('每日上限')}</span>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-gray-600 dark:text-gray-400">{_('每日上限')}</span>
+                          <button
+                            onClick={async () => {
+                              try {
+                                await chrome.runtime.sendMessage({ type: 'RESET_DAILY_REFILL_COUNT' })
+                                alert('✅ 已重置每日补充次数')
+                                setTimeout(() => window.location.reload(), 500)
+                              } catch (error) {
+                                alert('❌ 重置失败: ' + String(error))
+                              }
+                            }}
+                            className="px-1.5 py-0.5 text-[9px] bg-orange-500 hover:bg-orange-600 text-white rounded transition-colors"
+                            title={_('重置今日剩余补充次数')}
+                          >
+                            🔢 {_('重置')}
+                          </button>
+                        </div>
                         <div className="font-bold text-orange-600 dark:text-orange-400">{dailyRefillLimit} {_('次')}</div>
                         {remainingRefills !== null && (
                           <div className="text-[10px] text-gray-500 dark:text-gray-500 mt-1">{_('剩余：')} {remainingRefills} {_('次')}</div>

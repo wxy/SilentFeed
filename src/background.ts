@@ -1391,13 +1391,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               bgLogger.info('⏰ 重置下次补充时间为现在')
               const result = await chrome.storage.local.get('pool_refill_state')
               const currentState = result.pool_refill_state || { dailyRefillCount: 0, currentDate: new Date().toISOString().split('T')[0] }
+              
+              // 获取当前策略的冷却时间（默认 60 分钟）
+              const strategyResult = await chrome.storage.local.get('pool_strategy_decision')
+              const cooldownMinutes = strategyResult.pool_strategy_decision?.decision?.minInterval || 60
+              const cooldownMs = cooldownMinutes * 60 * 1000
+              
+              // 设置 lastRefillTime 为“当前时间 - 冷却期”，这样下次检查时就能通过时间检查
+              const now = Date.now()
               await chrome.storage.local.set({
                 'pool_refill_state': {
                   ...currentState,
-                  lastRefillTime: 0  // 设置为 0，下次检查时会立即触发
+                  lastRefillTime: now - cooldownMs  // 设置为“当前时间 - 冷却期”
                 }
               })
-              bgLogger.info('✅ 已重置补充时间')
+              bgLogger.info(`✅ 已重置补充时间（冷却期: ${cooldownMinutes} 分钟）`)
               sendResponse({ success: true })
             } catch (error) {
               bgLogger.error('重置补充时间失败:', error)
