@@ -593,22 +593,45 @@ export class SilentFeedDB extends Dexie {
         dbLogger.info(`[迁移] ✅ 已将 ${popupArticles.length} 篇文章从 popup 改为 recommended`)
       }
       
-      // 2. 清理可能残留的旧 'recommended' 状态（来自 Phase 10 之前）
+      // 2. 处理已有 poolStatus='recommended' 的文章（Phase 13 遗留）
+      // 这些文章状态已正确，只需确认并清理旧字段
+      const alreadyRecommended = await tx.table('feedArticles')
+        .filter(a => a.poolStatus === 'recommended')
+        .toArray()
+      
+      if (alreadyRecommended.length > 0) {
+        dbLogger.info(`[验证] 发现 ${alreadyRecommended.length} 篇已是 recommended 状态的文章（Phase 13 遗留）`)
+        
+        let cleanedCount = 0
+        for (const article of alreadyRecommended) {
+          // 清理旧的 status 字段（如果存在）
+          if (article.status) {
+            await tx.table('feedArticles').update(article.id, {
+              status: undefined
+            })
+            cleanedCount++
+          }
+        }
+        
+        if (cleanedCount > 0) {
+          dbLogger.info(`[清理] ✅ 清理了 ${cleanedCount} 篇文章的旧 status 字段`)
+        }
+        dbLogger.info('[验证] ✅ 已有 recommended 状态的文章保持不变')
+      }
+      
+      // 3. 清理可能残留的旧 status='recommended' 但没有 poolStatus 的文章
       const oldRecommended = await tx.table('feedArticles')
-        .filter(a => a.status === 'recommended')
+        .filter(a => a.status === 'recommended' && !a.poolStatus)
         .toArray()
       
       if (oldRecommended.length > 0) {
-        dbLogger.info(`[清理] 发现 ${oldRecommended.length} 篇使用旧 status='recommended' 的文章`)
+        dbLogger.info(`[清理] 发现 ${oldRecommended.length} 篇只有旧 status='recommended' 的文章`)
         
         for (const article of oldRecommended) {
-          // 如果没有 poolStatus 或 poolStatus 不合理，设置为 recommended
-          if (!article.poolStatus || article.poolStatus === 'raw') {
-            await tx.table('feedArticles').update(article.id, {
-              poolStatus: 'recommended',
-              status: undefined  // 清除旧字段
-            })
-          }
+          await tx.table('feedArticles').update(article.id, {
+            poolStatus: 'recommended',
+            status: undefined  // 清除旧字段
+          })
         }
         
         dbLogger.info('[清理] ✅ 旧状态清理完成')

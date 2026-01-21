@@ -1306,8 +1306,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 bgLogger.info(`✅ 已将 ${transferred} 条推荐转移到阅读清单`)
                 sendResponse({ success: true, transferred })
               } 
-              // 切换到弹窗：从清单删除由扩展管理的条目
+              // 切换到弹窗：从清单删除由扩展管理的条目（不修改推荐池状态）
               else if (deliveryMode === 'popup') {
+                // 先验证推荐池状态
+                const poolArticles = await db.feedArticles
+                  .filter(a => a.poolStatus === 'recommended')
+                  .toArray()
+                
+                bgLogger.info(`[切换验证] 推荐池中有 ${poolArticles.length} 篇文章`)
+                
                 const entries = await chrome.readingList.query({})
                 const ourEntries = entries.filter(e => e.title?.startsWith(autoAddedPrefix))
 
@@ -1326,8 +1333,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                   }
                 }
 
-                bgLogger.info(`✅ 已从阅读清单删除 ${removed} 条推荐`)
-                sendResponse({ success: true, removed })
+                // 再次验证推荐池状态未被修改
+                const poolArticlesAfter = await db.feedArticles
+                  .filter(a => a.poolStatus === 'recommended')
+                  .toArray()
+                
+                if (poolArticlesAfter.length !== poolArticles.length) {
+                  bgLogger.error(`❌ 推荐池状态被意外修改！之前: ${poolArticles.length}, 之后: ${poolArticlesAfter.length}`)
+                } else {
+                  bgLogger.info(`✅ 推荐池状态保持不变: ${poolArticlesAfter.length} 篇`)
+                }
+
+                bgLogger.info(`✅ 已从阅读清单删除 ${removed} 条推荐，推荐池数据保持完整`)
+                sendResponse({ success: true, removed, poolCount: poolArticlesAfter.length })
               } else {
                 sendResponse({ success: true })
               }
