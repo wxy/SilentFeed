@@ -243,9 +243,24 @@ export function RecommendationSettings({
                     <div className="text-sm font-semibold text-gray-800 dark:text-gray-100">{_('智能推荐策略')}</div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">{poolStrategy?.date ? `${_('更新于')} ${poolStrategy.date}` : _('使用默认策略')}</div>
                   </div>
-                  {poolStrategy?.decision?.confidence && (
-                    <span className="text-xs text-indigo-600 dark:text-indigo-300 flex-shrink-0">{_('置信度')} {Math.round(poolStrategy.decision.confidence * 100)}%</span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {poolStrategy?.decision?.confidence && (
+                      <span className="text-xs text-indigo-600 dark:text-indigo-300 flex-shrink-0">{_('置信度')} {Math.round(poolStrategy.decision.confidence * 100)}%</span>
+                    )}
+                    <button
+                      onClick={async () => {
+                        try {
+                          await chrome.runtime.sendMessage({ type: 'TRIGGER_RECOMMENDATION_STRATEGY' })
+                          alert('✅ 已触发推荐策略执行')
+                        } catch (error) {
+                          alert('❌ 触发失败: ' + String(error))
+                        }
+                      }}
+                      className="px-2 py-1 text-xs bg-indigo-500 hover:bg-indigo-600 text-white rounded transition-colors"
+                    >
+                      🎯 重新生成
+                    </button>
+                  </div>
                 </div>
                 
                 {/* 策略推理文本 */}
@@ -267,6 +282,10 @@ export function RecommendationSettings({
                       <div className="bg-indigo-600 dark:bg-indigo-400 h-2 rounded-full transition-all" style={{ width: `${entryThreshold * 100}%` }} />
                     </div>
                     <div className="text-[11px] text-gray-500 dark:text-gray-500 mt-1">{_('文章评分高于此值才进入候选池')}</div>
+                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-indigo-200 dark:border-indigo-700/50">
+                      <span className="text-xs text-gray-600 dark:text-gray-400">{_('当前候选池')}</span>
+                      <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{poolData.candidatePoolCount} <span className="text-xs font-normal">篇</span></span>
+                    </div>
                     {(poolStrategy as any)?.meta?.decisionId && (
                       <div className="text-[11px] text-gray-500 dark:text-gray-500 mt-1">{_('来源：AI 策略（ID:')} {(poolStrategy as any).meta.decisionId}{_('）')}</div>
                     )}
@@ -274,23 +293,9 @@ export function RecommendationSettings({
                   
                   {/* 推荐池 - 大框整合所有相关数据 */}
                   <div className="bg-purple-50 dark:bg-purple-900/10 rounded-lg p-4 border border-purple-200 dark:border-purple-700/50">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-purple-600 dark:text-purple-400 font-semibold text-sm">【推荐池】</span>
-                        <button
-                          onClick={async () => {
-                            try {
-                              await chrome.runtime.sendMessage({ type: 'TRIGGER_RECOMMENDATION_STRATEGY' })
-                              alert('✅ 已触发推荐策略执行')
-                            } catch (error) {
-                              alert('❌ 触发失败: ' + String(error))
-                            }
-                          }}
-                          className="px-2 py-1 text-xs bg-purple-500 hover:bg-purple-600 text-white rounded transition-colors"
-                        >
-                          🎯 手动触发
-                        </button>
-                      </div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-purple-600 dark:text-purple-400 font-semibold text-sm">【推荐池】补充机制</span>
+                      <span className="text-[10px] text-gray-500 dark:text-gray-400">(从候选池 → 推荐池)</span>
                     </div>
 
                     {/* 触发阈值 */}
@@ -355,18 +360,8 @@ export function RecommendationSettings({
                       </div>
                     </div>
 
-                    {/* 推荐池/候选池/弹窗容量状态 */}
-                    <div className="grid grid-cols-3 gap-3">
-                      <div>
-                        <div className="flex items-center gap-1 mb-2">
-                          <span>🎯</span>
-                          <span className="text-xs font-medium text-blue-700 dark:text-blue-300">{_('候选池')}</span>
-                        </div>
-                        <div className="flex items-baseline gap-1 mb-2">
-                          <span className="text-lg font-bold text-blue-600 dark:text-blue-400">{poolData.candidatePoolCount}</span>
-                          <span className="text-xs text-blue-500 dark:text-blue-500">篇</span>
-                        </div>
-                      </div>
+                    {/* 推荐池/弹窗容量状态 */}
+                    <div className="grid grid-cols-2 gap-3">
                       <div>
                         <div className="flex items-center gap-1 mb-2">
                           <span>📦</span>
