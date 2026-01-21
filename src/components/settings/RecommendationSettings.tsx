@@ -11,7 +11,9 @@ import { getRecommendationConfig, saveRecommendationConfig } from '@/storage/rec
 import { db } from '@/storage/db'
 
 interface RecommendationSettingsProps {
-  currentStrategy?: any  // Phase 13: StrategyDecision 对象
+  poolStrategy?: any
+  currentStrategy?: any
+  recommendationScheduler?: any
   maxRecommendations: number
   isLearningStage: boolean
   pageCount: number
@@ -21,7 +23,8 @@ interface RecommendationSettingsProps {
 }
 
 export function RecommendationSettings({
-  currentStrategy,
+  poolStrategy,
+  recommendationScheduler,
   maxRecommendations,
   isLearningStage,
   pageCount,
@@ -79,24 +82,11 @@ export function RecommendationSettings({
   }, [])
 
   // 实时池/弹窗状态
-  const [poolData, setPoolData] = useState<{ currentRecommendedPool: number; currentPopupCount: number; candidatePoolCount: number }>({ 
-    currentRecommendedPool: 0, 
-    currentPopupCount: 0,
-    candidatePoolCount: 0
-  })
+  const [poolData, setPoolData] = useState<{ currentRecommendedPool: number; currentPopupCount: number }>({ currentRecommendedPool: 0, currentPopupCount: 0 })
   useEffect(() => {
     const loadPoolData = async () => {
       try {
-        // 推荐池 = recommendations 表中活跃未读的记录（与 RefillScheduler 一致）
-        const recommendedPoolCount = await db.recommendations
-          .filter(r => {
-            const isActive = !r.status || r.status === 'active'
-            const isUnread = !r.isRead
-            return isActive && isUnread
-          })
-          .count()
-        
-        // 弹窗显示 = recommendations 表中活跃未读且未标记稍后读的记录
+        const recommendedPoolCount = await db.feedArticles.filter(a => a.poolStatus === 'recommended').count()
         const popupCount = await db.recommendations
           .filter(r => {
             const isActive = !r.status || r.status === 'active'
@@ -104,22 +94,12 @@ export function RecommendationSettings({
             return isActive && isUnreadAndNotDismissed
           })
           .count()
-        
-        // 候选池 = feedArticles 中 poolStatus='candidate' 的数量
-        const candidatePoolCount = await db.feedArticles
-          .filter(a => a.poolStatus === 'candidate')
-          .count()
-        
-        setPoolData({ currentRecommendedPool: recommendedPoolCount, currentPopupCount: popupCount, candidatePoolCount })
+        setPoolData({ currentRecommendedPool: recommendedPoolCount, currentPopupCount: popupCount })
       } catch {
         // 忽略错误
       }
     }
     loadPoolData()
-    
-    // 每 5 秒刷新一次
-    const interval = setInterval(loadPoolData, 5000)
-    return () => clearInterval(interval)
   }, [])
 
   const formatTimeUntil = (timestamp: number): string => {
@@ -142,38 +122,27 @@ export function RecommendationSettings({
     return `${month}-${day} ${hours}:${minutes}`
   }
 
-  // Phase 13: 从 AI 策略系统读取所有参数
-  const entryThreshold = currentStrategy?.strategy?.candidatePool?.entryThreshold ?? 0.5
-  
-  // AI 决策的推荐池目标容量（先定义，因为后面要用）
-  const poolSize = currentStrategy?.strategy?.recommendation?.targetPoolSize ?? 
-                  maxRecommendations * 2
-  
-  // AI 生成的补充策略参数
-  const cooldownMinutes = currentStrategy?.strategy?.recommendation?.cooldownMinutes ?? 60
-  const minIntervalMinutes = cooldownMinutes
-  const dailyRefillLimit = currentStrategy?.strategy?.recommendation?.dailyLimit ?? 10
-  const refillThreshold = currentStrategy?.strategy?.recommendation?.refillThreshold ?? 3
-  const triggerPercent = refillThreshold && poolSize 
-    ? ((refillThreshold / poolSize) * 100).toFixed(0)
-    : '50'
+  const entryThreshold =
+    poolStrategy?.strategy?.candidatePool?.entryThreshold ??
+    poolStrategy?.decision?.candidatePool?.entryThreshold ??
+    0.5
 
-  // 读取补充状态以显示下次补充时间
+  const minIntervalMinutes = poolStrategy?.decision?.minInterval
+    ? Math.round(poolStrategy.decision.minInterval / 60000)
+    : 60
+  const dailyRefillLimit = poolStrategy?.decision?.maxDailyRefills ?? 10
+  const triggerPercent = poolStrategy?.decision?.triggerThreshold
+    ? (poolStrategy.decision.triggerThreshold * 100).toFixed(0)
+    : '50'
+  const poolSize = poolStrategy?.decision?.poolSize ?? maxRecommendations * 2
+
   const nextRefillTime =
-    refillState
-      ? (() => {
-          // 如果 lastRefillTime 是 0 或非常小（早于 2020年），说明刚重置，下次执行时间就是现在
-          if (refillState.lastRefillTime < new Date('2020-01-01').getTime()) {
-            return Date.now()
-          }
-          // 使用 AI 策略的冷却时间（分钟转毫秒）
-          const strategyInterval = cooldownMinutes * 60 * 1000
-          return refillState.lastRefillTime + strategyInterval
-        })()
+    refillState && poolStrategy?.decision?.minInterval
+      ? refillState.lastRefillTime + poolStrategy.decision.minInterval
       : null
   const remainingRefills =
-    refillState && typeof dailyRefillLimit === 'number'
-      ? Math.max(dailyRefillLimit - (refillState.dailyRefillCount || 0), 0)
+    refillState && typeof poolStrategy?.decision?.maxDailyRefills === 'number'
+      ? Math.max(poolStrategy.decision.maxDailyRefills - (refillState.dailyRefillCount || 0), 0)
       : null
 
   const learningProgress = totalPages > 0 ? Math.min(Math.round((pageCount / totalPages) * 100), 100) : 0
@@ -249,64 +218,17 @@ export function RecommendationSettings({
                 <div className="flex items-center justify-between mb-4 pb-3 border-b border-indigo-200 dark:border-indigo-700/50">
                   <div>
                     <div className="text-sm font-semibold text-gray-800 dark:text-gray-100">{_('智能推荐策略')}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {currentStrategy ? `${_('更新于')} ${new Date(currentStrategy.createdAt).toLocaleString()}` : _('使用默认策略')}
-                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">{poolStrategy?.date ? `${_('更新于')} ${poolStrategy.date}` : _('使用默认策略')}</div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={async () => {
-                        try {
-                          await chrome.runtime.sendMessage({ type: 'TRIGGER_RECOMMENDATION_STRATEGY' })
-                          alert('✅ 已触发推荐策略执行')
-                        } catch (error) {
-                          alert('❌ 触发失败: ' + String(error))
-                        }
-                      }}
-                      className="px-2 py-1 text-xs bg-indigo-500 hover:bg-indigo-600 text-white rounded transition-colors"
-                    >
-                      🎯 重新生成
-                    </button>
-                  </div>
-                </div>
-                
-                {/* AI 策略说明与参数 */}
-                <div className="mb-4">
-                  {currentStrategy ? (
-                    <div className="text-xs text-gray-600 dark:text-gray-400 space-y-2 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700">
-                      <div className="font-semibold text-sm text-gray-700 dark:text-gray-300 mb-2">{_('📊 AI 决策参数')}</div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <span className="text-gray-500 dark:text-gray-500">{_('推荐池容量')}:</span>
-                          <span className="ml-1 font-medium text-gray-700 dark:text-gray-300">{poolSize} {_('篇')}</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-500 dark:text-gray-500">{_('补充冷却')}:</span>
-                          <span className="ml-1 font-medium text-gray-700 dark:text-gray-300">{minIntervalMinutes} {_('分钟')}</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-500 dark:text-gray-500">{_('每日上限')}:</span>
-                          <span className="ml-1 font-medium text-gray-700 dark:text-gray-300">{dailyRefillLimit} {_('次')}</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-500 dark:text-gray-500">{_('触发阈值')}:</span>
-                          <span className="ml-1 font-medium text-gray-700 dark:text-gray-300">{refillThreshold} {_('篇')} ({triggerPercent}%)</span>
-                        </div>
-                        <div className="col-span-2">
-                          <span className="text-gray-500 dark:text-gray-500">{_('候选池准入')}:</span>
-                          <span className="ml-1 font-medium text-gray-700 dark:text-gray-300">{(entryThreshold * 100).toFixed(0)}%</span>
-                        </div>
-                      </div>
-                      <div className="pt-2 mt-2 border-t border-gray-300 dark:border-gray-600 text-[11px] text-gray-500">
-                        {_('策略 ID')}: {currentStrategy.id.substring(0, 16)}...
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-600 dark:text-gray-400 italic">
-                      {_('AI 将根据你的阅读习惯、订阅源和系统状态，智能调整推荐策略')}
-                    </p>
+                  {poolStrategy?.decision?.confidence && (
+                    <span className="text-xs text-indigo-600 dark:text-indigo-300 flex-shrink-0">{_('置信度')} {Math.round(poolStrategy.decision.confidence * 100)}%</span>
                   )}
                 </div>
+                
+                {/* 策略推理文本 */}
+                <p className="text-sm text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">
+                  {poolStrategy?.decision?.reasoning || _('根据历史行为调整推荐策略')}
+                </p>
                 
                 {/* 阈值可视化部分 */}
                 <div className="space-y-4 mb-4">
@@ -322,20 +244,15 @@ export function RecommendationSettings({
                       <div className="bg-indigo-600 dark:bg-indigo-400 h-2 rounded-full transition-all" style={{ width: `${entryThreshold * 100}%` }} />
                     </div>
                     <div className="text-[11px] text-gray-500 dark:text-gray-500 mt-1">{_('文章评分高于此值才进入候选池')}</div>
-                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-indigo-200 dark:border-indigo-700/50">
-                      <span className="text-xs text-gray-600 dark:text-gray-400">{_('当前候选池')}</span>
-                      <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{poolData.candidatePoolCount} <span className="text-xs font-normal">篇</span></span>
-                    </div>
-                    {currentStrategy?.id && (
-                      <div className="text-[11px] text-gray-500 dark:text-gray-500 mt-1">{_('来源：AI 策略（ID:')} {currentStrategy.id.substring(0, 8)}{_('）')}</div>
+                    {(poolStrategy as any)?.meta?.decisionId && (
+                      <div className="text-[11px] text-gray-500 dark:text-gray-500 mt-1">{_('来源：AI 策略（ID:')} {(poolStrategy as any).meta.decisionId}{_('）')}</div>
                     )}
                   </div>
                   
                   {/* 推荐池 - 大框整合所有相关数据 */}
                   <div className="bg-purple-50 dark:bg-purple-900/10 rounded-lg p-4 border border-purple-200 dark:border-purple-700/50">
                     <div className="flex items-center gap-2 mb-3">
-                      <span className="text-purple-600 dark:text-purple-400 font-semibold text-sm">【推荐池】补充机制</span>
-                      <span className="text-[10px] text-gray-500 dark:text-gray-400">(从候选池 → 推荐池)</span>
+                      <span className="text-purple-600 dark:text-purple-400 font-semibold text-sm">【推荐池】</span>
                     </div>
 
                     {/* 触发阈值 */}
@@ -353,46 +270,14 @@ export function RecommendationSettings({
                     {/* 补充配置 */}
                     <div className="grid grid-cols-2 gap-3 mb-4 text-xs pb-4 border-b border-purple-200 dark:border-purple-700/50">
                       <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-gray-600 dark:text-gray-400">{_('补充间隔')}</span>
-                          <button
-                            onClick={async () => {
-                              try {
-                                await chrome.runtime.sendMessage({ type: 'RESET_REFILL_TIME' })
-                                alert('✅ 已重置下次补充时间为现在')
-                                window.location.reload()
-                              } catch (error) {
-                                alert('❌ 重置失败: ' + String(error))
-                              }
-                            }}
-                            className="px-2 py-0.5 text-[10px] bg-green-500 hover:bg-green-600 text-white rounded transition-colors"
-                          >
-                            重置时间
-                          </button>
-                        </div>
+                        <span className="text-gray-600 dark:text-gray-400">{_('补充间隔')}</span>
                         <div className="font-bold text-green-600 dark:text-green-400">{minIntervalMinutes} 分钟</div>
                         {nextRefillTime && (
                           <div className="text-[10px] text-gray-500 dark:text-gray-500 mt-1">{_('下次：')} {formatAbsoluteTime(nextRefillTime)}</div>
                         )}
                       </div>
                       <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-gray-600 dark:text-gray-400">{_('每日上限')}</span>
-                          <button
-                            onClick={async () => {
-                              try {
-                                await chrome.runtime.sendMessage({ type: 'RESET_DAILY_REFILL_COUNT' })
-                                alert('✅ 已重置每日补充次数')
-                                window.location.reload()
-                              } catch (error) {
-                                alert('❌ 重置失败: ' + String(error))
-                              }
-                            }}
-                            className="px-2 py-0.5 text-[10px] bg-orange-500 hover:bg-orange-600 text-white rounded transition-colors"
-                          >
-                            重置次数
-                          </button>
-                        </div>
+                        <span className="text-gray-600 dark:text-gray-400">{_('每日上限')}</span>
                         <div className="font-bold text-orange-600 dark:text-orange-400">{dailyRefillLimit} {_('次')}</div>
                         {remainingRefills !== null && (
                           <div className="text-[10px] text-gray-500 dark:text-gray-500 mt-1">{_('剩余：')} {remainingRefills} {_('次')}</div>
@@ -435,7 +320,22 @@ export function RecommendationSettings({
             </div>
           </div>
 
-          {/* Phase 13: 旧的"下次推荐生成时间"已移除，因为新策略系统不需要显示此信息 */}
+          {/* 2. 下次推荐时间 - 独立块样式（调度系统消息） */}
+          {recommendationScheduler?.nextRunTime && (
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-blue-900 dark:text-blue-100">⏱️ {_('下次推荐生成')}</span>
+                <div className="text-right">
+                  <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                    {formatAbsoluteTime(recommendationScheduler.nextRunTime)}
+                  </div>
+                  <div className="text-xs text-blue-500 dark:text-blue-500">
+                    {formatTimeUntil(recommendationScheduler.nextRunTime)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

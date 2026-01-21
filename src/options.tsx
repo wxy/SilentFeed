@@ -18,6 +18,7 @@ import { getRecommendationConfig } from "@/storage/recommendation-config"
 import { OnboardingStateService } from "@/core/onboarding/OnboardingStateService"
 import { LEARNING_COMPLETE_PAGES } from "@/constants/progress"
 import { getCurrentStrategy } from "@/storage/strategy-storage"
+import { LOCAL_STORAGE_KEYS } from "@/storage/local-storage-keys"
 import "@/styles/global.css"
 import "@/styles/sketchy.css"
 
@@ -28,7 +29,7 @@ type TabKey = "preferences" | "feeds" | "ai-engine" | "recommendation" | "profil
  * 负责加载和管理推荐相关的状态
  */
 function RecommendationSettingsWrapper() {
-  const [currentStrategy, setCurrentStrategy] = useState<any>(null)
+  const [poolStrategy, setPoolStrategy] = useState<any>(null)
   const [maxRecommendations, setMaxRecommendations] = useState(3)
   const [isLearningStage, setIsLearningStage] = useState(false)
   const [pageCount, setPageCount] = useState(0)
@@ -44,13 +45,13 @@ function RecommendationSettingsWrapper() {
       setPoolCapacity(max * 2) // 默认池容量 = 弹窗容量 × 2
     })
 
-    // Phase 13: 从新策略系统加载策略（替代旧的 pool_strategy_decision）
-    getCurrentStrategy().then(strategy => {
-      if (strategy) {
-        setCurrentStrategy(strategy)
-        // 从新策略获取池容量
-        if (strategy.strategy?.recommendation?.targetPoolSize) {
-          setPoolCapacity(strategy.strategy.recommendation.targetPoolSize)
+    // Phase 12: 从 AIPoolStrategyDecider 加载推荐池策略
+    chrome.storage.local.get(LOCAL_STORAGE_KEYS.POOL_STRATEGY_DECISION).then(result => {
+      if (result[LOCAL_STORAGE_KEYS.POOL_STRATEGY_DECISION]) {
+        setPoolStrategy(result[LOCAL_STORAGE_KEYS.POOL_STRATEGY_DECISION])
+        // 从策略获取池容量
+        if (result[LOCAL_STORAGE_KEYS.POOL_STRATEGY_DECISION].decision?.poolSize) {
+          setPoolCapacity(result[LOCAL_STORAGE_KEYS.POOL_STRATEGY_DECISION].decision.poolSize)
         }
       }
     }).catch(error => {
@@ -80,7 +81,7 @@ function RecommendationSettingsWrapper() {
 
   return (
     <RecommendationSettings
-      currentStrategy={currentStrategy}
+      poolStrategy={poolStrategy}
       maxRecommendations={maxRecommendations}
       isLearningStage={isLearningStage}
       pageCount={pageCount}

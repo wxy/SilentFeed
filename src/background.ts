@@ -41,9 +41,9 @@ import {
   saveUrlTracking
 } from '@/storage/tracking-storage'
 import { syncSystemStats } from '@/storage/system-stats'
-// 注意：旧的 pool-strategy-decider 已废弃，现在使用 StrategyDecisionService（Phase 13）
-// // 注意：旧的 pool-strategy-decider 已废弃，现在使用 StrategyDecisionService（Phase 13）
-// import { getStrategyDecider, collectDailyUsageContext } from './core/recommender/pool-strategy-decider'
+// AIPoolStrategyDecider: 每日 AI 决策推荐池策略（Phase 12）
+import { getStrategyDecider, collectDailyUsageContext } from './core/recommender/pool-strategy-decider'
+import { LOCAL_STORAGE_KEYS } from './storage/local-storage-keys'
 import { getRefillManager } from './core/recommender/pool-refill-policy'
 import { cleanupExpiredArticles, cleanupExpiredRecommendations } from '@/storage/transactions'
 
@@ -1370,12 +1370,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           })()
           return true
         
-        // 手动触发推荐策略
+        // 手动触发推荐策略生成
         case 'TRIGGER_RECOMMENDATION_STRATEGY':
           (async () => {
             try {
-              bgLogger.info('🎯 手动触发推荐策略执行')
-              refillScheduler.triggerManual().catch(() => {})
+              bgLogger.info('🎯 手动触发推荐策略生成')
+              await generateDailyPoolStrategy()
               sendResponse({ success: true })
             } catch (error) {
               bgLogger.error('触发推荐策略失败:', error)
@@ -1517,16 +1517,71 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 })
 
 /**
- * 🆕 生成每日推荐池策略（已废弃）
- * 
- * ⚠️ 此函数已在 Phase 13 被 StrategyDecisionService 替代
- * 新系统使用：StrategyReviewScheduler + StrategyDecisionService
- * 
- * 保留此函数仅作历史参考，实际不再调用
+ * 🆕 生成每日推荐池策略（Alarm 触发）
+ * Phase 12: 使用 AIPoolStrategyDecider 生成智能推荐策略
  */
-// async function generateDailyPoolStrategy(): Promise<void> {
-//   已废弃 - 请使用 StrategyReviewScheduler
-// }
+async function generateDailyPoolStrategy(): Promise<void> {
+  try {
+    // 检查阶段状态（仅 ready 状态才生成）
+    const state = await OnboardingStateService.getState()
+    if (state.state !== 'ready') {
+      bgLogger.debug('非 ready 状态，跳过推荐池策略生成')
+      return
+    }
+    
+    // 检查锁（防止并发）
+    const isGenerating = await isPoolStrategyGenerating()
+    if (isGenerating) {
+      bgLogger.debug('推荐池策略正在生成中，跳过')
+      return
+    }
+    
+    // 获取锁
+    await chrome.storage.local.set({ [LOCAL_STORAGE_KEYS.POOL_STRATEGY_GENERATING]: true })
+    
+    try {
+      bgLogger.info('🎯 开始生成每日推荐池策略...')
+      
+      // 收集上下文
+      const context = await collectDailyUsageContext()
+      bgLogger.debug('收集上下文完成', context)
+      
+      // AI 决策
+      const decider = getStrategyDecider()
+      const decision = await decider.decideStrategy(context)
+      bgLogger.info('✅ AI 策略生成完成', {
+        poolSize: decision.poolSize,
+        minInterval: decision.minInterval,
+        confidence: decision.confidence
+      })
+      
+      // 保存到 storage
+      await chrome.storage.local.set({
+        [LOCAL_STORAGE_KEYS.POOL_STRATEGY_DECISION]: {
+          decision,
+          context,
+          generatedAt: Date.now()
+        }
+      })
+      
+      bgLogger.info('💾 策略已保存到 storage')
+      
+    } finally {
+      // 释放锁
+      await chrome.storage.local.remove(LOCAL_STORAGE_KEYS.POOL_STRATEGY_GENERATING)
+    }
+  } catch (error) {
+    bgLogger.error('❌ 生成推荐池策略失败:', error)
+  }
+}
+
+/**
+ * 检查是否正在生成推荐池策略
+ */
+async function isPoolStrategyGenerating(): Promise<boolean> {
+  const result = await chrome.storage.local.get(LOCAL_STORAGE_KEYS.POOL_STRATEGY_GENERATING)
+  return !!result[LOCAL_STORAGE_KEYS.POOL_STRATEGY_GENERATING]
+}
 
 /**
  * Phase 6/7: 定时器事件监听器
