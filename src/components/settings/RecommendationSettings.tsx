@@ -142,15 +142,19 @@ export function RecommendationSettings({
     return `${month}-${day} ${hours}:${minutes}`
   }
 
-  // Phase 13: 从新策略系统读取参数
+  // Phase 13: 从 AI 策略系统读取所有参数
   const entryThreshold = currentStrategy?.strategy?.candidatePool?.entryThreshold ?? 0.5
-
-  // 补充策略参数（从旧的 PoolRefillPolicy 读取，这些是补充管理器的实时配置）
-  const minIntervalMinutes = 60  // 默认值
-  const dailyRefillLimit = 10    // 默认值
-  const triggerPercent = '50'    // 默认值
   
-  // 优先使用新策略系统的 targetPoolSize
+  // AI 生成的补充策略参数
+  const cooldownMinutes = currentStrategy?.strategy?.recommendation?.cooldownMinutes ?? 60
+  const minIntervalMinutes = cooldownMinutes
+  const dailyRefillLimit = currentStrategy?.strategy?.recommendation?.dailyLimit ?? 10
+  const refillThreshold = currentStrategy?.strategy?.recommendation?.refillThreshold ?? 3
+  const triggerPercent = refillThreshold && poolSize 
+    ? ((refillThreshold / poolSize) * 100).toFixed(0)
+    : '50'
+  
+  // AI 决策的推荐池目标容量
   const poolSize = currentStrategy?.strategy?.recommendation?.targetPoolSize ?? 
                   maxRecommendations * 2
 
@@ -162,9 +166,9 @@ export function RecommendationSettings({
           if (refillState.lastRefillTime < new Date('2020-01-01').getTime()) {
             return Date.now()
           }
-          // 使用固定的默认间隔 60 分钟（60 * 60 * 1000 ms）
-          const defaultInterval = 60 * 60 * 1000
-          return refillState.lastRefillTime + defaultInterval
+          // 使用 AI 策略的冷却时间（分钟转毫秒）
+          const strategyInterval = cooldownMinutes * 60 * 1000
+          return refillState.lastRefillTime + strategyInterval
         })()
       : null
   const remainingRefills =
