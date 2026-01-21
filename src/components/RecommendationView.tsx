@@ -423,9 +423,10 @@ export function RecommendationView() {
     })
   }
 
-  // 🔧 Phase 15.1: 显示池中所有推荐，而不是截断为 maxRecommendations
-  // 原因：recommendationStore 已加载池容量（maxRecommendations * 2），应全部显示
-  const displayedRecommendations = recommendations
+  // 🔧 Phase 22: 弹窗只显示前3条推荐
+  // 推荐池中的文章数量可能更多，但弹窗UI空间有限，只显示前3条
+  // 当用户处理某条后，后续推荐会自动补充到前3条位置
+  const displayedRecommendations = recommendations.slice(0, 3)
 
   /**
    * 智能决定哪些条目显示摘要
