@@ -236,6 +236,8 @@ export class RefillScheduler {
     const recommendations: Recommendation[] = []
     const now = Date.now()
 
+    schedLogger.debug(`开始创建 ${articles.length} 条推荐记录`)
+
     for (const article of articles) {
       const recommendation: Recommendation = {
         id: `rec-${article.id}-${now}`,
@@ -250,17 +252,41 @@ export class RefillScheduler {
         status: 'active'
       }
 
-      // 保存到数据库
-      await db.recommendations.add(recommendation)
-      
-      // 更新文章状态
-      await db.feedArticles.update(article.id, {
-        poolStatus: 'recommended',
-        recommendedPoolAddedAt: now
-      })
+      try {
+        // 保存到数据库
+        await db.recommendations.add(recommendation)
+        schedLogger.debug(`✅ 推荐记录已添加: ${recommendation.id}, title: ${recommendation.title}`)
+        
+        // 验证是否真的添加成功
+        const verify = await db.recommendations.get(recommendation.id)
+        if (!verify) {
+          schedLogger.error(`⚠️ 验证失败：推荐记录未找到 ${recommendation.id}`)
+        } else {
+          schedLogger.debug(`✓ 验证成功：推荐记录存在 ${recommendation.id}`)
+        }
+        
+        // 更新文章状态
+        await db.feedArticles.update(article.id, {
+          poolStatus: 'recommended',
+          recommendedPoolAddedAt: now
+        })
+        schedLogger.debug(`✓ 文章状态已更新: ${article.id}`)
 
-      recommendations.push(recommendation)
+        recommendations.push(recommendation)
+      } catch (error) {
+        schedLogger.error(`❌ 创建推荐记录失败: ${article.id}`, error)
+      }
     }
+
+    // 最终验证：查询数据库中活跃未读的推荐数量
+    const finalCount = await db.recommendations
+      .filter(r => {
+        const isActive = !r.status || r.status === 'active'
+        const isUnread = !r.isRead
+        return isActive && isUnread
+      })
+      .count()
+    schedLogger.info(`📊 创建完成后数据库验证：活跃未读推荐数 = ${finalCount}`)
 
     return recommendations
   }

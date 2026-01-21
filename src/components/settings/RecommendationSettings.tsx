@@ -157,7 +157,11 @@ export function RecommendationSettings({
   const triggerPercent = poolStrategy?.decision?.triggerThreshold
     ? (poolStrategy.decision.triggerThreshold * 100).toFixed(0)
     : '50'
-  const poolSize = poolStrategy?.decision?.poolSize ?? maxRecommendations * 2
+  
+  // 优先使用新策略系统的 targetPoolSize，fallback 到旧系统的 poolSize
+  const poolSize = poolStrategy?.strategy?.recommendation?.targetPoolSize ?? 
+                  poolStrategy?.decision?.poolSize ?? 
+                  maxRecommendations * 2
 
   const nextRefillTime =
     refillState && poolStrategy?.decision?.minInterval
