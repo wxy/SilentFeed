@@ -398,22 +398,7 @@ export function RecommendationSettings({
             </div>
           </div>
 
-          {/* 2. 下次推荐时间 - 独立块样式（调度系统消息） */}
-          {recommendationScheduler?.nextRunTime && (
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-blue-900 dark:text-blue-100">⏱️ {_('下次推荐生成')}</span>
-                <div className="text-right">
-                  <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
-                    {formatAbsoluteTime(recommendationScheduler.nextRunTime)}
-                  </div>
-                  <div className="text-xs text-blue-500 dark:text-blue-500">
-                    {formatTimeUntil(recommendationScheduler.nextRunTime)}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Phase 13: 旧的"下次推荐生成时间"已移除，因为新策略系统不需要显示此信息 */}
         </div>
       )}
     </div>
