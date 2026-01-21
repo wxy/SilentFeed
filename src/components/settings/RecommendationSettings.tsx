@@ -254,11 +254,6 @@ export function RecommendationSettings({
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {currentStrategy?.context?.userProfile?.profileConfidence !== undefined && (
-                      <span className="text-xs text-indigo-600 dark:text-indigo-300 flex-shrink-0">
-                        {_('画像置信度')} {Math.round(currentStrategy.context.userProfile.profileConfidence * 100)}%
-                      </span>
-                    )}
                     <button
                       onClick={async () => {
                         try {
@@ -275,20 +270,41 @@ export function RecommendationSettings({
                   </div>
                 </div>
                 
-                {/* AI 推理文本 */}
+                {/* AI 策略说明与参数 */}
                 <div className="mb-4">
-                  <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-2">
-                    {currentStrategy?.reasoning || _('AI 将根据你的阅读习惯、订阅源和系统状态，智能调整推荐策略')}
-                  </p>
-                  {currentStrategy && (
-                    <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1 mt-2 p-2 bg-gray-50 dark:bg-gray-900/50 rounded">
-                      <div className="font-semibold mb-1">{_('AI 决策参数：')}</div>
-                      <div>• {_('推荐池容量')}: {poolSize} {_('篇')}</div>
-                      <div>• {_('补充冷却时间')}: {minIntervalMinutes} {_('分钟')}</div>
-                      <div>• {_('每日补充上限')}: {dailyRefillLimit} {_('次')}</div>
-                      <div>• {_('触发补充阈值')}: {refillThreshold} {_('篇')} ({triggerPercent}%)</div>
-                      <div>• {_('候选池准入阈值')}: {(entryThreshold * 100).toFixed(0)}%</div>
+                  {currentStrategy ? (
+                    <div className="text-xs text-gray-600 dark:text-gray-400 space-y-2 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                      <div className="font-semibold text-sm text-gray-700 dark:text-gray-300 mb-2">{_('📊 AI 决策参数')}</div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <span className="text-gray-500 dark:text-gray-500">{_('推荐池容量')}:</span>
+                          <span className="ml-1 font-medium text-gray-700 dark:text-gray-300">{poolSize} {_('篇')}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 dark:text-gray-500">{_('补充冷却')}:</span>
+                          <span className="ml-1 font-medium text-gray-700 dark:text-gray-300">{minIntervalMinutes} {_('分钟')}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 dark:text-gray-500">{_('每日上限')}:</span>
+                          <span className="ml-1 font-medium text-gray-700 dark:text-gray-300">{dailyRefillLimit} {_('次')}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 dark:text-gray-500">{_('触发阈值')}:</span>
+                          <span className="ml-1 font-medium text-gray-700 dark:text-gray-300">{refillThreshold} {_('篇')} ({triggerPercent}%)</span>
+                        </div>
+                        <div className="col-span-2">
+                          <span className="text-gray-500 dark:text-gray-500">{_('候选池准入')}:</span>
+                          <span className="ml-1 font-medium text-gray-700 dark:text-gray-300">{(entryThreshold * 100).toFixed(0)}%</span>
+                        </div>
+                      </div>
+                      <div className="pt-2 mt-2 border-t border-gray-300 dark:border-gray-600 text-[11px] text-gray-500">
+                        {_('策略 ID')}: {currentStrategy.id.substring(0, 16)}...
+                      </div>
                     </div>
+                  ) : (
+                    <p className="text-sm text-gray-600 dark:text-gray-400 italic">
+                      {_('AI 将根据你的阅读习惯、订阅源和系统状态，智能调整推荐策略')}
+                    </p>
                   )}
                 </div>
                 
