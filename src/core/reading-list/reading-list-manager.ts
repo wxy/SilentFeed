@@ -573,14 +573,44 @@ export class ReadingListManager {
       return
     }
 
-    // 监听条目更新（仅记录日志，不作为阅读信号）
+    // 监听条目更新（处理已读状态）
     chrome.readingList.onEntryUpdated.addListener(async (entry) => {
-      // 策略B：忽略"已读"按钮，依赖实际访问监控
-      rlLogger.debug('阅读列表条目更新（忽略，仅记录日志）', {
+      rlLogger.debug('阅读列表条目更新', {
         title: entry.title,
         url: entry.url,
         hasBeenRead: entry.hasBeenRead,
       })
+      
+      // 如果条目被标记为已读，更新文章状态
+      if (entry.hasBeenRead) {
+        try {
+          const normalizedUrl = ReadingListManager.normalizeUrlForTracking(entry.url)
+          const mapping = await db.readingListEntries.get(normalizedUrl)
+          
+          if (mapping?.recommendationId) {
+            const article = await db.feedArticles.get(mapping.recommendationId)
+            
+            if (article && !article.isRead) {
+              // 标记为已读
+              await db.feedArticles.update(article.id, {
+                isRead: true,
+                clickedAt: Date.now(),
+                poolStatus: 'exited',
+                poolExitedAt: Date.now(),
+                poolExitReason: 'read'
+              })
+              
+              rlLogger.info('✅ [阅读清单] 文章被标记为已读', {
+                id: article.id,
+                title: article.title,
+                url: entry.url
+              })
+            }
+          }
+        } catch (error) {
+          rlLogger.warn('处理阅读清单更新失败', error)
+        }
+      }
     })
 
     // 监听新增条目（用于调试和统计）

@@ -1410,6 +1410,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
                 let removed = 0
                 let keptInPool = 0
+                let filtered = 0
                 const issues = []
                 
                 for (const entry of ourEntries) {
@@ -1422,8 +1423,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                       const article = await db.feedArticles.get(mapping.recommendationId)
                       
                       if (article) {
-                        // 兑底验证：检查文章状态
-                        if (article.poolStatus !== 'recommended') {
+                        // 检查文章是否已读或已拒绝
+                        const isRead = article.isRead || entry.hasBeenRead
+                        const isDismissed = article.feedback === 'dismissed'
+                        
+                        if (isRead || isDismissed) {
+                          // 已读或已拒绝，从推荐池移除
+                          await db.feedArticles.update(article.id, {
+                            poolStatus: 'exited',
+                            poolExitedAt: Date.now(),
+                            poolExitReason: isRead ? 'read' : 'disliked',
+                            isRead: isRead || article.isRead,
+                            feedback: isDismissed ? article.feedback : undefined
+                          })
+                          
+                          filtered++
+                          bgLogger.info(`🔍 过滤${isRead ? '已读' : '已拒绝'}文章: ${article.title}`)
+                        }
+                        // 兜底验证：检查文章状态
+                        else if (article.poolStatus !== 'recommended') {
                           issues.push({
                             url: entry.url,
                             title: article.title,
@@ -1472,7 +1490,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                   bgLogger.info(`✅ 推荐池状态保持不变: ${poolArticlesAfter.length} 篇`)
                 }
 
-                const resultMessage = `✅ 已从阅读清单删除 ${removed} 条推荐，推荐池保持 ${keptInPool} 篇`
+                const resultMessage = `✅ 已从阅读清单删除 ${removed} 条推荐，推荐池保持 ${keptInPool} 篇${filtered > 0 ? `，过滤 ${filtered} 篇已读/已拒绝` : ''}`
                 bgLogger.info(resultMessage)
                 
                 if (issues.length > 0) {
