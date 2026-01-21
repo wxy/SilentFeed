@@ -1,12 +1,12 @@
 /**
  * 补充调度器（RefillScheduler）
  * 
- * 职责：从候选池挑选文章补充到推荐池
+ * 职责：从候选池挑选文章补充到弹窗推荐
  * 
  * 工作流程：
- * 1. 定时检查推荐池容量
+ * 1. 定时检查弹窗推荐容量
  * 2. 从候选池挑选高分文章
- * 3. 写入 recommendations 表
+ * 3. 更新 feedArticles 表的 poolStatus 为 'popup'
  * 4. 根据显示模式设置，可选地写入阅读清单
  * 
  * 调度策略：
@@ -22,7 +22,6 @@ import { getRefillManager } from '@/core/recommender/pool-refill-policy'
 import { ReadingListManager } from '@/core/reading-list/reading-list-manager'
 import { getUIConfig } from '@/storage/ui-config'
 import { logger } from '@/utils/logger'
-import type { Recommendation } from '@/types/database'
 import type { FeedArticle } from '@/types/rss'
 
 const schedLogger = logger.withTag('RefillScheduler')
@@ -130,6 +129,9 @@ export class RefillScheduler {
     try {
       schedLogger.info('开始推荐池补充...')
 
+      // 0. 迁移旧状态数据（一次性操作）
+      await this.migrateOldRecommendedStatus()
+
       // 1. 获取策略配置
       const strategy = await getCurrentStrategy()
       if (!strategy) {
@@ -140,12 +142,16 @@ export class RefillScheduler {
       const targetPoolSize = strategy.strategy.recommendation.targetPoolSize
       const qualityThreshold = strategy.strategy.candidatePool.entryThreshold
 
-      // 2. 检查当前推荐池状态
-      const currentPool = await db.recommendations
-        .filter(r => {
-          const isActive = !r.status || r.status === 'active'
-          const isUnread = !r.isRead
-          return isActive && isUnread
+      // 1.5. 清理超出容量的推荐（退回候选池）
+      await this.cleanupExcessRecommendations(targetPoolSize)
+
+      // 2. 检查当前弹窗推荐状态
+      const currentPool = await db.feedArticles
+        .filter(a => {
+          const isPopup = a.poolStatus === 'popup'
+          const isUnread = !a.isRead
+          const notDismissed = a.feedback !== 'dismissed'
+          return isPopup && isUnread && notDismissed
         })
         .toArray()
 
@@ -201,6 +207,151 @@ export class RefillScheduler {
   }
 
   /**
+   * 迁移旧的 'recommended' 状态到新状态
+   * 一次性数据修复：将旧的 poolStatus='recommended' 迁移到正确的状态
+   */
+  private async migrateOldRecommendedStatus(): Promise<void> {
+    try {
+      // 查找所有使用旧状态的文章
+      const oldStatusArticles = await db.feedArticles
+        .filter(a => a.poolStatus === 'recommended')
+        .toArray()
+
+      if (oldStatusArticles.length === 0) {
+        return // 没有需要迁移的数据
+      }
+
+      schedLogger.info(`🔄 检测到 ${oldStatusArticles.length} 篇旧状态文章，开始迁移...`)
+
+      // 获取当前策略的目标池大小
+      const strategy = await getCurrentStrategy()
+      const targetPoolSize = strategy?.strategy.recommendation.targetPoolSize || 5
+
+      // 分类处理
+      const toPopup: FeedArticle[] = [] // 保留在推荐池
+      const toCandidate: FeedArticle[] = [] // 退回候选池
+      const toExit: FeedArticle[] = [] // 标记为已退出
+
+      for (const article of oldStatusArticles) {
+        // 已读或已拒绝 → 退出
+        if (article.isRead || article.feedback === 'dismissed') {
+          toExit.push(article)
+        }
+        // 未读且未拒绝 → 根据评分决定
+        else {
+          if (article.analysisScore && article.analysisScore >= 6.0) {
+            toPopup.push(article)
+          } else {
+            toCandidate.push(article)
+          }
+        }
+      }
+
+      // 按评分排序，只保留高分的到 targetPoolSize
+      toPopup.sort((a, b) => (b.analysisScore || 0) - (a.analysisScore || 0))
+      const keepInPopup = toPopup.slice(0, targetPoolSize)
+      const moveBackToCandidate = toPopup.slice(targetPoolSize)
+
+      // 执行迁移
+      let migratedCount = 0
+
+      // 1. 保留在推荐池（改为 popup 状态）
+      for (const article of keepInPopup) {
+        await db.feedArticles.update(article.id, {
+          poolStatus: 'popup',
+          popupAddedAt: article.popupAddedAt || Date.now()
+        })
+        migratedCount++
+      }
+
+      // 2. 退回候选池
+      for (const article of [...toCandidate, ...moveBackToCandidate]) {
+        await db.feedArticles.update(article.id, {
+          poolStatus: 'candidate',
+          poolExitReason: 'migration_cleanup'
+        })
+        migratedCount++
+      }
+
+      // 3. 标记为已退出
+      for (const article of toExit) {
+        await db.feedArticles.update(article.id, {
+          poolStatus: 'exited',
+          poolExitReason: article.isRead ? 'read' : 'dismissed',
+          poolExitAt: Date.now()
+        })
+        migratedCount++
+      }
+
+      schedLogger.info(`✅ 旧状态迁移完成`, {
+        '保留在推荐池': keepInPopup.length,
+        '退回候选池': toCandidate.length + moveBackToCandidate.length,
+        '标记为已退出': toExit.length,
+        '总迁移数': migratedCount
+      })
+
+    } catch (error) {
+      schedLogger.error('❌ 旧状态迁移失败:', error)
+    }
+  }
+
+  /**
+   * 清理超出容量的推荐（退回候选池）
+   * 
+   * 策略：保留高分推荐，将低分推荐退回候选池
+   */
+  private async cleanupExcessRecommendations(targetPoolSize: number): Promise<void> {
+    try {
+      // 获取当前所有弹窗推荐（包括已读和未读）
+      const allPopupArticles = await db.feedArticles
+        .filter(a => a.poolStatus === 'popup')
+        .toArray()
+
+      if (allPopupArticles.length <= targetPoolSize) {
+        schedLogger.debug(`推荐池大小正常: ${allPopupArticles.length}/${targetPoolSize}`)
+        return
+      }
+
+      schedLogger.warn(`⚠️ 推荐池超出容量: ${allPopupArticles.length}/${targetPoolSize}，开始清理...`)
+
+      // 按评分降序排序
+      const sorted = allPopupArticles.sort((a, b) => 
+        (b.analysisScore || 0) - (a.analysisScore || 0)
+      )
+
+      // 保留高分的 targetPoolSize 篇，其余退回候选池
+      const toKeep = sorted.slice(0, targetPoolSize)
+      const toMoveBack = sorted.slice(targetPoolSize)
+
+      const now = Date.now()
+      let movedCount = 0
+
+      for (const article of toMoveBack) {
+        try {
+          // 退回候选池
+          await db.feedArticles.update(article.id, {
+            poolStatus: 'candidate',
+            popupAddedAt: undefined,
+            poolExitedAt: now,
+            poolExitReason: 'capacity_cleanup'
+          })
+          movedCount++
+        } catch (error) {
+          schedLogger.error(`退回候选池失败: ${article.id}`, error)
+        }
+      }
+
+      schedLogger.info(`✅ 清理完成: 退回 ${movedCount} 篇到候选池，保留 ${toKeep.length} 篇高分推荐`)
+      schedLogger.debug(`保留评分范围: ${toKeep[toKeep.length - 1]?.analysisScore?.toFixed(2)} - ${toKeep[0]?.analysisScore?.toFixed(2)}`)
+      if (toMoveBack.length > 0) {
+        schedLogger.debug(`退回评分范围: ${toMoveBack[toMoveBack.length - 1]?.analysisScore?.toFixed(2)} - ${toMoveBack[0]?.analysisScore?.toFixed(2)}`)
+      }
+    } catch (error) {
+      schedLogger.error('❌ 清理推荐池失败:', error)
+    }
+  }
+
+  /**
    * 从候选池获取文章
    */
   private async getCandidateArticles(limit: number, threshold: number): Promise<FeedArticle[]> {
@@ -230,80 +381,101 @@ export class RefillScheduler {
   }
 
   /**
-   * 创建推荐记录
+   * 创建推荐记录（Phase 13+: 直接更新 feedArticles，不再写入 recommendations 表）
+   * 
+   * 添加容量检查：
+   * - 获取当前推荐池大小
+   * - 只添加不超过目标容量的文章
+   * - 超出部分保持在候选池中
    */
-  private async createRecommendations(articles: FeedArticle[]): Promise<Recommendation[]> {
-    const recommendations: Recommendation[] = []
+  private async createRecommendations(articles: FeedArticle[]): Promise<FeedArticle[]> {
+    const updatedArticles: FeedArticle[] = []
     const now = Date.now()
 
-    schedLogger.debug(`开始创建 ${articles.length} 条推荐记录`)
+    // 获取策略配置的推荐池容量
+    const strategy = await getCurrentStrategy()
+    const targetPoolSize = strategy?.strategy.recommendation.targetPoolSize || 6
 
-    for (const article of articles) {
-      const recommendation: Recommendation = {
-        id: `rec-${article.id}-${now}`,
-        url: article.link,
-        title: article.title,
-        summary: article.description || '',
-        source: article.feedId || 'unknown',
-        sourceUrl: article.link,
-        recommendedAt: now,
-        score: article.analysisScore || 0,
-        isRead: false,
-        status: 'active'
-      }
+    // 检查当前推荐池大小
+    const currentPoolSize = await db.feedArticles
+      .filter(a => {
+        const isPopup = a.poolStatus === 'popup'
+        const isUnread = !a.isRead
+        const notDismissed = a.feedback !== 'dismissed'
+        return isPopup && isUnread && notDismissed
+      })
+      .count()
 
+    // 计算可添加数量
+    const remainingCapacity = Math.max(0, targetPoolSize - currentPoolSize)
+    
+    if (remainingCapacity === 0) {
+      schedLogger.warn(`⚠️ 推荐池已满 (${currentPoolSize}/${targetPoolSize})，不添加新推荐`)
+      return []
+    }
+
+    // 只处理容量范围内的文章
+    const articlesToAdd = articles.slice(0, remainingCapacity)
+    const articlesExcluded = articles.slice(remainingCapacity)
+
+    if (articlesExcluded.length > 0) {
+      schedLogger.info(`⚠️ 推荐池容量限制: 添加 ${articlesToAdd.length} 篇，跳过 ${articlesExcluded.length} 篇（保持在候选池）`)
+    }
+
+    schedLogger.debug(`开始将 ${articlesToAdd.length} 篇文章加入弹窗推荐 (当前: ${currentPoolSize}/${targetPoolSize})`)
+
+    for (const article of articlesToAdd) {
       try {
-        // 保存到数据库
-        await db.recommendations.add(recommendation)
-        schedLogger.debug(`✅ 推荐记录已添加: ${recommendation.id}, title: ${recommendation.title}`)
-        
-        // 验证是否真的添加成功
-        const verify = await db.recommendations.get(recommendation.id)
-        if (!verify) {
-          schedLogger.error(`⚠️ 验证失败：推荐记录未找到 ${recommendation.id}`)
-        } else {
-          schedLogger.debug(`✓ 验证成功：推荐记录存在 ${recommendation.id}`)
-        }
-        
-        // 更新文章状态
+        // 直接更新文章状态为弹窗推荐
         await db.feedArticles.update(article.id, {
-          poolStatus: 'recommended',
-          recommendedPoolAddedAt: now
+          poolStatus: 'popup',
+          popupAddedAt: now,
+          recommendedPoolAddedAt: now,  // 兼容旧字段
+          isRead: false,                 // 初始化为未读
         })
-        schedLogger.debug(`✓ 文章状态已更新: ${article.id}`)
-
-        recommendations.push(recommendation)
+        
+        schedLogger.debug(`✅ 文章已加入弹窗: ${article.id}, title: ${article.title}`)
+        
+        // 验证更新成功
+        const updated = await db.feedArticles.get(article.id)
+        if (!updated || updated.poolStatus !== 'popup') {
+          schedLogger.error(`⚠️ 验证失败：文章状态未更新 ${article.id}`)
+        } else {
+          schedLogger.debug(`✓ 验证成功：文章状态 = popup, ${article.id}`)
+          updatedArticles.push(updated)
+        }
       } catch (error) {
-        schedLogger.error(`❌ 创建推荐记录失败: ${article.id}`, error)
+        schedLogger.error(`❌ 更新文章状态失败: ${article.id}`, error)
       }
     }
 
-    // 最终验证：查询数据库中活跃未读的推荐数量
-    const finalCount = await db.recommendations
-      .filter(r => {
-        const isActive = !r.status || r.status === 'active'
-        const isUnread = !r.isRead
-        return isActive && isUnread
+    // 最终验证：查询数据库中弹窗状态的文章数量
+    const finalCount = await db.feedArticles
+      .filter(a => {
+        const isPopup = a.poolStatus === 'popup'
+        const isUnread = !a.isRead
+        const notDismissed = a.feedback !== 'dismissed'
+        return isPopup && isUnread && notDismissed
       })
       .count()
-    schedLogger.info(`📊 创建完成后数据库验证：活跃未读推荐数 = ${finalCount}`)
+    schedLogger.info(`📊 创建完成后数据库验证：弹窗未读文章数 = ${finalCount}`)
 
-    return recommendations
+    return updatedArticles
   }
 
   /**
-   * 写入阅读清单
+   * 写入阅读清单（Phase 13+: 改为接收 FeedArticle 数组）
    */
-  private async writeToReadingList(recommendations: Recommendation[]): Promise<void> {
+  private async writeToReadingList(articles: FeedArticle[]): Promise<void> {
     try {
-      for (const rec of recommendations) {
+      for (const article of articles) {
         await ReadingListManager.addToReadingList(
-          rec.title,
-          rec.url,
-          rec.isRead
+          article.title,
+          article.link,
+          article.isRead || false
         )
       }
-      schedLogger.info(`✅ 已将 ${recommendations.length} 条推荐写入阅读清单`)
+      schedLogger.info(`✅ 已将 ${articles.length} 条推荐写入阅读清单`)
     } catch (error) {
       schedLogger.warn('写入阅读清单失败:', error)
     }

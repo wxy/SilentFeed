@@ -14,8 +14,8 @@
 
 import { logger } from '@/utils/logger'
 import { saveUrlTracking } from '@/storage/tracking-storage'
-import type { Recommendation, ConfirmedVisit } from '@/types/database'
-import { db, dismissRecommendations } from '@/storage/db'
+import type { Recommendation } from '@/types/database'
+import { db } from '@/storage/db'
 import { isReadingListAvailable, getBrowserCompatInfo } from '@/utils/browser-compat'
 import { FeedManager } from '@/core/rss/managers/FeedManager'
 import type { ReadingListCleanupConfig } from '@/storage/recommendation-config'
@@ -300,14 +300,7 @@ export class ReadingListManager {
         hasBeenRead: false,
       })
 
-      // 2. 更新 Dexie 中的推荐状态
-      await db.recommendations.update(recommendation.id, {
-        savedToReadingList: true,
-        savedAt: Date.now(),
-        feedback: 'later',  // Phase 14: 标记为"稍后读"
-      })
-      
-      // Phase 14: 同步更新 feedArticles 表中的文章状态
+      // 2. Phase 21: 更新 feedArticles 表中的文章状态（统一使用 feedArticles）
       try {
         const article = await db.feedArticles
           .where('link').equals(recommendation.url)
@@ -320,6 +313,7 @@ export class ReadingListManager {
             poolStatus: 'exited',
             poolExitedAt: now,
             poolExitReason: 'saved',
+            feedback: 'later',  // Phase 14: 标记为"稍后读"
             // 旧字段兼容
             inPool: false,
             poolRemovedAt: now,
@@ -380,12 +374,26 @@ export class ReadingListManager {
       if (errorMessage.includes('Duplicate') || errorMessage.includes('already exists')) {
         rlLogger.debug('文章已在阅读列表中', { url: recommendation.url })
 
-        // 仍然更新 Dexie 状态
-        await db.recommendations.update(recommendation.id, {
-          savedToReadingList: true,
-          savedAt: Date.now(),
-          feedback: 'later',  // Phase 14: 标记为"稍后读"
-        })
+        // Phase 21: 更新 feedArticles 状态（统一使用 feedArticles）
+        try {
+          const article = await db.feedArticles
+            .where('link').equals(recommendation.url)
+            .first()
+          
+          if (article) {
+            const now = Date.now()
+            await db.feedArticles.update(article.id, {
+              poolStatus: 'exited',
+              poolExitedAt: now,
+              poolExitReason: 'saved',
+              feedback: 'later',  // Phase 14: 标记为"稍后读"
+              inPool: false,
+              poolRemovedAt: now,
+            })
+          }
+        } catch (syncError) {
+          rlLogger.warn('更新 feedArticles 失败:', syncError)
+        }
 
         // 记录阅读列表条目（重复分支）
         try {
@@ -405,26 +413,6 @@ export class ReadingListManager {
           })
         } catch (entryError) {
           rlLogger.warn('记录阅读列表条目失败（duplicate 分支）:', entryError)
-        }
-        
-        // 同步更新 feedArticles
-        try {
-          const article = await db.feedArticles
-            .where('link').equals(recommendation.url)
-            .first()
-          
-          if (article) {
-            const now = Date.now()
-            await db.feedArticles.update(article.id, {
-              poolStatus: 'exited',
-              poolExitedAt: now,
-              poolExitReason: 'saved',
-              inPool: false,
-              poolRemovedAt: now,
-            })
-          }
-        } catch (syncError) {
-          rlLogger.warn('同步更新 feedArticles 失败:', syncError)
         }
         
         return true
@@ -605,49 +593,60 @@ export class ReadingListManager {
    * 处理阅读列表条目被删除
    * 策略B：检查数据库中是否有实际访问记录，而不是 session storage
    * 
+   * Phase 21: 改用 feedArticles 表
+   * 
    * @param url - 被删除的条目URL
    * @param hasBeenRead - Chrome阅读列表中的已读状态
    */
   private static async handleReadingListRemoved(url: string, hasBeenRead?: boolean): Promise<void> {
     try {
       const trackingRecord = await db.readingListEntries.get(url)
-      let recommendation: Recommendation | undefined
-
-      // 1. 查找对应的推荐记录
-      if (trackingRecord?.recommendationId) {
-        recommendation = await db.recommendations.get(trackingRecord.recommendationId)
+      
+      // Phase 21: 从 feedArticles 查找文章
+      let article = trackingRecord?.recommendationId
+        ? await db.feedArticles.get(trackingRecord.recommendationId)
+        : undefined
+      
+      // 如果通过 ID 没找到，尝试通过 link 查找
+      if (!article) {
+        article = await db.feedArticles
+          .where('link').equals(url)
+          .first()
       }
-      if (!recommendation) {
-        recommendation = await db.recommendations
-          .filter((rec) => rec.url === url && rec.savedToReadingList === true)
+      // 尝试规范化 URL 后查找
+      if (!article) {
+        const normalizedUrl = ReadingListManager.normalizeUrlForTracking(url)
+        article = await db.feedArticles
+          .where('link').equals(normalizedUrl)
           .first()
       }
 
-      if (!recommendation) {
-        rlLogger.debug('未找到对应的推荐记录或该条目非推荐保存', { url })
+      if (!article) {
+        rlLogger.debug('未找到对应的文章记录或该条目非推荐保存', { url })
         return
       }
 
       // 2. 检查数据库中是否有实际访问记录（策略B）
       const confirmedVisit = await db.confirmedVisits
-        .filter((visit) => visit.url === url && visit.recommendationId === recommendation.id)
+        .filter((visit) => visit.url === url || visit.url === article!.link)
         .first()
 
       if (confirmedVisit) {
         // 有访问记录，说明用户真的打开并阅读了（达到 30 秒阈值）
         rlLogger.info('✅ [稍后读] 删除前已实际阅读 → 视为【正式阅读】', {
-          id: recommendation.id,
-          title: recommendation.title,
+          id: article.id,
+          title: article.title,
           url,
           visitTime: new Date(confirmedVisit.visitTime).toISOString(),
           duration: confirmedVisit.duration,
           处理方式: '已有 ConfirmedVisit，无需额外处理',
         })
 
-        // 更新推荐记录的 readAt 时间
-        await db.recommendations.update(recommendation.id, {
-          readAt: confirmedVisit.visitTime,
-          visitCount: (recommendation.visitCount || 0) + 1,
+        // 更新文章记录的阅读状态
+        await db.feedArticles.update(article.id, {
+          isRead: true,
+          clickedAt: confirmedVisit.visitTime,
+          readDuration: confirmedVisit.duration,
         })
         return
       }
@@ -657,8 +656,8 @@ export class ReadingListManager {
       // 这是系统的正常清理行为，不视为"不想读"，不做任何特殊处理
       if (hasBeenRead) {
         rlLogger.info('📚 [稍后读] 删除已读条目 → 正常清理', {
-          id: recommendation.id,
-          title: recommendation.title,
+          id: article.id,
+          title: article.title,
           url,
           hasBeenRead,
           处理方式: '不标记为"不想读"，无需额外处理',
@@ -668,18 +667,25 @@ export class ReadingListManager {
 
       // 4. 从"未读"tab删除：没有访问记录且未标记为已读
       // 说明从未打开或未达到 30 秒阈值，视为"不想读"
-      // 统一追踪机制：使用与dismissSelected相同的逻辑
       rlLogger.info('❌ [稍后读] 删除前从未阅读 → 视为【不想读】', {
-        id: recommendation.id,
-        title: recommendation.title,
+        id: article.id,
+        title: article.title,
         url,
         hasBeenRead,
         source: 'readingList',
-        处理方式: '调用 dismissRecommendations(统一逻辑)',
+        处理方式: '更新 feedArticles 状态',
       })
 
-      // 使用统一的 dismissRecommendations 函数
-      await dismissRecommendations([recommendation.id])
+      // Phase 21: 直接更新 feedArticles 状态
+      const now = Date.now()
+      await db.feedArticles.update(article.id, {
+        poolStatus: 'exited',
+        poolExitedAt: now,
+        poolExitReason: 'disliked',
+        feedback: 'dismissed',
+        feedbackAt: now,
+        disliked: true,
+      })
     } catch (error) {
       rlLogger.error('处理阅读列表删除失败', error)
     }
@@ -763,13 +769,12 @@ export class ReadingListManager {
 
   /**
    * 获取已保存到阅读列表的推荐数量
+   * Phase 21: 改用 feedArticles 表统计
    */
   static async getSavedRecommendationsCount(): Promise<number> {
     try {
-      return await db.recommendations
-        .where('savedToReadingList')
-        .equals(1)
-        .count()
+      // 通过 readingListEntries 表统计已保存的数量
+      return await db.readingListEntries.count()
     } catch (error) {
       rlLogger.error('获取已保存推荐数量失败', error)
       return 0
@@ -778,11 +783,13 @@ export class ReadingListManager {
 
   /**
    * 获取已从阅读列表真实阅读的推荐数量
+   * Phase 21: 改用 feedArticles 表统计
    */
   static async getReadFromListCount(): Promise<number> {
     try {
-      return await db.recommendations
-        .filter((rec) => rec.savedToReadingList === true && rec.readAt !== undefined)
+      // 通过 feedArticles 统计：feedback='later'（稍后读）且 isRead=true
+      return await db.feedArticles
+        .filter((article) => article.feedback === 'later' && article.isRead === true)
         .count()
     } catch (error) {
       rlLogger.error('获取真实阅读数量失败', error)

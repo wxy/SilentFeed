@@ -1,0 +1,39 @@
+npm warn Unknown user config "home". This will stop working in the next major version of npm.
+🟡 0      | Running command: build
+🟣 Plasmo v0.90.5
+🔴 The Browser Extension Framework
+🔵 INFO   | Prepare to bundle the extension...
+🔵 INFO   | Building for target: chrome-mv3
+🟡 1      | Creating Manifest Factory...
+🟡 2      | Loaded env from .env
+🟡 3      | Ensure exists: /Users/xingyuwang/develop/SilentFeed/.plasmo
+🟡 4      | /Users/xingyuwang/develop/SilentFeed/assets/icon.png found, creating resized icons
+🟡 5      | Loaded env from .env
+🟡 6      | Creating static templates for popup
+🟡 7      | Creating static templates for options
+🟡 8      | Creating static templates for newtab
+🟡 9      | Creating static templates for devtools
+🟡 10     | Creating static templates for sidepanel
+🟡 11     | Parsed config: {
+  matches: [ 'https://*/*', 'http://*/*' ],
+  run_at: 'document_idle',
+  all_frames: false
+}
+🟡 12     | Adding content script:  /Users/xingyuwang/develop/SilentFeed/src/contents/SilentFeed.ts
+🟡 13     | {
+  messageHandlerList: [],
+  externalMessageHandlerList: [],
+  portHandlerList: []
+}
+🟡 14     | Creating BGSW entry
+🟡 15     | Hash changed, updating manifest
+🔵 INFO   | Loaded environment variables from: [ '.env' ]
+🟡 0      | @plasmohq/parcel-transformer-manifest
+🟡 1      | Adding icons
+🟡 2      | Adding default_icon
+🟡 3      | Adding default_popup
+🟡 4      | Adding page
+🟡 5      | Handling MV3 background service worker
+🟡 6      | + Finished transforming manifest
+🔴 ERROR  | Unexpected token `<lexing error: Error { error: (Span { lo: BytePos(2372), hi: BytePos(2372), ctxt: #0 }, UnexpectedChar { c: '（' }) }>`. Expected * for generator, private key, identifier or async
+🟡 16     | undefined

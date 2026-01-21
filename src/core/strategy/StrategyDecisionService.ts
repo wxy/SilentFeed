@@ -178,7 +178,7 @@ export class StrategyDecisionService {
         poolStats,
         allFeeds,
         allArticles,
-        allRecommendations,
+        allPopupArticles,  // Phase 21: 替代 allRecommendations
         allAIUsage
       ] = await Promise.all([
         getSettings(),
@@ -192,7 +192,11 @@ export class StrategyDecisionService {
         }) : getPoolStats(),
         db.discoveredFeeds.toArray(),  // 获取所有订阅源，稍后过滤
         cachedContext ? Promise.resolve([]) : db.feedArticles.toArray(),  // 如果有缓存就不查询
-        cachedContext ? Promise.resolve([]) : db.recommendations.toArray(),
+        // Phase 21: 从 feedArticles 查询曾在弹窗中的文章
+        cachedContext ? Promise.resolve([]) : db.feedArticles
+          .where('poolStatus')
+          .anyOf(['popup', 'exited'])
+          .toArray(),
         cachedContext ? Promise.resolve([]) : db.aiUsage.toArray()
       ])
 
@@ -220,20 +224,21 @@ export class StrategyDecisionService {
         const recentArticles = allArticles.filter(
           a => a.fetched && a.fetched > sevenDaysAgo
         )
-        const recentRecommendations = allRecommendations.filter(
-          r => r.recommendedAt && r.recommendedAt > sevenDaysAgo
+        // Phase 21: 使用 allPopupArticles 替代 allRecommendations
+        const recentPopupArticles = allPopupArticles.filter(
+          a => a.popupAddedAt && a.popupAddedAt > sevenDaysAgo
         )
         const aiUsageToday = allAIUsage.filter(
           u => u.timestamp && u.timestamp > oneDayAgo
         )
         
         dailyNewArticles = recentArticles.filter(a => a.fetched > oneDayAgo).length
-        dailyReadCount = recentRecommendations.filter(
-          r => r.isRead && r.readAt && r.readAt > oneDayAgo
+        dailyReadCount = recentPopupArticles.filter(
+          a => a.isRead && a.clickedAt && a.clickedAt > oneDayAgo
         ).length
         recommendedPool = await db.feedArticles
           .where('poolStatus')
-          .equals('recommended')
+          .equals('popup')  // Phase 21: 改为 'popup'
           .count()
         totalTokensToday = aiUsageToday.reduce(
           (sum, u) => sum + (u.tokens?.total || 0), 0
@@ -270,8 +275,9 @@ export class StrategyDecisionService {
         const recentArticles = allArticles.filter(
           a => a.fetched && a.fetched > sevenDaysAgo
         )
-        const recentRecommendations = allRecommendations.filter(
-          r => r.recommendedAt && r.recommendedAt > sevenDaysAgo
+        // Phase 21: 使用 allPopupArticles 替代 allRecommendations
+        const recentPopupArticles = allPopupArticles.filter(
+          a => a.popupAddedAt && a.popupAddedAt > sevenDaysAgo
         )
         const aiUsageToday = allAIUsage.filter(
           u => u.timestamp && u.timestamp > oneDayAgo
@@ -287,14 +293,14 @@ export class StrategyDecisionService {
           : 0
         
         // 需求侧：阅读速度和反馈
-        avgReadSpeed = recentRecommendations.filter(r => r.isRead).length / 7
+        avgReadSpeed = recentPopupArticles.filter(a => a.isRead).length / 7
         
-        const totalRecommendations = recentRecommendations.length
-        const dismissedCount = recentRecommendations.filter(
-          r => r.feedback === 'dismissed' || r.status === 'dismissed'
+        const totalRecommendations = recentPopupArticles.length
+        const dismissedCount = recentPopupArticles.filter(
+          a => a.feedback === 'dismissed' || a.poolExitReason === 'disliked'
         ).length
-        const likedCount = recentRecommendations.filter(
-          r => r.isRead && r.readDuration && r.readDuration > 60 // 阅读时长 > 1分钟视为喜欢
+        const likedCount = recentPopupArticles.filter(
+          a => a.isRead && a.readDuration && a.readDuration > 60 // 阅读时长 > 1分钟视为喜欢
         ).length
         
         dismissRate = totalRecommendations > 0 
@@ -308,12 +314,13 @@ export class StrategyDecisionService {
         totalCostToday = aiUsageToday.reduce(
           (sum, u) => sum + (u.cost?.total || 0), 0
         )
-        recommendedToday = recentRecommendations.filter(
-          r => r.recommendedAt > oneDayAgo
+        // Phase 21: 使用 recentPopupArticles 替代 recentRecommendations
+        recommendedToday = recentPopupArticles.filter(
+          a => a.popupAddedAt && a.popupAddedAt > oneDayAgo
         ).length
         
         // 历史：7天统计
-        last7DaysReadCount = recentRecommendations.filter(r => r.isRead).length
+        last7DaysReadCount = recentPopupArticles.filter(a => a.isRead).length
         last7DaysRecommendedCount = totalRecommendations
         last7DaysAnalyzedCount = recentArticles.filter(
           a => a.analysis && a.analysis.provider !== 'keyword'

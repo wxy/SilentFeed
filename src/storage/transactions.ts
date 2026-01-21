@@ -2,6 +2,7 @@
  * 数据库事务封装
  * 
  * Phase 7: 数据库优化 - 添加事务支持
+ * Phase 13+: 统一使用 feedArticles 表
  * 
  * 本文件为关键的多表操作提供事务包装，确保原子性和数据一致性。
  * 
@@ -9,44 +10,48 @@
  */
 
 import { db } from './db/index'
-import type { Recommendation } from '@/types/database'
 import type { DiscoveredFeed, FeedArticle } from '@/types/rss'
 import { logger } from '@/utils/logger'
 
 const txLogger = logger.withTag('Transactions')
 
 // ============================================================================
-// 推荐相关事务
+// 推荐相关事务 (Phase 13+: 基于 feedArticles.poolStatus='popup')
 // ============================================================================
 
 /**
- * 原子性保存推荐记录和更新 Feed 统计
+ * 原子性将文章推荐到弹窗并更新 Feed 统计
  * 
  * 场景：AI 生成推荐后，需要同时：
- * 1. 保存推荐记录到 recommendations 表
+ * 1. 更新 feedArticles 的 poolStatus 为 'popup'
  * 2. 更新对应 Feed 的推荐计数
  * 
- * 使用事务确保两个操作要么全部成功，要么全部失败。
- * 
- * @param recommendations - 推荐记录列表
+ * @param articleIds - 文章 ID 列表
  * @param feedUpdates - Feed 更新映射 (feedId -> 更新字段)
  */
 export async function saveRecommendationsWithStats(
-  recommendations: Recommendation[],
+  articleIds: string[],
   feedUpdates: Map<string, Partial<DiscoveredFeed>>
 ): Promise<void> {
-  txLogger.debug('开始保存推荐（事务）', {
-    推荐数量: recommendations.length,
+  txLogger.debug('开始将文章推荐到弹窗（事务）', {
+    文章数量: articleIds.length,
     Feed更新数: feedUpdates.size
   })
 
+  const now = Date.now()
+
   await db.transaction(
     'rw',
-    [db.recommendations, db.discoveredFeeds],
+    [db.feedArticles, db.discoveredFeeds],
     async () => {
-      // 1. 批量插入推荐记录
-      await db.recommendations.bulkAdd(recommendations)
-      txLogger.debug(`✓ 已插入 ${recommendations.length} 条推荐`)
+      // 1. 更新文章的 poolStatus 为 'popup'
+      for (const id of articleIds) {
+        await db.feedArticles.update(id, {
+          poolStatus: 'popup',
+          popupAddedAt: now
+        })
+      }
+      txLogger.debug(`✓ 已将 ${articleIds.length} 篇文章推荐到弹窗`)
 
       // 2. 更新所有相关 Feed 的统计
       for (const [feedId, updates] of feedUpdates.entries()) {
@@ -60,53 +65,54 @@ export async function saveRecommendationsWithStats(
 }
 
 /**
- * 原子性批量标记推荐为已读
+ * 原子性批量标记弹窗推荐为已读
  * 
  * 场景：用户点击"全部标记为已读"时，需要同时：
- * 1. 更新多条推荐的 isRead 状态
+ * 1. 更新多篇文章的 isRead 状态
  * 2. 更新 Feed 的已读计数
  * 
- * @param recommendationIds - 推荐 ID 列表
- * @param sourceUrl - 来源 Feed URL
+ * @param articleIds - 文章 ID 列表
+ * @param feedId - 来源 Feed ID
  */
 export async function markRecommendationsAsRead(
-  recommendationIds: string[],
-  sourceUrl: string
+  articleIds: string[],
+  feedId: string
 ): Promise<void> {
-  if (recommendationIds.length === 0) {
-    txLogger.warn('没有要标记的推荐')
+  if (articleIds.length === 0) {
+    txLogger.warn('没有要标记的文章')
     return
   }
 
   txLogger.debug('批量标记为已读（事务）', {
-    数量: recommendationIds.length,
-    来源: sourceUrl
+    数量: articleIds.length,
+    来源: feedId
   })
 
   await db.transaction(
     'rw',
-    [db.recommendations, db.discoveredFeeds],
+    [db.feedArticles, db.discoveredFeeds],
     async () => {
       const now = Date.now()
 
-      // 1. 批量更新推荐状态
-      for (const id of recommendationIds) {
-        await db.recommendations.update(id, {
+      // 1. 批量更新文章状态
+      for (const id of articleIds) {
+        await db.feedArticles.update(id, {
           isRead: true,
+          read: true,
           clickedAt: now
         })
       }
 
       // 2. 更新 Feed 的已读计数
-      const feed = await db.discoveredFeeds.where('url').equals(sourceUrl).first()
+      const feed = await db.discoveredFeeds.get(feedId)
       if (feed) {
-        const readCount = (feed.readCount || 0) + recommendationIds.length
+        const readCount = (feed.readCount || 0) + articleIds.length
         await db.discoveredFeeds.update(feed.id, { readCount })
       }
     }
   )
 
-  txLogger.info(`已标记 ${recommendationIds.length} 条推荐为已读`)
+  txLogger.info(`已标记 ${articleIds.length} 篇文章为已读`)
 }
 
 // ============================================================================
@@ -297,7 +303,7 @@ export async function unsubscribeFeed(feedId: string): Promise<void> {
 
   await db.transaction(
     'rw',
-    [db.discoveredFeeds, db.recommendations, db.feedArticles],
+    [db.discoveredFeeds, db.feedArticles],
     async () => {
       // 1. 更新 Feed 状态为 unsubscribed
       await db.discoveredFeeds.update(feedId, {
@@ -325,13 +331,6 @@ export async function unsubscribeFeed(feedId: string): Promise<void> {
         })
       }
       txLogger.debug(`✓ 移出池中文章: ${articlesInPool.length} 篇`)
-
-      // 3. 删除所有推荐记录（清理推荐池中的显示）
-      const deletedRecs = await db.recommendations
-        .where('sourceUrl')
-        .equals(feed.url)
-        .delete()
-      txLogger.debug(`✓ 删除推荐记录: ${deletedRecs} 条`)
     }
   )
 
@@ -343,22 +342,34 @@ export async function unsubscribeFeed(feedId: string): Promise<void> {
 // ============================================================================
 
 /**
- * 原子性清理所有推荐数据
+ * 原子性清理所有弹窗推荐数据
  * 
  * 场景：用户点击"清空推荐历史"时，需要同时：
- * 1. 删除所有推荐记录
+ * 1. 重置所有 poolStatus='popup' 的文章
  * 2. 重置所有 Feed 的推荐计数
  */
 export async function clearAllRecommendations(): Promise<void> {
   txLogger.debug('清空所有推荐（事务）')
 
+  const now = Date.now()
+
   await db.transaction(
     'rw',
-    [db.recommendations, db.discoveredFeeds],
+    [db.feedArticles, db.discoveredFeeds],
     async () => {
-      // 1. 删除所有推荐
-      const deletedCount = await db.recommendations.clear()
-      txLogger.debug(`✓ 删除 ${deletedCount} 条推荐`)
+      // 1. 将所有弹窗推荐标记为已退出
+      const popupArticles = await db.feedArticles
+        .filter(a => a.poolStatus === 'popup')
+        .toArray()
+      
+      for (const article of popupArticles) {
+        await db.feedArticles.update(article.id, {
+          poolStatus: 'exited',
+          poolExitedAt: now,
+          poolExitReason: 'replaced'
+        })
+      }
+      txLogger.debug(`✓ 清理 ${popupArticles.length} 篇弹窗推荐`)
 
       // 2. 重置所有 Feed 的推荐相关计数
       const feeds = await db.discoveredFeeds.toArray()
@@ -420,14 +431,13 @@ export async function cleanupExpiredArticles(retentionDays: number): Promise<voi
 }
 
 /**
- * 原子性清理过期推荐记录
+ * 原子性清理过期弹窗推荐记录
  * 
- * Phase 14: 与文章清理同步，避免推荐表无限增长
+ * Phase 14: 与文章清理同步，基于 feedArticles.poolStatus
  * 
  * 清理策略：
- * 1. 删除超过保留期限的已消费推荐（已读/已拒绝/已保存）
- * 2. 删除对应文章已不存在的推荐记录（孤儿记录）
- * 3. 保留未消费的活跃推荐（不论时间）
+ * 1. 将超过保留期限的已消费推荐标记为 exited（已读/已拒绝/已保存）
+ * 2. 保留未消费的活跃推荐（不论时间）
  * 
  * @param retentionDays - 保留天数（针对已消费推荐）
  * @returns 清理统计
@@ -438,53 +448,42 @@ export async function cleanupExpiredRecommendations(retentionDays: number): Prom
 }> {
   const cutoffTime = Date.now() - retentionDays * 24 * 60 * 60 * 1000
   let expiredDeleted = 0
-  let orphanDeleted = 0
+  const orphanDeleted = 0  // feedArticles 不会有孤儿记录
 
   txLogger.debug('清理过期推荐（事务）', { 保留天数: retentionDays })
 
+  const now = Date.now()
+
   await db.transaction(
     'rw',
-    [db.recommendations, db.feedArticles],
+    [db.feedArticles],
     async () => {
-      const allRecommendations = await db.recommendations.toArray()
-      const idsToDelete: string[] = []
+      // 获取所有弹窗中的推荐
+      const popupArticles = await db.feedArticles
+        .filter(a => a.poolStatus === 'popup')
+        .toArray()
       
-      // 获取所有现存文章的 URL 集合（用于检测孤儿记录）
-      const existingUrls = new Set(
-        (await db.feedArticles.toArray()).map(a => a.link)
-      )
-      
-      for (const rec of allRecommendations) {
-        // 策略 1：删除过期的已消费推荐
-        const isConsumed = rec.isRead || 
-                           rec.feedback === 'dismissed' || 
-                           rec.status === 'dismissed' ||
-                           rec.savedToReadingList
+      for (const article of popupArticles) {
+        // 策略：将过期的已消费推荐标记为 exited
+        const isConsumed = article.isRead || 
+                           article.feedback === 'dismissed' ||
+                           article.feedback === 'later'
         
-        if (isConsumed && rec.recommendedAt < cutoffTime) {
-          idsToDelete.push(rec.id!)
+        if (isConsumed && (article.popupAddedAt || 0) < cutoffTime) {
+          await db.feedArticles.update(article.id, {
+            poolStatus: 'exited',
+            poolExitedAt: now,
+            poolExitReason: 'expired'
+          })
           expiredDeleted++
-          continue
-        }
-        
-        // 策略 2：删除孤儿记录（对应文章已被删除）
-        if (!existingUrls.has(rec.url)) {
-          idsToDelete.push(rec.id!)
-          orphanDeleted++
-          continue
         }
       }
       
-      // 批量删除
-      if (idsToDelete.length > 0) {
-        await db.recommendations.bulkDelete(idsToDelete)
-      }
-      
-      txLogger.debug(`✓ 删除 ${expiredDeleted} 条过期推荐，${orphanDeleted} 条孤儿推荐`)
+      txLogger.debug(`✓ 清理 ${expiredDeleted} 条过期推荐`)
     }
   )
 
-  txLogger.info(`推荐清理完成：${expiredDeleted} 条过期，${orphanDeleted} 条孤儿`)
+  txLogger.info(`推荐清理完成：${expiredDeleted} 条过期`)
   
   return { expiredDeleted, orphanDeleted }
 }

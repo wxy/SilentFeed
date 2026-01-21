@@ -286,27 +286,30 @@ async function collectStats(now: number, oneDayAgo: number, sevenDaysAgo: number
       ? Math.round(recentArticlesCount / feedCount)
       : 10 // 默认10篇/源
     
-    // 用户行为统计（限制查询数量，避免内存爆炸）
-    const recommendationStats = await db.recommendations
-      .where('recommendedAt')
-      .above(oneDayAgo)
+    // 用户行为统计（基于 feedArticles，poolStatus='popup' 表示曾在弹窗中）
+    const recommendationStats = await db.feedArticles
+      .filter(a => {
+        const wasInPopup = a.poolStatus === 'popup' || (a.poolStatus === 'exited' && a.popupAddedAt)
+        const inTimeRange = (a.popupAddedAt || 0) > oneDayAgo
+        return wasInPopup && inTimeRange
+      })
       .limit(200)  // 限制最多200条
       .toArray()
     
-    const clicked = recommendationStats.filter(r => r.isRead).length
-    const dismissed = recommendationStats.filter(r => r.feedback === 'dismissed').length
-    const saved = recommendationStats.filter(r => r.feedback === 'later').length
+    const clicked = recommendationStats.filter(a => a.isRead).length
+    const dismissed = recommendationStats.filter(a => a.feedback === 'dismissed').length
+    const saved = recommendationStats.filter(a => a.feedback === 'later').length
     
-    // 计算推荐的平均阅读时长（从 recommendations.readDuration 获取）
-    const readRecs = recommendationStats.filter(r => r.isRead && r.readDuration)
+    // 计算推荐的平均阅读时长（从 feedArticles.readDuration 获取）
+    const readRecs = recommendationStats.filter(a => a.isRead && a.readDuration)
     const avgReadTime = readRecs.length > 0
-      ? readRecs.reduce((sum, r) => sum + (r.readDuration || 0), 0) / readRecs.length
+      ? readRecs.reduce((sum, a) => sum + (a.readDuration || 0), 0) / readRecs.length
       : 0  // 没有阅读记录时返回 0，而不是默认 60
     
     // 计算活跃时段（从推荐点击时间统计）
     const hourCounts: Record<number, number> = {}
-    recommendationStats.filter(r => r.clickedAt).forEach(r => {
-      const hour = new Date(r.clickedAt!).getHours()
+    recommendationStats.filter(a => a.clickedAt).forEach(a => {
+      const hour = new Date(a.clickedAt!).getHours()
       hourCounts[hour] = (hourCounts[hour] || 0) + 1
     })
     const peakUsageHour = Object.entries(hourCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 9

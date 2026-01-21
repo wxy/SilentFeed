@@ -260,12 +260,23 @@ export function CollectionStats() {
     }
 
     try {
+      // 清理所有数据（recommendations 表已删除，改用 feedArticles）
       await Promise.all([
         db.pendingVisits.clear(),
         db.confirmedVisits.clear(),
-        db.userProfile.clear(),
-        db.recommendations.clear()
+        db.userProfile.clear()
       ])
+      
+      // 清理所有弹窗推荐状态
+      const popupArticles = await db.feedArticles.filter(a => a.poolStatus === 'popup').toArray()
+      const now = Date.now()
+      for (const article of popupArticles) {
+        await db.feedArticles.update(article.id, {
+          poolStatus: 'exited',
+          poolExitedAt: now,
+          poolExitReason: 'replaced'
+        })
+      }
       
       const [storageData] = await Promise.all([
         getStorageStats()

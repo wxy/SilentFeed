@@ -2,13 +2,14 @@
  * IndexedDB 数据库定义（使用 Dexie.js）
  * 
  * 数据库名称: SilentFeedDB
- * 当前版本: 20
+ * 当前版本: 21
  * 
  * ⚠️ 版本管理说明：
  * - 开发过程中如果遇到版本冲突，请删除旧数据库
  * - 生产环境版本号应该只增不减
- * - 版本 19（策略存储重构 - 移除 strategyDecisions 表，迁移到 chrome.storage.local）
+ * - 版本 21（推荐系统统一 - 删除 recommendations 表，所有推荐数据在 feedArticles 中）
  * - 版本 20（阅读清单模式 - 阅读列表追踪表）
+ * - 版本 19（策略存储重构 - 移除 strategyDecisions 表，迁移到 chrome.storage.local）
  * - 版本 18（推荐系统重构 - 多池架构 + 策略决策表）
  * - 版本 17（Phase 12.8: 页面访问去重支持）
  * - 版本 16（Phase 10: 文章持久化重构）
@@ -22,7 +23,7 @@
  * - db-profile.ts: 用户画像管理
  * - db-snapshots.ts: 兴趣快照管理
  * - db-feeds.ts: RSS Feed 管理
- * - db-recommendations.ts: 推荐管理
+ * - db-recommendations.ts: 推荐管理（弹窗查询，基于 feedArticles）
  * - db-stats.ts: 统计查询
  */
 
@@ -31,7 +32,6 @@ import type { Table } from 'dexie'
 import type {
   PendingVisit,
   ConfirmedVisit,
-  Recommendation,
   ReadingListEntry
 } from "@/types/database"
 import type { UserSettings } from "@/types/config"
@@ -61,29 +61,28 @@ export class SilentFeedDB extends Dexie {
   // 表 3: 用户设置
   settings!: Table<UserSettings, string>
   
-  // 表 4: 推荐记录（Phase 2.7）
-  recommendations!: Table<Recommendation, string>
-
-  // 表 5: 阅读列表追踪（Phase 15）
+  // 表 4: 阅读列表追踪（Phase 15）
   readingListEntries!: Table<ReadingListEntry, string>
 
-  // 表 6: 用户画像（Phase 3.3）
+  // 表 5: 用户画像（Phase 3.3）
   userProfile!: Table<UserProfile, string>
 
-  // 表 7: 兴趣变化快照（Phase 3.4）
+  // 表 6: 兴趣变化快照（Phase 3.4）
   interestSnapshots!: Table<InterestSnapshot, string>
 
-  // 表 8: 发现的 RSS 源（Phase 5.1）
+  // 表 7: 发现的 RSS 源（Phase 5.1）
   discoveredFeeds!: Table<DiscoveredFeed, string>
 
-  // 表 9: RSS 文章（Phase 7 - 数据库规范化）
+  // 表 8: RSS 文章（Phase 7 - 数据库规范化）
+  // Phase 13+: 包含推荐相关字段，统一推荐数据
   feedArticles!: Table<FeedArticle, string>
 
-  // 表 10: AI 用量记录（Phase 9 - AI 用量计费）
+  // 表 9: AI 用量记录（Phase 9 - AI 用量计费）
   aiUsage!: Table<AIUsageRecord, string>
 
-  // 注意：策略决策表已移除（v19），现在使用 chrome.storage.local 存储
-
+  // 注意：
+  // - recommendations 表已删除（v21），推荐数据统一在 feedArticles 中
+  // - strategyDecisions 
   constructor() {
     super('SilentFeedDB')
     
@@ -556,12 +555,21 @@ export class SilentFeedDB extends Dexie {
       discoveredFeeds: 'id, url, status, discoveredAt, subscribedAt, discoveredFrom, isActive, lastFetchedAt, [status+discoveredAt], [isActive+lastFetchedAt]',
       feedArticles: 'id, feedId, link, published, recommended, read, inPool, inFeed, deleted, poolStatus, analysisScore, [feedId+published], [recommended+published], [read+published], [inPool+poolAddedAt], [inFeed+published], [deleted+deletedAt], [poolStatus+analysisScore], [poolStatus+candidatePoolAddedAt]',
       aiUsage: 'id, timestamp, provider, purpose, success, [provider+timestamp], [purpose+timestamp]',
-      readingListEntries: 'normalizedUrl, url, recommendationId, addedAt, titlePrefix'
+      readingListEntries: 'url, normalizedUrl, recommendationId, addedAt, titlePrefix'  // 主键改为 url（匹配实际数据库）
     }).upgrade(async tx => {
       dbLogger.info('[阅读清单模式] 初始化 readingListEntries 表...')
       // 无需迁移数据，表结构即可创建
       const count = await tx.table('readingListEntries').count()
       dbLogger.info(`[阅读清单模式] ✅ readingListEntries 表已就绪，现有记录: ${count}`)
+    })
+
+    // v21: 删除 recommendations 表，统一使用 feedArticles.poolStatus='popup'
+    this.version(21).stores({
+      recommendations: null  // 删除表
+    }).upgrade(async tx => {
+      dbLogger.info('[架构简化] 删除 recommendations 表...')
+      // 表会被自动删除，无需手动操作
+      dbLogger.info('[架构简化] ✅ recommendations 表已删除，推荐数据统一存储在 feedArticles 中')
     })
   }
 }

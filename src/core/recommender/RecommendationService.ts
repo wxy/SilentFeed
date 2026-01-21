@@ -96,15 +96,23 @@ export class RecommendationService {
       const maxPoolSize = baseSize * POOL_SIZE_MULTIPLIER
       
       // 获取当前推荐池容量
-      const currentPool = await db.recommendations
-        .orderBy('recommendedAt')
-        .reverse()
-        .filter(rec => {
-          const isActive = !rec.status || rec.status === 'active'
-          const isUnreadAndNotDismissed = !rec.isRead && rec.feedback !== 'dismissed'
-          return isActive && isUnreadAndNotDismissed
+      // Phase 21: 从 feedArticles 查询 poolStatus='popup' 的文章
+      const currentPool = await db.feedArticles
+        .where('poolStatus')
+        .equals('popup')
+        .filter(article => {
+          const isUnreadAndNotDismissed = !article.isRead && article.feedback !== 'dismissed'
+          return isUnreadAndNotDismissed
         })
         .toArray()
+        .then(articles => articles.map(a => ({
+          // 映射为兼容原 Recommendation 格式
+          id: a.id,
+          url: a.link,
+          score: a.analysisScore || 0,
+          title: a.title,
+          recommendedAt: a.popupAddedAt || a.fetched
+        })))
       
       // 🔧 修正架构：冷却期只控制「候选池 → 推荐池」的补充
       // AI 分析阶段（Raw → Candidate）不受冷却期限制
@@ -664,20 +672,26 @@ export class RecommendationService {
     const now = Date.now()
     const existingUrls = new Set<string>()
 
-    // Phase 6/12.7: 获取当前推荐池（数据库中活跃的、未读且未被标记为不想读的推荐）
-    // ✅ 优化：使用复合索引 [isRead+recommendedAt]
-    // Dexie 的 boolean 索引需要使用 filter，但我们可以减少扫描范围
-    // 注意：限流检查已在 generateRecommendations 开始时完成，这里只需获取池状态
-    const currentPool = await db.recommendations
-      .orderBy('recommendedAt')
-      .reverse()
-      .filter(rec => {
-        // Phase 12.7: 只统计活跃状态的推荐
-        const isActive = !rec.status || rec.status === 'active'
-        const isUnreadAndNotDismissed = !rec.isRead && rec.feedback !== 'dismissed'
-        return isActive && isUnreadAndNotDismissed
+    // Phase 6/12.7: 获取当前推荐池（从 feedArticles 查询 poolStatus='popup'）
+    // Phase 21: 改用 feedArticles 表
+    const currentPool = await db.feedArticles
+      .where('poolStatus')
+      .equals('popup')
+      .filter(article => {
+        const isUnreadAndNotDismissed = !article.isRead && article.feedback !== 'dismissed'
+        return isUnreadAndNotDismissed
       })
       .toArray()
+      .then(articles => articles.map(a => ({
+        // 映射为兼容原 Recommendation 格式
+        id: a.id,
+        url: a.link,
+        score: a.analysisScore || 0,
+        title: a.title,
+        recommendedAt: a.popupAddedAt || a.fetched,
+        isRead: a.isRead,
+        feedback: a.feedback
+      })))
     
     // 核心公式：推荐池容量 = 弹窗容量 × POOL_SIZE_MULTIPLIER
     // - baseSize (maxRecommendations): 弹窗可显示的条目数（3-5 条）
@@ -688,18 +702,20 @@ export class RecommendationService {
     recLogger.info(`🔄 开始补充推荐池（当前容量：${currentPool.length}/${maxSize}）...`)
 
     // 获取最近7天的推荐URL，用于去重（使用规范化URL避免原始/翻译链接重复）
+    // Phase 21: 改用 feedArticles 表查询 poolStatus='popup' 或 poolStatus='exited'
     try {
-      const recentRecommendations = await db.recommendations
-        .where('recommendedAt')
-        .above(now - 7 * 24 * 60 * 60 * 1000) // 7天前
+      const recentArticles = await db.feedArticles
+        .where('poolStatus')
+        .anyOf(['popup', 'exited'])
+        .filter(a => (a.popupAddedAt || 0) > now - 7 * 24 * 60 * 60 * 1000)
         .toArray()
       
       // 导入规范化函数用于去重
       const { normalizeUrlForTracking } = ReadingListManager
       
-      recentRecommendations.forEach(rec => {
+      recentArticles.forEach(article => {
         // 统一使用规范化URL做去重，确保"原始URL"和"翻译URL"被认为是同一文章
-        const normalizedUrl = normalizeUrlForTracking(rec.url)
+        const normalizedUrl = normalizeUrlForTracking(article.link)
         existingUrls.add(normalizedUrl)
       })
       recLogger.info(`最近7天已有推荐: ${existingUrls.size} 条（按规范化URL去重）`)
@@ -776,14 +792,8 @@ export class RecommendationService {
             recLogger.warn(`更新被替换文章状态失败: ${lowestInPool.url}`, error)
           }
           
-          // Phase 7: 软删除 - 更新状态而不是删除记录
-          const replacedAt = Date.now()
-          await db.recommendations.update(lowestInPool.id, {
-            status: 'replaced',
-            replacedAt: replacedAt,
-            replacedBy: `rec-${now}-${index}` // 记录被谁替换
-          })
-          recLogger.debug(` 📝 已标记推荐为 replaced: ${lowestInPool.title}`)
+          // Phase 21: 直接更新 feedArticles 表（已在上面完成），无需再更新 recommendations 表
+          recLogger.debug(` 📝 已标记文章为 exited: ${lowestInPool.title}`)
           
           currentPool.shift() // 从内存数组中移除
         } else {
@@ -858,13 +868,12 @@ export class RecommendationService {
       return []
     }
 
-    // 批量保存到数据库
-    await db.recommendations.bulkAdd(recommendations)
-    
-    recLogger.info(`保存推荐到数据库: ${recommendations.length} 条（去重后）`)
+    // Phase 21: 不再使用 recommendations 表
+    // 直接批量更新 feedArticles 表的 poolStatus 为 'popup'
+    recLogger.info(`准备保存推荐到数据库: ${recommendations.length} 条（去重后）`)
 
-    // Phase 10: 批量更新 feedArticles 的 inPool 状态
-    // ✅ 使用新架构：inPool 标记候选池，recommended 保留历史记录
+    // Phase 10: 批量更新 feedArticles 的 poolStatus 状态
+    // Phase 21: poolStatus='popup' 表示在弹窗中
     const articlesToUpdate: Array<{ id: string; url: string }> = []
     
     for (const article of recommendedArticles) {
@@ -882,23 +891,23 @@ export class RecommendationService {
       }
     }
     
-    // ✅ 批量更新文章的 poolStatus 和 inPool 状态
-    // Phase 13: poolStatus='recommended' 是主要状态字段
-    // inPool=true 保留用于向后兼容旧查询逻辑
+    // ✅ 批量更新文章的 poolStatus 状态
+    // Phase 21: poolStatus='popup' 是主要状态字段（替代原 recommendations 表）
     if (articlesToUpdate.length > 0) {
       const now = Date.now()
       await db.transaction('rw', [db.feedArticles], async () => {
         for (const { id } of articlesToUpdate) {
           await db.feedArticles.update(id, {
-            poolStatus: 'recommended',   // Phase 13: 主要状态字段
-            recommendedPoolAddedAt: now, // Phase 13: 记录进入推荐池时间
+            poolStatus: 'popup',         // Phase 21: 表示在弹窗中
+            popupAddedAt: now,           // Phase 21: 记录进入弹窗时间
+            recommendedPoolAddedAt: now, // Phase 13: 兼容旧字段
             inPool: true,                // Phase 10: 兼容旧逻辑
             poolAddedAt: now,            // Phase 10: 兼容旧逻辑
             recommended: true            // 保留历史记录（兼容旧逻辑）
           })
         }
       })
-      recLogger.info(`✅ 已标记进入推荐池的文章: ${articlesToUpdate.length} 篇 (poolStatus=recommended, inPool=true)`)
+      recLogger.info(`✅ 已标记进入弹窗的文章: ${articlesToUpdate.length} 篇 (poolStatus=popup)`)
     }
 
     // Phase 6: 更新 RSS 源的推荐数统计

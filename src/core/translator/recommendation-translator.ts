@@ -151,11 +151,18 @@ export async function translateOnDemand(
   try {
     const translated = await translateRecommendation(recommendation)
     
-    // 如果翻译成功，更新数据库
+    // 如果翻译成功，更新数据库（使用 feedArticles 表）
     if (translated.translation) {
-      await db.recommendations.update(recommendation.id, {
-        translation: translated.translation
-      })
+      // 通过 link 字段查找文章并更新翻译
+      const article = await db.feedArticles
+        .where('link').equals(recommendation.url)
+        .first()
+      
+      if (article) {
+        await db.feedArticles.update(article.id, {
+          translation: translated.translation
+        })
+      }
     }
     
     return translated

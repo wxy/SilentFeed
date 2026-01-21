@@ -562,10 +562,10 @@ export class FeedManager {
    * @param deleteArticles - 是否同时删除该源的文章（默认 true）
    */
   async delete(id: string, deleteArticles: boolean = true): Promise<void> {
-    // 先获取源信息（用于清理推荐记录）
+    // 先获取源信息
     const feed = await db.discoveredFeeds.get(id)
     
-    await db.transaction('rw', [db.discoveredFeeds, db.feedArticles, db.recommendations], async () => {
+    await db.transaction('rw', [db.discoveredFeeds, db.feedArticles], async () => {
       if (deleteArticles) {
         // 删除该源的所有文章
         const articles = await db.feedArticles.where('feedId').equals(id).toArray()
@@ -574,15 +574,6 @@ export class FeedManager {
         if (articleIds.length > 0) {
           await db.feedArticles.where('id').anyOf(articleIds).delete()
           feedLogger.info(`已删除源 ${id} 的 ${articleIds.length} 篇文章`)
-        }
-      }
-      
-      // 删除该源的所有推荐记录
-      if (feed?.url) {
-        const recs = await db.recommendations.where('sourceUrl').equals(feed.url).toArray()
-        if (recs.length > 0) {
-          await db.recommendations.where('id').anyOf(recs.map(r => r.id)).delete()
-          feedLogger.info(`已删除源 ${id} 的 ${recs.length} 条推荐记录`)
         }
       }
       

@@ -39,9 +39,9 @@ export async function migrateRecommendationStatus(): Promise<{
   try {
     migrationLogger.info('开始同步 recommendations → feedArticles 状态...')
     
-    // 1. 获取所有推荐记录
-    const recommendations = await db.recommendations.toArray()
-    migrationLogger.info(`找到 ${recommendations.length} 条推荐记录`)
+    // Phase 13+: recommendations 表已删除，跳过迁移
+    migrationLogger.info('✅ recommendations 表已删除（v21+），跳过状态同步')
+    return stats
     
     // 2. 按 URL 分组（一篇文章可能有多次推荐）
     const urlMap = new Map<string, typeof recommendations>()
@@ -189,10 +189,21 @@ export async function calculateArticleImportance(): Promise<{
         if (article.disliked) score -= 10         // 被拒绝（负分）
         
         // 查找对应的推荐记录（获取更多指标）
-        // Phase 10: url 字段没有索引，使用 filter 替代
-        const recs = await db.recommendations
-          .filter(rec => rec.url === article.link)
-          .toArray()
+        // Phase 13+: recommendations 表已删除，从 feedArticles 自身字段获取
+        const recs: Array<{
+          readDuration?: number
+          effectiveness?: string
+          score?: number
+        }> = []
+        
+        // 如果文章在弹窗中或曾在弹窗中，使用其自身字段
+        if (article.poolStatus === 'popup' || (article.poolStatus === 'exited' && article.popupAddedAt)) {
+          recs.push({
+            readDuration: article.readDuration,
+            effectiveness: article.effectiveness,
+            score: article.analysisScore
+          })
+        }
         
         for (const rec of recs) {
           // 深度阅读
@@ -389,145 +400,9 @@ export async function migrateToPoolStatus(): Promise<{
   try {
     migrationLogger.info('🚀 开始 Phase 13 poolStatus 迁移...')
     
-    // 预先获取 recommendations 表中的各类状态记录
-    const allRecommendations = await db.recommendations.toArray()
-    
-    // 按 URL 分组建立查找表
-    const laterUrlSet = new Set<string>()
-    const replacedUrlSet = new Set<string>()
-    const expiredUrlSet = new Set<string>()
-    const laterRecMap = new Map<string, typeof allRecommendations[0]>()
-    const replacedRecMap = new Map<string, typeof allRecommendations[0]>()
-    const expiredRecMap = new Map<string, typeof allRecommendations[0]>()
-    
-    for (const rec of allRecommendations) {
-      if (rec.feedback === 'later') {
-        laterUrlSet.add(rec.url)
-        laterRecMap.set(rec.url, rec)
-      }
-      if (rec.status === 'replaced') {
-        replacedUrlSet.add(rec.url)
-        replacedRecMap.set(rec.url, rec)
-      }
-      if (rec.status === 'expired') {
-        expiredUrlSet.add(rec.url)
-        expiredRecMap.set(rec.url, rec)
-      }
-    }
-    
-    migrationLogger.info(`发现状态记录: ${laterUrlSet.size} 条"稀后读", ${replacedUrlSet.size} 条"被替换", ${expiredUrlSet.size} 条"已过期"`)
-    
-    // 获取所有文章
-    const articles = await db.feedArticles.toArray()
-    stats.total = articles.length
-    migrationLogger.info(`需要检查 ${articles.length} 篇文章`)
-    
-    const now = Date.now()
-    
-    for (const article of articles) {
-      try {
-        // 如果已有 poolStatus，跳过
-        if (article.poolStatus) {
-          continue
-        }
-        
-        const updates: any = {}
-        
-        // 规则 1: recommended=true && inPool=true → poolStatus='recommended'
-        if (article.recommended === true && article.inPool === true) {
-          updates.poolStatus = 'recommended'
-          updates.recommendedPoolAddedAt = article.poolAddedAt || now
-          stats.migrated.toRecommended++
-          migrationLogger.debug(`迁移到推荐池: ${article.title}`)
-        }
-        // 规则 2, 3, 4, 5: 已退出的文章
-        else if (article.recommended === true && article.inPool === false) {
-          // 优先检查"稀后读"（来自 recommendations 表）
-          if (laterUrlSet.has(article.link)) {
-            const laterRec = laterRecMap.get(article.link)
-            updates.poolExitReason = 'saved'
-            updates.poolExitedAt = laterRec?.feedbackAt || article.poolRemovedAt || now
-            stats.migrated.toExited++
-            migrationLogger.debug(`迁移到已退出(稀后读): ${article.title}`)
-          }
-          // 检查"被替换"（来自 recommendations 表的 status='replaced'）
-          else if (replacedUrlSet.has(article.link)) {
-            const replacedRec = replacedRecMap.get(article.link)
-            updates.poolExitReason = 'replaced'
-            updates.poolExitedAt = replacedRec?.replacedAt || article.poolRemovedAt || now
-            stats.migrated.toExited++
-            migrationLogger.debug(`迁移到已退出(被替换): ${article.title}`)
-          }
-          // 检查"已过期"（来自 recommendations 表的 status='expired'）
-          else if (expiredUrlSet.has(article.link)) {
-            const expiredRec = expiredRecMap.get(article.link)
-            updates.poolExitReason = 'expired'
-            updates.poolExitedAt = expiredRec?.replacedAt || article.poolRemovedAt || now
-            stats.migrated.toExited++
-            migrationLogger.debug(`迁移到已退出(已过期): ${article.title}`)
-          }
-          // 已阅读
-          else if (article.read === true) {
-            updates.poolExitReason = 'read'
-            updates.poolExitedAt = article.poolRemovedAt || now
-            stats.migrated.toExited++
-            migrationLogger.debug(`迁移到已退出(已读): ${article.title}`)
-          }
-          // 不想读
-          else if (article.disliked === true) {
-            updates.poolExitReason = 'disliked'
-            updates.poolExitedAt = article.poolRemovedAt || now
-            stats.migrated.toExited++
-            migrationLogger.debug(`迁移到已退出(不想读): ${article.title}`)
-          }
-          // 使用旧的退出原因
-          else if (article.poolRemovedReason) {
-            updates.poolExitReason = article.poolRemovedReason
-            updates.poolExitedAt = article.poolRemovedAt || now
-            stats.migrated.toExited++
-            migrationLogger.debug(`迁移到已退出(${article.poolRemovedReason}): ${article.title}`)
-          }
-        }
-        // 规则 5 & 6: 有 analysis 的文章
-        else if (article.analysis) {
-          const score = article.analysisScore || 0
-          if (score >= RECOMMENDATION_THRESHOLD) {
-            updates.poolStatus = 'candidate'
-            updates.candidatePoolAddedAt = now
-            stats.migrated.toCandidate++
-            migrationLogger.debug(`迁移到候选池: ${article.title}, 分数: ${score}`)
-          } else {
-            updates.poolStatus = 'analyzed-not-qualified'
-            stats.migrated.toAnalyzedNotQualified++
-            migrationLogger.debug(`迁移到分析未达标: ${article.title}, 分数: ${score}`)
-          }
-        }
-        // 规则 7: 无 analysis 且在源中 → 原始池
-        else if (article.inFeed === true) {
-          updates.poolStatus = 'raw'
-          stats.migrated.toRaw++
-          migrationLogger.debug(`迁移到原始池: ${article.title}`)
-        }
-        
-        // 应用更新
-        if (Object.keys(updates).length > 0) {
-          await db.feedArticles.update(article.id, updates)
-        }
-        
-      } catch (error) {
-        stats.errors++
-        migrationLogger.error(`迁移文章失败: ${article.id}`, error)
-      }
-    }
-    
-    migrationLogger.info('✅ Phase 13 poolStatus 迁移完成', {
-      total: stats.total,
-      migrated: stats.migrated,
-      errors: stats.errors
-    })
-    
+    // Phase 13+: recommendations 表已删除（v21+），跳过迁移
+    migrationLogger.info('✅ recommendations 表已删除，Phase 13 迁移已无效，跳过')
     return stats
-    
   } catch (error) {
     migrationLogger.error('❌ Phase 13 迁移失败:', error)
     stats.success = false

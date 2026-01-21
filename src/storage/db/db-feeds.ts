@@ -76,17 +76,16 @@ export async function updateFeedStats(feedUrl: string): Promise<void> {
     // 兼容旧字段
     const inFeedAnalyzedCount = inFeedArticles.filter(a => a.analysis).length
     
-    // 4. 从推荐池统计（包括所有历史）
-    const recommendationsFromThisFeed = await db.recommendations
-      .where('sourceUrl')
-      .equals(feedUrl)
-      .toArray()
+    // 4. 从推荐池统计（包括所有历史，基于 feedArticles）
+    const recommendationsFromThisFeed = inFeedArticles.filter(a => 
+      a.poolStatus === 'popup' || (a.poolStatus === 'exited' && a.popupAddedAt)
+    )
     
     // 统计推荐相关数据
     const recommendedCount = recommendationsFromThisFeed.length
-    const recommendedReadCount = recommendationsFromThisFeed.filter(rec => rec.isRead === true).length
-    const dislikedCount = recommendationsFromThisFeed.filter(rec => 
-      rec.feedback === 'dismissed' || rec.status === 'dismissed'
+    const recommendedReadCount = recommendationsFromThisFeed.filter(a => a.isRead === true).length
+    const dislikedCount = recommendationsFromThisFeed.filter(a => 
+      a.feedback === 'dismissed'
     ).length
     
     // 5. 更新 RSS 源统计

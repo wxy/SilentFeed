@@ -98,20 +98,20 @@ export function RecommendationSettings({
           a.poolStatus === 'recommended' && !a.poolExitedAt
         ).count()
         
-        // 诊断：检查是否有历史遗留数据
+        // 诊断：检查是否有历史遗留数据（旧的 'recommended' 状态）
         const totalRecommendedWithoutFilter = await db.feedArticles.filter(a => 
           a.poolStatus === 'recommended'
         ).count()
-        if (totalRecommendedWithoutFilter > recommendedPoolCount) {
-          console.warn(`⚠️ 检测到历史遗留数据：${totalRecommendedWithoutFilter - recommendedPoolCount} 篇已退出但 poolStatus 未更新`)
+        if (totalRecommendedWithoutFilter > 0) {
+          console.warn(`⚠️ 检测到历史遗留数据：${totalRecommendedWithoutFilter} 篇使用旧 poolStatus='recommended'`)
         }
         
-        // 推荐漏斗统计口径：当前弹窗显示数量（活跃且未读未不感兴趣的推荐）
-        const popupCount = await db.recommendations
-          .filter(r => {
-            const isActive = !r.status || r.status === 'active'
-            const isUnreadAndNotDismissed = !r.isRead && r.feedback !== 'dismissed'
-            return isActive && isUnreadAndNotDismissed
+        // 推荐漏斗统计口径：当前弹窗显示数量（poolStatus='popup' 且未读未不感兴趣）
+        const popupCount = await db.feedArticles
+          .filter(a => {
+            const isInPopup = a.poolStatus === 'popup'
+            const isUnreadAndNotDismissed = !a.isRead && a.feedback !== 'dismissed'
+            return isInPopup && isUnreadAndNotDismissed
           })
           .count()
         
