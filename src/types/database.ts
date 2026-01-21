@@ -181,6 +181,8 @@ export interface ReadingListEntry {
   normalizedUrl: string
   /** 实际保存到阅读列表的 URL（可能为翻译链接） */
   url: string
+  /** 原始 URL（文章的原始链接，不含翻译参数） */
+  originalUrl?: string
   /** 对应的推荐 ID，用于统计与清理 */
   recommendationId?: string
   /** 保存时间戳 */

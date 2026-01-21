@@ -26,6 +26,8 @@ import { getAIConfig, saveAIConfig, isAIConfigured } from '@/storage/ai-config'
 import { getRecommendationConfig, saveRecommendationConfig } from '@/storage/recommendation-config'
 import { ReadingListManager } from './core/reading-list/reading-list-manager'
 import { processPageVisit, type PageVisitData } from './background/page-visit-handler'
+import { getUIConfig } from '@/storage/ui-config'
+import i18n from '@/i18n'
 import { migrateStorageKeys, needsStorageKeyMigration } from '@/storage/migrations/storage-key-migration'
 import {
   migrateLocalStorageKeys,
@@ -1279,23 +1281,74 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                   })
                   .toArray()
 
+                // 获取翻译配置
+                const uiConfig = await getUIConfig()
+                const autoTranslateEnabled = uiConfig.autoTranslate
+                const currentLanguage = i18n.language?.toLowerCase() || 'en'
+
                 let transferred = 0
                 for (const article of activeRecs) {
                   try {
-                    // 直接使用文章中的 URL 和标题
-                    const finalTitle = `${autoAddedPrefix}${article.title}`
-                    const ok = await ReadingListManager.addToReadingList(finalTitle, article.link, article.isRead || false)
+                    // 决定使用原文还是翻译版本
+                    let displayTitle = article.title
+                    let displayUrl = article.link
+                    
+                    // 如果启用自动翻译且文章有翻译
+                    if (autoTranslateEnabled && article.translation) {
+                      const targetLang = article.translation.targetLanguage
+                      const sourceLang = article.translation.sourceLanguage
+                      
+                      // 检查翻译是否匹配当前语言，且源语言不同于目标语言
+                      const langMatches = targetLang.toLowerCase().startsWith(currentLanguage.split('-')[0]) ||
+                                        currentLanguage.startsWith(targetLang.toLowerCase().split('-')[0])
+                      const needsTranslation = !sourceLang.toLowerCase().startsWith(targetLang.toLowerCase().split('-')[0])
+                      
+                      if (langMatches && needsTranslation) {
+                        // 使用翻译标题
+                        displayTitle = article.translation.translatedTitle || article.title
+                        // 生成谷歌翻译链接
+                        const encodedUrl = encodeURIComponent(article.link)
+                        displayUrl = `https://translate.google.com/translate?sl=auto&tl=${targetLang}&u=${encodedUrl}`
+                        
+                        bgLogger.debug('使用翻译版本添加到阅读清单', {
+                          articleId: article.id,
+                          originalTitle: article.title,
+                          translatedTitle: displayTitle,
+                          translatedUrl: displayUrl
+                        })
+                      }
+                    }
+                    
+                    const finalTitle = `${autoAddedPrefix}${displayTitle}`
+                    const ok = await ReadingListManager.addToReadingList(finalTitle, displayUrl, article.isRead || false)
 
                     if (ok) {
                       // 记录映射关系（用于删除）
-                      const normalizedUrl = ReadingListManager.normalizeUrlForTracking(article.link)
+                      // 同时记录原文URL和显示URL
+                      const normalizedOriginalUrl = ReadingListManager.normalizeUrlForTracking(article.link)
+                      const normalizedDisplayUrl = ReadingListManager.normalizeUrlForTracking(displayUrl)
+                      
                       await db.readingListEntries.put({
-                        normalizedUrl,
-                        url: article.link,
+                        normalizedUrl: normalizedOriginalUrl,  // 主键，使用原文URL
+                        url: displayUrl,                        // 实际显示的URL（可能是翻译链接）
+                        originalUrl: article.link,              // 始终保存原文URL
                         recommendationId: article.id,
                         addedAt: Date.now(),
                         titlePrefix: autoAddedPrefix
                       })
+                      
+                      // 如果使用了翻译链接，额外记录一个翻译URL的映射
+                      if (displayUrl !== article.link) {
+                        await db.readingListEntries.put({
+                          normalizedUrl: normalizedDisplayUrl,
+                          url: displayUrl,
+                          originalUrl: article.link,
+                          recommendationId: article.id,
+                          addedAt: Date.now(),
+                          titlePrefix: autoAddedPrefix
+                        })
+                      }
+                      
                       transferred++
                     }
                   } catch (err) {
@@ -1351,11 +1404,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                       }
                     }
                     
-                    // 从阅读清单删除
-                    await ReadingListManager.removeFromReadingList(entry.url)
+                    // 从阅读清单删除（skipListener=true 避免触发"不想读"逻辑）
+                    await ReadingListManager.removeFromReadingList(entry.url, true)
                     
-                    // 清理映射记录
+                    // 清理映射记录（需要清理原文URL和翻译URL的映射）
                     await db.readingListEntries.delete(normalizedUrl)
+                    
+                    // 如果有原始URL，也清理原始URL的映射
+                    if (mapping?.originalUrl) {
+                      const normalizedOriginalUrl = ReadingListManager.normalizeUrlForTracking(mapping.originalUrl)
+                      if (normalizedOriginalUrl !== normalizedUrl) {
+                        await db.readingListEntries.delete(normalizedOriginalUrl)
+                      }
+                    }
                     
                     removed++
                   } catch (err) {

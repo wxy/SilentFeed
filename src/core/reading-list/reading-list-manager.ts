@@ -33,6 +33,12 @@ interface ReadingListOnboarding {
 const ONBOARDING_KEY = 'readingListOnboarding'
 const MAX_TIP_COUNT = 3
 
+/**
+ * 正在被程序删除的 URL 集合
+ * 用于区分程序删除（显示模式切换）和用户主动删除
+ */
+const programmaticDeletions = new Set<string>()
+
 export class ReadingListManager {
   /**
    * 在 URL 上附加推荐ID参数（sf_rec），若已存在则覆写
@@ -214,19 +220,38 @@ export class ReadingListManager {
    * Phase 15: 简化方法 - 从阅读清单删除条目
    * 
    * @param url - 条目URL
+   * @param skipListener - 是否跳过监听器处理（用于程序删除，如显示模式切换）
    * @returns 是否成功
    */
-  static async removeFromReadingList(url: string): Promise<boolean> {
+  static async removeFromReadingList(url: string, skipListener = false): Promise<boolean> {
     if (!this.isAvailable()) {
       return false
     }
 
     try {
+      // 如果是程序删除，添加到跳过集合
+      if (skipListener) {
+        programmaticDeletions.add(url)
+        rlLogger.debug('程序删除阅读清单条目（跳过监听器）', { url })
+      }
+
       await chrome.readingList.removeEntry({ url })
       rlLogger.debug('已从阅读清单删除', { url })
+      
+      // 延迟清理标记（确保监听器有机会检查）
+      if (skipListener) {
+        setTimeout(() => {
+          programmaticDeletions.delete(url)
+        }, 100)
+      }
+      
       return true
     } catch (error) {
       rlLogger.error('从阅读列表删除失败', { url, error })
+      // 失败时也要清理标记
+      if (skipListener) {
+        programmaticDeletions.delete(url)
+      }
       return false
     }
   }
@@ -574,6 +599,18 @@ export class ReadingListManager {
         hasBeenRead: entry.hasBeenRead
       })
       
+      // 检查是否是程序删除（如显示模式切换）
+      if (programmaticDeletions.has(entry.url)) {
+        rlLogger.debug('跳过程序删除的监听器处理', { url: entry.url })
+        // 仍然清理内部追踪
+        try {
+          await db.readingListEntries.delete(entry.url)
+        } catch (error) {
+          rlLogger.warn('删除阅读列表追踪记录失败', error)
+        }
+        return
+      }
+      
       // 检查是否是未读删除（视为"不想读"）
       // 传递 hasBeenRead 状态以区分已读删除和未读删除
       await this.handleReadingListRemoved(entry.url, entry.hasBeenRead)
@@ -600,22 +637,31 @@ export class ReadingListManager {
    */
   private static async handleReadingListRemoved(url: string, hasBeenRead?: boolean): Promise<void> {
     try {
-      const trackingRecord = await db.readingListEntries.get(url)
+      // 先规范化URL查找映射记录
+      const normalizedUrl = ReadingListManager.normalizeUrlForTracking(url)
+      const trackingRecord = await db.readingListEntries.get(normalizedUrl)
       
       // Phase 21: 从 feedArticles 查找文章
       let article = trackingRecord?.recommendationId
         ? await db.feedArticles.get(trackingRecord.recommendationId)
         : undefined
       
-      // 如果通过 ID 没找到，尝试通过 link 查找
+      // 如果通过 ID 没找到，尝试通过原始URL查找
+      if (!article && trackingRecord?.originalUrl) {
+        article = await db.feedArticles
+          .where('link').equals(trackingRecord.originalUrl)
+          .first()
+      }
+      
+      // 如果还没找到，尝试通过当前URL查找
       if (!article) {
         article = await db.feedArticles
           .where('link').equals(url)
           .first()
       }
-      // 尝试规范化 URL 后查找
-      if (!article) {
-        const normalizedUrl = ReadingListManager.normalizeUrlForTracking(url)
+      
+      // 最后尝试用规范化URL查找
+      if (!article && normalizedUrl !== url) {
         article = await db.feedArticles
           .where('link').equals(normalizedUrl)
           .first()
@@ -627,8 +673,15 @@ export class ReadingListManager {
       }
 
       // 2. 检查数据库中是否有实际访问记录（策略B）
+      // 需要同时检查原始URL和翻译URL
+      const urlsToCheck = [
+        url, 
+        article.link,
+        trackingRecord?.originalUrl
+      ].filter(Boolean)
+      
       const confirmedVisit = await db.confirmedVisits
-        .filter((visit) => visit.url === url || visit.url === article!.link)
+        .filter((visit) => urlsToCheck.includes(visit.url))
         .first()
 
       if (confirmedVisit) {
@@ -747,7 +800,8 @@ export class ReadingListManager {
       let removed = 0
       for (const url of removalSet) {
         try {
-          await chrome.readingList.removeEntry({ url })
+          // 使用 skipListener=true，避免触发"不想读"逻辑
+          await this.removeFromReadingList(url, true)
           await db.readingListEntries.delete(url)
           removed++
         } catch (err) {
