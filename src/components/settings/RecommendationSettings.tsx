@@ -93,8 +93,18 @@ export function RecommendationSettings({
         // 推荐漏斗统计口径：当前在候选池的文章数（poolStatus = 'candidate'）
         const candidatePoolCount = await db.feedArticles.filter(a => a.poolStatus === 'candidate').count()
         
-        // 推荐漏斗统计口径：当前在推荐池的文章数（poolStatus = 'recommended'）
-        const recommendedPoolCount = await db.feedArticles.filter(a => a.poolStatus === 'recommended').count()
+        // 推荐漏斗统计口径：当前在推荐池的文章数（poolStatus = 'recommended' 且未退出）
+        const recommendedPoolCount = await db.feedArticles.filter(a => 
+          a.poolStatus === 'recommended' && !a.poolExitedAt
+        ).count()
+        
+        // 诊断：检查是否有历史遗留数据
+        const totalRecommendedWithoutFilter = await db.feedArticles.filter(a => 
+          a.poolStatus === 'recommended'
+        ).count()
+        if (totalRecommendedWithoutFilter > recommendedPoolCount) {
+          console.warn(`⚠️ 检测到历史遗留数据：${totalRecommendedWithoutFilter - recommendedPoolCount} 篇已退出但 poolStatus 未更新`)
+        }
         
         // 推荐漏斗统计口径：当前弹窗显示数量（活跃且未读未不感兴趣的推荐）
         const popupCount = await db.recommendations

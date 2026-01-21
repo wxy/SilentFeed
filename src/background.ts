@@ -1436,6 +1436,52 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           })()
           return true
         
+        // 修复历史遗留的推荐池数据
+        case 'FIX_LEGACY_POOL_DATA':
+          (async () => {
+            try {
+              bgLogger.info('🔧 开始修复历史遗留的推荐池数据...')
+              
+              // 查找所有 poolStatus='recommended' 但没有对应 recommendations 记录的文章
+              const allRecommended = await db.feedArticles.filter(a => a.poolStatus === 'recommended').toArray()
+              bgLogger.info(`找到 ${allRecommended.length} 篇 poolStatus='recommended' 的文章`)
+              
+              // 获取所有活跃的 recommendations
+              const activeRecUrls = new Set(
+                (await db.recommendations
+                  .filter(r => (!r.status || r.status === 'active') && !r.isRead)
+                  .toArray())
+                  .map(r => r.url)
+              )
+              
+              // 找出孤儿文章（有 poolStatus='recommended' 但没有活跃推荐记录）
+              const orphanArticles = allRecommended.filter(a => !activeRecUrls.has(a.link))
+              
+              if (orphanArticles.length > 0) {
+                bgLogger.warn(`发现 ${orphanArticles.length} 篇孤儿文章，将标记为已退出`)
+                
+                const now = Date.now()
+                for (const article of orphanArticles) {
+                  await db.feedArticles.update(article.id, {
+                    poolStatus: 'exited',
+                    poolExitedAt: now,
+                    poolExitReason: 'cleanup_legacy'
+                  })
+                }
+                
+                bgLogger.info(`✅ 已修复 ${orphanArticles.length} 篇历史遗留数据`)
+                sendResponse({ success: true, fixed: orphanArticles.length })
+              } else {
+                bgLogger.info('✅ 未发现需要修复的历史数据')
+                sendResponse({ success: true, fixed: 0 })
+              }
+            } catch (error) {
+              bgLogger.error('修复历史数据失败:', error)
+              sendResponse({ success: false, error: String(error) })
+            }
+          })()
+          return true
+        
         // 打开推荐文章（从弹窗或翻译按钮）
         // 由 Background 处理，确保追踪信息在创建 Tab 后立即保存
         case 'OPEN_RECOMMENDATION':
@@ -1556,7 +1602,7 @@ async function generateDailyPoolStrategy(): Promise<void> {
       
       // AI 决策
       const decider = getStrategyDecider()
-      const decision = await decider.decideStrategy(context)
+      const decision = await decider.decideDailyStrategy(context)
       bgLogger.info('✅ AI 策略生成完成', {
         poolSize: decision.poolSize,
         minInterval: decision.minInterval,
