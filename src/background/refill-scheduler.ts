@@ -178,8 +178,11 @@ export class RefillScheduler {
       // 6. 记录补充操作
       await refillManager.recordRefill()
 
-      // 7. 根据显示模式决定是否写入阅读清单
-      await this.handleDisplayMode(recommendations)
+      // 7. 根据当前显示模式，立即处理阅读清单
+      const config = await getRecommendationConfig()
+      if (config.deliveryMode === 'readingList') {
+        await this.writeToReadingList(recommendations)
+      }
 
       // 8. 图标会在下次 updateBadge() 调用时自动更新（无需手动触发）
 
@@ -263,32 +266,20 @@ export class RefillScheduler {
   }
 
   /**
-   * 根据显示模式处理推荐
+   * 写入阅读清单
    */
-  private async handleDisplayMode(recommendations: Recommendation[]): Promise<void> {
+  private async writeToReadingList(recommendations: Recommendation[]): Promise<void> {
     try {
-      const config = await getRecommendationConfig()
-      const displayMode = config.deliveryMode || 'popup'
-
-      schedLogger.debug(`显示模式: ${displayMode}`)
-
-      if (displayMode === 'readingList') {
-        // 写入阅读清单
-        for (const rec of recommendations) {
-          await ReadingListManager.addToReadingList(
-            rec.title,
-            rec.url,
-            rec.isRead
-          )
-        }
-
-        schedLogger.info(`✅ 已将 ${recommendations.length} 条推荐写入阅读清单`)
-      } else {
-        schedLogger.debug('弹窗模式，无需写入阅读清单')
+      for (const rec of recommendations) {
+        await ReadingListManager.addToReadingList(
+          rec.title,
+          rec.url,
+          rec.isRead
+        )
       }
+      schedLogger.info(`✅ 已将 ${recommendations.length} 条推荐写入阅读清单`)
     } catch (error) {
-      schedLogger.warn('处理显示模式失败:', error)
-      // 不抛出错误，显示模式处理失败不影响推荐生成
+      schedLogger.warn('写入阅读清单失败:', error)
     }
   }
 

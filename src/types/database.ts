@@ -171,14 +171,6 @@ export interface Recommendation {
   
   /** 访问次数（包括从阅读列表的访问） */
   visitCount?: number
-  
-  /**
-   * Phase 15: 显示位置（简化阅读清单模式）
-   * - 'popup': 仅在弹窗展示（默认）
-   * - 'readingList': 仅在阅读清单展示
-   * - 'both': 同时在弹窗和清单展示（扩展用）
-   */
-  displayLocation?: 'popup' | 'readingList' | 'both'
 }
 
 /**
