@@ -81,11 +81,10 @@ export function RecommendationSettings({
     loadRefillState()
   }, [])
 
-  // 实时池/弹窗状态（使用推荐漏斗统计口径）
-  const [poolData, setPoolData] = useState<{ candidatePoolCount: number; currentRecommendedPool: number; currentPopupCount: number }>({ 
+  // 实时池状态（使用推荐漏斗统计口径）
+  const [poolData, setPoolData] = useState<{ candidatePoolCount: number; recommendedPoolCount: number }>({ 
     candidatePoolCount: 0,
-    currentRecommendedPool: 0, 
-    currentPopupCount: 0 
+    recommendedPoolCount: 0
   })
   useEffect(() => {
     const loadPoolData = async () => {
@@ -93,32 +92,17 @@ export function RecommendationSettings({
         // 推荐漏斗统计口径：当前在候选池的文章数（poolStatus = 'candidate'）
         const candidatePoolCount = await db.feedArticles.filter(a => a.poolStatus === 'candidate').count()
         
-        // 推荐漏斗统计口径：当前在推荐池的文章数（poolStatus = 'recommended' 且未退出）
-        const recommendedPoolCount = await db.feedArticles.filter(a => 
-          a.poolStatus === 'recommended' && !a.poolExitedAt
-        ).count()
-        
-        // 诊断：检查是否有历史遗留数据（旧的 'recommended' 状态）
-        const totalRecommendedWithoutFilter = await db.feedArticles.filter(a => 
-          a.poolStatus === 'recommended'
-        ).count()
-        if (totalRecommendedWithoutFilter > 0) {
-          console.warn(`⚠️ 检测到历史遗留数据：${totalRecommendedWithoutFilter} 篇使用旧 poolStatus='recommended'`)
-        }
-        
-        // 推荐漏斗统计口径：当前弹窗显示数量（poolStatus='popup' 且未读未不感兴趣）
-        const popupCount = await db.feedArticles
-          .filter(a => {
-            const isInPopup = a.poolStatus === 'popup'
-            const isUnreadAndNotDismissed = !a.isRead && a.feedback !== 'dismissed'
-            return isInPopup && isUnreadAndNotDismissed
-          })
-          .count()
+        // 推荐漏斗统计口径：当前在推荐池的文章数（poolStatus = 'recommended' 且未读未拒绝）
+        // 注：推荐池即弹窗显示，不再区分
+        const recommendedPoolCount = await db.feedArticles.filter(a => {
+          const isInPool = a.poolStatus === 'recommended'
+          const isActive = !a.isRead && a.feedback !== 'dismissed'
+          return isInPool && isActive
+        }).count()
         
         setPoolData({ 
           candidatePoolCount,
-          currentRecommendedPool: recommendedPoolCount, 
-          currentPopupCount: popupCount 
+          recommendedPoolCount
         })
       } catch {
         // 忽略错误
@@ -364,32 +348,19 @@ export function RecommendationSettings({
                       </div>
                     </div>
 
-                    {/* 推荐池/弹窗容量状态 */}
-                    <div className="grid grid-cols-2 gap-3">
+                    {/* 推荐池容量状态（推荐池即弹窗显示） */}
+                    <div className="grid grid-cols-1 gap-3">
                       <div>
                         <div className="flex items-center gap-1 mb-2">
                           <span>📦</span>
-                          <span className="text-xs font-medium text-green-700 dark:text-green-300">{_('推荐池')}</span>
+                          <span className="text-xs font-medium text-green-700 dark:text-green-300">{_('推荐池')} ({_('弹窗显示')})</span>
                         </div>
                         <div className="flex items-baseline gap-1 mb-2">
-                          <span className="text-lg font-bold text-green-600 dark:text-green-400">{poolData.currentRecommendedPool}</span>
+                          <span className="text-lg font-bold text-green-600 dark:text-green-400">{poolData.recommendedPoolCount}</span>
                           <span className="text-xs text-green-500 dark:text-green-500">/ {poolSize}</span>
                         </div>
                         <div className="w-full bg-green-200 dark:bg-green-800 rounded-full h-1.5">
-                          <div className="bg-green-500 dark:bg-green-400 h-1.5 rounded-full transition-all" style={{ width: `${Math.min((poolData.currentRecommendedPool / poolSize) * 100, 100)}%` }} />
-                        </div>
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-1 mb-2">
-                          <span>💬</span>
-                          <span className="text-xs font-medium text-amber-700 dark:text-amber-300">{_('弹窗显示')}</span>
-                        </div>
-                        <div className="flex items-baseline gap-1 mb-2">
-                          <span className="text-lg font-bold text-amber-600 dark:text-amber-400">{poolData.currentPopupCount}</span>
-                          <span className="text-xs text-amber-500 dark:text-amber-500">/ {maxRecommendations}</span>
-                        </div>
-                        <div className="w-full bg-amber-200 dark:bg-amber-800 rounded-full h-1.5">
-                          <div className="bg-amber-500 dark:bg-amber-400 h-1.5 rounded-full transition-all" style={{ width: `${Math.min((poolData.currentPopupCount / maxRecommendations) * 100, 100)}%` }} />
+                          <div className="bg-green-500 dark:bg-green-400 h-1.5 rounded-full transition-all" style={{ width: `${Math.min((poolData.recommendedPoolCount / poolSize) * 100, 100)}%` }} />
                         </div>
                       </div>
                     </div>

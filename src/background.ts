@@ -1319,12 +1319,42 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 const ourEntries = entries.filter(e => e.title?.startsWith(autoAddedPrefix))
 
                 let removed = 0
+                let keptInPool = 0
+                const issues = []
+                
                 for (const entry of ourEntries) {
                   try {
+                    // 先检查对应文章的状态
+                    const normalizedUrl = ReadingListManager.normalizeUrlForTracking(entry.url)
+                    const mapping = await db.readingListEntries.get(normalizedUrl)
+                    
+                    if (mapping) {
+                      const article = await db.feedArticles.get(mapping.recommendationId)
+                      
+                      if (article) {
+                        // 兑底验证：检查文章状态
+                        if (article.poolStatus !== 'recommended') {
+                          issues.push({
+                            url: entry.url,
+                            title: article.title,
+                            currentStatus: article.poolStatus,
+                            expectedStatus: 'recommended'
+                          })
+                          bgLogger.warn(`⚠️ 发现意外状态变更: ${article.title}`, {
+                            url: entry.url,
+                            当前状态: article.poolStatus,
+                            预期状态: 'recommended'
+                          })
+                        } else {
+                          keptInPool++
+                        }
+                      }
+                    }
+                    
+                    // 从阅读清单删除
                     await ReadingListManager.removeFromReadingList(entry.url)
                     
                     // 清理映射记录
-                    const normalizedUrl = ReadingListManager.normalizeUrlForTracking(entry.url)
                     await db.readingListEntries.delete(normalizedUrl)
                     
                     removed++
@@ -1344,8 +1374,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                   bgLogger.info(`✅ 推荐池状态保持不变: ${poolArticlesAfter.length} 篇`)
                 }
 
-                bgLogger.info(`✅ 已从阅读清单删除 ${removed} 条推荐，推荐池数据保持完整`)
-                sendResponse({ success: true, removed, poolCount: poolArticlesAfter.length })
+                const resultMessage = `✅ 已从阅读清单删除 ${removed} 条推荐，推荐池保持 ${keptInPool} 篇`
+                bgLogger.info(resultMessage)
+                
+                if (issues.length > 0) {
+                  bgLogger.warn(`⚠️ 发现 ${issues.length} 篇文章状态异常`, issues)
+                }
+                
+                sendResponse({ 
+                  success: true, 
+                  removed, 
+                  poolCount: poolArticlesAfter.length,
+                  keptInPool,
+                  issues: issues.length > 0 ? issues : undefined
+                })
               } else {
                 sendResponse({ success: true })
               }
