@@ -161,7 +161,13 @@ export function RecommendationSettings({
 
   const nextRefillTime =
     refillState && poolStrategy?.decision?.minInterval
-      ? refillState.lastRefillTime + poolStrategy.decision.minInterval
+      ? (() => {
+          // 如果 lastRefillTime 是 0 或非常小（早于 2020年），说明刚重置，下次执行时间就是现在
+          if (refillState.lastRefillTime < new Date('2020-01-01').getTime()) {
+            return Date.now()
+          }
+          return refillState.lastRefillTime + poolStrategy.decision.minInterval
+        })()
       : null
   const remainingRefills =
     refillState && typeof poolStrategy?.decision?.maxDailyRefills === 'number'
