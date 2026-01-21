@@ -33,12 +33,13 @@ export interface PoolRefillPolicy {
  * 基于以下原则设定：
  * - 30分钟冷却期：避免频繁补充，减少 AI 调用
  * - 每日5次上限：覆盖大部分用户场景（早中晚+额外2次）
- * - 30%阈值：保证用户始终有推荐可看，但不会持续填充
+ * - 80%阈值：池容量低于 80% 时补充，确保用户有充足的推荐
+ *   （例如：6篇目标容量，低于 5 篇时触发补充）
  */
 export const DEFAULT_REFILL_POLICY: PoolRefillPolicy = {
   minInterval: 30 * 60 * 1000,  // 30分钟
   maxDailyRefills: 5,
-  triggerThreshold: 0.3
+  triggerThreshold: 0.8  // 从 0.3 改为 0.8，更容易补满
 }
 
 /**

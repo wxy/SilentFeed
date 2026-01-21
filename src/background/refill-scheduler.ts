@@ -346,10 +346,13 @@ export class RefillScheduler {
         
         // 验证更新成功
         const updated = await db.feedArticles.get(article.id)
-        if (!updated || updated.poolStatus !== 'popup') {
-          schedLogger.error(`⚠️ 验证失败：文章状态未更新 ${article.id}`)
+        if (!updated || updated.poolStatus !== 'recommended') {
+          schedLogger.error(`⚠️ 验证失败：文章状态未更新 ${article.id}`, {
+            expected: 'recommended',
+            actual: updated?.poolStatus
+          })
         } else {
-          schedLogger.debug(`✓ 验证成功：文章状态 = popup, ${article.id}`)
+          schedLogger.debug(`✓ 验证成功：文章状态 = recommended, ${article.id}`)
           updatedArticles.push(updated)
         }
       } catch (error) {
