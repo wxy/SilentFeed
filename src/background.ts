@@ -41,7 +41,9 @@ import {
   saveUrlTracking
 } from '@/storage/tracking-storage'
 import { syncSystemStats } from '@/storage/system-stats'
-import { getStrategyDecider, collectDailyUsageContext } from './core/recommender/pool-strategy-decider'
+// 注意：旧的 pool-strategy-decider 已废弃，现在使用 StrategyDecisionService（Phase 13）
+// // 注意：旧的 pool-strategy-decider 已废弃，现在使用 StrategyDecisionService（Phase 13）
+// import { getStrategyDecider, collectDailyUsageContext } from './core/recommender/pool-strategy-decider'
 import { getRefillManager } from './core/recommender/pool-refill-policy'
 import { cleanupExpiredArticles, cleanupExpiredRecommendations } from '@/storage/transactions'
 
@@ -1515,67 +1517,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 })
 
 /**
- * 🆕 生成每日推荐池策略（Alarm 触发）
+ * 🆕 生成每日推荐池策略（已废弃）
+ * 
+ * ⚠️ 此函数已在 Phase 13 被 StrategyDecisionService 替代
+ * 新系统使用：StrategyReviewScheduler + StrategyDecisionService
+ * 
+ * 保留此函数仅作历史参考，实际不再调用
  */
-async function generateDailyPoolStrategy(): Promise<void> {
-  try {
-    // 检查阶段状态（仅 ready 状态才生成）
-    const state = await OnboardingStateService.getState()
-    if (state.state !== 'ready') {
-      bgLogger.debug('非 ready 状态，跳过推荐池策略生成')
-      return
-    }
-    
-    // 检查锁（防止并发）
-    const isGenerating = await isPoolStrategyGenerating()
-    if (isGenerating) {
-      bgLogger.debug('推荐池策略正在生成中，跳过')
-      return
-    }
-    
-    await setPoolStrategyGenerating(true)
-    
-    try {
-      const decider = getStrategyDecider()
-      
-      // 检查是否已有今日决策
-      const cached = await decider.getCachedDecision()
-      if (cached) {
-        bgLogger.debug('今日推荐池策略已存在，跳过')
-        return
-      }
-      
-      bgLogger.info('🤖 开始生成今日推荐池策略...')
-      
-      // 收集上下文数据
-      const context = await collectDailyUsageContext()
-      
-      // AI 决策
-      const decision = await decider.decideDailyStrategy(context)
-      
-      // 应用决策到补充管理器
-      const refillManager = getRefillManager()
-      refillManager.updatePolicy({
-        minInterval: decision.minInterval,
-        maxDailyRefills: decision.maxDailyRefills,
-        triggerThreshold: decision.triggerThreshold
-      })
-      
-      bgLogger.info('✅ 推荐池策略已生成并应用', {
-        poolSize: decision.poolSize,
-        refillInterval: Math.round(decision.minInterval / 1000 / 60),
-        confidence: decision.confidence
-      })
-    } finally {
-      // 释放锁（5秒后）
-      setTimeout(async () => {
-        await setPoolStrategyGenerating(false)
-      }, 5000)
-    }
-  } catch (error) {
-    bgLogger.error('❌ 每日推荐池策略生成失败:', error)
-  }
-}
+// async function generateDailyPoolStrategy(): Promise<void> {
+//   已废弃 - 请使用 StrategyReviewScheduler
+// }
 
 /**
  * Phase 6/7: 定时器事件监听器

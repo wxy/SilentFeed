@@ -11,9 +11,7 @@ import { getRecommendationConfig, saveRecommendationConfig } from '@/storage/rec
 import { db } from '@/storage/db'
 
 interface RecommendationSettingsProps {
-  poolStrategy?: any
-  currentStrategy?: any
-  recommendationScheduler?: any
+  currentStrategy?: any  // Phase 13: StrategyDecision 对象
   maxRecommendations: number
   isLearningStage: boolean
   pageCount: number
@@ -23,8 +21,7 @@ interface RecommendationSettingsProps {
 }
 
 export function RecommendationSettings({
-  poolStrategy,
-  recommendationScheduler,
+  currentStrategy,
   maxRecommendations,
   isLearningStage,
   pageCount,
@@ -145,37 +142,34 @@ export function RecommendationSettings({
     return `${month}-${day} ${hours}:${minutes}`
   }
 
-  const entryThreshold =
-    poolStrategy?.strategy?.candidatePool?.entryThreshold ??
-    poolStrategy?.decision?.candidatePool?.entryThreshold ??
-    0.5
+  // Phase 13: 从新策略系统读取参数
+  const entryThreshold = currentStrategy?.strategy?.candidatePool?.entryThreshold ?? 0.5
 
-  const minIntervalMinutes = poolStrategy?.decision?.minInterval
-    ? Math.round(poolStrategy.decision.minInterval / 60000)
-    : 60
-  const dailyRefillLimit = poolStrategy?.decision?.maxDailyRefills ?? 10
-  const triggerPercent = poolStrategy?.decision?.triggerThreshold
-    ? (poolStrategy.decision.triggerThreshold * 100).toFixed(0)
-    : '50'
+  // 补充策略参数（从旧的 PoolRefillPolicy 读取，这些是补充管理器的实时配置）
+  const minIntervalMinutes = 60  // 默认值
+  const dailyRefillLimit = 10    // 默认值
+  const triggerPercent = '50'    // 默认值
   
-  // 优先使用新策略系统的 targetPoolSize，fallback 到旧系统的 poolSize
-  const poolSize = poolStrategy?.strategy?.recommendation?.targetPoolSize ?? 
-                  poolStrategy?.decision?.poolSize ?? 
+  // 优先使用新策略系统的 targetPoolSize
+  const poolSize = currentStrategy?.strategy?.recommendation?.targetPoolSize ?? 
                   maxRecommendations * 2
 
+  // 读取补充状态以显示下次补充时间
   const nextRefillTime =
-    refillState && poolStrategy?.decision?.minInterval
+    refillState
       ? (() => {
           // 如果 lastRefillTime 是 0 或非常小（早于 2020年），说明刚重置，下次执行时间就是现在
           if (refillState.lastRefillTime < new Date('2020-01-01').getTime()) {
             return Date.now()
           }
-          return refillState.lastRefillTime + poolStrategy.decision.minInterval
+          // 使用固定的默认间隔 60 分钟（60 * 60 * 1000 ms）
+          const defaultInterval = 60 * 60 * 1000
+          return refillState.lastRefillTime + defaultInterval
         })()
       : null
   const remainingRefills =
-    refillState && typeof poolStrategy?.decision?.maxDailyRefills === 'number'
-      ? Math.max(poolStrategy.decision.maxDailyRefills - (refillState.dailyRefillCount || 0), 0)
+    refillState && typeof dailyRefillLimit === 'number'
+      ? Math.max(dailyRefillLimit - (refillState.dailyRefillCount || 0), 0)
       : null
 
   const learningProgress = totalPages > 0 ? Math.min(Math.round((pageCount / totalPages) * 100), 100) : 0
@@ -251,12 +245,11 @@ export function RecommendationSettings({
                 <div className="flex items-center justify-between mb-4 pb-3 border-b border-indigo-200 dark:border-indigo-700/50">
                   <div>
                     <div className="text-sm font-semibold text-gray-800 dark:text-gray-100">{_('智能推荐策略')}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">{poolStrategy?.date ? `${_('更新于')} ${poolStrategy.date}` : _('使用默认策略')}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {currentStrategy ? `${_('更新于')} ${new Date(currentStrategy.createdAt).toLocaleString()}` : _('使用默认策略')}
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {poolStrategy?.decision?.confidence && (
-                      <span className="text-xs text-indigo-600 dark:text-indigo-300 flex-shrink-0">{_('置信度')} {Math.round(poolStrategy.decision.confidence * 100)}%</span>
-                    )}
                     <button
                       onClick={async () => {
                         try {
@@ -275,7 +268,7 @@ export function RecommendationSettings({
                 
                 {/* 策略推理文本 */}
                 <p className="text-sm text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">
-                  {poolStrategy?.decision?.reasoning || _('根据历史行为调整推荐策略')}
+                  {currentStrategy?.reasoning || _('根据历史行为调整推荐策略')}
                 </p>
                 
                 {/* 阈值可视化部分 */}
@@ -296,8 +289,8 @@ export function RecommendationSettings({
                       <span className="text-xs text-gray-600 dark:text-gray-400">{_('当前候选池')}</span>
                       <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{poolData.candidatePoolCount} <span className="text-xs font-normal">篇</span></span>
                     </div>
-                    {(poolStrategy as any)?.meta?.decisionId && (
-                      <div className="text-[11px] text-gray-500 dark:text-gray-500 mt-1">{_('来源：AI 策略（ID:')} {(poolStrategy as any).meta.decisionId}{_('）')}</div>
+                    {currentStrategy?.id && (
+                      <div className="text-[11px] text-gray-500 dark:text-gray-500 mt-1">{_('来源：AI 策略（ID:')} {currentStrategy.id.substring(0, 8)}{_('）')}</div>
                     )}
                   </div>
                   

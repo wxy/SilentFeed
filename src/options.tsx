@@ -17,6 +17,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary"
 import { getRecommendationConfig } from "@/storage/recommendation-config"
 import { OnboardingStateService } from "@/core/onboarding/OnboardingStateService"
 import { LEARNING_COMPLETE_PAGES } from "@/constants/progress"
+import { getCurrentStrategy } from "@/storage/strategy-storage"
 import "@/styles/global.css"
 import "@/styles/sketchy.css"
 
@@ -27,9 +28,7 @@ type TabKey = "preferences" | "feeds" | "ai-engine" | "recommendation" | "profil
  * 负责加载和管理推荐相关的状态
  */
 function RecommendationSettingsWrapper() {
-  const [poolStrategy, setPoolStrategy] = useState<any>(null)
   const [currentStrategy, setCurrentStrategy] = useState<any>(null)
-  const [recommendationScheduler, setRecommendationScheduler] = useState<any>(null)
   const [maxRecommendations, setMaxRecommendations] = useState(3)
   const [isLearningStage, setIsLearningStage] = useState(false)
   const [pageCount, setPageCount] = useState(0)
@@ -45,29 +44,17 @@ function RecommendationSettingsWrapper() {
       setPoolCapacity(max * 2) // 默认池容量 = 弹窗容量 × 2
     })
 
-    // 加载推荐池策略
-    chrome.storage.local.get('pool_strategy_decision').then(result => {
-      if (result.pool_strategy_decision) {
-        setPoolStrategy(result.pool_strategy_decision)
-        // 从策略获取池容量
-        if (result.pool_strategy_decision.decision?.poolSize) {
-          setPoolCapacity(result.pool_strategy_decision.decision.poolSize)
+    // Phase 13: 从新策略系统加载策略（替代旧的 pool_strategy_decision）
+    getCurrentStrategy().then(strategy => {
+      if (strategy) {
+        setCurrentStrategy(strategy)
+        // 从新策略获取池容量
+        if (strategy.strategy?.recommendation?.targetPoolSize) {
+          setPoolCapacity(strategy.strategy.recommendation.targetPoolSize)
         }
       }
-    })
-
-    // 加载当前 AI 策略（新系统）
-    chrome.storage.local.get('current_strategy').then(result => {
-      if (result.current_strategy) {
-        setCurrentStrategy(result.current_strategy)
-      }
-    })
-
-    // 加载调度器状态
-    chrome.runtime.sendMessage({ type: 'GET_SCHEDULERS_STATUS' }).then((response: any) => {
-      if (response?.recommendation) {
-        setRecommendationScheduler(response.recommendation)
-      }
+    }).catch(error => {
+      console.error('[RecommendationSettingsWrapper] 加载策略失败:', error)
     })
 
     // 检查学习阶段
@@ -93,9 +80,7 @@ function RecommendationSettingsWrapper() {
 
   return (
     <RecommendationSettings
-      poolStrategy={poolStrategy}
       currentStrategy={currentStrategy}
-      recommendationScheduler={recommendationScheduler}
       maxRecommendations={maxRecommendations}
       isLearningStage={isLearningStage}
       pageCount={pageCount}
