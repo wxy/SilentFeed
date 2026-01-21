@@ -1387,12 +1387,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           (async () => {
             try {
               bgLogger.info('⏰ 重置下次补充时间为现在')
+              const result = await chrome.storage.local.get('pool_refill_state')
+              const currentState = result.pool_refill_state || { dailyRefillCount: 0, currentDate: new Date().toISOString().split('T')[0] }
               await chrome.storage.local.set({
-                'refill_state': {
-                  lastRefillTime: 0,  // 设置为 0，下次检查时会立即触发
-                  dailyRefillCount: (await chrome.storage.local.get('refill_state'))?.refill_state?.dailyRefillCount || 0
+                'pool_refill_state': {
+                  ...currentState,
+                  lastRefillTime: 0  // 设置为 0，下次检查时会立即触发
                 }
               })
+              bgLogger.info('✅ 已重置补充时间')
               sendResponse({ success: true })
             } catch (error) {
               bgLogger.error('重置补充时间失败:', error)
@@ -1406,12 +1409,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           (async () => {
             try {
               bgLogger.info('🔄 重置每日补充次数')
+              const result = await chrome.storage.local.get('pool_refill_state')
+              const currentState = result.pool_refill_state || { lastRefillTime: 0, currentDate: new Date().toISOString().split('T')[0] }
               await chrome.storage.local.set({
-                'refill_state': {
-                  lastRefillTime: (await chrome.storage.local.get('refill_state'))?.refill_state?.lastRefillTime || 0,
+                'pool_refill_state': {
+                  ...currentState,
                   dailyRefillCount: 0  // 重置为 0
                 }
               })
+              bgLogger.info('✅ 已重置补充次数')
               sendResponse({ success: true })
             } catch (error) {
               bgLogger.error('重置补充次数失败:', error)
