@@ -31,6 +31,7 @@ import { db } from '@/storage/db'  // Phase 7: 静态导入，避免 Service Wor
 import { ColdStartScorer, TopicClusterAnalyzer } from './cold-start'
 import { sanitizeHtmlToText, truncateText } from '@/utils/html-sanitizer'
 import { logger } from '@/utils/logger'
+import { fetchArticleContent } from '../rss/article-fetcher'
 
 const pipelineLogger = logger.withTag('Pipeline')
 
@@ -176,9 +177,14 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
         if (!enhancedArticle.fullContent) {
           enhancedArticle = await this.fetchSingleArticle(article, context)
           processedCount++
-          // 保存抓取的全文到数据库
+          // 保存抓取的全文到数据库（包括 wordCount 和 readingTime）
           if (enhancedArticle.fullContent) {
-            await this.saveArticleFullContent(article.id, enhancedArticle.fullContent)
+            await this.saveArticleFullContent(
+              article.id, 
+              enhancedArticle.fullContent,
+              enhancedArticle.wordCount,
+              enhancedArticle.readingTime
+            )
           }
         }
         
@@ -373,26 +379,18 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
     context: ProcessingContext
   ): Promise<EnhancedArticle> {
     try {
-      // 简单的全文抓取实现（实际需要更复杂的爬虫逻辑）
-      const response = await fetch(article.link, {
-        signal: context.abortSignal,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; SilentFeed/1.0)'
-        }
-      })
+      // 使用 ArticleFetcher 获取完整内容（包括 wordCount 和 readingTime）
+      const articleContent = await fetchArticleContent(article.link)
       
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`)
+      if (!articleContent) {
+        throw new Error('抓取失败')
       }
-      
-      const html = await response.text()
-      
-      // 简单的内容提取（实际需要更智能的提取算法）
-      const content = this.extractTextContent(html)
       
       return {
         ...article,
-        fullContent: content
+        fullContent: articleContent.textContent,
+        wordCount: articleContent.wordCount,
+        readingTime: articleContent.readingTime
       }
       
     } catch (error) {
@@ -1006,11 +1004,18 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
    */
   private async saveArticleFullContent(
     articleId: string,
-    fullContent: string
+    fullContent: string,
+    wordCount?: number,
+    readingTime?: number
   ): Promise<void> {
     try {
       if (fullContent && fullContent.length > 500) {
-        await db.feedArticles.update(articleId, { content: fullContent })
+        await db.feedArticles.update(articleId, { 
+          content: fullContent,
+          wordCount,
+          readingTime
+        })
+        pipelineLogger.debug(`✅ 保存全文内容: ${articleId}, 字数: ${wordCount}, 阅读时长: ${readingTime}分钟`)
       }
     } catch (error) {
       console.warn(`[Pipeline] ⚠️ 保存全文内容失败: ${articleId}`, error)

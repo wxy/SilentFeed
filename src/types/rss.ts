@@ -147,6 +147,20 @@ export interface FeedArticle {
   author?: string
   published: number
   fetched: number
+  
+  // ===== 文章内容统计 (用于 UI 显示) =====
+  /**
+   * 文章字数（通过抓取完整内容获得）
+   * 仅在成功抓取文章内容后存在
+   */
+  wordCount?: number
+  
+  /**
+   * 预计阅读时长（分钟）
+   * 根据 wordCount 自动计算
+   */
+  readingTime?: number
+  
   analysis?: {
     topicProbabilities: Record<Topic, number>
     confidence: number
