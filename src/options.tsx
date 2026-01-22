@@ -30,6 +30,7 @@ type TabKey = "preferences" | "feeds" | "ai-engine" | "recommendation" | "profil
  */
 function RecommendationSettingsWrapper() {
   const [poolStrategy, setPoolStrategy] = useState<any>(null)
+  const [currentStrategy, setCurrentStrategy] = useState<any>(null) // 新的 AI 策略
   const [maxRecommendations, setMaxRecommendations] = useState(3)
   const [isLearningStage, setIsLearningStage] = useState(false)
   const [pageCount, setPageCount] = useState(0)
@@ -45,18 +46,31 @@ function RecommendationSettingsWrapper() {
       setPoolCapacity(max * 2) // 默认池容量 = 弹窗容量 × 2
     })
 
-    // Phase 12: 从 AIPoolStrategyDecider 加载推荐池策略
-    chrome.storage.local.get(LOCAL_STORAGE_KEYS.POOL_STRATEGY_DECISION).then(result => {
-      if (result[LOCAL_STORAGE_KEYS.POOL_STRATEGY_DECISION]) {
-        setPoolStrategy(result[LOCAL_STORAGE_KEYS.POOL_STRATEGY_DECISION])
-        // 从策略获取池容量
-        if (result[LOCAL_STORAGE_KEYS.POOL_STRATEGY_DECISION].decision?.poolSize) {
-          setPoolCapacity(result[LOCAL_STORAGE_KEYS.POOL_STRATEGY_DECISION].decision.poolSize)
+    // 🔄 从 current_strategy 读取新的 AI 策略（与 Background 一致）
+    chrome.storage.local.get('current_strategy').then(result => {
+      const strategy = result.current_strategy
+      if (strategy) {
+        console.log('[RecommendationSettingsWrapper] 📊 加载 AI 策略:', {
+          id: strategy.id,
+          targetPoolSize: strategy.strategy.recommendation.targetPoolSize,
+          cooldownMinutes: strategy.strategy.recommendation.cooldownMinutes,
+          dailyLimit: strategy.strategy.recommendation.dailyLimit,
+          generatedAt: new Date(strategy.strategy.meta.generatedAt).toLocaleString('zh-CN')
+        })
+        setCurrentStrategy(strategy)
+        // 从新策略获取池容量
+        if (strategy.strategy?.recommendation?.targetPoolSize) {
+          setPoolCapacity(strategy.strategy.recommendation.targetPoolSize)
         }
+      } else {
+        console.warn('[RecommendationSettingsWrapper] ⚠️ 未找到 AI 策略')
       }
     }).catch(error => {
-      console.error('[RecommendationSettingsWrapper] 加载策略失败:', error)
+      console.error('[RecommendationSettingsWrapper] 加载 AI 策略失败:', error)
     })
+
+    // ⚠️ 旧的池策略系统已废弃，不再读取
+    // 完全使用新的 AI 策略系统（current_strategy）
 
     // 检查学习阶段
     OnboardingStateService.getState().then(state => {
@@ -82,6 +96,7 @@ function RecommendationSettingsWrapper() {
   return (
     <RecommendationSettings
       poolStrategy={poolStrategy}
+      currentStrategy={currentStrategy}
       maxRecommendations={maxRecommendations}
       isLearningStage={isLearningStage}
       pageCount={pageCount}

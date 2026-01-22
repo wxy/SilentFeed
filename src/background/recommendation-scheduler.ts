@@ -113,17 +113,13 @@ export class RecommendationScheduler {
    * 更新策略配置
    * 当策略审查调度器生成新策略时调用
    * 
-   * 注意：策略中的 cooldownMinutes 和 recommendIntervalMinutes 是两个不同的概念：
-   * - cooldownMinutes: 推荐池补充的冷却期（30-180分钟），由 pool-refill-policy 使用
-   * - recommendIntervalMinutes: 推荐任务的基础间隔（1-60分钟），但实际间隔由待推荐文章数动态决定
-   * 
-   * 推荐调度器始终使用动态间隔（1-10分钟），不应被策略的 recommendIntervalMinutes 覆盖
+   * 注意：推荐调度器始终使用动态间隔（1-10分钟），根据待推荐文章数自动调整。
+   * 策略中的 cooldownMinutes 由 PoolRefillManager 使用，控制推荐池补充频率。
    */
   async updateStrategy(strategy: StrategyDecision): Promise<void> {
     schedLogger.info('更新推荐调度器策略', {
       targetPoolSize: strategy.strategy.recommendation.targetPoolSize,
-      cooldownMinutes: strategy.strategy.recommendation.cooldownMinutes,
-      intervalMinutes: strategy.strategy.scheduling.recommendIntervalMinutes
+      cooldownMinutes: strategy.strategy.recommendation.cooldownMinutes
     })
     
     this.currentStrategy = strategy

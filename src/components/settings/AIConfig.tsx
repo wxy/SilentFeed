@@ -255,9 +255,10 @@ export function AIConfig() {
     })
     
     // 🆕 加载推荐池策略
-    chrome.storage.local.get('pool_strategy_decision').then(result => {
-      if (result.pool_strategy_decision) {
-        setPoolStrategy(result.pool_strategy_decision)
+    // 读取新的 AI 策略系统
+    chrome.storage.local.get('current_strategy').then(result => {
+      if (result.current_strategy) {
+        setPoolStrategy(result.current_strategy)
       }
     })
     

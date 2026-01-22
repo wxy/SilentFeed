@@ -71,25 +71,15 @@ describe('StrategyDecisionService', () => {
     // 设置 mockDecidePoolStrategy 的默认返回值
     mockDecidePoolStrategy.mockResolvedValue(
       JSON.stringify({
-        analysis: {
-          batchSize: 10,
-          scoreThreshold: 7.5
-        },
         recommendation: {
           targetPoolSize: 5,
           refillThreshold: 2,
           dailyLimit: 15,
           cooldownMinutes: 60
         },
-        scheduling: {
-          analysisIntervalMinutes: 30,
-          recommendIntervalMinutes: 30,
-          loopIterations: 3
-        },
         candidatePool: {
-          targetSize: 35,
-          maxSize: 70,
-          expiryHours: 168
+          expiryHours: 168,
+          entryThreshold: 0.7
         },
         meta: {
           validHours: 24,
@@ -358,25 +348,15 @@ describe('StrategyDecisionService', () => {
       const service = new StrategyDecisionService()
       
       const invalidStrategy: RecommendationStrategy = {
-        analysis: {
-          batchSize: 100,  // 超出范围
-          scoreThreshold: 10.0  // 超出范围
-        },
         recommendation: {
           targetPoolSize: 50,  // 超出范围
           refillThreshold: 20,  // 超出范围
           dailyLimit: 100,  // 超出范围
           cooldownMinutes: 300  // 超出范围
         },
-        scheduling: {
-          analysisIntervalMinutes: 200,  // 超出范围
-          recommendIntervalMinutes: 200,  // 超出范围
-          loopIterations: 50  // 超出范围
-        },
         candidatePool: {
-          targetSize: 500,  // 超出范围
-          maxSize: 1000,  // 超出范围
-          expiryHours: 1000  // 超出范围
+          expiryHours: 1000,  // 超出范围
+          entryThreshold: 1.5  // 超出范围
         },
         meta: {
           validHours: 100,  // 超出范围
@@ -390,13 +370,10 @@ describe('StrategyDecisionService', () => {
       const validated = (service as any).validateStrategy(invalidStrategy)
 
       // 验证所有参数被限制
-      expect(validated.analysis.batchSize).toBeLessThanOrEqual(20)
-      expect(validated.analysis.scoreThreshold).toBeLessThanOrEqual(8.5)
       expect(validated.recommendation.targetPoolSize).toBeLessThanOrEqual(10)
       expect(validated.recommendation.cooldownMinutes).toBeLessThanOrEqual(180)
-      expect(validated.scheduling.analysisIntervalMinutes).toBeLessThanOrEqual(60)
-      expect(validated.candidatePool.targetSize).toBeLessThanOrEqual(100)
-      expect(validated.candidatePool.maxSize).toBeLessThanOrEqual(200)
+      expect(validated.candidatePool.expiryHours).toBeLessThanOrEqual(336)
+      expect(validated.candidatePool.entryThreshold).toBeLessThanOrEqual(0.9)
       expect(validated.meta.validHours).toBeLessThanOrEqual(48)
     })
 
@@ -404,25 +381,15 @@ describe('StrategyDecisionService', () => {
       const service = new StrategyDecisionService()
       
       const validStrategy: RecommendationStrategy = {
-        analysis: {
-          batchSize: 10,
-          scoreThreshold: 7.5
-        },
         recommendation: {
           targetPoolSize: 5,
           refillThreshold: 2,
           dailyLimit: 15,
           cooldownMinutes: 60
         },
-        scheduling: {
-          analysisIntervalMinutes: 30,
-          recommendIntervalMinutes: 30,
-          loopIterations: 5
-        },
         candidatePool: {
-          targetSize: 50,
-          maxSize: 100,
-          expiryHours: 168
+          expiryHours: 168,
+          entryThreshold: 0.7
         },
         meta: {
           validHours: 24,
@@ -435,11 +402,9 @@ describe('StrategyDecisionService', () => {
       const validated = (service as any).validateStrategy(validStrategy)
 
       // 验证所有参数保持不变
-      expect(validated.analysis.batchSize).toBe(10)
-      expect(validated.analysis.scoreThreshold).toBe(7.5)
       expect(validated.recommendation.targetPoolSize).toBe(5)
       expect(validated.recommendation.cooldownMinutes).toBe(60)
-      expect(validated.scheduling.analysisIntervalMinutes).toBe(30)
+      expect(validated.candidatePool.entryThreshold).toBe(0.7)
     })
   })
 })

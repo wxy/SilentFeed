@@ -112,25 +112,15 @@ describe('StrategyReviewScheduler', () => {
         status: 'active',
         context: {} as any,
         strategy: {
-          analysis: {
-            batchSize: 10,
-            scoreThreshold: 7.5
-          },
           recommendation: {
             targetPoolSize: 5,
             refillThreshold: 2,
             dailyLimit: 15,
             cooldownMinutes: 60
           },
-          scheduling: {
-            analysisIntervalMinutes: 30,
-            recommendIntervalMinutes: 30,
-            loopIterations: 3
-          },
           candidatePool: {
-            targetSize: 35,
-            maxSize: 70,
-            expiryHours: 168
+            expiryHours: 168,
+            entryThreshold: 0.7
           },
           meta: {
             validHours: 24,

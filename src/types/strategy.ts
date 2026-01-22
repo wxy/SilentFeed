@@ -62,12 +62,6 @@ export interface StrategyDecisionContext {
  * 推荐策略：AI 输出的参数化策略
  */
 export interface RecommendationStrategy {
-  /** 分析策略 */
-  analysis: {
-    batchSize: number              // 每次分析几篇 (1-20)
-    scoreThreshold: number         // 推荐门槛 (6.0-8.5)
-  }
-  
   /** 推荐策略 */
   recommendation: {
     targetPoolSize: number         // 推荐池目标容量 (3-10)
@@ -76,19 +70,10 @@ export interface RecommendationStrategy {
     cooldownMinutes: number        // 补充冷却时间 (30-180分钟)
   }
   
-  /** 调度策略 */
-  scheduling: {
-    analysisIntervalMinutes: number  // 分析任务间隔 (1-60分钟)
-    recommendIntervalMinutes: number // 推荐任务间隔 (1-60分钟)
-    loopIterations: number           // 每次循环次数 (1-10)
-  }
-  
   /** 候选池管理 */
   candidatePool: {
-    targetSize: number             // 候选池目标容量 (10-100)
-    maxSize: number                // 候选池最大容量 (20-200)
-    expiryHours: number            // 过期时间（小时，24-168）
-    entryThreshold: number         // 准入阈值 (0.5-0.9)，AI根据系统状态动态决策
+    expiryHours: number            // 过期时间（小时，24-336），超过此时间自动淘汰
+    entryThreshold: number         // 准入阈值 (0.5-0.9)，AI 评分高于此值才能进入候选池
   }
   
   /** 元数据 */

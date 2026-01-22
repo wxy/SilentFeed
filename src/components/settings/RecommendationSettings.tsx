@@ -24,6 +24,7 @@ interface RecommendationSettingsProps {
 
 export function RecommendationSettings({
   poolStrategy,
+  currentStrategy,
   recommendationScheduler,
   maxRecommendations,
   isLearningStage,
@@ -131,23 +132,19 @@ export function RecommendationSettings({
     return `${month}-${day} ${hours}:${minutes}`
   }
 
-  const entryThreshold =
-    poolStrategy?.strategy?.candidatePool?.entryThreshold ??
-    poolStrategy?.decision?.candidatePool?.entryThreshold ??
-    0.5
+  // 从 AI 策略读取准入阈值
+  const entryThreshold = currentStrategy?.strategy?.candidatePool?.entryThreshold ?? 0.7
 
-  const minIntervalMinutes = poolStrategy?.decision?.minInterval
-    ? Math.round(poolStrategy.decision.minInterval / 60000)
-    : 60
-  const dailyRefillLimit = poolStrategy?.decision?.maxDailyRefills ?? 10
-  const triggerPercent = poolStrategy?.decision?.triggerThreshold
-    ? (poolStrategy.decision.triggerThreshold * 100).toFixed(0)
+  const minIntervalMinutes = currentStrategy?.strategy?.recommendation?.cooldownMinutes ?? 60
+  const dailyRefillLimit = currentStrategy?.strategy?.recommendation?.dailyLimit ?? 10
+  const triggerPercent = currentStrategy?.strategy?.recommendation?.refillThreshold && currentStrategy?.strategy?.recommendation?.targetPoolSize
+    ? ((currentStrategy.strategy.recommendation.refillThreshold / currentStrategy.strategy.recommendation.targetPoolSize) * 100).toFixed(0)
     : '50'
-  const poolSize = poolStrategy?.decision?.poolSize ?? maxRecommendations * 2
+  const poolSize = currentStrategy?.strategy?.recommendation?.targetPoolSize ?? 8
 
   const nextRefillTime =
-    refillState && poolStrategy?.decision?.minInterval
-      ? refillState.lastRefillTime + poolStrategy.decision.minInterval
+    refillState && currentStrategy?.strategy?.recommendation?.cooldownMinutes
+      ? refillState.lastRefillTime + (currentStrategy.strategy.recommendation.cooldownMinutes * 60 * 1000)
       : null
   const remainingRefills =
     refillState && typeof poolStrategy?.decision?.maxDailyRefills === 'number'
@@ -227,7 +224,16 @@ export function RecommendationSettings({
                 <div className="flex items-center justify-between mb-4 pb-3 border-b border-indigo-200 dark:border-indigo-700/50">
                   <div>
                     <div className="text-sm font-semibold text-gray-800 dark:text-gray-100">{_('智能推荐策略')}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">{poolStrategy?.date ? `${_('更新于')} ${poolStrategy.date}` : _('使用默认策略')}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {currentStrategy?.strategy?.meta?.generatedAt 
+                        ? `${_('更新于')} ${new Date(currentStrategy.strategy.meta.generatedAt).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}`
+                        : _('使用默认策略')}
+                      {currentStrategy?.id && (
+                        <span className="ml-2 text-gray-400 dark:text-gray-500">
+                          (ID: {currentStrategy.id.split('-')[1]?.substring(0, 8)})
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     {poolStrategy?.decision?.confidence && (
@@ -256,10 +262,76 @@ export function RecommendationSettings({
                 <p className="text-sm text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">
                   {poolStrategy?.decision?.reasoning || _('根据历史行为调整推荐策略')}
                 </p>
-                
-                {/* 阈值可视化部分 */}
+
+                {/* 决策上下文 - 折叠面板 */}
+                {currentStrategy?.context && (
+                  <details className="mb-4 bg-amber-50 dark:bg-amber-900/10 rounded-lg border border-amber-200 dark:border-amber-700">
+                    <summary className="px-4 py-2 cursor-pointer text-xs font-medium text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-800/30 rounded-lg transition-colors">
+                      📋 {_('决策依据')}（{_('系统状态快照')}）
+                    </summary>
+                    
+                    <div className="p-4 space-y-3 border-t border-amber-200 dark:border-amber-700">
+                      {/* 供给侧 */}
+                      <div className="bg-white dark:bg-gray-800 rounded p-3 border border-amber-200 dark:border-amber-700/50">
+                        <div className="text-xs font-semibold text-amber-700 dark:text-amber-300 mb-2">📥 {_('供给侧')}</div>
+                        <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-[11px]">
+                          <div><span className="text-gray-500">{_('活跃源')}:</span> <span className="font-mono">{currentStrategy.context.supply.activeFeeds}</span></div>
+                          <div><span className="text-gray-500">{_('日均新文章')}:</span> <span className="font-mono">{currentStrategy.context.supply.dailyNewArticles}</span></div>
+                          <div><span className="text-gray-500">{_('原料池')}:</span> <span className="font-mono">{currentStrategy.context.supply.rawPoolSize}</span></div>
+                          <div><span className="text-gray-500">{_('候选池')}:</span> <span className="font-mono">{currentStrategy.context.supply.candidatePoolSize}</span></div>
+                          <div><span className="text-gray-500">{_('低分文章')}:</span> <span className="font-mono">{currentStrategy.context.supply.analyzedNotQualifiedSize}</span></div>
+                        </div>
+                      </div>
+
+                      {/* 需求侧 */}
+                      <div className="bg-white dark:bg-gray-800 rounded p-3 border border-amber-200 dark:border-amber-700/50">
+                        <div className="text-xs font-semibold text-amber-700 dark:text-amber-300 mb-2">📤 {_('需求侧')}</div>
+                        <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-[11px]">
+                          <div><span className="text-gray-500">{_('日均阅读')}:</span> <span className="font-mono">{currentStrategy.context.demand.dailyReadCount}</span></div>
+                          <div><span className="text-gray-500">{_('阅读速度')}:</span> <span className="font-mono">{currentStrategy.context.demand.avgReadSpeed.toFixed(1)}</span> {_('篇/天')}</div>
+                          <div><span className="text-gray-500">{_('拒绝率')}:</span> <span className="font-mono">{currentStrategy.context.demand.dismissRate.toFixed(0)}%</span></div>
+                          <div><span className="text-gray-500">{_('喜欢率')}:</span> <span className="font-mono">{currentStrategy.context.demand.likeRate.toFixed(0)}%</span></div>
+                          <div><span className="text-gray-500">{_('推荐池')}:</span> <span className="font-mono">{currentStrategy.context.demand.recommendationPoolSize}/{currentStrategy.context.demand.recommendationPoolCapacity}</span></div>
+                        </div>
+                      </div>
+
+                      {/* 系统资源 */}
+                      <div className="bg-white dark:bg-gray-800 rounded p-3 border border-amber-200 dark:border-amber-700/50">
+                        <div className="text-xs font-semibold text-amber-700 dark:text-amber-300 mb-2">💰 {_('系统资源')}</div>
+                        <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-[11px]">
+                          <div><span className="text-gray-500">{_('今日 Tokens')}:</span> <span className="font-mono">{currentStrategy.context.system.aiTokensUsedToday}/{currentStrategy.context.system.aiTokensBudgetDaily}</span></div>
+                          <div><span className="text-gray-500">{_('今日成本')}:</span> <span className="font-mono">${currentStrategy.context.system.aiCostToday.toFixed(4)}</span></div>
+                          <div><span className="text-gray-500">{_('今日分析')}:</span> <span className="font-mono">{currentStrategy.context.system.analyzedArticlesToday}</span></div>
+                          <div><span className="text-gray-500">{_('今日推荐')}:</span> <span className="font-mono">{currentStrategy.context.system.recommendedArticlesToday}</span></div>
+                        </div>
+                      </div>
+
+                      {/* 历史数据 */}
+                      <div className="bg-white dark:bg-gray-800 rounded p-3 border border-amber-200 dark:border-amber-700/50">
+                        <div className="text-xs font-semibold text-amber-700 dark:text-amber-300 mb-2">📊 {_('历史数据')}（7天）</div>
+                        <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-[11px]">
+                          <div><span className="text-gray-500">{_('总阅读')}:</span> <span className="font-mono">{currentStrategy.context.history.last7DaysReadCount}</span></div>
+                          <div><span className="text-gray-500">{_('总推荐')}:</span> <span className="font-mono">{currentStrategy.context.history.last7DaysRecommendedCount}</span></div>
+                          <div><span className="text-gray-500">{_('总分析')}:</span> <span className="font-mono">{currentStrategy.context.history.last7DaysAnalyzedCount}</span></div>
+                        </div>
+                      </div>
+
+                      {/* 用户画像 */}
+                      <div className="bg-white dark:bg-gray-800 rounded p-3 border border-amber-200 dark:border-amber-700/50">
+                        <div className="text-xs font-semibold text-amber-700 dark:text-amber-300 mb-2">👤 {_('用户画像')}</div>
+                        <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-[11px]">
+                          <div><span className="text-gray-500">{_('页面访问')}:</span> <span className="font-mono">{currentStrategy.context.userProfile.pageVisitCount}</span></div>
+                          <div><span className="text-gray-500">{_('引导完成')}:</span> <span className="font-mono">{currentStrategy.context.userProfile.onboardingComplete ? _('是') : _('否')}</span></div>
+                          <div><span className="text-gray-500">{_('画像置信度')}:</span> <span className="font-mono">{(currentStrategy.context.userProfile.profileConfidence * 100).toFixed(0)}%</span></div>
+                        </div>
+                      </div>
+                    </div>
+                  </details>
+                )}
+
+                {/* 原有的阈值可视化部分保持不变 */}
                 <div className="space-y-4 mb-4">
-                  {/* 候选池阈值 - 独立框 */}
+                  {/* 候选池阈值 - 独立框（整合所有候选池信息）*/}
                   <div className="bg-indigo-50 dark:bg-indigo-900/10 rounded-lg p-3 border border-indigo-200 dark:border-indigo-700/50">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -270,12 +342,23 @@ export function RecommendationSettings({
                     <div className="w-full bg-indigo-200 dark:bg-indigo-800 rounded-full h-2">
                       <div className="bg-indigo-600 dark:bg-indigo-400 h-2 rounded-full transition-all" style={{ width: `${entryThreshold * 100}%` }} />
                     </div>
-                    <div className="text-[11px] text-gray-500 dark:text-gray-500 mt-1">{_('文章评分高于此值才进入候选池')}</div>
+                    <div className="text-[11px] text-gray-500 dark:text-gray-500 mt-1">{_('AI 评分高于此值的文章才能进入候选池')}</div>
+                    
                     {/* 当前候选池数量 */}
                     <div className="flex items-center justify-between mt-2 pt-2 border-t border-indigo-200 dark:border-indigo-700/50">
                       <span className="text-xs text-gray-600 dark:text-gray-400">{_('当前候选池')}</span>
                       <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{poolData.candidatePoolCount} <span className="text-xs font-normal">{_('篇')}</span></span>
                     </div>
+                    
+                    {/* 过期时间 */}
+                    {currentStrategy?.strategy?.candidatePool?.expiryHours && (
+                      <div className="flex items-center justify-between mt-1 pt-1 border-t border-indigo-200 dark:border-indigo-700/50">
+                        <span className="text-xs text-gray-600 dark:text-gray-400">{_('过期淘汰')}</span>
+                        <span className="text-xs font-mono text-indigo-600 dark:text-indigo-400">
+                          {currentStrategy.strategy.candidatePool.expiryHours}h
+                        </span>
+                      </div>
+                    )}
                   </div>
                   
                   {/* 推荐池 - 大框整合所有相关数据 */}

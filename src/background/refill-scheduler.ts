@@ -21,6 +21,7 @@ import { getCurrentStrategy } from '@/storage/strategy-storage'
 import { getRefillManager } from '@/core/recommender/pool-refill-policy'
 import { ReadingListManager } from '@/core/reading-list/reading-list-manager'
 import { getUIConfig } from '@/storage/ui-config'
+import { translateRecommendations } from '@/core/translator/recommendation-translator'
 import { logger } from '@/utils/logger'
 import type { FeedArticle } from '@/types/rss'
 
@@ -139,7 +140,23 @@ export class RefillScheduler {
       const targetPoolSize = strategy.strategy.recommendation.targetPoolSize
       const qualityThreshold = strategy.strategy.candidatePool.entryThreshold
 
+      // 🔍 诊断日志：输出 AI 策略详情
+      schedLogger.info('🎯 AI 策略配置:', {
+        targetPoolSize: strategy.strategy.recommendation.targetPoolSize,
+        cooldownMinutes: strategy.strategy.recommendation.cooldownMinutes,
+        dailyLimit: strategy.strategy.recommendation.dailyLimit,
+        refillThreshold: strategy.strategy.recommendation.refillThreshold,
+        entryThreshold: strategy.strategy.candidatePool.entryThreshold,
+        generatedAt: new Date(strategy.strategy.meta.generatedAt).toLocaleString('zh-CN')
+      })
+      schedLogger.info(`🔍 使用的 targetPoolSize = ${targetPoolSize}`)
+
       // 1.5. 清理超出容量的推荐（退回候选池）
+      await this.cleanupExcessRecommendations(targetPoolSize)
+
+      // 2. 检查当前弹窗推荐状态
+
+      // 1.6. 清理超出容量的推荐（退回候选池）
       await this.cleanupExcessRecommendations(targetPoolSize)
 
       // 2. 检查当前弹窗推荐状态
@@ -153,19 +170,46 @@ export class RefillScheduler {
         .toArray()
 
       const currentPoolSize = currentPool.length
-      schedLogger.debug(`📊 推荐池状态: ${currentPoolSize}/${targetPoolSize}`)
+      schedLogger.info(`📊 推荐池状态: ${currentPoolSize}/${targetPoolSize}`, {
+        currentPool: currentPool.map(a => ({
+          id: a.id,
+          title: a.title?.substring(0, 30),
+          isRead: a.isRead,
+          feedback: a.feedback
+        }))
+      })
 
-      // 3. 检查是否允许补充（冷却期、每日限额、容量阈值）
+      // 3. 检查是否允许补充（会自动从 storage 读取最新 AI 策略）
       const refillManager = getRefillManager()
       const shouldRefill = await refillManager.shouldRefill(currentPoolSize, targetPoolSize)
       
       if (!shouldRefill) {
-        schedLogger.info(`⏸️ 补充受限：不满足补充条件 (${currentPoolSize}/${targetPoolSize})`)
+        schedLogger.warn(`⏸️ 补充受限：不满足补充条件 (${currentPoolSize}/${targetPoolSize})`)
+        
+        // 诊断：输出限制原因
+        const state = refillManager.getState()
+        const policy = refillManager.getPolicy()
+        const fillRate = currentPoolSize / targetPoolSize
+        const timeSinceLastRefill = Date.now() - state.lastRefillTime
+        
+        schedLogger.info('📋 补充策略状态:', {
+          fillRate: `${(fillRate * 100).toFixed(0)}%`,
+          triggerThreshold: `${(policy.triggerThreshold * 100).toFixed(0)}%`,
+          shouldTrigger: fillRate <= policy.triggerThreshold,
+          timeSinceLastRefill: `${Math.round(timeSinceLastRefill / 1000 / 60)}分钟`,
+          minInterval: `${Math.round(policy.minInterval / 1000 / 60)}分钟`,
+          coolingDown: state.lastRefillTime > 0 && timeSinceLastRefill < policy.minInterval,
+          dailyCount: `${state.dailyRefillCount}/${policy.maxDailyRefills}`,
+          reachedDailyLimit: state.dailyRefillCount >= policy.maxDailyRefills
+        })
+        
         return
       }
 
       // 4. 从候选池获取高分文章
       const remainingCapacity = targetPoolSize - currentPoolSize
+      schedLogger.info(`🎯 需要补充: ${remainingCapacity} 篇 (${currentPoolSize}/${targetPoolSize})`)
+      
       const candidates = await this.getCandidateArticles(remainingCapacity, qualityThreshold)
 
       if (candidates.length === 0) {
@@ -181,13 +225,38 @@ export class RefillScheduler {
       // 6. 记录补充操作
       await refillManager.recordRefill()
 
-      // 7. 根据当前显示模式，立即处理阅读清单
+      // 7. 如果启用自动翻译，对缺少翻译的文章进行即时翻译
+      const uiConfig = await getUIConfig()
+      if (uiConfig.autoTranslate && recommendations.length > 0) {
+        const untranslated = recommendations.filter(r => !r.translation)
+        if (untranslated.length > 0) {
+          schedLogger.info(`🌐 发现 ${untranslated.length} 篇未翻译文章，开始即时翻译...`)
+          try {
+            const translated = await translateRecommendations(untranslated)
+            
+            // 更新数组中的文章（保持引用一致性）
+            for (const translatedArticle of translated) {
+              const index = recommendations.findIndex(r => r.id === translatedArticle.id)
+              if (index !== -1) {
+                recommendations[index] = translatedArticle
+              }
+            }
+            
+            schedLogger.info(`✅ 即时翻译完成: ${translated.length} 篇`)
+          } catch (error) {
+            schedLogger.error('❌ 即时翻译失败:', error)
+            // 翻译失败不影响补充流程
+          }
+        }
+      }
+
+      // 8. 根据当前显示模式，立即处理阅读清单
       const config = await getRecommendationConfig()
       if (config.deliveryMode === 'readingList') {
         await this.writeToReadingList(recommendations)
       }
 
-      // 8. 图标会在下次 updateBadge() 调用时自动更新（无需手动触发）
+      // 9. 图标会在下次 updateBadge() 调用时自动更新（无需手动触发）
 
       const duration = Date.now() - startTime
       schedLogger.info(`✅ 推荐池补充完成`, {
@@ -215,6 +284,8 @@ export class RefillScheduler {
         .filter(a => a.poolStatus === 'recommended')
         .toArray()
 
+      schedLogger.info(`🔍 [cleanupExcessRecommendations] 检查推荐池: 当前=${allPopupArticles.length}, 容量=${targetPoolSize}`)
+      
       if (allPopupArticles.length <= targetPoolSize) {
         schedLogger.debug(`推荐池大小正常: ${allPopupArticles.length}/${targetPoolSize}`)
         return
@@ -264,6 +335,8 @@ export class RefillScheduler {
    */
   private async getCandidateArticles(limit: number, threshold: number): Promise<FeedArticle[]> {
     try {
+      schedLogger.info(`🔍 查询候选池: 需要 ${limit} 篇，评分阈值 ${threshold.toFixed(2)}`)
+      
       const candidates = await db.feedArticles
         .filter(a => {
           // 必须是候选池文章
@@ -276,12 +349,32 @@ export class RefillScheduler {
         })
         .toArray()
 
+      schedLogger.info(`📊 候选池统计: 合格文章 ${candidates.length} 篇`, {
+        scoreRange: candidates.length > 0 ? {
+          min: Math.min(...candidates.map(a => a.analysisScore || 0)).toFixed(2),
+          max: Math.max(...candidates.map(a => a.analysisScore || 0)).toFixed(2)
+        } : null
+      })
+
       // 按评分降序排序，取前 N 篇
       const sorted = candidates.sort((a, b) => 
         (b.analysisScore || 0) - (a.analysisScore || 0)
       )
 
-      return sorted.slice(0, limit)
+      const selected = sorted.slice(0, limit)
+      
+      if (selected.length < limit) {
+        schedLogger.warn(`⚠️ 候选文章不足: 需要 ${limit} 篇，实际 ${selected.length} 篇`)
+      }
+      
+      schedLogger.info(`✅ 选择文章: ${selected.length} 篇`, {
+        articles: selected.map(a => ({
+          title: a.title?.substring(0, 30),
+          score: a.analysisScore?.toFixed(2)
+        }))
+      })
+
+      return selected
     } catch (error) {
       schedLogger.error('获取候选文章失败:', error)
       return []
@@ -291,20 +384,17 @@ export class RefillScheduler {
   /**
    * 创建推荐记录（Phase 13+: 直接更新 feedArticles，不再写入 recommendations 表）
    * 
-   * 添加容量检查：
-   * - 获取当前推荐池大小
-   * - 只添加不超过目标容量的文章
-   * - 超出部分保持在候选池中
+   * 注意：容量检查已在 refill() 中完成，这里直接处理传入的文章
    */
   private async createRecommendations(articles: FeedArticle[]): Promise<FeedArticle[]> {
     const updatedArticles: FeedArticle[] = []
     const now = Date.now()
 
-    // 获取策略配置的推荐池容量
+    // 获取策略配置的推荐池容量（用于日志）
     const strategy = await getCurrentStrategy()
     const targetPoolSize = strategy?.strategy.recommendation.targetPoolSize || 6
 
-    // 检查当前推荐池大小
+    // 检查当前推荐池大小（用于日志）
     const currentPoolSize = await db.feedArticles
       .filter(a => {
         const isPopup = a.poolStatus === 'recommended'
@@ -314,25 +404,9 @@ export class RefillScheduler {
       })
       .count()
 
-    // 计算可添加数量
-    const remainingCapacity = Math.max(0, targetPoolSize - currentPoolSize)
-    
-    if (remainingCapacity === 0) {
-      schedLogger.warn(`⚠️ 推荐池已满 (${currentPoolSize}/${targetPoolSize})，不添加新推荐`)
-      return []
-    }
+    schedLogger.debug(`开始将 ${articles.length} 篇文章加入弹窗推荐 (当前: ${currentPoolSize}/${targetPoolSize})`)
 
-    // 只处理容量范围内的文章
-    const articlesToAdd = articles.slice(0, remainingCapacity)
-    const articlesExcluded = articles.slice(remainingCapacity)
-
-    if (articlesExcluded.length > 0) {
-      schedLogger.info(`⚠️ 推荐池容量限制: 添加 ${articlesToAdd.length} 篇，跳过 ${articlesExcluded.length} 篇（保持在候选池）`)
-    }
-
-    schedLogger.debug(`开始将 ${articlesToAdd.length} 篇文章加入弹窗推荐 (当前: ${currentPoolSize}/${targetPoolSize})`)
-
-    for (const article of articlesToAdd) {
+    for (const article of articles) {
       try {
         // 直接更新文章状态为弹窗推荐
         await db.feedArticles.update(article.id, {
@@ -379,16 +453,155 @@ export class RefillScheduler {
    */
   private async writeToReadingList(articles: FeedArticle[]): Promise<void> {
     try {
+      // 获取翻译配置
+      const uiConfig = await getUIConfig()
+      const autoTranslateEnabled = uiConfig.autoTranslate || false
+      
+      // 获取目标语言
+      const chromeLanguage = chrome.i18n.getUILanguage()
+      const currentLanguage = chromeLanguage.toLowerCase() // 'zh-CN' 或 'en'
+      
+      schedLogger.info(`📝 准备写入阅读清单: ${articles.length} 篇文章`, {
+        autoTranslateEnabled,
+        currentLanguage
+      })
+      
       for (const article of articles) {
-        await ReadingListManager.addToReadingList(
-          article.title,
-          article.link,
+        let displayUrl = article.link
+        let displayTitle = article.title
+        let usingTranslation = false
+        
+        // 诊断日志：检查文章翻译状态
+        schedLogger.debug('检查文章翻译状态:', {
+          articleId: article.id,
+          title: article.title,
+          hasTranslation: !!article.translation,
+          autoTranslateEnabled,
+          translationDetails: article.translation ? {
+            sourceLang: article.translation.sourceLanguage,
+            targetLang: article.translation.targetLanguage,
+            hasTranslatedTitle: !!article.translation.translatedTitle
+          } : null
+        })
+        
+        // 如果启用自动翻译且文章有翻译
+        if (autoTranslateEnabled && article.translation) {
+          const targetLang = article.translation.targetLanguage
+          const sourceLang = article.translation.sourceLanguage
+          
+          // 检查翻译是否匹配当前语言，且源语言不同于目标语言
+          const langMatches = targetLang.toLowerCase().startsWith(currentLanguage.split('-')[0]) ||
+                            currentLanguage.startsWith(targetLang.toLowerCase().split('-')[0])
+          const needsTranslation = !sourceLang.toLowerCase().startsWith(targetLang.toLowerCase().split('-')[0])
+          
+          schedLogger.debug('语言匹配检查:', {
+            targetLang,
+            sourceLang,
+            currentLanguage,
+            langMatches,
+            needsTranslation
+          })
+          
+          if (langMatches && needsTranslation) {
+            displayTitle = article.translation.translatedTitle || article.title
+            displayUrl = this.generateTranslateGoogUrl(article.link, targetLang)
+            usingTranslation = true
+            
+            schedLogger.info('✅ 使用翻译链接:', {
+              articleId: article.id,
+              originalTitle: article.title,
+              translatedTitle: displayTitle,
+              originalUrl: article.link,
+              translatedUrl: displayUrl,
+              sourceLang,
+              targetLang
+            })
+          } else {
+            schedLogger.info('❌ 不使用翻译链接:', {
+              articleId: article.id,
+              reason: !langMatches ? '语言不匹配' : '不需要翻译',
+              sourceLang,
+              targetLang,
+              currentLanguage,
+              langMatches,
+              needsTranslation
+            })
+          }
+        } else if (autoTranslateEnabled && !article.translation) {
+          schedLogger.warn('⚠️ 自动翻译已启用，但文章无翻译数据:', {
+            articleId: article.id,
+            title: article.title,
+            link: article.link
+          })
+        }
+        
+        const ok = await ReadingListManager.addToReadingList(
+          displayTitle,
+          displayUrl,
           article.isRead || false
         )
+        
+        if (ok) {
+          // 记录映射关系（用于删除和状态同步）
+          const normalizedOriginalUrl = ReadingListManager.normalizeUrlForTracking(article.link)
+          const normalizedDisplayUrl = ReadingListManager.normalizeUrlForTracking(displayUrl)
+          
+          await db.readingListEntries.put({
+            normalizedUrl: normalizedOriginalUrl,  // 主键，使用原文URL
+            url: displayUrl,                        // 实际显示的URL（可能是翻译链接）
+            originalUrl: article.link,              // 始终保存原文URL
+            recommendationId: article.id,
+            addedAt: Date.now()
+          })
+          
+          // 如果使用了翻译链接，额外记录一个翻译URL的映射
+          if (displayUrl !== article.link) {
+            await db.readingListEntries.put({
+              normalizedUrl: normalizedDisplayUrl,
+              url: displayUrl,
+              originalUrl: article.link,
+              recommendationId: article.id,
+              addedAt: Date.now()
+            })
+          }
+        }
       }
       schedLogger.info(`✅ 已将 ${articles.length} 条推荐写入阅读清单`)
     } catch (error) {
       schedLogger.warn('写入阅读清单失败:', error)
+    }
+  }
+
+  /**
+   * 生成 translate.goog 格式的翻译 URL
+   */
+  private generateTranslateGoogUrl(url: string, targetLang: string): string {
+    try {
+      const urlObj = new URL(url)
+      
+      // 将域名中的点替换为短横线
+      // 例如：example.com → example-com
+      const translatedHost = urlObj.hostname.replace(/\./g, '-')
+      
+      // 构造新 URL
+      const translatedUrl = new URL(`https://${translatedHost}.translate.goog${urlObj.pathname}${urlObj.search}`)
+      
+      // 添加翻译参数
+      translatedUrl.searchParams.set('_x_tr_sl', 'auto')     // 源语言：自动检测
+      translatedUrl.searchParams.set('_x_tr_tl', targetLang) // 目标语言
+      translatedUrl.searchParams.set('_x_tr_hl', targetLang) // 界面语言
+      
+      // 保留原始 hash
+      if (urlObj.hash) {
+        translatedUrl.hash = urlObj.hash
+      }
+      
+      return translatedUrl.toString()
+    } catch (error) {
+      // 如果 URL 解析失败，降级使用传统格式
+      schedLogger.warn('生成 translate.goog URL 失败，使用传统格式', { url, error })
+      const encodedUrl = encodeURIComponent(url)
+      return `https://translate.google.com/translate?sl=auto&tl=${targetLang}&u=${encodedUrl}`
     }
   }
 

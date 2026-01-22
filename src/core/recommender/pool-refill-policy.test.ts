@@ -16,6 +16,34 @@ describe('pool-refill-policy', () => {
   beforeEach(async () => {
     // 清理 storage
     await chrome.storage.local.clear()
+    
+    // 设置默认策略（模拟 AI 生成的策略）
+    await chrome.storage.local.set({
+      'current_strategy': {
+        id: 'test-strategy',
+        createdAt: Date.now(),
+        status: 'active',
+        strategy: {
+          recommendation: {
+            targetPoolSize: 10,
+            refillThreshold: 3,  // 触发阈值 3/10 = 30%
+            dailyLimit: 5,
+            cooldownMinutes: 30  // 30分钟
+          },
+          candidatePool: {
+            expiryHours: 168,
+            entryThreshold: 0.7
+          },
+          meta: {
+            validHours: 24,
+            generatedAt: Date.now(),
+            version: 'v1.0',
+            nextReviewHours: 12
+          }
+        }
+      }
+    })
+    
     // 创建新的管理器实例
     manager = new PoolRefillManager()
     await manager.resetState()
@@ -25,7 +53,7 @@ describe('pool-refill-policy', () => {
     it('应该有正确的默认值', () => {
       expect(DEFAULT_REFILL_POLICY.minInterval).toBe(30 * 60 * 1000) // 30分钟
       expect(DEFAULT_REFILL_POLICY.maxDailyRefills).toBe(5)
-      expect(DEFAULT_REFILL_POLICY.triggerThreshold).toBe(0.3) // 30%
+      expect(DEFAULT_REFILL_POLICY.triggerThreshold).toBe(0.8) // 80% (旧的硬编码默认值，已废弃)
     })
   })
 
@@ -50,13 +78,34 @@ describe('pool-refill-policy', () => {
     })
 
     it('超过冷却时间后应该允许补充', async () => {
-      // 使用短冷却期测试
-      const shortPolicy: PoolRefillPolicy = {
-        minInterval: 100, // 100ms
-        maxDailyRefills: 5,
-        triggerThreshold: 0.3
-      }
-      const testManager = new PoolRefillManager(shortPolicy)
+      // 设置短冷却期的策略
+      await chrome.storage.local.set({
+        'current_strategy': {
+          id: 'test-strategy-short-cooldown',
+          createdAt: Date.now(),
+          status: 'active',
+          strategy: {
+            recommendation: {
+              targetPoolSize: 10,
+              refillThreshold: 3,
+              dailyLimit: 5,
+              cooldownMinutes: 0.002  // 0.002分钟 = 120ms
+            },
+            candidatePool: {
+              expiryHours: 168,
+              entryThreshold: 0.7
+            },
+            meta: {
+              validHours: 24,
+              generatedAt: Date.now(),
+              version: 'v1.0',
+              nextReviewHours: 12
+            }
+          }
+        }
+      })
+      
+      const testManager = new PoolRefillManager()
       await testManager.resetState()
       
       // 记录补充
@@ -90,12 +139,34 @@ describe('pool-refill-policy', () => {
     })
 
     it('跨天后应该重置每日计数', async () => {
-      const limitedPolicy: PoolRefillPolicy = {
-        minInterval: 0,
-        maxDailyRefills: 1,
-        triggerThreshold: 0.3
-      }
-      const testManager = new PoolRefillManager(limitedPolicy)
+      // 设置只允许 1 次补充的策略
+      await chrome.storage.local.set({
+        'current_strategy': {
+          id: 'test-strategy-limited',
+          createdAt: Date.now(),
+          status: 'active',
+          strategy: {
+            recommendation: {
+              targetPoolSize: 10,
+              refillThreshold: 3,
+              dailyLimit: 1,  // 每日只允许 1 次
+              cooldownMinutes: 0  // 无冷却
+            },
+            candidatePool: {
+              expiryHours: 168,
+              entryThreshold: 0.7
+            },
+            meta: {
+              validHours: 24,
+              generatedAt: Date.now(),
+              version: 'v1.0',
+              nextReviewHours: 12
+            }
+          }
+        }
+      })
+      
+      const testManager = new PoolRefillManager()
       await testManager.resetState()
       
       // 达到今日上限
@@ -117,7 +188,7 @@ describe('pool-refill-policy', () => {
       })
       
       // 重新创建管理器以加载状态
-      const newManager = new PoolRefillManager(limitedPolicy)
+      const newManager = new PoolRefillManager()
       
       // 跨天后应该允许补充
       const should = await newManager.shouldRefill(2, 10)

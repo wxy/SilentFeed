@@ -86,6 +86,36 @@ export class PoolRefillManager {
   ): Promise<boolean> {
     const now = Date.now()
     
+    // 从 storage 读取 AI 策略，更新配置
+    try {
+      // 直接从 chrome.storage.local 读取策略，避免循环依赖
+      const result = await chrome.storage.local.get('current_strategy')
+      const strategy = result.current_strategy
+      
+      if (!strategy) {
+        refillLogger.warn('⚠️ 未找到 AI 策略，暂停补充工作')
+        return false
+      }
+      
+      // 从策略更新配置
+      const rec = strategy.strategy.recommendation
+      this.policy = {
+        minInterval: rec.cooldownMinutes * 60 * 1000,
+        maxDailyRefills: rec.dailyLimit,
+        triggerThreshold: rec.refillThreshold / rec.targetPoolSize
+      }
+      
+      refillLogger.debug('📝 已从 AI 策略读取补充配置:', {
+        cooldown: `${rec.cooldownMinutes}分钟`,
+        dailyLimit: rec.dailyLimit,
+        threshold: `${(this.policy.triggerThreshold * 100).toFixed(0)}%`,
+        poolSize: rec.targetPoolSize
+      })
+    } catch (error) {
+      refillLogger.error('读取 AI 策略失败，使用当前配置:', error)
+      // 如果读取失败，继续使用当前配置
+    }
+    
     // 检查日期是否变更（跨天重置计数）
     const today = this.getTodayString()
     if (today !== this.state.currentDate) {
@@ -167,6 +197,13 @@ export class PoolRefillManager {
   }
   
   /**
+   * 获取当前 policy 配置
+   */
+  getPolicy(): Readonly<PoolRefillPolicy> {
+    return { ...this.policy }
+  }
+  
+  /**
    * 更新补充策略
    */
   updatePolicy(policy: Partial<PoolRefillPolicy>): void {
@@ -225,6 +262,8 @@ let globalRefillManager: PoolRefillManager | null = null
 
 /**
  * 获取全局补充管理器实例
+ * 
+ * 注意：每次 shouldRefill() 调用时会从 storage 读取最新 AI 策略
  */
 export function getRefillManager(): PoolRefillManager {
   if (!globalRefillManager) {

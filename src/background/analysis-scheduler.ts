@@ -257,15 +257,36 @@ export class AnalysisScheduler {
           relevanceScore = 0.3 // 默认分数
         }
 
-        // 保存分析结果
-        await db.feedArticles.update(article.id, {
+        // 保存分析结果和翻译数据
+        const updateData: any = {
           analysis: {
             topicProbabilities: analysis.topicProbabilities || {},
-            confidence: 0.8,  // 默认置信度
-            provider: 'ai-manager'  // 使用 AI Manager
+            confidence: 0.8,
+            provider: 'ai-manager'
           },
           analysisScore: relevanceScore
-        })
+        }
+
+        // ✅ 如果 AI 返回了翻译数据，保存到 translation 字段
+        if (analysis.translatedTitle || analysis.summary) {
+          const uiLanguage = chrome.i18n.getUILanguage()
+          updateData.translation = {
+            translatedTitle: analysis.translatedTitle || article.title,
+            translatedSummary: analysis.summary,
+            sourceLanguage: article.language || 'en',  // 假设默认英文
+            targetLanguage: uiLanguage,
+            provider: 'ai-manager',
+            translatedAt: Date.now()
+          }
+          
+          schedLogger.debug('✅ 保存翻译数据:', {
+            originalTitle: article.title,
+            translatedTitle: analysis.translatedTitle,
+            hasSummary: !!analysis.summary
+          })
+        }
+
+        await db.feedArticles.update(article.id, updateData)
 
         // 根据评分更新池状态
         const duration = Date.now() - startTime

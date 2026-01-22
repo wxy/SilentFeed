@@ -154,19 +154,43 @@ export class ReadingListManager {
       return { url: finalUrl, title: finalTitle }
     }
 
-    // 逻辑2：如果启用自动翻译且推荐已翻译，生成翻译链接
+    // 逻辑2：如果启用自动翻译且推荐已翻译，生成翻译链接（translate.goog 格式）
     if (autoTranslateEnabled && recommendation.translation) {
       const originalWithRec = appendTrackingId
         ? ReadingListManager.appendRecommendationId(baseOriginalUrl, recommendation.id!)
         : baseOriginalUrl
-      const encodedUrl = encodeURIComponent(originalWithRec)
-      finalUrl = `https://translate.google.com/translate?sl=auto&tl=${interfaceLanguage}&u=${encodedUrl}`
-      finalTitle = recommendation.translation.translatedTitle
+      
+      try {
+        const urlObj = new URL(originalWithRec)
+        const translatedHost = urlObj.hostname.replace(/\./g, '-')
+        const translatedUrl = new URL(`https://${translatedHost}.translate.goog${urlObj.pathname}${urlObj.search}`)
+        
+        const targetLang = interfaceLanguage.split('-')[0]
+        translatedUrl.searchParams.set('_x_tr_sl', 'auto')
+        translatedUrl.searchParams.set('_x_tr_tl', targetLang)
+        translatedUrl.searchParams.set('_x_tr_hl', targetLang)
+        
+        if (urlObj.hash) {
+          translatedUrl.hash = urlObj.hash
+        }
+        
+        finalUrl = translatedUrl.toString()
+        finalTitle = recommendation.translation.translatedTitle
 
-      rlLogger.debug('使用翻译链接', {
-        language: `${recommendation.translation.sourceLanguage}→${interfaceLanguage}`
-      })
-      return { url: finalUrl, title: finalTitle }
+        rlLogger.debug('使用翻译链接 (translate.goog)', {
+          original: originalWithRec,
+          translated: finalUrl,
+          language: `${recommendation.translation.sourceLanguage}→${interfaceLanguage}`
+        })
+        return { url: finalUrl, title: finalTitle }
+      } catch (error) {
+        rlLogger.error('生成翻译链接失败，降级到原文:', error)
+        // 降级到原文
+        if (appendTrackingId) {
+          finalUrl = ReadingListManager.appendRecommendationId(baseOriginalUrl, recommendation.id!)
+        }
+        return { url: finalUrl, title: finalTitle }
+      }
     }
 
     // 逻辑3：其它情况使用原文

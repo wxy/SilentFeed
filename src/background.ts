@@ -27,6 +27,7 @@ import { getRecommendationConfig, saveRecommendationConfig } from '@/storage/rec
 import { ReadingListManager } from './core/reading-list/reading-list-manager'
 import { processPageVisit, type PageVisitData } from './background/page-visit-handler'
 import { getUIConfig } from '@/storage/ui-config'
+import { getCurrentStrategy } from './storage/strategy-storage'
 import i18n from '@/i18n'
 
 /**
@@ -1167,6 +1168,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                   periodInMinutes: a.periodInMinutes
                 }))
               },
+              // 添加兼容字段，供前端读取
+              recommendationScheduler: {
+                nextRunTime: refillScheduler.nextRunTime
+              },
               otherTasks: alarms.filter(a => 
                 !['fetch-feeds', 'analyze-articles', 'refill-recommendation-pool'].includes(a.name)
               ).map(a => ({
@@ -1409,67 +1414,97 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 const ourEntries = entries.filter(e => e.title?.startsWith(autoAddedPrefix))
 
                 let removed = 0
+                let kept = 0  // 保留在清单中的已读条目
                 let keptInPool = 0
                 let filtered = 0
                 const issues = []
                 
                 for (const entry of ourEntries) {
                   try {
-                    // 先检查对应文章的状态
+                    // 尝试多种方式查找文章
                     const normalizedUrl = ReadingListManager.normalizeUrlForTracking(entry.url)
-                    const mapping = await db.readingListEntries.get(normalizedUrl)
+                    let mapping = await db.readingListEntries.get(normalizedUrl)
+                    let article: any = null
                     
-                    if (mapping) {
-                      const article = await db.feedArticles.get(mapping.recommendationId)
+                    // 方式1：通过映射表查找
+                    if (mapping?.recommendationId) {
+                      article = await db.feedArticles.get(mapping.recommendationId)
+                    }
+                    
+                    // 方式2：如果映射失败，尝试通过 URL 直接查找
+                    if (!article) {
+                      article = await db.feedArticles
+                        .where('link').equals(normalizedUrl)
+                        .first()
                       
-                      if (article) {
-                        // 检查文章是否已读或已拒绝
-                        const isRead = article.isRead || entry.hasBeenRead
-                        const isDismissed = article.feedback === 'dismissed'
-                        
-                        if (isRead || isDismissed) {
-                          // 已读或已拒绝，从推荐池移除
-                          await db.feedArticles.update(article.id, {
-                            poolStatus: 'exited',
-                            poolExitedAt: Date.now(),
-                            poolExitReason: isRead ? 'read' : 'disliked',
-                            isRead: isRead || article.isRead,
-                            feedback: isDismissed ? article.feedback : undefined
-                          })
-                          
-                          filtered++
-                          bgLogger.info(`🔍 过滤${isRead ? '已读' : '已拒绝'}文章: ${article.title}`)
-                        }
-                        // 兜底验证：检查文章状态
-                        else if (article.poolStatus !== 'recommended') {
-                          issues.push({
-                            url: entry.url,
-                            title: article.title,
-                            currentStatus: article.poolStatus,
-                            expectedStatus: 'recommended'
-                          })
-                          bgLogger.warn(`⚠️ 发现意外状态变更: ${article.title}`, {
-                            url: entry.url,
-                            当前状态: article.poolStatus,
-                            预期状态: 'recommended'
-                          })
-                        } else {
-                          keptInPool++
-                        }
+                      if (!article && mapping?.originalUrl) {
+                        // 方式3：尝试通过原始 URL 查找
+                        const normalizedOriginalUrl = ReadingListManager.normalizeUrlForTracking(mapping.originalUrl)
+                        article = await db.feedArticles
+                          .where('link').equals(normalizedOriginalUrl)
+                          .first()
                       }
                     }
                     
-                    // 从阅读清单删除（skipListener=true 避免触发"不想读"逻辑）
+                    if (article) {
+                      // 检查文章是否已读或已拒绝
+                      const isRead = article.isRead || entry.hasBeenRead
+                      const isDismissed = article.feedback === 'dismissed'
+                      
+                      if (isRead || isDismissed) {
+                        // ✅ 已读或已拒绝：从推荐池移除，但保留在阅读清单中
+                        await db.feedArticles.update(article.id, {
+                          poolStatus: 'exited',
+                          poolExitedAt: Date.now(),
+                          poolExitReason: isRead ? 'read' : 'disliked',
+                          isRead: true,  // 确保标记为已读
+                          feedback: isDismissed ? article.feedback : undefined
+                        })
+                        
+                        filtered++
+                        kept++
+                        bgLogger.info(`🔍 过滤${isRead ? '已读' : '已拒绝'}文章（保留在清单）: ${article.title}`)
+                        
+                        // ✅ 已读条目保留在清单中，不删除，继续下一个
+                        continue
+                      }
+                      // 兜底验证：检查文章状态
+                      else if (article.poolStatus !== 'recommended') {
+                        issues.push({
+                          url: entry.url,
+                          title: article.title,
+                          currentStatus: article.poolStatus,
+                          expectedStatus: 'recommended'
+                        })
+                        bgLogger.warn(`⚠️ 发现意外状态变更: ${article.title}`, {
+                          url: entry.url,
+                          当前状态: article.poolStatus,
+                          预期状态: 'recommended'
+                        })
+                      } else {
+                        keptInPool++
+                      }
+                    } else {
+                      bgLogger.warn('⚠️ 未找到对应文章', {
+                        url: entry.url,
+                        title: entry.title,
+                        hasMapping: !!mapping
+                      })
+                    }
+                    
+                    // ✅ 只删除未读条目
                     await ReadingListManager.removeFromReadingList(entry.url, true)
                     
-                    // 清理映射记录（需要清理原文URL和翻译URL的映射）
-                    await db.readingListEntries.delete(normalizedUrl)
-                    
-                    // 如果有原始URL，也清理原始URL的映射
-                    if (mapping?.originalUrl) {
-                      const normalizedOriginalUrl = ReadingListManager.normalizeUrlForTracking(mapping.originalUrl)
-                      if (normalizedOriginalUrl !== normalizedUrl) {
-                        await db.readingListEntries.delete(normalizedOriginalUrl)
+                    // 清理映射记录（未读条目才需要清理）
+                    if (mapping) {
+                      await db.readingListEntries.delete(normalizedUrl)
+                      
+                      // 如果有原始URL，也清理原始URL的映射
+                      if (mapping.originalUrl) {
+                        const normalizedOriginalUrl = ReadingListManager.normalizeUrlForTracking(mapping.originalUrl)
+                        if (normalizedOriginalUrl !== normalizedUrl) {
+                          await db.readingListEntries.delete(normalizedOriginalUrl)
+                        }
                       }
                     }
                     
@@ -1490,7 +1525,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                   bgLogger.info(`✅ 推荐池状态保持不变: ${poolArticlesAfter.length} 篇`)
                 }
 
-                const resultMessage = `✅ 已从阅读清单删除 ${removed} 条推荐，推荐池保持 ${keptInPool} 篇${filtered > 0 ? `，过滤 ${filtered} 篇已读/已拒绝` : ''}`
+                const resultMessage = `✅ 从清单删除 ${removed} 条未读推荐，保留 ${kept} 条已读，推荐池保持 ${keptInPool} 篇${filtered > 0 ? `，过滤 ${filtered} 篇已读/已拒绝` : ''}`
                 bgLogger.info(resultMessage)
                 
                 if (issues.length > 0) {
@@ -1499,9 +1534,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 
                 sendResponse({ 
                   success: true, 
-                  removed, 
+                  removed,
+                  kept,
                   poolCount: poolArticlesAfter.length,
                   keptInPool,
+                  filtered,
                   issues: issues.length > 0 ? issues : undefined
                 })
               } else {
@@ -1519,8 +1556,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           (async () => {
             try {
               bgLogger.info('🎯 手动触发推荐策略生成')
-              await generateDailyPoolStrategy()
-              sendResponse({ success: true })
+              // ⚠️ 已废弃：使用 StrategyReviewScheduler 代替
+              bgLogger.warn('旧的池策略生成已禁用，请使用 StrategyReviewScheduler')
+              sendResponse({ success: false, error: '旧策略系统已废弃' })
             } catch (error) {
               bgLogger.error('触发推荐策略失败:', error)
               sendResponse({ success: false, error: String(error) })
@@ -1537,8 +1575,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               const currentState = result.pool_refill_state || { dailyRefillCount: 0, currentDate: new Date().toISOString().split('T')[0] }
               
               // 获取当前策略的冷却时间（默认 60 分钟）
-              const strategyResult = await chrome.storage.local.get('pool_strategy_decision')
-              const cooldownMinutes = strategyResult.pool_strategy_decision?.decision?.minInterval || 60
+              // 从新策略系统读取冷却期
+              const strategy = await getCurrentStrategy()
+              const cooldownMinutes = strategy?.strategy.recommendation.cooldownMinutes || 60
               const cooldownMs = cooldownMinutes * 60 * 1000
               
               // 设置 lastRefillTime 为“当前时间 - 冷却期”，这样下次检查时就能通过时间检查
@@ -1586,7 +1625,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             try {
               bgLogger.info('⚡ 手动触发推荐池补充')
               // 直接调用补充方法
-              await refillScheduler.refill()
+              await refillScheduler.triggerManual()
               bgLogger.info('✅ 补充完成')
               sendResponse({ success: true })
             } catch (error) {
@@ -1837,9 +1876,9 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       bgLogger.info('开始每周数据清理...')
       await weeklyDataCleanup()
     } else if (alarm.name === 'daily-pool-strategy') {
-      // 🆕 每日推荐池策略生成
-      bgLogger.info('开始每日推荐池策略生成...')
-      await generateDailyPoolStrategy()
+      // ⚠️ 已废弃：旧的池策略决策系统，已被 StrategyReviewScheduler 取代
+      bgLogger.debug('daily-pool-strategy alarm 已废弃，跳过执行')
+      // await generateDailyPoolStrategy() // 已禁用
     }
   } catch (error) {
     bgLogger.error('❌ 定时器处理失败:', error)
@@ -1857,8 +1896,9 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
  */
 async function cleanupRecommendationPool(): Promise<void> {
   try {
-    const config = await getRecommendationConfig()
-    const poolCapacity = (config.maxRecommendations || 3) * 2  // 池容量 = 弹窗容量 × 2
+    // 从 AI 策略读取池容量
+    const strategy = await getCurrentStrategy()
+    const poolCapacity = strategy?.strategy.recommendation.targetPoolSize || 8
     
     // 使用 feedArticles 表（poolStatus='popup' 表示在弹窗中）
     const activeRecs = await db.feedArticles
