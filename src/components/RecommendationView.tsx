@@ -866,13 +866,13 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
               </span>
             )}
             
-            {currentRecommendation.wordCount && (
+            {currentRecommendation.wordCount && currentRecommendation.wordCount > 0 && (
               <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
                 {formatWordCount(currentRecommendation.wordCount)}字
               </span>
             )}
             
-            {currentRecommendation.readingTime && (
+            {currentRecommendation.readingTime && currentRecommendation.readingTime > 0 && (
               <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
                 {currentRecommendation.readingTime}分钟
               </span>
@@ -974,13 +974,13 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
             </span>
           )}
           
-          {currentRecommendation.wordCount && (
+          {currentRecommendation.wordCount && currentRecommendation.wordCount > 0 && (
             <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
               {formatWordCount(currentRecommendation.wordCount)}字
             </span>
           )}
           
-          {currentRecommendation.readingTime && (
+          {currentRecommendation.readingTime && currentRecommendation.readingTime > 0 && (
             <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
               {currentRecommendation.readingTime}分钟
             </span>
