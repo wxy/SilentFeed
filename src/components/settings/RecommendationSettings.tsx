@@ -147,8 +147,8 @@ export function RecommendationSettings({
       ? refillState.lastRefillTime + (currentStrategy.strategy.recommendation.cooldownMinutes * 60 * 1000)
       : null
   const remainingRefills =
-    refillState && typeof poolStrategy?.decision?.maxDailyRefills === 'number'
-      ? Math.max(poolStrategy.decision.maxDailyRefills - (refillState.dailyRefillCount || 0), 0)
+    refillState && dailyRefillLimit
+      ? Math.max(dailyRefillLimit - (refillState.dailyRefillCount || 0), 0)
       : null
 
   const learningProgress = totalPages > 0 ? Math.min(Math.round((pageCount / totalPages) * 100), 100) : 0
@@ -412,23 +412,14 @@ export function RecommendationSettings({
                           <button
                             onClick={async () => {
                               try {
-                                // 严格按顺序执行：1. 重置时间 2. 重置次数 3. 触发补充
-                                const step1 = await chrome.runtime.sendMessage({ type: 'RESET_REFILL_TIME' })
-                                if (!step1?.success) {
-                                  throw new Error('重置冷却时间失败')
+                                // 发送强制补充消息（会自动重置状态并执行补充）
+                                const result = await chrome.runtime.sendMessage({ type: 'FORCE_REFILL' })
+                                if (!result?.success) {
+                                  throw new Error('强制补充失败: ' + (result?.error || '未知错误'))
                                 }
                                 
-                                const step2 = await chrome.runtime.sendMessage({ type: 'RESET_DAILY_REFILL_COUNT' })
-                                if (!step2?.success) {
-                                  throw new Error('重置每日次数失败')
-                                }
-                                
-                                const step3 = await chrome.runtime.sendMessage({ type: 'TRIGGER_REFILL' })
-                                if (!step3?.success) {
-                                  throw new Error('触发补充失败: ' + (step3?.error || '未知错误'))
-                                }
-                                
-                                alert('✅ 已触发立即补充')
+                                alert('✅ 已触发立即补充，页面将刷新以显示最新数据')
+                                // 等待 1 秒让 background 完成数据更新
                                 setTimeout(() => window.location.reload(), 1000)
                               } catch (error) {
                                 alert('❌ 补充失败: ' + String(error))

@@ -480,13 +480,18 @@ export class RefillScheduler {
       const uiConfig = await getUIConfig()
       const autoTranslateEnabled = uiConfig.autoTranslate || false
       
+      // 获取阅读清单配置（包含标题前缀）
+      const recConfig = await getRecommendationConfig()
+      const titlePrefix = recConfig.readingList?.titlePrefix || '🤫 '
+      
       // 获取目标语言
       const chromeLanguage = chrome.i18n.getUILanguage()
       const currentLanguage = chromeLanguage.toLowerCase() // 'zh-CN' 或 'en'
       
       schedLogger.info(`📝 准备写入阅读清单: ${articles.length} 篇文章`, {
         autoTranslateEnabled,
-        currentLanguage
+        currentLanguage,
+        titlePrefix
       })
       
       for (const article of articles) {
@@ -558,8 +563,13 @@ export class RefillScheduler {
           })
         }
         
+        // 添加标题前缀（避免重复添加）
+        const finalTitle = (titlePrefix && !displayTitle.startsWith(titlePrefix))
+          ? `${titlePrefix}${displayTitle}`
+          : displayTitle
+        
         const ok = await ReadingListManager.addToReadingList(
-          displayTitle,
+          finalTitle,
           displayUrl,
           article.isRead || false
         )

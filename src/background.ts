@@ -28,6 +28,7 @@ import { ReadingListManager } from './core/reading-list/reading-list-manager'
 import { processPageVisit, type PageVisitData } from './background/page-visit-handler'
 import { getUIConfig } from '@/storage/ui-config'
 import { getCurrentStrategy } from './storage/strategy-storage'
+import { getRefillManager } from './core/recommender/pool-refill-policy'
 import i18n from '@/i18n'
 
 /**
@@ -85,7 +86,6 @@ import { syncSystemStats } from '@/storage/system-stats'
 // AIPoolStrategyDecider: 每日 AI 决策推荐池策略（Phase 12）
 import { getStrategyDecider, collectDailyUsageContext } from './core/recommender/pool-strategy-decider'
 import { LOCAL_STORAGE_KEYS } from './storage/local-storage-keys'
-import { getRefillManager } from './core/recommender/pool-refill-policy'
 import { cleanupExpiredArticles } from '@/storage/transactions'
 
 const bgLogger = logger.withTag('Background')
@@ -1602,14 +1602,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           (async () => {
             try {
               bgLogger.info('🔄 重置每日补充次数')
-              const result = await chrome.storage.local.get('pool_refill_state')
-              const currentState = result.pool_refill_state || { lastRefillTime: 0, currentDate: new Date().toISOString().split('T')[0] }
-              await chrome.storage.local.set({
-                'pool_refill_state': {
-                  ...currentState,
-                  dailyRefillCount: 0  // 重置为 0
-                }
-              })
+              // 直接调用 PoolRefillManager 的 resetState 方法，确保内存和 storage 同步
+              const { getRefillManager } = await import('./core/recommender/pool-refill-policy')
+              await getRefillManager().resetState()
               bgLogger.info('✅ 已重置补充次数')
               sendResponse({ success: true })
             } catch (error) {
@@ -1619,7 +1614,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           })()
           return true
         
-        // 立即触发推荐池补充
+        // 立即触发推荐池补充（强制模式，会重置冷却时间和每日次数）
+        case 'FORCE_REFILL':
+          (async () => {
+            try {
+              bgLogger.info('⚡ 强制补充推荐池（跳过所有限制）')
+              
+              // 1. 重置 PoolRefillManager 的状态（同时重置内存和 storage）
+              const refillManager = getRefillManager()
+              await refillManager.resetState()
+              bgLogger.info('✅ 已重置补充状态（次数和时间）')
+              
+              // 2. 执行补充
+              await refillScheduler.triggerManual()
+              bgLogger.info('✅ 强制补充完成')
+              
+              sendResponse({ success: true })
+            } catch (error) {
+              bgLogger.error('强制补充失败:', error)
+              sendResponse({ success: false, error: String(error) })
+            }
+          })()
+          return true
+        
+        // 立即触发推荐池补充（普通模式，不重置限制）
         case 'TRIGGER_REFILL':
           (async () => {
             try {

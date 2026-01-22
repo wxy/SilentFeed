@@ -199,7 +199,8 @@ export async function getUnreadRecommendations(limit: number = 50): Promise<Reco
       feedbackAt: article.feedbackAt,
       effectiveness: article.effectiveness,
       status: 'active',
-      translation: article.translation
+      translation: article.translation,
+      aiSummary: article.aiSummary  // ✅ 传递 AI 生成的摘要
     }))
     
     return recommendations

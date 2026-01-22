@@ -89,6 +89,7 @@ export interface BaseInterface {
 - **TypeScript 严格**: 所有导出函数/对象需显式类型；避免 `any`。
 - **React 约定**: 仅函数组件 + Hooks；Tailwind 做样式；Zustand 在 `src/stores/**` 管理状态。
 - **文件命名**: 组件 PascalCase；函数/变量 camelCase；常量 UPPER_SNAKE_CASE；文件 kebab-case。
+- **⚠️ 禁止动态导入**: Service Worker (background.ts) 中禁止使用 `import()` 或 `importScripts()` 动态导入，所有导入必须在文件顶部静态声明。动态导入仅允许在测试代码中使用。
 
 ## 常见坑位
 - **Background 生命周期**: 异步消息需 `sendResponse` + 返回 `true` 或使用自执行 async 包裹，避免响应丢失。

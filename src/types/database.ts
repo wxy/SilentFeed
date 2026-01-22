@@ -156,6 +156,12 @@ export interface Recommendation {
   }
 
   /**
+   * AI 生成的摘要（优先显示）
+   * Phase 14: AI 分析时生成的中文摘要，优先级高于原始 description
+   */
+  aiSummary?: string
+
+  /**
    * 阅读列表相关字段
    * 追踪"稍后读"行为及后续真实阅读
    */

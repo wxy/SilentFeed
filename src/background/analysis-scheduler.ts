@@ -227,6 +227,7 @@ export class AnalysisScheduler {
             preferences: userProfile.aiSummary.preferences,
             avoidTopics: userProfile.aiSummary.avoidTopics
           } : undefined,
+          originalTitle: article.title,  // 传递原标题用于 AI 翻译
           purpose: 'recommend-content'
         }, 'articleAnalysis')
 
@@ -268,11 +269,11 @@ export class AnalysisScheduler {
         }
 
         // ✅ 如果 AI 返回了翻译数据，保存到 translation 字段
-        if (analysis.translatedTitle || analysis.summary) {
+        if (analysis.translatedTitle) {
           const uiLanguage = chrome.i18n.getUILanguage()
           updateData.translation = {
-            translatedTitle: analysis.translatedTitle || article.title,
-            translatedSummary: analysis.summary,
+            translatedTitle: analysis.translatedTitle,
+            translatedSummary: analysis.summary,  // AI 生成的摘要（中文）
             sourceLanguage: article.language || 'en',  // 假设默认英文
             targetLanguage: uiLanguage,
             provider: 'ai-manager',
@@ -282,7 +283,17 @@ export class AnalysisScheduler {
           schedLogger.debug('✅ 保存翻译数据:', {
             originalTitle: article.title,
             translatedTitle: analysis.translatedTitle,
-            hasSummary: !!analysis.summary
+            hasSummary: !!analysis.summary,
+            aiSummary: analysis.summary ? `${analysis.summary.substring(0, 100)}...` : undefined
+          })
+        }
+        
+        // 如果只有 AI 摘要（没有翻译标题），也保存
+        if (!analysis.translatedTitle && analysis.summary) {
+          updateData.aiSummary = analysis.summary
+          schedLogger.debug('✅ 保存 AI 摘要（无翻译）:', {
+            originalTitle: article.title,
+            hasSummary: true
           })
         }
 

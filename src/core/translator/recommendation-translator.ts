@@ -300,8 +300,8 @@ export function getDisplayText(
   if (hasMatchingTranslation) {
     return {
       title: recommendation.translation!.translatedTitle,
-      // 优先使用 AI 生成的中文摘要，否则使用原文摘要
-      summary: recommendation.aiSummary || recommendation.summary || recommendation.excerpt || recommendation.description || '',
+      // 优先使用翻译后的摘要（AI 翻译），然后是 AI 摘要，最后是原文摘要
+      summary: recommendation.translation!.translatedSummary || recommendation.aiSummary || recommendation.summary || recommendation.excerpt || recommendation.description || '',
       currentLanguage: recommendation.translation!.targetLanguage,
       sourceLanguage,
       targetLanguage: recommendation.translation!.targetLanguage,
