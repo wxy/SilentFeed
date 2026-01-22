@@ -261,9 +261,12 @@ export function getDisplayText(
     }
   }
   
-  // 检查翻译是否匹配当前目标语言
-  const hasMatchingTranslation = hasTranslation && 
-    recommendation.translation!.targetLanguage === targetLanguage
+  // 检查翻译是否匹配当前目标语言（放宽匹配：主语言代码相同即可）
+  const hasMatchingTranslation = hasTranslation && (
+    recommendation.translation!.targetLanguage === targetLanguage ||
+    // 放宽匹配：zh-CN 和 zh-TW 都算中文，en-US 和 en-GB 都算英文
+    recommendation.translation!.targetLanguage.split('-')[0] === targetLanguage.split('-')[0]
+  )
   
   // 如果启用了自动翻译但没有匹配的翻译 → 需要即时翻译
   if (autoTranslateEnabled && !hasMatchingTranslation && sourceLanguage !== targetLanguage) {
