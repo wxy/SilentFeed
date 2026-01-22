@@ -144,6 +144,14 @@ export interface FeedArticle {
   link: string
   description?: string
   content?: string
+  
+  /**
+   * AI 生成的文章摘要（中文）
+   * 由 AI 分析时生成，用于替代原始 description
+   * 这是用当前界面语言生成的精炼摘要（通常是中文）
+   */
+  aiSummary?: string
+  
   author?: string
   published: number
   fetched: number

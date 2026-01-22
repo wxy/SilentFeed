@@ -237,7 +237,7 @@ export function getDisplayText(
   if (sourceLanguage === targetLanguage) {
     return {
       title: recommendation.title,
-      summary: recommendation.summary || recommendation.excerpt || '',
+      summary: recommendation.aiSummary || recommendation.summary || recommendation.excerpt || recommendation.description || '',
       currentLanguage: sourceLanguage,
       sourceLanguage,
       targetLanguage: undefined, // 不需要目标语言
@@ -251,7 +251,7 @@ export function getDisplayText(
   if (!autoTranslateEnabled) {
     return {
       title: recommendation.title,
-      summary: recommendation.summary || recommendation.excerpt || '',
+      summary: recommendation.aiSummary || recommendation.summary || recommendation.excerpt || recommendation.description || '',
       currentLanguage: sourceLanguage,
       sourceLanguage,
       targetLanguage: undefined,
@@ -272,7 +272,7 @@ export function getDisplayText(
   if (autoTranslateEnabled && !hasMatchingTranslation && sourceLanguage !== targetLanguage) {
     return {
       title: recommendation.title,
-      summary: recommendation.summary || recommendation.excerpt || '',
+      summary: recommendation.aiSummary || recommendation.summary || recommendation.excerpt || recommendation.description || '',
       currentLanguage: sourceLanguage,
       sourceLanguage,
       targetLanguage,
@@ -286,7 +286,7 @@ export function getDisplayText(
   if (showOriginal) {
     return {
       title: recommendation.title,
-      summary: recommendation.summary || recommendation.excerpt || '',
+      summary: recommendation.aiSummary || recommendation.summary || recommendation.excerpt || recommendation.description || '',
       currentLanguage: sourceLanguage,
       sourceLanguage,
       targetLanguage: recommendation.translation?.targetLanguage,
@@ -300,7 +300,8 @@ export function getDisplayText(
   if (hasMatchingTranslation) {
     return {
       title: recommendation.translation!.translatedTitle,
-      summary: recommendation.translation!.translatedSummary,
+      // 优先使用 AI 生成的中文摘要，否则使用原文摘要
+      summary: recommendation.aiSummary || recommendation.summary || recommendation.excerpt || recommendation.description || '',
       currentLanguage: recommendation.translation!.targetLanguage,
       sourceLanguage,
       targetLanguage: recommendation.translation!.targetLanguage,
@@ -313,7 +314,8 @@ export function getDisplayText(
   // 默认显示原文
   return {
     title: recommendation.title,
-    summary: recommendation.summary || recommendation.excerpt || '',
+    // 优先使用 AI 生成的中文摘要，否则使用原文摘要
+    summary: recommendation.aiSummary || recommendation.summary || recommendation.excerpt || recommendation.description || '',
     currentLanguage: sourceLanguage,
     sourceLanguage,
     targetLanguage: undefined,

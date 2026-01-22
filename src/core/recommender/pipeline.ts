@@ -914,7 +914,13 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
         }
       }
       
-      // 🔧 关键修复：保存翻译数据到 translation 字段
+      // � 保存 AI 生成的摘要（中文）
+      if (analysis.summary) {
+        updates.aiSummary = analysis.summary
+        pipelineLogger.debug(`💾 保存 AI 摘要: ${articleId}`)
+      }
+      
+      // �🔧 关键修复：保存翻译数据到 translation 字段
       if (analysis.translatedTitle && analysis.targetLanguage) {
         // 需要先获取文章的原始数据以确定源语言
         const article = await db.feedArticles.get(articleId)
@@ -931,7 +937,7 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
             sourceLanguage: detectSourceLanguage(article.title),
             targetLanguage: analysis.targetLanguage,
             translatedTitle: analysis.translatedTitle,
-            translatedSummary: analysis.summary, // AI 生成的摘要也是译文
+            // 注意：summary 是 AI 生成的摘要，不是翻译后的摘要，所以不保存到 translatedSummary
             translatedAt: Date.now()
           }
           
