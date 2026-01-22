@@ -189,7 +189,6 @@ describe('ReadingListManager', () => {
           sourceLanguage: 'en',
           targetLanguage: 'zh-CN',
           translatedTitle: '测试文章',
-          translatedSummary: '测试摘要',
           translatedAt: Date.now(),
         },
       }
@@ -200,15 +199,14 @@ describe('ReadingListManager', () => {
       const result = await ReadingListManager.saveRecommendation(recWithTranslation, true, 'zh-CN')
 
       expect(result).toBe(true)
-      // 期望 URL 包含 sf_rec 参数用于推荐追踪
-      const urlObj = new URL(recWithTranslation.url)
-      urlObj.searchParams.set('sf_rec', mockRecommendation.id)
-      const urlWithTracking = urlObj.toString()
-      expect(mockChrome.readingList.addEntry).toHaveBeenCalledWith({
-        title: '🤫 测试文章',
-        url: `https://translate.google.com/translate?sl=auto&tl=zh-CN&u=${encodeURIComponent(urlWithTracking)}`,
-        hasBeenRead: false,
-      })
+      // 检查是否使用了新的 translate.goog 格式
+      const call = (mockChrome.readingList.addEntry as any).mock.calls[0][0]
+      expect(call.title).toBe('🤫 测试文章')
+      expect(call.url).toContain('.translate.goog')
+      expect(call.url).toContain('_x_tr_sl=auto')
+      expect(call.url).toContain('_x_tr_tl=zh')
+      expect(call.url).toContain('_x_tr_hl=zh')
+      expect(call.url).toContain('sf_rec=')  // 包含推荐追踪参数
     })
 
     it('应该在订阅源禁用翻译时使用原文链接（即使有translation字段）', async () => {

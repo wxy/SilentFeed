@@ -299,11 +299,11 @@ describe('推荐条目翻译', () => {
 
       const translatedRec: Recommendation = {
         ...mockRecommendation,
+        aiSummary: '这是一篇测试文章', // AI 生成的中文摘要
         translation: {
           sourceLanguage: 'en',
           targetLanguage: 'zh-CN',
           translatedTitle: '测试文章',
-          translatedSummary: '这是一篇测试文章',
           translatedAt: Date.now()
         }
       }
@@ -311,7 +311,7 @@ describe('推荐条目翻译', () => {
       const result = getDisplayText(translatedRec, false, true)
       
       expect(result.title).toBe('测试文章')
-      expect(result.summary).toBe('这是一篇测试文章')
+      expect(result.summary).toBe('这是一篇测试文章')  // 应使用 aiSummary
       expect(result.currentLanguage).toBe('zh-CN')
       expect(result.hasTranslation).toBe(true)
       expect(result.isShowingOriginal).toBe(false)

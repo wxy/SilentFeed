@@ -51,7 +51,7 @@ describe('Database Index Module - 数据库索引模块', () => {
       expect(db.pendingVisits).toBeDefined()
       expect(db.confirmedVisits).toBeDefined()
       expect(db.settings).toBeDefined()
-      expect(db.recommendations).toBeDefined()
+      // recommendations 表已在版本 21 中删除（推荐数据统一存储在 feedArticles）
       expect(db.userProfile).toBeDefined()
       expect(db.interestSnapshots).toBeDefined()
       expect(db.discoveredFeeds).toBeDefined()
