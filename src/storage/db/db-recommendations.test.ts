@@ -1,5 +1,9 @@
 /**
  * 推荐功能测试 (Phase 2.7)
+ * 
+ * ⚠️ 注意：自 v21-v22 数据库架构变更后，推荐数据存储在 feedArticles 表中
+ * - 使用 poolStatus='recommended' 标识推荐
+ * - 使用 popupAddedAt 记录推荐时间
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
@@ -12,7 +16,7 @@ import {
   dismissRecommendations,
   getUnreadRecommendations
 } from './index'
-import type { Recommendation } from "@/types/database"
+import type { FeedArticle } from "@/types/rss"
 
 describe('Phase 2.7 推荐功能', () => {
   beforeEach(async () => {
@@ -32,16 +36,18 @@ describe('Phase 2.7 推荐功能', () => {
     it('应该返回正确的推荐统计', async () => {
       const now = Date.now()
       
-      const testRecommendations: Recommendation[] = [
+      const testArticles: FeedArticle[] = [
         {
           id: '1',
-          url: 'https://example.com/1',
+          feedId: 'feed-techcrunch',
+          link: 'https://example.com/1',
           title: '推荐 1',
-          summary: '摘要 1',
-          source: 'TechCrunch',
-          sourceUrl: 'https://techcrunch.com',
-          recommendedAt: now - 1000,
-          score: 0.9,
+          description: '摘要 1',
+          published: now - 1000,
+          fetched: now,
+          poolStatus: 'recommended',
+          popupAddedAt: now - 1000,
+          analysisScore: 0.9,
           isRead: true,
           clickedAt: now,
           readDuration: 150,
@@ -50,13 +56,15 @@ describe('Phase 2.7 推荐功能', () => {
         },
         {
           id: '2',
-          url: 'https://example.com/2',
+          feedId: 'feed-hn',
+          link: 'https://example.com/2',
           title: '推荐 2',
-          summary: '摘要 2',
-          source: 'Hacker News',
-          sourceUrl: 'https://news.ycombinator.com',
-          recommendedAt: now - 2000,
-          score: 0.8,
+          description: '摘要 2',
+          published: now - 2000,
+          fetched: now,
+          poolStatus: 'recommended',
+          popupAddedAt: now - 2000,
+          analysisScore: 0.8,
           isRead: true,
           clickedAt: now - 1000,
           readDuration: 60,
@@ -65,21 +73,23 @@ describe('Phase 2.7 推荐功能', () => {
         },
         {
           id: '3',
-          url: 'https://example.com/3',
+          feedId: 'feed-techcrunch',
+          link: 'https://example.com/3',
           title: '推荐 3',
-          summary: '摘要 3',
-          source: 'TechCrunch',
-          sourceUrl: 'https://techcrunch.com',
-          recommendedAt: now - 3000,
-          score: 0.7,
+          description: '摘要 3',
+          published: now - 3000,
+          fetched: now,
+          poolStatus: 'exited',
+          popupAddedAt: now - 3000,
+          poolExitedAt: now - 2000,
+          poolExitReason: 'dismissed',
+          analysisScore: 0.7,
           isRead: false,
-          feedback: 'dismissed',
-          feedbackAt: now - 2000,
           effectiveness: 'ineffective'
         }
       ]
       
-      await db.recommendations.bulkAdd(testRecommendations)
+      await db.feedArticles.bulkAdd(testArticles)
       
       const stats = await getRecommendationStats(7)
       
@@ -91,7 +101,7 @@ describe('Phase 2.7 推荐功能', () => {
       expect(stats.avgReadDuration).toBe((150 + 60) / 2)
       
       expect(stats.topSources).toHaveLength(2)
-      expect(stats.topSources[0].source).toBe('TechCrunch')
+      expect(stats.topSources[0].source).toBe('feed-techcrunch')
       expect(stats.topSources[0].count).toBe(2)
     })
 
@@ -99,27 +109,31 @@ describe('Phase 2.7 推荐功能', () => {
       const now = Date.now()
       const eightDaysAgo = now - 8 * 24 * 60 * 60 * 1000
       
-      await db.recommendations.bulkAdd([
+      await db.feedArticles.bulkAdd([
         {
           id: 'old',
-          url: 'https://example.com/old',
+          feedId: 'feed-old',
+          link: 'https://example.com/old',
           title: '旧推荐',
-          summary: '旧摘要',
-          source: 'Old Source',
-          sourceUrl: 'https://old.com',
-          recommendedAt: eightDaysAgo,
-          score: 0.5,
+          description: '旧摘要',
+          published: eightDaysAgo,
+          fetched: eightDaysAgo,
+          poolStatus: 'recommended',
+          popupAddedAt: eightDaysAgo,
+          analysisScore: 0.5,
           isRead: false
         },
         {
           id: 'new',
-          url: 'https://example.com/new',
+          feedId: 'feed-new',
+          link: 'https://example.com/new',
           title: '新推荐',
-          summary: '新摘要',
-          source: 'New Source',
-          sourceUrl: 'https://new.com',
-          recommendedAt: now,
-          score: 0.9,
+          description: '新摘要',
+          published: now,
+          fetched: now,
+          poolStatus: 'recommended',
+          popupAddedAt: now,
+          analysisScore: 0.9,
           isRead: false
         }
       ])
@@ -141,13 +155,16 @@ describe('Phase 2.7 推荐功能', () => {
 
   describe('getStorageStats', () => {
     it('应该返回正确的存储统计', async () => {
-      await db.recommendations.add({
+      await db.feedArticles.add({
         id: '1',
-        url: 'https://example.com/1',
+        feedId: 'feed-1',
+        link: 'https://example.com/1',
         title: '推荐 1',
-        summary: '摘要',
-        source: 'Source',
-        sourceUrl: 'https://source.com',
+        description: '摘要',
+        published: Date.now(),
+        fetched: Date.now(),
+        poolStatus: 'recommended',
+        popupAddedAt: Date.now(),
         recommendedAt: Date.now(),
         score: 0.9,
         isRead: false
