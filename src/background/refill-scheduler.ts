@@ -252,10 +252,20 @@ export class RefillScheduler {
               const index = recommendations.findIndex(r => r.id === translatedArticle.id)
               if (index !== -1) {
                 recommendations[index] = translatedArticle
+                
+                // 🔧 关键修复：更新数据库中的 translation 字段
+                if (translatedArticle.translation) {
+                  await db.feedArticles.update(translatedArticle.id, {
+                    translation: translatedArticle.translation
+                  })
+                  schedLogger.debug(`✅ 已更新数据库翻译: ${translatedArticle.id}`, {
+                    title: translatedArticle.translation.translatedTitle
+                  })
+                }
               }
             }
             
-            schedLogger.info(`✅ 即时翻译完成: ${translated.length} 篇`)
+            schedLogger.info(`✅ 即时翻译完成: ${translated.length} 篇，已保存到数据库`)
           } catch (error) {
             schedLogger.error('❌ 即时翻译失败:', error)
             // 翻译失败不影响补充流程
