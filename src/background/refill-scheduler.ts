@@ -222,6 +222,19 @@ export class RefillScheduler {
       // 5. 创建推荐记录
       const recommendations = await this.createRecommendations(candidates)
       
+      // 🔍 诊断：输出文章的翻译信息
+      schedLogger.info(`🔍 推荐文章翻译状态:`)
+      for (const rec of recommendations) {
+        schedLogger.info(`  - ${rec.title}`)
+        schedLogger.info(`    URL: ${rec.link}`)
+        schedLogger.info(`    有翻译: ${!!rec.translation}`)
+        if (rec.translation) {
+          schedLogger.info(`    翻译标题: ${rec.translation.translatedTitle}`)
+          schedLogger.info(`    源语言: ${rec.translation.sourceLanguage}`)
+          schedLogger.info(`    目标语言: ${rec.translation.targetLanguage}`)
+        }
+      }
+      
       // 6. 记录补充操作
       await refillManager.recordRefill()
 

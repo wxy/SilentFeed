@@ -902,19 +902,50 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
   private async saveArticleAnalysis(
     articleId: string,
     feedId: string,
-    analysis: { topicProbabilities: any; metadata?: any },
+    analysis: { topicProbabilities: any; metadata?: any; summary?: string; translatedTitle?: string; targetLanguage?: string },
     score?: number,
     scoreThreshold: number = 0.5
   ): Promise<void> {
     try {
-      // Phase 7: 直接更新 feedArticles 表（基本分析结果）
-      await db.feedArticles.update(articleId, {
+      // Phase 7: 构建更新数据
+      const updates: any = {
         analysis: {
           topicProbabilities: analysis.topicProbabilities,
           confidence: 0.8, // 默认置信度
           provider: analysis.metadata?.provider || 'unknown'
         }
-      })
+      }
+      
+      // 🔧 关键修复：保存翻译数据到 translation 字段
+      if (analysis.translatedTitle && analysis.targetLanguage) {
+        // 需要先获取文章的原始数据以确定源语言
+        const article = await db.feedArticles.get(articleId)
+        if (article) {
+          // 简单的语言检测
+          const detectSourceLanguage = (text: string): string => {
+            if (/[\u3040-\u309f\u30a0-\u30ff]/.test(text)) return 'ja'
+            if (/[\uac00-\ud7af]/.test(text)) return 'ko'
+            if (/[\u4e00-\u9fa5]/.test(text)) return 'zh-CN'
+            return 'en'
+          }
+          
+          updates.translation = {
+            sourceLanguage: detectSourceLanguage(article.title),
+            targetLanguage: analysis.targetLanguage,
+            translatedTitle: analysis.translatedTitle,
+            translatedSummary: analysis.summary, // AI 生成的摘要也是译文
+            translatedAt: Date.now()
+          }
+          
+          pipelineLogger.debug(`💾 保存翻译数据: ${articleId}`, {
+            original: article.title,
+            translated: analysis.translatedTitle
+          })
+        }
+      }
+      
+      // 更新数据库
+      await db.feedArticles.update(articleId, updates)
       
       // Phase 13: 多池架构 - 根据评分更新池状态
       // 只有当提供了有效评分时才更新池状态
