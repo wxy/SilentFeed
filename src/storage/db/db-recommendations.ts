@@ -1,16 +1,21 @@
 /**
- * 数据库推荐管理模块
+ * 数据库推荐管理模块（Phase 13+: 基于 feedArticles 表）
  * 
- * 负责推荐记录的 CRUD 操作和相关业务逻辑
+ * 负责推荐查询和用户操作
+ * 
+ * 架构变更（v22）：
+ * - 推荐池与显示方式分离
+ * - poolStatus='recommended' 表示文章在推荐池中
+ * - 显示方式（弹窗/清单）由 deliveryMode 配置决定
  */
 
-import type { Recommendation } from "@/types/database"
-import type { DiscoveredFeed } from "@/types/rss"
 import { db } from './index'
 import { logger } from '@/utils/logger'
 import { statsCache } from '@/utils/cache'
 import { updateFeedStats } from './db-feeds'
 import { ProfileUpdateScheduler } from '@/core/profile/ProfileUpdateScheduler'
+import type { FeedArticle } from '@/types/rss'
+import type { Recommendation } from '@/types/database'
 
 // 创建模块专用日志器
 const dbLogger = logger.withTag('DB-Recommendations')
@@ -18,85 +23,74 @@ const dbLogger = logger.withTag('DB-Recommendations')
 /**
  * 标记推荐为已读
  * 
- * @param id - 推荐记录 ID
+ * @param articleId - 文章 ID（或 URL，兼容旧接口）
  * @param readDuration - 阅读时长（秒）
  * @param scrollDepth - 滚动深度（0-1）
  */
 export async function markAsRead(
-  id: string,
+  articleId: string,
   readDuration?: number,
   scrollDepth?: number
 ): Promise<void> {
-  const recommendation = await db.recommendations.get(id)
-  if (!recommendation) {
-    dbLogger.error('❌ 推荐记录不存在:', id)
-    throw new Error(`推荐记录不存在: ${id}`)
+  // 尝试按 ID 查找
+  let article = await db.feedArticles.get(articleId)
+  
+  // 如果按 ID 找不到，尝试按 URL 查找（兼容旧代码）
+  if (!article) {
+    article = await db.feedArticles.where('link').equals(articleId).first()
+  }
+  
+  if (!article) {
+    dbLogger.error('❌ 文章不存在:', articleId)
+    throw new Error(`文章不存在: ${articleId}`)
   }
   
   // 防重复：如果已经标记为已读，直接返回
-  if (recommendation.isRead) {
-    dbLogger.debug('⚠️ 推荐已经是已读状态，跳过重复标记:', id)
+  if (article.isRead) {
+    dbLogger.debug('⚠️ 文章已经是已读状态，跳过重复标记:', articleId)
     return
   }
   
   // 更新阅读状态
-  const updates: Partial<Recommendation> = {
+  const now = Date.now()
+  const updates: Partial<FeedArticle> = {
     isRead: true,
-    clickedAt: Date.now(),
+    clickedAt: now,
     readDuration,
-    scrollDepth
+    scrollDepth,
+    read: true,  // 旧字段
+    poolStatus: 'exited',
+    poolExitedAt: now,
+    poolExitReason: 'read',
+    // 兼容旧字段
+    inPool: false,
+    poolRemovedAt: now,
+    poolRemovedReason: 'read'
   }
   
   // 自动评估有效性
   if (readDuration !== undefined && scrollDepth !== undefined) {
     if (readDuration > 120 && scrollDepth > 0.7) {
-      // 深度阅读：>2min + >70% scroll
       updates.effectiveness = 'effective'
     } else {
-      // 浅度阅读
       updates.effectiveness = 'neutral'
     }
   }
   
-  await db.transaction('rw', [db.recommendations, db.feedArticles], async () => {
-    // 1. 更新推荐记录
-    await db.recommendations.update(id, updates)
-    
-    // 2. Phase 10: 同步更新 feedArticles 的 inPool 状态
-    try {
-      const article = await db.feedArticles
-        .where('link').equals(recommendation.url)
-        .first()
-      
-      if (article) {
-        const now = Date.now()
-        await db.feedArticles.update(article.id, {
-          read: true,                    // 标记已读
-          inPool: false,                 // Phase 10: 移出推荐池（旧字段）
-          poolRemovedAt: now,            // 旧字段
-          poolRemovedReason: 'read',     // 旧字段
-          // Phase 13: 新字段 - 退出推荐池
-          poolStatus: 'exited',         // 明确的退出状态
-          poolExitedAt: now,
-          poolExitReason: 'read'
-        })
-      }
-    } catch (error) {
-      dbLogger.warn('同步更新文章状态失败:', error)
-    }
-  })
+  await db.feedArticles.update(article.id, updates)
   
   // 清除统计缓存
   statsCache.invalidate('rec-stats-7d')
   
-  // Phase 6: 立即更新 RSS 源统计（会重新计算 recommendedReadCount）
-  // Phase 7 优化: recommendedReadCount 直接从推荐池统计，无需同步 latestArticles
-  if (recommendation.sourceUrl) {
-    await updateFeedStats(recommendation.sourceUrl)
+  // 立即更新 RSS 源统计
+  if (article.feedId) {
+    const feed = await db.discoveredFeeds.get(article.feedId)
+    if (feed) {
+      await updateFeedStats(feed.url)
+    }
   }
   
-  // Phase 8.3: 用户阅读行为立即触发画像更新
-  // 确保用户偏好能立即反映在下次推荐中
+  // 用户阅读行为立即触发画像更新
   ProfileUpdateScheduler.forceUpdateProfile('user_read').catch(error => {
     dbLogger.error('❌ 用户阅读后画像更新失败:', error)
   })
@@ -105,225 +99,221 @@ export async function markAsRead(
 /**
  * 标记推荐为"不想读"
  * 
- * Phase 7: 使用软删除，更新 status 为 dismissed
- * Phase 10: 同步更新 feedArticles 的 inPool 状态
- * 
- * @param ids - 推荐记录 ID 数组
+ * @param articleIds - 文章 ID 数组（或 URL 数组，兼容旧接口）
  */
-export async function dismissRecommendations(ids: string[]): Promise<void> {
+export async function dismissRecommendations(articleIds: string[]): Promise<void> {
   const now = Date.now()
-  const sourceUrls = new Set<string>()
+  const feedIds = new Set<string>()
   
-  await db.transaction('rw', db.recommendations, db.feedArticles, async () => {
-    for (const id of ids) {
-      // 1. 更新推荐表（Phase 7: 添加 status 字段）
-      await db.recommendations.update(id, {
-        feedback: 'dismissed',
-        feedbackAt: now,
-        effectiveness: 'ineffective',
-        status: 'dismissed',  // Phase 7: 软删除标记
-        replacedAt: now       // Phase 7: 记录标记时间
-      })
-      
-      // 2. Phase 10: 同步更新 feedArticles 表中的文章状态
-      const recommendation = await db.recommendations.get(id)
-      if (recommendation?.url) {
-        try {
-          // 通过 URL 查找文章
-          const article = await db.feedArticles
-            .where('link').equals(recommendation.url)
-            .first()
-          
-          if (article) {
-            // 标记文章为不想读 + 移出推荐池
-            await db.feedArticles.update(article.id, {
-              disliked: true,
-              inPool: false,                    // Phase 10: 移出推荐池（旧字段）
-              poolRemovedAt: now,               // 旧字段
-              poolRemovedReason: 'disliked',    // 旧字段
-              // Phase 13: 新字段 - 退出推荐池
-              poolStatus: 'exited',            // 明确的退出状态
-              poolExitedAt: now,
-              poolExitReason: 'disliked'
-            })
-          } else {
-            dbLogger.warn('⚠️ 未找到匹配的文章:', recommendation.url)
-          }
-          
-          // 3. 收集需要更新统计的源 URL
-          if (recommendation.sourceUrl) {
-            sourceUrls.add(recommendation.sourceUrl)
-          }
-        } catch (error) {
-          dbLogger.warn('同步更新文章不想读状态失败:', error)
-        }
-      }
+  for (const articleId of articleIds) {
+    // 尝试按 ID 查找
+    let article = await db.feedArticles.get(articleId)
+    
+    // 如果按 ID 找不到，尝试按 URL 查找
+    if (!article) {
+      article = await db.feedArticles.where('link').equals(articleId).first()
     }
-  })
-  
-  // 4. 事务外更新统计（确保能看到事务提交后的数据）
-  for (const sourceUrl of sourceUrls) {
-    await updateFeedStats(sourceUrl)
+    
+    if (!article) {
+      dbLogger.warn('⚠️ 文章不存在:', articleId)
+      continue
+    }
+    
+    // 更新文章状态
+    await db.feedArticles.update(article.id, {
+      feedback: 'dismissed',
+      feedbackAt: now,
+      effectiveness: 'ineffective',
+      disliked: true,  // 旧字段
+      poolStatus: 'exited',
+      poolExitedAt: now,
+      poolExitReason: 'disliked',
+      // 兼容旧字段
+      inPool: false,
+      poolRemovedAt: now,
+      poolRemovedReason: 'disliked'
+    })
+    
+    if (article.feedId) {
+      feedIds.add(article.feedId)
+    }
   }
   
-  // Phase 8.3: 用户拒绝行为立即触发画像更新
-  // 确保用户不喜欢的内容能立即影响推荐
-  ProfileUpdateScheduler.forceUpdateProfile('user_dismiss').catch(error => {
-    dbLogger.error('❌ 用户拒绝后画像更新失败:', error)
-  })
+  // 清除统计缓存
+  statsCache.invalidate('rec-stats-7d')
+  
+  // 批量更新 RSS 源统计
+  for (const feedId of feedIds) {
+    const feed = await db.discoveredFeeds.get(feedId)
+    if (feed) {
+      await updateFeedStats(feed.url)
+    }
+  }
+  
+  dbLogger.info(`✅ 已标记 ${articleIds.length} 篇文章为不想读`)
 }
 
 /**
- * 获取未读推荐（按时间倒序）
+ * 获取未读推荐（弹窗显示）
  * 
- * Phase 7: 只返回 active 状态的推荐
- * 
- * @param limit - 数量限制（默认 50）
- */
-/**
- * 获取未读推荐
- * 
- * Phase 10: 只返回仍在源中（inFeed=true）且在推荐池中（inPool=true）的推荐
- * 
- * 说明：
- * - recommendations 表是历史日志（所有曾推荐过的文章）
- * - feedArticles 表的 inPool 字段是实时推荐池状态
- * - 需要联查确保推荐的文章仍在 RSS 源中且仍在推荐池中
- * 
- * @param limit - 最多返回的推荐数
- * @returns 未读推荐列表（按分数降序）
+ * @param limit - 返回数量限制
+ * @returns Recommendation 数组（按推荐时间降序）
  */
 export async function getUnreadRecommendations(limit: number = 50): Promise<Recommendation[]> {
-  // Phase 10: 过滤掉已读、已忽略、非活跃和不在推荐池中的推荐
-  const recommendations = await db.recommendations
-    .filter(r => {
-      // 必须是活跃状态
-      const isActive = !r.status || r.status === 'active'
-      // 未读且未被忽略
-      const isUnreadAndNotDismissed = !r.isRead && r.feedback !== 'dismissed'
-      return isActive && isUnreadAndNotDismissed
+  try {
+    const articles = await db.feedArticles
+      .filter(a => {
+        const isInPool = a.poolStatus === 'recommended'
+        const isUnread = !a.isRead
+        const notDismissed = a.feedback !== 'dismissed'
+        return isInPool && isUnread && notDismissed
+      })
+      .toArray()
+    
+    // 按推荐时间降序排序
+    const sorted = articles.sort((a, b) => {
+      const timeA = a.popupAddedAt || a.recommendedPoolAddedAt || 0
+      const timeB = b.popupAddedAt || b.recommendedPoolAddedAt || 0
+      return timeB - timeA
     })
-    .toArray()
-  
-  // Phase 10: 联查 feedArticles，过滤掉不在源中或不在推荐池中的文章
-  // 同时将无效的推荐标记为 inactive，避免重复查询
-  const validRecommendations: Recommendation[] = []
-  const invalidRecommendations: Recommendation[] = []
-  
-  for (const rec of recommendations) {
-    const article = await db.feedArticles.where('link').equals(rec.url).first()
-    if (article && article.inFeed !== false && article.inPool === true) {
-      validRecommendations.push(rec)
-    } else {
-      invalidRecommendations.push(rec)
-    }
+    
+    // 转换为 Recommendation 格式（兼容旧接口）
+    const recommendations: Recommendation[] = sorted.slice(0, limit).map(article => ({
+      id: article.id,
+      url: article.link,
+      title: article.title,
+      summary: article.description || '',
+      source: article.feedId,
+      sourceUrl: article.feedId,
+      recommendedAt: article.popupAddedAt || article.recommendedPoolAddedAt || Date.now(),
+      score: article.analysisScore || 0,
+      reason: article.recommendationReason,
+      wordCount: article.content?.length || 0,
+      readingTime: Math.ceil((article.content?.length || 0) / 300),
+      excerpt: article.description,
+      isRead: article.isRead || false,
+      clickedAt: article.clickedAt,
+      readDuration: article.readDuration,
+      scrollDepth: article.scrollDepth,
+      feedback: article.feedback,
+      feedbackAt: article.feedbackAt,
+      effectiveness: article.effectiveness,
+      status: 'active',
+      translation: article.translation,
+      aiSummary: article.aiSummary  // ✅ 传递 AI 生成的摘要
+    }))
+    
+    return recommendations
+  } catch (error) {
+    dbLogger.error('❌ 获取未读推荐失败:', error)
+    return []
   }
-  
-  // 将无效推荐标记为 inactive 状态
-  if (invalidRecommendations.length > 0) {
-    await db.recommendations.bulkUpdate(
-      invalidRecommendations.map(rec => ({
-        key: rec.id,
-        changes: { status: 'inactive' as const }
-      }))
-    )
-    dbLogger.debug(`已将 ${invalidRecommendations.length} 条无效推荐标记为 inactive（不在源中或已移出推荐池）`)
-  }
-  
-  // 按推荐分数降序排序，取前 N 条
-  const result = validRecommendations
-    .sort((a, b) => (b.score || 0) - (a.score || 0))
-    .slice(0, limit)
-  
-  dbLogger.debug(`获取未读推荐: 有效 ${validRecommendations.length}，返回 ${result.length}`)
-  
-  return result
 }
 
 /**
- * 获取待推荐文章数量
+ * 获取推荐统计
  * 
- * Phase 10: 从 feedArticles 表统计（与 collectArticles 逻辑一致）
+ * @returns 统计数据
+ */
+export async function getRecommendationStats(days: number = 7): Promise<{
+  total: number
+  unread: number
+  read: number
+  dismissed: number
+  effective: number
+}> {
+  const cacheKey = `rec-stats-${days}d`
+  
+  return statsCache.get(
+    cacheKey,
+    async () => {
+      try {
+        const cutoff = Date.now() - days * 24 * 60 * 60 * 1000
+        
+        // 查询所有曾在弹窗的文章
+        const popupArticles = await db.feedArticles
+          .filter(a => {
+            const addedAt = a.popupAddedAt || a.recommendedPoolAddedAt
+            return !!(addedAt && addedAt >= cutoff)
+          })
+          .toArray()
+        
+        return {
+          total: popupArticles.length,
+          unread: popupArticles.filter(a => !a.isRead && a.feedback !== 'dismissed').length,
+          read: popupArticles.filter(a => a.isRead).length,
+          dismissed: popupArticles.filter(a => a.feedback === 'dismissed').length,
+          effective: popupArticles.filter(a => a.effectiveness === 'effective').length
+        }
+      } catch (error) {
+        dbLogger.error('❌ 获取推荐统计失败:', error)
+        return { total: 0, unread: 0, read: 0, dismissed: 0, effective: 0 }
+      }
+    },
+    300  // 5 分钟缓存
+  )
+}
+
+/**
+ * 获取未推荐的文章数量（候选池大小）
  * 
- * @param source - 来源类型
- * @returns 待推荐文章数量（未分析的文章）
+ * @param feedId - 可选的源 ID 过滤
+ * @returns 候选池文章数量
  */
 export async function getUnrecommendedArticleCount(
-  source: 'subscribed' | 'all' = 'subscribed'
+  feedId?: string
 ): Promise<number> {
   try {
-    // 1. 获取 RSS 源
-    let feeds: DiscoveredFeed[]
-    if (source === 'subscribed') {
-      feeds = await db.discoveredFeeds
-        .where('status')
-        .equals('subscribed')
-        .toArray()
-    } else {
-      feeds = await db.discoveredFeeds.toArray()
+    let query = db.feedArticles.filter(a => a.poolStatus === 'candidate')
+    
+    if (feedId) {
+      query = query.filter(a => a.feedId === feedId)
     }
     
-    // 2. Phase 10: 从 feedArticles 表统计未分析的文章
-    // 只统计 inFeed=true（仍在RSS源中）的未分析文章
-    let totalUnanalyzed = 0
-    for (const feed of feeds) {
-      const feedArticles = await db.feedArticles
-        .where('feedId').equals(feed.id)
-        .toArray()
-      
-      // 筛选条件：inFeed=true && !analysis
-      const unanalyzedCount = feedArticles.filter(
-        article => (article.inFeed !== false) && !article.analysis
-      ).length
-      
-      totalUnanalyzed += unanalyzedCount
-    }
-    
-    dbLogger.debug(`待推荐文章数量: ${totalUnanalyzed}（来源: ${source}）`)
-    return totalUnanalyzed
+    return await query.count()
   } catch (error) {
-    dbLogger.error('获取待推荐文章数量失败:', error)
+    dbLogger.error('❌ 获取候选池统计失败:', error)
     return 0
   }
 }
 
 /**
- * 重置推荐数据
- * Phase 6: 清空推荐池和历史，重置统计数字，清除所有文章的评分和分析数据
+ * 重置推荐数据（清空所有弹窗推荐）
  */
 export async function resetRecommendationData(): Promise<void> {
   try {
-    // 1. 清空推荐池
-    await db.recommendations.clear()
-    dbLogger.info('清空推荐池')
+    dbLogger.info('开始重置推荐数据...')
     
-    // 2. 重置所有 RSS 源的推荐数为 0，并清除所有文章的评分和分析数据
-    const allFeeds = await db.discoveredFeeds.toArray()
-    let totalArticlesCleared = 0
+    // 查找所有推荐池中的文章
+    const popupArticles = await db.feedArticles
+      .filter(a => a.poolStatus === 'recommended')
+      .toArray()
     
-    for (const feed of allFeeds) {
-      // 清除所有文章的 analysis 和 recommended 字段
-      if (feed.latestArticles && feed.latestArticles.length > 0) {
-        feed.latestArticles.forEach(article => {
-          delete article.analysis       // 清除 AI 分析结果
-          delete article.recommended    // 清除推荐池标记
-        })
-        totalArticlesCleared += feed.latestArticles.length
-      }
-      
-      await db.discoveredFeeds.update(feed.id, {
-        recommendedCount: 0,
-        latestArticles: feed.latestArticles || []
+    dbLogger.info(`找到 ${popupArticles.length} 篇推荐池文章，将标记为已退出`)
+    
+    // 批量更新为 exited 状态
+    const now = Date.now()
+    for (const article of popupArticles) {
+      await db.feedArticles.update(article.id, {
+        poolStatus: 'exited',
+        poolExitedAt: now,
+        poolExitReason: 'replaced',
+        inPool: false,
+        poolRemovedAt: now,
+        poolRemovedReason: 'replaced'
       })
     }
-    dbLogger.info(`重置 RSS 源推荐数: ${allFeeds.length} 个源`)
-    dbLogger.info(`清除文章分析数据: ${totalArticlesCleared} 篇文章`)
     
-    // 3. 清空自适应指标（推荐相关的统计）
-    await chrome.storage.local.remove('adaptive-metrics')
-    dbLogger.info('清空自适应指标')
+    // 清除统计缓存
+    statsCache.invalidate('rec-stats-7d')
     
-    dbLogger.info('✅ 推荐数据重置完成')
+    // 更新所有订阅源统计
+    const feeds = await db.discoveredFeeds.filter(f => f.status === 'subscribed').toArray()
+    for (const feed of feeds) {
+      await updateFeedStats(feed.url)
+    }
+    
+    dbLogger.info('✅ 推荐数据已重置')
   } catch (error) {
     dbLogger.error('❌ 重置推荐数据失败:', error)
     throw error

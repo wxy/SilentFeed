@@ -71,25 +71,15 @@ describe('StrategyDecisionService', () => {
     // 设置 mockDecidePoolStrategy 的默认返回值
     mockDecidePoolStrategy.mockResolvedValue(
       JSON.stringify({
-        analysis: {
-          batchSize: 10,
-          scoreThreshold: 7.5
-        },
         recommendation: {
           targetPoolSize: 5,
           refillThreshold: 2,
           dailyLimit: 15,
           cooldownMinutes: 60
         },
-        scheduling: {
-          analysisIntervalMinutes: 30,
-          recommendIntervalMinutes: 30,
-          loopIterations: 3
-        },
         candidatePool: {
-          targetSize: 35,
-          maxSize: 70,
-          expiryHours: 168
+          expiryHours: 168,
+          entryThreshold: 0.7
         },
         meta: {
           validHours: 24,
@@ -133,7 +123,7 @@ describe('StrategyDecisionService', () => {
     // 清空数据库
     await db.feedArticles.clear()
     await db.discoveredFeeds.clear()
-    await db.recommendations.clear()
+    // Phase 13+: recommendations 表已删除
     await db.aiUsage.clear()
     await db.settings.clear()
     await db.userProfile.clear()
@@ -216,19 +206,25 @@ describe('StrategyDecisionService', () => {
         } as any
       ])
 
-      // 添加推荐记录（注意：必须有 recommendedAt 字段因为有索引）
-      await db.recommendations.bulkAdd([
-        {
-          id: 'rec-1',
-          title: 'Rec 1',
-          sourceUrl: 'http://example.com/1',
-          source: 'feed-1',
-          recommendedAt: now - 3600000,  // 1 小时前
-          isRead: true,
-          readAt: now - 1800000,  // 30 分钟前
-          status: 'active'
-        } as any
-      ])
+      // Phase 13+: 推荐记录现在在 feedArticles 表中（通过 poolStatus='recommended'）
+      // 添加一条已读的推荐记录
+      await db.feedArticles.add({
+        id: 'rec-1',
+        feedId: 'feed-1',
+        link: 'http://example.com/rec1',
+        title: 'Rec 1',
+        published: now - 3600000,
+        fetched: now - 3600000,
+        poolStatus: 'exited',  // 已退出推荐池
+        poolExitedAt: now - 1800000,
+        poolExitReason: 'read',
+        popupAddedAt: now - 3600000,  // 1 小时前推荐
+        isRead: true,  // 已读
+        clickedAt: now - 1800000,  // 30 分钟前点击
+        read: true,
+        starred: false,
+        inFeed: true
+      } as any)
 
       const context = await service.collectContext()
 
@@ -358,25 +354,15 @@ describe('StrategyDecisionService', () => {
       const service = new StrategyDecisionService()
       
       const invalidStrategy: RecommendationStrategy = {
-        analysis: {
-          batchSize: 100,  // 超出范围
-          scoreThreshold: 10.0  // 超出范围
-        },
         recommendation: {
           targetPoolSize: 50,  // 超出范围
           refillThreshold: 20,  // 超出范围
           dailyLimit: 100,  // 超出范围
           cooldownMinutes: 300  // 超出范围
         },
-        scheduling: {
-          analysisIntervalMinutes: 200,  // 超出范围
-          recommendIntervalMinutes: 200,  // 超出范围
-          loopIterations: 50  // 超出范围
-        },
         candidatePool: {
-          targetSize: 500,  // 超出范围
-          maxSize: 1000,  // 超出范围
-          expiryHours: 1000  // 超出范围
+          expiryHours: 1000,  // 超出范围
+          entryThreshold: 1.5  // 超出范围
         },
         meta: {
           validHours: 100,  // 超出范围
@@ -390,13 +376,10 @@ describe('StrategyDecisionService', () => {
       const validated = (service as any).validateStrategy(invalidStrategy)
 
       // 验证所有参数被限制
-      expect(validated.analysis.batchSize).toBeLessThanOrEqual(20)
-      expect(validated.analysis.scoreThreshold).toBeLessThanOrEqual(8.5)
       expect(validated.recommendation.targetPoolSize).toBeLessThanOrEqual(10)
       expect(validated.recommendation.cooldownMinutes).toBeLessThanOrEqual(180)
-      expect(validated.scheduling.analysisIntervalMinutes).toBeLessThanOrEqual(60)
-      expect(validated.candidatePool.targetSize).toBeLessThanOrEqual(100)
-      expect(validated.candidatePool.maxSize).toBeLessThanOrEqual(200)
+      expect(validated.candidatePool.expiryHours).toBeLessThanOrEqual(336)
+      expect(validated.candidatePool.entryThreshold).toBeLessThanOrEqual(0.9)
       expect(validated.meta.validHours).toBeLessThanOrEqual(48)
     })
 
@@ -404,25 +387,15 @@ describe('StrategyDecisionService', () => {
       const service = new StrategyDecisionService()
       
       const validStrategy: RecommendationStrategy = {
-        analysis: {
-          batchSize: 10,
-          scoreThreshold: 7.5
-        },
         recommendation: {
           targetPoolSize: 5,
           refillThreshold: 2,
           dailyLimit: 15,
           cooldownMinutes: 60
         },
-        scheduling: {
-          analysisIntervalMinutes: 30,
-          recommendIntervalMinutes: 30,
-          loopIterations: 5
-        },
         candidatePool: {
-          targetSize: 50,
-          maxSize: 100,
-          expiryHours: 168
+          expiryHours: 168,
+          entryThreshold: 0.7
         },
         meta: {
           validHours: 24,
@@ -435,11 +408,9 @@ describe('StrategyDecisionService', () => {
       const validated = (service as any).validateStrategy(validStrategy)
 
       // 验证所有参数保持不变
-      expect(validated.analysis.batchSize).toBe(10)
-      expect(validated.analysis.scoreThreshold).toBe(7.5)
       expect(validated.recommendation.targetPoolSize).toBe(5)
       expect(validated.recommendation.cooldownMinutes).toBe(60)
-      expect(validated.scheduling.analysisIntervalMinutes).toBe(30)
+      expect(validated.candidatePool.entryThreshold).toBe(0.7)
     })
   })
 })

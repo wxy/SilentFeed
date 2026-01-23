@@ -107,8 +107,9 @@ export class StrategyDecisionService {
       // 2. 调用 AI 生成策略
       const strategy = await this.callAIDecision(context)
       strategyLogger.debug('AI 策略生成完成', {
-        analysisInterval: strategy.scheduling.analysisIntervalMinutes,
-        cooldown: strategy.recommendation.cooldownMinutes
+        targetPoolSize: strategy.recommendation.targetPoolSize,
+        cooldown: strategy.recommendation.cooldownMinutes,
+        entryThreshold: strategy.candidatePool.entryThreshold
       })
 
       // 3. 验证和后处理
@@ -178,7 +179,7 @@ export class StrategyDecisionService {
         poolStats,
         allFeeds,
         allArticles,
-        allRecommendations,
+        allPopupArticles,  // Phase 21: 替代 allRecommendations
         allAIUsage
       ] = await Promise.all([
         getSettings(),
@@ -192,7 +193,11 @@ export class StrategyDecisionService {
         }) : getPoolStats(),
         db.discoveredFeeds.toArray(),  // 获取所有订阅源，稍后过滤
         cachedContext ? Promise.resolve([]) : db.feedArticles.toArray(),  // 如果有缓存就不查询
-        cachedContext ? Promise.resolve([]) : db.recommendations.toArray(),
+        // Phase 21: 从 feedArticles 查询曾在弹窗中的文章
+        cachedContext ? Promise.resolve([]) : db.feedArticles
+          .where('poolStatus')
+          .anyOf(['popup', 'exited'])
+          .toArray(),
         cachedContext ? Promise.resolve([]) : db.aiUsage.toArray()
       ])
 
@@ -220,20 +225,21 @@ export class StrategyDecisionService {
         const recentArticles = allArticles.filter(
           a => a.fetched && a.fetched > sevenDaysAgo
         )
-        const recentRecommendations = allRecommendations.filter(
-          r => r.recommendedAt && r.recommendedAt > sevenDaysAgo
+        // Phase 21: 使用 allPopupArticles 替代 allRecommendations
+        const recentPopupArticles = allPopupArticles.filter(
+          a => a.popupAddedAt && a.popupAddedAt > sevenDaysAgo
         )
         const aiUsageToday = allAIUsage.filter(
           u => u.timestamp && u.timestamp > oneDayAgo
         )
         
         dailyNewArticles = recentArticles.filter(a => a.fetched > oneDayAgo).length
-        dailyReadCount = recentRecommendations.filter(
-          r => r.isRead && r.readAt && r.readAt > oneDayAgo
+        dailyReadCount = recentPopupArticles.filter(
+          a => a.isRead && a.clickedAt && a.clickedAt > oneDayAgo
         ).length
         recommendedPool = await db.feedArticles
           .where('poolStatus')
-          .equals('recommended')
+          .equals('recommended')  // Phase 13+: 推荐池状态
           .count()
         totalTokensToday = aiUsageToday.reduce(
           (sum, u) => sum + (u.tokens?.total || 0), 0
@@ -270,8 +276,9 @@ export class StrategyDecisionService {
         const recentArticles = allArticles.filter(
           a => a.fetched && a.fetched > sevenDaysAgo
         )
-        const recentRecommendations = allRecommendations.filter(
-          r => r.recommendedAt && r.recommendedAt > sevenDaysAgo
+        // Phase 21: 使用 allPopupArticles 替代 allRecommendations
+        const recentPopupArticles = allPopupArticles.filter(
+          a => a.popupAddedAt && a.popupAddedAt > sevenDaysAgo
         )
         const aiUsageToday = allAIUsage.filter(
           u => u.timestamp && u.timestamp > oneDayAgo
@@ -287,14 +294,14 @@ export class StrategyDecisionService {
           : 0
         
         // 需求侧：阅读速度和反馈
-        avgReadSpeed = recentRecommendations.filter(r => r.isRead).length / 7
+        avgReadSpeed = recentPopupArticles.filter(a => a.isRead).length / 7
         
-        const totalRecommendations = recentRecommendations.length
-        const dismissedCount = recentRecommendations.filter(
-          r => r.feedback === 'dismissed' || r.status === 'dismissed'
+        const totalRecommendations = recentPopupArticles.length
+        const dismissedCount = recentPopupArticles.filter(
+          a => a.feedback === 'dismissed' || a.poolExitReason === 'disliked'
         ).length
-        const likedCount = recentRecommendations.filter(
-          r => r.isRead && r.readDuration && r.readDuration > 60 // 阅读时长 > 1分钟视为喜欢
+        const likedCount = recentPopupArticles.filter(
+          a => a.isRead && a.readDuration && a.readDuration > 60 // 阅读时长 > 1分钟视为喜欢
         ).length
         
         dismissRate = totalRecommendations > 0 
@@ -308,12 +315,13 @@ export class StrategyDecisionService {
         totalCostToday = aiUsageToday.reduce(
           (sum, u) => sum + (u.cost?.total || 0), 0
         )
-        recommendedToday = recentRecommendations.filter(
-          r => r.recommendedAt > oneDayAgo
+        // Phase 21: 使用 recentPopupArticles 替代 recentRecommendations
+        recommendedToday = recentPopupArticles.filter(
+          a => a.popupAddedAt && a.popupAddedAt > oneDayAgo
         ).length
         
         // 历史：7天统计
-        last7DaysReadCount = recentRecommendations.filter(r => r.isRead).length
+        last7DaysReadCount = recentPopupArticles.filter(a => a.isRead).length
         last7DaysRecommendedCount = totalRecommendations
         last7DaysAnalyzedCount = recentArticles.filter(
           a => a.analysis && a.analysis.provider !== 'keyword'
@@ -462,10 +470,10 @@ export class StrategyDecisionService {
       const strategy = JSON.parse(jsonText) as RecommendationStrategy
       
       strategyLogger.info('AI 策略生成成功', {
-        batchSize: strategy.analysis.batchSize,
-        scoreThreshold: strategy.analysis.scoreThreshold,
-        analysisInterval: strategy.scheduling.analysisIntervalMinutes,
-        cooldown: strategy.recommendation.cooldownMinutes
+        targetPoolSize: strategy.recommendation.targetPoolSize,
+        cooldown: strategy.recommendation.cooldownMinutes,
+        entryThreshold: strategy.candidatePool.entryThreshold,
+        expiryHours: strategy.candidatePool.expiryHours
       })
 
       return strategy
@@ -493,24 +501,13 @@ export class StrategyDecisionService {
     strategyLogger.debug('验证策略参数...', strategy)
 
     const validated: RecommendationStrategy = {
-      analysis: {
-        batchSize: this.clamp(strategy.analysis.batchSize, 1, 20),
-        scoreThreshold: this.clamp(strategy.analysis.scoreThreshold, 6.0, 8.5)
-      },
       recommendation: {
         targetPoolSize: this.clamp(strategy.recommendation.targetPoolSize, 3, 10),
         refillThreshold: this.clamp(strategy.recommendation.refillThreshold, 1, 5),
         dailyLimit: this.clamp(strategy.recommendation.dailyLimit, 5, 30),
         cooldownMinutes: this.clamp(strategy.recommendation.cooldownMinutes, 30, 180)
       },
-      scheduling: {
-        analysisIntervalMinutes: this.clamp(strategy.scheduling.analysisIntervalMinutes, 1, 60),
-        recommendIntervalMinutes: this.clamp(strategy.scheduling.recommendIntervalMinutes, 1, 60),
-        loopIterations: this.clamp(strategy.scheduling.loopIterations, 1, 10)
-      },
       candidatePool: {
-        targetSize: this.clamp(strategy.candidatePool.targetSize, 10, 100),
-        maxSize: this.clamp(strategy.candidatePool.maxSize, 20, 200),
         expiryHours: this.clamp(strategy.candidatePool.expiryHours, 24, 336),
         entryThreshold: this.clamp(strategy.candidatePool.entryThreshold ?? 0.7, 0.5, 0.9)
       },
@@ -524,17 +521,14 @@ export class StrategyDecisionService {
 
     // 记录被修正的参数
     const corrections: string[] = []
-    if (validated.analysis.batchSize !== strategy.analysis.batchSize) {
-      corrections.push(`batchSize: ${strategy.analysis.batchSize} -> ${validated.analysis.batchSize}`)
-    }
-    if (validated.analysis.scoreThreshold !== strategy.analysis.scoreThreshold) {
-      corrections.push(`scoreThreshold: ${strategy.analysis.scoreThreshold} -> ${validated.analysis.scoreThreshold}`)
-    }
     if (validated.recommendation.cooldownMinutes !== strategy.recommendation.cooldownMinutes) {
       corrections.push(`cooldownMinutes: ${strategy.recommendation.cooldownMinutes} -> ${validated.recommendation.cooldownMinutes}`)
     }
-    if (validated.scheduling.analysisIntervalMinutes !== strategy.scheduling.analysisIntervalMinutes) {
-      corrections.push(`analysisIntervalMinutes: ${strategy.scheduling.analysisIntervalMinutes} -> ${validated.scheduling.analysisIntervalMinutes}`)
+    if (validated.recommendation.targetPoolSize !== strategy.recommendation.targetPoolSize) {
+      corrections.push(`targetPoolSize: ${strategy.recommendation.targetPoolSize} -> ${validated.recommendation.targetPoolSize}`)
+    }
+    if (validated.candidatePool.entryThreshold !== (strategy.candidatePool.entryThreshold ?? 0.7)) {
+      corrections.push(`entryThreshold: ${strategy.candidatePool.entryThreshold} -> ${validated.candidatePool.entryThreshold}`)
     }
 
     if (corrections.length > 0) {

@@ -17,6 +17,8 @@ import { ErrorBoundary } from "@/components/ErrorBoundary"
 import { getRecommendationConfig } from "@/storage/recommendation-config"
 import { OnboardingStateService } from "@/core/onboarding/OnboardingStateService"
 import { LEARNING_COMPLETE_PAGES } from "@/constants/progress"
+import { getCurrentStrategy } from "@/storage/strategy-storage"
+import { LOCAL_STORAGE_KEYS } from "@/storage/local-storage-keys"
 import "@/styles/global.css"
 import "@/styles/sketchy.css"
 
@@ -28,8 +30,7 @@ type TabKey = "preferences" | "feeds" | "ai-engine" | "recommendation" | "profil
  */
 function RecommendationSettingsWrapper() {
   const [poolStrategy, setPoolStrategy] = useState<any>(null)
-  const [currentStrategy, setCurrentStrategy] = useState<any>(null)
-  const [recommendationScheduler, setRecommendationScheduler] = useState<any>(null)
+  const [currentStrategy, setCurrentStrategy] = useState<any>(null) // 新的 AI 策略
   const [maxRecommendations, setMaxRecommendations] = useState(3)
   const [isLearningStage, setIsLearningStage] = useState(false)
   const [pageCount, setPageCount] = useState(0)
@@ -45,30 +46,31 @@ function RecommendationSettingsWrapper() {
       setPoolCapacity(max * 2) // 默认池容量 = 弹窗容量 × 2
     })
 
-    // 加载推荐池策略
-    chrome.storage.local.get('pool_strategy_decision').then(result => {
-      if (result.pool_strategy_decision) {
-        setPoolStrategy(result.pool_strategy_decision)
-        // 从策略获取池容量
-        if (result.pool_strategy_decision.decision?.poolSize) {
-          setPoolCapacity(result.pool_strategy_decision.decision.poolSize)
-        }
-      }
-    })
-
-    // 加载当前 AI 策略（新系统）
+    // 🔄 从 current_strategy 读取新的 AI 策略（与 Background 一致）
     chrome.storage.local.get('current_strategy').then(result => {
-      if (result.current_strategy) {
-        setCurrentStrategy(result.current_strategy)
+      const strategy = result.current_strategy
+      if (strategy) {
+        console.log('[RecommendationSettingsWrapper] 📊 加载 AI 策略:', {
+          id: strategy.id,
+          targetPoolSize: strategy.strategy.recommendation.targetPoolSize,
+          cooldownMinutes: strategy.strategy.recommendation.cooldownMinutes,
+          dailyLimit: strategy.strategy.recommendation.dailyLimit,
+          generatedAt: new Date(strategy.strategy.meta.generatedAt).toLocaleString('zh-CN')
+        })
+        setCurrentStrategy(strategy)
+        // 从新策略获取池容量
+        if (strategy.strategy?.recommendation?.targetPoolSize) {
+          setPoolCapacity(strategy.strategy.recommendation.targetPoolSize)
+        }
+      } else {
+        console.warn('[RecommendationSettingsWrapper] ⚠️ 未找到 AI 策略')
       }
+    }).catch(error => {
+      console.error('[RecommendationSettingsWrapper] 加载 AI 策略失败:', error)
     })
 
-    // 加载调度器状态
-    chrome.runtime.sendMessage({ type: 'GET_SCHEDULERS_STATUS' }).then((response: any) => {
-      if (response?.recommendation) {
-        setRecommendationScheduler(response.recommendation)
-      }
-    })
+    // ⚠️ 旧的池策略系统已废弃，不再读取
+    // 完全使用新的 AI 策略系统（current_strategy）
 
     // 检查学习阶段
     OnboardingStateService.getState().then(state => {
@@ -95,7 +97,6 @@ function RecommendationSettingsWrapper() {
     <RecommendationSettings
       poolStrategy={poolStrategy}
       currentStrategy={currentStrategy}
-      recommendationScheduler={recommendationScheduler}
       maxRecommendations={maxRecommendations}
       isLearningStage={isLearningStage}
       pageCount={pageCount}

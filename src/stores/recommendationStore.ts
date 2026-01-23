@@ -182,16 +182,29 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
    */
   markAsRead: async (id: string, duration?: number, depth?: number) => {
     try {
-      // 🆕 Phase 8: 获取推荐对象用于用户画像学习
-      const recommendation = await db.recommendations.get(id)
+      // 🆕 Phase 8: 获取文章对象用于用户画像学习
+      const article = await db.feedArticles.get(id)
       
       // 调用数据库标记已读（会自动更新 RSS 源统计）
       await markAsRead(id, duration, depth)
       
       // 🆕 Phase 8: 更新用户画像（阅读行为）
       // 通过消息发送到 Background，确保使用 Background 的计数器实例
-      if (recommendation && duration && depth !== undefined) {
+      if (article && duration && depth !== undefined) {
         try {
+          // 构造符合 Recommendation 接口的对象供画像学习使用
+          const recommendation = {
+            id: article.id,
+            title: article.title,
+            url: article.link,
+            source: article.feedId,
+            sourceUrl: article.feedId,
+            score: article.analysisScore || 0,
+            recommendedAt: article.popupAddedAt || Date.now(),
+            isRead: true,
+            readDuration: duration,
+            scrollDepth: depth
+          }
           await chrome.runtime.sendMessage({
             type: 'PROFILE_ON_READ',
             payload: { recommendation, readDuration: duration, scrollDepth: depth }
@@ -301,17 +314,28 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
     
     // === 第三步：异步执行后台任务（不阻塞UI）===
     try {
-      // 🆕 Phase 8: 获取推荐对象用于用户画像学习
-      const dismissedRecs = await db.recommendations.bulkGet(ids)
+      // 🆕 Phase 8: 获取文章对象用于用户画像学习
+      const dismissedArticles = await db.feedArticles.bulkGet(ids)
       
       // 调用数据库标记为不想读
       await dismissRecommendations(ids)
       
       // 🆕 Phase 8: 异步更新用户画像（拒绝行为）
       // 通过消息发送到 Background，确保使用 Background 的计数器实例
-      const profileUpdatePromises = dismissedRecs.map(async (recommendation) => {
-        if (recommendation) {
+      const profileUpdatePromises = dismissedArticles.map(async (article) => {
+        if (article) {
           try {
+            // 构造符合 Recommendation 接口的对象供画像学习使用
+            const recommendation = {
+              id: article.id,
+              title: article.title,
+              url: article.link,
+              source: article.feedId,
+              sourceUrl: article.feedId,
+              score: article.analysisScore || 0,
+              recommendedAt: article.popupAddedAt || Date.now(),
+              feedback: 'dismissed' as const
+            }
             await chrome.runtime.sendMessage({
               type: 'PROFILE_ON_DISMISS',
               payload: { recommendation }
@@ -351,14 +375,15 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
     if (ids.length === 0) return
     
     try {
-      // 第一步：在数据库中标记为 replaced（从推荐池移除）
+      // 第一步：在数据库中标记为 exited（从弹窗移除）
       // 策略B：不立即标记为已读，等待 page-tracker 验证
-      await db.recommendations.bulkUpdate(
+      await db.feedArticles.bulkUpdate(
         ids.map(id => ({
           key: id,
           changes: {
-            status: 'replaced',
-            replacedAt: Date.now()
+            poolStatus: 'exited' as const,
+            poolExitedAt: Date.now(),
+            poolExitReason: 'replaced' as const
           }
         }))
       )

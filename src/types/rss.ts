@@ -144,9 +144,31 @@ export interface FeedArticle {
   link: string
   description?: string
   content?: string
+  
+  /**
+   * AI 生成的文章摘要（中文）
+   * 由 AI 分析时生成，用于替代原始 description
+   * 这是用当前界面语言生成的精炼摘要（通常是中文）
+   */
+  aiSummary?: string
+  
   author?: string
   published: number
   fetched: number
+  
+  // ===== 文章内容统计 (用于 UI 显示) =====
+  /**
+   * 文章字数（通过抓取完整内容获得）
+   * 仅在成功抓取文章内容后存在
+   */
+  wordCount?: number
+  
+  /**
+   * 预计阅读时长（分钟）
+   * 根据 wordCount 自动计算
+   */
+  readingTime?: number
+  
   analysis?: {
     topicProbabilities: Record<Topic, number>
     confidence: number
@@ -195,7 +217,7 @@ export interface FeedArticle {
    * - prescreened-out: 初筛淘汰（AI初筛认为不值得详细分析）
    * - analyzed-not-qualified: 已分析但未达到推荐阈值
    * - candidate: 候选池（高分文章，等待推荐）
-   * - recommended: 推荐池（已推荐给用户）
+   * - recommended: 推荐池（已推荐给用户，待处理）- 显示方式由 deliveryMode 决定
    * - exited: 已退出（用户操作或订阅源变更导致退出）
    * - stale: 已过时（文章已从RSS源中移除，跳过分析）
    */
@@ -214,8 +236,14 @@ export interface FeedArticle {
   
   /**
    * 进入推荐池时间（已推荐给用户）
+   * @deprecated Phase 13+: 改用 popupAddedAt，语义更明确
    */
   recommendedPoolAddedAt?: number
+  
+  /**
+   * 加入弹窗时间（Phase 13+: 新字段，替代 recommendedPoolAddedAt）
+   */
+  popupAddedAt?: number
   
   /**
    * 从候选池/推荐池移除的原因
@@ -234,6 +262,77 @@ export interface FeedArticle {
    * 池子退出时间
    */
   poolExitedAt?: number
+  
+  // ===== 弹窗推荐相关字段 (Phase 13+: 从 Recommendation 表迁移) =====
+  
+  /**
+   * 是否已读（用户点击查看）
+   */
+  isRead?: boolean
+  
+  /**
+   * 点击时间
+   */
+  clickedAt?: number
+  
+  /**
+   * 阅读时长（秒）
+   */
+  readDuration?: number
+  
+  /**
+   * 滚动深度 (0-1)
+   */
+  scrollDepth?: number
+  
+  /**
+   * 用户反馈
+   * - later: 稍后读（加入阅读列表）
+   * - dismissed: 不想读
+   */
+  feedback?: 'later' | 'dismissed'
+  
+  /**
+   * 反馈时间
+   */
+  feedbackAt?: number
+  
+  /**
+   * 推荐有效性评估
+   * - effective: 有效（深度阅读）
+   * - neutral: 中性（浅度阅读）
+   * - ineffective: 无效（未读或拒绝）
+   */
+  effectiveness?: 'effective' | 'neutral' | 'ineffective'
+  
+  /**
+   * 推荐理由（从 Recommendation 表迁移）
+   */
+  recommendationReason?: string | {
+    primary: string
+    secondary?: string[]
+    confidence: number
+  }
+  
+  /**
+   * 翻译数据（可选）
+   * 当启用自动翻译时，存储翻译后的标题和摘要
+   */
+  translation?: {
+    sourceLanguage: string     // 原文语言（由 AI 识别）
+    targetLanguage: string     // 译文语言（界面语言）
+    translatedTitle: string    // 翻译后的标题
+    translatedSummary?: string // 翻译后的摘要
+    translatedAt: number       // 翻译时间
+  }
+  
+  /**
+   * 阅读列表相关字段
+   * 追踪"稍后读"行为及后续真实阅读
+   */
+  addedToReadingListAt?: number
+  readFromReadingListAt?: number
+  readingListConversionRate?: number  // 从稍后读到实际阅读的转化率
 }
 
 /**

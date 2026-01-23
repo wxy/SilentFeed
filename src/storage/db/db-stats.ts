@@ -36,49 +36,53 @@ export async function getRecommendationStats(
     async () => {
       const cutoffTime = Date.now() - days * 24 * 60 * 60 * 1000
       
-      // 查询最近 N 天的推荐记录
-      let recentRecommendations = await db.recommendations
-        .where('recommendedAt')
-        .above(cutoffTime)
+      // 查询最近 N 天的推荐记录（使用 feedArticles，poolStatus='popup' 表示曾在弹窗中）
+      let recentRecommendations = await db.feedArticles
+        .filter(a => {
+          const wasRecommended = a.poolStatus === 'recommended' || a.poolStatus === 'exited'
+          const inTimeRange = (a.popupAddedAt || 0) > cutoffTime
+          return wasRecommended && inTimeRange
+        })
         .toArray()
       
-      // Phase 7: 如果只统计活跃推荐，过滤掉非活跃状态
+      // Phase 7: 如果只统计活跃推荐，只看当前在弹窗中的
       if (onlyActive) {
-        recentRecommendations = recentRecommendations.filter(r => 
-          !r.status || r.status === 'active'
+        recentRecommendations = recentRecommendations.filter(a => 
+          a.poolStatus === 'recommended'
         )
       }
       
       const total = recentRecommendations.length
-      const read = recentRecommendations.filter(r => r.isRead).length
-      const dismissed = recentRecommendations.filter(r => 
-        r.feedback === 'dismissed' || r.status === 'dismissed'
+      const read = recentRecommendations.filter(a => a.isRead).length
+      const dismissed = recentRecommendations.filter(a => 
+        a.feedback === 'dismissed'
       ).length
       
       // 计算有效性
       const effective = recentRecommendations.filter(
-        r => r.effectiveness === 'effective'
+        a => a.effectiveness === 'effective'
       ).length
       const neutral = recentRecommendations.filter(
-        r => r.effectiveness === 'neutral'
+        a => a.effectiveness === 'neutral'
       ).length
       const ineffective = recentRecommendations.filter(
-        r => r.effectiveness === 'ineffective'
+        a => a.effectiveness === 'ineffective'
       ).length
       
       // 计算平均阅读时长
-      const readItems = recentRecommendations.filter(r => r.isRead && r.readDuration)
+      const readItems = recentRecommendations.filter(a => a.isRead && a.readDuration)
       const avgReadDuration = readItems.length > 0
-        ? readItems.reduce((sum, r) => sum + (r.readDuration || 0), 0) / readItems.length
+        ? readItems.reduce((sum, a) => sum + (a.readDuration || 0), 0) / readItems.length
         : 0
       
-      // 统计来源
+      // 统计来源（使用 feedId 作为来源标识）
       const sourceMap = new Map<string, { count: number; read: number }>()
-      recentRecommendations.forEach(r => {
-        const stats = sourceMap.get(r.source) || { count: 0, read: 0 }
+      recentRecommendations.forEach(a => {
+        const source = a.feedId || 'unknown'
+        const stats = sourceMap.get(source) || { count: 0, read: 0 }
         stats.count++
-        if (r.isRead) stats.read++
-        sourceMap.set(r.source, stats)
+        if (a.isRead) stats.read++
+        sourceMap.set(source, stats)
       })
       
       const topSources = Array.from(sourceMap.entries())
@@ -94,7 +98,7 @@ export async function getRecommendationStats(
         totalCount: total,
         readCount: read,
         unreadCount: total - read,
-        readLaterCount: recentRecommendations.filter(r => r.feedback === 'later').length,
+        readLaterCount: recentRecommendations.filter(a => a.feedback === 'later').length,
         dismissedCount: dismissed,
         avgReadDuration,
         topSources
@@ -111,7 +115,10 @@ export async function getRecommendationStats(
 export async function getStorageStats(): Promise<StorageStats> {
   const pendingCount = await db.pendingVisits.count()
   const confirmedCount = await db.confirmedVisits.count()
-  const recommendationCount = await db.recommendations.count()
+  // 统计曾在弹窗中的推荐数量（poolStatus='popup' 或已退出但来源是弹窗）
+  const recommendationCount = await db.feedArticles
+    .filter(a => a.poolStatus === 'recommended' || (a.poolStatus === 'exited' && a.popupAddedAt))
+    .count()
   
   // 计算总页面数（= confirmed visits）
   const pageCount = confirmedCount
@@ -553,24 +560,26 @@ export async function getRecommendationFunnel(currentFeedOnly: boolean = true): 
       }
     }
     
-    // ===== 数据源 2: recommendations（当前推荐记录）=====
+    // ===== 数据源 2: 弹窗推荐统计（基于 feedArticles.poolStatus='popup'）=====
     // 用于"当前弹窗"等动态指标
-    const allRecommendations = await db.recommendations.toArray()
+    const popupArticles = await db.feedArticles
+      .filter(a => a.poolStatus === 'recommended' || (a.poolStatus === 'exited' && a.popupAddedAt))
+      .toArray()
     
-    // 当前弹窗显示数量（动态：活跃且未读的推荐）
-    const currentPopupCount = allRecommendations.filter(r => 
-      (!r.status || r.status === 'active') && 
-      !r.isRead && 
-      r.feedback !== 'dismissed'
+    // 当前弹窗显示数量（动态：在弹窗中且未读）
+    const currentPopupCount = popupArticles.filter(a => 
+      a.poolStatus === 'recommended' && 
+      !a.isRead && 
+      a.feedback !== 'dismissed'
     ).length
     
-    // recommendations 表统计（用于对比）
+    // 弹窗推荐统计（用于对比）
     const recsTableStats = {
-      total: allRecommendations.length,
-      uniqueUrls: new Set(allRecommendations.map(r => r.url)).size,
-      read: allRecommendations.filter(r => r.isRead === true).length,
-      dismissed: allRecommendations.filter(r => r.feedback === 'dismissed' || r.status === 'dismissed').length,
-      later: allRecommendations.filter(r => r.feedback === 'later').length,
+      total: popupArticles.length,
+      uniqueUrls: new Set(popupArticles.map(a => a.link)).size,
+      read: popupArticles.filter(a => a.isRead === true).length,
+      dismissed: popupArticles.filter(a => a.feedback === 'dismissed').length,
+      later: popupArticles.filter(a => a.feedback === 'later').length,
       currentPopup: currentPopupCount
     }
     

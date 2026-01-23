@@ -11,6 +11,7 @@
 import type { ConfirmedVisit } from "@/types/database"
 import type { UserProfile } from "@/types/profile"
 import type { Recommendation } from "@/types/database"
+import type { FeedArticle } from "@/types/rss"
 import type { TopicDistribution } from "@/core/profile/TopicClassifier"
 import { Topic } from "@/core/profile/topics"
 import { db } from "@/storage/db"
@@ -756,6 +757,8 @@ export class SemanticProfileBuilder {
    * 读取所有已读和已拒绝的推荐记录，重新构建 behaviors 对象
    * 这样即使 userProfile.behaviors 被清空，也能从数据库恢复
    * 
+   * Phase 21: 改用 feedArticles 表查询
+   * 
    * @public 供 ProfileManager 调用
    */
   async rebuildBehaviorsFromDatabase(): Promise<NonNullable<UserProfile['behaviors']>> {
@@ -767,60 +770,58 @@ export class SemanticProfileBuilder {
       totalDismisses: 0
     }
 
-    const recommendationsTable = db.recommendations
-    if (!recommendationsTable || typeof recommendationsTable.toArray !== 'function') {
-      profileLogger.warn('[RebuildBehaviors] 推荐表不可用，回退到存储的 behaviors')
-      return storedBehaviors
-    }
-
-    let readRecommendations: Recommendation[] = []
-    let dismissedRecommendations: Recommendation[] = []
+    // Phase 21: 从 feedArticles 查询 poolStatus='popup' 或 'exited' 的文章
+    let readArticles: FeedArticle[] = []
+    let dismissedArticles: FeedArticle[] = []
 
     try {
-      const rawRecommendations = await recommendationsTable.toArray()
-      const allRecommendations = Array.isArray(rawRecommendations) ? rawRecommendations : []
-      readRecommendations = allRecommendations
-        .filter(r => r?.isRead)
-        .sort((a, b) => (b?.recommendedAt || 0) - (a?.recommendedAt || 0))
+      // 查询已阅读的文章（isRead=true 且曾在弹窗中）
+      readArticles = await db.feedArticles
+        .where('poolStatus')
+        .anyOf(['popup', 'exited'])
+        .filter(a => a.isRead === true)
+        .toArray()
+      readArticles.sort((a, b) => (b.popupAddedAt || 0) - (a.popupAddedAt || 0))
       
-      if (typeof recommendationsTable.where === 'function') {
-        dismissedRecommendations = await recommendationsTable
-          .where('status').equals('dismissed')
-          .reverse()
-          .sortBy('feedbackAt')
-      }
+      // 查询被拒绝的文章（feedback='dismissed'）
+      dismissedArticles = await db.feedArticles
+        .where('poolStatus')
+        .anyOf(['popup', 'exited'])
+        .filter(a => a.feedback === 'dismissed')
+        .toArray()
+      dismissedArticles.sort((a, b) => (b.feedbackAt || 0) - (a.feedbackAt || 0))
     } catch (error) {
-      profileLogger.warn('[RebuildBehaviors] 查询推荐记录失败，使用存储行为回退', error)
+      profileLogger.warn('[RebuildBehaviors] 查询文章记录失败，使用存储行为回退', error)
       return storedBehaviors
     }
     
     // 3. 构建 reads 数组
-    const readsFromRecommendations = readRecommendations.map(rec => ({
-      articleId: rec.id,
-      title: rec.title,
-      summary: rec.summary || '',
-      feedUrl: rec.sourceUrl, // 使用 sourceUrl 作为 feedUrl
+    const readsFromArticles = readArticles.map(article => ({
+      articleId: article.id,
+      title: article.title,
+      summary: article.description || '',
+      feedUrl: article.feedId, // 使用 feedId 作为 feedUrl
       weight: 1.0, // 默认权重
-      readDuration: rec.readDuration || 0,
-      scrollDepth: rec.scrollDepth || 0,
-      timestamp: rec.clickedAt || rec.recommendedAt || Date.now()
+      readDuration: article.readDuration || 0,
+      scrollDepth: article.scrollDepth || 0,
+      timestamp: article.clickedAt || article.popupAddedAt || Date.now()
     }))
     
     // 4. 构建 dismisses 数组
-    const dismissesFromRecommendations = dismissedRecommendations.map(rec => ({
-      articleId: rec.id,
-      title: rec.title,
-      summary: rec.summary || '',
-      feedUrl: rec.sourceUrl, // 使用 sourceUrl 作为 feedUrl
+    const dismissesFromArticles = dismissedArticles.map(article => ({
+      articleId: article.id,
+      title: article.title,
+      summary: article.description || '',
+      feedUrl: article.feedId, // 使用 feedId 作为 feedUrl
       weight: 1.0, // 默认权重
-      timestamp: rec.feedbackAt || rec.recommendedAt || Date.now()
+      timestamp: article.feedbackAt || article.popupAddedAt || Date.now()
     }))
 
-    const reads = readsFromRecommendations.length > 0
-      ? readsFromRecommendations
+    const reads = readsFromArticles.length > 0
+      ? readsFromArticles
       : storedBehaviors.reads || []
-    const dismisses = dismissesFromRecommendations.length > 0
-      ? dismissesFromRecommendations
+    const dismisses = dismissesFromArticles.length > 0
+      ? dismissesFromArticles
       : storedBehaviors.dismisses || []
     
     profileLogger.info('[RebuildBehaviors] 从数据库重建 behaviors', {
@@ -831,11 +832,11 @@ export class SemanticProfileBuilder {
     return {
       reads: reads.slice(0, 50),
       dismisses: dismisses.slice(0, 50),
-      totalReads: readsFromRecommendations.length > 0
-        ? readsFromRecommendations.length
+      totalReads: readsFromArticles.length > 0
+        ? readsFromArticles.length
         : storedBehaviors.totalReads || reads.length,
-      totalDismisses: dismissesFromRecommendations.length > 0
-        ? dismissesFromRecommendations.length
+      totalDismisses: dismissesFromArticles.length > 0
+        ? dismissesFromArticles.length
         : storedBehaviors.totalDismisses || dismisses.length,
       lastReadAt: reads[0]?.timestamp || storedBehaviors.lastReadAt,
       lastDismissAt: dismisses[0]?.timestamp || storedBehaviors.lastDismissAt

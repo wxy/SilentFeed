@@ -58,50 +58,62 @@ export async function getHistoricalScoreBaseline(
   }
   
   try {
-    let historicalRecommendations: Array<{ score: number; recommendedAt: number }>
+    let historicalArticles: Array<{ score: number; popupAddedAt: number }>
     
     if (finalConfig.strategy === 'daily') {
-      // 策略A：获取当天的推荐
+      // 策略A：获取当天的弹窗推荐
       const todayStart = new Date()
       todayStart.setHours(0, 0, 0, 0)
       const todayStartMs = todayStart.getTime()
       
-      historicalRecommendations = await db.recommendations
-        .where('recommendedAt')
-        .above(todayStartMs)
+      // 从 feedArticles 查询 poolStatus='popup' 或 poolStatus='exited' 的文章
+      historicalArticles = await db.feedArticles
+        .where('poolStatus')
+        .anyOf(['popup', 'exited'])
+        .filter(a => (a.popupAddedAt || 0) > todayStartMs && a.analysisScore !== undefined)
         .toArray()
-        .then(recs => recs.map(r => ({ score: r.score, recommendedAt: r.recommendedAt })))
+        .then(articles => articles.map(a => ({ 
+          score: a.analysisScore!, 
+          popupAddedAt: a.popupAddedAt || 0 
+        })))
       
-      scoreLogger.debug(`策略A（当天）: 获取到 ${historicalRecommendations.length} 条推荐`)
+      scoreLogger.debug(`策略A（当天）: 获取到 ${historicalArticles.length} 条推荐`)
       
     } else {
       // 策略B：获取最近 N 条推荐
-      historicalRecommendations = await db.recommendations
-        .orderBy('recommendedAt')
+      // 从 feedArticles 查询 poolStatus='popup' 或 poolStatus='exited' 的文章
+      historicalArticles = await db.feedArticles
+        .where('poolStatus')
+        .anyOf(['popup', 'exited'])
+        .filter(a => a.analysisScore !== undefined && a.popupAddedAt !== undefined)
         .reverse()
-        .limit(finalConfig.recentCount || 20)
-        .toArray()
-        .then(recs => recs.map(r => ({ score: r.score, recommendedAt: r.recommendedAt })))
+        .sortBy('popupAddedAt')
+        .then(articles => articles
+          .slice(0, finalConfig.recentCount || 20)
+          .map(a => ({ 
+            score: a.analysisScore!, 
+            popupAddedAt: a.popupAddedAt || 0 
+          })))
       
-      scoreLogger.debug(`策略B（最近${finalConfig.recentCount}条）: 获取到 ${historicalRecommendations.length} 条推荐`)
+      scoreLogger.debug(`策略B（最近${finalConfig.recentCount}条）: 获取到 ${historicalArticles.length} 条推荐`)
     }
     
     // 如果没有历史数据，返回 null
-    if (historicalRecommendations.length === 0) {
+    if (historicalArticles.length === 0) {
       scoreLogger.info('📊 无历史推荐数据，跳过基准检查')
       return null
     }
     
     // 计算平均分
-    const totalScore = historicalRecommendations.reduce((sum, rec) => sum + rec.score, 0)
-    const averageScore = totalScore / historicalRecommendations.length
+    const totalScore = historicalArticles.reduce((sum, rec) => sum + rec.score, 0)
+    const averageScore = totalScore / historicalArticles.length
     
     // 应用最低和最高基准限制
     let baseline = averageScore
     baseline = Math.max(baseline, finalConfig.minimumBaseline || 0)  // 应用最低基准
     baseline = Math.min(baseline, finalConfig.maximumBaseline || 1)  // 应用最高基准
     
-    scoreLogger.info(`📊 历史评分基准: ${baseline.toFixed(3)} (平均分: ${averageScore.toFixed(3)}, 样本: ${historicalRecommendations.length} 条, 范围: ${(finalConfig.minimumBaseline || 0).toFixed(2)}-${(finalConfig.maximumBaseline || 1).toFixed(2)})`)
+    scoreLogger.info(`📊 历史评分基准: ${baseline.toFixed(3)} (平均分: ${averageScore.toFixed(3)}, 样本: ${historicalArticles.length} 条, 范围: ${(finalConfig.minimumBaseline || 0).toFixed(2)}-${(finalConfig.maximumBaseline || 1).toFixed(2)})`)
     
     return baseline
     

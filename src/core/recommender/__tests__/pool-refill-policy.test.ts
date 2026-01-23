@@ -11,6 +11,34 @@ describe('PoolRefillManager', () => {
   beforeEach(async () => {
     // 清除 chrome.storage.local 中的所有数据，确保测试隔离
     await chrome.storage.local.clear()
+    
+    // 设置默认策略（模拟 AI 生成的策略）
+    await chrome.storage.local.set({
+      'current_strategy': {
+        id: 'test-strategy',
+        createdAt: Date.now(),
+        status: 'active',
+        strategy: {
+          recommendation: {
+            targetPoolSize: 10,
+            refillThreshold: 3,
+            dailyLimit: 5,
+            cooldownMinutes: 60
+          },
+          candidatePool: {
+            expiryHours: 168,
+            entryThreshold: 0.7
+          },
+          meta: {
+            validHours: 24,
+            generatedAt: Date.now(),
+            version: 'v1.0',
+            nextReviewHours: 12
+          }
+        }
+      }
+    })
+    
     manager = new PoolRefillManager()
     // 清理存储状态，确保每个测试独立
     await manager.resetState()

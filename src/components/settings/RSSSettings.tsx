@@ -1133,7 +1133,7 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                   <>
                     <span>•</span>
                     <span className="text-gray-400 dark:text-gray-500">
-                      ⏸ {_('options.rssManager.status.paused')}
+                      ⏸ {_('已暂停')}
                     </span>
                   </>
                 )}

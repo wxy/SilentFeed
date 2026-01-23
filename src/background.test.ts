@@ -12,7 +12,8 @@ describe('Background 消息处理', () => {
   beforeEach(async () => {
     // 清空数据库
     await db.confirmedVisits.clear()
-    await db.recommendations.clear()
+    // Phase 21: recommendations 表已删除，推荐数据在 feedArticles 中
+    await db.feedArticles.clear()
   })
 
   describe('SAVE_PAGE_VISIT 消息', () => {

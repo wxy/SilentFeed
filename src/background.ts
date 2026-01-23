@@ -9,7 +9,8 @@ import { fetchFeed } from './background/feed-scheduler'
 import { 
   startAllSchedulers, 
   feedScheduler, 
-  recommendationScheduler, 
+  analysisScheduler,
+  refillScheduler,
   strategyReviewScheduler,
   reconfigureSchedulersForState 
 } from './background/index'
@@ -24,8 +25,49 @@ import { aiManager } from './core/ai/AICapabilityManager'
 import { getAIConfig, saveAIConfig, isAIConfigured } from '@/storage/ai-config'
 import { getRecommendationConfig, saveRecommendationConfig } from '@/storage/recommendation-config'
 import { ReadingListManager } from './core/reading-list/reading-list-manager'
-import { decideUrlForReadingListEntry } from '@/utils/recommendation-display'
 import { processPageVisit, type PageVisitData } from './background/page-visit-handler'
+import { getUIConfig } from '@/storage/ui-config'
+import { getCurrentStrategy } from './storage/strategy-storage'
+import { getRefillManager } from './core/recommender/pool-refill-policy'
+import i18n from '@/i18n'
+
+/**
+ * 生成谷歌翻译子站链接 (translate.goog 格式)
+ * 例如：https://example.com/article → https://example-com.translate.goog/article?_x_tr_sl=auto&_x_tr_tl=zh-CN&_x_tr_hl=zh-CN
+ * 
+ * @param url - 原始 URL
+ * @param targetLang - 目标语言代码
+ * @returns 谷歌翻译子站链接
+ */
+function generateTranslateGoogUrl(url: string, targetLang: string): string {
+  try {
+    const urlObj = new URL(url)
+    
+    // 将域名中的点替换为短横线
+    // 例如：example.com → example-com
+    const translatedHost = urlObj.hostname.replace(/\./g, '-')
+    
+    // 构造新 URL
+    const translatedUrl = new URL(`https://${translatedHost}.translate.goog${urlObj.pathname}${urlObj.search}`)
+    
+    // 添加翻译参数
+    translatedUrl.searchParams.set('_x_tr_sl', 'auto')     // 源语言：自动检测
+    translatedUrl.searchParams.set('_x_tr_tl', targetLang) // 目标语言
+    translatedUrl.searchParams.set('_x_tr_hl', targetLang) // 界面语言
+    
+    // 保留原始 hash
+    if (urlObj.hash) {
+      translatedUrl.hash = urlObj.hash
+    }
+    
+    return translatedUrl.toString()
+  } catch (error) {
+    // 如果 URL 解析失败，降级使用传统格式
+    bgLogger.warn('生成 translate.goog URL 失败，使用传统格式', { url, error })
+    const encodedUrl = encodeURIComponent(url)
+    return `https://translate.google.com/translate?sl=auto&tl=${targetLang}&u=${encodedUrl}`
+  }
+}
 import { migrateStorageKeys, needsStorageKeyMigration } from '@/storage/migrations/storage-key-migration'
 import {
   migrateLocalStorageKeys,
@@ -41,9 +83,10 @@ import {
   saveUrlTracking
 } from '@/storage/tracking-storage'
 import { syncSystemStats } from '@/storage/system-stats'
+// AIPoolStrategyDecider: 每日 AI 决策推荐池策略（Phase 12）
 import { getStrategyDecider, collectDailyUsageContext } from './core/recommender/pool-strategy-decider'
-import { getRefillManager } from './core/recommender/pool-refill-policy'
-import { cleanupExpiredArticles, cleanupExpiredRecommendations } from '@/storage/transactions'
+import { LOCAL_STORAGE_KEYS } from './storage/local-storage-keys'
+import { cleanupExpiredArticles } from '@/storage/transactions'
 
 const bgLogger = logger.withTag('Background')
 
@@ -156,8 +199,24 @@ async function updateBadge(): Promise<void> {
     
     if (!aiConfigured) {
       // AI 未配置，显示暂停图标
-      iconManager.pause()
-      bgLogger.info('⏸️ AI 未配置，显示暂停图标')
+      // 但仍然显示推荐池徽章供参考（不调用 pause 来避免覆盖徽章）
+      bgLogger.info('⏸️ AI 未配置，显示推荐池状态')
+      
+      // 即使 AI 未配置，也显示推荐池未读数（供调试）
+      try {
+        const unreadRecs = await getUnreadRecommendations(50)
+        const unreadCount = unreadRecs.length
+        if (unreadCount > 0) {
+          iconManager.setRecommendCount(Math.min(unreadCount, 3))
+          bgLogger.debug(`📬 [AI 未配置状态] 推荐池未读数：${unreadCount}`)
+        } else {
+          iconManager.setRecommendCount(0)
+          bgLogger.warn('⚠️ AI 未配置且推荐池为空')
+        }
+      } catch (error) {
+        bgLogger.warn('获取推荐池未读数失败:', error)
+        iconManager.setRecommendCount(0)
+      }
       return
     } else {
       // AI 已配置，恢复正常图标
@@ -170,42 +229,62 @@ async function updateBadge(): Promise<void> {
     
     // 2. 使用 OnboardingStateService 获取统一的状态（包含动态阈值）
     const stateInfo = await OnboardingStateService.getState()
-    const { pageCount, threshold, isLearningComplete } = stateInfo
+    const { pageCount, threshold, isLearningComplete, state } = stateInfo
+    bgLogger.debug(`🔍 状态检查：state=${state}, isLearningComplete=${isLearningComplete}, pageCount=${pageCount}, threshold=${threshold}`)
     
     if (!isLearningComplete) {
       // 学习阶段：显示进度遮罩（传入动态阈值）
+      bgLogger.debug(`📚 进入学习阶段，设置进度遮罩：${pageCount}/${threshold}`)
       iconManager.setBadgeState(pageCount, 0, threshold)
       bgLogger.debug(`📚 学习进度：${pageCount}/${threshold} 页`)
     } else {
-      // 推荐阶段：根据投递模式显示
-      // Phase 15: 检查投递模式
-      const config = await getRecommendationConfig()
-      const isReadingListMode = config.deliveryMode === 'readingList'
-
-      if (isReadingListMode) {
-        // 阅读清单模式：统计阅读清单中由本扩展添加且未读的条目
-        let displayCount = 0
-        try {
-          if (ReadingListManager.isAvailable() && chrome.readingList) {
-            const entries = await chrome.readingList.query({})
-            const ourRecords = await db.readingListEntries.toArray()
-            const ourUrls = new Set(ourRecords.map(r => r.url))
-            displayCount = entries.filter(e => ourUrls.has(e.url) && !e.hasBeenRead).length
-          }
-        } catch (rlError) {
-          bgLogger.warn('读取阅读清单条目失败:', rlError)
-        }
-
-        iconManager.setRecommendCount(displayCount > 0 ? Math.min(displayCount, 3) : 0)
-        // 清除波纹以避免视觉冲突
-        iconManager.setBadgeState(threshold, 0, threshold)
-        bgLogger.debug(`📬 推荐阶段（阅读清单模式）：${displayCount} 条未读（扩展添加）`)
-      } else {
-        // 弹窗模式：显示数字徽章为未读推荐数量（最多3）
+      // 推荐阶段：清除学习进度，仅显示推荐徽章（与显示模式无关）
+      // 重要：必须显式重置 learningProgress=0，避免学习遮罩覆盖推荐徽章
+      bgLogger.info(`✅ 进入推荐阶段（state=${state}），清除学习进度遮罩`)
+      iconManager.setBadgeState(0, 0, threshold)
+      bgLogger.debug(`✨ 已调用 setBadgeState(0, 0, ${threshold}) 清除学习进度`)
+      
+      // 推荐阶段：显示推荐池内未读数量
+      try {
         const unreadRecs = await getUnreadRecommendations(50)
         const unreadCount = unreadRecs.length
-        iconManager.setRecommendCount(Math.min(unreadCount, 3))
-        bgLogger.debug(`📬 推荐阶段（弹窗模式）：${unreadCount} 条未读推荐`)
+        bgLogger.debug(`📬 推荐阶段：查询到 ${unreadCount} 条未读推荐`)
+        
+        // 详细诊断信息
+        if (unreadCount === 0) {
+          bgLogger.warn(`⚠️ [推荐池诊断] 推荐池为空或未读数为0。查询结果:`)
+          bgLogger.warn(`  - 推荐数组长度: ${unreadRecs.length}`)
+          
+          // 查询推荐池中所有文章（调试用）
+          const allPoolArticles = await db.feedArticles
+            .filter(a => a.poolStatus === 'recommended')
+            .toArray()
+          bgLogger.warn(`  - 推荐池总文章数: ${allPoolArticles.length}`)
+          
+          // 查询所有未读文章
+          const allUnread = await db.feedArticles
+            .filter(a => !a.isRead)
+            .toArray()
+          bgLogger.warn(`  - 全表未读数: ${allUnread.length}`)
+          
+          // 查询已反馈的文章
+          const dismissed = await db.feedArticles
+            .filter(a => a.feedback === 'dismissed')
+            .toArray()
+          bgLogger.warn(`  - 已驳回文章数: ${dismissed.length}`)
+        }
+        
+        if (unreadCount > 0) {
+          iconManager.setRecommendCount(Math.min(unreadCount, 3))
+          bgLogger.info(`✅ 徽章已更新：显示 ${Math.min(unreadCount, 3)} 个（未读数：${unreadCount}）`)
+        } else {
+          // 没有未读推荐时，清除徽章
+          iconManager.setRecommendCount(0)
+          bgLogger.debug(`📬 推荐池为空，清除徽章`)
+        }
+      } catch (error) {
+        bgLogger.error('❌ 获取未读推荐时出错:', error)
+        iconManager.setRecommendCount(0)
       }
     }
     
@@ -393,6 +472,13 @@ chrome.runtime.onInstalled.addListener(async () => {
       periodInMinutes: 24 * 60 // 每 24 小时（1 天）
     })
     
+    // 创建定期徽章更新定时器（每 1 分钟更新一次）
+    bgLogger.info('创建徽章更新定时器（每 1 分钟一次）...')
+    chrome.alarms.create('update-badge', {
+      delayInMinutes: 0.5, // 启动 30 秒后首次执行
+      periodInMinutes: 1 // 每分钟更新一次
+    })
+    
     // Phase 12.7: 创建定期清理推荐池的定时器（每天一次）
     bgLogger.info('创建推荐池清理定时器（每天一次）...')
     chrome.alarms.create('cleanup-recommendation-pool', {
@@ -429,45 +515,8 @@ chrome.runtime.onInstalled.addListener(async () => {
       periodInMinutes: 7 * 24 * 60 // 每 7 天
     })
     
-    // Phase 12.7: 数据迁移 - 为旧推荐补充 status 字段
-    // 🔥 优化：限制批量处理数量，避免内存溢出
-    try {
-      // 先统计需要迁移的数量
-      const totalCount = await db.recommendations
-        .filter(r => !r.status)
-        .count()
-      
-      if (totalCount > 0) {
-        bgLogger.info(`开始推荐数据迁移，共 ${totalCount} 条待迁移...`)
-        
-        // 分批处理，每次最多 100 条
-        const batchSize = 100
-        let migrated = 0
-        
-        while (migrated < totalCount) {
-          const batch = await db.recommendations
-            .filter(r => !r.status)
-            .limit(batchSize)
-            .toArray()
-          
-          if (batch.length === 0) break
-          
-          await db.recommendations.bulkUpdate(
-            batch.map(rec => ({
-              key: rec.id,
-              changes: { status: 'active' as const }
-            }))
-          )
-          
-          migrated += batch.length
-          bgLogger.debug(`已迁移 ${migrated}/${totalCount} 条推荐`)
-        }
-        
-        bgLogger.info(`✅ 推荐数据迁移完成，共 ${migrated} 条`)
-      }
-    } catch (error) {
-      bgLogger.error('❌ 推荐数据迁移失败:', error)
-    }
+    // Phase 13+: 推荐数据迁移已移除（v21: recommendations 表已删除）
+    // 所有推荐数据现在统一在 feedArticles 表中
     
     // Phase 6: 设置通知监听器
     bgLogger.info('设置推荐通知监听器...')
@@ -565,20 +614,29 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             // 标记为已读与画像学习仅在非去重时进行，但移除阅读清单在两种情况下都兜底执行
             if (pageData.recommendationId) {
               try {
-                if (!result.deduplicated) {
-                  await markAsRead(pageData.recommendationId, pageData.duration, undefined)
-                  bgLogger.info(`✅ 推荐已标记为已读: ${pageData.recommendationId}`)
+                // Phase 13+: recommendationId 现在是文章 ID
+                const article = await db.feedArticles.get(pageData.recommendationId)
+                if (article && !result.deduplicated) {
+                  await markAsRead(article.id, pageData.duration, undefined)
+                  bgLogger.info(`✅ 推荐已标记为已读: ${article.id}`)
+                  
+                  // 构造兼容的推荐对象用于画像学习
+                  const recommendation = {
+                    url: article.link,
+                    title: article.title,
+                    summary: article.description || '',
+                    source: article.feedId || 'unknown',
+                    recommendedAt: article.popupAddedAt || article.recommendedPoolAddedAt || Date.now(),
+                    score: article.analysisScore || 0
+                  }
+                  await semanticProfileBuilder.onRead(recommendation, pageData.duration, 0.5)
+                  bgLogger.debug('✅ 画像阅读学习完成')
                 }
                 
-                const recommendation = await db.recommendations.get(pageData.recommendationId)
-                if (recommendation) {
-                  if (!result.deduplicated) {
-                    await semanticProfileBuilder.onRead(recommendation, pageData.duration, 0.5)
-                    bgLogger.debug('✅ 画像阅读学习完成')
-                  }
+                if (article) {
                   
                   // Phase 15: 如果文章来自阅读清单，学习完成后自动移除
-                  if (recommendation.savedToReadingList && ReadingListManager.isAvailable()) {
+                  if (article.addedToReadingListAt && ReadingListManager.isAvailable()) {
                     try {
                       // 直接使用 recommendationId 查询，避免 URL 格式匹配问题
                       const entries = await db.readingListEntries
@@ -1135,17 +1193,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                   periodInMinutes: a.periodInMinutes
                 }))
               },
-              recommendationScheduler: {
-                name: '推荐生成',
-                nextRunTime: recommendationScheduler.nextRunTime,
-                alarms: alarms.filter(a => a.name === 'generate-recommendation').map(a => ({
+              analysisScheduler: {
+                name: '文章分析',
+                nextRunTime: analysisScheduler.nextRunTime,
+                alarms: alarms.filter(a => a.name === 'analyze-articles').map(a => ({
                   name: a.name,
                   scheduledTime: a.scheduledTime,
                   periodInMinutes: a.periodInMinutes
                 }))
               },
+              refillScheduler: {
+                name: '推荐池补充',
+                nextRunTime: refillScheduler.nextRunTime,
+                alarms: alarms.filter(a => a.name === 'refill-recommendation-pool').map(a => ({
+                  name: a.name,
+                  scheduledTime: a.scheduledTime,
+                  periodInMinutes: a.periodInMinutes
+                }))
+              },
+              // 添加兼容字段，供前端读取
+              recommendationScheduler: {
+                nextRunTime: refillScheduler.nextRunTime
+              },
               otherTasks: alarms.filter(a => 
-                !['fetch-feeds', 'generate-recommendation'].includes(a.name)
+                !['fetch-feeds', 'analyze-articles', 'refill-recommendation-pool'].includes(a.name)
               ).map(a => ({
                 name: a.name,
                 scheduledTime: a.scheduledTime,
@@ -1162,15 +1233,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         case 'GET_SCHEDULERS_STATUS':
           // 为推荐设置页面提供调度器状态
           try {
-            // 获取推荐调度器的当前间隔
             const alarms = await chrome.alarms.getAll()
-            const recAlarm = alarms.find(a => a.name === 'generate-recommendation')
+            const analysisAlarm = alarms.find(a => a.name === 'analyze-articles')
+            const refillAlarm = alarms.find(a => a.name === 'refill-recommendation-pool')
             
             sendResponse({
               success: true,
-              recommendation: {
-                nextRunTime: recommendationScheduler.nextRunTime,
-                currentIntervalMinutes: recAlarm?.periodInMinutes || 1
+              analysis: {
+                nextRunTime: analysisScheduler.nextRunTime,
+                currentIntervalMinutes: analysisAlarm?.periodInMinutes || 5
+              },
+              refill: {
+                nextRunTime: refillScheduler.nextRunTime,
+                currentIntervalMinutes: refillAlarm?.periodInMinutes || 5
               }
             })
           } catch (error) {
@@ -1182,11 +1257,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         case 'GET_ACTIVE_RECOMMENDATIONS_COUNT':
           // 获取弹窗内活跃推荐数量
           try {
-            const activeRecs = await db.recommendations
-              .filter(rec => {
-                const isActive = !rec.status || rec.status === 'active'
-                const isUnreadAndNotDismissed = !rec.isRead && rec.feedback !== 'dismissed'
-                return isActive && isUnreadAndNotDismissed
+            const activeRecs = await db.feedArticles
+              .filter(article => {
+                const isInPopup = article.poolStatus === 'recommended'
+                const isUnreadAndNotDismissed = !article.isRead && article.feedback !== 'dismissed'
+                return isInPopup && isUnreadAndNotDismissed
               })
               .count()
             sendResponse({ success: true, count: activeRecs })
@@ -1220,179 +1295,416 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           }
           break
         
-        // Phase 15.1: 清理模式切换时的旧推荐
-        case 'CLEANUP_MODE_SWITCH':
-          try {
-            const { targetMode } = message as { type: string; targetMode: 'popup' | 'readingList' }
-            bgLogger.info(`🔄 清理模式切换遗留数据，目标模式: ${targetMode}`)
-            
-            // 1. 先获取要清理的推荐列表（需要同步更新 feedArticles）
-            const recsToClean = await db.recommendations
-              .filter(rec => {
-                const isActive = !rec.status || rec.status === 'active'
-                const isUnreadAndNotDismissed = !rec.isRead && rec.feedback !== 'dismissed'
-                return isActive && isUnreadAndNotDismissed
-              })
-              .toArray()
-            
-            const now = Date.now()
-            
-            // 2. 同时更新 recommendations 和 feedArticles 两个表
-            await db.transaction('rw', [db.recommendations, db.feedArticles], async () => {
-              // 更新 recommendations 表
-              for (const rec of recsToClean) {
-                await db.recommendations.update(rec.id, { status: 'expired' })
-                
-                // 同步更新 feedArticles 表的 poolStatus
-                const article = await db.feedArticles.where('link').equals(rec.url).first()
-                if (article) {
-                  await db.feedArticles.update(article.id, {
-                    poolStatus: 'exited',
-                    poolExitedAt: now,
-                    poolExitReason: 'expired'
-                  })
-                }
-              }
-            })
-            
-            bgLogger.info(`✅ 已清理 ${recsToClean.length} 条旧推荐，推荐池已同步释放`)
-            
-            // 立即触发一次新推荐生成
-            recommendationScheduler.triggerNow().catch(error => {
-              bgLogger.error('强制生成推荐失败:', error)
-            })
-            
-            sendResponse({ success: true, cleaned: recsToClean.length })
-          } catch (error) {
-            bgLogger.error('❌ 清理模式切换数据失败:', error)
-            sendResponse({ success: false, error: String(error) })
-          }
-          break
-
-        // 模式切换：保存配置并进行条目转移
+        // 模式切换：保存配置并同步阅读清单
         case 'DELIVERY_MODE_CHANGED':
           (async () => {
             try {
               const { deliveryMode } = message as { type: string; deliveryMode: 'popup' | 'readingList' }
               const prevConfig = await getRecommendationConfig()
-              const prevMode = prevConfig.deliveryMode
               const newConfig = { ...prevConfig, deliveryMode }
               await saveRecommendationConfig(newConfig)
-              bgLogger.info(`📮 推荐投递模式切换: ${prevMode} → ${deliveryMode}`)
+              bgLogger.info(`📮 推荐投递模式切换: ${prevConfig.deliveryMode} → ${deliveryMode}`)
 
               const autoAddedPrefix = '🤫 '
 
-              // Phase 15: 简化设计 - 直接使用弹窗已处理的 URL 和标题
+              // 切换到阅读清单：将当前推荐写入清单
               if (deliveryMode === 'readingList' && ReadingListManager.isAvailable()) {
-                // 1. 获取当前弹窗中活跃的推荐
-                const activeRecs = await db.recommendations
-                  .filter(rec => {
-                    const isActive = !rec.status || rec.status === 'active'
-                    const isUnread = !rec.isRead
-                    const notDismissed = rec.feedback !== 'dismissed'
-                    const notLater = rec.feedback !== 'later'
-                    return isActive && isUnread && notDismissed && notLater
+                // 获取弹窗中的未读推荐
+                const activeRecs = await db.feedArticles
+                  .filter(article => {
+                    const isInPopup = article.poolStatus === 'recommended'
+                    const isUnread = !article.isRead
+                    const notDismissed = article.feedback !== 'dismissed'
+                    return isInPopup && isUnread && notDismissed
                   })
                   .toArray()
 
-                // 2. 获取配置
-                const uiConfigResult = await chrome.storage.sync.get('ui_config')
-                const autoTranslate = !!(uiConfigResult?.ui_config?.autoTranslate)
-                const interfaceLanguage = typeof navigator !== 'undefined' ? navigator.language : 'zh-CN'
+                // 获取翻译配置
+                const uiConfig = await getUIConfig()
+                const autoTranslateEnabled = uiConfig.autoTranslate
+                const currentLanguage = i18n.language?.toLowerCase() || 'en'
 
                 let transferred = 0
-                for (const rec of activeRecs) {
+                for (const article of activeRecs) {
                   try {
-                    // 决策最终显示的 URL 和标题
-                    const { url, title } = await decideUrlForReadingListEntry(rec, {
-                      autoTranslate,
-                      interfaceLanguage
-                    })
-
-                    // 添加到阅读清单
-                    const finalTitle = `${autoAddedPrefix}${title}`
-                    const ok = await ReadingListManager.addToReadingList(finalTitle, url, rec.isRead)
+                    // 决定使用原文还是翻译版本
+                    let displayTitle = article.title
+                    let displayUrl = article.link
+                    
+                    // ✅ 修复: 查询订阅源的翻译设置
+                    let feedUseGoogleTranslate = true // 默认允许谷歌翻译
+                    try {
+                      const feed = await db.discoveredFeeds.get(article.feedId)
+                      if (feed) {
+                        feedUseGoogleTranslate = feed.useGoogleTranslate !== false
+                      }
+                    } catch (err) {
+                      bgLogger.warn('获取订阅源翻译设置失败，使用默认值 (允许翻译):', err)
+                    }
+                    
+                    // 如果启用自动翻译且文章有翻译且订阅源允许谷歌翻译
+                    if (autoTranslateEnabled && article.translation && feedUseGoogleTranslate) {
+                      const targetLang = article.translation.targetLanguage
+                      const sourceLang = article.translation.sourceLanguage
+                      
+                      // 检查翻译是否匹配当前语言，且源语言不同于目标语言
+                      const langMatches = targetLang.toLowerCase().startsWith(currentLanguage.split('-')[0]) ||
+                                        currentLanguage.startsWith(targetLang.toLowerCase().split('-')[0])
+                      const needsTranslation = !sourceLang.toLowerCase().startsWith(targetLang.toLowerCase().split('-')[0])
+                      
+                      if (langMatches && needsTranslation) {
+                        // 使用翻译标题
+                        displayTitle = article.translation.translatedTitle || article.title
+                        // 生成谷歌翻译子站链接 (translate.goog 格式)
+                        displayUrl = generateTranslateGoogUrl(article.link, targetLang)
+                        
+                        bgLogger.debug('使用翻译版本添加到阅读清单', {
+                          articleId: article.id,
+                          originalTitle: article.title,
+                          translatedTitle: displayTitle,
+                          translatedUrl: displayUrl,
+                          feedUseGoogleTranslate
+                        })
+                      }
+                    } else if (autoTranslateEnabled && article.translation && !feedUseGoogleTranslate) {
+                      // 订阅源禁用谷歌翻译，但仍使用翻译标题
+                      displayTitle = article.translation.translatedTitle || article.title
+                      bgLogger.debug('订阅源禁用谷歌翻译，使用翻译标题但保留原文链接', {
+                        articleId: article.id,
+                        feedId: article.feedId,
+                        feedUseGoogleTranslate
+                      })
+                    }
+                    
+                    const finalTitle = `${autoAddedPrefix}${displayTitle}`
+                    const ok = await ReadingListManager.addToReadingList(finalTitle, displayUrl, article.isRead || false)
 
                     if (ok) {
-                      // 记录映射关系
-                      const normalizedUrl = ReadingListManager.normalizeUrlForTracking(url)
+                      // 记录映射关系（用于删除）
+                      // 同时记录原文URL和显示URL
+                      const normalizedOriginalUrl = ReadingListManager.normalizeUrlForTracking(article.link)
+                      const normalizedDisplayUrl = ReadingListManager.normalizeUrlForTracking(displayUrl)
+                      
                       await db.readingListEntries.put({
-                        normalizedUrl,
-                        url,
-                        recommendationId: rec.id,
+                        normalizedUrl: normalizedOriginalUrl,  // 主键，使用原文URL
+                        url: displayUrl,                        // 实际显示的URL（可能是翻译链接）
+                        originalUrl: article.link,              // 始终保存原文URL
+                        recommendationId: article.id,
                         addedAt: Date.now(),
                         titlePrefix: autoAddedPrefix
                       })
-
-                      // 标记推荐为在清单中
-                      await db.recommendations.update(rec.id, {
-                        displayLocation: 'readingList'
-                      })
-
+                      
+                      // 如果使用了翻译链接，额外记录一个翻译URL的映射
+                      if (displayUrl !== article.link) {
+                        await db.readingListEntries.put({
+                          normalizedUrl: normalizedDisplayUrl,
+                          url: displayUrl,
+                          originalUrl: article.link,
+                          recommendationId: article.id,
+                          addedAt: Date.now(),
+                          titlePrefix: autoAddedPrefix
+                        })
+                      }
+                      
                       transferred++
-                      bgLogger.debug('已转移到阅读清单', { id: rec.id, title })
                     }
                   } catch (err) {
-                    bgLogger.warn('转移到阅读列表失败（忽略）', { id: rec.id, err })
+                    bgLogger.warn('写入阅读清单失败', { id: article.id, err })
                   }
                 }
 
-                // 触发一次推荐生成以填充池
-                recommendationScheduler.triggerNow().catch(() => {})
+                bgLogger.info(`✅ 已将 ${transferred} 条推荐转移到阅读清单`)
                 sendResponse({ success: true, transferred })
-              } else if (deliveryMode === 'popup') {
-                // 1. 查询阅读清单中由扩展管理的条目
+              } 
+              // 切换到弹窗：从清单删除由扩展管理的条目（不修改推荐池状态）
+              else if (deliveryMode === 'popup') {
+                // 先验证推荐池状态
+                const poolArticles = await db.feedArticles
+                  .filter(a => a.poolStatus === 'recommended')
+                  .toArray()
+                
+                bgLogger.info(`[切换验证] 推荐池中有 ${poolArticles.length} 篇文章`)
+                
                 const entries = await chrome.readingList.query({})
                 const ourEntries = entries.filter(e => e.title?.startsWith(autoAddedPrefix))
 
                 let removed = 0
+                let kept = 0  // 保留在清单中的已读条目
+                let keptInPool = 0
+                let filtered = 0
+                const issues = []
+                
                 for (const entry of ourEntries) {
                   try {
-                    // 2. 从阅读清单删除
-                    await ReadingListManager.removeFromReadingList(entry.url)
-
-                    // 3. 恢复推荐到弹窗模式
-                    try {
-                      const normalizedUrl = ReadingListManager.normalizeUrlForTracking(entry.url)
-                      const rlEntry = await db.readingListEntries.get(normalizedUrl)
-
-                      if (rlEntry?.recommendationId) {
-                        await db.recommendations.update(rlEntry.recommendationId, {
-                          displayLocation: 'popup'
-                        })
-
-                        bgLogger.info('已恢复推荐到弹窗模式', {
-                          recommendationId: rlEntry.recommendationId
-                        })
-                      }
-
-                      // 4. 清理映射关系
-                      await db.readingListEntries.delete(normalizedUrl)
-                      removed++
-                    } catch (err) {
-                      bgLogger.warn('恢复推荐状态失败（忽略）', { url: entry.url, err })
+                    // 尝试多种方式查找文章
+                    const normalizedUrl = ReadingListManager.normalizeUrlForTracking(entry.url)
+                    let mapping = await db.readingListEntries.get(normalizedUrl)
+                    let article: any = null
+                    
+                    // 方式1：通过映射表查找
+                    if (mapping?.recommendationId) {
+                      article = await db.feedArticles.get(mapping.recommendationId)
                     }
+                    
+                    // 方式2：如果映射失败，尝试通过 URL 直接查找
+                    if (!article) {
+                      article = await db.feedArticles
+                        .where('link').equals(normalizedUrl)
+                        .first()
+                      
+                      if (!article && mapping?.originalUrl) {
+                        // 方式3：尝试通过原始 URL 查找
+                        const normalizedOriginalUrl = ReadingListManager.normalizeUrlForTracking(mapping.originalUrl)
+                        article = await db.feedArticles
+                          .where('link').equals(normalizedOriginalUrl)
+                          .first()
+                      }
+                    }
+                    
+                    if (article) {
+                      // 检查文章是否已读或已拒绝
+                      const isRead = article.isRead || entry.hasBeenRead
+                      const isDismissed = article.feedback === 'dismissed'
+                      
+                      if (isRead || isDismissed) {
+                        // ✅ 已读或已拒绝：从推荐池移除，但保留在阅读清单中
+                        await db.feedArticles.update(article.id, {
+                          poolStatus: 'exited',
+                          poolExitedAt: Date.now(),
+                          poolExitReason: isRead ? 'read' : 'disliked',
+                          isRead: true,  // 确保标记为已读
+                          feedback: isDismissed ? article.feedback : undefined
+                        })
+                        
+                        filtered++
+                        kept++
+                        bgLogger.info(`🔍 过滤${isRead ? '已读' : '已拒绝'}文章（保留在清单）: ${article.title}`)
+                        
+                        // ✅ 已读条目保留在清单中，不删除，继续下一个
+                        continue
+                      }
+                      // 兜底验证：检查文章状态
+                      else if (article.poolStatus !== 'recommended') {
+                        issues.push({
+                          url: entry.url,
+                          title: article.title,
+                          currentStatus: article.poolStatus,
+                          expectedStatus: 'recommended'
+                        })
+                        bgLogger.warn(`⚠️ 发现意外状态变更: ${article.title}`, {
+                          url: entry.url,
+                          当前状态: article.poolStatus,
+                          预期状态: 'recommended'
+                        })
+                      } else {
+                        keptInPool++
+                      }
+                    } else {
+                      bgLogger.warn('⚠️ 未找到对应文章', {
+                        url: entry.url,
+                        title: entry.title,
+                        hasMapping: !!mapping
+                      })
+                    }
+                    
+                    // ✅ 只删除未读条目
+                    await ReadingListManager.removeFromReadingList(entry.url, true)
+                    
+                    // 清理映射记录（未读条目才需要清理）
+                    if (mapping) {
+                      await db.readingListEntries.delete(normalizedUrl)
+                      
+                      // 如果有原始URL，也清理原始URL的映射
+                      if (mapping.originalUrl) {
+                        const normalizedOriginalUrl = ReadingListManager.normalizeUrlForTracking(mapping.originalUrl)
+                        if (normalizedOriginalUrl !== normalizedUrl) {
+                          await db.readingListEntries.delete(normalizedOriginalUrl)
+                        }
+                      }
+                    }
+                    
+                    removed++
                   } catch (err) {
-                    bgLogger.warn('删除阅读列表条目失败（忽略）', { url: entry.url, err })
+                    bgLogger.warn('从阅读清单删除失败', { url: entry.url, err })
                   }
                 }
 
-                // 触发推荐生成填充弹窗
-                recommendationScheduler.triggerNow().catch(() => {})
-                sendResponse({ success: true, removed })
+                // 再次验证推荐池状态未被修改
+                const poolArticlesAfter = await db.feedArticles
+                  .filter(a => a.poolStatus === 'recommended')
+                  .toArray()
+                
+                if (poolArticlesAfter.length !== poolArticles.length) {
+                  bgLogger.error(`❌ 推荐池状态被意外修改！之前: ${poolArticles.length}, 之后: ${poolArticlesAfter.length}`)
+                } else {
+                  bgLogger.info(`✅ 推荐池状态保持不变: ${poolArticlesAfter.length} 篇`)
+                }
+
+                const resultMessage = `✅ 从清单删除 ${removed} 条未读推荐，保留 ${kept} 条已读，推荐池保持 ${keptInPool} 篇${filtered > 0 ? `，过滤 ${filtered} 篇已读/已拒绝` : ''}`
+                bgLogger.info(resultMessage)
+                
+                if (issues.length > 0) {
+                  bgLogger.warn(`⚠️ 发现 ${issues.length} 篇文章状态异常`, issues)
+                }
+                
+                sendResponse({ 
+                  success: true, 
+                  removed,
+                  kept,
+                  poolCount: poolArticlesAfter.length,
+                  keptInPool,
+                  filtered,
+                  issues: issues.length > 0 ? issues : undefined
+                })
               } else {
                 sendResponse({ success: true })
               }
             } catch (error) {
-              // 详细的错误信息输出
-              const errorMessage = error instanceof Error ? error.message : String(error)
-              const errorName = error instanceof Error ? error.name : 'Unknown'
-              bgLogger.error('❌ 模式切换处理失败:', {
-                name: errorName,
-                message: errorMessage,
-                error
+              bgLogger.error('模式切换失败:', error)
+              sendResponse({ success: false, error: String(error) })
+            }
+          })()
+          return true
+        
+        // 手动触发推荐策略生成
+        case 'TRIGGER_RECOMMENDATION_STRATEGY':
+          (async () => {
+            try {
+              bgLogger.info('🎯 手动触发推荐策略生成')
+              // ⚠️ 已废弃：使用 StrategyReviewScheduler 代替
+              bgLogger.warn('旧的池策略生成已禁用，请使用 StrategyReviewScheduler')
+              sendResponse({ success: false, error: '旧策略系统已废弃' })
+            } catch (error) {
+              bgLogger.error('触发推荐策略失败:', error)
+              sendResponse({ success: false, error: String(error) })
+            }
+          })()
+          return true
+        
+        // 重置下次补充时间为现在
+        case 'RESET_REFILL_TIME':
+          (async () => {
+            try {
+              bgLogger.info('⏰ 重置下次补充时间为现在')
+              const result = await chrome.storage.local.get('pool_refill_state')
+              const currentState = result.pool_refill_state || { dailyRefillCount: 0, currentDate: new Date().toISOString().split('T')[0] }
+              
+              // 获取当前策略的冷却时间（默认 60 分钟）
+              // 从新策略系统读取冷却期
+              const strategy = await getCurrentStrategy()
+              const cooldownMinutes = strategy?.strategy.recommendation.cooldownMinutes || 60
+              const cooldownMs = cooldownMinutes * 60 * 1000
+              
+              // 设置 lastRefillTime 为“当前时间 - 冷却期”，这样下次检查时就能通过时间检查
+              const now = Date.now()
+              await chrome.storage.local.set({
+                'pool_refill_state': {
+                  ...currentState,
+                  lastRefillTime: now - cooldownMs  // 设置为“当前时间 - 冷却期”
+                }
               })
-              sendResponse({ success: false, error: errorMessage })
+              bgLogger.info(`✅ 已重置补充时间（冷却期: ${cooldownMinutes} 分钟）`)
+              sendResponse({ success: true })
+            } catch (error) {
+              bgLogger.error('重置补充时间失败:', error)
+              sendResponse({ success: false, error: String(error) })
+            }
+          })()
+          return true
+        
+        // 重置每日补充次数
+        case 'RESET_DAILY_REFILL_COUNT':
+          (async () => {
+            try {
+              bgLogger.info('🔄 重置每日补充次数')
+              // 直接调用 PoolRefillManager 的 resetState 方法，确保内存和 storage 同步
+              const { getRefillManager } = await import('./core/recommender/pool-refill-policy')
+              await getRefillManager().resetState()
+              bgLogger.info('✅ 已重置补充次数')
+              sendResponse({ success: true })
+            } catch (error) {
+              bgLogger.error('重置补充次数失败:', error)
+              sendResponse({ success: false, error: String(error) })
+            }
+          })()
+          return true
+        
+        // 立即触发推荐池补充（强制模式，会重置冷却时间和每日次数）
+        case 'FORCE_REFILL':
+          (async () => {
+            try {
+              bgLogger.info('⚡ 强制补充推荐池（跳过所有限制）')
+              
+              // 1. 重置 PoolRefillManager 的状态（同时重置内存和 storage）
+              const refillManager = getRefillManager()
+              await refillManager.resetState()
+              bgLogger.info('✅ 已重置补充状态（次数和时间）')
+              
+              // 2. 执行补充
+              await refillScheduler.triggerManual()
+              bgLogger.info('✅ 强制补充完成')
+              
+              sendResponse({ success: true })
+            } catch (error) {
+              bgLogger.error('强制补充失败:', error)
+              sendResponse({ success: false, error: String(error) })
+            }
+          })()
+          return true
+        
+        // 立即触发推荐池补充（普通模式，不重置限制）
+        case 'TRIGGER_REFILL':
+          (async () => {
+            try {
+              bgLogger.info('⚡ 手动触发推荐池补充')
+              // 直接调用补充方法
+              await refillScheduler.triggerManual()
+              bgLogger.info('✅ 补充完成')
+              sendResponse({ success: true })
+            } catch (error) {
+              bgLogger.error('手动补充失败:', error)
+              sendResponse({ success: false, error: String(error) })
+            }
+          })()
+          return true
+        
+        // 修复历史遗留的推荐池数据
+        case 'FIX_LEGACY_POOL_DATA':
+          (async () => {
+            try {
+              bgLogger.info('🔧 开始修复历史遗留的推荐池数据...')
+              
+              // 查找所有 poolStatus='recommended' 的旧数据（应该迁移到 'popup'）
+              const allRecommended = await db.feedArticles.filter(a => a.poolStatus === 'recommended').toArray()
+              bgLogger.info(`找到 ${allRecommended.length} 篇 poolStatus='recommended' 的旧文章`)
+              
+              // 将旧的 'recommended' 状态迁移到 'popup' 或 'exited'
+              const orphanArticles = allRecommended.filter(a => {
+                // 未读且未拒绝的迁移到 popup，否则标记为 exited
+                return a.isRead || a.feedback === 'dismissed'
+              })
+              
+              if (orphanArticles.length > 0) {
+                bgLogger.warn(`发现 ${orphanArticles.length} 篇孤儿文章，将标记为已退出`)
+                
+                const now = Date.now()
+                for (const article of orphanArticles) {
+                  await db.feedArticles.update(article.id, {
+                    poolStatus: 'exited',
+                    poolExitedAt: now,
+                    poolExitReason: 'cleanup_legacy'
+                  })
+                }
+                
+                bgLogger.info(`✅ 已修复 ${orphanArticles.length} 篇历史遗留数据`)
+                sendResponse({ success: true, fixed: orphanArticles.length })
+              } else {
+                bgLogger.info('✅ 未发现需要修复的历史数据')
+                sendResponse({ success: true, fixed: 0 })
+              }
+            } catch (error) {
+              bgLogger.error('修复历史数据失败:', error)
+              sendResponse({ success: false, error: String(error) })
             }
           })()
           return true
@@ -1487,6 +1799,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 /**
  * 🆕 生成每日推荐池策略（Alarm 触发）
+ * Phase 12: 使用 AIPoolStrategyDecider 生成智能推荐策略
  */
 async function generateDailyPoolStrategy(): Promise<void> {
   try {
@@ -1504,76 +1817,77 @@ async function generateDailyPoolStrategy(): Promise<void> {
       return
     }
     
-    await setPoolStrategyGenerating(true)
+    // 获取锁
+    await chrome.storage.local.set({ [LOCAL_STORAGE_KEYS.POOL_STRATEGY_GENERATING]: true })
     
     try {
-      const decider = getStrategyDecider()
+      bgLogger.info('🎯 开始生成每日推荐池策略...')
       
-      // 检查是否已有今日决策
-      const cached = await decider.getCachedDecision()
-      if (cached) {
-        bgLogger.debug('今日推荐池策略已存在，跳过')
-        return
-      }
-      
-      bgLogger.info('🤖 开始生成今日推荐池策略...')
-      
-      // 收集上下文数据
+      // 收集上下文
       const context = await collectDailyUsageContext()
+      bgLogger.debug('收集上下文完成', context)
       
       // AI 决策
+      const decider = getStrategyDecider()
       const decision = await decider.decideDailyStrategy(context)
-      
-      // 应用决策到补充管理器
-      const refillManager = getRefillManager()
-      refillManager.updatePolicy({
-        minInterval: decision.minInterval,
-        maxDailyRefills: decision.maxDailyRefills,
-        triggerThreshold: decision.triggerThreshold
-      })
-      
-      bgLogger.info('✅ 推荐池策略已生成并应用', {
+      bgLogger.info('✅ AI 策略生成完成', {
         poolSize: decision.poolSize,
-        refillInterval: Math.round(decision.minInterval / 1000 / 60),
+        minInterval: decision.minInterval,
         confidence: decision.confidence
       })
+      
+      // 保存到 storage
+      await chrome.storage.local.set({
+        [LOCAL_STORAGE_KEYS.POOL_STRATEGY_DECISION]: {
+          decision,
+          context,
+          generatedAt: Date.now()
+        }
+      })
+      
+      bgLogger.info('💾 策略已保存到 storage')
+      
     } finally {
-      // 释放锁（5秒后）
-      setTimeout(async () => {
-        await setPoolStrategyGenerating(false)
-      }, 5000)
+      // 释放锁
+      await chrome.storage.local.remove(LOCAL_STORAGE_KEYS.POOL_STRATEGY_GENERATING)
     }
   } catch (error) {
-    bgLogger.error('❌ 每日推荐池策略生成失败:', error)
+    bgLogger.error('❌ 生成推荐池策略失败:', error)
   }
+}
+
+/**
+ * 检查是否正在生成推荐池策略
+ */
+async function isPoolStrategyGenerating(): Promise<boolean> {
+  const result = await chrome.storage.local.get(LOCAL_STORAGE_KEYS.POOL_STRATEGY_GENERATING)
+  return !!result[LOCAL_STORAGE_KEYS.POOL_STRATEGY_GENERATING]
 }
 
 /**
  * Phase 6/7: 定时器事件监听器
  * 处理推荐数量定期评估和推荐生成
  * Phase: 推荐系统重构 - 策略审查
+ * Phase: 双调度器架构 - 各调度器独立处理自己的 Alarm
  */
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   bgLogger.debug('定时器触发:', alarm.name)
   
   try {
-    if (alarm.name === 'evaluate-popup-capacity') {
+    if (alarm.name === 'update-badge') {
+      // 定期更新徽章（每分钟一次）
+      bgLogger.debug('⏰ 更新徽章定时器触发，执行 updateBadge()...')
+      await updateBadge()
+    } else if (alarm.name === 'evaluate-popup-capacity') {
       bgLogger.info('开始评估弹窗容量...')
       const newCount = await evaluateAndAdjust()
       bgLogger.info(`✅ 弹窗容量已调整为: ${newCount} 条`)
-    } else if (alarm.name === 'generate-recommendation') {
-      // Phase 7: 委托给 recommendationScheduler 处理
-      // Phase 5.2: 启动推荐分析动画（呼吸效果）
-      if (iconManager) {
-        iconManager.startAnalyzingAnimation()
-      }
-      
-      await recommendationScheduler.handleAlarm()
-      
-      // Phase 5.2: 停止推荐分析动画
-      if (iconManager) {
-        iconManager.stopAnalyzingAnimation()
-      }
+    } else if (alarm.name === 'analyze-articles') {
+      // 文章分析由 AnalysisScheduler 处理
+      bgLogger.debug('文章分析 Alarm（由 AnalysisScheduler 处理）')
+    } else if (alarm.name === 'refill-recommendation-pool') {
+      // 推荐池补充由 RefillScheduler 处理
+      bgLogger.debug('推荐池补充 Alarm（由 RefillScheduler 处理）')
       
       // 更新徽章显示新推荐
       await updateBadge()
@@ -1599,9 +1913,9 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       bgLogger.info('开始每周数据清理...')
       await weeklyDataCleanup()
     } else if (alarm.name === 'daily-pool-strategy') {
-      // 🆕 每日推荐池策略生成
-      bgLogger.info('开始每日推荐池策略生成...')
-      await generateDailyPoolStrategy()
+      // ⚠️ 已废弃：旧的池策略决策系统，已被 StrategyReviewScheduler 取代
+      bgLogger.debug('daily-pool-strategy alarm 已废弃，跳过执行')
+      // await generateDailyPoolStrategy() // 已禁用
     }
   } catch (error) {
     bgLogger.error('❌ 定时器处理失败:', error)
@@ -1616,19 +1930,19 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
  * 2. 查询所有活跃的未读推荐
  * 3. 如果超过容量限制，按分数排序，保留高分推荐，清理低分推荐
  * 4. 将清理的推荐标记为 'replaced' 状态
- * 5. 同步更新 feedArticles 的 inPool 状态
  */
 async function cleanupRecommendationPool(): Promise<void> {
   try {
-    const config = await getRecommendationConfig()
-    const poolCapacity = (config.maxRecommendations || 3) * 2  // 池容量 = 弹窗容量 × 2
+    // 从 AI 策略读取池容量
+    const strategy = await getCurrentStrategy()
+    const poolCapacity = strategy?.strategy.recommendation.targetPoolSize || 8
     
-    // 获取所有活跃的未读推荐（未忽略）
-    const activeRecs = await db.recommendations
-      .filter(r => {
-        const isActive = !r.status || r.status === 'active'
-        const isUnreadAndNotDismissed = !r.isRead && r.feedback !== 'dismissed'
-        return isActive && isUnreadAndNotDismissed
+    // 使用 feedArticles 表（poolStatus='popup' 表示在弹窗中）
+    const activeRecs = await db.feedArticles
+      .filter(a => {
+        const isInPopup = a.poolStatus === 'recommended'
+        const isUnreadAndNotDismissed = !a.isRead && a.feedback !== 'dismissed'
+        return isInPopup && isUnreadAndNotDismissed
       })
       .toArray()
     
@@ -1638,53 +1952,26 @@ async function cleanupRecommendationPool(): Promise<void> {
       bgLogger.warn(`⚠️ 推荐池超限: ${activeRecs.length} > ${poolCapacity}，开始清理...`)
       
       // 按分数降序排序，保留高分推荐
-      const sorted = activeRecs.sort((a, b) => (b.score || 0) - (a.score || 0))
+      const sorted = activeRecs.sort((a, b) => (b.analysisScore || 0) - (a.analysisScore || 0))
       const toKeep = sorted.slice(0, poolCapacity)
       const toRemove = sorted.slice(poolCapacity)
       
       if (toRemove.length > 0) {
-        // 标记为 replaced 状态
-        await db.recommendations.bulkUpdate(
-          toRemove.map(rec => ({
-            key: rec.id,
+        // 标记为已退出弹窗
+        await db.feedArticles.bulkUpdate(
+          toRemove.map(article => ({
+            key: article.id,
             changes: {
-              status: 'replaced' as const,
-              replacedAt: Date.now(),
-              replacedBy: 'pool-cleanup'
+              poolStatus: 'exited' as const,
+              poolExitedAt: Date.now(),
+              poolExitReason: 'pool-cleanup'
             }
           }))
         )
         
-        // 同步更新 feedArticles 的 inPool 状态
-        let updatedArticles = 0
-        for (const rec of toRemove) {
-          try {
-            const article = await db.feedArticles
-              .where('link').equals(rec.url)
-              .first()
-            
-            if (article) {
-              const now = Date.now()
-              await db.feedArticles.update(article.id, {
-                // Phase 13: 新字段
-                poolStatus: 'exited',         // 明确的退出状态
-                poolExitedAt: now,
-                poolExitReason: 'replaced',    // 被清理实际是被替换
-                // Phase 10: 旧字段（兼容）
-                inPool: false,
-                poolRemovedAt: now,
-                poolRemovedReason: 'replaced'
-              })
-              updatedArticles++
-            }
-          } catch (error) {
-            bgLogger.warn(`更新文章 inPool 状态失败: ${rec.url}`, error)
-          }
-        }
-        
-        bgLogger.info(`🧹 清理完成: 移除 ${toRemove.length} 条低分推荐，更新 ${updatedArticles} 篇文章状态`)
-        bgLogger.info(`   保留分数范围: ${toKeep[toKeep.length - 1]?.score.toFixed(2)} - ${toKeep[0]?.score.toFixed(2)}`)
-        bgLogger.info(`   移除分数范围: ${toRemove[toRemove.length - 1]?.score.toFixed(2)} - ${toRemove[0]?.score.toFixed(2)}`)
+        bgLogger.info(`🧹 清理完成: 移除 ${toRemove.length} 条低分推荐`)
+        bgLogger.info(`   保留分数范围: ${toKeep[toKeep.length - 1]?.analysisScore?.toFixed(2)} - ${toKeep[0]?.analysisScore?.toFixed(2)}`)
+        bgLogger.info(`   移除分数范围: ${toRemove[toRemove.length - 1]?.analysisScore?.toFixed(2)} - ${toRemove[0]?.analysisScore?.toFixed(2)}`)
       }
     } else {
       bgLogger.debug(`推荐池正常，无需清理`)
@@ -1779,15 +2066,10 @@ async function weeklyDataCleanup(): Promise<void> {
     bgLogger.info('  📰 清理过期文章...')
     await cleanupExpiredArticles(RETENTION_DAYS)
     
-    // 2. 清理过期推荐记录
-    bgLogger.info('  📋 清理过期推荐记录...')
-    const recCleanupResult = await cleanupExpiredRecommendations(RETENTION_DAYS)
+    // Phase 13+: 推荐记录清理已移除（现在推荐数据在 feedArticles 中，由上面的清理逻辑处理）
     
     const duration = Date.now() - startTime
-    bgLogger.info(`✅ 每周数据清理完成，耗时 ${(duration / 1000).toFixed(1)} 秒`, {
-      过期推荐: recCleanupResult.expiredDeleted,
-      孤儿推荐: recCleanupResult.orphanDeleted
-    })
+    bgLogger.info(`✅ 每周数据清理完成，耗时 ${(duration / 1000).toFixed(1)} 秒`)
   } catch (error) {
     bgLogger.error('❌ 每周数据清理失败:', error)
   }

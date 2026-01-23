@@ -60,16 +60,39 @@ function getRandomTip(tips: Record<string, Tip[]>, isLearningStage: boolean): Ti
 }
 
 /**
- * 生成谷歌翻译页面URL
+ * 生成 translate.goog 格式的翻译 URL
  * @param url 原始页面URL
  * @param targetLanguage 目标语言代码（如 'zh-CN', 'en'）
- * @returns 谷歌翻译后的页面URL
+ * @returns translate.goog 格式的翻译 URL
  */
 function getGoogleTranslateUrl(url: string, targetLanguage: string): string {
-  // 谷歌翻译URL格式: https://translate.google.com/translate?sl=auto&tl=zh-CN&u=encodeURIComponent(url)
-  // 添加 &hl=目标语言 来设置界面语言（但不会自动折叠工具栏）
-  const encodedUrl = encodeURIComponent(url)
-  return `https://translate.google.com/translate?sl=auto&tl=${targetLanguage}&u=${encodedUrl}`
+  try {
+    const urlObj = new URL(url)
+    
+    // 将域名中的点替换为短横线
+    // 例如：example.com → example-com
+    const translatedHost = urlObj.hostname.replace(/\./g, '-')
+    
+    // 构造新 URL
+    const translatedUrl = new URL(`https://${translatedHost}.translate.goog${urlObj.pathname}${urlObj.search}`)
+    
+    // 添加翻译参数
+    const targetLang = targetLanguage.split('-')[0] // 'zh-CN' → 'zh'
+    translatedUrl.searchParams.set('_x_tr_sl', 'auto')      // 源语言：自动检测
+    translatedUrl.searchParams.set('_x_tr_tl', targetLang)  // 目标语言
+    translatedUrl.searchParams.set('_x_tr_hl', targetLang)  // 界面语言
+    
+    // 保留原始 hash
+    if (urlObj.hash) {
+      translatedUrl.hash = urlObj.hash
+    }
+    
+    return translatedUrl.toString()
+  } catch (error) {
+    // 如果 URL 解析失败，降级使用传统格式
+    const encodedUrl = encodeURIComponent(url)
+    return `https://translate.google.com/translate?sl=auto&tl=${targetLanguage}&u=${encodedUrl}`
+  }
 }
 
 /**
@@ -423,9 +446,10 @@ export function RecommendationView() {
     })
   }
 
-  // 🔧 Phase 15.1: 显示池中所有推荐，而不是截断为 maxRecommendations
-  // 原因：recommendationStore 已加载池容量（maxRecommendations * 2），应全部显示
-  const displayedRecommendations = recommendations
+  // 🔧 Phase 22: 弹窗只显示前3条推荐
+  // 推荐池中的文章数量可能更多，但弹窗UI空间有限，只显示前3条
+  // 当用户处理某条后，后续推荐会自动补充到前3条位置
+  const displayedRecommendations = recommendations.slice(0, 3)
 
   /**
    * 智能决定哪些条目显示摘要
@@ -730,7 +754,7 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
     e.stopPropagation()
     
     const url = getDefaultUrl()
-    const isTranslated = autoTranslateEnabled && needsTranslation
+    const isTranslated = autoTranslateEnabled && feedTranslateEnabled && needsTranslation
     
     recViewLogger.debug(`点击条目（默认）: ${currentRecommendation.id}, 翻译版: ${isTranslated}`)
     
@@ -764,7 +788,7 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
     const url = autoTranslateEnabled
       ? originalUrl
       : (feedTranslateEnabled ? getGoogleTranslateUrl(originalUrl, i18n.language) : originalUrl)
-    const isTranslated = !autoTranslateEnabled && feedTranslateEnabled
+    const isTranslated = !autoTranslateEnabled && feedTranslateEnabled && needsTranslation
     
     recViewLogger.debug(`点击条目（备选）: ${currentRecommendation.id}, 翻译版: ${isTranslated}`)
     
@@ -842,13 +866,13 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
               </span>
             )}
             
-            {currentRecommendation.wordCount && (
+            {(currentRecommendation.wordCount ?? 0) > 0 && (
               <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
-                {formatWordCount(currentRecommendation.wordCount)}字
+                {formatWordCount(currentRecommendation.wordCount!)}
               </span>
             )}
             
-            {currentRecommendation.readingTime && (
+            {(currentRecommendation.readingTime ?? 0) > 0 && (
               <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
                 {currentRecommendation.readingTime}分钟
               </span>
@@ -950,13 +974,13 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
             </span>
           )}
           
-          {currentRecommendation.wordCount && (
+          {(currentRecommendation.wordCount ?? 0) > 0 && (
             <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
-              {formatWordCount(currentRecommendation.wordCount)}字
+              {formatWordCount(currentRecommendation.wordCount!)}
             </span>
           )}
           
-          {currentRecommendation.readingTime && (
+          {(currentRecommendation.readingTime ?? 0) > 0 && (
             <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
               {currentRecommendation.readingTime}分钟
             </span>

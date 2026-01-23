@@ -33,12 +33,13 @@ export interface PoolRefillPolicy {
  * 基于以下原则设定：
  * - 30分钟冷却期：避免频繁补充，减少 AI 调用
  * - 每日5次上限：覆盖大部分用户场景（早中晚+额外2次）
- * - 30%阈值：保证用户始终有推荐可看，但不会持续填充
+ * - 80%阈值：池容量低于 80% 时补充，确保用户有充足的推荐
+ *   （例如：6篇目标容量，低于 5 篇时触发补充）
  */
 export const DEFAULT_REFILL_POLICY: PoolRefillPolicy = {
   minInterval: 30 * 60 * 1000,  // 30分钟
   maxDailyRefills: 5,
-  triggerThreshold: 0.3
+  triggerThreshold: 0.8  // 从 0.3 改为 0.8，更容易补满
 }
 
 /**
@@ -84,6 +85,36 @@ export class PoolRefillManager {
     maxPoolSize: number
   ): Promise<boolean> {
     const now = Date.now()
+    
+    // 从 storage 读取 AI 策略，更新配置
+    try {
+      // 直接从 chrome.storage.local 读取策略，避免循环依赖
+      const result = await chrome.storage.local.get('current_strategy')
+      const strategy = result.current_strategy
+      
+      if (!strategy) {
+        refillLogger.warn('⚠️ 未找到 AI 策略，暂停补充工作')
+        return false
+      }
+      
+      // 从策略更新配置
+      const rec = strategy.strategy.recommendation
+      this.policy = {
+        minInterval: rec.cooldownMinutes * 60 * 1000,
+        maxDailyRefills: rec.dailyLimit,
+        triggerThreshold: rec.refillThreshold / rec.targetPoolSize
+      }
+      
+      refillLogger.debug('📝 已从 AI 策略读取补充配置:', {
+        cooldown: `${rec.cooldownMinutes}分钟`,
+        dailyLimit: rec.dailyLimit,
+        threshold: `${(this.policy.triggerThreshold * 100).toFixed(0)}%`,
+        poolSize: rec.targetPoolSize
+      })
+    } catch (error) {
+      refillLogger.error('读取 AI 策略失败，使用当前配置:', error)
+      // 如果读取失败，继续使用当前配置
+    }
     
     // 检查日期是否变更（跨天重置计数）
     const today = this.getTodayString()
@@ -166,6 +197,13 @@ export class PoolRefillManager {
   }
   
   /**
+   * 获取当前 policy 配置
+   */
+  getPolicy(): Readonly<PoolRefillPolicy> {
+    return { ...this.policy }
+  }
+  
+  /**
    * 更新补充策略
    */
   updatePolicy(policy: Partial<PoolRefillPolicy>): void {
@@ -224,6 +262,8 @@ let globalRefillManager: PoolRefillManager | null = null
 
 /**
  * 获取全局补充管理器实例
+ * 
+ * 注意：每次 shouldRefill() 调用时会从 storage 读取最新 AI 策略
  */
 export function getRefillManager(): PoolRefillManager {
   if (!globalRefillManager) {

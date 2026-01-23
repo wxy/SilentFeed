@@ -151,11 +151,18 @@ export async function translateOnDemand(
   try {
     const translated = await translateRecommendation(recommendation)
     
-    // 如果翻译成功，更新数据库
+    // 如果翻译成功，更新数据库（使用 feedArticles 表）
     if (translated.translation) {
-      await db.recommendations.update(recommendation.id, {
-        translation: translated.translation
-      })
+      // 通过 link 字段查找文章并更新翻译
+      const article = await db.feedArticles
+        .where('link').equals(recommendation.url)
+        .first()
+      
+      if (article) {
+        await db.feedArticles.update(article.id, {
+          translation: translated.translation
+        })
+      }
     }
     
     return translated
@@ -230,7 +237,7 @@ export function getDisplayText(
   if (sourceLanguage === targetLanguage) {
     return {
       title: recommendation.title,
-      summary: recommendation.summary || recommendation.excerpt || '',
+      summary: recommendation.aiSummary || recommendation.summary || recommendation.excerpt || recommendation.description || '',
       currentLanguage: sourceLanguage,
       sourceLanguage,
       targetLanguage: undefined, // 不需要目标语言
@@ -244,7 +251,7 @@ export function getDisplayText(
   if (!autoTranslateEnabled) {
     return {
       title: recommendation.title,
-      summary: recommendation.summary || recommendation.excerpt || '',
+      summary: recommendation.aiSummary || recommendation.summary || recommendation.excerpt || recommendation.description || '',
       currentLanguage: sourceLanguage,
       sourceLanguage,
       targetLanguage: undefined,
@@ -254,15 +261,18 @@ export function getDisplayText(
     }
   }
   
-  // 检查翻译是否匹配当前目标语言
-  const hasMatchingTranslation = hasTranslation && 
-    recommendation.translation!.targetLanguage === targetLanguage
+  // 检查翻译是否匹配当前目标语言（放宽匹配：主语言代码相同即可）
+  const hasMatchingTranslation = hasTranslation && (
+    recommendation.translation!.targetLanguage === targetLanguage ||
+    // 放宽匹配：zh-CN 和 zh-TW 都算中文，en-US 和 en-GB 都算英文
+    recommendation.translation!.targetLanguage.split('-')[0] === targetLanguage.split('-')[0]
+  )
   
   // 如果启用了自动翻译但没有匹配的翻译 → 需要即时翻译
   if (autoTranslateEnabled && !hasMatchingTranslation && sourceLanguage !== targetLanguage) {
     return {
       title: recommendation.title,
-      summary: recommendation.summary || recommendation.excerpt || '',
+      summary: recommendation.aiSummary || recommendation.summary || recommendation.excerpt || recommendation.description || '',
       currentLanguage: sourceLanguage,
       sourceLanguage,
       targetLanguage,
@@ -276,7 +286,7 @@ export function getDisplayText(
   if (showOriginal) {
     return {
       title: recommendation.title,
-      summary: recommendation.summary || recommendation.excerpt || '',
+      summary: recommendation.aiSummary || recommendation.summary || recommendation.excerpt || recommendation.description || '',
       currentLanguage: sourceLanguage,
       sourceLanguage,
       targetLanguage: recommendation.translation?.targetLanguage,
@@ -290,7 +300,8 @@ export function getDisplayText(
   if (hasMatchingTranslation) {
     return {
       title: recommendation.translation!.translatedTitle,
-      summary: recommendation.translation!.translatedSummary,
+      // 优先使用翻译后的摘要（AI 翻译），然后是 AI 摘要，最后是原文摘要
+      summary: recommendation.translation!.translatedSummary || recommendation.aiSummary || recommendation.summary || recommendation.excerpt || recommendation.description || '',
       currentLanguage: recommendation.translation!.targetLanguage,
       sourceLanguage,
       targetLanguage: recommendation.translation!.targetLanguage,
@@ -303,7 +314,8 @@ export function getDisplayText(
   // 默认显示原文
   return {
     title: recommendation.title,
-    summary: recommendation.summary || recommendation.excerpt || '',
+    // 优先使用 AI 生成的中文摘要，否则使用原文摘要
+    summary: recommendation.aiSummary || recommendation.summary || recommendation.excerpt || recommendation.description || '',
     currentLanguage: sourceLanguage,
     sourceLanguage,
     targetLanguage: undefined,

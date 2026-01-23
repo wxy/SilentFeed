@@ -156,6 +156,12 @@ export interface Recommendation {
   }
 
   /**
+   * AI 生成的摘要（优先显示）
+   * Phase 14: AI 分析时生成的中文摘要，优先级高于原始 description
+   */
+  aiSummary?: string
+
+  /**
    * 阅读列表相关字段
    * 追踪"稍后读"行为及后续真实阅读
    */
@@ -171,14 +177,6 @@ export interface Recommendation {
   
   /** 访问次数（包括从阅读列表的访问） */
   visitCount?: number
-  
-  /**
-   * Phase 15: 显示位置（简化阅读清单模式）
-   * - 'popup': 仅在弹窗展示（默认）
-   * - 'readingList': 仅在阅读清单展示
-   * - 'both': 同时在弹窗和清单展示（扩展用）
-   */
-  displayLocation?: 'popup' | 'readingList' | 'both'
 }
 
 /**
@@ -189,6 +187,8 @@ export interface ReadingListEntry {
   normalizedUrl: string
   /** 实际保存到阅读列表的 URL（可能为翻译链接） */
   url: string
+  /** 原始 URL（文章的原始链接，不含翻译参数） */
+  originalUrl?: string
   /** 对应的推荐 ID，用于统计与清理 */
   recommendationId?: string
   /** 保存时间戳 */
