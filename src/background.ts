@@ -1331,8 +1331,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     let displayTitle = article.title
                     let displayUrl = article.link
                     
-                    // 如果启用自动翻译且文章有翻译
-                    if (autoTranslateEnabled && article.translation) {
+                    // ✅ 修复: 查询订阅源的翻译设置
+                    let feedUseGoogleTranslate = true // 默认允许谷歌翻译
+                    try {
+                      const feed = await db.discoveredFeeds.get(article.feedId)
+                      if (feed) {
+                        feedUseGoogleTranslate = feed.useGoogleTranslate !== false
+                      }
+                    } catch (err) {
+                      bgLogger.warn('获取订阅源翻译设置失败，使用默认值 (允许翻译):', err)
+                    }
+                    
+                    // 如果启用自动翻译且文章有翻译且订阅源允许谷歌翻译
+                    if (autoTranslateEnabled && article.translation && feedUseGoogleTranslate) {
                       const targetLang = article.translation.targetLanguage
                       const sourceLang = article.translation.sourceLanguage
                       
@@ -1351,9 +1362,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                           articleId: article.id,
                           originalTitle: article.title,
                           translatedTitle: displayTitle,
-                          translatedUrl: displayUrl
+                          translatedUrl: displayUrl,
+                          feedUseGoogleTranslate
                         })
                       }
+                    } else if (autoTranslateEnabled && article.translation && !feedUseGoogleTranslate) {
+                      // 订阅源禁用谷歌翻译，但仍使用翻译标题
+                      displayTitle = article.translation.translatedTitle || article.title
+                      bgLogger.debug('订阅源禁用谷歌翻译，使用翻译标题但保留原文链接', {
+                        articleId: article.id,
+                        feedId: article.feedId,
+                        feedUseGoogleTranslate
+                      })
                     }
                     
                     const finalTitle = `${autoAddedPrefix}${displayTitle}`

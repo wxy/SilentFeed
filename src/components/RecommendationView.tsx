@@ -754,7 +754,7 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
     e.stopPropagation()
     
     const url = getDefaultUrl()
-    const isTranslated = autoTranslateEnabled && needsTranslation
+    const isTranslated = autoTranslateEnabled && feedTranslateEnabled && needsTranslation
     
     recViewLogger.debug(`点击条目（默认）: ${currentRecommendation.id}, 翻译版: ${isTranslated}`)
     
@@ -788,7 +788,7 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
     const url = autoTranslateEnabled
       ? originalUrl
       : (feedTranslateEnabled ? getGoogleTranslateUrl(originalUrl, i18n.language) : originalUrl)
-    const isTranslated = !autoTranslateEnabled && feedTranslateEnabled
+    const isTranslated = !autoTranslateEnabled && feedTranslateEnabled && needsTranslation
     
     recViewLogger.debug(`点击条目（备选）: ${currentRecommendation.id}, 翻译版: ${isTranslated}`)
     

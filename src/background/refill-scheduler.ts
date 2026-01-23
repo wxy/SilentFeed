@@ -533,8 +533,19 @@ export class RefillScheduler {
           } : null
         })
         
-        // 如果启用自动翻译且文章有翻译
-        if (autoTranslateEnabled && article.translation) {
+        // ✅ 修复: 查询订阅源的翻译设置
+        let feedUseGoogleTranslate = true // 默认允许谷歌翻译
+        try {
+          const feed = await db.discoveredFeeds.get(article.feedId)
+          if (feed) {
+            feedUseGoogleTranslate = feed.useGoogleTranslate !== false
+          }
+        } catch (err) {
+          schedLogger.warn('获取订阅源翻译设置失败，使用默认值 (允许翻译):', err)
+        }
+        
+        // 如果启用自动翻译且文章有翻译且订阅源允许谷歌翻译
+        if (autoTranslateEnabled && article.translation && feedUseGoogleTranslate) {
           const targetLang = article.translation.targetLanguage
           const sourceLang = article.translation.sourceLanguage
           
@@ -548,7 +559,8 @@ export class RefillScheduler {
             sourceLang,
             currentLanguage,
             langMatches,
-            needsTranslation
+            needsTranslation,
+            feedUseGoogleTranslate
           })
           
           if (langMatches && needsTranslation) {
@@ -563,7 +575,8 @@ export class RefillScheduler {
               originalUrl: article.link,
               translatedUrl: displayUrl,
               sourceLang,
-              targetLang
+              targetLang,
+              feedUseGoogleTranslate
             })
           } else {
             schedLogger.info('❌ 不使用翻译链接:', {
@@ -573,9 +586,21 @@ export class RefillScheduler {
               targetLang,
               currentLanguage,
               langMatches,
-              needsTranslation
+              needsTranslation,
+              feedUseGoogleTranslate
             })
           }
+        } else if (autoTranslateEnabled && article.translation && !feedUseGoogleTranslate) {
+          // 订阅源禁用谷歌翻译，但仍使用翻译标题
+          displayTitle = article.translation.translatedTitle || article.title
+          schedLogger.info('📝 订阅源禁用谷歌翻译，使用翻译标题但保留原文链接:', {
+            articleId: article.id,
+            feedId: article.feedId,
+            originalTitle: article.title,
+            translatedTitle: displayTitle,
+            link: article.link,
+            feedUseGoogleTranslate
+          })
         } else if (autoTranslateEnabled && !article.translation) {
           schedLogger.warn('⚠️ 自动翻译已启用，但文章无翻译数据:', {
             articleId: article.id,
