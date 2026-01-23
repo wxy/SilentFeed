@@ -61,12 +61,30 @@ describe('URL 规范化 - ReadingListManager.normalizeUrlForTracking', () => {
   })
 
   describe('Google Translate URL 处理', () => {
-    it('应该规范化 Google Translate URL', () => {
+    it('应该规范化 Google Translate URL (translate.google.com 格式)', () => {
       const originalUrl = 'https://example.com/article?id=123'
       const translatedUrl = `https://translate.google.com/translate?u=${encodeURIComponent(originalUrl)}&hl=zh-CN`
       
       const normalized = ReadingListManager.normalizeUrlForTracking(translatedUrl)
       // 规范化后应该提取原始 URL，移除 Google Translate 包装
+      expect(normalized).toBe(originalUrl)
+    })
+
+    it('应该规范化 translate.goog 格式的 URL', () => {
+      const originalUrl = 'https://example.com/article'
+      const translatedUrl = 'https://example-com.translate.goog/article?_x_tr_sl=en&_x_tr_tl=zh-CN&_x_tr_hl=zh-CN'
+      
+      const normalized = ReadingListManager.normalizeUrlForTracking(translatedUrl)
+      // 规范化后应该还原为原始 URL
+      expect(normalized).toBe(originalUrl)
+    })
+
+    it('应该处理复杂域名的 translate.goog URL', () => {
+      const originalUrl = 'https://blog.example.com/article?id=123'
+      const translatedUrl = 'https://blog-example-com.translate.goog/article?id=123&_x_tr_sl=en&_x_tr_tl=zh-CN'
+      
+      const normalized = ReadingListManager.normalizeUrlForTracking(translatedUrl)
+      // 规范化后应该还原为原始 URL
       expect(normalized).toBe(originalUrl)
     })
 
@@ -76,6 +94,16 @@ describe('URL 规范化 - ReadingListManager.normalizeUrlForTracking', () => {
       
       const normalized1 = ReadingListManager.normalizeUrlForTracking(url1)
       const normalized2 = ReadingListManager.normalizeUrlForTracking(url2WithUtm)
+      
+      expect(normalized1).toBe(normalized2)
+    })
+
+    it('原始 URL 和翻译 URL 规范化后应该相等', () => {
+      const originalUrl = 'https://example.com/article?id=123'
+      const translatedUrl = 'https://example-com.translate.goog/article?id=123&_x_tr_sl=en&_x_tr_tl=zh-CN'
+      
+      const normalized1 = ReadingListManager.normalizeUrlForTracking(originalUrl)
+      const normalized2 = ReadingListManager.normalizeUrlForTracking(translatedUrl)
       
       expect(normalized1).toBe(normalized2)
     })

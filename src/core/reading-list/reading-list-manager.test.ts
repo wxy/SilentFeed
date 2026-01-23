@@ -134,9 +134,10 @@ describe('ReadingListManager', () => {
       const result = await ReadingListManager.saveRecommendation(mockRecommendation)
 
       expect(result).toBe(true)
-      // 期望 URL 包含 sf_rec 参数用于推荐追踪
+      // 期望 URL 包含 sf_rec 参数用于推荐追踪（短哈希）
+      const shortId = ReadingListManager.hashId(mockRecommendation.id)
       const urlObj = new URL(mockRecommendation.url)
-      urlObj.searchParams.set('sf_rec', mockRecommendation.id)
+      urlObj.searchParams.set('sf_rec', shortId)
       expect(mockChrome.readingList.addEntry).toHaveBeenCalledWith({
         title: '🤫 Test Article',
         url: urlObj.toString(),
@@ -151,9 +152,10 @@ describe('ReadingListManager', () => {
       const result = await ReadingListManager.saveRecommendation(mockRecommendation, true, 'zh-CN')
 
       expect(result).toBe(true)
-      // 期望 URL 包含 sf_rec 参数用于推荐追踪
+      // 期望 URL 包含 sf_rec 参数用于推荐追踪（短哈希）
+      const shortId = ReadingListManager.hashId(mockRecommendation.id)
       const urlObj = new URL(mockRecommendation.url)
-      urlObj.searchParams.set('sf_rec', mockRecommendation.id)
+      urlObj.searchParams.set('sf_rec', shortId)
       expect(mockChrome.readingList.addEntry).toHaveBeenCalledWith({
         title: '🤫 Test Article',
         url: urlObj.toString(),
@@ -215,9 +217,10 @@ describe('ReadingListManager', () => {
       const result = await ReadingListManager.saveRecommendation(recWithTranslation, true, 'zh-CN')
 
       expect(result).toBe(true)
-      // 应该使用原文链接，不应该生成翻译链接
+      // 应该使用原文链接，不应该生成翻译链接（使用短哈希）
+      const shortId = ReadingListManager.hashId(mockRecommendation.id)
       const urlObj = new URL(recWithTranslation.url)
-      urlObj.searchParams.set('sf_rec', mockRecommendation.id)
+      urlObj.searchParams.set('sf_rec', shortId)
       expect(mockChrome.readingList.addEntry).toHaveBeenCalledWith({
         title: '🤫 Test Article',
         url: urlObj.toString(),
@@ -247,9 +250,10 @@ describe('ReadingListManager', () => {
         const result = await ReadingListManager.saveRecommendation(sameLangRec, true, 'zh-CN')
 
         expect(result).toBe(true)
-        // 应该使用原文链接（因为没有翻译数据）
+        // 应该使用原文链接（因为没有翻译数据，使用短哈希）
+        const shortId = ReadingListManager.hashId(sameLangRec.id)
         const urlObj = new URL(sameLangRec.url)
-        urlObj.searchParams.set('sf_rec', sameLangRec.id)
+        urlObj.searchParams.set('sf_rec', shortId)
         expect(mockChrome.readingList.addEntry).toHaveBeenCalledWith({
           title: '🤫 测试文章',
           url: urlObj.toString(),
@@ -290,9 +294,10 @@ describe('ReadingListManager', () => {
         )
 
         expect(result).toBe(true)
-        // 应该使用原文链接，即使自动翻译启用且有翻译数据
+        // 应该使用原文链接，即使自动翻译启用且有翻译数据（使用短哈希）
+        const shortId = ReadingListManager.hashId(differentLangNoTranslateRec.id)
         const urlObj = new URL(differentLangNoTranslateRec.url)
-        urlObj.searchParams.set('sf_rec', differentLangNoTranslateRec.id)
+        urlObj.searchParams.set('sf_rec', shortId)
         expect(mockChrome.readingList.addEntry).toHaveBeenCalledWith({
           title: '🤫 English Article',
           url: urlObj.toString(),
@@ -340,14 +345,16 @@ describe('ReadingListManager', () => {
 
     it('应该设置追踪标记（原文链接）', async () => {
       const { saveUrlTracking } = await import('@/storage/tracking-storage')
+      const { ReadingListManager } = await import('@/core/reading-list/reading-list-manager')
       mockChrome.readingList.addEntry.mockResolvedValue(undefined)
 
       await ReadingListManager.saveRecommendation(mockRecommendation)
 
       // saveUrlTracking 应该被调用带 sf_rec 参数的 URL
-      // 使用 URL API 正确处理查询参数
+      // 现在 sf_rec 的值是短哈希而不是完整 ID
+      const shortId = ReadingListManager.hashId(mockRecommendation.id)
       const urlObj = new URL(mockRecommendation.url)
-      urlObj.searchParams.set('sf_rec', mockRecommendation.id)
+      urlObj.searchParams.set('sf_rec', shortId)
       const urlWithTracking = urlObj.toString()
       expect(saveUrlTracking).toHaveBeenCalledWith(urlWithTracking, {
         recommendationId: mockRecommendation.id,
@@ -359,6 +366,7 @@ describe('ReadingListManager', () => {
 
     it('应该设置追踪标记（翻译链接）', async () => {
       const { saveUrlTracking } = await import('@/storage/tracking-storage')
+      const { ReadingListManager } = await import('@/core/reading-list/reading-list-manager')
       const recWithTranslation: Recommendation = {
         ...mockRecommendation,
         translation: {
@@ -383,7 +391,9 @@ describe('ReadingListManager', () => {
       expect(url).toContain('.translate.goog')
       expect(url).toContain('_x_tr_sl=auto')
       expect(url).toContain('_x_tr_tl=zh')
-      expect(url).toContain('sf_rec=' + mockRecommendation.id)
+      // 验证包含 sf_rec 参数（值是短哈希）
+      const shortId = ReadingListManager.hashId(mockRecommendation.id)
+      expect(url).toContain('sf_rec=' + shortId)
       
       // 验证元数据
       expect(metadata).toEqual({

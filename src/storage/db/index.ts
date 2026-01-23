@@ -555,7 +555,7 @@ export class SilentFeedDB extends Dexie {
       discoveredFeeds: 'id, url, status, discoveredAt, subscribedAt, discoveredFrom, isActive, lastFetchedAt, [status+discoveredAt], [isActive+lastFetchedAt]',
       feedArticles: 'id, feedId, link, published, recommended, read, inPool, inFeed, deleted, poolStatus, analysisScore, [feedId+published], [recommended+published], [read+published], [inPool+poolAddedAt], [inFeed+published], [deleted+deletedAt], [poolStatus+analysisScore], [poolStatus+candidatePoolAddedAt]',
       aiUsage: 'id, timestamp, provider, purpose, success, [provider+timestamp], [purpose+timestamp]',
-      readingListEntries: 'url, normalizedUrl, recommendationId, addedAt, titlePrefix'  // 主键改为 url（匹配实际数据库）
+      readingListEntries: 'url, normalizedUrl, recommendationId, shortId, addedAt, titlePrefix'  // 添加 shortId 索引
     }).upgrade(async tx => {
       dbLogger.info('[阅读清单模式] 初始化 readingListEntries 表...')
       // 无需迁移数据，表结构即可创建

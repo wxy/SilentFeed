@@ -27,6 +27,35 @@ export const config: PlasmoCSConfig = {
 
 const sfLogger = logger.withTag('SilentFeed')
 
+// ==================== 重复注入检测 ====================
+
+/**
+ * 检测内容脚本是否已经注入过
+ * 如果检测到重复注入，记录错误并阻止继续执行
+ */
+const INJECTION_MARKER = '__silentfeed_injected__'
+const INJECTION_TIME_KEY = '__silentfeed_injection_time__'
+
+if ((window as any)[INJECTION_MARKER]) {
+  const firstInjectionTime = (window as any)[INJECTION_TIME_KEY]
+  const now = Date.now()
+  sfLogger.error('⚠️ 检测到重复注入！', {
+    首次注入时间: new Date(firstInjectionTime).toISOString(),
+    当前时间: new Date(now).toISOString(),
+    间隔毫秒: now - firstInjectionTime,
+    URL: window.location.href
+  })
+  throw new Error('SilentFeed content script injected multiple times')
+}
+
+// 标记已注入
+;(window as any)[INJECTION_MARKER] = true
+;(window as any)[INJECTION_TIME_KEY] = Date.now()
+sfLogger.debug('✅ 内容脚本已注入', { 
+  url: window.location.href,
+  time: new Date().toISOString()
+})
+
 // ==================== 配置 ====================
 
 const DWELL_TIME_THRESHOLD = 30 // 秒
@@ -597,6 +626,12 @@ function initialize() {
           时间: `${dwellTime.toFixed(1)}秒`
         })
         notifyPageVisit()
+        
+        // 记录后清除定时器，避免重复触发
+        if (checkTimer) {
+          clearInterval(checkTimer)
+          checkTimer = null
+        }
       }
     }
   }, 5000)

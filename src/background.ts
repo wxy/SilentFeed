@@ -695,29 +695,90 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             // 若未执行移除尝试（例如无 recommendationId），进行通用的规范化匹配移除
             if (!removalDebug.attempted && ReadingListManager.isAvailable()) {
               try {
-                const normalizedUrl = ReadingListManager.normalizeUrlForTracking(pageData.url)
-                const entries = await db.readingListEntries
-                  .where('normalizedUrl').equals(normalizedUrl)
-                  .toArray()
-                removalDebug.attempted = true
-                removalDebug.normalizedUrl = normalizedUrl
-                removalDebug.entriesFound = entries.length
-                removalDebug.matchedUrls = entries.map(e => e.url)
-                removalDebug.removedCount = 0
-                bgLogger.debug('通用路径查询阅读清单记录', { normalizedUrl, entriesFound: entries.length })
-                if (entries.length === 0 && pageData.meta?.canonical) {
-                  const canonicalNorm = ReadingListManager.normalizeUrlForTracking(pageData.meta.canonical)
-                  const canonicalEntries = await db.readingListEntries
-                    .where('normalizedUrl').equals(canonicalNorm)
+                let entries: Awaited<ReturnType<typeof db.readingListEntries.toArray>> = []
+                
+                // 优先尝试通过 sf_rec 参数进行精确匹配
+                const shortId = ReadingListManager.extractRecommendationId(pageData.url)
+                bgLogger.info('🔍 [阅读清单追踪] 检查URL参数', { 
+                  url: pageData.url,
+                  hasShortId: !!shortId,
+                  shortId: shortId || '(无)'
+                })
+                
+                if (shortId) {
+                  bgLogger.info('🎯 [阅读清单追踪] 使用短ID匹配', { shortId })
+                  entries = await db.readingListEntries
+                    .where('shortId').equals(shortId)
                     .toArray()
-                  bgLogger.debug('通用路径使用 canonical 兜底查询', { canonicalNorm, entriesFound: canonicalEntries.length })
-                  if (canonicalEntries.length > 0) {
-                    removalDebug.normalizedUrl = canonicalNorm
-                    removalDebug.entriesFound = canonicalEntries.length
-                    removalDebug.matchedUrls = canonicalEntries.map(e => e.url)
-                    entries.splice(0, entries.length, ...canonicalEntries)
+                  removalDebug.attempted = true
+                  removalDebug.normalizedUrl = `[ShortID:${shortId}]`
+                  removalDebug.entriesFound = entries.length
+                  removalDebug.matchedUrls = entries.map(e => e.url)
+                  removalDebug.removedCount = 0
+                  
+                  if (entries.length > 0) {
+                    bgLogger.info('✅ [阅读清单追踪] 短ID匹配成功', {
+                      shortId,
+                      count: entries.length,
+                      entries: entries.map(e => ({
+                        normalizedUrl: e.normalizedUrl,
+                        displayUrl: e.url,
+                        originalUrl: e.originalUrl,
+                        recommendationId: e.recommendationId
+                      }))
+                    })
+                  } else {
+                    bgLogger.warn('⚠️ [阅读清单追踪] 短ID匹配失败', { shortId })
                   }
                 }
+                
+                // 如果 ID 匹配失败，降级到 URL 规范化匹配
+                if (entries.length === 0) {
+                  const normalizedUrl = ReadingListManager.normalizeUrlForTracking(pageData.url)
+                  bgLogger.info('🔍 [阅读清单追踪] 降级到URL匹配', {
+                    originalUrl: pageData.url,
+                    normalizedUrl: normalizedUrl,
+                    isTranslated: pageData.url.includes('.translate.goog') || pageData.url.includes('translate.google.com')
+                  })
+                  
+                  entries = await db.readingListEntries
+                    .where('normalizedUrl').equals(normalizedUrl)
+                    .toArray()
+                  removalDebug.attempted = true
+                  removalDebug.normalizedUrl = normalizedUrl
+                  removalDebug.entriesFound = entries.length
+                  removalDebug.matchedUrls = entries.map(e => e.url)
+                  removalDebug.removedCount = 0
+                  bgLogger.debug('通用路径查询阅读清单记录', { normalizedUrl, entriesFound: entries.length })
+                  
+                  if (entries.length > 0) {
+                    bgLogger.info('✅ [阅读清单追踪] URL匹配成功', {
+                      count: entries.length,
+                      entries: entries.map(e => ({
+                        normalizedUrl: e.normalizedUrl,
+                        displayUrl: e.url,
+                        originalUrl: e.originalUrl
+                      }))
+                    })
+                  }
+                  
+                  // Canonical URL 兜底查询
+                  if (entries.length === 0 && pageData.meta?.canonical) {
+                    const canonicalNorm = ReadingListManager.normalizeUrlForTracking(pageData.meta.canonical)
+                    const canonicalEntries = await db.readingListEntries
+                      .where('normalizedUrl').equals(canonicalNorm)
+                      .toArray()
+                    bgLogger.debug('通用路径使用 canonical 兜底查询', { canonicalNorm, entriesFound: canonicalEntries.length })
+                    if (canonicalEntries.length > 0) {
+                      removalDebug.normalizedUrl = canonicalNorm
+                      removalDebug.entriesFound = canonicalEntries.length
+                      removalDebug.matchedUrls = canonicalEntries.map(e => e.url)
+                      entries.splice(0, entries.length, ...canonicalEntries)
+                    }
+                  }
+                }
+                
+                // 处理匹配到的条目
                 if (entries.length > 0) {
                   for (const entry of entries) {
                     try {
@@ -1377,19 +1438,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     }
                     
                     const finalTitle = `${autoAddedPrefix}${displayTitle}`
-                    const ok = await ReadingListManager.addToReadingList(finalTitle, displayUrl, article.isRead || false)
+                    
+                    // ✅ 添加追踪参数到 URL，用于精确匹配阅读清单条目
+                    const urlWithTracking = ReadingListManager.addTrackingParam(displayUrl, article.id)
+                    const ok = await ReadingListManager.addToReadingList(finalTitle, urlWithTracking, article.isRead || false)
 
                     if (ok) {
                       // 记录映射关系（用于删除）
                       // 同时记录原文URL和显示URL
                       const normalizedOriginalUrl = ReadingListManager.normalizeUrlForTracking(article.link)
                       const normalizedDisplayUrl = ReadingListManager.normalizeUrlForTracking(displayUrl)
+                      const shortId = ReadingListManager.hashId(article.id)  // 生成短 ID
                       
                       await db.readingListEntries.put({
                         normalizedUrl: normalizedOriginalUrl,  // 主键，使用原文URL
-                        url: displayUrl,                        // 实际显示的URL（可能是翻译链接）
+                        url: urlWithTracking,                   // 实际显示的URL（带追踪参数）
                         originalUrl: article.link,              // 始终保存原文URL
                         recommendationId: article.id,
+                        shortId: shortId,                       // 存储短 ID 用于查询
                         addedAt: Date.now(),
                         titlePrefix: autoAddedPrefix
                       })
@@ -1398,9 +1464,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                       if (displayUrl !== article.link) {
                         await db.readingListEntries.put({
                           normalizedUrl: normalizedDisplayUrl,
-                          url: displayUrl,
+                          url: urlWithTracking,
                           originalUrl: article.link,
                           recommendationId: article.id,
+                          shortId: shortId,                     // 同样存储短 ID
                           addedAt: Date.now(),
                           titlePrefix: autoAddedPrefix
                         })
