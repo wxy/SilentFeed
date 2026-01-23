@@ -698,28 +698,37 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 let entries: Awaited<ReturnType<typeof db.readingListEntries.toArray>> = []
                 
                 // 优先尝试通过 sf_rec 参数进行精确匹配
-                const recId = ReadingListManager.extractRecommendationId(pageData.url)
-                if (recId) {
-                  bgLogger.info('🎯 [阅读清单追踪] 使用推荐ID匹配', { recId })
+                const shortId = ReadingListManager.extractRecommendationId(pageData.url)
+                bgLogger.info('🔍 [阅读清单追踪] 检查URL参数', { 
+                  url: pageData.url,
+                  hasShortId: !!shortId,
+                  shortId: shortId || '(无)'
+                })
+                
+                if (shortId) {
+                  bgLogger.info('🎯 [阅读清单追踪] 使用短ID匹配', { shortId })
                   entries = await db.readingListEntries
-                    .where('recommendationId').equals(recId)
+                    .where('shortId').equals(shortId)
                     .toArray()
                   removalDebug.attempted = true
-                  removalDebug.normalizedUrl = `[ID:${recId}]`
+                  removalDebug.normalizedUrl = `[ShortID:${shortId}]`
                   removalDebug.entriesFound = entries.length
                   removalDebug.matchedUrls = entries.map(e => e.url)
                   removalDebug.removedCount = 0
                   
                   if (entries.length > 0) {
-                    bgLogger.info('✅ [阅读清单追踪] ID匹配成功', {
-                      recId,
+                    bgLogger.info('✅ [阅读清单追踪] 短ID匹配成功', {
+                      shortId,
                       count: entries.length,
                       entries: entries.map(e => ({
                         normalizedUrl: e.normalizedUrl,
                         displayUrl: e.url,
-                        originalUrl: e.originalUrl
+                        originalUrl: e.originalUrl,
+                        recommendationId: e.recommendationId
                       }))
                     })
+                  } else {
+                    bgLogger.warn('⚠️ [阅读清单追踪] 短ID匹配失败', { shortId })
                   }
                 }
                 
@@ -1439,12 +1448,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                       // 同时记录原文URL和显示URL
                       const normalizedOriginalUrl = ReadingListManager.normalizeUrlForTracking(article.link)
                       const normalizedDisplayUrl = ReadingListManager.normalizeUrlForTracking(displayUrl)
+                      const shortId = ReadingListManager.hashId(article.id)  // 生成短 ID
                       
                       await db.readingListEntries.put({
                         normalizedUrl: normalizedOriginalUrl,  // 主键，使用原文URL
                         url: urlWithTracking,                   // 实际显示的URL（带追踪参数）
                         originalUrl: article.link,              // 始终保存原文URL
                         recommendationId: article.id,
+                        shortId: shortId,                       // 存储短 ID 用于查询
                         addedAt: Date.now(),
                         titlePrefix: autoAddedPrefix
                       })
@@ -1456,6 +1467,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                           url: urlWithTracking,
                           originalUrl: article.link,
                           recommendationId: article.id,
+                          shortId: shortId,                     // 同样存储短 ID
                           addedAt: Date.now(),
                           titlePrefix: autoAddedPrefix
                         })

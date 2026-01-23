@@ -191,6 +191,8 @@ export interface ReadingListEntry {
   originalUrl?: string
   /** 对应的推荐 ID，用于统计与清理 */
   recommendationId?: string
+  /** 推荐 ID 的 8 位短哈希，用于 URL 参数匹配 */
+  shortId?: string
   /** 保存时间戳 */
   addedAt: number
   /** 使用的标题前缀（用于排查清理策略） */

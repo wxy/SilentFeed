@@ -627,12 +627,14 @@ export class RefillScheduler {
           // 记录映射关系（用于删除和状态同步）
           const normalizedOriginalUrl = ReadingListManager.normalizeUrlForTracking(article.link)
           const normalizedDisplayUrl = ReadingListManager.normalizeUrlForTracking(displayUrl)
+          const shortId = ReadingListManager.hashId(article.id)  // 生成短 ID
           
           await db.readingListEntries.put({
             normalizedUrl: normalizedOriginalUrl,  // 主键，使用原文URL
             url: urlWithTracking,                   // 实际显示的URL（带追踪参数）
             originalUrl: article.link,              // 始终保存原文URL
             recommendationId: article.id,
+            shortId: shortId,                       // 存储短 ID
             addedAt: Date.now()
           })
           
@@ -643,6 +645,7 @@ export class RefillScheduler {
               url: urlWithTracking,               // 使用带追踪参数的 URL
               originalUrl: article.link,
               recommendationId: article.id,
+              shortId: shortId,                   // 同样存储短 ID
               addedAt: Date.now()
             })
           }

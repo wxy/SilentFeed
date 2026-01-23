@@ -41,18 +41,6 @@ const programmaticDeletions = new Set<string>()
 
 export class ReadingListManager {
   /**
-   * 在 URL 上附加推荐ID参数（sf_rec），若已存在则覆写
-   */
-  private static appendRecommendationId(url: string, recId: string): string {
-    try {
-      const u = new URL(url)
-      u.searchParams.set('sf_rec', recId)
-      return u.toString()
-    } catch {
-      return url
-    }
-  }
-  /**
    * 检查阅读列表功能是否可用
    * @returns 是否支持阅读列表
    */
@@ -149,7 +137,7 @@ export class ReadingListManager {
     if (!feedUseGoogleTranslate) {
       rlLogger.debug('订阅源禁用翻译，使用原文链接')
       if (appendTrackingId) {
-        finalUrl = ReadingListManager.appendRecommendationId(baseOriginalUrl, recommendation.id!)
+        finalUrl = ReadingListManager.addTrackingParam(baseOriginalUrl, recommendation.id!)
       }
       return { url: finalUrl, title: finalTitle }
     }
@@ -157,7 +145,7 @@ export class ReadingListManager {
     // 逻辑2：如果启用自动翻译且推荐已翻译，生成翻译链接（translate.goog 格式）
     if (autoTranslateEnabled && recommendation.translation) {
       const originalWithRec = appendTrackingId
-        ? ReadingListManager.appendRecommendationId(baseOriginalUrl, recommendation.id!)
+        ? ReadingListManager.addTrackingParam(baseOriginalUrl, recommendation.id!)
         : baseOriginalUrl
       
       try {
@@ -187,7 +175,7 @@ export class ReadingListManager {
         rlLogger.error('生成翻译链接失败，降级到原文:', error)
         // 降级到原文
         if (appendTrackingId) {
-          finalUrl = ReadingListManager.appendRecommendationId(baseOriginalUrl, recommendation.id!)
+          finalUrl = ReadingListManager.addTrackingParam(baseOriginalUrl, recommendation.id!)
         }
         return { url: finalUrl, title: finalTitle }
       }
@@ -195,35 +183,50 @@ export class ReadingListManager {
 
     // 逻辑3：其它情况使用原文
     if (appendTrackingId) {
-      finalUrl = ReadingListManager.appendRecommendationId(baseOriginalUrl, recommendation.id!)
+      finalUrl = ReadingListManager.addTrackingParam(baseOriginalUrl, recommendation.id!)
     }
     return { url: finalUrl, title: finalTitle }
   }
 
   /**
+   * 生成推荐 ID 的 8 位短哈希
+   * 使用简单但有效的字符串哈希算法
+   */
+  static hashId(id: string): string {
+    let hash = 0
+    for (let i = 0; i < id.length; i++) {
+      const char = id.charCodeAt(i)
+      hash = ((hash << 5) - hash) + char
+      hash = hash & hash // 转为 32 位整数
+    }
+    // 转为正数并转为 36 进制，取前 8 位
+    return Math.abs(hash).toString(36).padStart(8, '0').substring(0, 8)
+  }
+
+  /**
    * 添加追踪参数到 URL
-   * 用于精确追踪阅读清单条目，避免 URL 变化导致的匹配失败
+   * 使用 8 位短哈希而不是完整 UUID，使 URL 更简洁
    * 
    * @param url - 原始 URL
-   * @param recommendationId - 推荐 ID
-   * @returns 带追踪参数的 URL
+   * @param recommendationId - 推荐 ID（UUID）
+   * @returns 带短哈希追踪参数的 URL
    */
   static addTrackingParam(url: string, recommendationId: string): string {
     try {
       const urlObj = new URL(url)
-      urlObj.searchParams.set('sf_rec', recommendationId)
+      const shortId = this.hashId(recommendationId)
+      urlObj.searchParams.set('sf_rec', shortId)
       return urlObj.toString()
     } catch {
-      // 如果 URL 无效，返回原始 URL
       return url
     }
   }
 
   /**
-   * 从 URL 中提取推荐 ID
+   * 从 URL 中提取短哈希
    * 
    * @param url - 包含追踪参数的 URL
-   * @returns 推荐 ID，如果没有则返回 null
+   * @returns 8 位短哈希，如果没有则返回 null
    */
   static extractRecommendationId(url: string): string | null {
     try {
