@@ -201,7 +201,41 @@ export class ReadingListManager {
   }
 
   /**
-   * Phase 15: 简化方法 - 直接添加到阅读清单
+   * 添加追踪参数到 URL
+   * 用于精确追踪阅读清单条目，避免 URL 变化导致的匹配失败
+   * 
+   * @param url - 原始 URL
+   * @param recommendationId - 推荐 ID
+   * @returns 带追踪参数的 URL
+   */
+  static addTrackingParam(url: string, recommendationId: string): string {
+    try {
+      const urlObj = new URL(url)
+      urlObj.searchParams.set('sf_rec', recommendationId)
+      return urlObj.toString()
+    } catch {
+      // 如果 URL 无效，返回原始 URL
+      return url
+    }
+  }
+
+  /**
+   * 从 URL 中提取推荐 ID
+   * 
+   * @param url - 包含追踪参数的 URL
+   * @returns 推荐 ID，如果没有则返回 null
+   */
+  static extractRecommendationId(url: string): string | null {
+    try {
+      const urlObj = new URL(url)
+      return urlObj.searchParams.get('sf_rec')
+    } catch {
+      return null
+    }
+  }
+
+  /**
+   * 简化方法 - 直接添加到阅读清单
    * 
    * 用于阅读清单模式，直接添加已处理好的 URL 和标题
    * 避免重复的 URL 决策逻辑

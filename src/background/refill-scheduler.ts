@@ -614,9 +614,12 @@ export class RefillScheduler {
           ? `${titlePrefix}${displayTitle}`
           : displayTitle
         
+        // 添加推荐 ID 追踪参数到 URL
+        const urlWithTracking = ReadingListManager.addTrackingParam(displayUrl, article.id)
+        
         const ok = await ReadingListManager.addToReadingList(
           finalTitle,
-          displayUrl,
+          urlWithTracking,  // 使用带追踪参数的 URL
           article.isRead || false
         )
         
@@ -627,7 +630,7 @@ export class RefillScheduler {
           
           await db.readingListEntries.put({
             normalizedUrl: normalizedOriginalUrl,  // 主键，使用原文URL
-            url: displayUrl,                        // 实际显示的URL（可能是翻译链接）
+            url: urlWithTracking,                   // 实际显示的URL（带追踪参数）
             originalUrl: article.link,              // 始终保存原文URL
             recommendationId: article.id,
             addedAt: Date.now()
@@ -637,7 +640,7 @@ export class RefillScheduler {
           if (displayUrl !== article.link) {
             await db.readingListEntries.put({
               normalizedUrl: normalizedDisplayUrl,
-              url: displayUrl,
+              url: urlWithTracking,               // 使用带追踪参数的 URL
               originalUrl: article.link,
               recommendationId: article.id,
               addedAt: Date.now()

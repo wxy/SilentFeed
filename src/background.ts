@@ -695,47 +695,81 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             // 若未执行移除尝试（例如无 recommendationId），进行通用的规范化匹配移除
             if (!removalDebug.attempted && ReadingListManager.isAvailable()) {
               try {
-                const normalizedUrl = ReadingListManager.normalizeUrlForTracking(pageData.url)
-                bgLogger.info('🔍 [阅读清单追踪] 尝试匹配', {
-                  originalUrl: pageData.url,
-                  normalizedUrl: normalizedUrl,
-                  isTranslated: pageData.url.includes('.translate.goog') || pageData.url.includes('translate.google.com')
-                })
+                let entries: Awaited<ReturnType<typeof db.readingListEntries.toArray>> = []
                 
-                const entries = await db.readingListEntries
-                  .where('normalizedUrl').equals(normalizedUrl)
-                  .toArray()
-                removalDebug.attempted = true
-                removalDebug.normalizedUrl = normalizedUrl
-                removalDebug.entriesFound = entries.length
-                removalDebug.matchedUrls = entries.map(e => e.url)
-                removalDebug.removedCount = 0
-                bgLogger.debug('通用路径查询阅读清单记录', { normalizedUrl, entriesFound: entries.length })
-                
-                if (entries.length > 0) {
-                  bgLogger.info('✅ [阅读清单追踪] 找到匹配记录', {
-                    count: entries.length,
-                    entries: entries.map(e => ({
-                      normalizedUrl: e.normalizedUrl,
-                      displayUrl: e.url,
-                      originalUrl: e.originalUrl
-                    }))
-                  })
-                }
-                
-                if (entries.length === 0 && pageData.meta?.canonical) {
-                  const canonicalNorm = ReadingListManager.normalizeUrlForTracking(pageData.meta.canonical)
-                  const canonicalEntries = await db.readingListEntries
-                    .where('normalizedUrl').equals(canonicalNorm)
+                // 优先尝试通过 sf_rec 参数进行精确匹配
+                const recId = ReadingListManager.extractRecommendationId(pageData.url)
+                if (recId) {
+                  bgLogger.info('🎯 [阅读清单追踪] 使用推荐ID匹配', { recId })
+                  entries = await db.readingListEntries
+                    .where('recommendationId').equals(recId)
                     .toArray()
-                  bgLogger.debug('通用路径使用 canonical 兜底查询', { canonicalNorm, entriesFound: canonicalEntries.length })
-                  if (canonicalEntries.length > 0) {
-                    removalDebug.normalizedUrl = canonicalNorm
-                    removalDebug.entriesFound = canonicalEntries.length
-                    removalDebug.matchedUrls = canonicalEntries.map(e => e.url)
-                    entries.splice(0, entries.length, ...canonicalEntries)
+                  removalDebug.attempted = true
+                  removalDebug.normalizedUrl = `[ID:${recId}]`
+                  removalDebug.entriesFound = entries.length
+                  removalDebug.matchedUrls = entries.map(e => e.url)
+                  removalDebug.removedCount = 0
+                  
+                  if (entries.length > 0) {
+                    bgLogger.info('✅ [阅读清单追踪] ID匹配成功', {
+                      recId,
+                      count: entries.length,
+                      entries: entries.map(e => ({
+                        normalizedUrl: e.normalizedUrl,
+                        displayUrl: e.url,
+                        originalUrl: e.originalUrl
+                      }))
+                    })
                   }
                 }
+                
+                // 如果 ID 匹配失败，降级到 URL 规范化匹配
+                if (entries.length === 0) {
+                  const normalizedUrl = ReadingListManager.normalizeUrlForTracking(pageData.url)
+                  bgLogger.info('🔍 [阅读清单追踪] 降级到URL匹配', {
+                    originalUrl: pageData.url,
+                    normalizedUrl: normalizedUrl,
+                    isTranslated: pageData.url.includes('.translate.goog') || pageData.url.includes('translate.google.com')
+                  })
+                  
+                  entries = await db.readingListEntries
+                    .where('normalizedUrl').equals(normalizedUrl)
+                    .toArray()
+                  removalDebug.attempted = true
+                  removalDebug.normalizedUrl = normalizedUrl
+                  removalDebug.entriesFound = entries.length
+                  removalDebug.matchedUrls = entries.map(e => e.url)
+                  removalDebug.removedCount = 0
+                  bgLogger.debug('通用路径查询阅读清单记录', { normalizedUrl, entriesFound: entries.length })
+                  
+                  if (entries.length > 0) {
+                    bgLogger.info('✅ [阅读清单追踪] URL匹配成功', {
+                      count: entries.length,
+                      entries: entries.map(e => ({
+                        normalizedUrl: e.normalizedUrl,
+                        displayUrl: e.url,
+                        originalUrl: e.originalUrl
+                      }))
+                    })
+                  }
+                  
+                  // Canonical URL 兜底查询
+                  if (entries.length === 0 && pageData.meta?.canonical) {
+                    const canonicalNorm = ReadingListManager.normalizeUrlForTracking(pageData.meta.canonical)
+                    const canonicalEntries = await db.readingListEntries
+                      .where('normalizedUrl').equals(canonicalNorm)
+                      .toArray()
+                    bgLogger.debug('通用路径使用 canonical 兜底查询', { canonicalNorm, entriesFound: canonicalEntries.length })
+                    if (canonicalEntries.length > 0) {
+                      removalDebug.normalizedUrl = canonicalNorm
+                      removalDebug.entriesFound = canonicalEntries.length
+                      removalDebug.matchedUrls = canonicalEntries.map(e => e.url)
+                      entries.splice(0, entries.length, ...canonicalEntries)
+                    }
+                  }
+                }
+                
+                // 处理匹配到的条目
                 if (entries.length > 0) {
                   for (const entry of entries) {
                     try {
@@ -1395,7 +1429,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     }
                     
                     const finalTitle = `${autoAddedPrefix}${displayTitle}`
-                    const ok = await ReadingListManager.addToReadingList(finalTitle, displayUrl, article.isRead || false)
+                    
+                    // ✅ 添加追踪参数到 URL，用于精确匹配阅读清单条目
+                    const urlWithTracking = ReadingListManager.addTrackingParam(displayUrl, article.id)
+                    const ok = await ReadingListManager.addToReadingList(finalTitle, urlWithTracking, article.isRead || false)
 
                     if (ok) {
                       // 记录映射关系（用于删除）
@@ -1405,7 +1442,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                       
                       await db.readingListEntries.put({
                         normalizedUrl: normalizedOriginalUrl,  // 主键，使用原文URL
-                        url: displayUrl,                        // 实际显示的URL（可能是翻译链接）
+                        url: urlWithTracking,                   // 实际显示的URL（带追踪参数）
                         originalUrl: article.link,              // 始终保存原文URL
                         recommendationId: article.id,
                         addedAt: Date.now(),
@@ -1416,7 +1453,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                       if (displayUrl !== article.link) {
                         await db.readingListEntries.put({
                           normalizedUrl: normalizedDisplayUrl,
-                          url: displayUrl,
+                          url: urlWithTracking,
                           originalUrl: article.link,
                           recommendationId: article.id,
                           addedAt: Date.now(),
