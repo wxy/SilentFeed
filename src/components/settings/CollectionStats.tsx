@@ -1386,162 +1386,122 @@ export function CollectionStats() {
                           👨‍💻
                         </text>
                         
-                        {/* 退出统计 - 放在用户图标下方，横向排列 */}
+                        {/* 推荐漏斗三大恒等式 - 放在用户图标下方 */}
                         <g transform={`translate(${centerX}, ${funnelBottomY + 80})`}>
-                          {/* 退出详情横向排列 - 3个用户主动 + 分隔符 + 4个被动/未读细分 */}
-                          {(() => {
-                            const exitItems = [
-                              // 用户主动操作
-                              { icon: '✓', label: _("options.collectionStats.funnelExitRead"), value: funnel.exitStats?.read ?? 0, color: '#16A34A' },
-                              { icon: '📥', label: _("options.collectionStats.funnelExitSaved"), value: funnel.exitStats?.saved ?? 0, color: '#2563EB' },
-                              { icon: '✕', label: _("options.collectionStats.funnelExitDisliked"), value: funnel.exitStats?.disliked ?? 0, color: '#DC2626' },
-                              // 分隔符占位
-                              { icon: '│', label: '', value: '', color: '#D1D5DB', isSeparator: true },
-                              // 未读细分（被动离开）
-                              { icon: '🔄', label: _("options.collectionStats.funnelExitReplaced"), value: funnel.exitStats?.replaced ?? 0, color: '#9333EA' },
-                              { icon: '⏰', label: _("options.collectionStats.funnelExitExpired"), value: funnel.exitStats?.expired ?? 0, color: '#EA580C' },
-                              { icon: '🗑️', label: _("options.collectionStats.funnelStale"), value: funnel.exitStats?.stale ?? 0, color: '#6B7280' },
-                              { icon: '❓', label: _("options.collectionStats.funnelExitOther"), value: funnel.exitStats?.other ?? 0, color: '#9CA3AF' }
-                            ]
-                            const itemWidth = 44
-                            const totalWidth = exitItems.length * itemWidth
-                            const startX = -totalWidth / 2 + itemWidth / 2
-                            
-                            return exitItems.map((item, idx) => {
-                              if (item.isSeparator) {
-                                return (
-                                  <g key={`exit-${idx}`} transform={`translate(${startX + idx * itemWidth}, 0)`}>
-                                    <text x={0} y={14} textAnchor="middle" fontSize="16" fill="#D1D5DB">│</text>
-                                  </g>
-                                )
-                              }
-                              return (
-                                <g key={`exit-${idx}`} transform={`translate(${startX + idx * itemWidth}, 0)`}>
-                                  <text x={0} y={0} textAnchor="middle" fontSize="10">{item.icon}</text>
-                                  <text 
-                                    x={0} 
-                                    y={12} 
-                                    textAnchor="middle" 
-                                    fontSize="8" 
-                                    fill="#6B7280"
-                                  >
-                                    {item.label}
-                                  </text>
-                                  <text 
-                                    x={0} 
-                                    y={24} 
-                                    textAnchor="middle" 
-                                    fontSize="11" 
-                                    fontWeight="bold"
-                                    fill={item.color}
-                                  >
-                                    {item.value}
-                                  </text>
-                                </g>
-                              )
-                            })
-                          })()}
-                        </g>
-                        
-                        {/* 推荐漏斗恒等式 - 放在退出统计下方 */}
-                        <g transform={`translate(${centerX}, ${funnelBottomY + 135})`}>
                           {(() => {
                             const funnel = recommendationFunnel
                             if (!funnel) return null
                             
-                            // 验证等式 1: analyzed = rssArticles - raw - stale - prescreenedOut
-                            const analyzedCalc = funnel.rssArticles - funnel.raw - funnel.stale - funnel.prescreenedOut
-                            const isValid1 = analyzedCalc === funnel.analyzed
-                            
-                            // 验证等式 2: analyzed = analyzedNotQualified + candidate + currentRecommendedPool + exited
+                            // 计算退出总数（不包括过时）
                             const exitedCount = (funnel.exitStats?.total ?? 0) - (funnel.exitStats?.stale ?? 0)
-                            const analyzedSum = (funnel.analyzedNotQualified ?? 0) + funnel.candidate + (funnel.currentRecommendedPool ?? 0) + exitedCount
-                            const isValid2 = analyzedSum === funnel.analyzed
                             
-                            // 定义恒等式的所有项：左边4个 - 右边4个 = 中间1个
-                            const items = [
-                              { value: funnel.rssArticles, label: '订阅源', color: '#1F2937' },
-                              { value: funnel.raw, label: '待分析', color: '#6B7280' },
-                              { value: funnel.stale, label: '已过时', color: '#6B7280' },
-                              { value: funnel.prescreenedOut, label: '初筛淘汰', color: '#6B7280' },
-                              { value: funnel.analyzed, label: '已分析', color: '#3B82F6', isBold: true },
-                              { value: funnel.analyzedNotQualified ?? 0, label: '未达标', color: '#6B7280' },
+                            // 等式 1: 已读+稍后+不想+替换+过期+过时+其它=已退出
+                            const eq1Items = [
+                              { value: funnel.exitStats?.read ?? 0, label: '已读', color: '#16A34A' },
+                              { value: funnel.exitStats?.saved ?? 0, label: '稍后', color: '#2563EB' },
+                              { value: funnel.exitStats?.disliked ?? 0, label: '不想', color: '#DC2626' },
+                              { value: funnel.exitStats?.replaced ?? 0, label: '替换', color: '#9333EA' },
+                              { value: funnel.exitStats?.expired ?? 0, label: '过期', color: '#EA580C' },
+                              { value: funnel.exitStats?.stale ?? 0, label: '过时', color: '#6B7280' },
+                              { value: funnel.exitStats?.other ?? 0, label: '其它', color: '#9CA3AF' },
+                              { value: funnel.exitStats?.total ?? 0, label: '已退出', color: '#1F2937', isBold: true }
+                            ]
+                            const eq1Sum = (funnel.exitStats?.read ?? 0) + (funnel.exitStats?.saved ?? 0) + (funnel.exitStats?.disliked ?? 0) + 
+                                          (funnel.exitStats?.replaced ?? 0) + (funnel.exitStats?.expired ?? 0) + (funnel.exitStats?.stale ?? 0) + 
+                                          (funnel.exitStats?.other ?? 0)
+                            const eq1Valid = eq1Sum === (funnel.exitStats?.total ?? 0)
+                            
+                            // 等式 2: 已退出+未达标+候选池+推荐池=已分析
+                            const eq2Items = [
+                              { value: funnel.exitStats?.total ?? 0, label: '已退出', color: '#6B7280' },
+                              { value: funnel.analyzedNotQualified ?? 0, label: '未达标', color: '#9CA3AF' },
                               { value: funnel.candidate, label: '候选池', color: '#EAB308' },
                               { value: funnel.currentRecommendedPool ?? 0, label: '推荐池', color: '#10B981' },
-                              { value: exitedCount, label: '已退出', color: '#6B7280' }
+                              { value: funnel.analyzed, label: '已分析', color: '#3B82F6', isBold: true }
                             ]
+                            const eq2Sum = (funnel.exitStats?.total ?? 0) + (funnel.analyzedNotQualified ?? 0) + funnel.candidate + (funnel.currentRecommendedPool ?? 0)
+                            const eq2Valid = eq2Sum === funnel.analyzed
                             
-                            // 每个项目占用 55px 宽度
-                            const itemWidth = 55
-                            const startX = -4 * itemWidth - 27
+                            // 等式 3: 已分析+待分析+已过时+初筛淘汰=订阅源
+                            const eq3Items = [
+                              { value: funnel.analyzed, label: '已分析', color: '#3B82F6' },
+                              { value: funnel.raw, label: '待分析', color: '#9CA3AF' },
+                              { value: funnel.stale, label: '已过时', color: '#6B7280' },
+                              { value: funnel.prescreenedOut, label: '初筛淘汰', color: '#9CA3AF' },
+                              { value: funnel.rssArticles, label: '订阅源', color: '#1F2937', isBold: true }
+                            ]
+                            const eq3Sum = funnel.analyzed + funnel.raw + funnel.stale + funnel.prescreenedOut
+                            const eq3Valid = eq3Sum === funnel.rssArticles
+                            
+                            // 渲染单个等式
+                            const renderEquation = (items: any[], isValid: boolean, yOffset: number) => {
+                              const itemWidth = 52
+                              const totalWidth = items.length * itemWidth
+                              const startX = -totalWidth / 2 + itemWidth / 2
+                              
+                              return (
+                                <g transform={`translate(0, ${yOffset})`}>
+                                  {/* 数字行 */}
+                                  {items.map((item, idx) => (
+                                    <text
+                                      key={`value-${idx}`}
+                                      x={startX + idx * itemWidth}
+                                      y={0}
+                                      textAnchor="middle"
+                                      fontSize="12"
+                                      fontWeight={item.isBold ? 'bold' : 'normal'}
+                                      fill={item.color}
+                                    >
+                                      {item.value}
+                                    </text>
+                                  ))}
+                                  
+                                  {/* 运算符行 */}
+                                  {items.slice(0, -1).map((_, idx) => {
+                                    const isLastOperator = idx === items.length - 2
+                                    const operator = isLastOperator ? (isValid ? '=' : '≠') : '+'
+                                    const color = isLastOperator ? (isValid ? '#10B981' : '#EF4444') : '#9CA3AF'
+                                    
+                                    return (
+                                      <text
+                                        key={`op-${idx}`}
+                                        x={startX + (idx + 0.5) * itemWidth}
+                                        y={-2}
+                                        textAnchor="middle"
+                                        fontSize="11"
+                                        fontWeight={isLastOperator ? 'bold' : 'normal'}
+                                        fill={color}
+                                      >
+                                        {operator}
+                                      </text>
+                                    )
+                                  })}
+                                  
+                                  {/* 标签行 */}
+                                  {items.map((item, idx) => (
+                                    <text
+                                      key={`label-${idx}`}
+                                      x={startX + idx * itemWidth}
+                                      y={18}
+                                      textAnchor="middle"
+                                      fontSize="8"
+                                      fill="#9CA3AF"
+                                    >
+                                      {item.label}
+                                    </text>
+                                  ))}
+                                </g>
+                              )
+                            }
                             
                             return (
                               <>
-                                {/* 数字行 */}
-                                {items.map((item, idx) => (
-                                  <text
-                                    key={`value-${idx}`}
-                                    x={startX + idx * itemWidth}
-                                    y={0}
-                                    textAnchor="middle"
-                                    fontSize="13"
-                                    fontWeight={item.isBold ? 'bold' : 'normal'}
-                                    fill={item.color}
-                                  >
-                                    {item.value}
-                                  </text>
-                                ))}
-                                
-                                {/* 运算符行 */}
-                                {[0, 1, 2, 3, 4, 5, 6, 7].map((idx) => {
-                                  let operator = ''
-                                  let color = '#9CA3AF'
-                                  let bold = false
-                                  
-                                  if (idx === 3) {
-                                    // 第一个等号
-                                    operator = isValid1 ? '=' : '≠'
-                                    color = isValid1 ? '#10B981' : '#EF4444'
-                                    bold = true
-                                  } else if (idx === 4) {
-                                    // 第二个等号
-                                    operator = isValid2 ? '=' : '≠'
-                                    color = isValid2 ? '#10B981' : '#EF4444'
-                                    bold = true
-                                  } else if (idx < 3) {
-                                    operator = '-'
-                                  } else {
-                                    operator = '+'
-                                  }
-                                  
-                                  return (
-                                    <text
-                                      key={`op-${idx}`}
-                                      x={startX + (idx + 0.5) * itemWidth}
-                                      y={-2}
-                                      textAnchor="middle"
-                                      fontSize="12"
-                                      fontWeight={bold ? 'bold' : 'normal'}
-                                      fill={color}
-                                    >
-                                      {operator}
-                                    </text>
-                                  )
-                                })}
-                                
-                                {/* 标签行 */}
-                                {items.map((item, idx) => (
-                                  <text
-                                    key={`label-${idx}`}
-                                    x={startX + idx * itemWidth}
-                                    y={22}
-                                    textAnchor="middle"
-                                    fontSize="8"
-                                    fill="#9CA3AF"
-                                  >
-                                    {item.label}
-                                  </text>
-                                ))}
+                                {/* 等式 1 */}
+                                {renderEquation(eq1Items, eq1Valid, 0)}
+                                {/* 等式 2 */}
+                                {renderEquation(eq2Items, eq2Valid, 40)}
+                                {/* 等式 3 */}
+                                {renderEquation(eq3Items, eq3Valid, 80)}
                               </>
                             )
                           })()}
