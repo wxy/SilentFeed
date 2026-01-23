@@ -123,7 +123,7 @@ describe('StrategyDecisionService', () => {
     // 清空数据库
     await db.feedArticles.clear()
     await db.discoveredFeeds.clear()
-    await db.recommendations.clear()
+    // Phase 13+: recommendations 表已删除
     await db.aiUsage.clear()
     await db.settings.clear()
     await db.userProfile.clear()
@@ -206,19 +206,25 @@ describe('StrategyDecisionService', () => {
         } as any
       ])
 
-      // 添加推荐记录（注意：必须有 recommendedAt 字段因为有索引）
-      await db.recommendations.bulkAdd([
-        {
-          id: 'rec-1',
-          title: 'Rec 1',
-          sourceUrl: 'http://example.com/1',
-          source: 'feed-1',
-          recommendedAt: now - 3600000,  // 1 小时前
-          isRead: true,
-          readAt: now - 1800000,  // 30 分钟前
-          status: 'active'
-        } as any
-      ])
+      // Phase 13+: 推荐记录现在在 feedArticles 表中（通过 poolStatus='recommended'）
+      // 添加一条已读的推荐记录
+      await db.feedArticles.add({
+        id: 'rec-1',
+        feedId: 'feed-1',
+        link: 'http://example.com/rec1',
+        title: 'Rec 1',
+        published: now - 3600000,
+        fetched: now - 3600000,
+        poolStatus: 'exited',  // 已退出推荐池
+        poolExitedAt: now - 1800000,
+        poolExitReason: 'read',
+        popupAddedAt: now - 3600000,  // 1 小时前推荐
+        isRead: true,  // 已读
+        clickedAt: now - 1800000,  // 30 分钟前点击
+        read: true,
+        starred: false,
+        inFeed: true
+      } as any)
 
       const context = await service.collectContext()
 

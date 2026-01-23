@@ -441,5 +441,168 @@ describe('db-pool', () => {
       const cleaned = await cleanupExpiredCandidates(30)
       expect(cleaned).toBe(0)
     })
+
+    it('应该正确处理没有 candidatePoolAddedAt 的文章', async () => {
+      const articles: FeedArticle[] = [
+        {
+          id: 'no-timestamp',
+          feedId: 'feed-1',
+          link: 'http://example.com/no-ts',
+          title: 'No Timestamp',
+          published: Date.now(),
+          poolStatus: 'candidate',
+          // candidatePoolAddedAt 未设置
+        } as FeedArticle
+      ]
+
+      await db.feedArticles.bulkAdd(articles)
+
+      // 没有时间戳的文章会被视为时间戳为 0，应该被清理
+      const cleaned = await cleanupExpiredCandidates(30)
+      expect(cleaned).toBe(1)
+
+      const article = await db.feedArticles.get('no-timestamp')
+      expect(article?.poolStatus).toBe('exited')
+    })
+  })
+
+  describe('边界情况测试', () => {
+    it('moveToCandidate 应该成功更新存在的文章', async () => {
+      await db.feedArticles.add({
+        id: 'test-id',
+        feedId: 'feed-1',
+        link: 'http://example.com',
+        title: 'Test',
+        published: Date.now(),
+        poolStatus: 'raw'
+      } as FeedArticle)
+
+      await moveToCandidate('test-id', 8.0)
+      const article = await db.feedArticles.get('test-id')
+      expect(article?.poolStatus).toBe('candidate')
+      expect(article?.analysisScore).toBe(8.0)
+    })
+
+    it('moveToRecommended 应该成功更新存在的文章', async () => {
+      await db.feedArticles.add({
+        id: 'test-id',
+        feedId: 'feed-1',
+        link: 'http://example.com',
+        title: 'Test',
+        published: Date.now(),
+        poolStatus: 'candidate'
+      } as FeedArticle)
+
+      await moveToRecommended('test-id')
+      const article = await db.feedArticles.get('test-id')
+      expect(article?.poolStatus).toBe('recommended')
+    })
+
+    it('removeFromPool 应该成功移除存在的文章', async () => {
+      await db.feedArticles.add({
+        id: 'test-id',
+        feedId: 'feed-1',
+        link: 'http://example.com',
+        title: 'Test',
+        published: Date.now(),
+        poolStatus: 'candidate'
+      } as FeedArticle)
+
+      await removeFromPool('test-id', 'test-reason')
+      const article = await db.feedArticles.get('test-id')
+      expect(article?.poolStatus).toBe('exited')
+      expect(article?.poolExitReason).toBe('test-reason')
+    })
+
+    it('getPoolStats 应该处理空数据库', async () => {
+      const stats = await getPoolStats()
+      expect(stats.raw).toBe(0)
+      expect(stats.candidate.count).toBe(0)
+      expect(stats.recommended.count).toBe(0)
+      expect(stats.activeTotal).toBe(0)
+    })
+
+    it('batchMoveToCandidate 应该处理空数组', async () => {
+      // 空数组时不应抛出错误
+      await expect(batchMoveToCandidate([])).resolves.toBeUndefined()
+    })
+
+    it('batchMoveToRecommended 应该处理空数组', async () => {
+      // 空数组时不应抛出错误
+      await expect(batchMoveToRecommended([])).resolves.toBeUndefined()
+    })
+
+    it('getCandidatePoolArticles 应该正确排序', async () => {
+      const now = Date.now()
+      const articles: FeedArticle[] = [
+        {
+          id: 'c1',
+          feedId: 'feed-1',
+          link: 'http://example.com/1',
+          title: 'Newer',
+          published: now,
+          poolStatus: 'candidate',
+          analysisScore: 7.5,
+          candidatePoolAddedAt: now - 1000 // 1秒前
+        } as FeedArticle,
+        {
+          id: 'c2',
+          feedId: 'feed-1',
+          link: 'http://example.com/2',
+          title: 'Older',
+          published: now,
+          poolStatus: 'candidate',
+          analysisScore: 7.5,
+          candidatePoolAddedAt: now - 5000 // 5秒前
+        } as FeedArticle
+      ]
+
+      await db.feedArticles.bulkAdd(articles)
+
+      const candidates = await getCandidatePoolArticles()
+      // 应该按加入时间排序，旧的在前
+      expect(candidates[0].id).toBe('c2')
+      expect(candidates[1].id).toBe('c1')
+    })
+
+    it('getRecommendedPoolArticles 应该只返回未退出的文章', async () => {
+      const now = Date.now()
+      const articles: FeedArticle[] = [
+        {
+          id: 'active',
+          feedId: 'feed-1',
+          link: 'http://example.com/active',
+          title: 'Active',
+          published: now,
+          poolStatus: 'recommended',
+          isRead: false,
+          feedback: null
+        } as FeedArticle,
+        {
+          id: 'read',
+          feedId: 'feed-1',
+          link: 'http://example.com/read',
+          title: 'Read',
+          published: now,
+          poolStatus: 'recommended',
+          isRead: true // 已读但未退出池
+        } as FeedArticle,
+        {
+          id: 'dismissed',
+          feedId: 'feed-1',
+          link: 'http://example.com/dismissed',
+          title: 'Dismissed',
+          published: now,
+          poolStatus: 'recommended',
+          feedback: 'dismissed' // 已拒绝但未退出池
+        } as FeedArticle
+      ]
+
+      await db.feedArticles.bulkAdd(articles)
+
+      const recommended = await getRecommendedPoolArticles()
+      // 应该返回所有 recommended 状态的文章，包括已读和已拒绝的
+      expect(recommended.length).toBe(3)
+    })
   })
 })

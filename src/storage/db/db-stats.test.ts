@@ -26,14 +26,15 @@ describe('getUnrecommendedArticleCount', () => {
   })
 
   it('应该在没有订阅源时返回 0', async () => {
-    const count = await getUnrecommendedArticleCount('subscribed')
+    // Phase 13+: 候选池是全局的，不区分订阅状态
+    const count = await getUnrecommendedArticleCount()
     expect(count).toBe(0)
   })
 
   it('应该正确统计订阅源中未分析的文章', async () => {
     const now = Date.now()
     
-    // Phase 10: 直接插入 feedArticles 表
+    // Phase 13+: 使用 poolStatus 标记文章状态
     await db.feedArticles.bulkAdd([
       {
         id: 'article-1',
@@ -44,8 +45,8 @@ describe('getUnrecommendedArticleCount', () => {
         fetched: now,
         read: false,
         starred: false,
-        inFeed: true  // 在源中
-        // 没有 analysis 字段 → 未分析
+        inFeed: true,
+        poolStatus: 'candidate'  // 候选池
       },
       {
         id: 'article-2',
@@ -56,8 +57,8 @@ describe('getUnrecommendedArticleCount', () => {
         fetched: now,
         read: false,
         starred: false,
-        inFeed: true  // 在源中
-        // 没有 analysis 字段 → 未分析
+        inFeed: true,
+        poolStatus: 'candidate'  // 候选池
       },
       {
         id: 'article-3',
@@ -68,8 +69,9 @@ describe('getUnrecommendedArticleCount', () => {
         fetched: now,
         read: false,
         starred: false,
-        inFeed: true,  // 在源中
-        analysis: {  // 已分析
+        inFeed: true,
+        poolStatus: 'recommended',  // 已推荐
+        analysis: {
           topicProbabilities: {
             [Topic.TECHNOLOGY]: 0.8,
             [Topic.SCIENCE]: 0.1,
@@ -104,116 +106,14 @@ describe('getUnrecommendedArticleCount', () => {
       latestArticles: []  // Phase 10: 不再使用
     })
 
-    const count = await getUnrecommendedArticleCount('subscribed')
-    expect(count).toBe(2)  // 只有 article-1 和 article-2 未分析
+    const count = await getUnrecommendedArticleCount()
+    expect(count).toBe(2)  // 只有 article-1 和 article-2 在候选池
   })
 
-  it('应该只统计已订阅源（source=subscribed）', async () => {
+  it('应该统计所有候选池文章（不区分订阅状态）', async () => {
     const now = Date.now()
     
-    // Phase 10: 直接插入 feedArticles 表
-    // 订阅源：2 篇未分析
-    await db.feedArticles.bulkAdd([
-      {
-        id: 'a1',
-        feedId: 'feed-1',
-        title: 'A1',
-        link: 'https://example.com/a1',
-        published: now,
-        fetched: now,
-        read: false,
-        starred: false,
-        inFeed: true  // 在源中
-        // 没有 analysis 字段 → 未分析
-      },
-      {
-        id: 'a2',
-        feedId: 'feed-1',
-        title: 'A2',
-        link: 'https://example.com/a2',
-        published: now,
-        fetched: now,
-        read: false,
-        starred: false,
-        inFeed: true  // 在源中
-        // 没有 analysis 字段 → 未分析
-      },
-      // 候选源：3 篇未分析（不应该统计）
-      {
-        id: 'b1',
-        feedId: 'feed-2',
-        title: 'B1',
-        link: 'https://example.com/b1',
-        published: now,
-        fetched: now,
-        read: false,
-        starred: false,
-        inFeed: true  // 在源中
-        // 没有 analysis 字段 → 未分析
-      },
-      {
-        id: 'b2',
-        feedId: 'feed-2',
-        title: 'B2',
-        link: 'https://example.com/b2',
-        published: now,
-        fetched: now,
-        read: false,
-        starred: false,
-        inFeed: true  // 在源中
-        // 没有 analysis 字段 → 未分析
-      },
-      {
-        id: 'b3',
-        feedId: 'feed-2',
-        title: 'B3',
-        link: 'https://example.com/b3',
-        published: now,
-        fetched: now,
-        read: false,
-        starred: false,
-        inFeed: true  // 在源中
-        // 没有 analysis 字段 → 未分析
-      }
-    ])
-    
-    // 添加 feed（用于过滤）
-    await db.discoveredFeeds.add({
-      id: 'feed-1',
-      url: 'https://example.com/feed1',
-      title: 'Subscribed Feed',
-      status: 'subscribed',
-      discoveredFrom: 'manual',
-      discoveredAt: now,
-      isActive: true,
-      articleCount: 2,
-      unreadCount: 2,
-      recommendedCount: 0,
-      latestArticles: []  // Phase 10: 不再使用
-    })
-
-    await db.discoveredFeeds.add({
-      id: 'feed-2',
-      url: 'https://example.com/feed2',
-      title: 'Candidate Feed',
-      status: 'candidate',
-      discoveredFrom: 'manual',
-      discoveredAt: now,
-      isActive: true,
-      articleCount: 3,
-      unreadCount: 3,
-      recommendedCount: 0,
-      latestArticles: []  // Phase 10: 不再使用
-    })
-
-    const count = await getUnrecommendedArticleCount('subscribed')
-    expect(count).toBe(2)  // 只统计订阅源
-  })
-
-  it('应该统计所有源（source=all）', async () => {
-    const now = Date.now()
-    
-    // Phase 10: 直接插入 feedArticles 表
+    // Phase 13+: 候选池是全局的，不区分源的订阅状态
     // 订阅源：2 篇
     await db.feedArticles.bulkAdd([
       {
@@ -225,8 +125,8 @@ describe('getUnrecommendedArticleCount', () => {
         fetched: now,
         read: false,
         starred: false,
-        inFeed: true  // 在源中
-        // 没有 analysis 字段 → 未分析
+        inFeed: true,
+        poolStatus: 'candidate'
       },
       {
         id: 'a2',
@@ -237,10 +137,10 @@ describe('getUnrecommendedArticleCount', () => {
         fetched: now,
         read: false,
         starred: false,
-        inFeed: true  // 在源中
-        // 没有 analysis 字段 → 未分析
+        inFeed: true,
+        poolStatus: 'candidate'
       },
-      // 候选源：3 篇
+      // 候选源：3 篇（也计入）
       {
         id: 'b1',
         feedId: 'feed-2',
@@ -250,8 +150,8 @@ describe('getUnrecommendedArticleCount', () => {
         fetched: now,
         read: false,
         starred: false,
-        inFeed: true  // 在源中
-        // 没有 analysis 字段 → 未分析
+        inFeed: true,
+        poolStatus: 'candidate'
       },
       {
         id: 'b2',
@@ -262,8 +162,8 @@ describe('getUnrecommendedArticleCount', () => {
         fetched: now,
         read: false,
         starred: false,
-        inFeed: true  // 在源中
-        // 没有 analysis 字段 → 未分析
+        inFeed: true,
+        poolStatus: 'candidate'
       },
       {
         id: 'b3',
@@ -274,8 +174,8 @@ describe('getUnrecommendedArticleCount', () => {
         fetched: now,
         read: false,
         starred: false,
-        inFeed: true  // 在源中
-        // 没有 analysis 字段 → 未分析
+        inFeed: true,
+        poolStatus: 'candidate'
       }
     ])
     
@@ -291,7 +191,7 @@ describe('getUnrecommendedArticleCount', () => {
       articleCount: 2,
       unreadCount: 2,
       recommendedCount: 0,
-      latestArticles: []  // Phase 10: 不再使用
+      latestArticles: []
     })
 
     await db.discoveredFeeds.add({
@@ -305,17 +205,17 @@ describe('getUnrecommendedArticleCount', () => {
       articleCount: 3,
       unreadCount: 3,
       recommendedCount: 0,
-      latestArticles: []  // Phase 10: 不再使用
+      latestArticles: []
     })
 
-    const count = await getUnrecommendedArticleCount('all')
-    expect(count).toBe(5)  // 统计所有源
+    const count = await getUnrecommendedArticleCount()
+    expect(count).toBe(5)  // 统计所有候选池文章
   })
 
   it('应该忽略没有文章的源', async () => {
     const now = Date.now()
     
-    // Phase 10: 直接插入 feedArticles 表
+    // Phase 13+: 使用 poolStatus 标记文章状态
     // 有文章的源
     await db.feedArticles.bulkAdd([
       {
@@ -327,8 +227,8 @@ describe('getUnrecommendedArticleCount', () => {
         fetched: now,
         read: false,
         starred: false,
-        inFeed: true  // 在源中
-        // 没有 analysis 字段 → 未分析
+        inFeed: true,
+        poolStatus: 'candidate'
       }
     ])
     
@@ -377,7 +277,7 @@ describe('getUnrecommendedArticleCount', () => {
       latestArticles: []  // Phase 10: 不再使用
     })
 
-    const count = await getUnrecommendedArticleCount('subscribed')
+    const count = await getUnrecommendedArticleCount()
     expect(count).toBe(1)  // 只统计 feed-1 的 1 篇
   })
 
@@ -385,7 +285,7 @@ describe('getUnrecommendedArticleCount', () => {
     // 关闭数据库模拟错误
     await db.close()
 
-    const count = await getUnrecommendedArticleCount('subscribed')
+    const count = await getUnrecommendedArticleCount()
     expect(count).toBe(0)  // 错误时返回 0
   })
 })
@@ -398,10 +298,55 @@ describe('getRecommendationStats', () => {
 
   it('应该统计最近 N 天的推荐并支持活跃过滤', async () => {
     const now = Date.now()
-    await db.recommendations.bulkAdd([
-      { id: 'r1', recommendedAt: now - 2 * 24 * 60 * 60 * 1000, isRead: true, readDuration: 8, source: 'feedA', effectiveness: 'effective', status: 'active' },
-      { id: 'r2', recommendedAt: now - 3 * 24 * 60 * 60 * 1000, isRead: false, source: 'feedA', effectiveness: 'neutral', status: 'active' },
-      { id: 'r3', recommendedAt: now - 10 * 24 * 60 * 60 * 1000, isRead: false, source: 'feedB', effectiveness: 'ineffective', status: 'dismissed' }
+    // Phase 13+: 推荐数据存储在 feedArticles 表中
+    await db.feedArticles.bulkAdd([
+      { 
+        id: 'r1', 
+        feedId: 'feedA',
+        title: 'Article 1',
+        link: 'https://example.com/1',
+        published: now - 2 * 24 * 60 * 60 * 1000,
+        fetched: now - 2 * 24 * 60 * 60 * 1000,
+        read: false,
+        starred: false,
+        inFeed: true,
+        poolStatus: 'recommended',
+        popupAddedAt: now - 2 * 24 * 60 * 60 * 1000,
+        isRead: true, 
+        readDuration: 8, 
+        effectiveness: 'effective'
+      },
+      { 
+        id: 'r2', 
+        feedId: 'feedA',
+        title: 'Article 2',
+        link: 'https://example.com/2',
+        published: now - 3 * 24 * 60 * 60 * 1000,
+        fetched: now - 3 * 24 * 60 * 60 * 1000,
+        read: false,
+        starred: false,
+        inFeed: true,
+        poolStatus: 'recommended',
+        popupAddedAt: now - 3 * 24 * 60 * 60 * 1000,
+        isRead: false, 
+        effectiveness: 'neutral'
+      },
+      { 
+        id: 'r3', 
+        feedId: 'feedB',
+        title: 'Article 3',
+        link: 'https://example.com/3',
+        published: now - 10 * 24 * 60 * 60 * 1000,
+        fetched: now - 10 * 24 * 60 * 60 * 1000,
+        read: false,
+        starred: false,
+        inFeed: true,
+        poolStatus: 'exited',
+        popupAddedAt: now - 10 * 24 * 60 * 60 * 1000,
+        isRead: false, 
+        feedback: 'dismissed',
+        effectiveness: 'ineffective'
+      }
     ])
 
     const { getRecommendationStats } = await import('./db-stats')

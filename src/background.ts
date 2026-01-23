@@ -199,8 +199,24 @@ async function updateBadge(): Promise<void> {
     
     if (!aiConfigured) {
       // AI 未配置，显示暂停图标
-      iconManager.pause()
-      bgLogger.info('⏸️ AI 未配置，显示暂停图标')
+      // 但仍然显示推荐池徽章供参考（不调用 pause 来避免覆盖徽章）
+      bgLogger.info('⏸️ AI 未配置，显示推荐池状态')
+      
+      // 即使 AI 未配置，也显示推荐池未读数（供调试）
+      try {
+        const unreadRecs = await getUnreadRecommendations(50)
+        const unreadCount = unreadRecs.length
+        if (unreadCount > 0) {
+          iconManager.setRecommendCount(Math.min(unreadCount, 3))
+          bgLogger.debug(`📬 [AI 未配置状态] 推荐池未读数：${unreadCount}`)
+        } else {
+          iconManager.setRecommendCount(0)
+          bgLogger.warn('⚠️ AI 未配置且推荐池为空')
+        }
+      } catch (error) {
+        bgLogger.warn('获取推荐池未读数失败:', error)
+        iconManager.setRecommendCount(0)
+      }
       return
     } else {
       // AI 已配置，恢复正常图标
@@ -213,42 +229,62 @@ async function updateBadge(): Promise<void> {
     
     // 2. 使用 OnboardingStateService 获取统一的状态（包含动态阈值）
     const stateInfo = await OnboardingStateService.getState()
-    const { pageCount, threshold, isLearningComplete } = stateInfo
+    const { pageCount, threshold, isLearningComplete, state } = stateInfo
+    bgLogger.debug(`🔍 状态检查：state=${state}, isLearningComplete=${isLearningComplete}, pageCount=${pageCount}, threshold=${threshold}`)
     
     if (!isLearningComplete) {
       // 学习阶段：显示进度遮罩（传入动态阈值）
+      bgLogger.debug(`📚 进入学习阶段，设置进度遮罩：${pageCount}/${threshold}`)
       iconManager.setBadgeState(pageCount, 0, threshold)
       bgLogger.debug(`📚 学习进度：${pageCount}/${threshold} 页`)
     } else {
-      // 推荐阶段：根据投递模式显示
-      // Phase 15: 检查投递模式
-      const config = await getRecommendationConfig()
-      const isReadingListMode = config.deliveryMode === 'readingList'
-
-      if (isReadingListMode) {
-        // 阅读清单模式：统计阅读清单中由本扩展添加且未读的条目
-        let displayCount = 0
-        try {
-          if (ReadingListManager.isAvailable() && chrome.readingList) {
-            const entries = await chrome.readingList.query({})
-            const ourRecords = await db.readingListEntries.toArray()
-            const ourUrls = new Set(ourRecords.map(r => r.url))
-            displayCount = entries.filter(e => ourUrls.has(e.url) && !e.hasBeenRead).length
-          }
-        } catch (rlError) {
-          bgLogger.warn('读取阅读清单条目失败:', rlError)
-        }
-
-        iconManager.setRecommendCount(displayCount > 0 ? Math.min(displayCount, 3) : 0)
-        // 清除波纹以避免视觉冲突
-        iconManager.setBadgeState(threshold, 0, threshold)
-        bgLogger.debug(`📬 推荐阶段（阅读清单模式）：${displayCount} 条未读（扩展添加）`)
-      } else {
-        // 弹窗模式：显示数字徽章为未读推荐数量（最多3）
+      // 推荐阶段：清除学习进度，仅显示推荐徽章（与显示模式无关）
+      // 重要：必须显式重置 learningProgress=0，避免学习遮罩覆盖推荐徽章
+      bgLogger.info(`✅ 进入推荐阶段（state=${state}），清除学习进度遮罩`)
+      iconManager.setBadgeState(0, 0, threshold)
+      bgLogger.debug(`✨ 已调用 setBadgeState(0, 0, ${threshold}) 清除学习进度`)
+      
+      // 推荐阶段：显示推荐池内未读数量
+      try {
         const unreadRecs = await getUnreadRecommendations(50)
         const unreadCount = unreadRecs.length
-        iconManager.setRecommendCount(Math.min(unreadCount, 3))
-        bgLogger.debug(`📬 推荐阶段（弹窗模式）：${unreadCount} 条未读推荐`)
+        bgLogger.debug(`📬 推荐阶段：查询到 ${unreadCount} 条未读推荐`)
+        
+        // 详细诊断信息
+        if (unreadCount === 0) {
+          bgLogger.warn(`⚠️ [推荐池诊断] 推荐池为空或未读数为0。查询结果:`)
+          bgLogger.warn(`  - 推荐数组长度: ${unreadRecs.length}`)
+          
+          // 查询推荐池中所有文章（调试用）
+          const allPoolArticles = await db.feedArticles
+            .filter(a => a.poolStatus === 'recommended')
+            .toArray()
+          bgLogger.warn(`  - 推荐池总文章数: ${allPoolArticles.length}`)
+          
+          // 查询所有未读文章
+          const allUnread = await db.feedArticles
+            .filter(a => !a.isRead)
+            .toArray()
+          bgLogger.warn(`  - 全表未读数: ${allUnread.length}`)
+          
+          // 查询已反馈的文章
+          const dismissed = await db.feedArticles
+            .filter(a => a.feedback === 'dismissed')
+            .toArray()
+          bgLogger.warn(`  - 已驳回文章数: ${dismissed.length}`)
+        }
+        
+        if (unreadCount > 0) {
+          iconManager.setRecommendCount(Math.min(unreadCount, 3))
+          bgLogger.info(`✅ 徽章已更新：显示 ${Math.min(unreadCount, 3)} 个（未读数：${unreadCount}）`)
+        } else {
+          // 没有未读推荐时，清除徽章
+          iconManager.setRecommendCount(0)
+          bgLogger.debug(`📬 推荐池为空，清除徽章`)
+        }
+      } catch (error) {
+        bgLogger.error('❌ 获取未读推荐时出错:', error)
+        iconManager.setRecommendCount(0)
       }
     }
     
@@ -434,6 +470,13 @@ chrome.runtime.onInstalled.addListener(async () => {
     bgLogger.info('创建弹窗容量评估定时器（每天一次）...')
     chrome.alarms.create('evaluate-popup-capacity', {
       periodInMinutes: 24 * 60 // 每 24 小时（1 天）
+    })
+    
+    // 创建定期徽章更新定时器（每 1 分钟更新一次）
+    bgLogger.info('创建徽章更新定时器（每 1 分钟一次）...')
+    chrome.alarms.create('update-badge', {
+      delayInMinutes: 0.5, // 启动 30 秒后首次执行
+      periodInMinutes: 1 // 每分钟更新一次
     })
     
     // Phase 12.7: 创建定期清理推荐池的定时器（每天一次）
@@ -1252,54 +1295,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           }
           break
         
-        // Phase 15.1: 清理模式切换时的旧推荐
-        case 'CLEANUP_MODE_SWITCH':
-          try {
-            const { targetMode } = message as { type: string; targetMode: 'popup' | 'readingList' }
-            bgLogger.info(`🔄 清理模式切换遗留数据，目标模式: ${targetMode}`)
-            
-            // 使用 feedArticles 表（poolStatus='popup' 表示在弹窗中）
-            const articlesToCleanInPopup = await db.feedArticles
-              .filter(a => {
-                const isInPopup = a.poolStatus === 'recommended'
-                const isUnreadAndNotDismissed = !a.isRead && a.feedback !== 'dismissed'
-                return isInPopup && isUnreadAndNotDismissed
-              })
-              .toArray()
-            
-            const now = Date.now()
-            
-            // 标记文章为已退出弹窗
-            if (articlesToCleanInPopup.length > 0) {
-              await db.feedArticles.bulkUpdate(
-                articlesToCleanInPopup.map(article => ({
-                  key: article.id,
-                  changes: {
-                    poolStatus: 'exited' as const,
-                    poolExitedAt: now,
-                    poolExitReason: 'mode-switch'
-                  }
-                }))
-              )
-            }
-            
-            bgLogger.info(`✅ 已清理 ${articlesToCleanInPopup.length} 条遗留推荐`)
-            
-            // 立即触发分析和补充
-            analysisScheduler.triggerManual().catch(error => {
-              bgLogger.error('触发分析失败:', error)
-            })
-            refillScheduler.triggerManual().catch(error => {
-              bgLogger.error('触发补充失败:', error)
-            })
-            
-            sendResponse({ success: true, cleaned: articlesToCleanInPopup.length })
-          } catch (error) {
-            bgLogger.error('❌ 清理模式切换数据失败:', error)
-            sendResponse({ success: false, error: String(error) })
-          }
-          break
-
         // 模式切换：保存配置并同步阅读清单
         case 'DELIVERY_MODE_CHANGED':
           (async () => {
@@ -1859,7 +1854,11 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   bgLogger.debug('定时器触发:', alarm.name)
   
   try {
-    if (alarm.name === 'evaluate-popup-capacity') {
+    if (alarm.name === 'update-badge') {
+      // 定期更新徽章（每分钟一次）
+      bgLogger.debug('⏰ 更新徽章定时器触发，执行 updateBadge()...')
+      await updateBadge()
+    } else if (alarm.name === 'evaluate-popup-capacity') {
       bgLogger.info('开始评估弹窗容量...')
       const newCount = await evaluateAndAdjust()
       bgLogger.info(`✅ 弹窗容量已调整为: ${newCount} 条`)

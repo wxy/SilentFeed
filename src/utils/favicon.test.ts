@@ -57,6 +57,59 @@ describe('Favicon 工具', () => {
       expect(faviconUrl).toBe('chrome-extension://mock-id/assets/icon.png')
       expect(mockGetURL).toHaveBeenCalledWith('assets/icon.png')
     })
+
+    it('应该处理 Google Translate URL (translate.google.com)', () => {
+      const translateUrl = 'https://translate.google.com/?u=https://example.com/page'
+      const faviconUrl = getFaviconUrl(translateUrl)
+      
+      expect(faviconUrl).toBe('https://www.google.com/s2/favicons?domain=example.com&sz=32')
+    })
+
+    it('应该处理 Google Translate URL (translate.goog 域名)', () => {
+      const translateUrl = 'https://example-com.translate.goog/page'
+      const faviconUrl = getFaviconUrl(translateUrl)
+      
+      // example-com 应该被转换为 example.com
+      expect(faviconUrl).toBe('https://www.google.com/s2/favicons?domain=example.com&sz=32')
+    })
+
+    it('应该处理复杂的 translate.goog 域名', () => {
+      const translateUrl = 'https://blog-example-com.translate.goog/article'
+      const faviconUrl = getFaviconUrl(translateUrl)
+      
+      // blog-example-com 应该被转换为 blog.example.com
+      expect(faviconUrl).toBe('https://www.google.com/s2/favicons?domain=blog.example.com&sz=32')
+    })
+
+    it('应该处理 translate.google.com 但没有 u 参数的情况', () => {
+      const translateUrl = 'https://translate.google.com/'
+      const faviconUrl = getFaviconUrl(translateUrl)
+      
+      // 没有 u 参数，应该使用 translate.google.com
+      expect(faviconUrl).toBe('https://www.google.com/s2/favicons?domain=translate.google.com&sz=32')
+    })
+
+    it('应该处理 translate.google.com 的无效 u 参数', () => {
+      const translateUrl = 'https://translate.google.com/?u=invalid-url'
+      const faviconUrl = getFaviconUrl(translateUrl)
+      
+      // u 参数无效，应该使用 translate.google.com
+      expect(faviconUrl).toBe('https://www.google.com/s2/favicons?domain=translate.google.com&sz=32')
+    })
+
+    it('应该处理子域名', () => {
+      const url = 'https://blog.example.com/post'
+      const faviconUrl = getFaviconUrl(url)
+      
+      expect(faviconUrl).toBe('https://www.google.com/s2/favicons?domain=blog.example.com&sz=32')
+    })
+
+    it('应该处理 www 子域名', () => {
+      const url = 'https://www.github.com'
+      const faviconUrl = getFaviconUrl(url)
+      
+      expect(faviconUrl).toBe('https://www.google.com/s2/favicons?domain=www.github.com&sz=32')
+    })
   })
   
   describe('handleFaviconError', () => {
@@ -80,6 +133,29 @@ describe('Favicon 工具', () => {
       handleFaviconError(event)
       
       // src 不应该改变
+      expect(img.src).toBe(originalSrc)
+    })
+
+    it('应该正确设置 onerror 为 null', () => {
+      const img = document.createElement('img')
+      img.src = 'https://example.com/favicon.ico'
+      img.onerror = () => {}
+      
+      const event = { currentTarget: img } as React.SyntheticEvent<HTMLImageElement>
+      handleFaviconError(event)
+      
+      expect(img.onerror).toBeNull()
+    })
+
+    it('应该处理已经包含 assets/icon.png 的图片', () => {
+      const img = document.createElement('img')
+      img.src = 'chrome-extension://different-id/assets/icon.png'
+      const originalSrc = img.src
+      
+      const event = { currentTarget: img } as React.SyntheticEvent<HTMLImageElement>
+      handleFaviconError(event)
+      
+      // 如果 src 已经包含 assets/icon.png，不应该改变
       expect(img.src).toBe(originalSrc)
     })
   })

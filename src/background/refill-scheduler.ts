@@ -155,11 +155,20 @@ export class RefillScheduler {
       await this.cleanupExcessRecommendations(targetPoolSize)
 
       // 2. 检查当前弹窗推荐状态
-
-      // 1.6. 清理超出容量的推荐（退回候选池）
-      await this.cleanupExcessRecommendations(targetPoolSize)
-
-      // 2. 检查当前弹窗推荐状态
+      
+      // 🔍 诊断：先查询所有 poolStatus='recommended' 的文章
+      const allRecommended = await db.feedArticles
+        .filter(a => a.poolStatus === 'recommended')
+        .toArray()
+      
+      schedLogger.info(`🔍 [诊断] poolStatus='recommended' 的文章总数: ${allRecommended.length}`)
+      
+      // 详细列出每篇文章的状态
+      for (const article of allRecommended) {
+        const isValid = !article.isRead && article.feedback !== 'dismissed'
+        schedLogger.info(`  📄 ${article.title?.substring(0, 30)}... | isRead=${article.isRead || false} | feedback=${article.feedback || 'none'} | 符合条件=${isValid ? '✅' : '❌'}`)
+      }
+      
       const currentPool = await db.feedArticles
         .filter(a => {
           const isPopup = a.poolStatus === 'recommended'
@@ -170,7 +179,10 @@ export class RefillScheduler {
         .toArray()
 
       const currentPoolSize = currentPool.length
-      schedLogger.info(`📊 推荐池状态: ${currentPoolSize}/${targetPoolSize}`, {
+      schedLogger.info(`📊 推荐池状态: ${currentPoolSize}/${targetPoolSize} (实际符合补充检查条件的文章数)`, {
+        总文章数: allRecommended.length,
+        符合条件: currentPoolSize,
+        差异: allRecommended.length - currentPoolSize,
         currentPool: currentPool.map(a => ({
           id: a.id,
           title: a.title?.substring(0, 30),
@@ -275,8 +287,17 @@ export class RefillScheduler {
 
       // 8. 根据当前显示模式，立即处理阅读清单
       const config = await getRecommendationConfig()
+      schedLogger.info(`🔍 [诊断] 当前显示模式: ${config.deliveryMode}`)
+      
       if (config.deliveryMode === 'readingList') {
+        schedLogger.info(`📝 清单模式：将 ${recommendations.length} 篇文章写入阅读清单`)
         await this.writeToReadingList(recommendations)
+        
+        // 验证写入后推荐池状态是否被修改
+        const poolAfterWrite = await db.feedArticles
+          .filter(a => a.poolStatus === 'recommended')
+          .count()
+        schedLogger.info(`🔍 [诊断] 写入阅读清单后，poolStatus='recommended' 的文章数: ${poolAfterWrite}`)
       }
 
       // 9. 图标会在下次 updateBadge() 调用时自动更新（无需手动触发）

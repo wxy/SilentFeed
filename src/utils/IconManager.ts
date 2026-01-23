@@ -50,6 +50,9 @@ export class IconManager {
   // 学习阈值（动态，默认 100）
   private learningThreshold = LEARNING_COMPLETE_PAGES
   
+  // 学习模式标志（重要：用来区分学习阶段和推荐阶段）
+  private isLearningMode = false
+  
   // 推荐条目数
   private recommendCount = 0
   
@@ -89,6 +92,8 @@ export class IconManager {
       this.learningThreshold = Math.max(threshold, 10) // 最小阈值 10
     }
     this.learningProgress = Math.max(0, Math.min(pages, this.learningThreshold))
+    // 页面数 > 0 表示还在学习
+    this.isLearningMode = pages > 0
     this.updateIcon()
   }
   
@@ -112,6 +117,11 @@ export class IconManager {
     }
     this.learningProgress = Math.max(0, Math.min(learningProgress, this.learningThreshold))
     this.recommendCount = Math.min(Math.max(recommendCount, 0), 3)
+    
+    // 根据学习进度判断是否还在学习阶段
+    // 重要：learningProgress > 0 表示还在学习，只有都为 0 时才表示推荐阶段
+    this.isLearningMode = learningProgress > 0
+    
     this.updateIcon()
   }
   
@@ -371,8 +381,8 @@ export class IconManager {
         hasError: errorOverlay
       }
     }
-    // 优先级 6: 学习进度（必须在学习阶段，使用动态阈值）
-    else if (this.learningProgress < this.learningThreshold) {
+    // 优先级 6: 学习进度（使用专门的学习模式标志，而不是数值比较）
+    else if (this.isLearningMode) {
       state = {
         type: 'learning',
         learningProgress: this.learningProgress,

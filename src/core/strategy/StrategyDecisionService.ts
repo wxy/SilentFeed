@@ -239,7 +239,7 @@ export class StrategyDecisionService {
         ).length
         recommendedPool = await db.feedArticles
           .where('poolStatus')
-          .equals('popup')  // Phase 21: 改为 'popup'
+          .equals('recommended')  // Phase 13+: 推荐池状态
           .count()
         totalTokensToday = aiUsageToday.reduce(
           (sum, u) => sum + (u.tokens?.total || 0), 0

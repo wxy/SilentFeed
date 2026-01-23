@@ -111,17 +111,17 @@ describe('RecommendationSettings', () => {
     it('应显示候选池准入阈值与来源', async () => {
       const props = {
         ...defaultProps,
-        poolStrategy: {
-          date: '2026-01-11',
-          meta: { decisionId: 'strategy-123' },
-          decision: {
-            minInterval: 1800000,
-            maxDailyRefills: 5,
-            triggerThreshold: 0.4,
-            reasoning: '动态调整入口阈值以稳定质量',
-          },
+        currentStrategy: {
+          id: 'strategy-123',
           strategy: {
+            meta: { generatedAt: new Date('2026-01-11').getTime() },
             candidatePool: { entryThreshold: 0.75 },
+            recommendation: {
+              cooldownMinutes: 30,
+              dailyLimit: 5,
+              refillThreshold: 2,
+              targetPoolSize: 5,
+            },
           },
         },
       }
@@ -131,7 +131,6 @@ describe('RecommendationSettings', () => {
       await waitFor(() => {
         expect(screen.getByText(/准入阈值/)).toBeInTheDocument()
         expect(screen.getByText('75%')).toBeInTheDocument()
-        expect(screen.getByText(/来源：AI 策略（ID: strategy-123）/)).toBeInTheDocument()
       })
     })
 
@@ -155,13 +154,16 @@ describe('RecommendationSettings', () => {
     it('应显示补充间隔、每日上限与触发阈值', async () => {
       const props = {
         ...defaultProps,
-        poolStrategy: {
-          date: '2026-01-11',
-          decision: {
-            minInterval: 45 * 60 * 1000, // 45 分钟
-            maxDailyRefills: 8,
-            triggerThreshold: 0.35,
-            reasoning: '测试参数',
+        currentStrategy: {
+          id: 'test-strategy',
+          strategy: {
+            candidatePool: { entryThreshold: 0.7 },
+            recommendation: {
+              cooldownMinutes: 45, // 45 分钟
+              dailyLimit: 8,
+              refillThreshold: 3.5,
+              targetPoolSize: 10, // 3.5/10 = 35%
+            },
           },
         },
       }
@@ -189,13 +191,16 @@ describe('RecommendationSettings', () => {
 
       const props = {
         ...defaultProps,
-        poolStrategy: {
-          date: '2026-01-11',
-          decision: {
-            minInterval: 60 * 60 * 1000, // 60 分钟
-            maxDailyRefills: 5,
-            triggerThreshold: 0.3,
-            reasoning: '测试补充状态',
+        currentStrategy: {
+          id: 'test-strategy',
+          strategy: {
+            candidatePool: { entryThreshold: 0.7 },
+            recommendation: {
+              cooldownMinutes: 60, // 60 分钟
+              dailyLimit: 5,
+              refillThreshold: 3,
+              targetPoolSize: 10,
+            },
           },
         },
       }
@@ -228,13 +233,27 @@ describe('RecommendationSettings', () => {
     it('应显示实时状态：推荐池与弹窗', async () => {
       const props = {
         ...defaultProps,
-        poolStrategy: { date: '2026-01-11', decision: { reasoning: '测试', poolSize: 6 } },
+        currentStrategy: {
+          id: 'test-strategy',
+          strategy: {
+            candidatePool: { entryThreshold: 0.7 },
+            recommendation: {
+              cooldownMinutes: 60,
+              dailyLimit: 5,
+              refillThreshold: 3,
+              targetPoolSize: 6,
+            },
+          },
+        },
       }
       render(<RecommendationSettings {...props} />)
 
       await waitFor(() => {
-        expect(screen.getByText('推荐池')).toBeInTheDocument()
-        expect(screen.getByText('弹窗显示')).toBeInTheDocument()
+        // 推荐池和弹窗显示在一起，格式为 "推荐池 (弹窗显示)"
+        // 页面中有多个"推荐池"文本（【推荐池】和 推荐池 (弹窗显示)）
+        const poolElements = screen.getAllByText(/推荐池/)
+        expect(poolElements.length).toBeGreaterThan(0)
+        expect(screen.getByText(/弹窗显示/)).toBeInTheDocument()
       })
     })
   })

@@ -100,6 +100,7 @@ export interface BaseInterface {
 
 ## 版本控制（简版）
 - 在 master 不直接开发；等待用户确认再提交/推送；PR 使用中文描述；推送前必须通过 `npm run pre-push`。
+- 说明文件约定：创建 PR 或创建提交时，必须在 `.github` 目录下生成临时说明文件作为描述来源，禁止在命令中使用 HERE 文档；流程结束后可清理该临时文件。
 
 ## OpenSkills 技能系统
 
