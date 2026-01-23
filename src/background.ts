@@ -696,6 +696,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             if (!removalDebug.attempted && ReadingListManager.isAvailable()) {
               try {
                 const normalizedUrl = ReadingListManager.normalizeUrlForTracking(pageData.url)
+                bgLogger.info('🔍 [阅读清单追踪] 尝试匹配', {
+                  originalUrl: pageData.url,
+                  normalizedUrl: normalizedUrl,
+                  isTranslated: pageData.url.includes('.translate.goog') || pageData.url.includes('translate.google.com')
+                })
+                
                 const entries = await db.readingListEntries
                   .where('normalizedUrl').equals(normalizedUrl)
                   .toArray()
@@ -705,6 +711,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 removalDebug.matchedUrls = entries.map(e => e.url)
                 removalDebug.removedCount = 0
                 bgLogger.debug('通用路径查询阅读清单记录', { normalizedUrl, entriesFound: entries.length })
+                
+                if (entries.length > 0) {
+                  bgLogger.info('✅ [阅读清单追踪] 找到匹配记录', {
+                    count: entries.length,
+                    entries: entries.map(e => ({
+                      normalizedUrl: e.normalizedUrl,
+                      displayUrl: e.url,
+                      originalUrl: e.originalUrl
+                    }))
+                  })
+                }
+                
                 if (entries.length === 0 && pageData.meta?.canonical) {
                   const canonicalNorm = ReadingListManager.normalizeUrlForTracking(pageData.meta.canonical)
                   const canonicalEntries = await db.readingListEntries
