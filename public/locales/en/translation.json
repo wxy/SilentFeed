@@ -1533,6 +1533,14 @@
         "hoursLater": "hours later",
         "daysLater": "days later"
       },
+      "wordCount": {
+        "tenThousands": "{{count}}w words",
+        "thousands": "{{count}}k words",
+        "words": "{{count}} words"
+      },
+      "readingTime": {
+        "minutes": "{{count}} min"
+      },
       "status": {
         "paused": "Paused"
       },

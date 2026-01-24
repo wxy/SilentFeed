@@ -173,13 +173,13 @@ export function RecommendationSettings({
 
   const formatTimeUntil = (timestamp: number): string => {
     const diff = timestamp - Date.now()
-    if (diff <= 0) return '即将执行'
+    if (diff <= 0) return _('recommendation.strategy.imminent')
     const minutes = Math.floor(diff / 60000)
-    if (minutes < 60) return `${minutes} 分钟后`
+    if (minutes < 60) return `${minutes} ${_('recommendation.time.minutesLater')}`
     const hours = Math.floor(minutes / 60)
-    if (hours < 24) return `${hours} 小时后`
+    if (hours < 24) return `${hours} ${_('recommendation.time.hoursLater')}`
     const days = Math.floor(hours / 24)
-    return `${days} 天后`
+    return `${days} ${_('recommendation.time.daysLater')}`
   }
 
   const formatAbsoluteTime = (timestamp: number): string => {
@@ -506,7 +506,7 @@ export function RecommendationSettings({
           {recommendationScheduler?.nextRunTime && (
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-blue-900 dark:text-blue-100">⏱️ {_('下次推荐生成')}</span>
+                <span className="text-sm font-medium text-blue-900 dark:text-blue-100">⏱️ {_('recommendation.strategy.nextGeneration')}</span>
                 <div className="text-right">
                   <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
                     {formatAbsoluteTime(recommendationScheduler.nextRunTime)}

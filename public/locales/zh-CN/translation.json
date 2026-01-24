@@ -349,6 +349,14 @@
         "hoursLater": "小时后",
         "daysLater": "天后"
       },
+      "wordCount": {
+        "tenThousands": "{{count}}万字",
+        "thousands": "{{count}}k字",
+        "words": "{{count}}字"
+      },
+      "readingTime": {
+        "minutes": "{{count}}分钟"
+      },
       "status": {
         "paused": "已暂停"
       },

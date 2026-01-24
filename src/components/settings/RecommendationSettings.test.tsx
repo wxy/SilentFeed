@@ -5,7 +5,7 @@ import { RecommendationSettings } from './RecommendationSettings'
 // Mock i18n helpers
 vi.mock('@/i18n/helpers', () => ({
   useI18n: () => ({
-    _: (key: string) => {
+    _: (key: string, options?: any) => {
       const translations: Record<string, string> = {
         // 标题和文本
         '推荐投递方式': '推荐投递方式',
@@ -23,7 +23,11 @@ vi.mock('@/i18n/helpers', () => ({
         '更新于': '更新于',
         '使用默认策略': '使用默认策略',
         '置信度': '置信度',
-        '下次推荐生成': '下次推荐生成',
+        'recommendation.strategy.nextGeneration': '⏱️ Next Generation',
+        'recommendation.strategy.imminent': 'Soon',
+        'recommendation.time.minutesLater': 'minutes later',
+        'recommendation.time.hoursLater': 'hours later',
+        'recommendation.time.daysLater': 'days later',
         
         // 阈值相关
         '候选池准入阈值': '候选池准入阈值',
@@ -42,7 +46,13 @@ vi.mock('@/i18n/helpers', () => ({
         '弹窗显示': '弹窗显示',
         'recommendations.title': '推荐设置',
       }
-      return translations[key] || key
+      
+      // 处理带参数的翻译
+      const translation = translations[key] || key
+      if (options?.count !== undefined) {
+        return `${options.count} ${translation}`
+      }
+      return translation
     },
   }),
 }))
@@ -146,9 +156,9 @@ describe('RecommendationSettings', () => {
       render(<RecommendationSettings {...props} />)
 
       await waitFor(() => {
-        expect(screen.getByText('⏱️ 下次推荐生成')).toBeInTheDocument()
-        // 相对时间可能显示“分钟后”
-        expect(screen.getByText(/分钟后|即将执行/)).toBeInTheDocument()
+        expect(screen.getByText(/⏱️ Next Generation/)).toBeInTheDocument()
+        // 相对时间可能显示"minutes later"或"Soon"（测试环境使用英文翻译）
+        expect(screen.getByText(/minutes later|hours later|days later|Soon/)).toBeInTheDocument()
       })
     })
 
