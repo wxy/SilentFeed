@@ -192,17 +192,6 @@ export async function getUnreadRecommendations(limit: number = 50): Promise<Reco
     }
     
     dbLogger.debug(`[getUnreadRecommendations] 查询结果: ${filteredArticles.length} 篇文章`)
-    if (filteredArticles.length === 0) {
-      // 诊断：查询所有 poolStatus='recommended' 的文章
-      const allRecommended = await db.feedArticles
-        .filter(a => a.poolStatus === 'recommended')
-        .toArray()
-      dbLogger.warn(`[getUnreadRecommendations] poolStatus='recommended' 总数: ${allRecommended.length}`)
-      allRecommended.forEach((a, i) => {
-        dbLogger.warn(`  [${i + 1}] ${a.title}`)
-        dbLogger.warn(`      isRead=${a.isRead}, feedback=${a.feedback || 'none'}, poolExitedAt=${a.poolExitedAt || 'null'}`)
-      })
-    }
     
     // 按推荐时间降序排序
     const sorted = filteredArticles.sort((a, b) => {
