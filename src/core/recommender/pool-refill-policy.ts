@@ -156,12 +156,12 @@ export class PoolRefillManager {
       return false
     }
     
-    // 检查 3：容量阈值
-    const fillRate = currentPoolSize / maxPoolSize
-    if (fillRate > this.policy.triggerThreshold) {
+    // 检查 3：容量阈值（改用整数比较，避免浮点数精度问题）
+    // refillThreshold 是实际数量，不是百分比
+    const threshold = Math.round(maxPoolSize * this.policy.triggerThreshold)
+    if (currentPoolSize > threshold) {
       refillLogger.debug(
-        `📊 池容量充足：${(fillRate * 100).toFixed(0)}% > ` +
-        `${(this.policy.triggerThreshold * 100).toFixed(0)}%，不需要补充`
+        `📊 池容量充足：${currentPoolSize} > ${threshold}（${((threshold / maxPoolSize) * 100).toFixed(0)}% 阈值），不需要补充`
       )
       return false
     }
@@ -169,7 +169,7 @@ export class PoolRefillManager {
     // 所有检查通过，允许补充
     refillLogger.info(
       `✅ 允许补充推荐池：` +
-      `容量 ${currentPoolSize}/${maxPoolSize} (${(fillRate * 100).toFixed(0)}%)，` +
+      `容量 ${currentPoolSize}/${maxPoolSize}（≤ ${threshold} 阈值），` +
       `今日第 ${this.state.dailyRefillCount + 1}/${this.policy.maxDailyRefills} 次`
     )
     

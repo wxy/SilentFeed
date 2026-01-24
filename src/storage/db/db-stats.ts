@@ -14,6 +14,7 @@ import type { RecommendationStats, StorageStats } from "@/types/database"
 import { db } from './index'
 import { statsCache } from '@/utils/cache'
 import { logger } from '@/utils/logger'
+import { getUnreadRecommendations } from './db-recommendations'
 
 const dbLogger = logger.withTag('DB')
 const statsLogger = logger.withTag('AnalysisStats')
@@ -560,18 +561,15 @@ export async function getRecommendationFunnel(currentFeedOnly: boolean = true): 
       }
     }
     
-    // ===== 数据源 2: 弹窗推荐统计（基于 feedArticles.poolStatus='popup'）=====
-    // 用于"当前弹窗"等动态指标
+    // ===== 数据源 2: 弹窗推荐统计（统一数据源：以弹窗实际显示为准）=====
+    // 统一使用 getUnreadRecommendations() 查询，与弹窗显示保持完全一致
+    const unreadRecs = await getUnreadRecommendations(100)
+    const currentPopupCount = unreadRecs.length
+    
+    // 从 feedArticles 中获取所有推荐池或曾在弹窗中的文章（用于其他统计）
     const popupArticles = await db.feedArticles
       .filter(a => a.poolStatus === 'recommended' || (a.poolStatus === 'exited' && a.popupAddedAt))
       .toArray()
-    
-    // 当前弹窗显示数量（动态：在弹窗中且未读）
-    const currentPopupCount = popupArticles.filter(a => 
-      a.poolStatus === 'recommended' && 
-      !a.isRead && 
-      a.feedback !== 'dismissed'
-    ).length
     
     // 弹窗推荐统计（用于对比）
     const recsTableStats = {

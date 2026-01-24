@@ -299,6 +299,26 @@ export function RecommendationView() {
     loadRecommendations()
   }, [loadRecommendations])
 
+  // 监听推荐池更新消息，自动重新加载
+  useEffect(() => {
+    // 测试环境中可能没有 chrome.runtime
+    if (!chrome?.runtime?.onMessage) {
+      return
+    }
+
+    const handleMessage = (message: any) => {
+      if (message.type === 'RECOMMENDATION_UPDATED') {
+        recViewLogger.debug('收到推荐池更新消息，重新加载推荐列表')
+        loadRecommendations()
+      }
+    }
+
+    chrome.runtime.onMessage.addListener(handleMessage)
+    return () => {
+      chrome.runtime.onMessage.removeListener(handleMessage)
+    }
+  }, [loadRecommendations])
+
   const handleItemClick = async (rec: Recommendation, event: React.MouseEvent) => {
     try {
       recViewLogger.debug(`点击推荐条目: ${rec.id} - ${rec.title}`)

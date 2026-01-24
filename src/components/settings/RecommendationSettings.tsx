@@ -4,11 +4,12 @@
  * - 推荐投递方式选择（弹窗/阅读列表）
  * - 任务调度、准入阈值、补充策略、池状态
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useI18n } from '@/i18n/helpers'
 import { isReadingListAvailable } from '@/utils/browser-compat'
 import { getRecommendationConfig, saveRecommendationConfig } from '@/storage/recommendation-config'
-import { db } from '@/storage/db'
+import { db, getUnreadRecommendations } from '@/storage/db'
+import { ReadingListManager } from '@/core/reading-list/reading-list-manager'
 
 interface RecommendationSettingsProps {
   poolStrategy?: any
@@ -82,35 +83,102 @@ export function RecommendationSettings({
     loadRefillState()
   }, [])
 
-  // 实时池状态（使用推荐漏斗统计口径）
+  // 实时池状态（统一数据源：以弹窗实际显示为准）
   const [poolData, setPoolData] = useState<{ candidatePoolCount: number; recommendedPoolCount: number }>({ 
     candidatePoolCount: 0,
     recommendedPoolCount: 0
   })
+  
+  // 加载池统计数据
+  const loadPoolData = useCallback(async () => {
+    try {
+      // 🆕 清单模式下，先主动同步已读状态
+      const config = await getRecommendationConfig()
+      if (config.deliveryMode === 'readingList') {
+        await syncReadingListStatusForSettings()
+      }
+      
+      // 候选池：使用独立查询（候选池比较简单）
+      const candidatePoolCount = await db.feedArticles.filter(a => a.poolStatus === 'candidate').count()
+      
+      // 推荐池：统一使用 getUnreadRecommendations() 结果，与弹窗保持完全一致
+      const unreadRecs = await getUnreadRecommendations(100)
+      const recommendedPoolCount = unreadRecs.length
+      
+      console.log('[设置页] 推荐池统计:', {
+        查询结果: unreadRecs.length,
+        文章列表: unreadRecs.map(r => ({ id: r.id, title: r.title }))
+      })
+      
+      setPoolData({ 
+        candidatePoolCount,
+        recommendedPoolCount
+      })
+    } catch (error) {
+      console.error('[设置页] 加载池统计失败:', error)
+    }
+  }, [])
+  
+  // 🆕 设置页专用的同步函数
+  const syncReadingListStatusForSettings = async (): Promise<void> => {
+    try {
+      const entries = await chrome.readingList.query({})
+      const ourMappings = await db.readingListEntries.toArray()
+      
+      let synced = 0
+      for (const mapping of ourMappings) {
+        const entry = entries.find(e => 
+          ReadingListManager.normalizeUrlForTracking(e.url) === mapping.normalizedUrl
+        )
+        
+        if (entry?.hasBeenRead && mapping.recommendationId) {
+          const article = await db.feedArticles.get(mapping.recommendationId)
+          
+          if (article && !article.isRead) {
+            await db.feedArticles.update(article.id, {
+              isRead: true,
+              clickedAt: Date.now(),
+              poolStatus: 'exited',
+              poolExitedAt: Date.now(),
+              poolExitReason: 'read'
+            })
+            synced++
+          }
+        }
+      }
+      
+      if (synced > 0) {
+        console.log(`[清单同步] 设置页打开时同步 ${synced} 条`)
+      }
+    } catch (error) {
+      console.error('[清单同步] 设置页同步失败:', error)
+    }
+  }
+  
+  // 初始加载
   useEffect(() => {
-    const loadPoolData = async () => {
-      try {
-        // 推荐漏斗统计口径：当前在候选池的文章数（poolStatus = 'candidate'）
-        const candidatePoolCount = await db.feedArticles.filter(a => a.poolStatus === 'candidate').count()
-        
-        // 推荐漏斗统计口径：当前在推荐池的文章数（poolStatus = 'recommended' 且未读未拒绝）
-        // 注：推荐池即弹窗显示，不再区分
-        const recommendedPoolCount = await db.feedArticles.filter(a => {
-          const isInPool = a.poolStatus === 'recommended'
-          const isActive = !a.isRead && a.feedback !== 'dismissed'
-          return isInPool && isActive
-        }).count()
-        
-        setPoolData({ 
-          candidatePoolCount,
-          recommendedPoolCount
-        })
-      } catch {
-        // 忽略错误
+    loadPoolData()
+  }, [loadPoolData])
+  
+  // 监听推荐池更新消息，自动重新加载统计数据
+  useEffect(() => {
+    // 测试环境中可能没有 chrome.runtime
+    if (!chrome?.runtime?.onMessage) {
+      return
+    }
+
+    const handleMessage = (message: any) => {
+      if (message.type === 'RECOMMENDATION_UPDATED') {
+        console.debug('[RecommendationSettings] 收到推荐池更新消息，重新加载统计数据')
+        loadPoolData()
       }
     }
-    loadPoolData()
-  }, [])
+
+    chrome.runtime.onMessage.addListener(handleMessage)
+    return () => {
+      chrome.runtime.onMessage.removeListener(handleMessage)
+    }
+  }, [loadPoolData])
 
   const formatTimeUntil = (timestamp: number): string => {
     const diff = timestamp - Date.now()
@@ -333,16 +401,13 @@ export function RecommendationSettings({
                 <div className="space-y-4 mb-4">
                   {/* 候选池阈值 - 独立框（整合所有候选池信息）*/}
                   <div className="bg-indigo-50 dark:bg-indigo-900/10 rounded-lg p-3 border border-indigo-200 dark:border-indigo-700/50">
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center justify-between mb-1">
                       <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
                         <span className="text-indigo-600 dark:text-indigo-400 font-semibold">【候选池】</span>准入阈值
                       </span>
-                      <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">{(entryThreshold * 100).toFixed(0)}%</span>
+                      <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">{entryThreshold.toFixed(1)} {_('分')}</span>
                     </div>
-                    <div className="w-full bg-indigo-200 dark:bg-indigo-800 rounded-full h-2">
-                      <div className="bg-indigo-600 dark:bg-indigo-400 h-2 rounded-full transition-all" style={{ width: `${entryThreshold * 100}%` }} />
-                    </div>
-                    <div className="text-[11px] text-gray-500 dark:text-gray-500 mt-1">{_('AI 评分高于此值的文章才能进入候选池')}</div>
+                    <div className="text-[11px] text-gray-500 dark:text-gray-500">{_('AI 评分高于此值的文章才能进入候选池')}</div>
                     
                     {/* 当前候选池数量 */}
                     <div className="flex items-center justify-between mt-2 pt-2 border-t border-indigo-200 dark:border-indigo-700/50">
@@ -371,12 +436,12 @@ export function RecommendationSettings({
                     <div className="mb-4">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{_('触发阈值')}</span>
-                        <span className="text-sm font-bold text-purple-600 dark:text-purple-400">{triggerPercent}%</span>
+                        <span className="text-sm font-bold text-purple-600 dark:text-purple-400">{currentStrategy?.strategy?.recommendation?.refillThreshold ?? 3} {_('条')}</span>
                       </div>
                       <div className="w-full bg-purple-200 dark:bg-purple-800 rounded-full h-2">
                         <div className="bg-purple-600 dark:bg-purple-400 h-2 rounded-full transition-all" style={{ width: `${triggerPercent}%` }} />
                       </div>
-                      <div className="text-[11px] text-gray-500 dark:text-gray-500 mt-1">{_('池容量低于此比例时触发补充')}</div>
+                      <div className="text-[11px] text-gray-500 dark:text-gray-500 mt-1">{_('推荐池文章数 ≤ 此值时触发补充')}</div>
                     </div>
 
                     {/* 补充配置（仅显示，不可操作） */}

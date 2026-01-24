@@ -174,7 +174,8 @@ export class RefillScheduler {
           const isPopup = a.poolStatus === 'recommended'
           const isUnread = !a.isRead
           const notDismissed = a.feedback !== 'dismissed'
-          return isPopup && isUnread && notDismissed
+          const notExited = !a.poolExitedAt  // 排除已退出推荐池的文章
+          return isPopup && isUnread && notDismissed && notExited
         })
         .toArray()
 
@@ -300,7 +301,14 @@ export class RefillScheduler {
         schedLogger.info(`🔍 [诊断] 写入阅读清单后，poolStatus='recommended' 的文章数: ${poolAfterWrite}`)
       }
 
-      // 9. 图标会在下次 updateBadge() 调用时自动更新（无需手动触发）
+      // 9. 立即触发徽章更新和UI刷新（补充完成后用户应立即看到变化）
+      try {
+        await chrome.runtime.sendMessage({ type: 'TRIGGER_BADGE_UPDATE' })
+        await chrome.runtime.sendMessage({ type: 'RECOMMENDATION_UPDATED' })
+        schedLogger.debug('✅ 已触发徽章更新和UI刷新')
+      } catch (error) {
+        schedLogger.warn('⚠️ 触发更新失败:', error)
+      }
 
       const duration = Date.now() - startTime
       schedLogger.info(`✅ 推荐池补充完成`, {
@@ -622,6 +630,14 @@ export class RefillScheduler {
           urlWithTracking,  // 使用带追踪参数的 URL
           article.isRead || false
         )
+        
+        if (!ok) {
+          schedLogger.warn(`⚠️ 添加到清单失败`, {
+            title: finalTitle,
+            url: urlWithTracking,
+            articleId: article.id
+          })
+        }
         
         if (ok) {
           // 记录映射关系（用于删除和状态同步）

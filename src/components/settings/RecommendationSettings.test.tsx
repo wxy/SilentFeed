@@ -130,7 +130,8 @@ describe('RecommendationSettings', () => {
 
       await waitFor(() => {
         expect(screen.getByText(/准入阈值/)).toBeInTheDocument()
-        expect(screen.getByText('75%')).toBeInTheDocument()
+        // entryThreshold = 0.75，显示为 "0.8 分"（toFixed(1)）
+        expect(screen.getByText(/0\.8/)).toBeInTheDocument()
       })
     })
 
@@ -154,8 +155,11 @@ describe('RecommendationSettings', () => {
     it('应显示补充间隔、每日上限与触发阈值', async () => {
       const props = {
         ...defaultProps,
+        isLearningStage: false, // 明确设置为非学习阶段
         currentStrategy: {
           id: 'test-strategy',
+          createdAt: Date.now(),
+          status: 'active' as const,
           strategy: {
             candidatePool: { entryThreshold: 0.7 },
             recommendation: {
@@ -164,6 +168,12 @@ describe('RecommendationSettings', () => {
               refillThreshold: 3.5,
               targetPoolSize: 10, // 3.5/10 = 35%
             },
+            meta: {
+              validHours: 24,
+              generatedAt: Date.now(),
+              version: 'v1.0',
+              nextReviewHours: 12
+            }
           },
         },
       }
@@ -176,7 +186,10 @@ describe('RecommendationSettings', () => {
         expect(screen.getByText('每日上限')).toBeInTheDocument()
         expect(screen.getByText(/8 次/)).toBeInTheDocument()
         expect(screen.getByText('触发阈值')).toBeInTheDocument()
-        expect(screen.getByText(/35%/)).toBeInTheDocument()
+        // refillThreshold 现在直接显示原值，"3.5" 和 "条" 是分开的元素
+        expect(screen.getByText((content, element) => {
+          return element?.textContent === '3.5 条' || content === '3.5'
+        })).toBeInTheDocument()
       })
     })
 

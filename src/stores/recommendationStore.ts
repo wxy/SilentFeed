@@ -14,6 +14,50 @@ import {
   db
 } from '@/storage/db'
 import { recommendationService } from '@/core/recommender/RecommendationService'
+import { ReadingListManager } from '@/core/reading-list/reading-list-manager'
+
+/**
+ * 同步清单已读状态到数据库
+ * 用于在用户打开弹窗时确保数据一致性
+ */
+async function syncReadingListStatus(): Promise<void> {
+  try {
+    const entries = await chrome.readingList.query({})
+    const ourMappings = await db.readingListEntries.toArray()
+    
+    let synced = 0
+    for (const mapping of ourMappings) {
+      const entry = entries.find(e => 
+        ReadingListManager.normalizeUrlForTracking(e.url) === mapping.normalizedUrl
+      )
+      
+      if (entry?.hasBeenRead && mapping.recommendationId) {
+        const article = await db.feedArticles.get(mapping.recommendationId)
+        
+        if (article && !article.isRead) {
+          await db.feedArticles.update(article.id, {
+            isRead: true,
+            clickedAt: Date.now(),
+            poolStatus: 'exited',
+            poolExitedAt: Date.now(),
+            poolExitReason: 'read'
+          })
+          synced++
+        }
+      }
+    }
+    
+    if (synced > 0) {
+      console.log(`[清单同步] 弹窗打开时同步 ${synced} 条，立即触发徽章更新`)
+      // 同步触发徽章更新，确保立即生效
+      await chrome.runtime.sendMessage({ type: 'TRIGGER_BADGE_UPDATE' }).catch(() => {})
+      // 额外等待一小会让消息处理完成
+      await new Promise(resolve => setTimeout(resolve, 100))
+    }
+  } catch (error) {
+    console.error('[清单同步] 失败:', error)
+  }
+}
 
 /**
  * 推荐统计数据
@@ -77,12 +121,23 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
       // 获取推荐配置
       const config = await getRecommendationConfig()
       
+      // 🆕 清单模式下，先主动同步已读状态
+      if (config.deliveryMode === 'readingList') {
+        await syncReadingListStatus()
+      }
+      
       // 🔧 Phase 15.1: 加载池容量（maxRecommendations * 2），而不是仅加载 maxRecommendations
       // 这样才能充分利用 AI 策略配置的池容量
       const poolCapacity = config.maxRecommendations * 2
       
       // 只从数据库加载现有推荐，不生成新的
       const recommendations = await getUnreadRecommendations(poolCapacity)
+      
+      console.log('[弹窗] 推荐池查询:', {
+        poolCapacity,
+        查询结果: recommendations.length,
+        文章列表: recommendations.map(r => ({ id: r.id, title: r.title, score: r.score }))
+      })
       
       // 按评分降序排序（不再限制数量，显示池中所有推荐）
       const sortedRecommendations = recommendations
