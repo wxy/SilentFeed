@@ -5,7 +5,7 @@ import { RecommendationSettings } from './RecommendationSettings'
 // Mock i18n helpers
 vi.mock('@/i18n/helpers', () => ({
   useI18n: () => ({
-    _: (key: string) => {
+    _: (key: string, options?: any) => {
       const translations: Record<string, string> = {
         // 标题和文本
         '推荐投递方式': '推荐投递方式',
@@ -23,7 +23,11 @@ vi.mock('@/i18n/helpers', () => ({
         '更新于': '更新于',
         '使用默认策略': '使用默认策略',
         '置信度': '置信度',
-        '下次推荐生成': '下次推荐生成',
+        'recommendation.strategy.nextGeneration': '⏱️ Next Generation',
+        'recommendation.strategy.imminent': 'Soon',
+        'recommendation.time.minutesLater': 'minutes later',
+        'recommendation.time.hoursLater': 'hours later',
+        'recommendation.time.daysLater': 'days later',
         
         // 阈值相关
         '候选池准入阈值': '候选池准入阈值',
@@ -42,7 +46,13 @@ vi.mock('@/i18n/helpers', () => ({
         '弹窗显示': '弹窗显示',
         'recommendations.title': '推荐设置',
       }
-      return translations[key] || key
+      
+      // 处理带参数的翻译
+      const translation = translations[key] || key
+      if (options?.count !== undefined) {
+        return `${options.count} ${translation}`
+      }
+      return translation
     },
   }),
 }))
@@ -130,7 +140,8 @@ describe('RecommendationSettings', () => {
 
       await waitFor(() => {
         expect(screen.getByText(/准入阈值/)).toBeInTheDocument()
-        expect(screen.getByText('75%')).toBeInTheDocument()
+        // entryThreshold = 0.75，显示为 "0.8 分"（toFixed(1)）
+        expect(screen.getByText(/0\.8/)).toBeInTheDocument()
       })
     })
 
@@ -145,17 +156,20 @@ describe('RecommendationSettings', () => {
       render(<RecommendationSettings {...props} />)
 
       await waitFor(() => {
-        expect(screen.getByText('⏱️ 下次推荐生成')).toBeInTheDocument()
-        // 相对时间可能显示“分钟后”
-        expect(screen.getByText(/分钟后|即将执行/)).toBeInTheDocument()
+        expect(screen.getByText(/⏱️ Next Generation/)).toBeInTheDocument()
+        // 相对时间可能显示"minutes later"或"Soon"（测试环境使用英文翻译）
+        expect(screen.getByText(/minutes later|hours later|days later|Soon/)).toBeInTheDocument()
       })
     })
 
     it('应显示补充间隔、每日上限与触发阈值', async () => {
       const props = {
         ...defaultProps,
+        isLearningStage: false, // 明确设置为非学习阶段
         currentStrategy: {
           id: 'test-strategy',
+          createdAt: Date.now(),
+          status: 'active' as const,
           strategy: {
             candidatePool: { entryThreshold: 0.7 },
             recommendation: {
@@ -164,6 +178,12 @@ describe('RecommendationSettings', () => {
               refillThreshold: 3.5,
               targetPoolSize: 10, // 3.5/10 = 35%
             },
+            meta: {
+              validHours: 24,
+              generatedAt: Date.now(),
+              version: 'v1.0',
+              nextReviewHours: 12
+            }
           },
         },
       }
@@ -176,7 +196,10 @@ describe('RecommendationSettings', () => {
         expect(screen.getByText('每日上限')).toBeInTheDocument()
         expect(screen.getByText(/8 次/)).toBeInTheDocument()
         expect(screen.getByText('触发阈值')).toBeInTheDocument()
-        expect(screen.getByText(/35%/)).toBeInTheDocument()
+        // refillThreshold 现在直接显示原值，"3.5" 和 "条" 是分开的元素
+        expect(screen.getByText((content, element) => {
+          return element?.textContent === '3.5 条' || content === '3.5'
+        })).toBeInTheDocument()
       })
     })
 

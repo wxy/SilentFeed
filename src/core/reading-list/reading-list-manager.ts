@@ -636,20 +636,31 @@ export class ReadingListManager {
 
     // 监听条目更新（处理已读状态）
     chrome.readingList.onEntryUpdated.addListener(async (entry) => {
-      rlLogger.debug('阅读列表条目更新', {
+      rlLogger.info('🔔 [清单更新] onEntryUpdated 事件触发', {
         title: entry.title,
         url: entry.url,
-        hasBeenRead: entry.hasBeenRead,
+        hasBeenRead: entry.hasBeenRead
       })
       
       // 如果条目被标记为已读，更新文章状态
       if (entry.hasBeenRead) {
         try {
           const normalizedUrl = ReadingListManager.normalizeUrlForTracking(entry.url)
+          rlLogger.info(`[清单更新] URL规范化: ${entry.url} -> ${normalizedUrl}`)
+          
           const mapping = await db.readingListEntries.get(normalizedUrl)
+          rlLogger.info(`[清单更新] 查找映射:`, mapping ? {
+            normalizedUrl: mapping.normalizedUrl,
+            recommendationId: mapping.recommendationId
+          } : '未找到映射')
           
           if (mapping?.recommendationId) {
             const article = await db.feedArticles.get(mapping.recommendationId)
+            rlLogger.info(`[清单更新] 查找文章:`, article ? {
+              id: article.id,
+              title: article.title,
+              isRead: article.isRead
+            } : '未找到文章')
             
             if (article && !article.isRead) {
               // 标记为已读
@@ -663,14 +674,28 @@ export class ReadingListManager {
               
               rlLogger.info('✅ [阅读清单] 文章被标记为已读', {
                 id: article.id,
-                title: article.title,
-                url: entry.url
+                title: article.title
               })
+              
+              // 立即触发徽章更新和UI刷新
+              try {
+                await chrome.runtime.sendMessage({ type: 'TRIGGER_BADGE_UPDATE' })
+                await chrome.runtime.sendMessage({ type: 'RECOMMENDATION_UPDATED' })
+                rlLogger.info('✅ [清单更新] 已触发UI更新')
+              } catch (error) {
+                rlLogger.warn('⚠️ [清单更新] 触发UI更新失败:', error)
+              }
+            } else if (article && article.isRead) {
+              rlLogger.info('ℹ️ [清单更新] 文章已是已读状态，跳过')
             }
+          } else {
+            rlLogger.warn('⚠️ [清单更新] 未找到映射或 recommendationId 为空')
           }
         } catch (error) {
-          rlLogger.warn('处理阅读清单更新失败', error)
+          rlLogger.error('❌ [清单更新] 处理失败:', error)
         }
+      } else {
+        rlLogger.debug('[清单更新] 条目未标记为已读，跳过')
       }
     })
 

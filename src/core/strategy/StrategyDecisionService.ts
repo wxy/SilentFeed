@@ -237,10 +237,13 @@ export class StrategyDecisionService {
         dailyReadCount = recentPopupArticles.filter(
           a => a.isRead && a.clickedAt && a.clickedAt > oneDayAgo
         ).length
-        recommendedPool = await db.feedArticles
-          .where('poolStatus')
-          .equals('recommended')  // Phase 13+: 推荐池状态
-          .count()
+        // Phase 13+: 推荐池状态（只统计未读且未拒绝的，与弹窗显示口径一致）
+        recommendedPool = await db.feedArticles.filter(a => {
+          const isInPool = a.poolStatus === 'recommended'
+          const isActive = !a.isRead && a.feedback !== 'dismissed'
+          // 注:poolExitedAt 保留作为审计字段,统计不依赖它
+          return isInPool && isActive
+        }).count()
         totalTokensToday = aiUsageToday.reduce(
           (sum, u) => sum + (u.tokens?.total || 0), 0
         )

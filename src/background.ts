@@ -176,6 +176,41 @@ let iconManager: IconManager | null = null
 let rssDiscoveryViewed = false
 
 /**
+ * 后台同步清单已读状态
+ * 与弹窗/设置页的同步逻辑保持一致
+ */
+async function syncReadingListStatusInBackground(): Promise<void> {
+  try {
+    const entries = await chrome.readingList.query({})
+    const ourMappings = await db.readingListEntries.toArray()
+    
+    let synced = 0
+    for (const mapping of ourMappings) {
+      const entry = entries.find(e => 
+        ReadingListManager.normalizeUrlForTracking(e.url) === mapping.normalizedUrl
+      )
+      
+      if (entry?.hasBeenRead && mapping.recommendationId) {
+        const article = await db.feedArticles.get(mapping.recommendationId)
+        
+        if (article && !article.isRead) {
+          await db.feedArticles.update(article.id, {
+            isRead: true,
+            clickedAt: Date.now(),
+            poolStatus: 'exited',
+            poolExitedAt: Date.now(),
+            poolExitReason: 'read'
+          })
+          synced++
+        }
+      }
+    }
+  } catch (error) {
+    bgLogger.error('[清单同步] 后台同步失败:', error)
+  }
+}
+
+/**
  * 统一的徽章/图标更新函数
  * 
  * Phase 5.2: 使用新的图标系统
@@ -204,14 +239,21 @@ async function updateBadge(): Promise<void> {
       
       // 即使 AI 未配置，也显示推荐池未读数（供调试）
       try {
+        // 🆕 清单模式下，先主动同步已读状态
+        const config = await getRecommendationConfig()
+        if (config.deliveryMode === 'readingList') {
+          await syncReadingListStatusInBackground()
+        }
+        
+        // 统一数据源：使用 getUnreadRecommendations() 查询，与弹窗保持一致
         const unreadRecs = await getUnreadRecommendations(50)
         const unreadCount = unreadRecs.length
         if (unreadCount > 0) {
           iconManager.setRecommendCount(Math.min(unreadCount, 3))
-          bgLogger.debug(`📬 [AI 未配置状态] 推荐池未读数：${unreadCount}`)
+          bgLogger.info(`📬 [徽章] 推荐池未读数：${unreadCount}（来自 getUnreadRecommendations）`)
         } else {
           iconManager.setRecommendCount(0)
-          bgLogger.warn('⚠️ AI 未配置且推荐池为空')
+          bgLogger.info('📭 [徽章] 推荐池为空')
         }
       } catch (error) {
         bgLogger.warn('获取推荐池未读数失败:', error)
@@ -246,6 +288,12 @@ async function updateBadge(): Promise<void> {
       
       // 推荐阶段：显示推荐池内未读数量
       try {
+        // 🆕 清单模式下，先主动同步已读状态（与弹窗保持一致）
+        const config = await getRecommendationConfig()
+        if (config.deliveryMode === 'readingList') {
+          await syncReadingListStatusInBackground()
+        }
+        
         const unreadRecs = await getUnreadRecommendations(50)
         const unreadCount = unreadRecs.length
         bgLogger.debug(`📬 推荐阶段：查询到 ${unreadCount} 条未读推荐`)
@@ -479,6 +527,14 @@ chrome.runtime.onInstalled.addListener(async () => {
       periodInMinutes: 1 // 每分钟更新一次
     })
     
+    // 清单已读状态同步定时器（每5分钟，兜底机制）
+    // 主要同步在用户打开弹窗/设置页时触发，这里只是兜底
+    bgLogger.info('创建清单状态同步定时器（每5分钟，兜底机制）...')
+    chrome.alarms.create('sync-reading-list-status', {
+      delayInMinutes: 2, // 启动 2 分钟后首次执行
+      periodInMinutes: 5 // 每 5 分钟同步一次（兜底）
+    })
+    
     // Phase 12.7: 创建定期清理推荐池的定时器（每天一次）
     bgLogger.info('创建推荐池清理定时器（每天一次）...')
     chrome.alarms.create('cleanup-recommendation-pool', {
@@ -619,6 +675,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 if (article && !result.deduplicated) {
                   await markAsRead(article.id, pageData.duration, undefined)
                   bgLogger.info(`✅ 推荐已标记为已读: ${article.id}`)
+                  
+                  // 立即触发徽章更新和UI刷新
+                  updateBadge().catch(err => bgLogger.warn('触发徽章更新失败:', err))
+                  chrome.runtime.sendMessage({ type: 'RECOMMENDATION_UPDATED' }).catch(() => {})
                   
                   // 构造兼容的推荐对象用于画像学习
                   const recommendation = {
@@ -871,6 +931,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             sendResponse({ success: false, error: String(error) })
           }
           break
+        
+        case 'TRIGGER_BADGE_UPDATE':
+          // 立即触发徽章更新（由各个操作主动调用）
+          try {
+            await updateBadge()
+            sendResponse({ success: true })
+          } catch (error) {
+            bgLogger.error('❌ 触发徽章更新失败:', error)
+            sendResponse({ success: false, error: String(error) })
+          }
+          return true
         
         case 'RSS_DETECTED':
           try {
@@ -1614,6 +1685,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                   bgLogger.warn(`⚠️ 发现 ${issues.length} 篇文章状态异常`, issues)
                 }
                 
+                // 立即触发徽章更新和UI刷新
+                await updateBadge()
+                await chrome.runtime.sendMessage({ type: 'RECOMMENDATION_UPDATED' }).catch(() => {})
+                
                 sendResponse({ 
                   success: true, 
                   removed,
@@ -1943,6 +2018,56 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   try {
     if (alarm.name === 'update-badge') {
       // 定期更新徽章（每分钟一次）
+      bgLogger.debug('⏰ 更新徽章定时器触发，执行 updateBadge()...')
+      await updateBadge()
+    } else if (alarm.name === 'sync-reading-list-status') {
+      // 同步清单已读状态（每2分钟）
+      bgLogger.debug('⏰ 清单状态同步定时器触发')
+      
+      // 只在清单模式下执行
+      const config = await getRecommendationConfig()
+      if (config.deliveryMode !== 'readingList') {
+        bgLogger.debug('当前非清单模式，跳过同步')
+        return
+      }
+      
+      // 查询 Chrome 清单
+      const entries = await chrome.readingList.query({})
+      const ourMappings = await db.readingListEntries.toArray()
+      
+      let synced = 0
+      for (const mapping of ourMappings) {
+        const entry = entries.find(e => 
+          ReadingListManager.normalizeUrlForTracking(e.url) === mapping.normalizedUrl
+        )
+        
+        if (entry?.hasBeenRead && mapping.recommendationId) {
+          const article = await db.feedArticles.get(mapping.recommendationId)
+          
+          if (article && !article.isRead) {
+            // Chrome 清单已读，但数据库未读 → 同步
+            await db.feedArticles.update(article.id, {
+              isRead: true,
+              clickedAt: Date.now(),
+              poolStatus: 'exited',
+              poolExitedAt: Date.now(),
+              poolExitReason: 'read'
+            })
+            
+            bgLogger.info(`🔄 [清单同步] 已同步: ${article.title}`)
+            synced++
+          }
+        }
+      }
+      
+      if (synced > 0) {
+        bgLogger.info(`✅ [清单同步] 完成: 同步 ${synced} 条`)
+        // 触发 UI 更新
+        await updateBadge()
+        await chrome.runtime.sendMessage({ type: 'RECOMMENDATION_UPDATED' }).catch(() => {})
+      }
+    } else if (alarm.name === 'sync-reading-list-status') {
+      // 更新徽章，反映最新状态
       bgLogger.debug('⏰ 更新徽章定时器触发，执行 updateBadge()...')
       await updateBadge()
     } else if (alarm.name === 'evaluate-popup-capacity') {

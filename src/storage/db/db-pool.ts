@@ -113,7 +113,10 @@ export async function moveToCandidate(articleId: string, analysisScore: number):
     await db.feedArticles.update(articleId, {
       poolStatus: 'candidate',
       analysisScore,
-      candidatePoolAddedAt: Date.now()
+      candidatePoolAddedAt: Date.now(),
+      // 清除之前的退出记录（文章重新进入候选池）
+      poolExitedAt: undefined,
+      poolExitReason: undefined
     })
     
     poolLogger.info('文章移至 Candidate 池', { articleId, score: analysisScore })
@@ -154,7 +157,10 @@ export async function moveToRecommended(articleId: string): Promise<void> {
     await db.feedArticles.update(articleId, {
       poolStatus: 'recommended',
       recommendedPoolAddedAt: Date.now(),
-      recommended: true
+      recommended: true,
+      // 清除之前的退出记录（文章重新进入推荐池）
+      poolExitedAt: undefined,
+      poolExitReason: undefined
     })
     
     poolLogger.info('文章移至 Recommended 池', { articleId })
@@ -208,7 +214,10 @@ export async function batchMoveToCandidate(
         await db.feedArticles.update(id, {
           poolStatus: 'candidate',
           analysisScore: score,
-          candidatePoolAddedAt: now
+          candidatePoolAddedAt: now,
+          // 清除之前的退出记录（文章重新进入候选池）
+          poolExitedAt: undefined,
+          poolExitReason: undefined
         })
       }
     })
@@ -233,7 +242,10 @@ export async function batchMoveToRecommended(articleIds: string[]): Promise<void
         await db.feedArticles.update(id, {
           poolStatus: 'recommended',
           recommendedPoolAddedAt: now,
-          recommended: true
+          recommended: true,
+          // 清除之前的退出记录（文章重新进入推荐池）
+          poolExitedAt: undefined,
+          poolExitReason: undefined
         })
       }
     })

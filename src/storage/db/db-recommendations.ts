@@ -14,6 +14,7 @@ import { logger } from '@/utils/logger'
 import { statsCache } from '@/utils/cache'
 import { updateFeedStats } from './db-feeds'
 import { ProfileUpdateScheduler } from '@/core/profile/ProfileUpdateScheduler'
+import { getRecommendationConfig } from '../recommendation-config'
 import type { FeedArticle } from '@/types/rss'
 import type { Recommendation } from '@/types/database'
 
@@ -161,17 +162,39 @@ export async function dismissRecommendations(articleIds: string[]): Promise<void
  */
 export async function getUnreadRecommendations(limit: number = 50): Promise<Recommendation[]> {
   try {
+    // 获取推荐配置，检查投递模式
+    const config = await getRecommendationConfig()
+    const isReadingListMode = config.deliveryMode === 'readingList'
+    
     const articles = await db.feedArticles
       .filter(a => {
         const isInPool = a.poolStatus === 'recommended'
         const isUnread = !a.isRead
         const notDismissed = a.feedback !== 'dismissed'
+        // 注:poolExitedAt 保留作为审计字段,统计不依赖它
         return isInPool && isUnread && notDismissed
       })
       .toArray()
     
+    // 清单模式下，只返回已添加到清单的文章
+    let filteredArticles = articles
+    if (isReadingListMode) {
+      const mappings = await db.readingListEntries.toArray()
+      const mappedIds = new Set(mappings.map(m => m.recommendationId).filter(Boolean))
+      
+      const beforeCount = articles.length
+      filteredArticles = articles.filter(a => mappedIds.has(a.id))
+      const afterCount = filteredArticles.length
+      
+      if (beforeCount !== afterCount) {
+        dbLogger.warn(`[清单模式] 过滤掉 ${beforeCount - afterCount} 篇未添加到清单的文章`)
+      }
+    }
+    
+    dbLogger.debug(`[getUnreadRecommendations] 查询结果: ${filteredArticles.length} 篇文章`)
+    
     // 按推荐时间降序排序
-    const sorted = articles.sort((a, b) => {
+    const sorted = filteredArticles.sort((a, b) => {
       const timeA = a.popupAddedAt || a.recommendedPoolAddedAt || 0
       const timeB = b.popupAddedAt || b.recommendedPoolAddedAt || 0
       return timeB - timeA

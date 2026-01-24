@@ -299,6 +299,26 @@ export function RecommendationView() {
     loadRecommendations()
   }, [loadRecommendations])
 
+  // 监听推荐池更新消息，自动重新加载
+  useEffect(() => {
+    // 测试环境中可能没有 chrome.runtime
+    if (!chrome?.runtime?.onMessage) {
+      return
+    }
+
+    const handleMessage = (message: any) => {
+      if (message.type === 'RECOMMENDATION_UPDATED') {
+        recViewLogger.debug('收到推荐池更新消息，重新加载推荐列表')
+        loadRecommendations()
+      }
+    }
+
+    chrome.runtime.onMessage.addListener(handleMessage)
+    return () => {
+      chrome.runtime.onMessage.removeListener(handleMessage)
+    }
+  }, [loadRecommendations])
+
   const handleItemClick = async (rec: Recommendation, event: React.MouseEvent) => {
     try {
       recViewLogger.debug(`点击推荐条目: ${rec.id} - ${rec.title}`)
@@ -868,13 +888,13 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
             
             {(currentRecommendation.wordCount ?? 0) > 0 && (
               <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
-                {formatWordCount(currentRecommendation.wordCount!)}
+                {formatWordCount(currentRecommendation.wordCount!, _)}
               </span>
             )}
             
             {(currentRecommendation.readingTime ?? 0) > 0 && (
               <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
-                {currentRecommendation.readingTime}分钟
+                {_('recommendation.readingTime.minutes', { count: currentRecommendation.readingTime })}
               </span>
             )}
             
@@ -976,13 +996,13 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
           
           {(currentRecommendation.wordCount ?? 0) > 0 && (
             <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
-              {formatWordCount(currentRecommendation.wordCount!)}
+              {formatWordCount(currentRecommendation.wordCount!, _)}
             </span>
           )}
           
           {(currentRecommendation.readingTime ?? 0) > 0 && (
             <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
-              {currentRecommendation.readingTime}分钟
+              {_('recommendation.readingTime.minutes', { count: currentRecommendation.readingTime })}
             </span>
           )}
           
@@ -1039,12 +1059,12 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
 /**
  * 格式化字数显示
  */
-function formatWordCount(count: number): string {
+function formatWordCount(count: number, translate: (key: string, options?: any) => string): string {
   if (count >= 10000) {
-    return `${(count / 10000).toFixed(1)}万字`
+    return translate('recommendation.wordCount.tenThousands', { count: (count / 10000).toFixed(1) })
   }
   if (count >= 1000) {
-    return `${(count / 1000).toFixed(1)}k字`
+    return translate('recommendation.wordCount.thousands', { count: (count / 1000).toFixed(1) })
   }
-  return `${count}字`
+  return translate('recommendation.wordCount.words', { count })
 }
