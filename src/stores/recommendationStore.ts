@@ -48,7 +48,6 @@ async function syncReadingListStatus(): Promise<void> {
     }
     
     if (synced > 0) {
-      console.log(`[清单同步] 弹窗打开时同步 ${synced} 条，立即触发徽章更新`)
       // 同步触发徽章更新，确保立即生效
       await chrome.runtime.sendMessage({ type: 'TRIGGER_BADGE_UPDATE' }).catch(() => {})
       // 额外等待一小会让消息处理完成
@@ -132,12 +131,6 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
       
       // 只从数据库加载现有推荐，不生成新的
       const recommendations = await getUnreadRecommendations(poolCapacity)
-      
-      console.log('[弹窗] 推荐池查询:', {
-        poolCapacity,
-        查询结果: recommendations.length,
-        文章列表: recommendations.map(r => ({ id: r.id, title: r.title, score: r.score }))
-      })
       
       // 按评分降序排序（不再限制数量，显示池中所有推荐）
       const sortedRecommendations = recommendations

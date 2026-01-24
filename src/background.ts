@@ -205,10 +205,6 @@ async function syncReadingListStatusInBackground(): Promise<void> {
         }
       }
     }
-    
-    if (synced > 0) {
-      bgLogger.info(`[清单同步] 徽章更新时同步 ${synced} 条`)
-    }
   } catch (error) {
     bgLogger.error('[清单同步] 后台同步失败:', error)
   }

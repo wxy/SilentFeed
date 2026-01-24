@@ -105,11 +105,6 @@ export function RecommendationSettings({
       const unreadRecs = await getUnreadRecommendations(100)
       const recommendedPoolCount = unreadRecs.length
       
-      console.log('[设置页] 推荐池统计:', {
-        查询结果: unreadRecs.length,
-        文章列表: unreadRecs.map(r => ({ id: r.id, title: r.title }))
-      })
-      
       setPoolData({ 
         candidatePoolCount,
         recommendedPoolCount
@@ -145,10 +140,6 @@ export function RecommendationSettings({
             synced++
           }
         }
-      }
-      
-      if (synced > 0) {
-        console.log(`[清单同步] 设置页打开时同步 ${synced} 条`)
       }
     } catch (error) {
       console.error('[清单同步] 设置页同步失败:', error)
