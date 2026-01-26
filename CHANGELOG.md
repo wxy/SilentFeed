@@ -1,5 +1,113 @@
 # Changelog
 
+## [0.6.2] - 2026-01-26
+
+### Fixed
+
+- **Reading List Data Consistency (Critical)**
+  - Fixed data inconsistency between Chrome Reading List, badge count, and settings stats
+  - Unified all data sources to use `getUnreadRecommendations()` query
+  - Implemented three-layer sync mechanism (passive listening + active sync + periodic sync)
+  - Chrome Reading List API `onEntryUpdated` event proved unreliable, now using proactive sync
+  - Filter out articles that failed to add to reading list in reading list mode
+
+- **Internationalization (i18n)**
+  - Fixed hardcoded Chinese text in time formatting (`formatTimeUntil`)
+  - Fixed hardcoded Chinese text in word count formatting (`formatWordCount`)
+  - Fixed hardcoded Chinese text in reading time display
+  - All user-facing text now supports multiple languages
+  - Updated tests to match new translation keys
+
+### Changed
+
+- **Sync Strategy**
+  - Active sync on popup open, settings page load, and badge update
+  - Periodic sync reduced to every 5 minutes (from 2 minutes) as fallback
+  - Enhanced logging for Chrome Reading List event diagnostics
+
+## [0.6.1] - 2026-01-23
+
+### Added
+
+- **Reading List Short ID Tracking**
+  - Implemented short ID tracking mechanism for reading list items
+  - Better tracking of recommendation status in reading list mode
+  - Enhanced URL normalization and duplicate detection
+
+### Changed
+
+- **Recommendation Funnel Display**
+  - Refactored statistics display as three fundamental equations
+  - Improved visual representation of article flow
+  - Better alignment between funnel and pool statistics
+
+### Fixed
+
+- **Reading List Tracking**
+  - Fixed tracking of articles added to Chrome Reading List
+  - Improved recommendation ID mapping for reading list entries
+  - Enhanced logging for reading list operations
+
+## [0.6.0] - 2026-01-23
+
+### Added
+
+- **AI-Generated Chinese Summaries**
+  - Save and prioritize AI-generated Chinese summaries
+  - Display AI summaries in reading list mode with 🤖 prefix
+  - Better content understanding for Chinese users
+
+- **Full-Text Content Fetching**
+  - Enhanced full-text fetching with word count and reading time
+  - Display word count (X万字/Xk字) for longer articles
+  - Display reading time (X分钟) based on content length
+
+- **Translation Data Persistence**
+  - Save translation data to database during AI analysis
+  - Fallback translation updates database to ensure frontend access
+  - Improved translation language matching logic
+
+### Changed
+
+- **Recommendation Pool Architecture**
+  - Simplified pool management with `poolStatus` field
+  - Removed separate `recommendations` table
+  - Unified article lifecycle management
+  - Improved pool capacity control (top 3 in popup, pool capacity in backend)
+
+- **Display Mode Refactoring**
+  - Renamed "popup" mode to "recommended" mode internally
+  - Separated recommendation pool from display mode
+  - Better mode switching experience
+
+- **AI Strategy System**
+  - Removed invalid AI strategy parameters
+  - Simplified decision system
+  - Improved strategy generation reliability
+
+### Fixed
+
+- **Translation Settings Ignored**
+  - Fixed feed-level Google Translate disable setting being ignored
+  - Respected user's translation preferences for each feed
+
+- **Pool Refill Issues**
+  - Fixed recommendation pool refill freezing
+  - Fixed badge display not updating after refill
+  - Improved refill threshold validation
+  - Added instant refill button with proper handler
+
+- **Reading List Mode**
+  - Filter out read/dismissed articles in reading list mode
+  - Use translated title and URL in reading list entries
+  - Better translate URL format handling
+
+- **Test Coverage**
+  - Fixed 51 tests broken by database schema changes
+  - Fixed 18 transaction tests
+  - Adapted tests to new architecture
+  - Improved test stability
+
 ## [0.5.3] - 2026-01-15
 
 ### Fixed
