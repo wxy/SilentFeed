@@ -45,7 +45,13 @@
    - Extension icon appears in toolbar
    - Click icon to view popup (first time will guide configuration)
 
-> 💡 **Version Note**: Current version is v0.6.2, includes reading list data consistency fixes, full internationalization support, recommendation pool architecture optimization, and more.
+> 💡 **Version Note**: Current version is v0.6.2 (2026-01-26), includes reading list data consistency fixes and full internationalization support.
+>
+> **Major Version History** (279 commits since v0.3.6):
+> - **v0.6.x Series**: AI-generated Chinese summaries, full-text fetching, data consistency fixes, complete internationalization
+> - **v0.5.x Series**: Reading List Mode, AI Strategy Decision System, feed-level translation settings, visual feed management, Google Translate URL deduplication fix
+>
+> For detailed changelog, see [CHANGELOG.md](../CHANGELOG.md)
 
 ---
 

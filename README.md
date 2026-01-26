@@ -68,6 +68,24 @@ Silent Feed is a **browser extension** that uses AI to understand what you're in
 
 </div>
 
+### 🆕 What's New in v0.6.2
+
+**Latest Release (2026-01-26)** - [Full Changelog](CHANGELOG.md)
+
+- ✅ **Reading List Data Consistency** - Fixed data sync issues between Chrome Reading List, badge count, and settings stats
+- 🌐 **Complete Internationalization** - All user-facing text now supports multiple languages
+- 🔄 **Sync Strategy Optimization** - Enhanced three-layer sync mechanism for reliable updates
+
+**Major Updates Since v0.3.6** (279 commits):
+
+- 🤖 **AI-Generated Chinese Summaries** (v0.6.0) - Display AI summaries in reading list with 🤖 prefix
+- 📝 **Full-Text Content Fetching** (v0.6.0) - Word count and reading time for longer articles
+- 📚 **Reading List Mode** (v0.5.0) - Native Chrome Reading List integration with dedicated UI
+- 🎯 **AI Strategy Decision System** (v0.5.1) - Intelligent quality control for recommendation optimization
+- 🌍 **Feed-Level Translation Settings** (v0.5.1) - Independent translation control for each RSS feed
+- 🎨 **Visual Feed Management** (v0.5.1) - Colorful block progress bars with semantic colors
+- 🔧 **Google Translate URL Deduplication** (v0.5.1) - Complete fix for duplicate subscription issues
+
 ### 🚀 Get Started
 
 1. **Install** - [Chrome Web Store](https://chromewebstore.google.com/detail/pieiedlagbmcnooloibhigmidpakneca)
