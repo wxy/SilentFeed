@@ -164,17 +164,17 @@ Silent Feed 是一个**浏览器扩展**，通过分析你的浏览历史，用 
 
 <div align="center">
 
-<img src="docs/assets/screenshots/screenshot-1-recommendations-zh.png" width="720" alt="AI 推荐" />
+<img src="docs/assets/screenshots/screenshot-1-recommendations-cn.png" width="720" alt="AI 推荐" />
 <br/>
 <em>AI 驱动的个性化推荐，智能质量控制</em>
 <br/>
 
-<img src="docs/assets/screenshots/screenshot-2-rss-settings-zh.png" width="720" alt="RSS 设置与翻译" />
+<img src="docs/assets/screenshots/screenshot-2-rss-settings-cn.png" width="720" alt="RSS 设置与翻译" />
 <br/>
 <em>彩色方块可视化源管理，源级翻译控制</em>
 <br/>
 
-<img src="docs/assets/screenshots/screenshot-3-profile-zh.png" width="720" alt="兴趣画像" />
+<img src="docs/assets/screenshots/screenshot-3-profile-cn.png" width="720" alt="兴趣画像" />
 <br/>
 <em>AI 生成的兴趣总结和偏好特征</em>
 <br/>
