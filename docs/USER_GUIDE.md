@@ -45,7 +45,7 @@
    - Extension icon appears in toolbar
    - Click icon to view popup (first time will guide configuration)
 
-> 💡 **Version Note**: Current version is v0.5.1, includes AI Strategy Decision System, Visual Feed Management, and other important updates.
+> 💡 **Version Note**: Current version is v0.6.2, includes reading list data consistency fixes, full internationalization support, recommendation pool architecture optimization, and more.
 
 ---
 
