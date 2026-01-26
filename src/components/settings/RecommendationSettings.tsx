@@ -218,7 +218,7 @@ export function RecommendationSettings({
       <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-600 shadow-sm p-6">
         <div className="flex items-center justify-between mb-3">
           <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">{_('推荐投递方式')}</span>
-          <span className="text-xs text-gray-500 dark:text-gray-400">{readingListSupported ? _('阅读列表可用') : _('阅读列表不可用')}</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">{readingListSupported ? _('settings.deliveryMode.readingListAvailable') : _('settings.deliveryMode.readingListUnavailable')}</span>
         </div>
         <div className="flex gap-4 text-sm text-gray-700 dark:text-gray-200">
           <label className="flex items-center gap-2 cursor-pointer">
@@ -230,7 +230,7 @@ export function RecommendationSettings({
               checked={deliveryMode === 'popup'}
               onChange={() => handleDeliveryModeChange('popup')}
             />
-            <span>{_('弹窗')}</span>
+            <span>{_('settings.deliveryMode.popup')}</span>
           </label>
           <label className={`flex items-center gap-2 ${readingListSupported ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}>
             <input
@@ -242,7 +242,7 @@ export function RecommendationSettings({
               checked={deliveryMode === 'readingList'}
               onChange={() => handleDeliveryModeChange('readingList')}
             />
-            <span>{_('阅读列表')}</span>
+            <span>{_('settings.deliveryMode.readingList')}</span>
           </label>
         </div>
         {readingListSupported && readingListModeEnabled && (
@@ -256,8 +256,8 @@ export function RecommendationSettings({
           <div className="flex items-start gap-3">
             <span className="text-2xl">📚</span>
             <div className="flex-1">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">{_('学习阶段')}</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{_('已浏览')} {pageCount}/{totalPages} {_('页，系统正在学习你的兴趣偏好')}</p>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">{_('settings.learningStage.title')}</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{_('settings.learningStage.browsedPages')} {pageCount}/{totalPages} {_('settings.learningStage.learningPreferences')}</p>
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
                 <div className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full transition-all duration-500" style={{ width: `${learningProgress}%` }} />
               </div>
@@ -463,7 +463,7 @@ export function RecommendationSettings({
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-1">
                             <span>📦</span>
-                            <span className="text-xs font-medium text-green-700 dark:text-green-300">{_('推荐池')} ({_('弹窗显示')})</span>
+                            <span className="text-xs font-medium text-green-700 dark:text-green-300">{_('推荐池')} ({_('settings.deliveryMode.popupDisplay')})</span>
                           </div>
                           <button
                             onClick={async () => {

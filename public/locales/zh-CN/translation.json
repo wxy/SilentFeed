@@ -1701,6 +1701,18 @@
     }
   },
   "settings": {
+    "deliveryMode": {
+      "popup": "弹窗",
+      "readingList": "阅读列表",
+      "readingListAvailable": "阅读列表可用",
+      "readingListUnavailable": "阅读列表不可用",
+      "popupDisplay": "弹窗显示"
+    },
+    "learningStage": {
+      "title": "学习阶段",
+      "browsedPages": "已浏览",
+      "learningPreferences": "页，系统正在学习你的兴趣偏好"
+    },
     "aiUsage": {
       "emptyState": "暂无数据",
       "tokenAxisLabel": "词元(Token)",

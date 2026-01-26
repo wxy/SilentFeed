@@ -9,14 +9,15 @@ vi.mock('@/i18n/helpers', () => ({
       const translations: Record<string, string> = {
         // 标题和文本
         '推荐投递方式': '推荐投递方式',
-        '阅读列表可用': '阅读列表可用',
-        '阅读列表不可用': '阅读列表不可用',
-        '弹窗': '弹窗',
-        '阅读列表': '阅读列表',
+        'settings.deliveryMode.readingListAvailable': 'Reading List Available',
+        'settings.deliveryMode.readingListUnavailable': 'Reading List Unavailable',
+        'settings.deliveryMode.popup': 'Popup',
+        'settings.deliveryMode.readingList': 'Reading List',
+        'settings.deliveryMode.popupDisplay': 'Popup Display',
         '已启用阅读列表模式': '已启用阅读列表模式',
-        '学习阶段': '学习阶段',
-        '已浏览': '已浏览',
-        '页，系统正在学习你的兴趣偏好': '页，系统正在学习你的兴趣偏好',
+        'settings.learningStage.title': 'Learning Stage',
+        'settings.learningStage.browsedPages': 'Browsed',
+        'settings.learningStage.learningPreferences': 'pages, learning your preferences',
         
         // 策略相关
         '智能推荐策略': '智能推荐策略',
@@ -43,7 +44,6 @@ vi.mock('@/i18n/helpers', () => ({
         
         // 池状态
         '推荐池': '推荐池',
-        '弹窗显示': '弹窗显示',
         'recommendations.title': '推荐设置',
       }
       
@@ -79,7 +79,7 @@ describe('RecommendationSettings', () => {
     // 学习阶段提示不依赖数据加载，应该立即显示
     await waitFor(() => {
       // 使用 getAllByText 因为可能有多个匹配项
-      const learningElements = screen.getAllByText(/学习阶段/)
+      const learningElements = screen.getAllByText(/Learning Stage/)
       expect(learningElements.length).toBeGreaterThan(0)
     })
   })
@@ -89,7 +89,7 @@ describe('RecommendationSettings', () => {
       render(<RecommendationSettings {...defaultProps} isLearningStage={true} />)
 
       await waitFor(() => {
-        expect(screen.getByText('学习阶段')).toBeInTheDocument()
+        expect(screen.getByText('Learning Stage')).toBeInTheDocument()
       })
     })
 
@@ -272,11 +272,11 @@ describe('RecommendationSettings', () => {
       render(<RecommendationSettings {...props} />)
 
       await waitFor(() => {
-        // 推荐池和弹窗显示在一起，格式为 "推荐池 (弹窗显示)"
-        // 页面中有多个"推荐池"文本（【推荐池】和 推荐池 (弹窗显示)）
+        // 推荐池和弹窗显示在一起，格式为 "推荐池 (Popup Display)"
+        // 页面中有多个"推荐池"文本（【推荐池】和 推荐池 (Popup Display)）
         const poolElements = screen.getAllByText(/推荐池/)
         expect(poolElements.length).toBeGreaterThan(0)
-        expect(screen.getByText(/弹窗显示/)).toBeInTheDocument()
+        expect(screen.getByText(/Popup Display/)).toBeInTheDocument()
       })
     })
   })

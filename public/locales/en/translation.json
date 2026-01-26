@@ -1925,6 +1925,18 @@
     }
   },
   "settings": {
+    "deliveryMode": {
+      "popup": "Popup",
+      "readingList": "Reading List",
+      "readingListAvailable": "Reading List Available",
+      "readingListUnavailable": "Reading List Unavailable",
+      "popupDisplay": "Popup Display"
+    },
+    "learningStage": {
+      "title": "Learning Stage",
+      "browsedPages": "Browsed",
+      "learningPreferences": "pages, learning your preferences"
+    },
     "aiUsage": {
       "emptyState": "No data available",
       "tokenAxisLabel": "Token",
