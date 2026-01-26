@@ -125,10 +125,10 @@ See [Technical Documentation](docs/TDD.md) for architecture details.
 
 ### 📊 Project Status
 
-- **Version**: 0.5.1 (AI Strategy System & Visual Enhancements)
+- **Version**: 0.6.2 (Reading List Mode & Full i18n)
 - **Status**: ✅ Released
 - **Test Coverage**: 69%+ (2156 tests)
-- **Commits since v0.3.6**: 158
+- **Commits since v0.3.6**: 279
 - **Supported**: Chrome/Edge (Manifest V3)
 
 ### 💬 Community & Support
@@ -181,6 +181,24 @@ Silent Feed 是一个**浏览器扩展**，通过分析你的浏览历史，用 
 
 </div>
 
+### 🆕 v0.6.2 版本更新
+
+**最新发布 (2026-01-26)** - [完整变更日志](CHANGELOG.md)
+
+- ✅ **清单数据一致性** - 修复 Chrome 清单、徽章计数和设置统计之间的数据同步问题
+- 🌐 **完整国际化** - 所有用户可见文本现在都支持多语言
+- 🔄 **同步策略优化** - 增强三层同步机制，确保数据更新可靠
+
+**自 v0.3.6 以来的主要更新**（279 次提交）：
+
+- 🤖 **AI 中文摘要** (v0.6.0) - 在阅读列表中显示 AI 摘要，带 🤖 前缀
+- 📝 **全文内容抓取** (v0.6.0) - 显示长文章的字数和阅读时间
+- 📚 **阅读列表模式** (v0.5.0) - 原生 Chrome 阅读列表集成，专用 UI
+- 🎯 **AI 策略决策系统** (v0.5.1) - 智能质量控制优化推荐
+- 🌍 **Feed 级翻译设置** (v0.5.1) - 每个订阅源可独立控制翻译
+- 🎨 **可视化 Feed 管理** (v0.5.1) - 彩色方块进度条，语义化颜色
+- 🔧 **Google Translate URL 去重** (v0.5.1) - 完全修复重复订阅问题
+
 ### 🚀 快速开始
 
 1. **安装扩展** - [Chrome 应用商店](https://chromewebstore.google.com/detail/pieiedlagbmcnooloibhigmidpakneca)
@@ -222,22 +240,15 @@ npm test
 
 - **版本**: 0.6.2（清单模式优化与国际化增强）
 - **状态**: ✅ 已发布
-- **测试覆盖率**: 66%+
+- **测试覆盖率**: 69%+（2156 个测试）
+- **自 v0.3.6 提交数**: 279
 - **支持浏览器**: Chrome/Edge (Manifest V3)
-
-**v0.6.x 主要更新**:
-- 🔄 清单模式数据一致性修复（三层同步机制）
-- 🌍 完整国际化支持（时间、字数、阅读时间）
-- 📊 推荐池架构重构（移除单独的推荐表）
-- 🤖 AI 生成的中文摘要优先显示
-- 📈 全文抓取增强（字数和阅读时间）
-- 🎯 短 ID 追踪机制提升清单管理
 
 ### 💬 社区与支持
 
 - 🐛 [报告问题](https://github.com/wxy/SilentFeed/issues)
 - 💡 [功能建议](https://github.com/wxy/SilentFeed/issues)
-- ⭐ 如果觉得有用，[给个星标](https://github.com/wxy/SilentFeed)！
+- ⭐ 如果觉得有用，请给我们一个 [Star](https://github.com/wxy/SilentFeed)！
 
 ---
 
