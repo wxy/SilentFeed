@@ -190,6 +190,14 @@
       "smartAI": "AI Smart Recommendation",
       "ai": "AI Recommendations",
       "chromeAI": "Chrome AI Recommendations"
+    },
+    "wordCount": {
+      "tenThousands": "{{count}}w words",
+      "thousands": "{{count}}k words",
+      "words": "{{count}} words"
+    },
+    "readingTime": {
+      "minutes": "{{count}} min"
     }
   },
   "common": {

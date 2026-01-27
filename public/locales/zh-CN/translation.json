@@ -132,6 +132,14 @@
       "smartAI": "AI智能推荐",
       "ai": "AI推荐",
       "chromeAI": "Chrome AI推荐"
+    },
+    "wordCount": {
+      "tenThousands": "{{count}}万字",
+      "thousands": "{{count}}k字",
+      "words": "{{count}}字"
+    },
+    "readingTime": {
+      "minutes": "{{count}}分钟"
     }
   },
   "options": {
