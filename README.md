@@ -61,13 +61,28 @@ Features, screenshots, and quick start guide
 
 ## 🎯 What is Silent Feed?
 
-A browser extension that uses AI to understand your interests by analyzing browsing history, then automatically discovers and recommends RSS articles that match your interests.
+<table>
+<tr>
+<td width="50%">
 
-**No more information overload. Just the content you care about.**
+**🇨🇳 中文**
 
 一个使用 AI 分析浏览历史理解兴趣的浏览器扩展，自动发现并推荐符合你兴趣的 RSS 文章。
 
 **不再信息过载，只看你真正关心的内容。**
+
+</td>
+<td width="50%">
+
+**🇬🇧 English**
+
+A browser extension that uses AI to understand your interests by analyzing browsing history, then automatically discovers and recommends RSS articles that match your interests.
+
+**No more information overload. Just the content you care about.**
+
+</td>
+</tr>
+</table>
 
 ---
 
