@@ -365,9 +365,6 @@
       "readingTime": {
         "minutes": "{{count}}分钟"
       },
-      "status": {
-        "paused": "已暂停"
-      },
       "googleTranslate": {
         "label": "翻译",
         "enabled": "点击链接时使用谷歌翻译打开",
@@ -429,6 +426,7 @@
         "unreadTooltip": "未读（被替换{{replaced}}、过期{{expired}}、出源{{stale}}、其他{{other}}）"
       },
       "status": {
+        "paused": "已暂停",
         "current": "当前",
         "raw": "待分析",
         "stale": "已过时",

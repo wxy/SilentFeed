@@ -1549,9 +1549,6 @@
       "readingTime": {
         "minutes": "{{count}} min"
       },
-      "status": {
-        "paused": "Paused"
-      },
       "googleTranslate": {
         "label": "Translate",
         "enabled": "Open links with Google Translate",
@@ -1616,6 +1613,7 @@
         "unreadTooltip": "Unread (Replaced{{replaced}}, Expired{{expired}}, Left Feed{{stale}}, Other{{other}})"
       },
       "status": {
+        "paused": "Paused",
         "current": "Current",
         "raw": "Raw",
         "stale": "Stale",
