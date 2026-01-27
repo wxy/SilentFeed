@@ -2,26 +2,13 @@
 
 <div align="center">
 
-<img src="assets/icons/128/base-static.png" width="128" height="128" alt="Silent Feed Logo" />
-
 **AI-powered RSS reader that learns what you love**
-
-*Making the feed quieter*
-
-[![Chrome Web Store](https://img.shields.io/badge/Chrome_Web_Store-Install-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/pieiedlagbmcnooloibhigmidpakneca)
-[![GitHub Release](https://img.shields.io/github/v/release/wxy/SilentFeed?style=for-the-badge)](https://github.com/wxy/SilentFeed/releases)
-[![License](https://img.shields.io/badge/License-Apache_2.0-green.svg?style=for-the-badge)](LICENSE)
-
-![Test Coverage](https://img.shields.io/badge/coverage-69%25-brightgreen?style=for-the-badge)
-![Stars](https://img.shields.io/github/stars/wxy/SilentFeed?style=for-the-badge&color=yellow)
-![Last Commit](https://img.shields.io/github/last-commit/wxy/SilentFeed?style=for-the-badge)
-![TypeScript](https://img.shields.io/badge/TypeScript-90%25-blue?style=for-the-badge&logo=typescript&logoColor=white)
 
 > Current Version: `0.6.2` | [中文](README_CN.md) | [Home](README.md)
 
----
-
 </div>
+
+---
 
 ## 🎯 What is Silent Feed?
 
