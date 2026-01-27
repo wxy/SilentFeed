@@ -135,7 +135,7 @@
     },
     "wordCount": {
       "tenThousands": "{{count}}万字",
-      "thousands": "{{count}}k字",
+      "thousands": "{{count}}千字",
       "words": "{{count}}字"
     },
     "readingTime": {
@@ -359,7 +359,7 @@
       },
       "wordCount": {
         "tenThousands": "{{count}}万字",
-        "thousands": "{{count}}k字",
+        "thousands": "{{count}}千字",
         "words": "{{count}}字"
       },
       "readingTime": {
