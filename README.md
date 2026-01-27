@@ -22,9 +22,11 @@
 
 ---
 
-## 📖 Documentation
+</div>
 
-### 🌏 Choose Your Language
+## 📖 Documentation | 文档
+
+### 🌏 Choose Your Language | 选择语言
 
 <table>
 <tr>
@@ -51,15 +53,17 @@ Features, screenshots, and quick start guide
 
 ---
 
-## ⚡ Quick Start
+## ⚡ Quick Start | 快速开始
 
 **Install from Chrome Web Store** → **Browse 100+ pages** → **Configure AI** → **Enjoy personalized RSS recommendations**
 
-[Install Now](https://chromewebstore.google.com/detail/pieiedlagbmcnooloibhigmidpakneca)
+**从 Chrome 网上应用店安装** → **浏览 100+ 个页面** → **配置 AI** → **享受个性化 RSS 推荐**
+
+[Install Now | 立即安装](https://chromewebstore.google.com/detail/pieiedlagbmcnooloibhigmidpakneca)
 
 ---
 
-## 🎯 What is Silent Feed?
+## 🎯 What is Silent Feed? | 这是什么？
 
 <table>
 <tr>
@@ -86,24 +90,24 @@ A browser extension that uses AI to understand your interests by analyzing brows
 
 ---
 
-## 📚 Resources
+## 📚 Resources | 资源
 
-- 📖 **User Guides**: [English](docs/USER_GUIDE.md) | [中文](docs/USER_GUIDE_ZH.md)
-- 🤝 **Contributing**: [English](CONTRIBUTING.md) | [中文](CONTRIBUTING_ZH.md)
-- 📋 [Changelog](CHANGELOG.md)
-- 🔐 [Privacy Policy](PRIVACY.md)
-- 💡 [Product Overview](docs/PRD.md)
-
----
-
-## 💬 Community
-
-- 🐛 [Report Issues](https://github.com/wxy/SilentFeed/issues)
-- 💡 [Feature Requests](https://github.com/wxy/SilentFeed/issues)
-- ⭐ [Star this repo](https://github.com/wxy/SilentFeed) if you find it useful!
+- 📖 **User Guides | 用户指南**: [English](docs/USER_GUIDE.md) | [中文](docs/USER_GUIDE_ZH.md)
+- 🤝 **Contributing | 贡献指南**: [English](CONTRIBUTING.md) | [中文](CONTRIBUTING_ZH.md)
+- 📋 **Changelog | 更新日志**: [CHANGELOG.md](CHANGELOG.md)
+- 🔐 **Privacy Policy | 隐私政策**: [PRIVACY.md](PRIVACY.md)
+- 💡 **Product Overview | 产品概览**: [PRD.md](docs/PRD.md)
 
 ---
 
+## 💬 Community | 社区
+
+- 🐛 **Report Issues | 报告问题**: [GitHub Issues](https://github.com/wxy/SilentFeed/issues)
+- 💡 **Feature Requests | 功能请求**: [GitHub Issues](https://github.com/wxy/SilentFeed/issues)
+- ⭐ **Star this repo | 给个星标**: 如果觉得有用就来 [GitHub](https://github.com/wxy/SilentFeed) 点个星吧！
+
+---
+
+<div align="center">
 <sub>Made with ❤️ by Silent Feed Team</sub>
-
 </div>
