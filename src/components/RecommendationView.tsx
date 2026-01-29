@@ -878,7 +878,7 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
         
         {/* 底部信息栏 - 紧凑布局 */}
         <div className="flex items-center justify-between text-xs">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="flex items-center flex-wrap gap-x-2 gap-y-1 flex-1">
             {/* 推荐理由主题（仅图标+tooltip）- 冷启动🌱 vs 常规💡 */}
             {currentRecommendation.reason && (
               <span className="text-blue-600 dark:text-blue-400 flex-shrink-0 cursor-help" title={formatRecommendationReason(currentRecommendation.reason, t)}>
@@ -886,31 +886,25 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
               </span>
             )}
             
-            {(currentRecommendation.wordCount ?? 0) > 0 && (
+            {/* 发布时间 */}
+            {currentRecommendation.published && (
               <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
-                {formatWordCount(currentRecommendation.wordCount!, t)}
+                {formatRelativeTime(currentRecommendation.published, t)}
               </span>
             )}
             
-            {(currentRecommendation.readingTime ?? 0) > 0 && (
+            {/* 字数 */}
+            {currentRecommendation.wordCount && currentRecommendation.wordCount > 0 && (
+              <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
+                {formatWordCount(currentRecommendation.wordCount, t)}
+              </span>
+            )}
+            
+            {/* 阅读时间 */}
+            {currentRecommendation.readingTime && currentRecommendation.readingTime > 0 && (
               <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
                 {t('recommendation.readingTime.minutes', { count: currentRecommendation.readingTime })}
               </span>
-            )}
-            
-            {/* 推荐分数 - 可视化横线 */}
-            {currentRecommendation.score && (
-              <div className="flex items-center gap-1 flex-shrink-0">
-                <div className="w-12 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-green-400 to-green-600 transition-all"
-                    style={{ width: `${Math.round(currentRecommendation.score * 100)}%` }}
-                  ></div>
-                </div>
-                <span className="text-xs text-green-600 dark:text-green-400">
-                  {Math.round(currentRecommendation.score * 100)}%
-                </span>
-              </div>
             )}
             
             {/* 语言标签 - 新逻辑：符合界面语言时不显示；不符合时显示「原文」或「翻译」按钮 */}
@@ -986,7 +980,7 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
       
       {/* 底部信息栏 */}
       <div className="flex items-center justify-between text-xs">
-        <div className="flex items-center gap-2 flex-1 min-w-0">
+        <div className="flex items-center flex-wrap gap-x-2 gap-y-1 flex-1">
           {/* 推荐理由主题（仅图标+tooltip）- 冷启动🌱 vs 常规💡 */}
           {currentRecommendation.reason && (
             <span className="text-blue-600 dark:text-blue-400 flex-shrink-0 cursor-help" title={formatRecommendationReason(currentRecommendation.reason, t)}>
@@ -994,31 +988,25 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
             </span>
           )}
           
-          {(currentRecommendation.wordCount ?? 0) > 0 && (
+          {/* 发布时间 */}
+          {currentRecommendation.published && (
             <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
-                {formatWordCount(currentRecommendation.wordCount!, t)}
-              </span>
-            )}
-            
-            {(currentRecommendation.readingTime ?? 0) > 0 && (
-              <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
-                {t('recommendation.readingTime.minutes', { count: currentRecommendation.readingTime })}
-              </span>
-            )}
+              {formatRelativeTime(currentRecommendation.published, t)}
+            </span>
+          )}
           
-          {/* 推荐分数 - 可视化横线 */}
-          {currentRecommendation.score && (
-            <div className="flex items-center gap-1 flex-shrink-0">
-              <div className="w-12 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-green-400 to-green-600 transition-all"
-                  style={{ width: `${Math.round(currentRecommendation.score * 100)}%` }}
-                ></div>
-              </div>
-              <span className="text-xs text-green-600 dark:text-green-400">
-                {Math.round(currentRecommendation.score * 100)}%
-              </span>
-            </div>
+          {/* 字数 */}
+          {currentRecommendation.wordCount && currentRecommendation.wordCount > 0 && (
+            <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
+              {formatWordCount(currentRecommendation.wordCount, t)}
+            </span>
+          )}
+          
+          {/* 阅读时间 */}
+          {currentRecommendation.readingTime && currentRecommendation.readingTime > 0 && (
+            <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
+              {t('recommendation.readingTime.minutes', { count: currentRecommendation.readingTime })}
+            </span>
           )}
           
           {/* 语言标签 - 新逻辑：符合界面语言时不显示；不符合时显示「原文」或「翻译」按钮 */}
@@ -1068,3 +1056,38 @@ function formatWordCount(count: number, translate: (key: string, options?: any) 
   }
   return translate('recommendation.wordCount.words', { count })
 }
+
+/**
+ * 格式化相对时间显示
+ * @param timestamp - Unix 时间戳（毫秒）
+ * @param translate - 翻译函数
+ * @returns 格式化的相对时间字符串
+ */
+function formatRelativeTime(timestamp: number, translate: (key: string, options?: any) => string): string {
+  const now = Date.now()
+  const diffMs = now - timestamp
+  const diffSeconds = Math.floor(diffMs / 1000)
+  const diffMinutes = Math.floor(diffSeconds / 60)
+  const diffHours = Math.floor(diffMinutes / 60)
+  const diffDays = Math.floor(diffHours / 24)
+  const diffWeeks = Math.floor(diffDays / 7)
+  const diffMonths = Math.floor(diffDays / 30)
+  const diffYears = Math.floor(diffDays / 365)
+  
+  if (diffSeconds < 60) {
+    return translate('time.justNow')
+  } else if (diffMinutes < 60) {
+    return translate('time.minutesAgo', { count: diffMinutes })
+  } else if (diffHours < 24) {
+    return translate('time.hoursAgo', { count: diffHours })
+  } else if (diffDays < 7) {
+    return translate('time.daysAgo', { count: diffDays })
+  } else if (diffWeeks < 4) {
+    return translate('time.weeksAgo', { count: diffWeeks })
+  } else if (diffMonths < 12) {
+    return translate('time.monthsAgo', { count: diffMonths })
+  } else {
+    return translate('time.yearsAgo', { count: diffYears })
+  }
+}
+
