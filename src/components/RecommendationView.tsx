@@ -882,21 +882,21 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
             {/* 发布时间 */}
             {currentRecommendation.published !== undefined && (
               <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
-                {formatRelativeTime(currentRecommendation.published, t)}
+                🕐 {formatRelativeTime(currentRecommendation.published, t)}
               </span>
             )}
             
             {/* 字数 */}
             {(currentRecommendation.wordCount ?? 0) > 0 && (
               <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
-                {formatWordCount(currentRecommendation.wordCount!, t)}
+                📝 {formatWordCount(currentRecommendation.wordCount!, t)}
               </span>
             )}
             
             {/* 阅读时间 */}
             {(currentRecommendation.readingTime ?? 0) > 0 && (
               <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
-                {t('recommendation.readingTime.minutes', { count: currentRecommendation.readingTime })}
+                ⏱️ {t('recommendation.readingTime.minutes', { count: currentRecommendation.readingTime })}
               </span>
             )}
             
@@ -977,21 +977,21 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
           {/* 发布时间 */}
           {currentRecommendation.published !== undefined && (
             <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
-              {formatRelativeTime(currentRecommendation.published, t)}
+              🕐 {formatRelativeTime(currentRecommendation.published, t)}
             </span>
           )}
           
           {/* 字数 */}
           {(currentRecommendation.wordCount ?? 0) > 0 && (
             <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
-              {formatWordCount(currentRecommendation.wordCount!, t)}
+              📝 {formatWordCount(currentRecommendation.wordCount!, t)}
             </span>
           )}
           
           {/* 阅读时间 */}
           {(currentRecommendation.readingTime ?? 0) > 0 && (
             <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
-              {t('recommendation.readingTime.minutes', { count: currentRecommendation.readingTime })}
+              ⏱️ {t('recommendation.readingTime.minutes', { count: currentRecommendation.readingTime })}
             </span>
           )}
           

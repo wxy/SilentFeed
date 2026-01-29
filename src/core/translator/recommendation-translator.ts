@@ -142,12 +142,12 @@ export async function translateRecommendations(
  * 即时翻译推荐（兜底策略）
  * 用于在显示时发现推荐没有翻译时即时翻译
  * 
- * @param recommendation 推荐条目
- * @returns 翻译后的推荐条目
+ * @param recommendation 推荐条目（可能是 Recommendation 或 FeedArticle）
+ * @returns 翻译后的推荐条目（保留所有原始字段）
  */
-export async function translateOnDemand(
-  recommendation: Recommendation
-): Promise<Recommendation> {
+export async function translateOnDemand<T extends Recommendation>(
+  recommendation: T
+): Promise<T> {
   try {
     const translated = await translateRecommendation(recommendation)
     
@@ -165,7 +165,11 @@ export async function translateOnDemand(
       }
     }
     
-    return translated
+    // 保留原始对象的所有字段（包括 published, wordCount 等 FeedArticle 特有字段）
+    return {
+      ...recommendation,
+      ...translated
+    } as T
   } catch (error) {
     // 网络错误是临时性的，使用 warn 级别
     if (isNetworkError(error)) {
