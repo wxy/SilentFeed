@@ -894,14 +894,14 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
             )}
             
             {/* 字数 */}
-            {currentRecommendation.wordCount && currentRecommendation.wordCount > 0 && (
+            {(currentRecommendation.wordCount ?? 0) > 0 && (
               <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
-                {formatWordCount(currentRecommendation.wordCount, t)}
+                {formatWordCount(currentRecommendation.wordCount!, t)}
               </span>
             )}
             
             {/* 阅读时间 */}
-            {currentRecommendation.readingTime && currentRecommendation.readingTime > 0 && (
+            {(currentRecommendation.readingTime ?? 0) > 0 && (
               <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
                 {t('recommendation.readingTime.minutes', { count: currentRecommendation.readingTime })}
               </span>
@@ -996,14 +996,14 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
           )}
           
           {/* 字数 */}
-          {currentRecommendation.wordCount && currentRecommendation.wordCount > 0 && (
+          {(currentRecommendation.wordCount ?? 0) > 0 && (
             <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
-              {formatWordCount(currentRecommendation.wordCount, t)}
+              {formatWordCount(currentRecommendation.wordCount!, t)}
             </span>
           )}
           
           {/* 阅读时间 */}
-          {currentRecommendation.readingTime && currentRecommendation.readingTime > 0 && (
+          {(currentRecommendation.readingTime ?? 0) > 0 && (
             <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
               {t('recommendation.readingTime.minutes', { count: currentRecommendation.readingTime })}
             </span>
