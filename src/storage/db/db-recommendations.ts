@@ -200,40 +200,50 @@ export async function getUnreadRecommendations(limit: number = 50): Promise<Reco
       return timeB - timeA
     })
     
+    // 获取所有涉及的 Feed，用于提供 favicon URL
+    const feedIds = [...new Set(sorted.map(a => a.feedId))]
+    const feeds = await db.discoveredFeeds.bulkGet(feedIds)
+    const feedMap = new Map(feeds.filter(Boolean).map(f => [f!.id, f!]))
+    
     // 转换为 Recommendation 格式（兼容旧接口）
     // ⚠️ 重要：保留 FeedArticle 的所有字段，特别是 published, wordCount, readingTime
-    const recommendations: Recommendation[] = sorted.slice(0, limit).map(article => ({
-      id: article.id,
-      url: article.link,
-      title: article.title,
-      summary: article.description || '',
-      source: article.feedId,
-      sourceUrl: article.feedId,
-      recommendedAt: article.popupAddedAt || article.recommendedPoolAddedAt || Date.now(),
-      score: article.analysisScore || 0,
-      reason: article.recommendationReason,
-      // ✅ 优先使用存储的 wordCount，如果没有则用 content 长度估算
-      wordCount: article.wordCount || (article.content?.length ? article.content.length : undefined),
-      // ✅ 优先使用存储的 readingTime，如果没有则用 content 长度估算（每分钟 300 字）
-      readingTime: article.readingTime || (article.content?.length ? Math.ceil(article.content.length / 300) : undefined),
-      excerpt: article.description,
-      isRead: article.isRead || false,
-      clickedAt: article.clickedAt,
-      readDuration: article.readDuration,
-      scrollDepth: article.scrollDepth,
-      feedback: article.feedback,
-      feedbackAt: article.feedbackAt,
-      effectiveness: article.effectiveness,
-      status: 'active',
-      translation: article.translation,
-      aiSummary: article.aiSummary,  // ✅ 传递 AI 生成的摘要
-      // ✅ 传递 FeedArticle 特有字段
-      published: article.published,  // 发布时间（用于相对时间显示）
-      fetched: article.fetched,      // 抓取时间
-      content: article.content,      // 完整内容
-      description: article.description,  // 原始描述
-      author: article.author         // 作者
-    } as any))  // 使用 any 避免类型检查（Recommendation 接口不完整）
+    const recommendations: Recommendation[] = sorted.slice(0, limit).map(article => {
+      const feed = feedMap.get(article.feedId)
+      const feedUrl = feed?.link || feed?.url || article.link  // 优先使用 Feed 的 link，后备到文章 link
+      
+      return {
+        id: article.id,
+        url: article.link,
+        title: article.title,
+        summary: article.description || '',
+        source: article.feedId,
+        sourceUrl: feedUrl,  // ✅ 使用 Feed 的 URL 而不是 UUID
+        recommendedAt: article.popupAddedAt || article.recommendedPoolAddedAt || Date.now(),
+        score: article.analysisScore || 0,
+        reason: article.recommendationReason,
+        // ✅ 优先使用存储的 wordCount，如果没有则用 content 长度估算
+        wordCount: article.wordCount || (article.content?.length ? article.content.length : undefined),
+        // ✅ 优先使用存储的 readingTime，如果没有则用 content 长度估算（每分钟 300 字）
+        readingTime: article.readingTime || (article.content?.length ? Math.ceil(article.content.length / 300) : undefined),
+        excerpt: article.description,
+        isRead: article.isRead || false,
+        clickedAt: article.clickedAt,
+        readDuration: article.readDuration,
+        scrollDepth: article.scrollDepth,
+        feedback: article.feedback,
+        feedbackAt: article.feedbackAt,
+        effectiveness: article.effectiveness,
+        status: 'active',
+        translation: article.translation,
+        aiSummary: article.aiSummary,  // ✅ 传递 AI 生成的摘要
+        // ✅ 传递 FeedArticle 特有字段
+        published: article.published,  // 发布时间（用于相对时间显示）
+        fetched: article.fetched,      // 抓取时间
+        content: article.content,      // 完整内容
+        description: article.description,  // 原始描述
+        author: article.author         // 作者
+      } as any  // 使用 any 避免类型检查（Recommendation 接口不完整）
+    })
     
     return recommendations
   } catch (error) {
