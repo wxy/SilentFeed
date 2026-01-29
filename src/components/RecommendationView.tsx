@@ -879,15 +879,8 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
         {/* 底部信息栏 - 紧凑布局 */}
         <div className="flex items-center justify-between text-xs">
           <div className="flex items-center flex-wrap gap-x-2 gap-y-1 flex-1">
-            {/* 推荐理由主题（仅图标+tooltip）- 冷启动🌱 vs 常规💡 */}
-            {currentRecommendation.reason && (
-              <span className="text-blue-600 dark:text-blue-400 flex-shrink-0 cursor-help" title={formatRecommendationReason(currentRecommendation.reason, t)}>
-                {getReasonIcon(currentRecommendation)}
-              </span>
-            )}
-            
             {/* 发布时间 */}
-            {currentRecommendation.published && (
+            {currentRecommendation.published !== undefined && (
               <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
                 {formatRelativeTime(currentRecommendation.published, t)}
               </span>
@@ -981,15 +974,8 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
       {/* 底部信息栏 */}
       <div className="flex items-center justify-between text-xs">
         <div className="flex items-center flex-wrap gap-x-2 gap-y-1 flex-1">
-          {/* 推荐理由主题（仅图标+tooltip）- 冷启动🌱 vs 常规💡 */}
-          {currentRecommendation.reason && (
-            <span className="text-blue-600 dark:text-blue-400 flex-shrink-0 cursor-help" title={formatRecommendationReason(currentRecommendation.reason, t)}>
-              {getReasonIcon(currentRecommendation)}
-            </span>
-          )}
-          
           {/* 发布时间 */}
-          {currentRecommendation.published && (
+          {currentRecommendation.published !== undefined && (
             <span className="text-gray-500 dark:text-gray-500 flex-shrink-0">
               {formatRelativeTime(currentRecommendation.published, t)}
             </span>
