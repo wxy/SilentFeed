@@ -28,6 +28,7 @@ interface OnboardingStateInfo {
   subscribedFeedCount: number
   progressPercent: number
   isLearningComplete: boolean
+  isAIConfigured: boolean
 }
 
 /**
@@ -131,7 +132,8 @@ function IndexPopup() {
             threshold: LEARNING_COMPLETE_PAGES,
             subscribedFeedCount: 0,
             progressPercent: 0,
-            isLearningComplete: false
+            isLearningComplete: false,
+            isAIConfigured: false
           })
         }
       } catch (error) {
@@ -143,7 +145,8 @@ function IndexPopup() {
           threshold: LEARNING_COMPLETE_PAGES,
           subscribedFeedCount: 0,
           progressPercent: 0,
-          isLearningComplete: false
+          isLearningComplete: false,
+          isAIConfigured: false
         })
       } finally {
         setIsLoading(false)
@@ -305,6 +308,7 @@ function IndexPopup() {
             pageCount={pageCount} 
             totalPages={threshold} 
             subscribedFeedCount={stateInfo.subscribedFeedCount}
+            isAIConfigured={stateInfo.isAIConfigured}
             uiStyle={uiStyle} 
           />
         ) : deliveryMode === 'readingList' ? (

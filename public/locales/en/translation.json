@@ -167,6 +167,11 @@
       "title": "Not subscribed to any feeds yet",
       "description": "After adding a subscription source, we can recommend exciting content for you.",
       "action": "Go to add a feed"
+    },
+    "aiNotConfigured": {
+      "title": "AI Service Not Configured",
+      "description": "Configure an AI provider to start learning your interests and generating recommendations",
+      "configureButton": "Configure AI"
     }
   },
   "languages": {
