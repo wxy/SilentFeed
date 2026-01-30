@@ -15,6 +15,7 @@ import { statsCache } from '@/utils/cache'
 import { updateFeedStats } from './db-feeds'
 import { ProfileUpdateScheduler } from '@/core/profile/ProfileUpdateScheduler'
 import { getRecommendationConfig } from '../recommendation-config'
+import { ReadingListManager } from '@/core/reading-list/reading-list-manager'
 import type { FeedArticle } from '@/types/rss'
 import type { Recommendation } from '@/types/database'
 
@@ -80,6 +81,28 @@ export async function markAsRead(
   
   await db.feedArticles.update(article.id, updates)
   
+  dbLogger.debug(`✅ 文章状态已更新: ${article.id}`, {
+    addedToReadingListAt: article.addedToReadingListAt
+  })
+  
+  // 如果文章已添加到阅读清单，标记为已读（不删除，保留在已读标签页）
+  if (article.addedToReadingListAt && ReadingListManager.isAvailable()) {
+    try {
+      // 使用 recommendationId 查找映射记录（支持原文和翻译 URL）
+      const mapping = await db.readingListEntries
+        .where('recommendationId')
+        .equals(article.id)
+        .first()
+      
+      if (mapping) {
+        await ReadingListManager.markAsRead(mapping.url)
+        dbLogger.debug(`✅ 清单条目已标记为已读: ${mapping.url}`)
+      }
+    } catch (error) {
+      dbLogger.error('标记阅读清单条目已读失败:', { articleId: article.id, error })
+    }
+  }
+  
   // 清除统计缓存
   statsCache.invalidate('rec-stats-7d')
   
@@ -105,6 +128,7 @@ export async function markAsRead(
 export async function dismissRecommendations(articleIds: string[]): Promise<void> {
   const now = Date.now()
   const feedIds = new Set<string>()
+  const urlsToRemove: string[] = []  // 需要从阅读清单移除的 URL
   
   for (const articleId of articleIds) {
     // 尝试按 ID 查找
@@ -135,8 +159,53 @@ export async function dismissRecommendations(articleIds: string[]): Promise<void
       poolRemovedReason: 'disliked'
     })
     
+    // 如果文章已添加到阅读清单，记录需要移除的 URL
+    if (article.addedToReadingListAt) {
+      urlsToRemove.push(article.link)
+    }
+    
     if (article.feedId) {
       feedIds.add(article.feedId)
+    }
+  }
+  
+  // 从阅读清单中移除（如果有）
+  if (urlsToRemove.length > 0 && ReadingListManager.isAvailable()) {
+    dbLogger.info(`🗑️ 从阅读清单移除 ${urlsToRemove.length} 篇文章`)
+    
+    // 收集所有需要删除的推荐 ID
+    const articleIdsToRemove: string[] = []
+    for (const url of urlsToRemove) {
+      const article = await db.feedArticles.where('link').equals(url).first()
+      if (article) {
+        articleIdsToRemove.push(article.id)
+      }
+    }
+    
+    // 使用 recommendationId 查找和删除映射
+    for (const articleId of articleIdsToRemove) {
+      try {
+        // 使用 recommendationId 查找映射记录（支持原文和翻译 URL）
+        const mapping = await db.readingListEntries
+          .where('recommendationId')
+          .equals(articleId)
+          .first()
+        
+        if (mapping) {
+          // 使用映射中存储的实际 URL（带追踪参数，可能是翻译 URL）
+          await ReadingListManager.removeFromReadingList(mapping.url, true)
+          
+          // 删除所有相关的映射记录（原文 URL + 翻译 URL）
+          await db.readingListEntries
+            .where('recommendationId')
+            .equals(articleId)
+            .delete()
+        } else {
+          dbLogger.warn('未找到阅读清单映射记录:', { articleId })
+        }
+      } catch (error) {
+        dbLogger.error('从阅读清单移除失败:', { articleId, error })
+      }
     }
   }
   
@@ -165,6 +234,8 @@ export async function getUnreadRecommendations(limit: number = 50): Promise<Reco
     // 获取推荐配置，检查投递模式
     const config = await getRecommendationConfig()
     const isReadingListMode = config.deliveryMode === 'readingList'
+    // 'both' 模式下，弹窗显示所有推荐（不过滤）
+    const isBothMode = config.deliveryMode === 'both'
     
     const articles = await db.feedArticles
       .filter(a => {
@@ -176,9 +247,10 @@ export async function getUnreadRecommendations(limit: number = 50): Promise<Reco
       })
       .toArray()
     
-    // 清单模式下，只返回已添加到清单的文章
+    // 纯清单模式下，只返回已添加到清单的文章
+    // both 模式下，弹窗显示所有推荐（不过滤）
     let filteredArticles = articles
-    if (isReadingListMode) {
+    if (isReadingListMode && !isBothMode) {
       const mappings = await db.readingListEntries.toArray()
       const mappedIds = new Set(mappings.map(m => m.recommendationId).filter(Boolean))
       
@@ -191,7 +263,7 @@ export async function getUnreadRecommendations(limit: number = 50): Promise<Reco
       }
     }
     
-    dbLogger.debug(`[getUnreadRecommendations] 查询结果: ${filteredArticles.length} 篇文章`)
+    dbLogger.debug(`[getUnreadRecommendations] 查询结果: ${filteredArticles.length} 篇文章 (模式: ${config.deliveryMode})`)
     
     // 按推荐时间降序排序
     const sorted = filteredArticles.sort((a, b) => {
@@ -200,31 +272,50 @@ export async function getUnreadRecommendations(limit: number = 50): Promise<Reco
       return timeB - timeA
     })
     
+    // 获取所有涉及的 Feed，用于提供 favicon URL
+    const feedIds = [...new Set(sorted.map(a => a.feedId))]
+    const feeds = await db.discoveredFeeds.bulkGet(feedIds)
+    const feedMap = new Map(feeds.filter(Boolean).map(f => [f!.id, f!]))
+    
     // 转换为 Recommendation 格式（兼容旧接口）
-    const recommendations: Recommendation[] = sorted.slice(0, limit).map(article => ({
-      id: article.id,
-      url: article.link,
-      title: article.title,
-      summary: article.description || '',
-      source: article.feedId,
-      sourceUrl: article.feedId,
-      recommendedAt: article.popupAddedAt || article.recommendedPoolAddedAt || Date.now(),
-      score: article.analysisScore || 0,
-      reason: article.recommendationReason,
-      wordCount: article.content?.length || 0,
-      readingTime: Math.ceil((article.content?.length || 0) / 300),
-      excerpt: article.description,
-      isRead: article.isRead || false,
-      clickedAt: article.clickedAt,
-      readDuration: article.readDuration,
-      scrollDepth: article.scrollDepth,
-      feedback: article.feedback,
-      feedbackAt: article.feedbackAt,
-      effectiveness: article.effectiveness,
-      status: 'active',
-      translation: article.translation,
-      aiSummary: article.aiSummary  // ✅ 传递 AI 生成的摘要
-    }))
+    // ⚠️ 重要：保留 FeedArticle 的所有字段，特别是 published, wordCount, readingTime
+    const recommendations: Recommendation[] = sorted.slice(0, limit).map(article => {
+      const feed = feedMap.get(article.feedId)
+      const feedUrl = feed?.link || feed?.url || article.link  // 优先使用 Feed 的 link，后备到文章 link
+      
+      return {
+        id: article.id,
+        url: article.link,
+        title: article.title,
+        summary: article.description || '',
+        source: article.feedId,
+        sourceUrl: feedUrl,  // ✅ 使用 Feed 的 URL 而不是 UUID
+        recommendedAt: article.popupAddedAt || article.recommendedPoolAddedAt || Date.now(),
+        score: article.analysisScore || 0,
+        reason: article.recommendationReason,
+        // ✅ 优先使用存储的 wordCount，如果没有则用 content 长度估算
+        wordCount: article.wordCount || (article.content?.length ? article.content.length : undefined),
+        // ✅ 优先使用存储的 readingTime，如果没有则用 content 长度估算（每分钟 300 字）
+        readingTime: article.readingTime || (article.content?.length ? Math.ceil(article.content.length / 300) : undefined),
+        excerpt: article.description,
+        isRead: article.isRead || false,
+        clickedAt: article.clickedAt,
+        readDuration: article.readDuration,
+        scrollDepth: article.scrollDepth,
+        feedback: article.feedback,
+        feedbackAt: article.feedbackAt,
+        effectiveness: article.effectiveness,
+        status: 'active',
+        translation: article.translation,
+        aiSummary: article.aiSummary,  // ✅ 传递 AI 生成的摘要
+        // ✅ 传递 FeedArticle 特有字段
+        published: article.published,  // 发布时间（用于相对时间显示）
+        fetched: article.fetched,      // 抓取时间
+        content: article.content,      // 完整内容
+        description: article.description,  // 原始描述
+        author: article.author         // 作者
+      } as any  // 使用 any 避免类型检查（Recommendation 接口不完整）
+    })
     
     return recommendations
   } catch (error) {

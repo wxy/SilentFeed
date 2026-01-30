@@ -239,9 +239,9 @@ async function updateBadge(): Promise<void> {
       
       // 即使 AI 未配置，也显示推荐池未读数（供调试）
       try {
-        // 🆕 清单模式下，先主动同步已读状态
+        // 🆕 清单模式或同时显示模式下，先主动同步已读状态
         const config = await getRecommendationConfig()
-        if (config.deliveryMode === 'readingList') {
+        if (config.deliveryMode === 'readingList' || config.deliveryMode === 'both') {
           await syncReadingListStatusInBackground()
         }
         
@@ -288,9 +288,9 @@ async function updateBadge(): Promise<void> {
       
       // 推荐阶段：显示推荐池内未读数量
       try {
-        // 🆕 清单模式下，先主动同步已读状态（与弹窗保持一致）
+        // 🆕 清单模式或同时显示模式下，先主动同步已读状态（与弹窗保持一致）
         const config = await getRecommendationConfig()
-        if (config.deliveryMode === 'readingList') {
+        if (config.deliveryMode === 'readingList' || config.deliveryMode === 'both') {
           await syncReadingListStatusInBackground()
         }
         
@@ -628,6 +628,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 }
               }
               
+              // 兜底：直接从 URL 参数提取 sf_rec（支持从清单打开的情况）
+              if (!trackingInfo) {
+                const shortId = ReadingListManager.extractRecommendationId(pageData.url)
+                if (shortId) {
+                  // 通过 shortId 查找对应的文章
+                  const entry = await db.readingListEntries
+                    .where('shortId').equals(shortId)
+                    .first()
+                  if (entry?.recommendationId) {
+                    trackingInfo = {
+                      recommendationId: entry.recommendationId,
+                      source: 'readingList',
+                      action: 'clicked'
+                    }
+                    trackingSource = 'sf_rec_param'
+                    bgLogger.debug(`🔍 通过 URL 参数 sf_rec 找到追踪信息`, { shortId, recommendationId: entry.recommendationId })
+                  }
+                }
+              }
+              
               if (trackingInfo?.recommendationId) {
                 pageData.source = 'recommended'
                 pageData.recommendationId = trackingInfo.recommendationId
@@ -641,6 +661,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                   url: pageData.url,
                   recommendationId: trackingInfo.recommendationId
                 })
+                
+                // 方案A：打开即标记已读（兜底，主要由 OPEN_RECOMMENDATION 处理）
+                try {
+                  const article = await db.feedArticles.get(trackingInfo.recommendationId)
+                  if (article && !article.isRead) {
+                    bgLogger.debug(`🎯 [PAGE_VISIT兜底] 标记推荐为已读: ${article.id}`)
+                    await markAsRead(article.id)
+                    updateBadge().catch(err => bgLogger.warn('触发徽章更新失败:', err))
+                    chrome.runtime.sendMessage({ type: 'RECOMMENDATION_UPDATED' }).catch(() => {})
+                  }
+                } catch (markError) {
+                  bgLogger.error('❌ [PAGE_VISIT] 标记已读失败:', markError)
+                }
               }
             } catch (storageError) {
               bgLogger.warn('检查推荐追踪失败', storageError)
@@ -654,7 +687,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               break
             }
             
-            // 4. 后续处理（推荐标记、画像学习、阅读清单移除等）
+            // 4. 后续处理（画像学习、阅读清单清理等）
             // 为内容脚本提供阅读清单移除的诊断信息
             const removalDebug: {
               attempted: boolean
@@ -667,18 +700,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               error?: string
             } = { attempted: false }
 
-            // 标记为已读与画像学习仅在非去重时进行，但移除阅读清单在两种情况下都兜底执行
+            // 画像学习仅在非去重时进行，阅读清单清理在两种情况下都兜底执行
             if (pageData.recommendationId) {
               try {
                 // Phase 13+: recommendationId 现在是文章 ID
                 const article = await db.feedArticles.get(pageData.recommendationId)
                 if (article && !result.deduplicated) {
-                  await markAsRead(article.id, pageData.duration, undefined)
-                  bgLogger.info(`✅ 推荐已标记为已读: ${article.id}`)
-                  
-                  // 立即触发徽章更新和UI刷新
-                  updateBadge().catch(err => bgLogger.warn('触发徽章更新失败:', err))
-                  chrome.runtime.sendMessage({ type: 'RECOMMENDATION_UPDATED' }).catch(() => {})
+                  // 注意：markAsRead 已在上面立即执行，这里只做画像学习
                   
                   // 构造兼容的推荐对象用于画像学习
                   const recommendation = {
@@ -689,13 +717,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     recommendedAt: article.popupAddedAt || article.recommendedPoolAddedAt || Date.now(),
                     score: article.analysisScore || 0
                   }
-                  await semanticProfileBuilder.onRead(recommendation, pageData.duration, 0.5)
-                  bgLogger.debug('✅ 画像阅读学习完成')
+                  
+                  // 如果有阅读时长，用于画像学习（可选）
+                  if (pageData.duration && pageData.duration > 10) {
+                    await semanticProfileBuilder.onRead(recommendation, pageData.duration, 0.5)
+                    bgLogger.debug('✅ 画像阅读学习完成', {
+                      duration: pageData.duration,
+                      title: article.title
+                    })
+                  } else {
+                    bgLogger.debug('⏭️ 阅读时长不足，跳过画像学习', {
+                      duration: pageData.duration
+                    })
+                  }
                 }
                 
                 if (article) {
                   
-                  // Phase 15: 如果文章来自阅读清单，学习完成后自动移除
+                  // Phase 15: 清理阅读清单映射记录（markAsRead 已标记清单为已读）
                   if (article.addedToReadingListAt && ReadingListManager.isAvailable()) {
                     try {
                       // 直接使用 recommendationId 查询，避免 URL 格式匹配问题
@@ -708,31 +747,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                       removalDebug.matchedUrls = entries.map(e => e.url)
                       removalDebug.removedCount = 0
                       
-                      bgLogger.info('🔍 通过推荐ID查询阅读清单记录', {
+                      bgLogger.debug('🔍 查询阅读清单映射记录', {
                         '推荐ID': pageData.recommendationId,
-                        '匹配到条目数': entries.length,
-                        '匹配到的URLs': entries.map(e => e.url)
+                        '映射记录数': entries.length
                       })
 
                       if (entries.length > 0) {
+                        // 清理映射记录（清单条目已在 markAsRead 中标记为已读）
                         for (const entry of entries) {
                           try {
-                            // 标记为已读而非删除，保留历史记录
-                            await chrome.readingList.updateEntry({ url: entry.url, hasBeenRead: true })
-                            // 从数据库记录表中删除（已完成任务）
                             await db.readingListEntries.delete(entry.normalizedUrl)
                             removalDebug.removedCount = (removalDebug.removedCount || 0) + 1
-                            bgLogger.info('✅ 学习完成，已标记阅读清单条目为已读', {
-                              url: entry.url,
-                              normalizedUrl: entry.normalizedUrl,
-                              recommendationId: pageData.recommendationId,
-                              title: recommendation.title
+                            bgLogger.debug('✅ 已清理阅读清单映射记录', {
+                              normalizedUrl: entry.normalizedUrl
                             })
-                          } catch (updateError) {
-                            bgLogger.warn('更新阅读清单失败（可能已手动删除）:', {
-                              error: updateError,
-                              url: entry.url,
-                              recommendationId: pageData.recommendationId
+                          } catch (deleteError) {
+                            bgLogger.warn('清理映射记录失败:', {
+                              error: deleteError,
+                              normalizedUrl: entry.normalizedUrl
                             })
                           }
                         }
@@ -1431,7 +1463,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         case 'DELIVERY_MODE_CHANGED':
           (async () => {
             try {
-              const { deliveryMode } = message as { type: string; deliveryMode: 'popup' | 'readingList' }
+              const { deliveryMode } = message as { type: string; deliveryMode: 'popup' | 'readingList' | 'both' }
               const prevConfig = await getRecommendationConfig()
               const newConfig = { ...prevConfig, deliveryMode }
               await saveRecommendationConfig(newConfig)
@@ -1439,8 +1471,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
               const autoAddedPrefix = '🤫 '
 
-              // 切换到阅读清单：将当前推荐写入清单
-              if (deliveryMode === 'readingList' && ReadingListManager.isAvailable()) {
+              // 切换到阅读清单或同时显示：将当前推荐写入清单
+              if ((deliveryMode === 'readingList' || deliveryMode === 'both') && ReadingListManager.isAvailable()) {
                 // 获取弹窗中的未读推荐
                 const activeRecs = await db.feedArticles
                   .filter(article => {
@@ -1515,6 +1547,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     const ok = await ReadingListManager.addToReadingList(finalTitle, urlWithTracking, article.isRead || false)
 
                     if (ok) {
+                      const addedTime = Date.now()
+                      
                       // 记录映射关系（用于删除）
                       // 同时记录原文URL和显示URL
                       const normalizedOriginalUrl = ReadingListManager.normalizeUrlForTracking(article.link)
@@ -1527,8 +1561,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         originalUrl: article.link,              // 始终保存原文URL
                         recommendationId: article.id,
                         shortId: shortId,                       // 存储短 ID 用于查询
-                        addedAt: Date.now(),
+                        addedAt: addedTime,
                         titlePrefix: autoAddedPrefix
+                      })
+                      
+                      // 更新文章的 addedToReadingListAt 字段
+                      await db.feedArticles.update(article.id, {
+                        addedToReadingListAt: addedTime
                       })
                       
                       // 如果使用了翻译链接，额外记录一个翻译URL的映射
@@ -1539,7 +1578,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                           originalUrl: article.link,
                           recommendationId: article.id,
                           shortId: shortId,                     // 同样存储短 ID
-                          addedAt: Date.now(),
+                          addedAt: addedTime,
                           titlePrefix: autoAddedPrefix
                         })
                       }
@@ -1873,6 +1912,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 source: 'popup',
                 action: action || 'clicked'
               })
+              
+              // 3. 方案A：打开即标记已读（立即执行，不等 PAGE_VISIT）
+              if (recommendationId) {
+                try {
+                  await markAsRead(recommendationId)
+                  updateBadge().catch(err => bgLogger.warn('触发徽章更新失败:', err))
+                  chrome.runtime.sendMessage({ type: 'RECOMMENDATION_UPDATED' }).catch(() => {})
+                  bgLogger.debug(`✅ 推荐已标记为已读: ${recommendationId}`)
+                } catch (markError) {
+                  bgLogger.error('❌ [OPEN_RECOMMENDATION] 标记已读失败:', markError)
+                }
+              }
               
               sendResponse({ success: true, tabId: tab.id })
             } else {

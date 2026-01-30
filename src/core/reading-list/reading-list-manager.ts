@@ -318,6 +318,30 @@ export class ReadingListManager {
   }
 
   /**
+   * 标记阅读清单条目为已读（不删除）
+   * @param url 条目 URL
+   * @returns 是否成功
+   */
+  static async markAsRead(url: string): Promise<boolean> {
+    if (!this.isAvailable()) {
+      return false
+    }
+
+    try {
+      // 使用 updateEntry API 标记为已读
+      await chrome.readingList.updateEntry({
+        url,
+        hasBeenRead: true
+      })
+      rlLogger.debug('✅ 已标记阅读清单条目为已读', { url })
+      return true
+    } catch (error) {
+      rlLogger.error('❌ 标记阅读清单条目已读失败', { url, error })
+      return false
+    }
+  }
+
+  /**
    * @deprecated 使用 addToReadingList 代替
    * 
    * 将推荐文章保存到 Chrome 阅读列表
@@ -400,6 +424,7 @@ export class ReadingListManager {
             poolExitedAt: now,
             poolExitReason: 'saved',
             feedback: 'later',  // Phase 14: 标记为"稍后读"
+            addedToReadingListAt: now,  // 记录添加到阅读清单的时间
             // 旧字段兼容
             inPool: false,
             poolRemovedAt: now,
@@ -663,7 +688,7 @@ export class ReadingListManager {
             } : '未找到文章')
             
             if (article && !article.isRead) {
-              // 标记为已读
+              // 标记为已读（保留清单条目，只更新数据库状态）
               await db.feedArticles.update(article.id, {
                 isRead: true,
                 clickedAt: Date.now(),
@@ -672,7 +697,7 @@ export class ReadingListManager {
                 poolExitReason: 'read'
               })
               
-              rlLogger.info('✅ [阅读清单] 文章被标记为已读', {
+              rlLogger.info('✅ [阅读清单] 文章被标记为已读（保留在清单已读标签）', {
                 id: article.id,
                 title: article.title
               })

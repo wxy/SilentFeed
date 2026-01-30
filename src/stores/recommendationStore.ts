@@ -120,8 +120,8 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
       // 获取推荐配置
       const config = await getRecommendationConfig()
       
-      // 🆕 清单模式下，先主动同步已读状态
-      if (config.deliveryMode === 'readingList') {
+      // 🆕 清单模式或同时显示模式下，先主动同步已读状态
+      if (config.deliveryMode === 'readingList' || config.deliveryMode === 'both') {
         await syncReadingListStatus()
       }
       

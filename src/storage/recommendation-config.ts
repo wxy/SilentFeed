@@ -57,8 +57,13 @@ export interface RecommendationConfig {
    */
   maxRecommendations: number
 
-  /** 推荐投递方式：弹窗或阅读清单 */
-  deliveryMode: 'popup' | 'readingList'
+  /** 
+   * 推荐投递方式
+   * - popup: 仅在弹窗中显示
+   * - readingList: 仅在阅读清单中显示
+   * - both: 同时在弹窗和阅读清单中显示
+   */
+  deliveryMode: 'popup' | 'readingList' | 'both'
   /** 阅读清单模式配置 */
   readingList: ReadingListConfig
   

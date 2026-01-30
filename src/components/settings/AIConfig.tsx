@@ -94,7 +94,7 @@ export function AIConfig() {
   
   // 推荐配置
   const [maxRecommendations, setMaxRecommendations] = useState(3)
-  const [deliveryMode, setDeliveryMode] = useState<'popup' | 'readingList'>('popup')
+  const [deliveryMode, setDeliveryMode] = useState<'popup' | 'readingList' | 'both'>('popup')
   // 阅读列表标题前缀设置已移除，固定使用默认表情前缀
   const [isLearningStage, setIsLearningStage] = useState(false)
   const [pageCount, setPageCount] = useState(0)
@@ -138,7 +138,7 @@ export function AIConfig() {
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const isInitializedRef = useRef(false) // 追踪是否已完成初始化
 
-  const readingListModeEnabled = deliveryMode === 'readingList' && readingListSupported
+  const readingListModeEnabled = (deliveryMode === 'readingList' || deliveryMode === 'both') && readingListSupported
 
   // 从模型推导当前 Provider
   const currentProvider = model ? getProviderFromModel(model) : null
@@ -250,7 +250,13 @@ export function AIConfig() {
     // 加载推荐配置
     getRecommendationConfig().then(recConfig => {
       setMaxRecommendations(recConfig.maxRecommendations || 3)
-      setDeliveryMode(recConfig.deliveryMode === 'readingList' && readingListSupported ? 'readingList' : 'popup')
+      setDeliveryMode(
+        recConfig.deliveryMode === 'both' && readingListSupported 
+          ? 'both' 
+          : recConfig.deliveryMode === 'readingList' && readingListSupported 
+            ? 'readingList' 
+            : 'popup'
+      )
       // 标题前缀不再配置，保持默认
     })
     
@@ -549,9 +555,15 @@ export function AIConfig() {
       // 保存推荐配置（deliveryMode 和 readingList 是用户可配置的）
       // maxRecommendations 由系统自动调整，不保存用户设置
       const recConfig = await getRecommendationConfig()
+      let finalMode: 'popup' | 'readingList' | 'both' = 'popup'
+      if (deliveryMode === 'both' && readingListSupported) {
+        finalMode = 'both'
+      } else if (deliveryMode === 'readingList' && readingListSupported) {
+        finalMode = 'readingList'
+      }
       await saveRecommendationConfig({
         ...recConfig,
-        deliveryMode: deliveryMode === 'readingList' && readingListSupported ? 'readingList' : 'popup'
+        deliveryMode: finalMode
       })
       
     } catch (error) {

@@ -275,14 +275,7 @@ describe("RecommendationView 组件", () => {
       expect(favicons.length).toBeGreaterThanOrEqual(2)
     })
 
-    it("应该显示推荐分数（百分比）", () => {
-      mockRecommendations = mockRecs
-      render(<RecommendationView />)
-
-      // 使用正则表达式或查询所有包含分数的元素
-      expect(screen.getByText(/95/)).toBeInTheDocument()
-      expect(screen.getByText(/88/)).toBeInTheDocument()
-    })
+    // 注意：分数百分比显示功能已移除，相关测试不再需要
 
     it("当没有摘要时不应该显示摘要区域", () => {
       mockRecommendations = [
@@ -352,12 +345,13 @@ describe("RecommendationView 组件", () => {
       await user.click(item)
 
       // 新方案：通过 sendMessage 发送到 Background 打开
+      // 注意：URL 现在包含动态追踪参数 sf_rec，所以不检查精确 URL
       await waitFor(() => {
         expect(mockSendMessage).toHaveBeenCalledWith(
           expect.objectContaining({
             type: 'OPEN_RECOMMENDATION',
             payload: expect.objectContaining({
-              url: "https://example.com/article",
+              recommendationId: 'rec-1',
             }),
           })
         )
@@ -387,12 +381,12 @@ describe("RecommendationView 组件", () => {
       await user.click(item)
 
       // 新方案：通过 sendMessage 发送到 Background 处理
+      // 注意：URL 现在会包含追踪参数 sf_rec
       await waitFor(() => {
         expect(mockSendMessage).toHaveBeenCalledWith(
           expect.objectContaining({
             type: 'OPEN_RECOMMENDATION',
             payload: expect.objectContaining({
-              url: 'https://example.com/article',
               recommendationId: 'rec-1',
               title: '测试文章',
               action: 'clicked',
