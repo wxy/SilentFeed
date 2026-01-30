@@ -290,8 +290,8 @@ export class RefillScheduler {
       const config = await getRecommendationConfig()
       schedLogger.info(`🔍 [诊断] 当前显示模式: ${config.deliveryMode}`)
       
-      if (config.deliveryMode === 'readingList') {
-        schedLogger.info(`📝 清单模式：将 ${recommendations.length} 篇文章写入阅读清单`)
+      if (config.deliveryMode === 'readingList' || config.deliveryMode === 'both') {
+        schedLogger.info(`📝 清单模式/同时显示模式：将 ${recommendations.length} 篇文章写入阅读清单`)
         await this.writeToReadingList(recommendations)
         
         // 验证写入后推荐池状态是否被修改
@@ -645,13 +645,20 @@ export class RefillScheduler {
           const normalizedDisplayUrl = ReadingListManager.normalizeUrlForTracking(displayUrl)
           const shortId = ReadingListManager.hashId(article.id)  // 生成短 ID
           
+          const addedTime = Date.now()
+          
           await db.readingListEntries.put({
             normalizedUrl: normalizedOriginalUrl,  // 主键，使用原文URL
             url: urlWithTracking,                   // 实际显示的URL（带追踪参数）
             originalUrl: article.link,              // 始终保存原文URL
             recommendationId: article.id,
             shortId: shortId,                       // 存储短 ID
-            addedAt: Date.now()
+            addedAt: addedTime
+          })
+          
+          // 更新文章的 addedToReadingListAt 字段
+          await db.feedArticles.update(article.id, {
+            addedToReadingListAt: addedTime
           })
           
           // 如果使用了翻译链接，额外记录一个翻译URL的映射
@@ -662,7 +669,7 @@ export class RefillScheduler {
               originalUrl: article.link,
               recommendationId: article.id,
               shortId: shortId,                   // 同样存储短 ID
-              addedAt: Date.now()
+              addedAt: addedTime
             })
           }
         }

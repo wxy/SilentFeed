@@ -1719,6 +1719,7 @@
     "deliveryMode": {
       "popup": "弹窗",
       "readingList": "阅读列表",
+      "both": "同时显示",
       "readingListAvailable": "阅读列表可用",
       "readingListUnavailable": "阅读列表不可用",
       "popupDisplay": "弹窗显示"

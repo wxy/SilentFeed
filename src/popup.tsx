@@ -43,7 +43,7 @@ function IndexPopup() {
   const [stateInfo, setStateInfo] = useState<OnboardingStateInfo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [uiStyle, setUiStyle] = useState<UIStyle>("normal")
-  const [deliveryMode, setDeliveryMode] = useState<'popup' | 'readingList'>('popup')
+  const [deliveryMode, setDeliveryMode] = useState<'popup' | 'readingList' | 'both'>('popup')
   const [toolbarState, setToolbarState] = useState<{
     hasRSSFeeds: boolean
     hasCandidateFeeds: boolean  // 新发现的订阅源
@@ -95,8 +95,16 @@ function IndexPopup() {
     const loadDeliveryMode = async () => {
       try {
         const config = await getRecommendationConfig()
-        const isReadingListMode = config.deliveryMode === 'readingList' && isReadingListAvailable()
-        setDeliveryMode(isReadingListMode ? 'readingList' : 'popup')
+        const readingListAvailable = isReadingListAvailable()
+        
+        // 根据配置和浏览器能力决定实际投递方式
+        if (config.deliveryMode === 'both' && readingListAvailable) {
+          setDeliveryMode('both')
+        } else if (config.deliveryMode === 'readingList' && readingListAvailable) {
+          setDeliveryMode('readingList')
+        } else {
+          setDeliveryMode('popup')
+        }
       } catch (error) {
         console.error('加载投递方式失败:', error)
         setDeliveryMode('popup')
@@ -302,6 +310,8 @@ function IndexPopup() {
         ) : deliveryMode === 'readingList' ? (
           <ReadingListSummaryView />
         ) : (
+          // popup 模式或 both 模式都显示推荐列表
+          // both 模式下额外在阅读清单中同步显示，但弹窗只显示 RecommendationView
           <RecommendationView />
         )}
       </div>

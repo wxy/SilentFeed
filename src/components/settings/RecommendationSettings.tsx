@@ -37,15 +37,21 @@ export function RecommendationSettings({
   const { _ } = useI18n()
   const [refillState, setRefillState] = useState<{ lastRefillTime: number; dailyRefillCount: number; currentDate: string } | null>(null)
   const readingListSupported = isReadingListAvailable()
-  const [deliveryMode, setDeliveryMode] = useState<'popup' | 'readingList'>('popup')
-  const readingListModeEnabled = deliveryMode === 'readingList' && readingListSupported
+  const [deliveryMode, setDeliveryMode] = useState<'popup' | 'readingList' | 'both'>('popup')
+  const readingListModeEnabled = (deliveryMode === 'readingList' || deliveryMode === 'both') && readingListSupported
 
   // 初始化投递方式
   useEffect(() => {
     const loadDelivery = async () => {
       try {
         const recConfig = await getRecommendationConfig()
-        setDeliveryMode(recConfig.deliveryMode === 'readingList' && readingListSupported ? 'readingList' : 'popup')
+        if (recConfig.deliveryMode === 'both' && readingListSupported) {
+          setDeliveryMode('both')
+        } else if (recConfig.deliveryMode === 'readingList' && readingListSupported) {
+          setDeliveryMode('readingList')
+        } else {
+          setDeliveryMode('popup')
+        }
       } catch {
         // 忽略错误
       }
@@ -53,16 +59,22 @@ export function RecommendationSettings({
     loadDelivery()
   }, [readingListSupported])
 
-  const handleDeliveryModeChange = async (mode: 'popup' | 'readingList') => {
-    if (!readingListSupported && mode === 'readingList') return
+  const handleDeliveryModeChange = async (mode: 'popup' | 'readingList' | 'both') => {
+    if (!readingListSupported && (mode === 'readingList' || mode === 'both')) return
     setDeliveryMode(mode)
     try {
       const recConfig = await getRecommendationConfig()
+      let finalMode: 'popup' | 'readingList' | 'both' = 'popup'
+      if (mode === 'both' && readingListSupported) {
+        finalMode = 'both'
+      } else if (mode === 'readingList' && readingListSupported) {
+        finalMode = 'readingList'
+      }
       await saveRecommendationConfig({
         ...recConfig,
-        deliveryMode: mode === 'readingList' && readingListSupported ? 'readingList' : 'popup'
+        deliveryMode: finalMode
       })
-      await chrome.runtime.sendMessage({ type: 'DELIVERY_MODE_CHANGED', deliveryMode: mode }).catch(() => {})
+      await chrome.runtime.sendMessage({ type: 'DELIVERY_MODE_CHANGED', deliveryMode: finalMode }).catch(() => {})
     } catch {
       // 忽略错误
     }
@@ -243,6 +255,18 @@ export function RecommendationSettings({
               onChange={() => handleDeliveryModeChange('readingList')}
             />
             <span>{_('settings.deliveryMode.readingList')}</span>
+          </label>
+          <label className={`flex items-center gap-2 ${readingListSupported ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}>
+            <input
+              type="radio"
+              name="delivery"
+              value="both"
+              className="accent-indigo-600"
+              disabled={!readingListSupported}
+              checked={deliveryMode === 'both'}
+              onChange={() => handleDeliveryModeChange('both')}
+            />
+            <span>{_('settings.deliveryMode.both')}</span>
           </label>
         </div>
         {readingListSupported && readingListModeEnabled && (

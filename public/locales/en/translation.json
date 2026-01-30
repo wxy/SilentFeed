@@ -1943,6 +1943,7 @@
     "deliveryMode": {
       "popup": "Popup",
       "readingList": "Reading List",
+      "both": "Both",
       "readingListAvailable": "Reading List Available",
       "readingListUnavailable": "Reading List Unavailable",
       "popupDisplay": "Popup Display"

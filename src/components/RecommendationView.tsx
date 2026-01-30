@@ -241,10 +241,22 @@ export function RecommendationView() {
   const [currentPageCount, setCurrentPageCount] = useState(0)
   const [dynamicThreshold, setDynamicThreshold] = useState(100)
   const [readingListAvailable, setReadingListAvailable] = useState(false)
+  const [deliveryMode, setDeliveryMode] = useState<'popup' | 'readingList' | 'both'>('popup')
   
-  // 检查阅读列表功能可用性
+  // 检查阅读列表功能可用性和投递模式
   useEffect(() => {
     setReadingListAvailable(isReadingListAvailable())
+    
+    // 加载投递模式
+    getRecommendationConfig().then(config => {
+      if (config.deliveryMode === 'both' && isReadingListAvailable()) {
+        setDeliveryMode('both')
+      } else if (config.deliveryMode === 'readingList' && isReadingListAvailable()) {
+        setDeliveryMode('readingList')
+      } else {
+        setDeliveryMode('popup')
+      }
+    })
   }, [])
   
   // 加载推荐配置
@@ -331,9 +343,21 @@ export function RecommendationView() {
       // Phase 6: 跟踪推荐点击
       await trackRecommendationClick()
       
-      // 从推荐列表移除（不标记为不想读，等待阅读验证）
-      await removeFromList([rec.id])
-      recViewLogger.info(`✅ 已从推荐列表移除，等待阅读验证: ${rec.id}`)
+      // Both 模式下：点击时立即从阅读清单删除并标记已读
+      if (deliveryMode === 'both' && readingListAvailable) {
+        try {
+          recViewLogger.info(`🗑️ [Both模式] 点击时立即从阅读清单删除: ${rec.id}`)
+          // 先标记为已读
+          await markAsRead(rec.id!)
+          recViewLogger.info(`✅ [Both模式] 已标记为已读并从清单删除: ${rec.id}`)
+        } catch (error) {
+          recViewLogger.error('❌ [Both模式] 从清单删除失败:', error)
+        }
+      } else {
+        // 其他模式：从推荐列表移除（不标记为不想读，等待阅读验证）
+        await removeFromList([rec.id])
+        recViewLogger.info(`✅ 已从推荐列表移除，等待阅读验证: ${rec.id}`)
+      }
       
       // ⚠️ 重要：先通过 Background 创建 Tab 并保存追踪信息
       // 原因：弹窗在创建新标签页后会立即关闭，后续代码可能无法执行
@@ -654,6 +678,7 @@ export function RecommendationView() {
             recommendation={rec}
             isTopItem={index === 0} // 第一条显示摘要
             showExcerpt={shouldShowExcerpt(index)} // 智能决定是否显示摘要
+            deliveryMode={deliveryMode}
             onClick={(e) => handleItemClick(rec, e)}
             onDismiss={(e) => handleDismiss(rec.id, e)}
             onSaveToReadingList={readingListAvailable ? (e) => handleSaveToReadingList(rec, e) : undefined}
@@ -676,13 +701,14 @@ interface RecommendationItemProps {
   recommendation: Recommendation
   isTopItem: boolean  // 是否为第一条（评分最高）
   showExcerpt: boolean // 是否显示摘要
+  deliveryMode: 'popup' | 'readingList' | 'both' // 投递模式
   onClick: (event: React.MouseEvent) => void
   onDismiss: (event: React.MouseEvent) => void
   onSaveToReadingList?: (event: React.MouseEvent) => void // 保存到稍后读
   onRemoveFromList?: () => Promise<void> // 从列表移除（不标记为不想读）
 }
 
-function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, onDismiss, onSaveToReadingList, onRemoveFromList }: RecommendationItemProps) {
+function RecommendationItem({ recommendation, isTopItem, showExcerpt, deliveryMode, onClick, onDismiss, onSaveToReadingList, onRemoveFromList }: RecommendationItemProps) {
   const { _, t, i18n } = useI18n()
   const { markAsRead } = useRecommendationStore()
   const [showOriginal, setShowOriginal] = useState(false)
@@ -763,10 +789,14 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
   const getDefaultUrl = (): string => {
     // 始终以原始链接为基础，避免因推荐中残留翻译链接而误判
     const originalUrl = ReadingListManager.normalizeUrlForTracking(currentRecommendation.url)
+    let finalUrl: string
     if (autoTranslateEnabled && feedTranslateEnabled && needsTranslation) {
-      return getGoogleTranslateUrl(originalUrl, i18n.language)
+      finalUrl = getGoogleTranslateUrl(originalUrl, i18n.language)
+    } else {
+      finalUrl = originalUrl
     }
-    return originalUrl
+    // 添加追踪参数
+    return ReadingListManager.addTrackingParam(finalUrl, currentRecommendation.id!)
   }
   
   // 处理默认点击（标题/摘要）
@@ -805,9 +835,12 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
     const originalUrl = ReadingListManager.normalizeUrlForTracking(currentRecommendation.url)
     // 如果自动翻译开启，按钮是「查看原文」，所以打开原文
     // 如果自动翻译关闭，按钮是「翻译」，但当订阅源禁用翻译时也应打开原文
-    const url = autoTranslateEnabled
+    let url = autoTranslateEnabled
       ? originalUrl
       : (feedTranslateEnabled ? getGoogleTranslateUrl(originalUrl, i18n.language) : originalUrl)
+    // 添加追踪参数
+    url = ReadingListManager.addTrackingParam(url, currentRecommendation.id!)
+    
     const isTranslated = !autoTranslateEnabled && feedTranslateEnabled && needsTranslation
     
     recViewLogger.debug(`点击条目（备选）: ${currentRecommendation.id}, 翻译版: ${isTranslated}`)
@@ -912,8 +945,8 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
             )}
           </div>
           
-          {/* 稍后读按钮 */}
-          {onSaveToReadingList && (
+          {/* 稍后读按钮 (both 模式下隐藏) */}
+          {onSaveToReadingList && deliveryMode !== 'both' && (
             <button
               onClick={onSaveToReadingList}
               className="text-base hover:scale-110 transition-transform flex-shrink-0 ml-3"
@@ -1007,8 +1040,8 @@ function RecommendationItem({ recommendation, isTopItem, showExcerpt, onClick, o
           )}
         </div>
         
-        {/* 稍后读按钮 */}
-        {onSaveToReadingList && (
+        {/* 稍后读按钮 (both 模式下隐藏) */}
+        {onSaveToReadingList && deliveryMode !== 'both' && (
           <button
             onClick={onSaveToReadingList}
             className="text-base hover:scale-110 transition-transform flex-shrink-0 ml-3"
