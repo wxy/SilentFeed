@@ -86,6 +86,11 @@
       "description": "添加订阅源后，我们才能为你推荐精彩内容",
       "action": "去添加订阅源"
     },
+    "aiNotConfigured": {
+      "title": "需要配置 AI 服务",
+      "description": "配置 AI 服务商后，才能开始学习你的兴趣并生成推荐",
+      "configureButton": "配置 AI"
+    },
     "later": "稍后读",
     "dismiss": "不想读",
     "readLater": "稍后阅读",

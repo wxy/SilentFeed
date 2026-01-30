@@ -62,9 +62,8 @@ function RecommendationSettingsWrapper() {
         if (strategy.strategy?.recommendation?.targetPoolSize) {
           setPoolCapacity(strategy.strategy.recommendation.targetPoolSize)
         }
-      } else {
-        console.warn('[RecommendationSettingsWrapper] ⚠️ 未找到 AI 策略')
       }
+      // 未找到策略是正常情况（用户尚未完成引导或未配置 AI），无需警告
     }).catch(error => {
       console.error('[RecommendationSettingsWrapper] 加载 AI 策略失败:', error)
     })

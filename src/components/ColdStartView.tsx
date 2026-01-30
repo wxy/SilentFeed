@@ -28,6 +28,7 @@ interface ColdStartViewProps {
   pageCount: number
   totalPages?: number
   subscribedFeedCount?: number  // 订阅源数量（用于显示）
+  isAIConfigured?: boolean      // AI 是否已配置
   uiStyle?: UIStyle
 }
 
@@ -46,6 +47,7 @@ export function ColdStartView({
   pageCount, 
   totalPages = LEARNING_COMPLETE_PAGES, 
   subscribedFeedCount = 0,
+  isAIConfigured = true,
   uiStyle = "sketchy" 
 }: ColdStartViewProps) {
   const { _, t } = useI18n()
@@ -127,6 +129,52 @@ export function ColdStartView({
         url: chrome.runtime.getURL('options.html#feeds')
       })
     }
+  }
+
+  // 打开设置页配置 AI
+  const handleConfigureAI = () => {
+    chrome.tabs.create({ 
+      url: chrome.runtime.getURL('options.html#ai-engine')
+    })
+  }
+
+  // AI 未配置时显示配置提示
+  if (!isAIConfigured) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center px-4 py-6 gap-4">
+        {/* 图标 */}
+        <div className="mb-2">
+          <div className={`w-[140px] h-[140px] rounded-full flex items-center justify-center ${
+            isSketchyStyle 
+              ? 'bg-gray-100 dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-600' 
+              : 'bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 shadow-inner'
+          }`}>
+            <span className="text-5xl opacity-50">🔧</span>
+          </div>
+        </div>
+        
+        {/* 标题 */}
+        <h2 className={`text-lg font-semibold ${isSketchyStyle ? 'sketchy-title' : 'text-gray-700 dark:text-gray-300'}`}>
+          {_("popup.aiNotConfigured.title")}
+        </h2>
+        
+        {/* 说明文字 */}
+        <p className={`text-sm text-center ${isSketchyStyle ? 'sketchy-text' : 'text-gray-500 dark:text-gray-400'}`}>
+          {_("popup.aiNotConfigured.description")}
+        </p>
+        
+        {/* 配置按钮 */}
+        <button
+          onClick={handleConfigureAI}
+          className={isSketchyStyle 
+            ? "sketchy-button sketchy-button-primary px-6 py-2 text-sm"
+            : "px-6 py-2 rounded-lg bg-gradient-to-r from-indigo-500 to-cyan-500 text-white text-sm font-medium hover:from-indigo-600 hover:to-cyan-600 transition-all shadow-md hover:shadow-lg"
+          }
+        >
+          {_("popup.aiNotConfigured.configureButton")}
+        </button>
+      </div>
+    )
   }
 
   return (

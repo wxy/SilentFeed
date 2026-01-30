@@ -25,6 +25,7 @@ import { getPageCount } from '@/storage/db'
 import { FeedManager } from '@/core/rss/managers/FeedManager'
 import { getDynamicThreshold } from '@/core/recommender/cold-start/threshold-calculator'
 import { LEARNING_COMPLETE_PAGES } from '@/constants/progress'
+import { isAIConfigured } from '@/storage/ai-config'
 
 const stateLogger = logger.withTag('OnboardingStateService')
 
@@ -49,6 +50,9 @@ export interface OnboardingStateInfo {
   
   /** 是否已完成学习（可以推荐） */
   isLearningComplete: boolean
+  
+  /** 是否已配置 AI 服务商（远程 API Key） */
+  isAIConfigured: boolean
 }
 
 /**
@@ -102,7 +106,10 @@ class OnboardingStateServiceImpl {
       // 1. 获取基础 onboarding 状态
       const status = await getOnboardingState()
       
-      // 2. 如果是 setup 状态，返回初始值
+      // 2. 检查 AI 配置状态
+      const aiConfigured = await isAIConfigured()
+      
+      // 3. 如果是 setup 状态，返回初始值
       if (status.state === 'setup') {
         const newState: OnboardingStateInfo = {
           state: 'setup',
@@ -110,7 +117,8 @@ class OnboardingStateServiceImpl {
           threshold: LEARNING_COMPLETE_PAGES,
           subscribedFeedCount: 0,
           progressPercent: 0,
-          isLearningComplete: false
+          isLearningComplete: false,
+          isAIConfigured: aiConfigured
         }
         this.cachedState = newState
         this.notifyListeners(newState, oldState)
@@ -143,7 +151,8 @@ class OnboardingStateServiceImpl {
         threshold,
         subscribedFeedCount: subscribedFeeds.length,
         progressPercent,
-        isLearningComplete
+        isLearningComplete,
+        isAIConfigured: aiConfigured
       }
       
       this.cachedState = newState
@@ -168,7 +177,8 @@ class OnboardingStateServiceImpl {
         threshold: LEARNING_COMPLETE_PAGES,
         subscribedFeedCount: 0,
         progressPercent: 0,
-        isLearningComplete: false
+        isLearningComplete: false,
+        isAIConfigured: false
       }
       
       return fallbackState

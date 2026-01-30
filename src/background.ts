@@ -233,32 +233,9 @@ async function updateBadge(): Promise<void> {
     const aiConfigured = await isAIConfigured()
     
     if (!aiConfigured) {
-      // AI 未配置，显示暂停图标
-      // 但仍然显示推荐池徽章供参考（不调用 pause 来避免覆盖徽章）
-      bgLogger.info('⏸️ AI 未配置，显示推荐池状态')
-      
-      // 即使 AI 未配置，也显示推荐池未读数（供调试）
-      try {
-        // 🆕 清单模式或同时显示模式下，先主动同步已读状态
-        const config = await getRecommendationConfig()
-        if (config.deliveryMode === 'readingList' || config.deliveryMode === 'both') {
-          await syncReadingListStatusInBackground()
-        }
-        
-        // 统一数据源：使用 getUnreadRecommendations() 查询，与弹窗保持一致
-        const unreadRecs = await getUnreadRecommendations(50)
-        const unreadCount = unreadRecs.length
-        if (unreadCount > 0) {
-          iconManager.setRecommendCount(Math.min(unreadCount, 3))
-          bgLogger.info(`📬 [徽章] 推荐池未读数：${unreadCount}（来自 getUnreadRecommendations）`)
-        } else {
-          iconManager.setRecommendCount(0)
-          bgLogger.info('📭 [徽章] 推荐池为空')
-        }
-      } catch (error) {
-        bgLogger.warn('获取推荐池未读数失败:', error)
-        iconManager.setRecommendCount(0)
-      }
+      // AI 未配置，显示灰色暂停图标表示扩展未在工作
+      bgLogger.info('⏸️ AI 未配置，显示暂停图标')
+      iconManager.pause()
       return
     } else {
       // AI 已配置，恢复正常图标
