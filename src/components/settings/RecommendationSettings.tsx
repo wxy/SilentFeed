@@ -172,7 +172,6 @@ export function RecommendationSettings({
 
     const handleMessage = (message: any) => {
       if (message.type === 'RECOMMENDATION_UPDATED') {
-        console.debug('[RecommendationSettings] 收到推荐池更新消息，重新加载统计数据')
         loadPoolData()
       }
     }

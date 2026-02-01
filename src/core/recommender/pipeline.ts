@@ -656,7 +656,6 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
     userInterests: { keywords: Array<{word: string, weight: number}> }
   ): number {
     if (!analysis.topicProbabilities) {
-      console.log(`[Pipeline] AI 分析缺少 topicProbabilities，返回默认分 0.3`)
       return 0.3 // 默认分数
     }
     
@@ -693,7 +692,6 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
       return Math.min(1.0, normalizedScore)
     }
     
-    console.log(`[Pipeline] 无主题匹配，返回默认分 0.3`)
     return 0.3 // 没有匹配时的默认分数
   }
 

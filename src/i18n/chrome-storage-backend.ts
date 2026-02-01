@@ -44,9 +44,6 @@ class ChromeStorageBackend {
       }
       
       await chrome.storage.sync.set({ [STORAGE_KEY]: lng })
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`[i18n] 语言偏好已保存到 chrome.storage.sync: ${lng}`)
-      }
     } catch (error) {
       console.error("[i18n] 保存语言偏好失败:", error)
       throw error
@@ -70,15 +67,9 @@ class ChromeStorageBackend {
       const lng = result[STORAGE_KEY]
       
       if (lng) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`[i18n] 从 chrome.storage.sync 加载语言偏好: ${lng}`)
-        }
         return lng
       }
       
-      if (process.env.NODE_ENV === 'development') {
-        console.log("[i18n] 未找到保存的语言偏好，将使用默认语言")
-      }
       return null
       
     } catch (error) {
@@ -94,9 +85,6 @@ class ChromeStorageBackend {
     try {
       if (chrome?.storage?.sync) {
         await chrome.storage.sync.remove(STORAGE_KEY)
-        if (process.env.NODE_ENV === 'development') {
-          console.log("[i18n] 语言偏好已删除，将使用默认语言")
-        }
       } else {
         console.warn("[i18n] chrome.storage.sync not available")
       }

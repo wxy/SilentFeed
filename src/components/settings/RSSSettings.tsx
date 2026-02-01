@@ -1235,12 +1235,6 @@ export function RSSSettings({ isSketchyStyle = false }: { isSketchyStyle?: boole
                   key={`${feed.id}-${action.label}`}
                   type="button"
                   onClick={(e) => {
-                    console.log(`[RSSSettings] 按钮点击:`, {
-                      feedId: feed.id,
-                      feedTitle: feed.title,
-                      subscriptionSource: feed.subscriptionSource,
-                      actionLabel: action.label
-                    })
                     e.preventDefault()
                     e.stopPropagation()
                     action.onClick()
