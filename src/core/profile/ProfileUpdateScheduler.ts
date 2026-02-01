@@ -50,12 +50,6 @@ export class ProfileUpdateScheduler {
         this.schedule.lastUpdateTime = profile.lastUpdated || Date.now()
         this.schedule.lastUpdatePageCount = profile.totalPages || currentPageCount
         
-        console.log('[ProfileScheduler] 检测到已有画像，跳过首次更新', {
-          lastUpdated: new Date(profile.lastUpdated).toLocaleString(),
-          totalPages: profile.totalPages,
-          currentPageCount
-        })
-        
         return {
           shouldUpdate: false,
           reason: '画像已存在，跳过首次更新',
@@ -63,12 +57,7 @@ export class ProfileUpdateScheduler {
         }
       }
       
-      console.log('[ProfileScheduler] 数据库中无 AI 画像，触发首次更新', {
-        hasProfile: !!profile,
-        hasAISummary: !!profile?.aiSummary,
-        currentPageCount
-      })
-      
+      // 首次更新：画像为空
       return {
         shouldUpdate: true,
         reason: '首次构建画像',

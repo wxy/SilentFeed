@@ -275,8 +275,6 @@ export class DataMigrator {
     const withoutAnalysis = visits.length - withAnalysis.length
     const completeness = visits.length > 0 ? (withAnalysis.length / visits.length) * 100 : 0
 
-    console.log(`[DataMigrator] 统计: 总共 ${visits.length} 条，已分析 ${withAnalysis.length} 条，未分析 ${withoutAnalysis} 条`)
-
     return {
       totalVisits: visits.length,
       visitesWithAnalysis: withAnalysis.length,

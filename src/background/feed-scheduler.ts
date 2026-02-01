@@ -544,16 +544,9 @@ export async function fetchFeed(feed: DiscoveredFeed): Promise<boolean> {
     const needsAnalysis = !feed.category || !feed.language || !feed.quality
     
     if (isFirstFetch || needsAnalysis) {
-      const reason = isFirstFetch ? '首次抓取' : '缺少基本信息'
-      console.log(`[FeedScheduler] 触发 AI 分析 (${reason}): ${feed.title}`)
       getSourceAnalysisService().triggerOnFirstFetch(feed.id).catch(error => {
         console.warn(`[FeedScheduler] AI 分析触发失败: ${feed.title}`, error)
       })
-    }
-    
-    // 简要日志：显示抓取结果
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[FeedScheduler] ✅ ${feed.title}: ${newArticles.length} 新 / ${updatedFeed?.unreadCount || 0} 未读`)
     }
     
     return true

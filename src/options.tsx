@@ -50,13 +50,7 @@ function RecommendationSettingsWrapper() {
     chrome.storage.local.get('current_strategy').then(result => {
       const strategy = result.current_strategy
       if (strategy) {
-        console.log('[RecommendationSettingsWrapper] 📊 加载 AI 策略:', {
-          id: strategy.id,
-          targetPoolSize: strategy.strategy.recommendation.targetPoolSize,
-          cooldownMinutes: strategy.strategy.recommendation.cooldownMinutes,
-          dailyLimit: strategy.strategy.recommendation.dailyLimit,
-          generatedAt: new Date(strategy.strategy.meta.generatedAt).toLocaleString('zh-CN')
-        })
+
         setCurrentStrategy(strategy)
         // 从新策略获取池容量
         if (strategy.strategy?.recommendation?.targetPoolSize) {
@@ -80,7 +74,6 @@ function RecommendationSettingsWrapper() {
 
     // 获取弹窗内活跃推荐数量
     chrome.runtime.sendMessage({ type: 'GET_ACTIVE_RECOMMENDATIONS_COUNT' }).then((response: any) => {
-      console.log('[RecommendationSettingsWrapper] GET_ACTIVE_RECOMMENDATIONS_COUNT 响应:', response)
       if (response?.success && typeof response.count === 'number') {
         setActiveRecommendationCount(response.count)
       } else if (typeof response?.count === 'number') {
