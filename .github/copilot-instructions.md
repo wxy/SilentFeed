@@ -309,11 +309,24 @@ function createMockArticle(overrides: Partial<FeedArticle> = {}): FeedArticle {
 - ✅ 复杂嵌套类型使用级联工厂函数
 
 
-## 示例指引
+## 版本控制
 
-## 版本控制（简版）
-- 在 master 不直接开发；等待用户确认再提交/推送；PR 使用中文描述；推送前必须通过 `npm run pre-push`。
-- 说明文件约定：创建 PR 或创建提交时，必须在 `.github` 目录下生成临时说明文件作为描述来源，禁止在命令中使用 HERE 文档；流程结束后可清理该临时文件。
+### 基本原则
+- 在 master 不直接开发；等待用户确认再提交/推送；推送前必须通过 `npm run pre-push`。
+- PR 和 commit 都使用中文描述。
+
+### 提交与 PR 说明文件
+创建 PR 或提交时，**必须使用说明文件方式**，禁止在命令行使用长篇幅说明（避免命令行问题）：
+
+1. **Git 提交**：参考 `_git-commit` 技能（`.copilot/skills/_git-commit/SKILL.md`）
+   - 在 `.github/COMMIT_DESCRIPTION.md` 中编写说明
+   - 遵循 Conventional Commits 规范
+   - 使用 `git commit -F .github/COMMIT_DESCRIPTION.md` 提交
+   - 提交后删除说明文件
+
+2. **GitHub PR**：使用官方 `pr-creator` 技能或脚本
+   - 生成结构化的 PR 描述
+   - 在 `.github/PR_DESCRIPTION.md` 中编写说明
 
 ## OpenSkills 技能系统与自定义技能库
 
@@ -415,11 +428,5 @@ function createMockArticle(overrides: Partial<FeedArticle> = {}): FeedArticle {
 5. 在相关工作中应用并验证
 
 ---
-
-## 示例指引
-
-## 版本控制（简版）
-- 在 master 不直接开发；等待用户确认再提交/推送；PR 使用中文描述；推送前必须通过 `npm run pre-push`。
-- 说明文件约定：创建 PR 或创建提交时，必须在 `.github` 目录下生成临时说明文件作为描述来源，禁止在命令中使用 HERE 文档；流程结束后可清理该临时文件。
 
 ## Project Overview

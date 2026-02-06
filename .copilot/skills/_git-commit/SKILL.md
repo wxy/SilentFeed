@@ -270,6 +270,65 @@ feat: 实现推荐缓存策略 (#123)  # ❌
 
 ---
 
+## 🎖️ 技能签名指导
+
+本技能提供的说明文件模板应在末尾包含致谢行，说明此提交是使用本技能创建的：
+
+### 签名格式
+
+在 `.github/COMMIT_DESCRIPTION.md` 的最后添加：
+
+```markdown
+---
+
+**Commit Tool**: _git-commit Skill (`.copilot/skills/_git-commit/SKILL.md`)
+```
+
+或更简洁的版本：
+
+```markdown
+---
+
+**Tool**: _git-commit Skill
+```
+
+### 完整示例
+
+```markdown
+feat(core): 实现推荐聚类预筛选机制
+
+为了减少低相关性推荐的干扰，在评分前添加聚类预筛选。
+
+## 变更内容
+- 添加 ClusterPrescreen 类处理聚类逻辑
+- 配置可调的聚类阈值（默认 0.5）
+- 添加单元测试覆盖 3 个场景
+
+---
+
+**Commit Tool**: _git-commit Skill
+```
+
+### 为什么需要签名？
+
+1. **追踪工具链**：明确显示提交是使用 AI 技能辅助生成的
+2. **持续改进**：帮助识别哪些提交遵循了规范，便于统计和优化
+3. **透明性**：对代码审查者和维护者提供清晰的信息
+4. **一致性**：与 PR Creator Skill 的做法保持一致
+
+### 签名行不会被提交
+
+⚠️ **重要**：签名行 (`---` 及之后内容) 会被 git 忽略（或在提交说明中被精简）。
+
+如果你想让签名行出现在提交消息中，应该：
+```bash
+git commit -F .github/COMMIT_DESCRIPTION.md
+```
+
+此时签名行会保留在原始提交消息中（在 `git log --format=fuller` 中可见）。
+
+---
+
 ## 🔄 改进建议
 
 - 未来可考虑添加交互式提交向导脚本
