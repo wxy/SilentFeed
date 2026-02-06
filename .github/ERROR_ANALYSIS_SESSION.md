@@ -179,7 +179,7 @@ topics: createMockTopicDistribution({
 ## 🎯 改进建议
 
 ### 1. **创建"类型错误预防技能"**
-位置: `.claude/skills/_typescript-type-safety/SKILL.md`
+位置: `.copilot/skills/_typescript-type-safety/SKILL.md`
 内容:
 - 完整的 mock 数据创建指南
 - 常见错误模式与修复

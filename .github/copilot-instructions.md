@@ -257,7 +257,7 @@ docs(skills): 改进 _typescript-type-safety 技能
 
 ## TypeScript 类型安全与 Mock 数据创建
 
-**⚠️ 关键原则**: 在创建测试 mock 数据时，必须严格遵循以下规范，避免常见的类型错误。参考技能: `.claude/skills/_typescript-type-safety/SKILL.md`
+**⚠️ 关键原则**: 在创建测试 mock 数据时，必须严格遵循以下规范，避免常见的类型错误。参考技能: `.copilot/skills/_typescript-type-safety/SKILL.md`
 
 ### Mock 数据创建的标准流程（5步）
 

@@ -32,7 +32,7 @@
 │  │    ├─ 根本原因分析                                   │   │
 │  │    └─ 修复示例与预防                                 │   │
 │  │                                                      │   │
-│  │ 2. AI 技能库 (.claude/skills/_typescript-type-safety/  │   │
+│  │ 2. AI 技能库 (.copilot/skills/_typescript-type-safety/ │   │
 │  │    ├─ 5 步 Mock 创建流程                             │   │
 │  │    ├─ 常见错误详解                                   │   │
 │  │    ├─ 最佳实践指南                                   │   │
@@ -122,7 +122,7 @@ function createMockTopicDistribution(...) {
 }
 ```
 
-**📚 文档 2: AI 技能** (`.claude/skills/_typescript-type-safety/SKILL.md`)
+**📚 文档 2: AI 技能** (`.copilot/skills/_typescript-type-safety/SKILL.md`)
 ```markdown
 完整的 TypeScript Mock 创建指南
 - 5 步流程（从读类型到验证错误）

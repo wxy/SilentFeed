@@ -236,7 +236,7 @@
   创建 _typescript-type-safety 技能
   ↓
 执行（按照技能创建流程）：
-  .claude/skills/_typescript-type-safety/SKILL.md
+  .copilot/skills/_typescript-type-safety/SKILL.md
   ↓
 更新（按照宪法）：
   在技能库表格中添加

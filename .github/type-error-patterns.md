@@ -384,5 +384,5 @@ grep -n "SourceAnalysisService" .github/type-error-patterns.md
 **维护者**: GitHub Copilot (自动记录系统)
 **相关文档**: 
 - `.github/copilot-instructions.md` - 项目指导规范
-- `.claude/skills/_typescript-type-safety/SKILL.md` - TypeScript 类型安全技能
+- `.copilot/skills/_typescript-type-safety/SKILL.md` - TypeScript 类型安全技能
 - `.github/ERROR_ANALYSIS_SESSION.md` - 会话级别的详细分析
