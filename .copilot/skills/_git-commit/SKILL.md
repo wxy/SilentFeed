@@ -153,13 +153,30 @@ git add <files>
 git commit -F .github/COMMIT_DESCRIPTION.md
 ```
 
-或作为工作流的一部分：
+⚠️ **重要警告**：
+- **禁止使用** `git add .` 或 `git add --all`
+- 必须**明确指定**要提交的文件，例如：
+  ```bash
+  git add src/core/ai/providers/openai.ts src/storage/db.ts
+  git commit -F .github/COMMIT_DESCRIPTION.md
+  ```
+- 原因：防止 `.github/COMMIT_DESCRIPTION.md` 临时文件被意外提交到仓库
+
+或作为工作流的一部分（确保明确指定文件）：
 
 ```typescript
 run_in_terminal({
-  command: "git add <files> && git commit -F .github/COMMIT_DESCRIPTION.md",
+  command: "git add src/path/to/files && git commit -F .github/COMMIT_DESCRIPTION.md",
   explanation: "提交变更到本地仓库"
 })
+```
+
+**安全的完整工作流示例**：
+```bash
+# 明确指定要提交的文件
+git add .copilot/skills/_git-commit/SKILL.md && \
+git commit -F .github/COMMIT_DESCRIPTION.md && \
+rm .github/COMMIT_DESCRIPTION.md
 ```
 
 ### 5️⃣ 添加技能签名行（❗ 关键步骤）
@@ -226,6 +243,7 @@ rm .github/COMMIT_DESCRIPTION.md
 - [ ] 说明文件使用的是 Markdown 格式吗？
 - [ ] 是否遵循了中文规范（如有中文）？
 - [ ] **❗ 是否在末尾添加了技能签名行？** (`**Commit Tool**: _git-commit Skill`)
+- [ ] **❗ 是否明确指定了要提交的文件？**（禁止使用 `git add .`）
 
 ---
 
@@ -284,6 +302,43 @@ feat: 实现推荐缓存策略 (#123)  # ❌
 - 标点符号：使用中文标点（。，、；：）
 - 空格：中英文间不需要空格（项目约定）
 - 术语：保持一致（推荐、推荐系统、AI 模型等）
+
+### 6. 常见错误与修复
+
+**❌ 错误 1：使用 `git add .` 导致临时文件被提交**
+
+```bash
+# 错误示例
+git add .
+git commit -F .github/COMMIT_DESCRIPTION.md
+# ❌ 结果：COMMIT_DESCRIPTION.md 被提交到仓库
+```
+
+**✅ 正确做法**：明确指定文件
+```bash
+git add src/core/ai/providers/openai.ts
+git commit -F .github/COMMIT_DESCRIPTION.md
+rm .github/COMMIT_DESCRIPTION.md
+```
+
+**如何修复已提交的错误**：
+```bash
+# 使用 amend 修复最后一个提交
+git reset --soft HEAD~1
+git reset HEAD path/to/unwanted/file
+git commit --amend --no-edit
+```
+
+**❌ 错误 2：忘记添加技能签名行**
+
+提交说明末尾缺少：
+```markdown
+---
+
+**Commit Tool**: _git-commit Skill
+```
+
+**✅ 修复方法**：重新编辑说明文件并重新提交
 
 ---
 
