@@ -82,12 +82,6 @@ Usage notes:
 </skill>
 
 <skill>
-<name>pr-creator</name>
-<description>AI-native skill to automate PR creation with semantic versioning and intelligent descriptions.</description>
-<location>project</location>
-</skill>
-
-<skill>
 <name>skill-creator</name>
 <description>Guide for creating effective skills. This skill should be used when users want to create a new skill (or update an existing skill) that extends Claude's capabilities with specialized knowledge, workflows, or tool integrations.</description>
 <location>project</location>
@@ -158,6 +152,13 @@ Usage notes:
 <description>Git 提交最佳实践。提供规范化提交流程、说明文件模板、Conventional Commits 格式指导。用于确保提交信息清晰、一致、便于追踪。</description>
 <location>project</location>
 <path>.copilot/skills/_git-commit/SKILL.md</path>
+</skill>
+
+<skill>
+<name>_pr-creator</name>
+<description>PR 创建与版本控制流程技能。使用项目内脚本自动生成 PR，处理版本号、变基、推送与临时文件清理，避免常见失败。</description>
+<location>project</location>
+<path>.copilot/skills/_pr-creator/SKILL.md</path>
 </skill>
 
 <skill>
