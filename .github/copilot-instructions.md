@@ -96,6 +96,60 @@ export interface BaseInterface {
 - **DNR 生效**: 修改 DNR/manifest 后需重建并重新加载扩展；注意清理遗留动态规则（见 `background.ts`）。
 - **i18n 遗漏**: UI 文本未包裹 `_()` 会在审查时被要求修复；测试中已用英文翻译文件做断言。
 
+## TypeScript 类型安全与 Mock 数据创建
+
+**⚠️ 关键原则**: 在创建测试 mock 数据时，必须严格遵循以下规范，避免常见的类型错误。参考技能: `.claude/skills/typescript-type-safety/SKILL.md`
+
+### Mock 数据创建的标准流程（5步）
+
+```
+1️⃣ read_file 查看完整的类型定义（不要假设）
+2️⃣ 识别所有必需字段（无 ? 和 undefined 的字段）
+3️⃣ 对于 enum 字段，验证有效值范围
+4️⃣ 为复杂类型创建工厂函数，不要内联初始化
+5️⃣ 运行 get_errors 验证，预期结果：0 个错误
+```
+
+### 常见 TypeScript Mock 错误与预防
+
+| 错误 | 表现 | 预防 |
+|------|------|-----|
+| **空对象假设** | `topics: {}` | 初始化所有必需字段，使用工厂函数 |
+| **Enum 值无效** | `status: 'pending'` | 查看 enum 定义，只用有效值 |
+| **字段缺失** | `缺少属性: read, starred` | 从类型定义复制完整的字段列表 |
+| **字符串代替 Enum** | `topics: { tech: 0.5 }` | 使用 `Topic.TECHNOLOGY` enum 键 |
+| **类型断言滥用** | `{} as Type` | 信任 TypeScript 编译器，显式初始化 |
+
+### 工厂函数编写规范
+
+```typescript
+/**
+ * 创建用于测试的 mock FeedArticle
+ * @param overrides - 要覆盖的字段（类型检查）
+ * @returns 完整的 FeedArticle 对象，所有必需字段已初始化
+ */
+function createMockArticle(overrides: Partial<FeedArticle> = {}): FeedArticle {
+  return {
+    id: `article-${Math.random()}`,
+    feedId: 'feed-1',
+    title: 'Test Article',
+    link: 'https://example.com',
+    published: Date.now(),
+    fetched: Date.now(),
+    read: false,      // ✅ 必需的布尔字段
+    starred: false,   // ✅ 必需的布尔字段
+    ...overrides      // ✅ 类型安全的覆盖
+  }
+}
+```
+
+**工厂函数最佳实践：**
+- ✅ 提供所有必需字段的合理默认值
+- ✅ 参数使用 `Partial<Type>` 而不是 `any`
+- ✅ 添加 JSDoc 文档
+- ✅ 复杂嵌套类型使用级联工厂函数
+
+
 ## 示例指引
 
 ## 版本控制（简版）
