@@ -162,15 +162,48 @@ run_in_terminal({
 })
 ```
 
-### 5️⃣ 清理说明文件
+### 5️⃣ 添加技能签名行（❗ 关键步骤）
 
-提交后删除临时说明文件：
+**在执行提交前**，必须在 `COMMIT_DESCRIPTION.md` 的末尾添加技能签名行。这是使用 _git-commit 技能的**强制要求**：
+
+```markdown
+---
+
+**Commit Tool**: _git-commit Skill
+```
+
+完整示例：
+
+```markdown
+refactor(docs): 重新组织 copilot-instructions.md
+
+## 变更内容
+- 将单一文件分为三个部分
+- Part 1: 通用框架（可复用）
+- Part 2: 项目特定规范
+- Part 3: 技能库系统
+
+---
+
+**Commit Tool**: _git-commit Skill
+```
+
+### 为什么需要签名行？
+
+1. **工具追踪**：记录哪些提交是使用 AI 技能辅助的
+2. **持续改进**：便于统计遵循规范的情况，反馈到 _evolution-core 系统
+3. **透明性**：代码审查者可快速了解提交的生成背景
+4. **一致性**：与其他 AI 技能（如 PR Creator）保持统一
+
+### 6️⃣ 清理说明文件
+
+完成签名后，删除临时说明文件：
 
 ```bash
 rm .github/COMMIT_DESCRIPTION.md
 ```
 
-或在 git commit 之前通过 `&&` 链式命令：
+或作为完整工作流：
 
 ```bash
 git add <files> && \
@@ -192,6 +225,7 @@ rm .github/COMMIT_DESCRIPTION.md
 - [ ] 是否标记了破坏性改动（如有）？
 - [ ] 说明文件使用的是 Markdown 格式吗？
 - [ ] 是否遵循了中文规范（如有中文）？
+- [ ] **❗ 是否在末尾添加了技能签名行？** (`**Commit Tool**: _git-commit Skill`)
 
 ---
 
