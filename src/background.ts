@@ -275,30 +275,6 @@ async function updateBadge(): Promise<void> {
         const unreadCount = unreadRecs.length
         bgLogger.debug(`📬 推荐阶段：查询到 ${unreadCount} 条未读推荐`)
         
-        // 详细诊断信息
-        if (unreadCount === 0) {
-          bgLogger.warn(`⚠️ [推荐池诊断] 推荐池为空或未读数为0。查询结果:`)
-          bgLogger.warn(`  - 推荐数组长度: ${unreadRecs.length}`)
-          
-          // 查询推荐池中所有文章（调试用）
-          const allPoolArticles = await db.feedArticles
-            .filter(a => a.poolStatus === 'recommended')
-            .toArray()
-          bgLogger.warn(`  - 推荐池总文章数: ${allPoolArticles.length}`)
-          
-          // 查询所有未读文章
-          const allUnread = await db.feedArticles
-            .filter(a => !a.isRead)
-            .toArray()
-          bgLogger.warn(`  - 全表未读数: ${allUnread.length}`)
-          
-          // 查询已反馈的文章
-          const dismissed = await db.feedArticles
-            .filter(a => a.feedback === 'dismissed')
-            .toArray()
-          bgLogger.warn(`  - 已驳回文章数: ${dismissed.length}`)
-        }
-        
         if (unreadCount > 0) {
           iconManager.setRecommendCount(Math.min(unreadCount, 3))
           bgLogger.info(`✅ 徽章已更新：显示 ${Math.min(unreadCount, 3)} 个（未读数：${unreadCount}）`)

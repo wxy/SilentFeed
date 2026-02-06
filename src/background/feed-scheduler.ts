@@ -15,7 +15,7 @@ import { RSSFetcher, type FetchResult } from '../core/rss/RSSFetcher'
 import { getSourceAnalysisService } from '../core/rss/SourceAnalysisService'
 import { feedPreScreeningService } from '../core/rss/FeedPreScreeningService'
 import { getUserProfile } from '../storage/db/db-profile'
-import type { DiscoveredFeed, FeedArticle } from '@/types/rss'
+import type { DiscoveredFeed, FeedArticle, FeedQuality } from '@/types/rss'
 
 /**
  * 根据文章列表计算更新频率（篇/周）
@@ -389,15 +389,8 @@ export async function fetchFeed(feed: DiscoveredFeed): Promise<boolean> {
     
     // 7. 基于更新后的频率计算下次抓取时间
     const now = Date.now()
-    // 临时更新 feed.quality.updateFrequency 以便 calculateNextFetchInterval 使用
-    const feedWithUpdatedFrequency = {
-      ...feed,
-      quality: {
-        ...(feed.quality || { qualityScore: 50, updateFrequency: 0, updateFrequencyScore: 50 }),
-        updateFrequency
-      }
-    }
-    const fetchInterval = calculateNextFetchInterval(feedWithUpdatedFrequency)
+    // 不需要一个中间对象，简化调用
+    const fetchInterval = calculateNextFetchInterval(feed)
     const nextScheduledFetch = now + fetchInterval
     
     // 8. 更新数据库（使用事务保证数据一致性）
@@ -512,9 +505,15 @@ export async function fetchFeed(feed: DiscoveredFeed): Promise<boolean> {
       
       // 8.1 更新 Feed 基本信息（使用真实的统计数据）
       // 同时更新 quality.updateFrequency，确保 calculateNextFetchInterval 使用最新频率
-      const updatedQuality = feed.quality 
-        ? { ...feed.quality, updateFrequency }
-        : { qualityScore: 50, updateFrequency, updateFrequencyScore: 50 }
+      const updatedQuality: FeedQuality = {
+        updateFrequency,
+        formatValid: feed.quality?.formatValid ?? true,
+        reachable: feed.quality?.reachable ?? true,
+        score: feed.quality?.score ?? 75,
+        lastChecked: now,
+        details: feed.quality?.details,
+        error: feed.quality?.error
+      }
       
       await db.discoveredFeeds.update(feed.id, {
         lastFetchedAt: now,
@@ -544,16 +543,9 @@ export async function fetchFeed(feed: DiscoveredFeed): Promise<boolean> {
     const needsAnalysis = !feed.category || !feed.language || !feed.quality
     
     if (isFirstFetch || needsAnalysis) {
-      const reason = isFirstFetch ? '首次抓取' : '缺少基本信息'
-      console.log(`[FeedScheduler] 触发 AI 分析 (${reason}): ${feed.title}`)
       getSourceAnalysisService().triggerOnFirstFetch(feed.id).catch(error => {
         console.warn(`[FeedScheduler] AI 分析触发失败: ${feed.title}`, error)
       })
-    }
-    
-    // 简要日志：显示抓取结果
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[FeedScheduler] ✅ ${feed.title}: ${newArticles.length} 新 / ${updatedFeed?.unreadCount || 0} 未读`)
     }
     
     return true
