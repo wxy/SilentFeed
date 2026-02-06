@@ -804,8 +804,8 @@ describe('推荐数据流管道', () => {
       
       const result = await tfidfPipeline.process(inputWithoutAI)
       
-      // 应该使用 TF-IDF 算法
-      expect(result.algorithm).toBe('tfidf')
+      // 应该使用混合算法（TF-IDF降级）
+      expect(result.algorithm).toBe('hybrid')
       expect(result.stats.processed.aiAnalyzed).toBe(0)
     })
 

@@ -19,7 +19,8 @@ import type {
   ProcessingContext,
   EnhancedArticle,
   PipelineConfig,
-  RecommendationPipeline
+  RecommendationPipeline,
+  ScoredArticle
 } from '@/types/recommendation'
 
 import type { FeedArticle, DiscoveredFeed } from '@/types/rss'
@@ -263,10 +264,10 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
           // 构建推荐理由
           const reasonParts: string[] = []
           if (score.clusterScore > 0.5) {
-            reasonParts.push(`热门主题 ${score.dominantTopic}`)
+            reasonParts.push('跨源热门主题')
           }
-          if (score.diversityBonus > 0) {
-            reasonParts.push('内容多样性')
+          if (score.feedTrustScore > 0.7) {
+            reasonParts.push('高质量来源')
           }
           const reason = reasonParts.length > 0 ? reasonParts.join(' · ') : '推荐内容'
           
@@ -278,16 +279,16 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
             title: article.title,
             url: article.link,
             feedId: article.feedId,
-            score: score.totalScore,
-            confidence: score.confidence,
+            score: score.finalScore,
+            confidence: score.clusterScore,
             reason,
             matchedInterests: [],  // 冷启动不使用用户兴趣
             keyPoints: originalRec?.keyPoints || [],
             aiAnalysis: originalRec?.aiAnalysis || {
-              relevanceScore: score.totalScore,
+              relevanceScore: score.finalScore,
               keyPoints: [],
               topics: article.analysis.topicProbabilities || {},
-              provider: article.analysis.metadata?.provider || 'unknown'
+              provider: 'cold-start'
             }
           })
         }
@@ -306,7 +307,7 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
       const result: RecommendationResult = {
         articles: finalRecommendations,
         stats: this.stats as RecommendationStats,
-        algorithm: config.useColdStart ? 'cold-start' : (this.config.ai.enabled ? 'ai' : 'tfidf'),
+        algorithm: config.useColdStart ? 'cold-start' : (this.config.ai.enabled ? 'ai' : 'hybrid'),
         timestamp: Date.now()
       }
 
@@ -593,9 +594,9 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
           // Phase 6: 保存 AI 分析结果到文章（用于标记已分析，避免重复处理）
           await this.saveArticleAnalysis(item.article.id, item.article.feedId, analysis)
           
-          // 计算最终评分（结合TF-IDF分数和AI分析）
+          // 计算最终评分（终止AI分析的使用）
           const aiRelevanceScore = this.calculateAIRelevanceScore(analysis, userInterests)
-          const combinedScore = (item.article.tfidfScore * 0.3 + aiRelevanceScore * 0.7)
+          const combinedScore = aiRelevanceScore
           
           // 生成推荐理由
           const reason = this.generateRecommendationReason(analysis, userInterests, combinedScore, context.config)
@@ -794,7 +795,7 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
     article: ScoredArticle,
     userInterests: { keywords: Array<{word: string, weight: number}> }
   ): RecommendedArticle {
-    const baseScore = article.tfidfScore
+    const baseScore = article.aiScore ?? 0.5  // 使用aiScore或默认值
     const confidence = Math.min(0.6, baseScore * 1.1)
     const interestWords = userInterests.keywords.slice(0, 3).map(k => k.word)
     
@@ -823,16 +824,20 @@ export class RecommendationPipelineImpl implements RecommendationPipeline {
     const userInterests = convertUserProfileToUserInterests(context.userProfile)
     const interestWords = userInterests.keywords.slice(0, 3).map(k => k.word)
     
-    return articles.map(article => ({
+    return articles.map(article => {
+      const score = article.aiScore ?? 0.5  // 使用aiScore或默认值
+      return {
       id: article.id,
       title: article.title,
       url: article.link, // 使用 link 作为 url
-      score: article.tfidfScore,
-      reason: `基于关键词匹配，相关度 ${(article.tfidfScore * 100).toFixed(0)}%`,
-      confidence: Math.min(0.8, article.tfidfScore),
+      feedId: (article as any).feedId,
+      score,
+      reason: `基于内容匹配，相关度 ${(score * 100).toFixed(0)}%`,
+      confidence: Math.min(0.8, score),
       matchedInterests: interestWords,
       keyPoints: [article.title, article.description || ''].filter(Boolean).slice(0, 2)
-    }))
+    }
+    })
   }
 
   /**
