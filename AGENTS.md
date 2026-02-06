@@ -153,6 +153,13 @@ Usage notes:
 <path>.copilot/skills/_typescript-type-safety/SKILL.md</path>
 </skill>
 
+<skill>
+<name>_git-commit</name>
+<description>Git 提交最佳实践。提供规范化提交流程、说明文件模板、Conventional Commits 格式指导。用于确保提交信息清晰、一致、便于追踪。</description>
+<location>project</location>
+<path>.copilot/skills/_git-commit/SKILL.md</path>
+</skill>
+
 </project_skills>
 
 <!-- PROJECT_SKILLS_END -->
