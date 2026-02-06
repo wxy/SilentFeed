@@ -184,6 +184,7 @@ RSS 源发现 → Background 消息处理 → Dexie 数据库 → 定时抓取 �
 | `_evolution-core` | 进化能力元技能：识别可进化场景并沉淀为技能 | 需要将"进化能力"本身技能化 |
 | `_typescript-type-safety` | TypeScript Mock 数据创建与类型错误预防 | 反复出现的编译错误 |
 | `_git-commit` | Git 提交最佳实践与规范化流程 | 频繁的命令行提交问题 |
+| `_pr-creator` | PR 创建与版本控制流程技能 | PR 创建脚本路径/推送失败问题 |
 | `_code-health-check` | 代码健康检查：提交前全面质量检查 | 用户反馈：VSCode 错误经常被忽视 |
 
 **详见**: `.copilot/skills/<skill-name>/SKILL.md`

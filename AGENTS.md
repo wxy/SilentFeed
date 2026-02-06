@@ -161,6 +161,13 @@ Usage notes:
 </skill>
 
 <skill>
+<name>_pr-creator</name>
+<description>PR 创建与版本控制流程技能。使用项目内脚本自动生成 PR，处理版本号、变基、推送与临时文件清理，避免常见失败。</description>
+<location>project</location>
+<path>.copilot/skills/_pr-creator/SKILL.md</path>
+</skill>
+
+<skill>
 <name>_code-health-check</name>
 <description>代码健康检查技能。在提交前进行全面的代码质量检查，包括 VSCode 错误面板、TypeScript 编译、Linting、测试覆盖率等。防止隐蔽的代码质量问题进入版本控制。用于确保每次提交的代码都是健康的、经过验证的。</description>
 <location>project</location>
