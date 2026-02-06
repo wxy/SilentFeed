@@ -132,4 +132,29 @@ Usage notes:
 </available_skills>
 <!-- SKILLS_TABLE_END -->
 
+<!-- PROJECT_SKILLS_START -->
+<!-- 以下为项目自定义技能(位于 .copilot/skills/),不由 openskills 管理 -->
+<!-- 手动维护:创建新的自定义技能时,需要手动在此添加 -->
+<!-- 命名约定:自定义技能统一使用 _ 前缀以示区分 -->
+
+<project_skills>
+
+<skill>
+<name>_evolution-core</name>
+<description>AI 进化能力元技能。识别可进化场景(重复错误、用户反馈、复杂工作流),并将经验沉淀为可复用技能或指令更新。包含 6 步执行流程、输出决策规则、AGENTS.md 维护指导。用于持续改进 AI 工作质量。</description>
+<location>project</location>
+<path>.copilot/skills/_evolution-core/SKILL.md</path>
+</skill>
+
+<skill>
+<name>_typescript-type-safety</name>
+<description>TypeScript Mock 数据创建与类型错误预防。提供 5 步 Mock 创建标准流程、常见错误模式识别、工厂函数编写规范。用于修复与预防测试中的类型错误与 mock 构造缺陷。</description>
+<location>project</location>
+<path>.copilot/skills/_typescript-type-safety/SKILL.md</path>
+</skill>
+
+</project_skills>
+
+<!-- PROJECT_SKILLS_END -->
+
 </skills_system>
