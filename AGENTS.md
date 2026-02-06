@@ -82,12 +82,6 @@ Usage notes:
 </skill>
 
 <skill>
-<name>pr-creator</name>
-<description>AI-native skill to automate PR creation with semantic versioning and intelligent descriptions.</description>
-<location>project</location>
-</skill>
-
-<skill>
 <name>skill-creator</name>
 <description>Guide for creating effective skills. This skill should be used when users want to create a new skill (or update an existing skill) that extends Claude's capabilities with specialized knowledge, workflows, or tool integrations.</description>
 <location>project</location>
