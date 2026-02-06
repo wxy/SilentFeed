@@ -179,7 +179,7 @@ topics: createMockTopicDistribution({
 ## 🎯 改进建议
 
 ### 1. **创建"类型错误预防技能"**
-位置: `.claude/skills/typescript-type-safety/SKILL.md`
+位置: `.claude/skills/_typescript-type-safety/SKILL.md`
 内容:
 - 完整的 mock 数据创建指南
 - 常见错误模式与修复
@@ -226,7 +226,7 @@ topics: createMockTopicDistribution({
 
 ## 🚀 下一步行动计划
 
-1. [ ] 创建 `typescript-type-safety` AI 技能
+1. [ ] 创建 `_typescript-type-safety` AI 技能
 2. [ ] 更新 `.github/copilot-instructions.md` 增加 TypeScript 章节
 3. [ ] 建立 `.github/type-error-patterns.md` 记录所有类型错误模式
 4. [ ] 创建 `src/test/mock-factories/` 目录，集中管理所有 mock 工厂函数

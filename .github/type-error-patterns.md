@@ -339,7 +339,7 @@ export interface TopicDistribution {
 
 ### 短期改进（立即实施）
 1. ✅ 在 Copilot 指令中添加 TypeScript Mock 创建规范
-2. ✅ 创建 `typescript-type-safety` AI 技能
+2. ✅ 创建 `_typescript-type-safety` AI 技能
 3. ✅ 建立此错误模式库供参考
 
 ### 中期改进（本周实施）
@@ -384,5 +384,5 @@ grep -n "SourceAnalysisService" .github/type-error-patterns.md
 **维护者**: GitHub Copilot (自动记录系统)
 **相关文档**: 
 - `.github/copilot-instructions.md` - 项目指导规范
-- `.claude/skills/typescript-type-safety/SKILL.md` - TypeScript 类型安全技能
+- `.claude/skills/_typescript-type-safety/SKILL.md` - TypeScript 类型安全技能
 - `.github/ERROR_ANALYSIS_SESSION.md` - 会话级别的详细分析

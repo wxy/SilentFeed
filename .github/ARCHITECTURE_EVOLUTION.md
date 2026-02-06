@@ -93,7 +93,7 @@
 ## OpenSkills 技能系统与自定义技能库
 
 自定义技能库（持续增长）：
-- typescript-type-safety (✅ 已创建)
+- _typescript-type-safety (✅ 已创建)
 - react-component-patterns (📋 计划中)
 - database-operations (📋 计划中)
 - chrome-extension-patterns (📋 计划中)
@@ -233,10 +233,10 @@
   这是重复错误吗？ ✓ 是（多次出现）
   ↓
 响应（按照进化指南）：
-  创建 typescript-type-safety 技能
+  创建 _typescript-type-safety 技能
   ↓
 执行（按照技能创建流程）：
-  .claude/skills/typescript-type-safety/SKILL.md
+  .claude/skills/_typescript-type-safety/SKILL.md
   ↓
 更新（按照宪法）：
   在技能库表格中添加
@@ -256,7 +256,7 @@
   这个问题有通用性吗？ ✓ 是
   ↓
 改进（按照技能创建流程）：
-  更新 typescript-type-safety 技能
+  更新 _typescript-type-safety 技能
   或创建新的 SKILL.md
   ↓
 应用（按照宪法）：

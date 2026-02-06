@@ -160,7 +160,7 @@ export interface BaseInterface {
 ```
 
 **例子（本项目）**:
-- TypeScript Mock 错误多次出现 → 创建 `typescript-type-safety` 技能
+- TypeScript Mock 错误多次出现 → 创建 `_typescript-type-safety` 技能
 
 ### 识别模式 B: 用户反馈
 
@@ -241,7 +241,7 @@ feat(skills): 创建 react-component-patterns 技能
 
 或改进现有技能：
 ```
-docs(skills): 改进 typescript-type-safety 技能
+docs(skills): 改进 _typescript-type-safety 技能
 
 改进内容:
 - 添加 interface vs type 的区别
@@ -257,7 +257,7 @@ docs(skills): 改进 typescript-type-safety 技能
 
 ## TypeScript 类型安全与 Mock 数据创建
 
-**⚠️ 关键原则**: 在创建测试 mock 数据时，必须严格遵循以下规范，避免常见的类型错误。参考技能: `.claude/skills/typescript-type-safety/SKILL.md`
+**⚠️ 关键原则**: 在创建测试 mock 数据时，必须严格遵循以下规范，避免常见的类型错误。参考技能: `.claude/skills/_typescript-type-safety/SKILL.md`
 
 ### Mock 数据创建的标准流程（5步）
 
@@ -324,12 +324,14 @@ function createMockArticle(overrides: Partial<FeedArticle> = {}): FeedArticle {
 技能文件位于两个地方：
 - **官方技能** (`.claude/skills/` 中的外部库): `canvas-design`, `frontend-design`, `pptx` 等
 - **自定义技能** (`.claude/skills/` 中的项目特有): 由项目学习过程积累而来
+- **命名约定**: 自定义技能统一使用 `_` 前缀，用于与官方技能区分
 
 ### 🎯 项目自定义技能库（持续增长）
 
 | 技能名 | 描述 | 状态 | 创建原因 |
 |-------|------|------|--------|
-| `typescript-type-safety` | TypeScript Mock 数据创建与类型错误预防 | ✅ v1.0 | 反复出现的 TypeScript 编译错误 |
+| `_evolution-core` | 进化能力元技能：识别可进化场景并沉淀为技能/指令 | ✅ v1.0 | 需要将“进化能力”本身技能化 |
+| `_typescript-type-safety` | TypeScript Mock 数据创建与类型错误预防 | ✅ v1.0 | 反复出现的 TypeScript 编译错误 |
 | `react-component-patterns` | React 组件最佳实践与常见陷阱 | 📋 计划中 | 组件相关错误出现时 |
 | `database-operations` | Dexie 数据库操作与事务模式 | 📋 计划中 | 数据库相关问题出现时 |
 | `chrome-extension-patterns` | Chrome 扩展特定模式和常见问题 | 📋 计划中 | Background/Content Script 错误 |
