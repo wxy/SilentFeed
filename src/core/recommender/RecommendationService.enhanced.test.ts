@@ -13,6 +13,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { RecommendationService } from './RecommendationService'
 import { db } from '@/storage/db'
 import type { UserProfile } from '@/types/profile'
+import type { TopicDistribution } from '@/core/profile/TopicClassifier'
+import { Topic } from '@/core/profile/topics'
 import type { FeedArticle } from '@/types/rss'
 import type { Recommendation } from '@/types/database'
 
@@ -76,7 +78,25 @@ function createMockArticle(overrides = {}): FeedArticle {
     description: 'Test description',
     published: Date.now(),
     fetched: Date.now(),
+    read: false,
+    starred: false,
     ...overrides
+  }
+}
+
+function createMockTopicDistribution(overrides: Partial<TopicDistribution> = {}): TopicDistribution {
+  return {
+    [Topic.TECHNOLOGY]: overrides[Topic.TECHNOLOGY] ?? 0,
+    [Topic.SCIENCE]: overrides[Topic.SCIENCE] ?? 0,
+    [Topic.BUSINESS]: overrides[Topic.BUSINESS] ?? 0,
+    [Topic.DESIGN]: overrides[Topic.DESIGN] ?? 0,
+    [Topic.ARTS]: overrides[Topic.ARTS] ?? 0,
+    [Topic.HEALTH]: overrides[Topic.HEALTH] ?? 0,
+    [Topic.SPORTS]: overrides[Topic.SPORTS] ?? 0,
+    [Topic.ENTERTAINMENT]: overrides[Topic.ENTERTAINMENT] ?? 0,
+    [Topic.NEWS]: overrides[Topic.NEWS] ?? 0,
+    [Topic.EDUCATION]: overrides[Topic.EDUCATION] ?? 0,
+    [Topic.OTHER]: overrides[Topic.OTHER] ?? 0
   }
 }
 
@@ -190,7 +210,7 @@ describe('RecommendationService - Enhanced Coverage', () => {
       // Arrange
       const mockProfile: Partial<UserProfile> = {
         id: 'singleton' as const,
-        topics: {},
+        topics: createMockTopicDistribution(),
         keywords: []
       }
 
@@ -219,7 +239,10 @@ describe('RecommendationService - Enhanced Coverage', () => {
       // Arrange
       const mockProfile: Partial<UserProfile> = {
         id: 'singleton' as const,
-        topics: { tech: 0.5, science: 0.3 },
+        topics: createMockTopicDistribution({
+          [Topic.TECHNOLOGY]: 0.5,
+          [Topic.SCIENCE]: 0.3
+        }),
         keywords: [{ word: 'AI', weight: 0.8 }]
       }
 
