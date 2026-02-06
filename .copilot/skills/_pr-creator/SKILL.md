@@ -73,7 +73,7 @@ VERSION_BUMP_AI="minor|patch|skip" \
 CURRENT_VERSION="<current>" \
 NEW_VERSION="<new>" \
 VERSION_FILE="package.json" \
-bash .claude/skills/pr-creator/scripts/create-pr.sh
+bash .copilot/skills/_pr-creator/scripts/create-pr.sh
 ```
 
 ### 7️⃣ 验证推送与 PR 状态
@@ -97,7 +97,7 @@ rm -f .github/pr-description.tmp
 
 **修复**：使用正确路径：
 ```
-bash .claude/skills/pr-creator/scripts/create-pr.sh
+bash .copilot/skills/_pr-creator/scripts/create-pr.sh
 ```
 
 ### 问题 2：推送失败（非快进）
@@ -138,7 +138,7 @@ rm -f .github/pr-description.tmp
 - [ ] 已 rebase 远端分支，避免非快进
 - [ ] PR 描述文件已生成
 - [ ] 版本策略正确（minor/patch/skip）
-- [ ] 脚本路径正确（.claude/skills/pr-creator/scripts/create-pr.sh）
+- [ ] 脚本路径正确（.copilot/skills/_pr-creator/scripts/create-pr.sh）
 
 ---
 
