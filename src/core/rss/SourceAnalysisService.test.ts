@@ -50,6 +50,8 @@ function createMockFeedArticle(overrides = {}): FeedArticle {
     author: 'Test Author',
     published: Date.now() - 86400000,
     fetched: Date.now(),
+    read: false,
+    starred: false,
     ...overrides
   }
 }
@@ -61,11 +63,14 @@ function createMockFeed(overrides = {}): DiscoveredFeed {
     title: 'Example Feed',
     description: 'Example RSS Feed',
     language: 'en',
-    status: 'pending' as const,
-    icon: '',
+    status: 'candidate' as const,
+    discoveredFrom: 'test-source',
+    discoveredAt: Date.now(),
+    isActive: true,
     lastFetchedAt: Date.now(),
     nextScheduledFetch: Date.now() + 3600000,
     articleCount: 10,
+    recommendedCount: 0,
     unreadCount: 5,
     ...overrides
   }
