@@ -168,6 +168,13 @@ Usage notes:
 <path>.copilot/skills/_code-health-check/SKILL.md</path>
 </skill>
 
+<skill>
+<name>_context-ack</name>
+<description>在每次回复中使用固定前缀并列出本次实际参考的指令/文件，便于校验是否遵循上下文与规则。</description>
+<location>project</location>
+<path>.copilot/skills/_context-ack/SKILL.md</path>
+</skill>
+
 </project_skills>
 
 <!-- PROJECT_SKILLS_END -->
