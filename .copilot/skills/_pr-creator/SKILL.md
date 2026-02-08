@@ -54,7 +54,7 @@ bump = "major" if has_breaking else "minor" if has_feat else "patch"
 
 ### 2. 生成 PR 描述
 
-使用 `create_file` 创建 `.github/pr-description.tmp`，参考模板：
+使用 `create_file` 创建 `.github/PR_DESCRIPTION.local.md`，参考模板：
 - 中文：`.copilot/skills/_pr-creator/references/pull_request_template_zh.md`
 - 英文：`.copilot/skills/_pr-creator/references/pull_request_template.md`
 
@@ -87,7 +87,7 @@ bash .copilot/skills/_pr-creator/scripts/create-pr.sh
 |-----|------|------|
 | 脚本路径错误 | 使用了旧路径 | 使用 `.copilot/skills/_pr-creator/scripts/create-pr.sh` |
 | 推送失败 (non-fast-forward) | 分支落后远端 | `git fetch && git rebase origin/<branch>` |
-| 未提交变更警告 | 临时文件未清理 | `rm -f .github/pr-description.tmp` |
+| 未提交变更警告 | 临时文件未清理 | `rm -f .github/PR_DESCRIPTION.local.md` |
 | 重复 version bump | 多次运行脚本 | 后续运行使用 `VERSION_BUMP_AI=skip` |
 
 ---
@@ -96,7 +96,7 @@ bash .copilot/skills/_pr-creator/scripts/create-pr.sh
 
 - [ ] 工作区干净，无未提交变更
 - [ ] 已同步远端分支（`git fetch && rebase`）
-- [ ] PR 描述文件已生成（`.github/pr-description.tmp`）
+- [ ] PR 描述文件已生成（`.github/PR_DESCRIPTION.local.md`）
 - [ ] 版本策略正确（major/minor/patch/skip）
 - [ ] 脚本路径正确
 
@@ -136,7 +136,7 @@ bash .copilot/skills/_pr-creator/scripts/create-pr.sh
 # 1. 分析提交 → 决定 minor 版本
 # 2. 生成描述
 create_file(
-  filePath=".github/pr-description.tmp",
+  filePath=".github/PR_DESCRIPTION.local.md",
   content="""## 概述
 添加用户配置功能
 

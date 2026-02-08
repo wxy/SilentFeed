@@ -156,12 +156,12 @@ RSS 源发现 → Background 消息处理 → Dexie 数据库 → 定时抓取 �
 创建 PR 或提交时，**必须使用说明文件方式**，禁止在命令行使用长篇幅说明：
 
 1. **Git 提交**: 参考 `_git-commit` 技能（`.copilot/skills/_git-commit/SKILL.md`）
-   - 在 `.github/COMMIT_DESCRIPTION.md` 中编写说明
+  - 在 `.github/COMMIT_DESCRIPTION.local.md` 中编写说明（本地文件，不入库）
    - 使用 Conventional Commits 规范
-   - 执行 `git commit -F .github/COMMIT_DESCRIPTION.md`
+  - 执行 `git commit -F .github/COMMIT_DESCRIPTION.local.md`
 
 2. **GitHub PR**: 使用官方 `pr-creator` 技能
-   - 在 `.github/PR_DESCRIPTION.md` 中编写说明
+  - 在 `.github/PR_DESCRIPTION.local.md` 中编写说明（本地文件，不入库）
 
 ### ⚠️ 常见坑位
 

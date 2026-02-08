@@ -22,7 +22,7 @@ description: Git 提交最佳实践。提供规范化提交流程、说明文件
 - ❌ 提交信息混用中英文，格式不统一
 
 **解决方案**：
-✅ 使用 `.github/COMMIT_DESCRIPTION.md` 作为说明文件  
+✅ 使用 `.github/COMMIT_DESCRIPTION.local.md` 作为说明文件（本地文件，不入库）  
 ✅ 遵循 Conventional Commits 格式  
 ✅ 结构化的变更内容  
 ✅ 自动化提交和清理流程
@@ -41,16 +41,16 @@ description: Git 提交最佳实践。提供规范化提交流程、说明文件
 
 ### 2️⃣ 创建说明文件
 
-在 `.github/` 目录下创建临时说明文件：
+在 `.github/` 目录下创建临时说明文件（统一命名便于清理）：
 
 ```bash
-touch .github/COMMIT_DESCRIPTION.md
+touch .github/COMMIT_DESCRIPTION.local.md
 ```
 
 或使用工具调用：
 ```typescript
 create_file({
-  filePath: "/path/to/SilentFeed/.github/COMMIT_DESCRIPTION.md",
+  filePath: "/path/to/SilentFeed/.github/COMMIT_DESCRIPTION.local.md",
   content: "..."
 })
 ```
@@ -150,7 +150,7 @@ BREAKING CHANGE: 移除 openai-direct 模块，所有厂商统一使用 AIProvid
 
 ```bash
 git add <files>
-git commit -F .github/COMMIT_DESCRIPTION.md
+git commit -F .github/COMMIT_DESCRIPTION.local.md
 ```
 
 ⚠️ **重要警告**：
@@ -158,15 +158,15 @@ git commit -F .github/COMMIT_DESCRIPTION.md
 - 必须**明确指定**要提交的文件，例如：
   ```bash
   git add src/core/ai/providers/openai.ts src/storage/db.ts
-  git commit -F .github/COMMIT_DESCRIPTION.md
+  git commit -F .github/COMMIT_DESCRIPTION.local.md
   ```
-- 原因：防止 `.github/COMMIT_DESCRIPTION.md` 临时文件被意外提交到仓库
+- 原因：防止本地说明文件被意外提交到仓库
 
 或作为工作流的一部分（确保明确指定文件）：
 
 ```typescript
 run_in_terminal({
-  command: "git add src/path/to/files && git commit -F .github/COMMIT_DESCRIPTION.md",
+  command: "git add src/path/to/files && git commit -F .github/COMMIT_DESCRIPTION.local.md",
   explanation: "提交变更到本地仓库"
 })
 ```
@@ -175,13 +175,13 @@ run_in_terminal({
 ```bash
 # 明确指定要提交的文件
 git add .copilot/skills/_git-commit/SKILL.md && \
-git commit -F .github/COMMIT_DESCRIPTION.md && \
-rm .github/COMMIT_DESCRIPTION.md
+git commit -F .github/COMMIT_DESCRIPTION.local.md && \
+rm .github/COMMIT_DESCRIPTION.local.md
 ```
 
 ### 5️⃣ 添加技能签名行（❗ 关键步骤）
 
-**在执行提交前**，必须在 `COMMIT_DESCRIPTION.md` 的末尾添加技能签名行。这是使用 _git-commit 技能的**强制要求**：
+**在执行提交前**，必须在 `COMMIT_DESCRIPTION.local.md` 的末尾添加技能签名行。这是使用 _git-commit 技能的**强制要求**：
 
 ```markdown
 ---
@@ -217,15 +217,15 @@ refactor(docs): 重新组织 copilot-instructions.md
 完成签名后，删除临时说明文件：
 
 ```bash
-rm .github/COMMIT_DESCRIPTION.md
+rm .github/COMMIT_DESCRIPTION.local.md
 ```
 
 或作为完整工作流：
 
 ```bash
 git add <files> && \
-git commit -F .github/COMMIT_DESCRIPTION.md && \
-rm .github/COMMIT_DESCRIPTION.md
+git commit -F .github/COMMIT_DESCRIPTION.local.md && \
+rm .github/COMMIT_DESCRIPTION.local.md
 ```
 
 ---
