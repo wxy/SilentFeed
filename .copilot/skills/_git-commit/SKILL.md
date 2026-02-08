@@ -74,9 +74,8 @@ create_file({
 ```
 
 ⚠️ **关键要求**：
-- 模板末尾已包含签名行 `**Commit Tool**: _git-commit Skill`
+- 模板末尾已包含签名行 `> 🤖 本提交由 _git-commit 技能生成`（或英文版本）
 - 必须保留签名行，不可删除
-- 使用 create_file 工具而非 HERE 文档
 
 ### 3️⃣ 编写提交说明
 
@@ -206,16 +205,15 @@ rm .github/COMMIT_DESCRIPTION.local.md
 
 **在执行 git commit 之前**，必须完成以下检查：
 
-- [ ] ✅ **签名行已添加**：确认文件末尾有 `**Commit Tool**: _git-commit Skill`
+- [ ] ✅ **签名行已添加**：确认文件末尾有 `> 🤖 本提交由 _git-commit 技能生成`（或英文版本）
 - [ ] ✅ **模板结构完整**：保留了模板的分段结构（变更内容、技术细节等）
 - [ ] ✅ **类型格式正确**：第一行符合 `type(scope): subject` 格式
-- [ ] ✅ **使用 create_file**：使用 create_file 工具而非 HERE 文档创建文件
 - [ ] ✅ **文件路径正确**：`.github/COMMIT_DESCRIPTION.local.md`
 
 **检查方法（可选）**：
 ```bash
 # 检查签名行
-grep -q "_git-commit Skill" .github/COMMIT_DESCRIPTION.local.md && echo "✅ 签名行存在" || echo "❌ 缺少签名行"
+grep -q "_git-commit 技能生成\|_git-commit skill" .github/COMMIT_DESCRIPTION.local.md && echo "✅ 签名行存在" || echo "❌ 缺少签名行"
 
 # 检查文件格式
 head -1 .github/COMMIT_DESCRIPTION.local.md | grep -E "^(feat|fix|docs|style|refactor|test|chore|perf|ci)" && echo "✅ 类型正确" || echo "❌ 类型错误"
@@ -253,7 +251,7 @@ rm .github/COMMIT_DESCRIPTION.local.md
 - [ ] 是否标记了破坏性改动（如有）？
 - [ ] 说明文件使用的是 Markdown 格式吗？
 - [ ] 是否遵循了中文规范（如有中文）？
-- [ ] **❗ 是否在末尾添加了技能签名行？** (`**Commit Tool**: _git-commit Skill`)
+- [ ] **❗ 是否在末尾添加了技能签名行？** (`> 🤖 本提交由 _git-commit 技能生成`)
 - [ ] **❗ 是否明确指定了要提交的文件？**（禁止使用 `git add .`）
 
 ---

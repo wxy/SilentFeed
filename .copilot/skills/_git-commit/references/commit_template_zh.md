@@ -26,4 +26,4 @@ Closes #issue_number
 
 ---
 
-**Commit Tool**: _git-commit Skill
+> 🤖 本提交由 _git-commit 技能生成

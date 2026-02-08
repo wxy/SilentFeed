@@ -175,6 +175,13 @@ Usage notes:
 <path>.copilot/skills/_context-ack/SKILL.md</path>
 </skill>
 
+<skill>
+<name>_instruction-guard</name>
+<description>强制在每次回复前读取项目指令文件，避免遗漏规范。与 _context-ack 配合，仅负责“读取约束”，不负责输出格式。</description>
+<location>project</location>
+<path>.copilot/skills/_instruction-guard/SKILL.md</path>
+</skill>
+
 </project_skills>
 
 <!-- PROJECT_SKILLS_END -->
