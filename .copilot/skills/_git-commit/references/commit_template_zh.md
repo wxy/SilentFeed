@@ -24,6 +24,12 @@ type(scope): 简短描述（50字以内）
 Fixes #issue_number
 Closes #issue_number
 
+## 技能检查清单
+- [x] 已使用 _git-commit 技能创建提交说明
+- [x] 提交类型符合 Conventional Commits 规范
+- [x] 提交说明覆盖所有暂存文件（_traceability-check）
+- [x] 已通过代码健康检查（_code-health-check）
+
 ---
 
 > 🤖 本提交由 _git-commit 技能生成

@@ -31,6 +31,18 @@
 ## 备注
 在此添加任何额外的注释或上下文供审阅者参考。
 
+## 提交摘要
+（自动生成，基于 `git log --oneline origin/master..HEAD`）
+- abc1234 feat(ui): 新增功能
+- def5678 fix(core): 修复问题
+
+## 技能检查清单
+- [x] 已使用 _pr-creator 技能创建 PR
+- [x] 使用项目脚本而非直接 gh 命令
+- [x] PR 描述包含提交摘要（_change-summary）
+- [x] 版本号策略正确（major/minor/patch/skip）
+- [x] 临时文件已自动清理
+
 ---
 
 > 🤖 本 PR 由 _pr-creator 技能自动生成
