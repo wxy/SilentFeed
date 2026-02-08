@@ -326,10 +326,10 @@ export abstract class BaseAIService implements AIProvider {
         
         // 3. 调用 API
         const apiResponse = await this.callChatAPI(prompt, {
-          maxTokens: options?.useReasoning ? 4000 : 500,
           timeout: options?.timeout || this.getConfiguredTimeout(options?.useReasoning),
           jsonMode: !options?.useReasoning,
           useReasoning: options?.useReasoning
+          // 注：maxTokens 不设置，让 Provider 使用模型允许的最大值
         })
         
         if (!apiResponse.content || apiResponse.content.trim().length === 0) {
@@ -683,11 +683,11 @@ export abstract class BaseAIService implements AIProvider {
         // 调用 API
         const timeout = this.getConfiguredTimeout(request.useReasoning)
         const apiResponse = await this.callChatAPI(prompt, {
-          maxTokens: 1000,
           timeout,
           jsonMode: true,
           temperature: 0.3,
           useReasoning: request.useReasoning
+          // 注：maxTokens 不设置，让 Provider 使用模型允许的最大值
         })
         
         if (!apiResponse.content || apiResponse.content.trim().length === 0) {
@@ -962,7 +962,7 @@ export abstract class BaseAIService implements AIProvider {
     try {
       // 直接调用底层 callChatAPI
       const apiResponse = await this.callChatAPI(prompt, {
-        maxTokens: options?.maxTokens || 500,
+        ...(options?.maxTokens !== undefined && { maxTokens: options.maxTokens }),
         jsonMode: true  // 要求返回 JSON 格式
         // 不传 timeout，使用 provider 配置的超时
       })

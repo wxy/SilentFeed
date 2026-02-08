@@ -235,9 +235,7 @@ export class AIPoolStrategyDecider {
     })
     
     // 使用专门的推荐池策略决策方法（使用默认 60s 超时）
-    const responseText = await aiManager.decidePoolStrategy(prompt, {
-      maxTokens: 500
-    })
+    const responseText = await aiManager.decidePoolStrategy(prompt)
     
     deciderLogger.debug('AI 原始响应文本', { text: responseText.substring(0, 300) })
     
