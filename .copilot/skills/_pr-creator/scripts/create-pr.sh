@@ -93,19 +93,26 @@ FINAL_LEVEL="${VERSION_BUMP_AI}"
 WORKING_BRANCH="${PR_BRANCH}"
 
 # Load PR description from multiple sources (in priority order)
-if [[ -f .github/pr-description.tmp ]]; then
-  # Method 1: Read from temporary file (most reliable for large content)
+if [[ -f .github/PR_DESCRIPTION.local.md ]]; then
+  # Method 1: Read from local description file (preferred)
+  info "Loading PR description from .github/PR_DESCRIPTION.local.md"
+  PR_BODY="$(cat .github/PR_DESCRIPTION.local.md)" || {
+    err "Failed to read .github/PR_DESCRIPTION.local.md"
+    exit 1
+  }
+elif [[ -f .github/pr-description.tmp ]]; then
+  # Method 2: Read from temporary file (backward compatible)
   info "Loading PR description from .github/pr-description.tmp"
   PR_BODY="$(cat .github/pr-description.tmp)" || {
     err "Failed to read .github/pr-description.tmp"
     exit 1
   }
 elif [[ -n "${PR_BODY_AI:-}" ]]; then
-  # Method 2: Use environment variable (for short descriptions)
+  # Method 3: Use environment variable (for short descriptions)
   info "Using PR description from PR_BODY_AI environment variable"
   PR_BODY="${PR_BODY_AI}"
 else
-  # Method 3: Try to read from stdin (if piped)
+  # Method 4: Try to read from stdin (if piped)
   if [[ ! -t 0 ]]; then
     info "Reading PR description from stdin"
     PR_BODY="$(cat)" || {
@@ -114,9 +121,10 @@ else
     }
   else
     err "Missing PR description: use one of:"
-    err "  1. Create .github/pr-description.tmp file"
-    err "  2. Set PR_BODY_AI environment variable"
-    err "  3. Pipe description via stdin"
+    err "  1. Create .github/PR_DESCRIPTION.local.md file"
+    err "  2. Create .github/pr-description.tmp file"
+    err "  3. Set PR_BODY_AI environment variable"
+    err "  4. Pipe description via stdin"
     exit 1
   fi
 fi
@@ -128,11 +136,13 @@ VERSION_FILE="${VERSION_FILE:-}"
 PR_LANG="${PR_LANG:-en}"
 DRY_RUN="${DRY_RUN:-false}"
 
-# Add attribution footer to PR body
-PR_BODY="${PR_BODY}
+# Add attribution footer to PR body (avoid duplicate signatures)
+if ! echo "${PR_BODY}" | grep -qi "pr-creator"; then
+  PR_BODY="${PR_BODY}
 
 ---
 *此 PR 由 [pr-creator](https://github.com/wxy/pr-creator) 技能自动生成*"
+fi
 
 info "PR Title: ${PR_TITLE}"
 info "Branch: ${WORKING_BRANCH}"

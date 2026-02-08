@@ -16,8 +16,9 @@
 .DS_Store
 *.pem
 
-# PR description (generated during PR creation process)
-.github/PR_DESCRIPTION.md
+# PR/Commit description (generated during PR/commit process)
+.github/PR_DESCRIPTION*.md
+.github/COMMIT_DESCRIPTION*.md
 
 # Claude / OpenSkills - installation artifacts
 # Skills are installed on-demand via: openskills install wxy/<skill-name>
