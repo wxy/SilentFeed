@@ -182,6 +182,13 @@ Usage notes:
 <path>.copilot/skills/_instruction-guard/SKILL.md</path>
 </skill>
 
+<skill>
+<name>_file-output-guard</name>
+<description>创建/输出文件的安全约束。禁止 HERE 文档创建文件；大文件输出需分段写入同一文件，避免会话超限。</description>
+<location>project</location>
+<path>.copilot/skills/_file-output-guard/SKILL.md</path>
+</skill>
+
 </project_skills>
 
 <!-- PROJECT_SKILLS_END -->
