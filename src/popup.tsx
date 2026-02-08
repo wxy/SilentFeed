@@ -3,7 +3,6 @@ import { useState, useEffect } from "react"
 import "@/i18n" // 初始化 i18n
 import { useI18n } from "@/i18n/helpers"
 import i18n from "@/i18n"
-import { getUIStyle, watchUIStyle, type UIStyle } from "@/storage/ui-config"
 import { useTheme } from "@/hooks/useTheme"
 import { ColdStartView } from "@/components/ColdStartView"
 import { RecommendationView } from "@/components/RecommendationView"
@@ -16,7 +15,6 @@ import { LEARNING_COMPLETE_PAGES } from "@/constants/progress"
 import { getRecommendationConfig } from "@/storage/recommendation-config"
 import { isReadingListAvailable } from "@/utils/browser-compat"
 import "@/styles/global.css"
-import "@/styles/sketchy.css" // 手绘风格样式
 
 /**
  * 阶段状态信息（从 Background 获取）
@@ -43,7 +41,6 @@ function IndexPopup() {
   
   const [stateInfo, setStateInfo] = useState<OnboardingStateInfo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [uiStyle, setUiStyle] = useState<UIStyle>("normal")
   const [deliveryMode, setDeliveryMode] = useState<'popup' | 'readingList' | 'both'>('popup')
   const [toolbarState, setToolbarState] = useState<{
     hasRSSFeeds: boolean
@@ -73,22 +70,6 @@ function IndexPopup() {
     }, 100)
     
     return () => clearInterval(checkToolbar)
-  }, [])
-
-  useEffect(() => {
-    // 加载 UI 风格
-    const loadUIStyle = async () => {
-      const style = await getUIStyle()
-      setUiStyle(style)
-    }
-    loadUIStyle()
-
-    // 监听 UI 风格变化
-    const unwatch = watchUIStyle((newStyle) => {
-      setUiStyle(newStyle)
-    })
-
-    return () => unwatch()
   }, [])
 
   // Phase 15: 加载投递方式配置
@@ -156,39 +137,15 @@ function IndexPopup() {
     loadData()
   }, [])
 
-  // 根据风格决定是否应用手绘样式
-  const isSketchyStyle = uiStyle === "sketchy"
   const currentLang = i18n.language // 获取当前语言
   // 弹窗高度根据内容动态计算，无固定高度，无滚动条
-  const containerClass = isSketchyStyle 
-    ? "sketchy-container sketchy-paper-texture w-[400px] flex flex-col"
-    : "w-[400px] flex flex-col bg-gradient-to-br from-slate-50/95 to-indigo-50/80 dark:from-gray-900 dark:to-indigo-950/30"
+  const containerClass = "w-[400px] flex flex-col bg-gradient-to-br from-slate-50/95 to-indigo-50/80 dark:from-gray-900 dark:to-indigo-950/30"
 
   // 加载中状态
   if (isLoading) {
     return (
       <div className={containerClass} lang={currentLang}>
-        {isSketchyStyle && (
-          <svg className="sketchy-svg-filters" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              {/* 手绘笔触滤镜 - 中等强度,仅用于边框 */}
-              <filter id="sketchy-stroke" x="-30%" y="-30%" width="160%" height="160%">
-                {/* 添加噪点模拟笔触不均 */}
-                <feTurbulence type="fractalNoise" baseFrequency="1.2" numOctaves="3" result="noise" />
-                <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.2" xChannelSelector="R" yChannelSelector="G" result="displaced" />
-                {/* 轻微膨胀和腐蚀模拟断续 */}
-                <feMorphology operator="dilate" radius="0.2" in="displaced" result="thickened" />
-                <feMorphology operator="erode" radius="0.15" in="thickened" result="thinned" />
-                {/* 轻微模糊模拟手绘边缘 */}
-                <feGaussianBlur stdDeviation="0.25" in="thinned" result="blurred" />
-                <feComponentTransfer in="blurred">
-                  <feFuncA type="linear" slope="1.15" />
-                </feComponentTransfer>
-              </filter>
-            </defs>
-          </svg>
-        )}
-        <div className={`${isSketchyStyle ? 'sketchy-emoji' : ''} text-4xl animate-pulse flex items-center justify-center flex-1`}>⏳</div>
+        <div className="text-4xl animate-pulse flex items-center justify-center flex-1">⏳</div>
       </div>
     )
   }
@@ -224,34 +181,10 @@ function IndexPopup() {
   return (
     <ErrorBoundary>
       <div className={containerClass} lang={currentLang}>
-        {/* SVG 滤镜定义 - 手绘笔触效果 */}
-        {isSketchyStyle && (
-          <svg className="sketchy-svg-filters" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              {/* 手绘笔触滤镜 - 中等强度,仅用于边框 */}
-              <filter id="sketchy-stroke" x="-30%" y="-30%" width="160%" height="160%">
-                {/* 添加噪点模拟笔触不均 */}
-                <feTurbulence type="fractalNoise" baseFrequency="1.2" numOctaves="3" result="noise" />
-                <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.2" xChannelSelector="R" yChannelSelector="G" result="displaced" />
-                {/* 轻微膨胀和腐蚀模拟断续 */}
-                <feMorphology operator="dilate" radius="0.2" in="displaced" result="thickened" />
-                <feMorphology operator="erode" radius="0.15" in="thickened" result="thinned" />
-                {/* 轻微模糊模拟手绘边缘 */}
-                <feGaussianBlur stdDeviation="0.25" in="thinned" result="blurred" />
-                <feComponentTransfer in="blurred">
-                  <feFuncA type="linear" slope="1.15" />
-                </feComponentTransfer>
-              </filter>
-            </defs>
-          </svg>
-        )}
         
         {/* 头部 - 极简设计：应用名 + 右上角工具图标 */}
-        <div className={isSketchyStyle 
-          ? "px-4 pt-2 pb-2 flex items-center justify-between bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-b-2 border-blue-200 dark:border-blue-700" 
-          : "px-4 pt-3 pb-3 flex items-center justify-between bg-gradient-to-r from-indigo-500 to-cyan-500 dark:from-indigo-600 dark:to-cyan-600 border-b border-indigo-600/20 dark:border-cyan-500/20 shadow-sm"
-        }>
-          <h1 className={isSketchyStyle ? "sketchy-title text-sm font-medium" : "text-base font-bold text-white drop-shadow-sm"}>{_("app.name")}</h1>
+        <div className="px-4 pt-3 pb-3 flex items-center justify-between bg-gradient-to-r from-indigo-500 to-cyan-500 dark:from-indigo-600 dark:to-cyan-600 border-b border-indigo-600/20 dark:border-cyan-500/20 shadow-sm">
+          <h1 className="text-base font-bold text-white drop-shadow-sm">{_("app.name")}</h1>
           
           {/* 右上角工具图标 - 设置图标固定在最右端 */}
           <div className="flex items-center gap-1.5">
@@ -262,13 +195,10 @@ function IndexPopup() {
                 {toolbarState.hasCandidateFeeds && (
                   <button
                     onClick={toolbarState.onOpenRSSManagement}
-                    className={isSketchyStyle 
-                      ? "p-1.5 hover:bg-white/50 dark:hover:bg-gray-700/50 rounded transition-colors"
-                      : "p-1.5 hover:bg-white/20 rounded transition-colors"
-                    }
+                    className="p-1.5 hover:bg-white/20 rounded transition-colors"
                     title={_("popup.rssFeeds")}
                   >
-                    <span className={isSketchyStyle ? "text-sm" : "text-sm text-white drop-shadow"}>📡</span>
+                    <span className="text-sm text-white drop-shadow">📡</span>
                   </button>
                 )}
                 
@@ -276,13 +206,10 @@ function IndexPopup() {
                 {toolbarState.hasRecommendations && (
                   <button
                     onClick={toolbarState.onDismissAll}
-                    className={isSketchyStyle 
-                      ? "p-1.5 hover:bg-white/50 dark:hover:bg-gray-700/50 rounded transition-colors"
-                      : "p-1.5 hover:bg-white/20 rounded transition-colors"
-                    }
+                    className="p-1.5 hover:bg-white/20 rounded transition-colors"
                     title={_("popup.dismissAll")}
                   >
-                    <span className={isSketchyStyle ? "text-sm" : "text-sm text-white drop-shadow"}>👎</span>
+                    <span className="text-sm text-white drop-shadow">👎</span>
                   </button>
                 )}
               </>
@@ -291,13 +218,10 @@ function IndexPopup() {
             {/* 设置按钮始终显示，固定在最右端 */}
             <button
               onClick={() => chrome.runtime.openOptionsPage()}
-              className={isSketchyStyle 
-                ? "p-1.5 hover:bg-white/50 dark:hover:bg-gray-700/50 rounded transition-colors"
-                : "p-1.5 hover:bg-white/20 rounded transition-colors"
-              }
+              className="p-1.5 hover:bg-white/20 rounded transition-colors"
               title={_("popup.settings")}
             >
-              <span className={isSketchyStyle ? "text-sm" : "text-sm text-white drop-shadow"}>⚙️</span>
+              <span className="text-sm text-white drop-shadow">⚙️</span>
             </button>
           </div>
         </div>
@@ -309,7 +233,6 @@ function IndexPopup() {
             totalPages={threshold} 
             subscribedFeedCount={stateInfo.subscribedFeedCount}
             isAIConfigured={stateInfo.isAIConfigured}
-            uiStyle={uiStyle} 
           />
         ) : deliveryMode === 'readingList' ? (
           <ReadingListSummaryView />

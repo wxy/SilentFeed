@@ -79,7 +79,7 @@ describe("ColdStartView 组件", () => {
 
   it("学习阶段应显示一条 tips", () => {
     const spy = vi.spyOn(Math, "random").mockReturnValue(0)
-    render(<ColdStartView pageCount={0} uiStyle="normal" />)
+    render(<ColdStartView pageCount={0} />)
     expect(screen.getByText("每次停留和点击，都让推荐更懂你")).toBeInTheDocument()
     spy.mockRestore()
   })
