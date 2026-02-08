@@ -387,7 +387,8 @@ describe("OpenAIProvider", () => {
         const requestBody = JSON.parse(fetchCall[1]?.body as string)
         
         expect(requestBody.model).toBe("o4-mini")
-        expect(requestBody.max_tokens).toBe(4000) // 推理模型需要更多 tokens
+        // maxTokens 由 Provider 根据模型设定，现在推理模式使用 8000
+        expect(requestBody.max_tokens).toBe(8000) 
         expect(requestBody.response_format).toBeUndefined() // 推理模型不支持 JSON mode
       })
       
@@ -403,7 +404,8 @@ describe("OpenAIProvider", () => {
         const requestBody = JSON.parse(fetchCall[1]?.body as string)
         
         expect(requestBody.model).toBe("gpt-5-mini")
-        expect(requestBody.max_tokens).toBe(500)
+        // maxTokens 由 Provider 根据模型设定，标准模式使用 8000
+        expect(requestBody.max_tokens).toBe(8000)
         expect(requestBody.response_format).toEqual({ type: "json_object" })
       })
       

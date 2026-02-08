@@ -452,9 +452,8 @@ export class StrategyDecisionService {
 
       // 3. 调用 AI 生成策略决策
       const fullPrompt = `${prompts.system}\n\n${prompts.user}`
-      const response = await this.aiManager.decidePoolStrategy(fullPrompt, {
-        maxTokens: 1000
-      })
+      const response = await this.aiManager.decidePoolStrategy(fullPrompt)
+      // 注：maxTokens 不设置，让 Provider 使用模型允许的最大值
 
       if (!response) {
         throw new Error('AI 返回内容为空')

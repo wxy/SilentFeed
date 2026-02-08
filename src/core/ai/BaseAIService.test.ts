@@ -229,7 +229,7 @@ describe('BaseAIService', () => {
       )
     })
 
-    it('应该在推理模式下使用更大的 maxTokens', async () => {
+    it('应该在推理模式下传递 useReasoning 参数给 Provider', async () => {
       const callChatAPISpy = vi.spyOn(provider as any, 'callChatAPI')
 
       await provider.analyzeContent('测试', { useReasoning: true })
@@ -237,8 +237,8 @@ describe('BaseAIService', () => {
       expect(callChatAPISpy).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
-          maxTokens: 4000,
           useReasoning: true
+          // maxTokens 由 Provider 使用模型允许的最大值，不在这里硬编码
         })
       )
     })
