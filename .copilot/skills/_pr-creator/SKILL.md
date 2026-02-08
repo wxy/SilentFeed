@@ -64,7 +64,8 @@ bump = "major" if has_breaking else "minor" if has_feat else "patch"
 # 同步远端分支
 git fetch origin && git rebase origin/<branch>
 
-# 运行脚本
+# 运行脚本（推荐：通过 PR_BODY_AI 传入说明文件内容）
+PR_BODY_AI="$(cat .github/PR_DESCRIPTION.local.md)" \
 PR_BRANCH="<branch>" \
 PR_TITLE_AI="<title>" \
 PR_LANG="zh-CN" \
