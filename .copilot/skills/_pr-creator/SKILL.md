@@ -29,6 +29,34 @@ description: PR 创建与版本控制流程技能。智能分析提交、生成 
 
 ## 🚀 快速使用
 
+### 标准指令："提交并 PR"
+
+当用户说**"提交并 PR"**或**"commit and create PR"**时，执行以下标准流程：
+
+**步骤 1：检查工作区状态**
+```bash
+git status --porcelain
+```
+- 若有未暂存变更 → 提示用户确认要提交的文件
+- 若暂存区为空 → 先使用 _git-commit 技能完成提交
+- 若已有提交 → 直接跳到步骤 3
+
+**步骤 2：完成提交（若需要）**
+- 使用 _git-commit 技能创建提交
+- 确保提交说明完整且符合 Conventional Commits 规范
+
+**步骤 3：分析提交并决定版本策略**
+```bash
+git log --oneline origin/master..HEAD
+```
+- 检测提交类型 → 决定版本号策略（major/minor/patch/skip）
+
+**步骤 4：创建 PR**
+- 生成 PR 描述文件
+- 使用项目脚本创建 PR（**禁止直接 gh 命令**）
+
+### 旧版快速使用说明（已整合到上方）
+
 直接告诉 AI："创建 PR" 或 "Create a PR"
 
 AI 会自动完成：
