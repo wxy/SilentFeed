@@ -175,6 +175,41 @@ Usage notes:
 <path>.copilot/skills/_context-ack/SKILL.md</path>
 </skill>
 
+<skill>
+<name>_instruction-guard</name>
+<description>强制在每次回复前读取项目指令文件，避免遗漏规范。与 _context-ack 配合，仅负责“读取约束”，不负责输出格式。</description>
+<location>project</location>
+<path>.copilot/skills/_instruction-guard/SKILL.md</path>
+</skill>
+
+<skill>
+<name>_file-output-guard</name>
+<description>创建/输出文件的安全约束。禁止 HERE 文档创建文件；大文件输出需分段写入同一文件，避免会话超限。</description>
+<location>project</location>
+<path>.copilot/skills/_file-output-guard/SKILL.md</path>
+</skill>
+
+<skill>
+<name>_change-summary</name>
+<description>自动汇总当前分支相对主分支的提交摘要，用于 PR/说明对齐。</description>
+<location>project</location>
+<path>.copilot/skills/_change-summary/SKILL.md</path>
+</skill>
+
+<skill>
+<name>_traceability-check</name>
+<description>校验“说明内容 ↔ 实际变更文件”的一致性，避免描述遗漏或偏差。</description>
+<location>project</location>
+<path>.copilot/skills/_traceability-check/SKILL.md</path>
+</skill>
+
+<skill>
+<name>_session-safety</name>
+<description>会话输出安全控制。防止超长输出导致失败，必要时分段写入文件。</description>
+<location>project</location>
+<path>.copilot/skills/_session-safety/SKILL.md</path>
+</skill>
+
 </project_skills>
 
 <!-- PROJECT_SKILLS_END -->

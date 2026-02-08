@@ -29,12 +29,60 @@ description: PR 创建与版本控制流程技能。智能分析提交、生成 
 
 ## 🚀 快速使用
 
+### 标准指令："提交并 PR"
+
+当用户说**"提交并 PR"**或**"commit and create PR"**时，执行以下标准流程：
+
+**步骤 1：检查工作区状态**
+```bash
+git status --porcelain
+```
+- 若有未暂存变更 → 提示用户确认要提交的文件
+- 若暂存区为空 → 先使用 _git-commit 技能完成提交
+- 若已有提交 → 直接跳到步骤 3
+
+**步骤 2：完成提交（若需要）**
+- 使用 _git-commit 技能创建提交
+- 确保提交说明完整且符合 Conventional Commits 规范
+
+**步骤 3：分析提交并决定版本策略**
+```bash
+git log --oneline origin/master..HEAD
+```
+- 检测提交类型 → 决定版本号策略（major/minor/patch/skip）
+
+**步骤 4：创建 PR**
+- 生成 PR 描述文件
+- 使用项目脚本创建 PR（**禁止直接 gh 命令**）
+
+### 旧版快速使用说明（已整合到上方）
+
 直接告诉 AI："创建 PR" 或 "Create a PR"
 
 AI 会自动完成：
 1. 分析提交类型 → 决定版本策略
 2. 生成 PR 标题和描述（基于模板）
 3. 同步分支 → 运行脚本 → 创建/更新 PR
+
+---
+
+## ⚠️ 强制约束
+
+**必须使用项目脚本，禁止直接使用 gh 命令**
+
+- ✅ **正确**：`bash .copilot/skills/_pr-creator/scripts/create-pr.sh`
+- ❌ **错误**：`gh pr create --title ... --body ...`
+
+**为什么？**
+1. 脚本会自动处理版本号更新（package.json/manifest.json）
+2. 脚本会自动清理临时文件
+3. 脚本支持 dry-run 预览
+4. 脚本确保流程一致性和可追溯性
+
+**违反此约束时**：
+- 版本号不会自动更新，需手动修改
+- 临时文件不会清理，可能误提交
+- 无法预览变更，风险更高
 
 ---
 
@@ -57,6 +105,17 @@ bump = "major" if has_breaking else "minor" if has_feat else "patch"
 使用 `create_file` 创建 `.github/PR_DESCRIPTION.local.md`，参考模板：
 - 中文：`.copilot/skills/_pr-creator/references/pull_request_template_zh.md`
 - 英文：`.copilot/skills/_pr-creator/references/pull_request_template.md`
+
+**提交摘要（必填）**：在 PR 描述中追加“提交摘要”段落，基于下述命令生成：
+```bash
+git log --oneline origin/master..HEAD
+```
+示例：
+```
+## 提交摘要
+- abc1234 feat(ui): 新增设置入口
+- def5678 chore: 更新技能模板
+```
 
 ### 3. 同步并运行脚本
 
@@ -95,11 +154,64 @@ bash .copilot/skills/_pr-creator/scripts/create-pr.sh
 
 ## 🧰 检查清单
 
-- [ ] 工作区干净，无未提交变更
-- [ ] 已同步远端分支（`git fetch && rebase`）
-- [ ] PR 描述文件已生成（`.github/PR_DESCRIPTION.local.md`）
-- [ ] 版本策略正确（major/minor/patch/skip）
-- [ ] 脚本路径正确
+**执行前（强制）**：
+- [ ] ✅ 工作区干净，无未提交变更
+- [ ] ✅ 已同步远端分支（`git fetch && rebase`）
+- [ ] ✅ PR 描述文件已生成（`.github/PR_DESCRIPTION.local.md`）
+- [ ] ✅ 版本策略已确定（major/minor/patch/skip）
+- [ ] ✅ **确认使用脚本而非 gh 命令**
+
+**执行后（验证）**：
+- [ ] PR 已成功创建或更新
+- [ ] 版本号已自动更新（若非 skip）
+- [ ] 临时文件已自动清理
+- [ ] PR 描述包含技能签名行
+
+---
+
+## ❌ 常见错误与修正
+
+### 错误 1：直接使用 gh 命令创建 PR
+
+**错误示例**：
+```bash
+# ❌ 错误：绕过项目流程
+gh pr create --title "feat: xxx" --body "..."
+```
+
+**为什么错误**：
+- 版本号不会自动更新
+- 临时文件不会清理
+- 无法执行预检查
+- 破坏流程一致性
+
+**正确做法**：
+```bash
+# ✅ 正确：使用项目脚本
+PR_BODY_AI="$(cat .github/PR_DESCRIPTION.local.md)" \
+PR_BRANCH="feat/xxx" \
+PR_TITLE_AI="feat: xxx" \
+VERSION_BUMP_AI="minor" \
+bash .copilot/skills/_pr-creator/scripts/create-pr.sh
+```
+
+### 错误 2：忘记生成提交摘要
+
+**症状**：PR 描述缺少提交列表
+
+**修正**：
+```bash
+# 获取提交摘要
+git log --oneline origin/master..HEAD
+
+# 添加到 PR 描述的"提交摘要"段落
+```
+
+### 错误 3：版本策略错误
+
+**症状**：chore 提交导致版本号增加
+
+**修正**：chore/docs/test 类型应使用 `VERSION_BUMP_AI=skip`
 
 ---
 

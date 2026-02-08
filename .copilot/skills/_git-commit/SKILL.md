@@ -48,6 +48,36 @@ description: Git 提交最佳实践。提供规范化提交流程、说明文件
 - 涉及哪些文件或模块？
 - 有没有破坏性改动（BREAKING CHANGE）？
 
+**补充：分阶段提交（多个独立逻辑块）**
+
+若开发中改动了多个逻辑上独立的部分（例如：修复 bug A + 重构函数 B + 添加测试 C），应分开提交，每个提交聚焦一个功能或修复。使用 `git add -p` 交互式添加：
+
+```bash
+# 交互式添加，git 会展示每个 hunk（代码块）
+git add -p
+
+# 工作流示例：
+# 1. git add -p 选择第一组改动（y）
+# 2. 跳过第二组（n）和第三组（n）
+# 3. git commit -F .github/COMMIT_DESCRIPTION.md（提交第一部分）
+# 4. git add -p 继续选择第二组改动
+# 5. 重复此过程
+```
+
+**何时使用分阶段提交**：
+- 修复 2+ 个独立 bug（各提交一次）
+- 代码优化 + 新功能 + 文档更新（各提交一次）
+- 重构 + 测试添加（各提交一次）
+
+**何时不需要分开**：
+- 一个功能相关的多文件改动（如：新增类 + 单元测试 + 使用处）→ 一次提交
+- 配对的改动（如：删除旧代码 + 添加新代码替换）→ 一次提交
+
+**好处**：
+- 每个提交职责单一，易于理解和回溯
+- 若需要 revert，可精确撤销某一部分
+- 代码审查时更清晰
+
 ### 2️⃣ 使用标准模板创建说明文件
 
 **推荐做法**：直接复制标准模板，填充实际内容
@@ -74,9 +104,8 @@ create_file({
 ```
 
 ⚠️ **关键要求**：
-- 模板末尾已包含签名行 `**Commit Tool**: _git-commit Skill`
+- 模板末尾已包含签名行 `> 🤖 本提交由 _git-commit 技能生成`（或英文版本）
 - 必须保留签名行，不可删除
-- 使用 create_file 工具而非 HERE 文档
 
 ### 3️⃣ 编写提交说明
 
@@ -206,19 +235,21 @@ rm .github/COMMIT_DESCRIPTION.local.md
 
 **在执行 git commit 之前**，必须完成以下检查：
 
-- [ ] ✅ **签名行已添加**：确认文件末尾有 `**Commit Tool**: _git-commit Skill`
+- [ ] ✅ **签名行已添加**：确认文件末尾有 `> 🤖 本提交由 _git-commit 技能生成`（或英文版本）
 - [ ] ✅ **模板结构完整**：保留了模板的分段结构（变更内容、技术细节等）
 - [ ] ✅ **类型格式正确**：第一行符合 `type(scope): subject` 格式
-- [ ] ✅ **使用 create_file**：使用 create_file 工具而非 HERE 文档创建文件
 - [ ] ✅ **文件路径正确**：`.github/COMMIT_DESCRIPTION.local.md`
 
 **检查方法（可选）**：
 ```bash
 # 检查签名行
-grep -q "_git-commit Skill" .github/COMMIT_DESCRIPTION.local.md && echo "✅ 签名行存在" || echo "❌ 缺少签名行"
+grep -q "_git-commit 技能生成\|_git-commit skill" .github/COMMIT_DESCRIPTION.local.md && echo "✅ 签名行存在" || echo "❌ 缺少签名行"
 
 # 检查文件格式
 head -1 .github/COMMIT_DESCRIPTION.local.md | grep -E "^(feat|fix|docs|style|refactor|test|chore|perf|ci)" && echo "✅ 类型正确" || echo "❌ 类型错误"
+
+# 检查说明与变更是否一致（人工快速核对）
+echo "变更文件列表：" && git diff --name-only --cached
 ```
 
 ### 6️⃣ 执行提交与清理
@@ -253,7 +284,8 @@ rm .github/COMMIT_DESCRIPTION.local.md
 - [ ] 是否标记了破坏性改动（如有）？
 - [ ] 说明文件使用的是 Markdown 格式吗？
 - [ ] 是否遵循了中文规范（如有中文）？
-- [ ] **❗ 是否在末尾添加了技能签名行？** (`**Commit Tool**: _git-commit Skill`)
+- [ ] **❗ 提交说明是否覆盖所有已暂存变更文件？**（对照 `git diff --name-only --cached`）
+- [ ] **❗ 是否在末尾添加了技能签名行？** (`> 🤖 本提交由 _git-commit 技能生成`)
 - [ ] **❗ 是否明确指定了要提交的文件？**（禁止使用 `git add .`）
 
 ---
