@@ -1,0 +1,29 @@
+type(scope): brief description (under 50 chars)
+
+## Changes
+- Key change 1
+- Key change 2
+- Related adjustments
+
+## Technical Details
+- Implementation approach
+- Important design decisions
+- Performance/security considerations
+
+## Impact
+- Affected modules/files
+- Breaking changes (if any)
+- Data migration needs (if any)
+
+## Testing
+- [ ] Unit tests pass
+- [ ] Integration tests pass
+- [ ] Manual verification completed
+
+## Related Issues
+Fixes #issue_number
+Closes #issue_number
+
+---
+
+**Commit Tool**: _git-commit Skill
