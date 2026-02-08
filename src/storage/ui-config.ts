@@ -1,7 +1,6 @@
 /**
- * UI 风格配置存储
- * 管理用户的 UI 主题偏好（手绘风格 vs 普通风格）
- * 以及其他 UI 相关设置（如自动翻译）
+ * UI 配置存储
+ * 管理用户的 UI 偏好设置（如自动翻译）
  * 颜色主题自动跟随系统
  */
 
@@ -9,16 +8,12 @@ import { logger } from "@/utils/logger"
 
 const uiLogger = logger.withTag('UIConfig')
 
-export type UIStyle = "sketchy" | "normal"
-
 const UI_CONFIG_KEY = "uiConfig"
 
 /**
  * UI 配置接口
  */
 export interface UIConfig {
-  /** UI 风格 */
-  style: UIStyle
   /** 是否启用自动翻译 */
   autoTranslate: boolean
 }
@@ -32,7 +27,6 @@ export async function getUIConfig(): Promise<UIConfig> {
   const config = result[UI_CONFIG_KEY] as UIConfig | undefined
   
   return {
-    style: config?.style || "normal", // 默认使用标准风格
     autoTranslate: config?.autoTranslate ?? true // 默认开启自动翻译
   }
 }
@@ -53,46 +47,6 @@ export async function updateUIConfig(config: Partial<UIConfig>): Promise<void> {
   
   await chrome.storage.sync.set({ [UI_CONFIG_KEY]: updated })
   uiLogger.debug('UI 配置已更新:', config)
-}
-
-/**
- * 获取当前 UI 风格
- * @returns UI 风格（默认: normal）
- */
-export async function getUIStyle(): Promise<UIStyle> {
-  const config = await getUIConfig()
-  return config.style
-}
-
-/**
- * 设置 UI 风格
- * @param style - 要设置的 UI 风格
- */
-export async function setUIStyle(style: UIStyle): Promise<void> {
-  await updateUIConfig({ style })
-  uiLogger.debug(`UI 风格已设置为: ${style}`)
-}
-
-/**
- * 监听 UI 风格变化
- * @param callback - 风格变化时的回调函数
- * @returns 取消监听的函数
- */
-export function watchUIStyle(callback: (style: UIStyle) => void): () => void {
-  const listener = (changes: { [key: string]: chrome.storage.StorageChange }) => {
-    if (changes[UI_CONFIG_KEY]) {
-      const newConfig = changes[UI_CONFIG_KEY].newValue as UIConfig
-      if (newConfig?.style) {
-        callback(newConfig.style)
-      }
-    }
-  }
-  
-  chrome.storage.onChanged.addListener(listener)
-  
-  return () => {
-    chrome.storage.onChanged.removeListener(listener)
-  }
 }
 
 /**

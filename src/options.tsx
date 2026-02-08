@@ -11,7 +11,7 @@ import { RSSSettings } from "@/components/settings/RSSSettings"
 import { NotificationSettings } from "@/components/settings/NotificationSettings"
 import { ProfileSettings } from "@/components/settings/ProfileSettings"
 import { RecommendationSettings } from "@/components/settings/RecommendationSettings"
-import { getUIStyle, setUIStyle, watchUIStyle, getUIConfig, updateUIConfig, type UIStyle } from "@/storage/ui-config"
+import { getUIConfig, updateUIConfig } from "@/storage/ui-config"
 import { useTheme } from "@/hooks/useTheme"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
 import { getRecommendationConfig } from "@/storage/recommendation-config"
@@ -20,7 +20,6 @@ import { LEARNING_COMPLETE_PAGES } from "@/constants/progress"
 import { getCurrentStrategy } from "@/storage/strategy-storage"
 import { LOCAL_STORAGE_KEYS } from "@/storage/local-storage-keys"
 import "@/styles/global.css"
-import "@/styles/sketchy.css"
 
 type TabKey = "preferences" | "feeds" | "ai-engine" | "recommendation" | "profile" | "data"
 
@@ -135,31 +134,16 @@ function IndexOptions() {
   }
 
   const [activeTab, setActiveTab] = useState<TabKey>(getInitialTab)
-  const [uiStyle, setUiStyleState] = useState<UIStyle>("normal")
   const [autoTranslate, setAutoTranslate] = useState(false)
 
-  // 加载 UI 风格和自动翻译设置
+  // 加载自动翻译设置
   useEffect(() => {
     const loadUIConfig = async () => {
       const config = await getUIConfig()
-      setUiStyleState(config.style)
       setAutoTranslate(config.autoTranslate)
     }
     loadUIConfig()
-
-    // 监听 UI 风格变化
-    const unwatch = watchUIStyle((newStyle) => {
-      setUiStyleState(newStyle)
-    })
-
-    return () => unwatch()
   }, [])
-
-  // 切换 UI 风格
-  const handleUIStyleChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const style = e.target.value as UIStyle
-    await setUIStyle(style)
-  }
   
   // 切换自动翻译
   const handleAutoTranslateChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -234,38 +218,19 @@ function IndexOptions() {
     { key: "data", icon: "📊" }
   ]
 
-  const isSketchyStyle = uiStyle === "sketchy"
   const currentLang = i18n.language // 获取当前语言
 
   return (
     <ErrorBoundary>
-      <div className={isSketchyStyle ? "min-h-screen sketchy-container sketchy-paper-texture text-gray-900 dark:text-gray-100" : "min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/30 to-cyan-50/20 dark:from-gray-900 dark:via-indigo-950/20 dark:to-cyan-950/10 text-gray-900 dark:text-gray-100"} lang={currentLang}>
-        {/* SVG 滤镜定义 */}
-        {isSketchyStyle && (
-          <svg className="sketchy-svg-filters" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <filter id="sketchy-stroke" x="-30%" y="-30%" width="160%" height="160%">
-                <feTurbulence type="fractalNoise" baseFrequency="1.2" numOctaves="3" result="noise" />
-                <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.2" xChannelSelector="R" yChannelSelector="G" result="displaced" />
-                <feMorphology operator="dilate" radius="0.2" in="displaced" result="thickened" />
-                <feMorphology operator="erode" radius="0.15" in="thickened" result="thinned" />
-                <feGaussianBlur stdDeviation="0.25" in="thinned" result="blurred" />
-                <feComponentTransfer in="blurred">
-                  <feFuncA type="linear" slope="1.15" />
-                </feComponentTransfer>
-              </filter>
-            </defs>
-          </svg>
-        )}
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/30 to-cyan-50/20 dark:from-gray-900 dark:via-indigo-950/20 dark:to-cyan-950/10 text-gray-900 dark:text-gray-100" lang={currentLang}>
         
         {/* 头部 */}
-        <div className={isSketchyStyle ? "border-b border-gray-200 dark:border-gray-700 px-6 py-4" : "bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-700/50 shadow-sm"}>
+        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-700/50 shadow-sm">
           <div className="max-w-6xl mx-auto px-6 py-6">
-            <h1 className={isSketchyStyle ? "sketchy-title text-3xl" : "text-2xl font-bold bg-gradient-to-r from-indigo-600 to-cyan-600 dark:from-indigo-400 dark:to-cyan-400 bg-clip-text text-transparent"}>{_("app.name")}</h1>
-            <p className={isSketchyStyle ? "sketchy-text mt-2" : "text-sm text-gray-600 dark:text-gray-400 mt-2"}>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-cyan-600 dark:from-indigo-400 dark:to-cyan-400 bg-clip-text text-transparent">{_("app.name")}</h1>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
               {_("options.title")}
             </p>
-            {isSketchyStyle && <div className="sketchy-divider mt-4"></div>}
           </div>
         </div>
 
@@ -273,23 +238,18 @@ function IndexOptions() {
           <div className="flex gap-8">
             {/* 左侧标签导航 */}
             <nav className="w-48 flex-shrink-0">
-              <div className={isSketchyStyle ? "sketchy-card" : "bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-gray-700/50 overflow-hidden shadow-lg"}>
+              <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-gray-700/50 overflow-hidden shadow-lg">
                 {tabs.map((tab) => {
                   const isActive = activeTab === tab.key
                   const baseClass = "w-full px-4 py-3 text-left text-sm font-medium transition-all duration-200 flex items-center gap-3"
-                  const activeClass = isSketchyStyle 
-                    ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200" 
-                    : "bg-gradient-to-r from-indigo-500 to-cyan-500 text-white dark:from-indigo-600 dark:to-cyan-600 shadow-md"
-                  const inactiveClass = isSketchyStyle
-                    ? "hover:bg-gray-50 dark:hover:bg-gray-800 border-b border-gray-200 dark:border-gray-700 last:border-b-0"
-                    : "hover:bg-gray-100/80 dark:hover:bg-gray-700/80 border-b border-gray-200/30 dark:border-gray-700/30 last:border-b-0"
-                  const sketchyClass = isSketchyStyle && isActive ? "sketchy-text font-semibold" : ""
+                  const activeClass = "bg-gradient-to-r from-indigo-500 to-cyan-500 text-white dark:from-indigo-600 dark:to-cyan-600 shadow-md"
+                  const inactiveClass = "hover:bg-gray-100/80 dark:hover:bg-gray-700/80 border-b border-gray-200/30 dark:border-gray-700/30 last:border-b-0"
                   
                   return (
                     <button
                       key={tab.key}
                       onClick={() => setActiveTab(tab.key)}
-                      className={`${baseClass} ${isActive ? activeClass : inactiveClass} ${sketchyClass}`}
+                      className={`${baseClass} ${isActive ? activeClass : inactiveClass}`}
                     >
                       <span className="text-lg">{tab.icon}</span>
                       <span>{_(`options.tabs.${tab.key}`)}</span>
@@ -303,11 +263,11 @@ function IndexOptions() {
             <div className="flex-1">
               {/* 偏好设置 - Phase 8 */}
               {activeTab === "preferences" && (
-                <div className={isSketchyStyle ? "sketchy-card p-6" : "bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg"}>
-                  <h2 className={isSketchyStyle ? "sketchy-title text-xl mb-2" : "text-lg font-semibold mb-2 bg-gradient-to-r from-indigo-600 to-cyan-600 dark:from-indigo-400 dark:to-cyan-400 bg-clip-text text-transparent"}>
+                <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg">
+                  <h2 className="text-lg font-semibold mb-2 bg-gradient-to-r from-indigo-600 to-cyan-600 dark:from-indigo-400 dark:to-cyan-400 bg-clip-text text-transparent">
                     {_("options.general.preferencesTitle")}
                   </h2>
-                  <p className={isSketchyStyle ? "sketchy-text mb-6" : "text-sm text-gray-600 dark:text-gray-400 mb-6"}>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
                     {_("options.general.languageDescription")}
                   </p>
 
@@ -339,32 +299,6 @@ function IndexOptions() {
                         {/* <option value="fr">{_("options.general.languageFr")}</option> */}
                         {/* <option value="ja">{_("options.general.languageJa")}</option> */}
                       </select>
-                    </div>
-
-                    {/* UI 风格选择 */}
-                    <div>
-                      <label
-                        htmlFor="ui-style-select"
-                        className="block text-sm font-medium mb-2"
-                      >
-                        {_("options.general.uiStyle")}
-                      </label>
-                      <select
-                        id="ui-style-select"
-                        value={uiStyle}
-                        onChange={handleUIStyleChange}
-                        className="w-full px-4 py-2 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border border-gray-300/50 dark:border-gray-600/50 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all shadow-sm"
-                      >
-                        <option value="sketchy">
-                          {_("options.general.uiStyleSketchy")}
-                        </option>
-                        <option value="normal">
-                          {_("options.general.uiStyleNormal")}
-                        </option>
-                      </select>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                        {_("options.general.uiStyleDescription")}
-                      </p>
                     </div>
 
                     {/* 自动翻译开关 - Phase 翻译功能 */}
@@ -407,28 +341,28 @@ function IndexOptions() {
 
               {/* 订阅源管理 - Phase 5.1 */}
               {activeTab === "feeds" && (
-                <div className={isSketchyStyle ? "sketchy-card p-6" : "bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg"}>
-                  <RSSSettings isSketchyStyle={isSketchyStyle} />
+                <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg">
+                  <RSSSettings />
                 </div>
               )}
 
               {/* AI 引擎配置 - Phase 4.1 + Phase 8 扩展 */}
               {activeTab === "ai-engine" && (
-                <div className={isSketchyStyle ? "sketchy-card" : "bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg"}>
+                <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg">
                   <AIConfig />
                 </div>
               )}
 
               {/* 内容推荐 - Phase 9: 新增独立标签 */}
               {activeTab === "recommendation" && (
-                <div className={isSketchyStyle ? "sketchy-card" : "bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg"}>
+                <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg">
                   <RecommendationSettingsWrapper />
                 </div>
               )}
 
               {/* 用户画像 - Phase 6 */}
               {activeTab === "profile" && (
-                <div className={isSketchyStyle ? "sketchy-card p-6" : "bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg"}>
+                <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg">
                   <ProfileSettings />
                 </div>
               )}
