@@ -11,6 +11,13 @@ description: Git 提交最佳实践。提供规范化提交流程、说明文件
 - **适用场景**：提交代码变更，特别是涉及多项改动或需要详细说明的提交
 - **学习来源**：SilentFeed 项目的版本控制实践和 PR Creator Skill 经验
 
+**核心资源**：
+- 📄 **标准模板**（带签名行）：
+  - 中文：`references/commit_template_zh.md`
+  - 英文：`references/commit_template.md`
+- ✅ **强制检查清单**：确保签名行和格式正确
+- 🔄 **多语言支持**：根据项目语言选择合适模板
+
 ---
 
 ## 🔍 问题背景
@@ -23,8 +30,10 @@ description: Git 提交最佳实践。提供规范化提交流程、说明文件
 
 **解决方案**：
 ✅ 使用 `.github/COMMIT_DESCRIPTION.local.md` 作为说明文件（本地文件，不入库）  
+✅ 提供标准模板（中英文，已含签名行）  
 ✅ 遵循 Conventional Commits 格式  
 ✅ 结构化的变更内容  
+✅ 强制检查清单防止遗漏  
 ✅ 自动化提交和清理流程
 
 ---
@@ -39,25 +48,39 @@ description: Git 提交最佳实践。提供规范化提交流程、说明文件
 - 涉及哪些文件或模块？
 - 有没有破坏性改动（BREAKING CHANGE）？
 
-### 2️⃣ 创建说明文件
+### 2️⃣ 使用标准模板创建说明文件
 
-在 `.github/` 目录下创建临时说明文件（统一命名便于清理）：
+**推荐做法**：直接复制标准模板，填充实际内容
 
-```bash
-touch .github/COMMIT_DESCRIPTION.local.md
-```
+**模板位置**：
+- 中文：`.copilot/skills/_git-commit/references/commit_template_zh.md`
+- 英文：`.copilot/skills/_git-commit/references/commit_template.md`
 
-或使用工具调用：
+**使用方法**：
 ```typescript
+// 读取模板
+const template = read_file(".copilot/skills/_git-commit/references/commit_template_zh.md");
+
+// 填充实际内容
+const content = template.replace("type(scope): 简短描述", "feat(ai): 添加推荐聚类算法")
+                        .replace("关键改动 1", "添加 ClusterPrescreen 类")
+                        // ... 填充其他内容
+
+// 创建提交说明文件
 create_file({
   filePath: "/path/to/SilentFeed/.github/COMMIT_DESCRIPTION.local.md",
-  content: "..."
+  content: content
 })
 ```
 
+⚠️ **关键要求**：
+- 模板末尾已包含签名行 `**Commit Tool**: _git-commit Skill`
+- 必须保留签名行，不可删除
+- 使用 create_file 工具而非 HERE 文档
+
 ### 3️⃣ 编写提交说明
 
-在说明文件中编写 **Conventional Commits** 格式的说明：
+基于模板编写 **Conventional Commits** 格式的说明：
 
 ```markdown
 <type>(<scope>): <subject>
@@ -179,40 +202,28 @@ git commit -F .github/COMMIT_DESCRIPTION.local.md && \
 rm .github/COMMIT_DESCRIPTION.local.md
 ```
 
-### 5️⃣ 添加技能签名行（❗ 关键步骤）
+### 5️⃣ 提交前强制检查 ⚠️
 
-**在执行提交前**，必须在 `COMMIT_DESCRIPTION.local.md` 的末尾添加技能签名行。这是使用 _git-commit 技能的**强制要求**：
+**在执行 git commit 之前**，必须完成以下检查：
 
-```markdown
----
+- [ ] ✅ **签名行已添加**：确认文件末尾有 `**Commit Tool**: _git-commit Skill`
+- [ ] ✅ **模板结构完整**：保留了模板的分段结构（变更内容、技术细节等）
+- [ ] ✅ **类型格式正确**：第一行符合 `type(scope): subject` 格式
+- [ ] ✅ **使用 create_file**：使用 create_file 工具而非 HERE 文档创建文件
+- [ ] ✅ **文件路径正确**：`.github/COMMIT_DESCRIPTION.local.md`
 
-**Commit Tool**: _git-commit Skill
+**检查方法（可选）**：
+```bash
+# 检查签名行
+grep -q "_git-commit Skill" .github/COMMIT_DESCRIPTION.local.md && echo "✅ 签名行存在" || echo "❌ 缺少签名行"
+
+# 检查文件格式
+head -1 .github/COMMIT_DESCRIPTION.local.md | grep -E "^(feat|fix|docs|style|refactor|test|chore|perf|ci)" && echo "✅ 类型正确" || echo "❌ 类型错误"
 ```
 
-完整示例：
+### 6️⃣ 执行提交与清理
 
-```markdown
-refactor(docs): 重新组织 copilot-instructions.md
-
-## 变更内容
-- 将单一文件分为三个部分
-- Part 1: 通用框架（可复用）
-- Part 2: 项目特定规范
-- Part 3: 技能库系统
-
----
-
-**Commit Tool**: _git-commit Skill
-```
-
-### 为什么需要签名行？
-
-1. **工具追踪**：记录哪些提交是使用 AI 技能辅助的
-2. **持续改进**：便于统计遵循规范的情况，反馈到 _evolution-core 系统
-3. **透明性**：代码审查者可快速了解提交的生成背景
-4. **一致性**：与其他 AI 技能（如 PR Creator）保持统一
-
-### 6️⃣ 清理说明文件
+提交后立即清理临时文件：
 
 完成签名后，删除临时说明文件：
 
