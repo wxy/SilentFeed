@@ -19,16 +19,18 @@ SilentFeed 完整的发布工作流程，从发布前准备到 Chrome 商店上�
 
 | 能力 | 说明 |
 |-----|------|
-| **分支管理** | 创建发布分支、版本策略检测 |
-| **质量检查** | 测试覆盖率验证、构建检查、Linting |
-| **文档更新** | 多语言 README、CHANGELOG、USER_GUIDE 更新 |
-| **物料准备** | 截图验证、Chrome Store 元数据准备 |
-| **发布工作流** | PR 合并、GitHub Release 创建、版本标签 |
-| **发布验证** | Release 验证、商店上传确认 |
+| **分支隔离** | Step 0-1：前置检查和发布分支创建，保持 master 稳定 |
+| **清理工作** | Step 2：清理过期文件、缓存，确保代码库干净 |
+| **质量检查** | Step 3：测试覆盖率验证、构建检查、Linting |
+| **文档更新** | Step 4：多语言 README、CHANGELOG、USER_GUIDE 更新 |
+| **物料准备** | Step 5-6：截图验证、Chrome Store 元数据准备 |
+| **PR 合并** | Step 7：发布分支合并回 master |
+| **发布工作流** | Step 8：GitHub Release 创建、版本标签、Chrome Store 上传 |
+| **发布验证与清理** | Step 9：验证发布完成、清理分支和临时文件 |
 
 ---
 
-## 🚀 发布流程（完整 7 步）
+## 🚀 发布流程（完整 10 步）
 
 ### 前置条件
 
@@ -37,11 +39,57 @@ SilentFeed 完整的发布工作流程，从发布前准备到 Chrome 商店上�
 - ✅ 测试通过，无编译错误
 - ✅ 决定发布版本号（major/minor/patch）
 
-### 第 1 步：发布前清理工作
+### 第 0 步：前置检查（在 master 分支进行）
 
-在创建发布分支前，先清理过期文件和临时内容，确保发布的代码库干净：
+```bash
+# 确保在 master 分支
+git checkout master
+git pull origin master
 
-#### 1.1) 清理过期文档和脚本
+# 验证工作区干净
+git status
+# 应该显示：On branch master，working tree clean
+```
+
+**前置检查清单**：
+- [ ] 在 master 分支上
+- [ ] 工作区干净（无未提交更改）
+- [ ] 本地 master 与远程同步
+
+**为什么需要此步**：master 分支是发布的基线，所有发布工作基于此创建分支。确保状态干净可以避免意外合并无关内容。
+
+---
+
+### 第 1 步：创建发布分支
+
+```bash
+# 从 master 创建发布分支
+git checkout -b release/v<VERSION>
+
+# 示例：发布 v0.7.4
+git checkout -b release/v0.7.4
+
+# 验证分支创建成功
+git branch
+```
+
+**约定**：
+- 发布分支命名：`release/v<VERSION>`（遵循语义化版本）
+- 所有后续步骤（第 2-8 步）都在该分支上进行
+- 避免直接在 master 分支修改发布相关内容
+
+**为什么采用分支隔离**：
+- 保持 master 分支的稳定性和干净状态
+- 所有发布前的工作（文档、配置、清理）都在独立分支上，便于回滚或调整
+- PR 合并时能完整地追踪发布的变更历史
+
+---
+
+### 第 2 步：发布前清理工作（在发布分支上进行）
+
+在创建发布分支前，先清理过期文件和临时内容，确保发布的代码库干净。此步仅在发布分支上执行，不影响 master：
+
+#### 2.1) 清理过期文档和脚本
 
 ```bash
 # 检查并删除过期的文档
@@ -63,7 +111,7 @@ find . -name "*.bak" -o -name "*.tmp" -o -name "*.old" | xargs rm -f
 - [ ] 删除任何临时文件（.bak、.tmp、.old）
 - [ ] 检查是否有明显的"待删除"标记的文件
 
-#### 1.2) 清理本地构建缓存
+#### 2.2) 清理本地构建缓存
 
 ```bash
 # 清理本地构建相关的临时文件（不影响后续 build）
@@ -80,7 +128,7 @@ cat .gitignore | grep -E "\.plasmo|build/|coverage/"
 - 这些缓存会在下次 `npm run build` 或 `npm run test:coverage` 时自动重新生成
 - 清理缓存确保发布前的构建是干净的
 
-#### 1.3) 验证 .gitignore 配置
+#### 2.3) 验证 .gitignore 配置
 
 ```bash
 # 检查是否有本不应入库的文件被跟踪
@@ -98,27 +146,9 @@ git commit -m "chore: 从版本控制移除不应入库的文件"
 
 ---
 
-### 第 2 步：创建发布分支
+### 第 3 步：测试检查与覆盖率验证（在发布分支上进行）
 
-```bash
-# 从 master 创建发布分支
-git checkout master
-git pull origin master
-git checkout -b release/v<VERSION>
-
-# 示例：发布 v0.7.4
-git checkout -b release/v0.7.4
-```
-
-**约定**：
-- 发布分支命名：`release/v<VERSION>`（遵循语义化版本）
-- 不在发布分支上进行功能开发，仅做发布前工作
-
----
-
-### 第 3 步：测试检查与覆盖率验证
-
-执行完整的测试与质量检查：
+执行完整的测试与质量检查。此步在发布分支上运行，不修改 master：
 
 ```bash
 # 1. 运行完整测试
@@ -153,11 +183,11 @@ npm run pre-push
 
 ---
 
-### 第 4 步：更新文档（多语言）
+### 第 4 步：更新文档（多语言，在发布分支上进行）
 
-需要更新的文档文件：
+需要更新的文档文件。所有文档修改都在发布分支上完成：
 
-#### 3.1) CHANGELOG.md
+#### 4.1) CHANGELOG.md
 
 ```markdown
 ## [<VERSION>] - <DATE>
@@ -180,7 +210,7 @@ npm run pre-push
 - 按照 Keep a Changelog 格式组织
 - 使用清晰的动词和链接
 
-#### 3.2) README.md 和 README_CN.md
+#### 4.2) README.md 和 README_CN.md
 
 - 更新版本号引用（如有）
 - 更新功能描述（如添加新功能）
@@ -192,14 +222,14 @@ npm run pre-push
 - [ ] README_CN.md 是中文版本且内容对应
 - [ ] 两个版本的变更保持同步
 
-#### 3.3) USER_GUIDE.md 和 USER_GUIDE_ZH.md
+#### 4.3) USER_GUIDE.md 和 USER_GUIDE_ZH.md
 
 - 更新新增功能的使用说明
 - 更新 UI 截图（如有界面变化）
 - 更新快捷键、菜单项等（如有变化）
 - 更新 FAQ 部分（如需）
 
-#### 3.4) docs/ 目录中的其他文档
+#### 4.4) docs/ 目录中的其他文档
 
 检查是否需要更新：
 - `AI_ARCHITECTURE.md`
@@ -214,9 +244,9 @@ npm run pre-push
 
 ---
 
-### 第 5 步：检查和更新截图
+### 第 5 步：检查和更新截图（在发布分支上进行）
 
-#### 4.1) 截图变化评估
+#### 5.1) 截图变化评估
 
 ```bash
 # 查看本版本的 UI 相关提交
@@ -230,7 +260,7 @@ git log --name-only --oneline release/v<VERSION>..master | \
 - 功能移除 → 删除相关截图
 - 纯逻辑改动 → 通常不需要更新截图
 
-#### 4.2) 截图文件位置
+#### 5.2) 截图文件位置
 
 参考 [docs/SCREENSHOT_PLAN.md](../../docs/SCREENSHOT_PLAN.md)：
 
@@ -248,7 +278,7 @@ git log --name-only --oneline release/v<VERSION>..master | \
 3. 添加文字说明或标注（可选）
 4. 提交到 git
 
-#### 4.3) 验证清单
+#### 5.3) 验证清单
 
 - [ ] 所有截图尺寸正确（1280×800）
 - [ ] 中英文截图内容一致
@@ -261,9 +291,9 @@ git log --name-only --oneline release/v<VERSION>..master | \
 
 ---
 
-### 第 6 步：准备 Chrome Web Store 物料
+### 第 6 步：准备 Chrome Web Store 物料（在发布分支上进行）
 
-#### 5.1) 元数据文件位置
+#### 6.1) 元数据文件位置
 
 ```
 项目根目录/
@@ -278,7 +308,7 @@ git log --name-only --oneline release/v<VERSION>..master | \
     └── chrome-mv3-prod/    ← 生产构建输出
 ```
 
-#### 5.2) 需要检查/更新的物料
+#### 6.2) 需要检查/更新的物料
 
 **manifest.json**：
 ```bash
@@ -314,7 +344,7 @@ ls -la public/_locales/*/
 - [ ] en/messages.json 更新完整
 - [ ] 新增的 i18n key 在两个语言文件中都存在
 
-#### 5.3) Chrome Store 信息检查清单
+#### 6.3) Chrome Store 信息检查清单
 
 - [ ] **扩展名称**：是否需要更新（通常不变）
 - [ ] **简短描述**（Short description）：≤ 132 字符
@@ -334,7 +364,9 @@ ls -la public/_locales/*/
 
 ### 第 7 步：创建 PR 并合并到主分支
 
-#### 6.1) 在发布分支上进行最终提交
+在完成以上所有发布分支上的工作后，创建 PR 将发布分支合并回 master。
+
+#### 7.1) 在发布分支上进行最终提交
 
 ```bash
 # 确认所有更新都已完成
@@ -355,7 +387,7 @@ git commit -m "chore(release): v<VERSION> 发布前准备
 - 包含版本号
 - 列出主要更新内容
 
-#### 6.2) 使用 _pr-creator 创建 PR
+#### 7.2) 使用 _pr-creator 创建 PR
 
 ```bash
 # 使用标准"提交并 PR"流程
@@ -384,7 +416,7 @@ release: v<VERSION> 发布前准备
 - Chrome Store 更新清单
 - 发布清单（便于最终验证）
 
-#### 6.3) PR 检查清单
+#### 7.3) PR 检查清单
 
 在 PR 中添加以下验证确认：
 
@@ -414,7 +446,7 @@ release: v<VERSION> 发布前准备
 - [x] 分支命名规范（release/v<VERSION>）
 ```
 
-#### 6.4) 分支合并
+#### 7.4) 分支合并
 
 合并到 master 的两种方式：
 
@@ -435,7 +467,9 @@ git push origin master
 
 ### 第 8 步：在主分支创建发布和相关物料
 
-#### 7.1) 更新版本号（如未在第 6 步完成）
+PR 合并后，所有发布相关的工作都已在 master 分支上。现在进行最后的版本更新和 GitHub Release 操作：
+
+#### 8.1) 更新版本号（在 master 分支上进行）
 
 ```bash
 # 切换到 master
@@ -450,14 +484,14 @@ npm run version:patch  # 或 minor/major
 # - 创建 git tag
 ```
 
-#### 7.2) 推送版本标签
+#### 8.2) 推送版本标签
 
 ```bash
 # 推送所有提交和标签到远程
 git push origin master --tags
 ```
 
-#### 7.3) 验证 GitHub Release 自动创建
+#### 8.3) 验证 GitHub Release 自动创建
 
 ```bash
 # GitHub Actions 会自动基于 tag 创建 Release
@@ -473,7 +507,7 @@ git push origin master --tags
 - 手动创建 Release：`gh release create v<VERSION> --generate-notes`
 - 或在 GitHub Web 界面手动创建
 
-#### 7.4) Chrome Web Store 上传（需手动操作）
+#### 8.4) Chrome Web Store 上传（需手动操作）
 
 Chrome Web Store 上传不支持自动化，需要手动进行：
 
@@ -506,7 +540,7 @@ npm run package
 - [ ] 已提交审查
 - [ ] 等待 Google 审批（通常 1-3 天）
 
-#### 7.5) 清理发布分支
+#### 8.5) 清理发布分支
 
 ```bash
 # 删除本地发布分支
@@ -520,7 +554,9 @@ git push origin --delete release/v<VERSION>
 
 ### 第 9 步：清理工作（发布完成后）
 
-#### 8.1) 清理临时文件
+验证发布完成，并清理发布过程中的临时文件和分支。
+
+#### 9.1) 清理临时文件
 
 ```bash
 # 删除发布过程中生成的临时文件
@@ -537,7 +573,7 @@ rm -rf build/
 - `.github/*.local.md` 文件是临时说明文件，不应入库
 - 构建缓存会在下次 build 时自动重新生成
 
-#### 8.2) 验证远程状态
+#### 9.2) 验证远程状态
 
 ```bash
 # 确认 master 分支是最新的
@@ -557,7 +593,7 @@ git branch -a | grep "release/v<VERSION>"  # 应该没有输出
 - [ ] 发布分支已完全删除（本地 + 远程）
 - [ ] 临时说明文件已删除
 
-#### 8.3) 验证发布完成
+#### 9.3) 验证发布完成
 
 ```bash
 # 1. 检查 GitHub Release
@@ -579,7 +615,7 @@ npm view silentfeed version
 - [ ] Chrome Web Store 已更新至新版本（需 24-48 小时）
 - [ ] 用户反馈渠道已准备（如 Issue 讨论板）
 
-#### 8.4) 发布后通知（可选）
+#### 9.4) 发布后通知（可选）
 
 若需要通知用户新版本发布：
 
@@ -598,13 +634,18 @@ npm view silentfeed version
 
 ## 📋 完整检查清单
 
-### 发布前
+### 第 0 步：前置检查（在 master 分支）
 
-- [ ] 在 master 分支，代码最新
-- [ ] 所有特性分支已合并到 master
-- [ ] 所有 PR 已审查通过
+- [ ] 在 master 分支上
+- [ ] 工作区干净（git status 无多余文件）
+- [ ] 本地 master 与远程同步（git pull origin master）
 
-### 第 1 步：发布前清理工作
+### 第 1 步：创建发布分支
+
+- [ ] 发布分支已创建：`release/v<VERSION>`
+- [ ] 本地分支已切换到发布分支
+
+### 第 2 步：发布前清理工作（在发布分支上）
 
 - [ ] 过期文档已清理
 - [ ] 过期脚本已删除
@@ -612,19 +653,14 @@ npm view silentfeed version
 - [ ] 工作区干净（git status 无多余文件）
 - [ ] .gitignore 配置正确
 
-### 第 2 步：创建发布分支
-
-- [ ] 发布分支已创建：`release/v<VERSION>`
-- [ ] 本地分支已切换到发布分支
-
-### 第 3 步：测试检查
+### 第 3 步：测试检查（在发布分支上）
 
 - [ ] 所有测试通过（npm run test:run）
 - [ ] 覆盖率达到标准（npm run test:coverage）
 - [ ] 构建成功（npm run build）
 - [ ] pre-push 检查通过（npm run pre-push）
 
-### 第 4 步：文档更新
+### 第 4 步：文档更新（在发布分支上）
 
 - [ ] CHANGELOG.md 已更新，格式正确
 - [ ] README.md 已更新
@@ -633,13 +669,13 @@ npm view silentfeed version
 - [ ] USER_GUIDE_ZH.md 已更新
 - [ ] 其他相关文档已审查
 
-### 第 5 步：截图验证
+### 第 5 步：截图验证（在发布分支上）
 
 - [ ] 检查是否需要更新截图
 - [ ] 若需更新，截图已更新且尺寸正确（1280×800）
 - [ ] 中英文截图内容一致
 
-### 第 6 步：Chrome Store 物料
+### 第 6 步：Chrome Store 物料（在发布分支上）
 
 - [ ] manifest.json 版本号正确
 - [ ] _locales 中文和英文文件完整
@@ -647,23 +683,23 @@ npm view silentfeed version
 - [ ] 详细描述（≤4000 字符）
 - [ ] 权限声明完整
 
-### 第 7 步：创建 PR
+### 第 7 步：创建 PR（发布分支 → master）
 
 - [ ] PR 已创建，标题清晰
 - [ ] PR 描述包含完整的变更说明
 - [ ] PR 已通过审查
-- [ ] PR 已合并到 master（或审查中）
+- [ ] PR 已合并到 master
 
-### 第 8 步：GitHub Release
+### 第 8 步：GitHub Release（在 master 分支上）
 
 - [ ] 版本号已更新（npm run version:patch/minor/major）
 - [ ] Git tag 已推送到远程
 - [ ] GitHub Release 已自动创建或已手动创建
 - [ ] Release 描述正确（从 CHANGELOG 提取或手动编写）
-
-### 发布到 Chrome Store
-
 - [ ] 生产构建已生成（npm run build）
+
+### Chrome Store 上传
+
 - [ ] 扩展包已上传到 Chrome Web Store
 - [ ] 店铺信息已更新（描述、截图、版本号）
 - [ ] 已提交审查
@@ -677,7 +713,6 @@ npm view silentfeed version
 - [ ] master 分支已同步至远程
 - [ ] GitHub Release 已验证并正确显示
 - [ ] Chrome Web Store 版本已验证
-- [ ] （可选）用户通知已发送
 
 ### 发布后
 
