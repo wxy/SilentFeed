@@ -40,6 +40,30 @@ description: Git 提交最佳实践。提供规范化提交流程、说明文件
 
 ## ✅ 执行流程（5 步）
 
+### 0️⃣ 前置约束：确保在开发分支上（⚠️ 强制）
+
+```bash
+git rev-parse --abbrev-ref HEAD
+```
+
+**约束**：
+- ✅ **必须在非 master 分支上开发**（如 feature/*、fix/*、chore/*、docs/*）
+- ❌ **禁止直接在 master 分支进行开发提交**
+- master 分支只用于：版本发布、GitHub Release 创建、发布标记
+
+**为什么？**
+1. 保持 master 分支的发布就绪状态
+2. 所有开发工作应独立为 feature 分支
+3. 便于 PR 审查和 CI/CD 检查
+4. 发布工作在 master 分支单独进行
+
+**若当前在 master 分支**：
+```bash
+git checkout -b feature/your-feature-name
+```
+
+---
+
 ### 1️⃣ 理解提交范围
 
 在提交前，明确以下问题：

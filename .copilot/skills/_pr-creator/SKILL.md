@@ -33,6 +33,27 @@ description: PR 创建与版本控制流程技能。智能分析提交、生成 
 
 当用户说**"提交并 PR"**或**"commit and create PR"**时，执行以下标准流程：
 
+**步骤 0：检查分支（前置约束 ⚠️）**
+```bash
+git rev-parse --abbrev-ref HEAD
+```
+- ✅ **必须在开发分支上**（非 master）
+- ❌ **禁止直接在 master 分支提交开发代码**
+- 推荐分支命名：`feature/*`、`fix/*`、`chore/*`、`docs/*`（遵循 Conventional Commits）
+
+**为什么？**
+1. master 分支只用于发布和 GitHub Release
+2. 所有开发工作都应在独立分支上进行
+3. 保持 master 分支的发布就绪状态（release-ready）
+4. PR 审查过程在独立分支上进行
+
+**若在 master 分支**：
+- 创建新分支：`git checkout -b <branch-name>`
+- 将最后一个提交移到新分支：`git reset --soft HEAD~1 && git checkout <branch-name> && git commit`
+- 重置 master：`git checkout master && git reset --hard HEAD~1`
+
+---
+
 **步骤 1：检查工作区状态**
 ```bash
 git status --porcelain

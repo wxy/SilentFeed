@@ -457,6 +457,84 @@ git push origin --delete release/v<VERSION>
 
 ---
 
+### 第 8 步：清理工作（发布完成后）
+
+#### 8.1) 清理临时文件
+
+```bash
+# 删除发布过程中生成的临时文件
+rm -f .github/COMMIT_DESCRIPTION.local.md
+rm -f .github/PR_DESCRIPTION.local.md
+rm -f .github/RELEASE_NOTES.local.md
+
+# 清理本地构建缓存（可选）
+rm -rf .plasmo
+rm -rf build/
+```
+
+**说明**：
+- `.github/*.local.md` 文件是临时说明文件，不应入库
+- 构建缓存会在下次 build 时自动重新生成
+
+#### 8.2) 验证远程状态
+
+```bash
+# 确认 master 分支是最新的
+git checkout master
+git pull origin master
+
+# 验证发布标签已推送
+git tag -l | grep "v<VERSION>"
+
+# 验证发布分支已删除
+git branch -a | grep "release/v<VERSION>"  # 应该没有输出
+```
+
+**检查清单**：
+- [ ] 本地和远程 master 分支已同步
+- [ ] Git tag 已创建并推送（`git tag` 能看到新版本）
+- [ ] 发布分支已完全删除（本地 + 远程）
+- [ ] 临时说明文件已删除
+
+#### 8.3) 验证发布完成
+
+```bash
+# 1. 检查 GitHub Release
+gh release view v<VERSION>
+# 或访问：https://github.com/wxy/SilentFeed/releases/tag/v<VERSION>
+
+# 2. 检查 Chrome Web Store（需手动操作）
+# 访问：https://chrome.google.com/webstore/detail/<EXTENSION_ID>
+# 确认新版本已发布
+
+# 3. 检查 NPM Package（如适用）
+npm view silentfeed version
+```
+
+**发布验证清单**：
+- [ ] GitHub Release 页面能正常访问
+- [ ] Release 包含完整的变更说明（从 CHANGELOG 生成）
+- [ ] Release 包含发布日期和版本号
+- [ ] Chrome Web Store 已更新至新版本（需 24-48 小时）
+- [ ] 用户反馈渠道已准备（如 Issue 讨论板）
+
+#### 8.4) 发布后通知（可选）
+
+若需要通知用户新版本发布：
+
+```bash
+# 选项 1：发布 GitHub Discussion（若启用）
+# 在项目 Discussions 中创建主题，说明新版本的主要特性
+
+# 选项 2：发送邮件通知（若有邮件列表）
+# 发送发布公告邮件，包含 CHANGELOG 摘要
+
+# 选项 3：社交媒体发布（若有）
+# 在 Twitter、微博等分享新版本发布信息
+```
+
+---
+
 ## 📋 完整检查清单
 
 ### 发布前
@@ -522,10 +600,20 @@ git push origin --delete release/v<VERSION>
 - [ ] 已提交审查
 - [ ] 待 Google 批准（通常 1-3 天）
 
+### 第 8 步：清理工作
+
+- [ ] 临时说明文件已删除（.github/*.local.md）
+- [ ] 本地发布分支已删除
+- [ ] 远程发布分支已删除
+- [ ] master 分支已同步至远程
+- [ ] GitHub Release 已验证并正确显示
+- [ ] Chrome Web Store 版本已验证
+- [ ] （可选）用户通知已发送
+
 ### 发布后
 
-- [ ] 清理本地和远程发布分支
 - [ ] 验证 Chrome Web Store 上新版本可用
+- [ ] 监控用户反馈和 issue 报告
 - [ ] 通知用户新版本发布（可选）
 
 ---
