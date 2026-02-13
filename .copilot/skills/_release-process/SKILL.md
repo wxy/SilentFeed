@@ -1,17 +1,22 @@
 ---
 name: _release-process
-description: 完整的发布流程技能。包括发布分支创建、测试检查、文档更新（多语言）、截图验证、Chrome Store 物料准备、PR 合并、GitHub Release 创建等全链路工作。
+description: 完整的发布流程技能。包括发布分支创建、测试检查、文档更新（多语言）、截图验证、Chrome Store 物料准备、PR 创建（使用 _pr-creator 技能）、用户手工合并、GitHub Release 创建、构建压缩包等全链路工作。采用分支隔离策略，确保 master 分支稳定。
 ---
 
 # _release-process
 
 ## 📌 技能描述
 
-SilentFeed 完整的发布工作流程，从发布前准备到 Chrome 商店上传的全生命周期管理。
+SilentFeed 完整的发布工作流程，从发布前准备到 Chrome 商店上传的全生命周期管理。强调流程规范化、技能集成化、物料完整化。
 
 **适用场景**：版本发布、新功能上线、Bug 修复发布
 
-**学习来源**：SilentFeed 多次版本发布经验总结（v0.6.x → v0.7.x）
+**学习来源**：SilentFeed 多次版本发布经验总结（v0.6.x → v0.7.x）；已进化 v1 版本
+
+**进化历史**：
+- v0（初版）：基础 7 步发布流程
+- v1（已实施）：分支隔离策略、10 步优化流程
+- v2（当前）：技能集成、完整物料、用户手工合并、发布公告生成、文档/脚本归档
 
 ---
 
@@ -20,13 +25,15 @@ SilentFeed 完整的发布工作流程，从发布前准备到 Chrome 商店上�
 | 能力 | 说明 |
 |-----|------|
 | **分支隔离** | Step 0-1：前置检查和发布分支创建，保持 master 稳定 |
-| **清理工作** | Step 2：清理过期文件、缓存，确保代码库干净 |
+| **清理与归档** | Step 2：清理过期文件、脚本归档、缓存清理，确保代码库干净 |
 | **质量检查** | Step 3：测试覆盖率验证、构建检查、Linting |
-| **文档更新** | Step 4：多语言 README、CHANGELOG、USER_GUIDE 更新 |
+| **文档更新** | Step 4：多语言 CHANGELOG、README、USER_GUIDE 更新 |
 | **物料准备** | Step 5-6：截图验证、Chrome Store 元数据准备 |
-| **PR 合并** | Step 7：发布分支合并回 master |
-| **发布工作流** | Step 8：GitHub Release 创建、版本标签、Chrome Store 上传 |
-| **发布验证与清理** | Step 9：验证发布完成、清理分支和临时文件 |
+| **规范化提交** | Step 7：使用 _git-commit、_pr-creator 技能规范化提交和 PR 创建 |
+| **发布公告** | Step 7.5：生成发布公告（涵盖版本变更摘要） |
+| **用户审核** | Step 7.6：用户手工审核 PR 和 CI，由用户决定合并时机 |
+| **打包和发布** | Step 8：构建压缩包、版本更新、GitHub Release 创建 |
+| **验证与清理** | Step 9：验证发布完成、清理临时文件和分支 |
 
 ---
 
