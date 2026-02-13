@@ -6,7 +6,7 @@
   "author": "xingyu.wang@gmail.com",
   "scripts": {
     "dev": "bash scripts/pre-build-dnr.sh && plasmo dev",
-    "build": "bash scripts/pre-build-dnr.sh && plasmo build && bash scripts/copy-locales.sh",
+    "build": "bash scripts/build-with-init.sh",
     "package": "plasmo package",
     "test": "vitest",
     "test:ui": "vitest --ui",
