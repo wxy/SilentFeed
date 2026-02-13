@@ -369,110 +369,234 @@ ls -la public/_locales/*/
 
 ---
 
-### 第 7 步：创建 PR 并合并到主分支
+### 第 7 步：创建 PR（使用 _git-commit 和 _pr-creator 技能规范化）
 
-在完成以上所有发布分支上的工作后，创建 PR 将发布分支合并回 master。
+在完成以上所有发布分支上的工作后，使用规范化的技能来创建 PR。
 
-#### 7.1) 在发布分支上进行最终提交
+#### 7.1) 使用 _git-commit 技能进行最终提交
 
-```bash
-# 确认所有更新都已完成
-git status
+根据发布分支上已进行的所有变更，使用 _git-commit 技能进行规范提交：
 
-# 将所有文档和配置变更提交
-git add .
-git commit -m "chore(release): v<VERSION> 发布前准备
+**流程**：
+1. 查看 `git status` 和 `git log master..release/v<VERSION>`，确认所有发布工作已完成
+2. 创建 `.github/COMMIT_DESCRIPTION.local.md` 文件，说明所有改动汇总：
+   - CHANGELOG.md 更新内容
+   - 文档更新清单
+   - 文件归档清单
+   - Chrome Store 物料检查完成
+3. 使用 `git add` 和 `git commit -F .github/COMMIT_DESCRIPTION.local.md` 进行提交
+4. 删除临时说明文件
+5. 推送发布分支
 
-- 更新 CHANGELOG.md
-- 更新多语言文档（README、USER_GUIDE）
-- 验证 Chrome Store 物料
-- 更新配置文件（manifest.json 等）"
+**示例提交说明**：
+```
+chore(release): v<VERSION> 发布前准备
+
+- 更新 CHANGELOG.md（新增、改进、Bug 修复等）
+- 更新多语言文档：README.md、README_CN.md、USER_GUIDE.md、USER_GUIDE_ZH.md
+- 文档归档：移动 docs/ 中的临时和过期文档到 docs/archive/
+- 脚本归档：清理 scripts/ 中的废弃脚本，归档至 scripts/archive/
+- Chrome Store 物料检查：manifest.json、_locales、截图、描述验证完成
+- 代码库清理：删除构建缓存、验证 .gitignore 配置
+
+🤖 本提交由 _git-commit 技能生成
 ```
 
-**提交说明约定**：
-- 使用 `chore(release)` 前缀
-- 包含版本号
-- 列出主要更新内容
+#### 7.2) 使用 _pr-creator 技能创建 PR
 
-#### 7.2) 使用 _pr-creator 创建 PR
+使用 _pr-creator 技能来规范化 PR 创建流程：
 
-```bash
-# 使用标准"提交并 PR"流程
-# AI 会根据 _pr-creator 技能自动：
-# 1. 检查工作区状态
-# 2. 完成提交（如需）
-# 3. 分析提交决定版本策略
-# 4. 创建 PR
+**流程**：
+1. 确认在发布分支 `release/v<VERSION>` 上
+2. 创建 `.github/PR_DESCRIPTION.local.md` 文件，包含：
+   - **标题**：`release: v<VERSION> 发布前准备`
+   - **变更说明**：从 CHANGELOG 提取的版本变更
+   - **检查清单**：发布前必检项目
+   - **后续步骤**：说明用户手工合并流程
 
-# 或手动执行：
-npm run pr
-```
-
-**PR 标题建议**：
-```
-release: v<VERSION> 发布前准备
-
-例如：release: v0.7.4 发布前准备
-```
-
-**PR 描述应包含**：
-- 新增功能列表
-- 改进列表
-- Bug 修复列表
-- 截图变化说明（如有）
-- Chrome Store 更新清单
-- 发布清单（便于最终验证）
-
-#### 7.3) PR 检查清单
-
-在 PR 中添加以下验证确认：
-
+**PR 描述示例**：
 ```markdown
+# release: v<VERSION> 发布前准备
+
+## 版本变更
+
+### Added
+- （如有新增功能）
+
+### Changed
+- （变更列表）
+
+### Fixed
+- （Bug 修复）
+
+###Removed
+- （移除功能）
+
+### Chore
+- 更新 CHANGELOG.md
+- 文档和脚本归档
+- 代码库清理
+
 ## 发布检查清单
 
 ### 代码质量
-- [x] 所有测试通过
-- [x] 覆盖率达到要求（≥70% 行覆盖率）
+- [x] 所有测试通过（128 文件，2189+ 测试）
+- [x] 覆盖率达标（≥70%）
 - [x] 构建成功，无错误
 
 ### 文档更新
 - [x] CHANGELOG.md 已更新
-- [x] README.md 已更新
-- [x] README_CN.md 已更新
-- [x] USER_GUIDE.md 已更新
-- [x] USER_GUIDE_ZH.md 已更新
+- [x] 多语言文档已更新（README、USER_GUIDE）
+- [x] docs/ 和 scripts/ 已归档清理
 
 ### Chrome Store 物料
-- [x] manifest.json 版本号正确
+- [x] manifest.json 验证完成
 - [x] _locales 多语言文件完整
-- [x] 截图验证完成
+- [x] 截图验证（如需更新）
 - [x] 描述信息准确
 
-### 版本管理
-- [x] 版本号符合语义化规范
-- [x] 分支命名规范（release/v<VERSION>）
+## 合并说明
+
+**重要**: 此 PR 需要：
+1. ✅ CI 检查通过（GitHub Actions）
+2. ✅ 手工代码审查（用户）
+3. ✅ 用户确认后手工合并
+
+请等待 CI 完成，审查变更后，在 GitHub Web 界面手工合并此 PR。
+合并方式推荐使用 "Squash and merge"。
 ```
 
-#### 7.4) 分支合并
+3. 推送发布分支并创建 PR（使用 `gh pr create` 或按照 _pr-creator 流程）
 
-合并到 master 的两种方式：
+#### 7.3) PR 创建清单
 
-**方式 1：通过 GitHub Web 界面（推荐）**
-- 在 GitHub 上打开 PR
-- 点击 "Squash and merge" 或 "Merge pull request"
-- 确保 commit 说明清晰
+- [ ] PR 标题清晰：`release: v<VERSION> 发布前准备`
+- [ ] PR 描述完整，包含变更摘要和检查清单
+- [ ] 发布分支已推送至远程
+- [ ] PR 链接已获得（例如 #127）
 
-**方式 2：本地合并（如需）**
-```bash
-git checkout master
-git pull origin master
-git merge --no-ff release/v<VERSION>
-git push origin master
-```
+#### 7.4) 等待 CI 和用户审核
+
+**重要步骤**：
+1. GitHub Actions CI 会自动运行（测试、构建等）
+2. **不要自动合并**，等待 CI 完成
+3. 用户审查 PR 变更和 CI 结果
+4. 用户在 GitHub Web 界面手工合并（选择 "Squash and merge"）
+5. 合并后，远程发布分支会自动删除
+
+**验证清单**：
+- [ ] 所有 CI 检查通过（✓）
+- [ ] 审查无问题（用户确认）
+- [ ] 选择合并方式（通常为 Squash and merge）
+- [ ] PR 已合并，发布分支已删除
 
 ---
 
-### 第 8 步：在主分支创建发布和相关物料
+### 第 7.5 步：生成发布公告（可选但推荐）
+
+生成一份用户友好的发布公告，可用于发布说明、邮件通知、社交媒体等。
+
+#### 7.5.1) 自动提取版本变更
+
+从 CHANGELOG.md 和 git log 提取本版本的主要变更：
+
+```bash
+# 查看本版本的 CHANGELOG 条目
+grep -A 50 "^## \[<VERSION>\]" CHANGELOG.md | head -60
+
+# 或查看 commit log 摘要
+git log --oneline v<LAST_VERSION>..v<VERSION> | head -20
+```
+
+#### 7.5.2) 生成发布公告文档
+
+创建发布公告（`.github/RELEASE_ANNOUNCEMENT.local.md`），包含：
+- 版本号和发布日期
+- 主要功能/改进
+- Bug 修复
+- 已知问题（如有）
+- 升级建议
+- 贡献者致谢（如适用）
+
+**注意**：
+- 创建大文件时使用相应的文件管理技能（如 create_file 工具）
+- 保持语言风格一致（中文/英文）
+- 突出用户关心的核心变更
+
+#### 7.5.3) 用途
+
+发布公告可用于：
+- [ ] GitHub Release 说明（步骤 9 中添加）
+- [ ] 用户邮件通知
+- [ ] 社交媒体发布
+- [ ] 项目网站更新
+
+---
+
+### 第 8 步：构建压缩包（Chrome Web Store 上传物料）
+
+PR 合并后，准备可上传到 Chrome Web Store 的构建压缩包。
+
+#### 8.1) 在发布分支或本地生成生产构建
+
+```bash
+# 确保在发布分支或已合并的 master 上
+npm run build
+
+# 验证生产构建输出
+ls -lh build/chrome-mv3-prod/
+```
+
+#### 8.2) 打包为 ZIP 文件
+
+```bash
+# 切换到构建目录
+cd build/
+
+# 创建压缩包
+zip -r ../silentfeed-v<VERSION>.zip chrome-mv3-prod/
+
+# 验证压缩包
+ls -lh ../silentfeed-v<VERSION>.zip
+
+# 检查压缩包内容
+unzip -l ../silentfeed-v<VERSION>.zip | head -20
+```
+
+**打包清单**：
+- [ ] ZIP 文件已创建：`silentfeed-v<VERSION>.zip`
+- [ ] 文件大小合理（通常 < 10MB）
+- [ ] 包含所有必要文件（manifest、脚本、资源、i18n）
+- [ ] 可以在本地解压验证
+
+#### 8.3) 验证压缩包（可选但推荐）
+
+```bash
+# 解压到临时目录验证
+mkdir -p /tmp/verify-v<VERSION>
+unzip silentfeed-v<VERSION>.zip -d /tmp/verify-v<VERSION>/
+
+# 检查关键文件存在
+ls /tmp/verify-v<VERSION>/chrome-mv3-prod/manifest.json
+ls /tmp/verify-v<VERSION>/chrome-mv3-prod/_locales/*/messages.json
+
+# 清理临时目录
+rm -rf /tmp/verify-v<VERSION>
+```
+
+**压缩包清单**：
+- [ ] 压缩包内 manifest.json 存在且版本号正确
+- [ ] _locales 中英文翻译文件完整
+- [ ] 脚本和资源完整
+- [ ] 文件结构正确（平级 chrome-mv3-prod/* 内容）
+
+---
+
+### 第 9 步：在主分支创建发布和相关物料
+
+已注意：PR 已由用户手工合并到 master。现在在 master 分支上进行最终的版本更新和 GitHub Release 操作：
+
+#### 9.1) 更新版本号（在 master 分支上进行）
 
 PR 合并后，所有发布相关的工作都已在 master 分支上。现在进行最后的版本更新和 GitHub Release 操作：
 
