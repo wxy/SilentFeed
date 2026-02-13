@@ -37,7 +37,68 @@ SilentFeed 完整的发布工作流程，从发布前准备到 Chrome 商店上�
 - ✅ 测试通过，无编译错误
 - ✅ 决定发布版本号（major/minor/patch）
 
-### 第 1 步：创建发布分支
+### 第 1 步：发布前清理工作
+
+在创建发布分支前，先清理过期文件和临时内容，确保发布的代码库干净：
+
+#### 1.1) 清理过期文档和脚本
+
+```bash
+# 检查并删除过期的文档
+ls docs/archive/  # 查看存档文件
+rm -rf docs/archive/*  # 删除存档（如需）
+
+# 检查并删除废弃的脚本
+ls scripts/archive/  # 查看废弃脚本
+rm -rf scripts/archive/*  # 删除废弃脚本（如需）
+
+# 检查其他临时或过期文件
+# 例如：docs/*.old, docs/*.tmp, *.bak 等
+find . -name "*.bak" -o -name "*.tmp" -o -name "*.old" | xargs rm -f
+```
+
+**清理清单**：
+- [ ] 查看 docs/ 中是否有过期或存档的文档
+- [ ] 查看 scripts/archive/ 中是否有废弃脚本
+- [ ] 删除任何临时文件（.bak、.tmp、.old）
+- [ ] 检查是否有明显的"待删除"标记的文件
+
+#### 1.2) 清理本地构建缓存
+
+```bash
+# 清理本地构建相关的临时文件（不影响后续 build）
+rm -rf .plasmo  # Plasmo 缓存
+rm -rf build/   # 旧的构建输出
+rm -rf coverage/ # 旧的覆盖率报告
+rm -rf node_modules/.vite  # Vite 缓存（可选）
+
+# 确保 .gitignore 正确包含这些目录
+cat .gitignore | grep -E "\.plasmo|build/|coverage/"
+```
+
+**说明**：
+- 这些缓存会在下次 `npm run build` 或 `npm run test:coverage` 时自动重新生成
+- 清理缓存确保发布前的构建是干净的
+
+#### 1.3) 验证 .gitignore 配置
+
+```bash
+# 检查是否有本不应入库的文件被跟踪
+git status --short
+
+# 若有，添加到 .gitignore 后执行
+git rm --cached <file>
+git commit -m "chore: 从版本控制移除不应入库的文件"
+```
+
+**验证清单**：
+- [ ] 工作区干净（git status 无未提交更改，或仅有发布准备的文件）
+- [ ] 缓存目录在 .gitignore 中
+- [ ] 临时文件不被版本控制跟踪
+
+---
+
+### 第 2 步：创建发布分支
 
 ```bash
 # 从 master 创建发布分支
@@ -55,7 +116,7 @@ git checkout -b release/v0.7.4
 
 ---
 
-### 第 2 步：测试检查与覆盖率验证
+### 第 3 步：测试检查与覆盖率验证
 
 执行完整的测试与质量检查：
 
@@ -92,7 +153,7 @@ npm run pre-push
 
 ---
 
-### 第 3 步：更新文档（多语言）
+### 第 4 步：更新文档（多语言）
 
 需要更新的文档文件：
 
@@ -153,7 +214,7 @@ npm run pre-push
 
 ---
 
-### 第 4 步：检查和更新截图
+### 第 5 步：检查和更新截图
 
 #### 4.1) 截图变化评估
 
@@ -200,7 +261,7 @@ git log --name-only --oneline release/v<VERSION>..master | \
 
 ---
 
-### 第 5 步：准备 Chrome Web Store 物料
+### 第 6 步：准备 Chrome Web Store 物料
 
 #### 5.1) 元数据文件位置
 
@@ -271,7 +332,7 @@ ls -la public/_locales/*/
 
 ---
 
-### 第 6 步：创建 PR 并合并到主分支
+### 第 7 步：创建 PR 并合并到主分支
 
 #### 6.1) 在发布分支上进行最终提交
 
@@ -372,7 +433,7 @@ git push origin master
 
 ---
 
-### 第 7 步：在主分支创建发布和相关物料
+### 第 8 步：在主分支创建发布和相关物料
 
 #### 7.1) 更新版本号（如未在第 6 步完成）
 
@@ -457,7 +518,7 @@ git push origin --delete release/v<VERSION>
 
 ---
 
-### 第 8 步：清理工作（发布完成后）
+### 第 9 步：清理工作（发布完成后）
 
 #### 8.1) 清理临时文件
 
@@ -543,19 +604,27 @@ npm view silentfeed version
 - [ ] 所有特性分支已合并到 master
 - [ ] 所有 PR 已审查通过
 
-### 第 1 步：创建发布分支
+### 第 1 步：发布前清理工作
+
+- [ ] 过期文档已清理
+- [ ] 过期脚本已删除
+- [ ] 构建缓存已清理（.plasmo、build/、coverage/）
+- [ ] 工作区干净（git status 无多余文件）
+- [ ] .gitignore 配置正确
+
+### 第 2 步：创建发布分支
 
 - [ ] 发布分支已创建：`release/v<VERSION>`
 - [ ] 本地分支已切换到发布分支
 
-### 第 2 步：测试检查
+### 第 3 步：测试检查
 
 - [ ] 所有测试通过（npm run test:run）
 - [ ] 覆盖率达到标准（npm run test:coverage）
 - [ ] 构建成功（npm run build）
 - [ ] pre-push 检查通过（npm run pre-push）
 
-### 第 3 步：文档更新
+### 第 4 步：文档更新
 
 - [ ] CHANGELOG.md 已更新，格式正确
 - [ ] README.md 已更新
@@ -564,13 +633,13 @@ npm view silentfeed version
 - [ ] USER_GUIDE_ZH.md 已更新
 - [ ] 其他相关文档已审查
 
-### 第 4 步：截图验证
+### 第 5 步：截图验证
 
 - [ ] 检查是否需要更新截图
 - [ ] 若需更新，截图已更新且尺寸正确（1280×800）
 - [ ] 中英文截图内容一致
 
-### 第 5 步：Chrome Store 物料
+### 第 6 步：Chrome Store 物料
 
 - [ ] manifest.json 版本号正确
 - [ ] _locales 中文和英文文件完整
@@ -578,14 +647,14 @@ npm view silentfeed version
 - [ ] 详细描述（≤4000 字符）
 - [ ] 权限声明完整
 
-### 第 6 步：创建 PR
+### 第 7 步：创建 PR
 
 - [ ] PR 已创建，标题清晰
 - [ ] PR 描述包含完整的变更说明
 - [ ] PR 已通过审查
 - [ ] PR 已合并到 master（或审查中）
 
-### 第 7 步：GitHub Release
+### 第 8 步：GitHub Release
 
 - [ ] 版本号已更新（npm run version:patch/minor/major）
 - [ ] Git tag 已推送到远程
@@ -600,7 +669,7 @@ npm view silentfeed version
 - [ ] 已提交审查
 - [ ] 待 Google 批准（通常 1-3 天）
 
-### 第 8 步：清理工作
+### 第 9 步：清理工作
 
 - [ ] 临时说明文件已删除（.github/*.local.md）
 - [ ] 本地发布分支已删除
