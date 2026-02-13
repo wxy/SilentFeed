@@ -8,12 +8,20 @@ set -euo pipefail
 
 echo "📋 准备 DNR 规则文件..."
 
-# 方案 1：复制到 .plasmo（开发模式使用）
+# 检查源文件
+if [ ! -f dnr-rules.json ]; then
+  echo "❌ 错误: dnr-rules.json 文件不存在"
+  exit 1
+fi
+
+# 复制到 .plasmo（开发模式使用）
 mkdir -p .plasmo
-cp dnr-rules.json .plasmo/ 2>/dev/null || true
+cp dnr-rules.json .plasmo/dnr-rules.json
+echo "✓ 已复制到 .plasmo/dnr-rules.json"
 
-# 方案 2：复制到 public（生产构建使用）
+# 复制到 public（生产构建使用）
 mkdir -p public
-cp dnr-rules.json public/ 2>/dev/null || true
+cp dnr-rules.json public/dnr-rules.json
+echo "✓ 已复制到 public/dnr-rules.json"
 
-echo "✅ DNR 规则文件已准备到开发和生产目录"
+echo "✅ DNR 规则文件准备完成"
