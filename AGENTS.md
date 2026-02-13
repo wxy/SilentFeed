@@ -169,6 +169,13 @@ Usage notes:
 </skill>
 
 <skill>
+<name>_release-process</name>
+<description>完整的发布流程技能。包括发布分支创建、测试检查、文档更新（多语言）、截图验证、Chrome Store 物料准备、PR 合并、GitHub Release 创建等全链路工作。用于管理 SilentFeed 从发布前准备到商店上传的完整生命周期。</description>
+<location>project</location>
+<path>.copilot/skills/_release-process/SKILL.md</path>
+</skill>
+
+<skill>
 <name>_context-ack</name>
 <description>在每次回复中使用固定前缀并列出本次实际参考的指令/文件，便于校验是否遵循上下文与规则。</description>
 <location>project</location>
