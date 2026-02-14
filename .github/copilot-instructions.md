@@ -171,3 +171,36 @@ RSS 源发现 → Background 消息处理 → Dexie 数据库 → 定时抓取 �
 - **Part 2** 聚焦本项目，包含所有特定约定和工程规范
 - **技能文件** 提供详细的可执行流程
 - 避免信息冗余，各部分各司其职
+
+
+## Part 4: 启用的可进化技能
+
+### 🎯 强制激活技能（每次对话自动启用）
+
+以下技能在每次对话中**自动激活**，确保代码质量和流程规范：
+
+1. **_instruction-guard** - 每次回复前强制读取项目指令
+2. **_context-ack** - 回复开始时列出实际参考的文件/指令
+3. **_file-output-guard** - 使用 `create_file` 工具，禁止 HERE 文档，大文件分段写入
+4. **_session-safety** - 防止超长输出导致会话失败
+
+### 📋 场景激活技能（自动检测触发）
+
+以下技能根据工作场景自动触发：
+
+- **_evolution-core** - 识别重复问题，主动提议沉淀为技能
+- **_typescript-type-safety** - 编写测试/Mock 时确保类型安全
+- **_code-health-check** - 提交前全面质量检查
+
+### 🚀 请求激活技能（用户明确请求时使用）
+
+以下技能在用户明确请求时激活：
+
+- **_git-commit** - Git 提交规范化流程
+- **_pr-creator** - PR 创建与版本控制流程
+- **_traceability-check** - 校验说明与实际变更的一致性
+- **_change-summary** - 自动汇总分支提交摘要
+- **_skills-manager** - 技能库更新、贡献、维护
+- **_release-process** - 完整发布流程管理
+
+**详细技能说明**: 参见 `.evolution-skills/skills/_xxx/SKILL.md` 和 `AGENTS.md` 的 `<project_skills>` 部分
