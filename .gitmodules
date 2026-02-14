@@ -1,3 +1,0 @@
-[submodule ".copilot/skills"]
-	path = .copilot/skills
-	url = https://github.com/wxy/copilot-evolution-skills.git
