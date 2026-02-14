@@ -8,7 +8,7 @@ applyTo: "**"
 
 ## Part 1: 通用框架 - AI 系统进化宪法
 
-<attachment filePath=".github/ai-evolution-constitution.md">
+<attachment filePath=".evolution-skills/constitution/ai-evolution-constitution.md">
 此部分包含了 AI 助手的通用进化框架。详见上述文件。该内容与具体项目无关，可独立维护和在多个项目中共享。
 </attachment>
 
