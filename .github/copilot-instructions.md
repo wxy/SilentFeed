@@ -8,13 +8,37 @@ applyTo: "**"
 
 ## Part 1: 强制执行
 
-**⚠️ 在开始任何工作前，必须读取并完全理解执行**：
+**⚠️ 在开始任何工作前，必须读取并完全理解 AI 宪法**：
 [../.evolution-skills/constitution/ai-evolution-constitution.md](../.evolution-skills/constitution/ai-evolution-constitution.md)
 
-**🎯 特别关注**：
-- **规则 5 (_execution-precheck)**：每次回复前的自检清单（最高优先级）
-- 这不是"建议"，而是"必执行"的纪律规则
-- 参考技能文件：[../.evolution-skills/skills/_execution-precheck/SKILL.md](../.evolution-skills/skills/_execution-precheck/SKILL.md)
+### 宪法的 5 部分结构
+1. **Part 1: 核心原则** - 持续学习、模块化技能架构
+2. **Part 2: 强制执行规则** - Rule 1-4（指令守卫、上下文确认、文件输出守卫、会话安全）
+3. **Part 3: 执行前检查协议** - 每次回复前的 6 步检查（最高优先级）
+4. **Part 4: 技能激活体系** - Tier 1-3（强制执行、条件强制、显式请求）
+5. **Part 5: 通用角色与对话风格** - 交流规范
+
+### 🎯 最高优先级
+
+**执行前检查协议** (Part 3)：
+- 每次回复前必须执行 6 步检查，这是**不可跳过的纪律**
+- 特别是第 5 步"真相检验"：确认你真的做了检查，而非假装
+- 第 6 步"补救"：如果发现遗漏，立即停止并重新检查
+
+### 🔧 技能的模块化原则
+
+**新架构亮点**：
+- **技能自主声明依赖**：每个技能在其 SKILL.md 中声明触发条件和依赖关系
+- **宪法不维护依赖表**：避免宪法成为"依赖中枢"，新技能可随时添加
+- **Tier 2 条件强制**：当条件满足时自动触发，但在执行修改前询问用户确认
+- **用户保有控制权**：对所有修改类的技能操作（Tier 2-3）都要获得用户同意
+
+### 📖 参考文档
+
+- **技能定义规范**：[../.evolution-skills/SKILL_DEFINITION_SPECIFICATION.md](../.evolution-skills/SKILL_DEFINITION_SPECIFICATION.md)
+  - 所有技能文件应遵循的格式
+  - 元数据、触发条件、依赖声明、用户交互点
+- **重构分析**（供参考）：[../../.github/AI_CONSTITUTION_REFACTOR_ANALYSIS.md](../../.github/AI_CONSTITUTION_REFACTOR_ANALYSIS.md)
 
 ## Part 2: 项目特定 - SilentFeed 工程规范
 
