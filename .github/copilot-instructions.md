@@ -9,7 +9,7 @@ applyTo: "**"
 ## Part 1: 强制执行
 
 **⚠️ 在开始任何工作前，必须读取并完全理解 AI 宪法**：
-[../.evolution-skills/constitution/ai-evolution-constitution.md](../.evolution-skills/constitution/ai-evolution-constitution.md)
+请查阅 `.evolution-skills/constitution/ai-evolution-constitution.md`（通过 attachment 在 VS Code 中自动加载）
 
 ### 宪法的 5 部分结构
 1. **Part 1: 核心原则** - 持续学习、模块化技能架构
@@ -35,10 +35,10 @@ applyTo: "**"
 
 ### 📖 参考文档
 
-- **技能定义规范**：[../.evolution-skills/SKILL_DEFINITION_SPECIFICATION.md](../.evolution-skills/SKILL_DEFINITION_SPECIFICATION.md)
+- **技能定义规范**：`.evolution-skills/SKILL_DEFINITION_SPECIFICATION.md`（通过 attachment 自动加载）
   - 所有技能文件应遵循的格式
   - 元数据、触发条件、依赖声明、用户交互点
-- **重构分析**（供参考）：[../../.github/AI_CONSTITUTION_REFACTOR_ANALYSIS.md](../../.github/AI_CONSTITUTION_REFACTOR_ANALYSIS.md)
+- **重构分析**（供参考）：[./AI_CONSTITUTION_REFACTOR_ANALYSIS.md](./AI_CONSTITUTION_REFACTOR_ANALYSIS.md)
 
 ## Part 2: 项目特定 - SilentFeed 工程规范
 
