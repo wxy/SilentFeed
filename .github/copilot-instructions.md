@@ -11,6 +11,11 @@ applyTo: "**"
 **⚠️ 在开始任何工作前，必须读取并完全理解执行**：
 [../.evolution-skills/constitution/ai-evolution-constitution.md](../.evolution-skills/constitution/ai-evolution-constitution.md)
 
+**🎯 特别关注**：
+- **规则 5 (_execution-precheck)**：每次回复前的自检清单（最高优先级）
+- 这不是"建议"，而是"必执行"的纪律规则
+- 参考技能文件：[../.evolution-skills/skills/_execution-precheck/SKILL.md](../.evolution-skills/skills/_execution-precheck/SKILL.md)
+
 ## Part 2: 项目特定 - SilentFeed 工程规范
 
 ### 🏗️ 项目大图景与架构

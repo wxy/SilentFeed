@@ -156,6 +156,12 @@ Usage notes:
 </skill>
 
 <skill>
+<name>_execution-precheck</name>
+<description>执行前检查清单。每次回复前必须自动进行的自我检查，确保没有遗漏强制规则。这是最高优先级的纪律规则，用于防止"遗忘"类的自我欺骗。</description>
+<file>.evolution-skills/skills/_execution-precheck/SKILL.md</file>
+</skill>
+
+<skill>
 <name>_file-output-guard</name>
 <description>创建/输出文件的安全约束。禁止 HERE 文档创建文件；大文件输出需分段写入同一文件，避免会话超限。</description>
 <file>.evolution-skills/skills/_file-output-guard/SKILL.md</file>
